@@ -64,6 +64,31 @@ DETAIL_TIMEOUT_RE = re.compile(r"(timeout|timed out|err_timed_out)", re.IGNORECA
 _LOCATION_COORD_OVERRIDES: dict[str, tuple[float, float]] = {
     "victoria, australia": (-37.8136, 144.9631),  # Melbourne CBD anchor
     "melbourne, australia": (-37.8136, 144.9631),
+    "sydney, australia": (-33.8688, 151.2093),
+    "brisbane, australia": (-27.4698, 153.0251),
+    "adelaide, australia": (-34.9285, 138.6007),
+    "perth, australia": (-31.9523, 115.8613),
+    "canberra, australia": (-35.2809, 149.1300),
+    "hobart, australia": (-42.8821, 147.3272),
+    "darwin, australia": (-12.4634, 130.8456),
+}
+_AUSTRALIA_WIDE_CITY_ANCHORS: tuple[str, ...] = (
+    "Melbourne, Australia",
+    "Sydney, Australia",
+    "Brisbane, Australia",
+    "Adelaide, Australia",
+    "Perth, Australia",
+    "Canberra, Australia",
+    "Hobart, Australia",
+    "Darwin, Australia",
+)
+_AUSTRALIA_WIDE_LOCATION_NAMES = {
+    "australia",
+    "australia wide",
+    "australian wide",
+    "nation wide",
+    "nationwide",
+    "national",
 }
 
 
@@ -121,6 +146,17 @@ def _location_slug(location_name: str) -> str:
     normalized = str(location_name or "").strip().lower()
     if "melbourne" in normalized:
         return "melbourne"
+    for city in (
+        "sydney",
+        "brisbane",
+        "adelaide",
+        "perth",
+        "canberra",
+        "hobart",
+        "darwin",
+    ):
+        if city in normalized:
+            return city
     if "victoria" in normalized and "australia" in normalized:
         return "melbourne"
     return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
@@ -137,6 +173,17 @@ def _location_coordinates(location_name: str | None) -> tuple[float, float] | No
     if "melbourne" in normalized:
         return _LOCATION_COORD_OVERRIDES["melbourne, australia"]
     return None
+
+
+def _is_australia_wide_location(location_name: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", " ", str(location_name or "").lower()).strip()
+    return normalized in _AUSTRALIA_WIDE_LOCATION_NAMES
+
+
+def _scan_location_anchors(location_names: list[str]) -> list[str]:
+    if any(_is_australia_wide_location(location) for location in location_names):
+        return list(_AUSTRALIA_WIDE_CITY_ANCHORS)
+    return list(location_names)
 
 
 def build_marketplace_search_url(
@@ -522,7 +569,7 @@ class MarketplaceScanner:
                 "Set mission locations before scanning."
             )
 
-        primary_location = hard_locations[0]
+        search_locations = _scan_location_anchors(hard_locations)
         radius_km = location_scope.get("radius_km")
         if radius_km is None:
             hard_radius_km = hard_filters.get("radius_km")
@@ -556,7 +603,7 @@ class MarketplaceScanner:
         detail_used = 0
         consecutive_detail_timeouts = 0
 
-        for query in queries:
+        for query_index, query in enumerate(queries):
             self._raise_if_cancelled(cancel_requested)
             if time.monotonic() - scan_started > int(
                 mission["scan_config"]["run_time_budget_minutes"]
@@ -565,16 +612,17 @@ class MarketplaceScanner:
                     log("Time budget reached; stopping mission scan.")
                 break
 
+            search_location = search_locations[query_index % len(search_locations)]
             if log:
                 radius_suffix = f", radius={radius_km}km" if radius_km is not None else ""
-                log(f"  query: {query} (location={primary_location}{radius_suffix})")
+                log(f"  query: {query} (location={search_location}{radius_suffix})")
             page = await context.new_page()
             try:
                 page.set_default_timeout(self.timeout_ms)
                 await page.goto(
                     build_marketplace_search_url(
                         query,
-                        location_name=primary_location,
+                        location_name=search_location,
                         radius_km=radius_km,
                     ),
                     wait_until="domcontentloaded",
@@ -896,6 +944,15 @@ class MarketplaceScanner:
                             value_resale_candidate,
                             log=log,
                         )
+                    self._persist_match_price_observation(
+                        match_record=match_record,
+                        mission=mission,
+                        candidate_resolution=candidate_resolution,
+                        value_resale_candidate=value_resale_candidate,
+                        price_evidence=price_evidence,
+                        query=query,
+                        log=log,
+                    )
 
                     should_alert = score["decision_band"] == "strong_match" or (
                         score["decision_band"] == "candidate"
@@ -1396,6 +1453,102 @@ class MarketplaceScanner:
             if log:
                 log(f"      value assessment persistence failed: {exc}")
 
+    def _persist_match_price_observation(
+        self,
+        *,
+        match_record: dict[str, Any],
+        mission: dict[str, Any],
+        candidate_resolution: dict[str, Any] | None,
+        value_resale_candidate: dict[str, Any] | None,
+        price_evidence: dict[str, Any],
+        query: str,
+        log: Callable[[str], None] | None,
+    ) -> None:
+        resolved = self._resolve_price_observation_product(
+            match_record=match_record,
+            mission=mission,
+            candidate_resolution=candidate_resolution,
+            value_resale_candidate=value_resale_candidate,
+        )
+        if resolved is None:
+            return
+        product, product_source = resolved
+        price_value = match_record.get("price_value")
+        if price_value is None:
+            price_value = parse_marketplace_price(match_record.get("price"))
+        if price_value is None:
+            return
+        try:
+            observation = self._price_service().ingest_observation_if_new_or_changed(
+                {
+                    "tracked_product_id": product["tracked_product_id"],
+                    "source": "facebook",
+                    "observed_at": match_record.get("captured_at"),
+                    "source_listing_id": match_record.get("listing_id"),
+                    "title": match_record.get("title"),
+                    "price": price_value,
+                    "currency": "AUD",
+                    "url": match_record.get("listing_url"),
+                    "location": match_record.get("location"),
+                    "seller_type": "private",
+                    "match_confidence": match_record.get("confidence"),
+                    "capture_mode": "scanner",
+                    "provenance": {
+                        "mission_id": match_record.get("mission_id"),
+                        "match_id": match_record.get("match_id"),
+                        "decision_band": match_record.get("decision_band"),
+                        "score": match_record.get("score"),
+                        "query": query,
+                        "price_evidence": price_evidence,
+                        "product_resolution": product_source,
+                    },
+                }
+            )
+            if observation.get("created"):
+                self._price_service().rebuild_benchmark_snapshot(
+                    product["tracked_product_id"]
+                )
+        except Exception as exc:
+            if log:
+                log(f"      price observation persistence failed: {exc}")
+
+    def _resolve_price_observation_product(
+        self,
+        *,
+        match_record: dict[str, Any],
+        mission: dict[str, Any],
+        candidate_resolution: dict[str, Any] | None,
+        value_resale_candidate: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any], str] | None:
+        if value_resale_candidate is not None:
+            product = value_resale_candidate.get("tracked_product")
+            if isinstance(product, dict):
+                return product, "value_resale_candidate"
+
+        if isinstance(candidate_resolution, dict) and candidate_resolution.get("matched"):
+            product = candidate_resolution.get("tracked_product")
+            if isinstance(product, dict):
+                return product, "requirement_candidate"
+
+        mission_id = str(mission.get("mission_id") or "")
+        if not mission_id:
+            return None
+        link = self.mission_service.get_primary_tracked_product_link(mission_id)
+        if link is None:
+            return None
+        product = self._price_service().get_tracked_product(
+            str(link.get("tracked_product_id") or "")
+        )
+        if not isinstance(product, dict):
+            return None
+        confidence = self._price_service().variant_match_confidence(
+            match=match_record,
+            tracked_product=product,
+        )
+        if confidence < VALUE_RESALE_MIN_VARIANT_CONFIDENCE:
+            return None
+        return product, "primary_tracked_product"
+
     async def _collect_cards_for_query(
         self,
         *,
@@ -1525,7 +1678,7 @@ class MarketplaceScanner:
                   const pushMedia = (value) => {
                     const cleaned = clean(value)
                     if (!cleaned) return
-                    if (!/^https?:\/\//i.test(cleaned)) return
+                    if (!/^https?:[/][/]/i.test(cleaned)) return
                     const key = cleaned.toLowerCase()
                     if (seenMedia.has(key)) return
                     seenMedia.add(key)
@@ -1542,7 +1695,7 @@ class MarketplaceScanner:
                     pushMedia(img.currentSrc || img.src || '')
                     const srcSet = clean(img.getAttribute('srcset') || img.getAttribute('data-srcset') || '')
                     if (srcSet) {
-                      const first = srcSet.split(',')[0]?.trim().split(/\s+/)[0]
+                      const first = srcSet.split(',')[0]?.trim().split(/\\s+/)[0]
                       pushMedia(first)
                     }
                     if (mediaUrls.length >= 12) break

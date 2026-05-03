@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MarketplaceMatchDetailScreen } from './match-detail-screen'
@@ -59,6 +60,19 @@ describe('MarketplaceMatchDetailScreen', () => {
             benchmark_freshness_status: 'fresh',
             benchmark_sample_size: 6,
           },
+          price_comparison: {
+            listing_price: 22500,
+            used_market_median: 25000,
+            retail_anchor_price: 31000,
+            retail_anchor_label: 'dealer_rrp',
+            fair_range_low: 21000,
+            fair_range_high: 26000,
+            delta_vs_used_median: { amount: -2500, percent: -10 },
+            delta_vs_retail_anchor: { amount: -8500, percent: -27.4 },
+            verdict: 'discount',
+            color: 'emerald',
+          },
+          user_feedback: null,
           updated_at: '2026-04-18T10:00:00Z',
         }),
       })
@@ -81,7 +95,103 @@ describe('MarketplaceMatchDetailScreen', () => {
     expect(screen.getByText(/requirement fit/i)).toBeInTheDocument()
     expect(screen.getByText(/listing is below the used median/i)).toBeInTheDocument()
     expect(screen.getByText(/condition certainty is weak/i)).toBeInTheDocument()
+    expect(screen.getByText(/price comparison/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/retail\/rrp/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/-10%/i)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('records not interested feedback from the detail screen', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          match_id: 'mp_match_feedback',
+          mission_id: 'mp_mission_1',
+          mission_name: 'GPU mission',
+          listing_id: '456',
+          listing_url: 'https://www.facebook.com/marketplace/item/456/',
+          title: 'RTX 3090 listing',
+          price: '$1,050',
+          location: 'Richmond VIC',
+          seller_name: 'GPU Seller',
+          captured_at: '2026-04-18T10:00:00Z',
+          score: 92,
+          decision_band: 'strong_match',
+          reasons_for: ['Good condition'],
+          reasons_against: [],
+          confidence: 0.91,
+          raw_text_snapshot: 'Visible listing text',
+          status: 'new',
+          metadata: {},
+          price_comparison: {
+            listing_price: 1050,
+            used_market_median: 1000,
+            delta_vs_used_median: { amount: 50, percent: 5 },
+            verdict: 'near_market',
+            color: 'amber',
+          },
+          user_feedback: null,
+          updated_at: '2026-04-18T10:00:00Z',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          match_id: 'mp_match_feedback',
+          mission_id: 'mp_mission_1',
+          mission_name: 'GPU mission',
+          listing_id: '456',
+          listing_url: 'https://www.facebook.com/marketplace/item/456/',
+          title: 'RTX 3090 listing',
+          price: '$1,050',
+          location: 'Richmond VIC',
+          seller_name: 'GPU Seller',
+          captured_at: '2026-04-18T10:00:00Z',
+          score: 92,
+          decision_band: 'strong_match',
+          reasons_for: ['Good condition'],
+          reasons_against: [],
+          confidence: 0.91,
+          raw_text_snapshot: 'Visible listing text',
+          status: 'new',
+          metadata: {},
+          price_comparison: {
+            listing_price: 1050,
+            used_market_median: 1000,
+            delta_vs_used_median: { amount: 50, percent: 5 },
+            verdict: 'near_market',
+            color: 'amber',
+          },
+          user_feedback: {
+            match_id: 'mp_match_feedback',
+            feedback: 'not_interested',
+            note: null,
+            created_at: '2026-04-18T10:01:00Z',
+            updated_at: '2026-04-18T10:01:00Z',
+          },
+          updated_at: '2026-04-18T10:01:00Z',
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchDetailScreen apiKey="" matchId="mp_match_feedback" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('RTX 3090 listing')).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByRole('button', { name: /not interested/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/cockpit/marketplace/matches/mp_match_feedback/feedback',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ feedback: 'not_interested', note: null }),
+        }),
+      )
+    })
   })
 
   it('renders listing photo gallery when media urls are available', async () => {

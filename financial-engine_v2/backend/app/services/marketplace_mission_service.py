@@ -531,6 +531,7 @@ class MarketplaceMissionService:
             deleted_benchmark_scores = 0
             deleted_listing_matches = 0
             deleted_value_assessments = 0
+            deleted_match_feedback = 0
             if match_ids:
                 placeholders = ",".join("?" for _ in match_ids)
                 cur_scores = self._conn.execute(
@@ -557,6 +558,14 @@ class MarketplaceMissionService:
                     match_ids,
                 )
                 deleted_value_assessments = max(cur_value_assessments.rowcount, 0)
+                cur_match_feedback = self._conn.execute(
+                    f"""
+                    DELETE FROM marketplace_match_feedback
+                    WHERE match_id IN ({placeholders})
+                    """,
+                    match_ids,
+                )
+                deleted_match_feedback = max(cur_match_feedback.rowcount, 0)
 
             cur_alerts = self._conn.execute(
                 "DELETE FROM marketplace_alerts WHERE mission_id = ?",
@@ -603,6 +612,7 @@ class MarketplaceMissionService:
             "deleted_mission_product_links": deleted_links,
             "deleted_mission_candidate_products": deleted_candidates,
             "deleted_match_value_assessments": deleted_value_assessments,
+            "deleted_match_feedback": deleted_match_feedback,
         }
 
     def due_missions(self, *, now: datetime | None = None) -> list[dict[str, Any]]:

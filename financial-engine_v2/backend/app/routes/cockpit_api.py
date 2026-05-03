@@ -4295,6 +4295,7 @@ class MarketplaceMissionDeleteResponse(BaseModel):
     deleted_mission_product_links: int = 0
     deleted_mission_candidate_products: int = 0
     deleted_match_value_assessments: int = 0
+    deleted_match_feedback: int = 0
 
 
 class MarketplaceMissionUpsertRequest(BaseModel):
@@ -4363,6 +4364,8 @@ class MarketplaceMatchRecord(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     benchmark: dict[str, Any] | None = None
     value_context: dict[str, Any] | None = None
+    price_comparison: dict[str, Any] | None = None
+    user_feedback: dict[str, Any] | None = None
     updated_at: str
 
 
@@ -4372,6 +4375,11 @@ class MarketplaceMatchListResponse(BaseModel):
 
 class MarketplaceMatchStatusRequest(BaseModel):
     status: str
+
+
+class MarketplaceMatchFeedbackRequest(BaseModel):
+    feedback: Literal["interested", "not_interested"]
+    note: str | None = None
 
 
 class MarketplaceBenchmarkReviewRequest(BaseModel):
@@ -5041,6 +5049,31 @@ def _enrich_marketplace_match_with_value_context(
             snapshot=snapshot,
         )
     return {**match, "value_context": value_context}
+
+
+def _attach_marketplace_match_backend_payloads(
+    service: CockpitService,
+    price_service: MarketplacePriceIntelligenceService,
+    match: dict[str, Any],
+    *,
+    feedback_by_match_id: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    match_id = str(match.get("match_id") or "")
+    user_feedback = (
+        feedback_by_match_id.get(match_id)
+        if isinstance(feedback_by_match_id, dict)
+        else service.state_store.get_marketplace_match_feedback(match_id)
+    )
+    return {
+        **match,
+        "price_comparison": price_service.build_match_price_comparison(
+            match=match,
+            value_context=match.get("value_context")
+            if isinstance(match.get("value_context"), dict)
+            else None,
+        ),
+        "user_feedback": user_feedback,
+    }
 
 
 def _list_marketplace_scan_jobs(
@@ -6842,14 +6875,23 @@ async def cockpit_list_marketplace_matches(
             limit=limit,
         )
         enriched_items: list[dict[str, Any]] = []
+        feedback_by_match_id = service.state_store.list_marketplace_match_feedback(
+            [str(item.get("match_id") or "") for item in items]
+        )
         for item in items:
             try:
                 enriched = benchmark_service.enrich_match(item)
+                enriched = _enrich_marketplace_match_with_value_context(
+                    mission_service,
+                    price_service,
+                    enriched,
+                )
                 enriched_items.append(
-                    _enrich_marketplace_match_with_value_context(
-                        mission_service,
+                    _attach_marketplace_match_backend_payloads(
+                        service,
                         price_service,
                         enriched,
+                        feedback_by_match_id=feedback_by_match_id,
                     )
                 )
             except Exception:
@@ -6857,7 +6899,14 @@ async def cockpit_list_marketplace_matches(
                     "Marketplace benchmark enrichment failed for %s",
                     item.get("match_id"),
                 )
-                enriched_items.append({**item, "benchmark": None})
+                enriched_items.append(
+                    _attach_marketplace_match_backend_payloads(
+                        service,
+                        price_service,
+                        {**item, "benchmark": None, "value_context": None},
+                        feedback_by_match_id=feedback_by_match_id,
+                    )
+                )
     except Exception as exc:
         logger.exception("Marketplace match listing failed")
         raise HTTPException(
@@ -6893,9 +6942,18 @@ async def cockpit_get_marketplace_match(match_id: str):
             price_service,
             match,
         )
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            match,
+        )
     except Exception:
         logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
-        match = {**match, "benchmark": None, "value_context": None}
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            {**match, "benchmark": None, "value_context": None},
+        )
     return MarketplaceMatchRecord(**match)
 
 
@@ -6935,9 +6993,65 @@ async def cockpit_update_marketplace_match(
             match,
             persist=True,
         )
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            match,
+        )
     except Exception:
         logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
-        match = {**match, "benchmark": None, "value_context": None}
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            {**match, "benchmark": None, "value_context": None},
+        )
+    return MarketplaceMatchRecord(**match)
+
+
+@router.patch(
+    "/marketplace/matches/{match_id}/feedback",
+    response_model=MarketplaceMatchRecord,
+)
+async def cockpit_update_marketplace_match_feedback(
+    match_id: str,
+    payload: MarketplaceMatchFeedbackRequest,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        benchmark_service = _marketplace_benchmark_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
+        match = await asyncio.to_thread(mission_service.get_match, match_id)
+        if match is None:
+            raise MarketplaceMissionNotFound(match_id)
+        await asyncio.to_thread(
+            service.state_store.set_marketplace_match_feedback,
+            match_id,
+            payload.feedback,
+            note=payload.note,
+        )
+        match = benchmark_service.enrich_match(match, persist=True)
+        match = _enrich_marketplace_match_with_value_context(
+            mission_service,
+            price_service,
+            match,
+            persist=True,
+        )
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            match,
+        )
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace match not found: {exc}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Marketplace match feedback update failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace match feedback update failed: {str(exc)}",
+        ) from exc
     return MarketplaceMatchRecord(**match)
 
 
@@ -7002,9 +7116,18 @@ async def cockpit_update_marketplace_benchmark_review(
             price_service,
             match,
         )
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            match,
+        )
     except Exception:
         logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
-        match = {**match, "benchmark": None, "value_context": None}
+        match = _attach_marketplace_match_backend_payloads(
+            service,
+            price_service,
+            {**match, "benchmark": None, "value_context": None},
+        )
     return MarketplaceMatchRecord(**match)
 
 

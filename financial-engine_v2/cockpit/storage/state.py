@@ -497,6 +497,21 @@ class StateStore:
             "CREATE INDEX IF NOT EXISTS idx_marketplace_match_value_assessments_mission "
             "ON marketplace_match_value_assessments(mission_id, tracked_product_id)"
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_match_feedback (
+                match_id TEXT PRIMARY KEY,
+                feedback TEXT NOT NULL CHECK (feedback IN ('interested', 'not_interested')),
+                note TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_match_feedback_feedback "
+            "ON marketplace_match_feedback(feedback, updated_at DESC)"
+        )
         # Holdings: cockpit-local portfolio state. NOT financial truth, NOT
         # memory reasoning. See SYSTEM_CONTRACT §1.2.
         cur.execute(
@@ -978,6 +993,91 @@ class StateStore:
             cur = self.conn.execute("delete from watchlist")
             self.conn.commit()
             return cur.rowcount
+
+    # ------------------------------------------------------------------ #
+    # Marketplace match feedback                                          #
+    # ------------------------------------------------------------------ #
+
+    def set_marketplace_match_feedback(
+        self,
+        match_id: str,
+        feedback: str,
+        *,
+        note: str | None = None,
+        updated_at: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_match_id = str(match_id or "").strip()
+        normalized_feedback = str(feedback or "").strip().lower()
+        if not normalized_match_id:
+            raise ValueError("match_id is required")
+        if normalized_feedback not in {"interested", "not_interested"}:
+            raise ValueError(f"invalid marketplace match feedback: {feedback}")
+        stamp = str(updated_at or "").strip() or datetime.now(timezone.utc).isoformat()
+        clean_note = str(note).strip() if note is not None else None
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT INTO marketplace_match_feedback(
+                    match_id, feedback, note, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(match_id) DO UPDATE SET
+                    feedback = excluded.feedback,
+                    note = excluded.note,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    normalized_match_id,
+                    normalized_feedback,
+                    clean_note or None,
+                    stamp,
+                    stamp,
+                ),
+            )
+            self.conn.commit()
+        feedback_row = self.get_marketplace_match_feedback(normalized_match_id)
+        if feedback_row is None:
+            raise RuntimeError("failed to persist marketplace match feedback")
+        return feedback_row
+
+    def get_marketplace_match_feedback(self, match_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            SELECT match_id, feedback, note, created_at, updated_at
+            FROM marketplace_match_feedback
+            WHERE match_id = ?
+            LIMIT 1
+            """,
+            (str(match_id or "").strip(),),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def list_marketplace_match_feedback(
+        self,
+        match_ids: list[str],
+    ) -> dict[str, dict[str, Any]]:
+        normalized = [str(match_id or "").strip() for match_id in match_ids]
+        normalized = [match_id for match_id in normalized if match_id]
+        if not normalized:
+            return {}
+        placeholders = ",".join("?" for _ in normalized)
+        rows = self.conn.execute(
+            f"""
+            SELECT match_id, feedback, note, created_at, updated_at
+            FROM marketplace_match_feedback
+            WHERE match_id IN ({placeholders})
+            """,  # noqa: S608 - placeholders are generated from argument count only.
+            tuple(normalized),
+        ).fetchall()
+        return {str(row["match_id"]): dict(row) for row in rows}
+
+    def clear_marketplace_match_feedback(self, match_id: str) -> bool:
+        with self._lock:
+            cur = self.conn.execute(
+                "DELETE FROM marketplace_match_feedback WHERE match_id = ?",
+                (str(match_id or "").strip(),),
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
 
     # ------------------------------------------------------------------ #
     # Holdings (cockpit-local portfolio state)                             #

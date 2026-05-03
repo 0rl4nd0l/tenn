@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MarketplaceMatchesScreen } from './matches-screen'
@@ -68,6 +69,16 @@ describe('MarketplaceMatchesScreen', () => {
                 benchmark_freshness_status: 'fresh',
                 benchmark_sample_size: 6,
               },
+              price_comparison: {
+                listing_price: 22500,
+                used_market_median: 25000,
+                retail_anchor_price: 31000,
+                delta_vs_used_median: { amount: -2500, percent: -10 },
+                delta_vs_retail_anchor: { amount: -8500, percent: -27.4 },
+                verdict: 'discount',
+                color: 'emerald',
+              },
+              user_feedback: null,
               updated_at: '2026-04-18T10:00:00Z',
             },
           ],
@@ -80,7 +91,7 @@ describe('MarketplaceMatchesScreen', () => {
     await waitFor(() => {
       expect(screen.getByText('2014 Toyota Hilux SR5 4x4')).toBeInTheDocument()
     })
-    expect(screen.getByText('$22,500')).toBeInTheDocument()
+    expect(screen.getAllByText('$22,500').length).toBeGreaterThan(0)
     expect(screen.getByText(/below local median/i)).toBeInTheDocument()
     expect(screen.getByText(/photos: 2/i)).toBeInTheDocument()
     expect(screen.getByText(/source: search card/i)).toBeInTheDocument()
@@ -92,7 +103,107 @@ describe('MarketplaceMatchesScreen', () => {
     expect(screen.getByText(/matched candidate/i)).toBeInTheDocument()
     expect(screen.getByText(/candidate match/i)).toBeInTheDocument()
     expect(screen.getByText(/listing is below the used median/i)).toBeInTheDocument()
+    expect(screen.getByText(/price comparison/i)).toBeInTheDocument()
+    expect(screen.getByText(/marketplace avg/i)).toBeInTheDocument()
+    expect(screen.getByText(/-10%/i)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('records interested feedback on a match card', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              match_id: 'mp_match_feedback',
+              mission_id: 'mp_mission_1',
+              mission_name: 'GPU mission',
+              listing_id: '789',
+              listing_url: 'https://www.facebook.com/marketplace/item/789/',
+              title: 'RTX 3090 24GB',
+              price: '$900',
+              price_value: 900,
+              location: 'Sydney NSW',
+              captured_at: '2026-04-18T10:00:00Z',
+              score: 91,
+              decision_band: 'strong_match',
+              reasons_for: ['Strong product match'],
+              reasons_against: [],
+              confidence: 0.9,
+              raw_text_snapshot: 'Visible listing text',
+              status: 'new',
+              metadata: {},
+              price_comparison: {
+                listing_price: 900,
+                used_market_median: 1200,
+                delta_vs_used_median: { amount: -300, percent: -25 },
+                verdict: 'strong_discount',
+                color: 'green',
+              },
+              user_feedback: null,
+              updated_at: '2026-04-18T10:00:00Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          match_id: 'mp_match_feedback',
+          mission_id: 'mp_mission_1',
+          mission_name: 'GPU mission',
+          listing_id: '789',
+          listing_url: 'https://www.facebook.com/marketplace/item/789/',
+          title: 'RTX 3090 24GB',
+          price: '$900',
+          price_value: 900,
+          location: 'Sydney NSW',
+          captured_at: '2026-04-18T10:00:00Z',
+          score: 91,
+          decision_band: 'strong_match',
+          reasons_for: ['Strong product match'],
+          reasons_against: [],
+          confidence: 0.9,
+          raw_text_snapshot: 'Visible listing text',
+          status: 'new',
+          metadata: {},
+          price_comparison: {
+            listing_price: 900,
+            used_market_median: 1200,
+            delta_vs_used_median: { amount: -300, percent: -25 },
+            verdict: 'strong_discount',
+            color: 'green',
+          },
+          user_feedback: {
+            match_id: 'mp_match_feedback',
+            feedback: 'interested',
+            note: null,
+            created_at: '2026-04-18T10:01:00Z',
+            updated_at: '2026-04-18T10:01:00Z',
+          },
+          updated_at: '2026-04-18T10:01:00Z',
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchesScreen apiKey="" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('RTX 3090 24GB')).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByRole('button', { name: /^interested$/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/cockpit/marketplace/matches/mp_match_feedback/feedback',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ feedback: 'interested', note: null }),
+        }),
+      )
+    })
   })
 
   it('shows a photo unavailable state when a listing has no media', async () => {

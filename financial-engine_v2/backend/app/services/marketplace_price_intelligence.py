@@ -17,7 +17,7 @@ from cockpit.storage.state import StateStore
 PRODUCT_CATEGORIES = {"gpu", "cpu", "ram", "ssd"}
 PRODUCT_STATUSES = {"active", "inactive"}
 OBSERVATION_REVIEW_STATES = {"pending_review", "accepted", "rejected"}
-CAPTURE_MODES = {"manual", "test_seed", "future_adapter"}
+CAPTURE_MODES = {"manual", "scanner", "test_seed", "future_adapter"}
 VALUE_CONFIDENCE_ORDER = {"low": 0, "medium": 1, "high": 2}
 
 
@@ -95,6 +95,24 @@ def _retail_anchor_price(retail_anchor: dict[str, Any]) -> float | None:
         if parsed is not None:
             return parsed
     return None
+
+
+def _retail_anchor_label(retail_anchor: dict[str, Any]) -> str | None:
+    for key in ("label", "anchor_label", "source", "retailer", "retailer_name"):
+        value = _clean(retail_anchor.get(key))
+        if value:
+            return value
+    return None
+
+
+def _price_delta(listing_price: float | None, anchor_price: float | None) -> dict[str, Any]:
+    if listing_price is None or anchor_price is None or anchor_price <= 0:
+        return {"amount": None, "percent": None}
+    amount = listing_price - anchor_price
+    return {
+        "amount": round(amount, 2),
+        "percent": round((amount / anchor_price) * 100, 1),
+    }
 
 
 def _value_label(score: float | None) -> str:
@@ -671,6 +689,49 @@ class MarketplacePriceIntelligenceService:
         ).fetchone()
         return self._observation_from_row(row)
 
+    def latest_observation_for_listing(
+        self,
+        payload: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        tracked_product_id = _clean(payload.get("tracked_product_id"))
+        source = _lower(payload.get("source")) or "manual"
+        title = _clean(payload.get("title"))
+        price = _parse_price(payload.get("price"))
+        if not tracked_product_id or not title or price is None:
+            return None
+        fingerprint = listing_fingerprint(
+            source=source,
+            source_listing_id=_clean(payload.get("source_listing_id")) or None,
+            url=_clean(payload.get("url")) or None,
+            title=title,
+            price=price,
+            location=_clean(payload.get("location")) or None,
+        )
+        row = self._conn.execute(
+            """
+            SELECT *
+            FROM marketplace_price_observations
+            WHERE tracked_product_id = ?
+              AND listing_fingerprint = ?
+            ORDER BY observed_at DESC, created_at DESC
+            LIMIT 1
+            """,
+            (tracked_product_id, fingerprint),
+        ).fetchone()
+        return self._observation_from_row(row) if row else None
+
+    def ingest_observation_if_new_or_changed(
+        self,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        price = _parse_price(payload.get("price"))
+        existing = self.latest_observation_for_listing(payload)
+        if existing is not None and price is not None:
+            if abs(float(existing["price"]) - float(price)) < 0.01:
+                return {**existing, "created": False, "deduped": True}
+        observation = self.ingest_observation(payload)
+        return {**observation, "created": True, "deduped": False}
+
     def list_observations(
         self, *, tracked_product_id: str | None = None, limit: int = 100
     ) -> list[dict[str, Any]]:
@@ -1028,6 +1089,7 @@ class MarketplacePriceIntelligenceService:
             "used_median": used_median,
             "listing_price": listing_price,
             "retail_anchor_price": retail_price,
+            "retail_anchor_label": _retail_anchor_label(retail_anchor),
             "price_movement_summary": self._price_movement_summary(match),
             "explanation": explanation,
             "warnings": warnings,
@@ -1165,6 +1227,93 @@ class MarketplacePriceIntelligenceService:
             return None
         parsed = _json_loads(row["assessment_json"], {})
         return parsed if isinstance(parsed, dict) else None
+
+    def build_match_price_comparison(
+        self,
+        *,
+        match: dict[str, Any],
+        value_context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        listing_price = _parse_price(match.get("price_value"))
+        if listing_price is None:
+            listing_price = _parse_price(match.get("price"))
+        value_context = value_context if isinstance(value_context, dict) else {}
+        used_median = _parse_price(value_context.get("used_median"))
+        fair_low = _parse_price(value_context.get("fair_low"))
+        fair_high = _parse_price(value_context.get("fair_high"))
+        retail_anchor_price = _parse_price(value_context.get("retail_anchor_price"))
+        retail_anchor_label = _clean(value_context.get("retail_anchor_label")) or None
+        benchmark = match.get("benchmark") if isinstance(match.get("benchmark"), dict) else {}
+        if retail_anchor_price is None:
+            for key in ("current_price", "rrp_price", "rrp", "retail_anchor_price"):
+                retail_anchor_price = _parse_price(benchmark.get(key))
+                if retail_anchor_price is not None:
+                    break
+        if retail_anchor_label is None and retail_anchor_price is not None:
+            retail_anchor_label = _clean(benchmark.get("source")) or None
+
+        anchor_price = used_median if used_median is not None else retail_anchor_price
+        anchor_kind = "used_market_median" if used_median is not None else "retail_anchor"
+        if anchor_price is None:
+            anchor_kind = "none"
+
+        used_delta = _price_delta(listing_price, used_median)
+        retail_delta = _price_delta(listing_price, retail_anchor_price)
+        verdict = "unavailable"
+        color = "slate"
+        if listing_price is None:
+            verdict = "missing_listing_price"
+        elif used_median is not None and used_median > 0:
+            delta_pct = used_delta["percent"]
+            if delta_pct is not None and delta_pct <= -15:
+                verdict = "strong_discount"
+                color = "green"
+            elif delta_pct is not None and delta_pct <= -5:
+                verdict = "discount"
+                color = "emerald"
+            elif delta_pct is not None and delta_pct <= 10:
+                verdict = "near_market"
+                color = "amber"
+            else:
+                verdict = "above_market"
+                color = "red"
+        elif retail_anchor_price is not None and retail_anchor_price > 0:
+            delta_pct = retail_delta["percent"]
+            if delta_pct is not None and delta_pct <= -35:
+                verdict = "below_retail_anchor"
+                color = "emerald"
+            elif delta_pct is not None and delta_pct <= -10:
+                verdict = "modest_retail_discount"
+                color = "amber"
+            else:
+                verdict = "close_to_retail"
+                color = "red"
+
+        return {
+            "listing_price": listing_price,
+            "currency": "AUD",
+            "used_market_median": used_median,
+            "retail_anchor_price": retail_anchor_price,
+            "retail_anchor_label": retail_anchor_label,
+            "fair_range_low": fair_low,
+            "fair_range_high": fair_high,
+            "delta_vs_used_median": used_delta,
+            "delta_vs_retail_anchor": retail_delta,
+            "primary_anchor": {
+                "kind": anchor_kind,
+                "price": anchor_price,
+            },
+            "verdict": verdict,
+            "color": color,
+        }
+
+    def variant_match_confidence(
+        self,
+        *,
+        match: dict[str, Any],
+        tracked_product: dict[str, Any],
+    ) -> float:
+        return self._variant_match_confidence(match, tracked_product)
 
     def _variant_match_confidence(
         self,

@@ -104,6 +104,38 @@ def test_build_marketplace_search_url_anchors_victoria_scope_to_melbourne_slug()
     assert "longitude=144.9631" in url
 
 
+def test_build_marketplace_search_url_anchors_sydney_scope() -> None:
+    url = scanner.build_marketplace_search_url(
+        "RTX 3090",
+        location_name="Sydney, Australia",
+        radius_km=160,
+    )
+
+    assert url.startswith("https://www.facebook.com/marketplace/sydney/search?")
+    assert "query=RTX+3090" in url
+    assert "radiusKM=160" in url
+    assert "latitude=-33.8688" in url
+    assert "longitude=151.2093" in url
+
+
+@pytest.mark.parametrize("scope", ["Australia", "Australia-wide", "Nationwide"])
+def test_scan_location_anchors_expands_australia_wide_scope(scope: str) -> None:
+    anchors = scanner._scan_location_anchors([scope])
+
+    assert anchors[:3] == [
+        "Melbourne, Australia",
+        "Sydney, Australia",
+        "Brisbane, Australia",
+    ]
+    assert len(anchors) == 8
+
+
+def test_scan_location_anchors_keeps_state_scope_single_anchor() -> None:
+    assert scanner._scan_location_anchors(["Victoria, Australia"]) == [
+        "Victoria, Australia"
+    ]
+
+
 def test_detail_timeout_backoff_scales_for_consecutive_timeouts() -> None:
     marketplace_scanner = scanner.MarketplaceScanner(
         SimpleNamespace(),
@@ -271,6 +303,59 @@ def test_scanner_preflight_prepares_requirement_candidates_before_queries(
     assert f"radiusKM={scanner.DEFAULT_MARKETPLACE_RADIUS_KM}" in context.pages[0].url
     assert "candidate_search_terms" in prepared["deployment_args"]
     assert mission_service.list_mission_candidate_products(mission["mission_id"])
+
+
+def test_scanner_rotates_australia_wide_scope_across_city_anchors(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    mission_service, price_service = _state_services(tmp_path)
+    mission = mission_service.create_mission(
+        {
+            "name": "Australia-wide GPU",
+            "brief": "Find RTX cards nationwide.",
+            "category_hint": "gpu",
+            "hard_filters": {
+                "include_keywords": ["RTX 3090", "RTX 4090", "RTX 4080"],
+                "location_names": ["Australia"],
+            },
+            "search_config": {"max_queries_per_run": 6},
+            "scan_config": {
+                "detail_open_target": 1,
+                "candidate_card_target": 1,
+                "run_time_budget_minutes": 20,
+            },
+            "deployment_args": {"requirement_profile": {"mode": "exact_product"}},
+        }
+    )
+
+    async def fake_collect(self, **kwargs):
+        return []
+
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+
+    marketplace_scanner = scanner.MarketplaceScanner(
+        mission_service,
+        price_service=price_service,
+    )
+    context = _FakeContext()
+    result = asyncio.run(
+        marketplace_scanner._scan_mission(
+            context=context,
+            mission=mission,
+            log=None,
+            cancel_requested=None,
+        )
+    )
+
+    urls = [page.url for page in context.pages]
+    assert result["scan_status"] == "completed"
+    assert len(urls) == 6
+    assert any("/marketplace/melbourne/search?" in url for url in urls)
+    assert any("/marketplace/sydney/search?" in url for url in urls)
+    assert any("/marketplace/brisbane/search?" in url for url in urls)
+    assert any("latitude=-37.8136" in url and "longitude=144.9631" in url for url in urls)
+    assert any("latitude=-33.8688" in url and "longitude=151.2093" in url for url in urls)
 
 
 def test_scanner_fails_closed_when_requirement_preparation_fails(monkeypatch) -> None:
@@ -1002,6 +1087,15 @@ def test_exact_product_scanner_bypasses_requirement_candidate_resolution(
     monkeypatch,
 ) -> None:
     mission_service, price_service = _state_services(tmp_path)
+    tracked_product = price_service.create_tracked_product(
+        {
+            "category": "gpu",
+            "brand": "NVIDIA",
+            "model_family": "RTX 4070",
+            "variant": "Super",
+            "aliases": ["NVIDIA RTX 4070 Super"],
+        }
+    )
     mission = mission_service.create_mission(
         {
             "name": "RTX 4070 Super",
@@ -1020,6 +1114,10 @@ def test_exact_product_scanner_bypasses_requirement_candidate_resolution(
                 "run_time_budget_minutes": 20,
             },
         }
+    )
+    mission_service.link_primary_tracked_product(
+        mission["mission_id"],
+        tracked_product["tracked_product_id"],
     )
     card = {
         "listing_id": "exact",
@@ -1078,3 +1176,35 @@ def test_exact_product_scanner_bypasses_requirement_candidate_resolution(
     assert result["matches_saved"] == 1
     assert result["rejected_by_candidate_mismatch"] == 0
     assert result["detail_rejection_reasons"] == {}
+
+    observations = price_service.list_observations(
+        tracked_product_id=tracked_product["tracked_product_id"]
+    )
+    snapshot = price_service.latest_benchmark_snapshot(
+        tracked_product["tracked_product_id"]
+    )
+    assert len(observations) == 1
+    assert observations[0]["source_listing_id"] == "exact"
+    assert observations[0]["capture_mode"] == "scanner"
+    assert observations[0]["price"] == 700
+    assert observations[0]["provenance"]["mission_id"] == mission["mission_id"]
+    assert observations[0]["provenance"]["product_resolution"] == "primary_tracked_product"
+    assert snapshot is not None
+    assert snapshot["total_sample_size"] == 1
+
+    asyncio.run(
+        marketplace_scanner._scan_mission(
+            context=_FakeContext(),
+            mission=mission,
+            log=None,
+            cancel_requested=None,
+        )
+    )
+    assert (
+        len(
+            price_service.list_observations(
+                tracked_product_id=tracked_product["tracked_product_id"]
+            )
+        )
+        == 1
+    )

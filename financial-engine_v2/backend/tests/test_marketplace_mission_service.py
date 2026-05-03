@@ -239,6 +239,7 @@ def test_marketplace_mission_delete_cleans_related_records(tmp_path: Path) -> No
         match_id=match["match_id"],
         trigger_reason="new_listing",
     )
+    store.set_marketplace_match_feedback(match["match_id"], "interested")
     service.upsert_seen_listing(
         mission["mission_id"],
         {
@@ -253,8 +254,10 @@ def test_marketplace_mission_delete_cleans_related_records(tmp_path: Path) -> No
 
     assert deleted["deleted_missions"] == 1
     assert deleted["deleted_matches"] >= 1
+    assert deleted["deleted_match_feedback"] == 1
     assert service.get_mission(mission["mission_id"]) is None
     assert service.get_match(match["match_id"]) is None
+    assert store.get_marketplace_match_feedback(match["match_id"]) is None
     assert service.list_alerts(mission_id=mission["mission_id"]) == []
 
 

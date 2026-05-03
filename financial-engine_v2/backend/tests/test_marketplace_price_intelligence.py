@@ -208,6 +208,47 @@ def test_observation_ingest_updates_listing_timeline(tmp_path: Path) -> None:
     assert len(timelines[0]["price_history"]) == 2
 
 
+def test_observation_ingest_if_new_or_changed_skips_same_price(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = _tracked_gpu(service)
+    payload = {
+        "tracked_product_id": product["tracked_product_id"],
+        "source": "facebook",
+        "observed_at": "2026-04-20T10:00:00+00:00",
+        "source_listing_id": "listing-1",
+        "title": "RTX 4070 Super 12GB",
+        "price": 700,
+        "capture_mode": "scanner",
+        "review_state": "accepted",
+    }
+
+    first = service.ingest_observation_if_new_or_changed(payload)
+    duplicate = service.ingest_observation_if_new_or_changed(
+        {**payload, "observed_at": "2026-04-21T10:00:00+00:00"}
+    )
+    changed = service.ingest_observation_if_new_or_changed(
+        {
+            **payload,
+            "observed_at": "2026-04-22T10:00:00+00:00",
+            "price": 650,
+        }
+    )
+
+    observations = service.list_observations(
+        tracked_product_id=product["tracked_product_id"]
+    )
+    timelines = service.list_timelines(tracked_product_id=product["tracked_product_id"])
+    assert first["created"] is True
+    assert duplicate["created"] is False
+    assert duplicate["deduped"] is True
+    assert changed["created"] is True
+    assert len(observations) == 2
+    assert timelines[0]["latest_price"] == 650
+    assert timelines[0]["price_change_count"] == 1
+
+
 def test_benchmark_rollup_freshness_and_confidence_states(tmp_path: Path) -> None:
     service = _service(tmp_path)
     product = _tracked_gpu(service)
@@ -302,6 +343,56 @@ def test_match_value_assessment_uses_latest_snapshot_without_changing_match_scor
     assert value["fair_high"] == 680
     assert value["used_median"] == 660
     assert service.get_match_value_assessment(match["match_id"])["value_score"] == value["value_score"]
+
+
+def test_match_price_comparison_reports_used_and_retail_deltas(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+    product = _tracked_gpu(service)
+    for idx, price in enumerate([620, 640, 660, 680, 700]):
+        service.ingest_observation(
+            {
+                "tracked_product_id": product["tracked_product_id"],
+                "source": "facebook",
+                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "source_listing_id": f"comparison-{idx}",
+                "title": f"RTX 4070 Super 12GB listing {idx}",
+                "price": price,
+                "review_state": "accepted",
+            }
+        )
+    snapshot = service.rebuild_benchmark_snapshot(
+        product["tracked_product_id"],
+        retail_anchor={"source": "centre_com", "current_price": 999},
+    )
+    match = {
+        "match_id": "mp_match_comparison",
+        "mission_id": "mp_mission_comparison",
+        "title": "NVIDIA RTX 4070 Super 12GB",
+        "price": "$610",
+        "price_value": 610,
+        "score": 44,
+        "raw_text_snapshot": "Used RTX 4070 Super 12GB working condition.",
+    }
+    value = service.assess_match_value(
+        match=match,
+        tracked_product=product,
+        snapshot=snapshot,
+    )
+
+    comparison = service.build_match_price_comparison(
+        match=match,
+        value_context=value,
+    )
+
+    assert comparison["listing_price"] == 610
+    assert comparison["used_market_median"] == 660
+    assert comparison["retail_anchor_price"] == 999
+    assert comparison["retail_anchor_label"] == "centre_com"
+    assert comparison["delta_vs_used_median"] == {"amount": -50.0, "percent": -7.6}
+    assert comparison["delta_vs_retail_anchor"] == {"amount": -389.0, "percent": -38.9}
+    assert comparison["primary_anchor"] == {"kind": "used_market_median", "price": 660}
+    assert comparison["verdict"] == "discount"
+    assert comparison["color"] == "emerald"
 
 
 def test_value_assessment_reports_no_snapshot_low_data_and_stale_states(

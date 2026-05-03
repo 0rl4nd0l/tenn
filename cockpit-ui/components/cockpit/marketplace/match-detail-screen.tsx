@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { ArrowLeft, ExternalLink, ImageOff, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ExternalLink, ImageOff, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
 import Link from 'next/link'
 
 import {
   getMarketplaceMatch,
   reviewMarketplaceBenchmarkMatch,
   type MarketplaceMatch,
+  type MarketplaceMatchFeedbackValue,
+  type MarketplacePriceComparison,
+  updateMarketplaceMatchFeedback,
 } from '@/lib/marketplace-api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,6 +55,31 @@ function formatCurrency(value: number | null | undefined): string {
   }).format(value)
 }
 
+function formatDelta(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  const rounded = Math.round(value * 10) / 10
+  const sign = rounded > 0 ? '+' : ''
+  return `${sign}${rounded}%`
+}
+
+function verdictLabel(value: string | null | undefined): string {
+  return String(value || 'unavailable').replace(/_/g, ' ')
+}
+
+function comparisonToneClass(comparison: MarketplacePriceComparison | null | undefined): string {
+  const color = String(comparison?.color || '').toLowerCase()
+  if (color === 'green' || color === 'emerald') {
+    return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+  }
+  if (color === 'red') {
+    return 'border-destructive/35 bg-destructive/10 text-destructive'
+  }
+  if (color === 'amber') {
+    return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+  }
+  return 'border-border/60 bg-muted/20 text-muted-foreground'
+}
+
 function valueBadgeVariant(
   label: string | null | undefined,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -84,6 +112,7 @@ export function MarketplaceMatchDetailScreen({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reviewSaving, setReviewSaving] = useState(false)
+  const [feedbackSaving, setFeedbackSaving] = useState(false)
   const media = match ? listingMedia(match) : []
   const priceEvidence = match ? priceEvidenceForMatch(match) : null
 
@@ -125,6 +154,23 @@ export function MarketplaceMatchDetailScreen({
       )
     } finally {
       setReviewSaving(false)
+    }
+  }
+
+  async function handleFeedback(feedback: MarketplaceMatchFeedbackValue) {
+    if (!matchId) return
+    setFeedbackSaving(true)
+    setError(null)
+    try {
+      setMatch(await updateMarketplaceMatchFeedback(apiKey, matchId, feedback))
+    } catch (feedbackError) {
+      setError(
+        feedbackError instanceof Error
+          ? feedbackError.message
+          : 'Failed to update match feedback',
+      )
+    } finally {
+      setFeedbackSaving(false)
     }
   }
 
@@ -213,14 +259,34 @@ export function MarketplaceMatchDetailScreen({
                     Match ID: {match.match_id} | Captured: {formatClock(match.captured_at)}
                   </CardDescription>
                 </div>
-                {match.listing_url && (
-                  <Button variant="secondary" size="sm" asChild>
-                    <a href={match.listing_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      View Listing
-                    </a>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant={match.user_feedback?.feedback === 'interested' ? 'default' : 'outline'}
+                    size="sm"
+                    disabled={feedbackSaving}
+                    onClick={() => void handleFeedback('interested')}
+                  >
+                    <ThumbsUp className="mr-2 h-4 w-4" />
+                    Interested
                   </Button>
-                )}
+                  <Button
+                    variant={match.user_feedback?.feedback === 'not_interested' ? 'secondary' : 'outline'}
+                    size="sm"
+                    disabled={feedbackSaving}
+                    onClick={() => void handleFeedback('not_interested')}
+                  >
+                    <ThumbsDown className="mr-2 h-4 w-4" />
+                    Not interested
+                  </Button>
+                  {match.listing_url && (
+                    <Button variant="secondary" size="sm" asChild>
+                      <a href={match.listing_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Listing
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -302,6 +368,63 @@ export function MarketplaceMatchDetailScreen({
                 </CardContent>
               </Card>
             </div>
+
+            {match.price_comparison && (
+              <Card className={`border ${comparisonToneClass(match.price_comparison)}`}>
+                <CardHeader>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base">Price Comparison</CardTitle>
+                      <CardDescription>
+                        Backend-computed listing price against used-market and retail/RRP anchors.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="bg-background/70">
+                      {verdictLabel(match.price_comparison.verdict)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-3 text-sm md:grid-cols-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Listing</div>
+                    <div className="font-mono text-lg font-semibold">
+                      {formatCurrency(match.price_comparison.listing_price)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Marketplace avg</div>
+                    <div className="font-mono text-lg font-semibold">
+                      {formatCurrency(match.price_comparison.used_market_median)}
+                    </div>
+                    <div className="font-mono text-xs">
+                      {formatDelta(match.price_comparison.delta_vs_used_median?.percent)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">
+                      Retail/RRP{match.price_comparison.retail_anchor_label
+                        ? ` (${match.price_comparison.retail_anchor_label})`
+                        : ''}
+                    </div>
+                    <div className="font-mono text-lg font-semibold">
+                      {formatCurrency(match.price_comparison.retail_anchor_price)}
+                    </div>
+                    <div className="font-mono text-xs">
+                      {formatDelta(match.price_comparison.delta_vs_retail_anchor?.percent)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Fair range</div>
+                    <div className="font-mono text-sm font-semibold">
+                      {typeof match.price_comparison.fair_range_low === 'number' &&
+                      typeof match.price_comparison.fair_range_high === 'number'
+                        ? `${formatCurrency(match.price_comparison.fair_range_low)} - ${formatCurrency(match.price_comparison.fair_range_high)}`
+                        : 'n/a'}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>

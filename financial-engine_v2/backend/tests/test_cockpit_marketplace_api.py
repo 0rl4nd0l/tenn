@@ -357,6 +357,33 @@ def test_marketplace_mission_link_product_and_value_context(
     assert payload["value_context"]["state"] == "scored"
     assert payload["value_context"]["benchmark_snapshot_id"] == snapshot["snapshot_id"]
     assert payload["value_context"]["value_score"] is not None
+    assert payload["price_comparison"]["listing_price"] == 610
+    assert payload["price_comparison"]["used_market_median"] == 660
+    assert payload["price_comparison"]["verdict"] == "discount"
+    assert payload["user_feedback"] is None
+
+    feedback_response = client.patch(
+        f"/api/cockpit/marketplace/matches/{match['match_id']}/feedback",
+        json={"feedback": "interested", "note": "worth inspecting"},
+    )
+    assert feedback_response.status_code == 200
+    feedback_payload = feedback_response.json()
+    assert feedback_payload["user_feedback"]["feedback"] == "interested"
+    assert feedback_payload["user_feedback"]["note"] == "worth inspecting"
+    assert feedback_payload["price_comparison"]["listing_price"] == 610
+
+    list_payload = client.get(
+        "/api/cockpit/marketplace/matches",
+        params={"mission_id": mission["mission_id"]},
+    ).json()
+    assert list_payload["items"][0]["user_feedback"]["feedback"] == "interested"
+
+    second_feedback = client.patch(
+        f"/api/cockpit/marketplace/matches/{match['match_id']}/feedback",
+        json={"feedback": "not_interested"},
+    )
+    assert second_feedback.status_code == 200
+    assert second_feedback.json()["user_feedback"]["feedback"] == "not_interested"
 
     unlink_response = client.delete(
         f"/api/cockpit/marketplace/missions/{mission['mission_id']}/link-product"
@@ -1065,6 +1092,10 @@ def test_marketplace_benchmark_refresh_and_overlay(tmp_path, monkeypatch) -> Non
     assert benchmark["wording"] == "new retail benchmark"
     assert benchmark["matched_product"]
     assert isinstance(benchmark["confidence"], float)
+    comparison = match_response.json()["price_comparison"]
+    assert comparison["retail_anchor_price"] == benchmark["current_price"]
+    assert comparison["retail_anchor_label"] == "centre_com"
+    assert comparison["primary_anchor"]["kind"] == "retail_anchor"
     second_match_response = client.get(f"/api/cockpit/marketplace/matches/{match['match_id']}")
     assert second_match_response.status_code == 200
     assert (

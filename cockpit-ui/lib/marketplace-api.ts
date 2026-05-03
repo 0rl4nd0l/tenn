@@ -147,6 +147,41 @@ export interface MarketplaceMatch {
   metadata: Record<string, unknown>
   benchmark?: MarketplaceBenchmarkOverlay | null
   value_context?: MarketplaceValueContext | null
+  price_comparison?: MarketplacePriceComparison | null
+  user_feedback?: MarketplaceMatchFeedback | null
+  updated_at: string
+}
+
+export interface MarketplacePriceDelta {
+  amount?: number | null
+  percent?: number | null
+}
+
+export interface MarketplacePriceComparison {
+  listing_price?: number | null
+  currency?: string | null
+  used_market_median?: number | null
+  retail_anchor_price?: number | null
+  retail_anchor_label?: string | null
+  fair_range_low?: number | null
+  fair_range_high?: number | null
+  delta_vs_used_median?: MarketplacePriceDelta | null
+  delta_vs_retail_anchor?: MarketplacePriceDelta | null
+  primary_anchor?: {
+    kind?: string | null
+    price?: number | null
+  } | null
+  verdict?: string | null
+  color?: string | null
+}
+
+export type MarketplaceMatchFeedbackValue = 'interested' | 'not_interested'
+
+export interface MarketplaceMatchFeedback {
+  match_id: string
+  feedback: MarketplaceMatchFeedbackValue
+  note?: string | null
+  created_at: string
   updated_at: string
 }
 
@@ -489,6 +524,23 @@ export async function updateMarketplaceMatch(
     headers: buildHeaders(apiKey),
     body: JSON.stringify({ status }),
   })
+  return parseJson<MarketplaceMatch>(response)
+}
+
+export async function updateMarketplaceMatchFeedback(
+  apiKey: string,
+  matchId: string,
+  feedback: MarketplaceMatchFeedbackValue,
+  note?: string | null,
+): Promise<MarketplaceMatch> {
+  const response = await fetch(
+    `/api/cockpit/marketplace/matches/${encodeURIComponent(matchId)}/feedback`,
+    {
+      method: 'PATCH',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({ feedback, note: note ?? null }),
+    },
+  )
   return parseJson<MarketplaceMatch>(response)
 }
 
