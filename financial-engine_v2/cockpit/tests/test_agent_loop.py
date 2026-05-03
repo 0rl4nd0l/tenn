@@ -422,6 +422,39 @@ class TestAgentLoopRegressions:
         )
         llm.chat.assert_not_called()
 
+    def test_cloud_recent_youtube_followup_uses_channel_context(self):
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "channel_id": "UCabc123",
+                "name": "Kneppy Invests",
+                "videos": [
+                    {
+                        "title": "Latest ASX breakdown",
+                        "published_at": "2026-04-29T00:00:00Z",
+                        "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    }
+                ],
+            }
+        )
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run(
+            "/cloud most recent video?",
+            recent_youtube_channel="Kneppy Invests",
+        )
+
+        assert result is not None
+        assert result.mode == "command"
+        assert "Recent videos from Kneppy Invests (UCabc123)" in result.text
+        assert "Latest ASX breakdown" in result.text
+        executor.assert_called_once_with(
+            "check_youtube_channel_recent_videos",
+            {"channel_name": "Kneppy Invests", "limit": 8},
+        )
+        llm.chat.assert_not_called()
+
     def test_action_command_still_returns_confirmation_preview(self):
         executor = MagicMock()
         llm = _make_llm([])

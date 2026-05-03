@@ -5493,6 +5493,8 @@ class ChatController:
             on_chunk=on_chunk,
             on_status=on_status,
             on_thinking=on_thinking,
+            recent_youtube_channel=self._recent_youtube_channel_from_context(),
+            recent_youtube_videos=self._recent_youtube_video_options_from_context(),
         )
 
         # Capture routing metadata from HybridRouter's cost log.
@@ -5534,6 +5536,15 @@ class ChatController:
             re.compile(r"Recent videos from\s+(.+?)(?:\s+\(|:)", re.IGNORECASE),
             re.compile(
                 r"(?:Added|Already watching)\s+YouTube channel\s+(.+?)(?:\s+\(|\.|$)",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"(?:^|\n)\s*[\"']?([^\"'\n.]{2,80}?)[\"']?"
+                r"\s+is\s+already\s+being\s+watched\.\s+The\s+YouTube\s+channel\b",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"(?:^|\n)\s*([^.\n]{2,80}?)\s+is\s+already\s+on\s+the\s+YouTube\s+watch\s+list\b",
                 re.IGNORECASE,
             ),
         )

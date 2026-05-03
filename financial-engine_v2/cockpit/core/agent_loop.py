@@ -289,6 +289,8 @@ class AgentLoop:
         on_chunk: Callable[[str], None] | None = None,
         on_status: Callable[[str], None] | None = None,
         on_thinking: Callable[[str, str], None] | None = None,
+        recent_youtube_channel: str | None = None,
+        recent_youtube_videos: list[dict[str, Any]] | None = None,
     ) -> AgentResult:
         """Run the agent loop for a single user turn.
 
@@ -313,7 +315,12 @@ class AgentLoop:
             # Pre-route explicit commands (ingest, chart, update, backfill)
             # before the full agent loop so they always produce a clean command
             # result rather than relying on the LLM to parse the imperative.
-            cmd = route_command(message, active_ticker=ticker)
+            cmd = route_command(
+                message,
+                active_ticker=ticker,
+                recent_youtube_channel=recent_youtube_channel,
+                recent_youtube_videos=recent_youtube_videos,
+            )
             if cmd.matched and cmd.tool:
                 if cmd.action_type == "direct_tool":
                     return self._execute_direct_command_tool(cmd, on_status=on_status)

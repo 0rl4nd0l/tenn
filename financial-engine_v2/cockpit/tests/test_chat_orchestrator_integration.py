@@ -20,6 +20,7 @@ class _FakeAgentLoop:
         on_chunk=None,
         on_status=None,
         on_thinking=None,
+        **kwargs,
     ):
         self.calls.append(
             {
@@ -31,6 +32,7 @@ class _FakeAgentLoop:
                     "on_chunk": on_chunk,
                     "on_status": on_status,
                     "on_thinking": on_thinking,
+                    **kwargs,
                 },
             }
         )
