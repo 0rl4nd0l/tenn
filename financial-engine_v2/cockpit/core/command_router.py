@@ -165,6 +165,25 @@ _BARE_YOUTUBE_CHANNEL_QUERY_RE = re.compile(
     """,
     re.IGNORECASE | re.VERBOSE,
 )
+_YOUTUBE_CONTEXT_ACCESS_RE = re.compile(
+    r"""
+    ^\s*
+    (?:
+        (?:yes\s+)?
+        (?:
+            access|open|show|list|get|fetch
+        )
+        \s+
+        (?:
+            them|those|the\s+(?:videos?|links?)
+        )
+      |
+        can\s+(?:u|you|we)\s+ingest(?:\s+(?:them|those|these|videos?))?
+    )
+    \s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 _WATCH_CHANNEL_RE = re.compile(
     r"""
@@ -218,10 +237,29 @@ def route_command(
         )
 
     youtube_selection_text, youtube_selection_weight = _strip_youtube_selection_weight(text)
+    if recent_youtube_videos and recent_youtube_channel:
+        if _YOUTUBE_CONTEXT_ACCESS_RE.match(youtube_selection_text):
+            limit = min(max(len(recent_youtube_videos), 8), 20)
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="check_youtube_channel_recent_videos",
+                arguments={"channel_name": recent_youtube_channel, "limit": limit},
+                explanation=(
+                    "Show the recent YouTube video links again before selecting "
+                    "transcripts to ingest."
+                ),
+            )
+
     youtube_selection = _parse_youtube_video_selection(
         youtube_selection_text,
         max_index=len(recent_youtube_videos or []),
     )
+    if youtube_selection is None and recent_youtube_videos:
+        youtube_selection = _parse_youtube_contextual_numbered_selection(
+            youtube_selection_text,
+            max_index=len(recent_youtube_videos),
+        )
     if youtube_selection is None and recent_youtube_videos:
         youtube_selection = _parse_youtube_contextual_first_selection(
             youtube_selection_text
@@ -548,6 +586,39 @@ _YOUTUBE_CONTEXTUAL_FIRST_SELECTION_RE = re.compile(
     """,
     re.IGNORECASE | re.VERBOSE,
 )
+_YOUTUBE_CONTEXTUAL_NUMBERED_SELECTION_RE = re.compile(
+    r"""
+    \b
+    (?:
+        takeaways?|summary|summari[sz]e|process|ingest|stage|select|use|access|fetch|get
+    )
+    \b
+    .{0,80}?
+    \b
+    (?:
+        videos?|transcripts?
+    )
+    \s+
+    (?P<selection>
+        \#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
+    )
+    \b
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+_YOUTUBE_PROCESS_REFERENT_RE = re.compile(
+    r"""
+    ^\s*
+    (?:yes\s+)?
+    (?:
+        process|ingest|stage|select|use
+    )
+    \s+
+    (?:it|that)
+    \s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 
 def _strip_youtube_selection_weight(text: str) -> tuple[str, float | None]:
@@ -564,6 +635,8 @@ def _strip_youtube_selection_weight(text: str) -> tuple[str, float | None]:
 
 def _parse_youtube_contextual_first_selection(text: str) -> list[int] | None:
     cleaned = str(text or "").strip()
+    if _YOUTUBE_PROCESS_REFERENT_RE.match(cleaned):
+        return [1]
     if not _YOUTUBE_CONTEXTUAL_FIRST_SELECTION_RE.match(cleaned):
         return None
     lowered = cleaned.lower()
@@ -580,6 +653,36 @@ def _parse_youtube_contextual_first_selection(text: str) -> list[int] | None:
     return None
 
 
+def _youtube_selection_token_to_index(token: str, *, max_index: int) -> int | None:
+    cleaned = str(token or "").lower().lstrip("#")
+    if cleaned == "last":
+        return max_index
+    if cleaned in _YOUTUBE_ORDINALS:
+        return _YOUTUBE_ORDINALS[cleaned]
+    try:
+        return int(cleaned)
+    except ValueError:
+        return None
+
+
+def _parse_youtube_contextual_numbered_selection(
+    text: str,
+    *,
+    max_index: int,
+) -> list[int] | None:
+    if max_index <= 0:
+        return None
+    match = _YOUTUBE_CONTEXTUAL_NUMBERED_SELECTION_RE.search(str(text or "").strip())
+    if not match:
+        return None
+    index = _youtube_selection_token_to_index(match.group("selection"), max_index=max_index)
+    if index is None:
+        return None
+    if index < 1 or index > max_index:
+        return []
+    return [index]
+
+
 def _parse_youtube_video_selection(text: str, *, max_index: int) -> list[int] | None:
     if max_index <= 0:
         return None
@@ -592,16 +695,12 @@ def _parse_youtube_video_selection(text: str, *, max_index: int) -> list[int] | 
 
     indexes: list[int] = []
     for token_match in _YOUTUBE_SELECTION_TOKEN_RE.finditer(selection):
-        token = token_match.group(0).lower().lstrip("#")
-        if token == "last":
-            index = max_index
-        elif token in _YOUTUBE_ORDINALS:
-            index = _YOUTUBE_ORDINALS[token]
-        else:
-            try:
-                index = int(token)
-            except ValueError:
-                continue
+        index = _youtube_selection_token_to_index(
+            token_match.group(0),
+            max_index=max_index,
+        )
+        if index is None:
+            continue
         if index < 1 or index > max_index:
             return []
         if index not in indexes:

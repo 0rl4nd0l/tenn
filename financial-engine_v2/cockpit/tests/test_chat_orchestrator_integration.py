@@ -132,6 +132,30 @@ def _controller_with_context_capture(orchestration_result):
     return ctrl, calls
 
 
+def test_recent_youtube_options_prioritize_last_numbered_user_selection():
+    ctrl = ChatController.__new__(ChatController)
+    ctrl._thread_id = "chat-youtube"
+    ctrl._recent_youtube_video_options = [
+        {"position": 1, "title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+        {"position": 2, "title": "Two", "webpage_url": "https://www.youtube.com/watch?v=two22222222"},
+    ]
+
+    class _StateStore:
+        def get_chat_messages(self, _thread_id: str, limit: int = 12):
+            return [
+                {"role": "user", "content": "takeaways from video 2?"},
+                {"role": "assistant", "content": "I need to process that transcript first."},
+                {"role": "user", "content": "process it"},
+            ]
+
+    ctrl._state_store = _StateStore()
+
+    options = ctrl._recent_youtube_video_options_from_context()
+
+    assert options[0]["title"] == "Two"
+    assert options[0]["webpage_url"] == "https://www.youtube.com/watch?v=two22222222"
+
+
 def _result(intent: str, source_plan: tuple[str, ...], *, ticker: str | None = "BHP"):
     financial_truth = {
         "status": "ok",

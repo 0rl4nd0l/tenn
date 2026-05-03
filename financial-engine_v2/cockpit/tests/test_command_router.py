@@ -186,6 +186,59 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.matched is True
         assert r.tool == "ingest_youtube_videos"
 
+    def test_takeaways_from_numbered_youtube_video_uses_context(self):
+        r = route_command(
+            "takeaways from video 2?",
+            recent_youtube_videos=[
+                {"title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+                {"title": "Two", "webpage_url": "https://www.youtube.com/watch?v=two22222222"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.tool == "ingest_youtube_videos"
+        assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=two22222222"]
+
+    def test_process_it_uses_prioritized_youtube_context_video(self):
+        r = route_command(
+            "process it",
+            recent_youtube_videos=[
+                {"title": "Prior selection", "webpage_url": "https://www.youtube.com/watch?v=two22222222"},
+                {"title": "Other", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.tool == "ingest_youtube_videos"
+        assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=two22222222"]
+
+    def test_access_them_rechecks_recent_youtube_videos_when_channel_known(self):
+        r = route_command(
+            "access them",
+            recent_youtube_channel="Kneppy Invests",
+            recent_youtube_videos=[
+                {"title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "check_youtube_channel_recent_videos"
+        assert r.arguments == {"channel_name": "Kneppy Invests", "limit": 8}
+
+    def test_can_ingest_rechecks_recent_youtube_videos_when_channel_known(self):
+        r = route_command(
+            "can u ingest?",
+            recent_youtube_channel="Kneppy Invests",
+            recent_youtube_videos=[
+                {"title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.tool == "check_youtube_channel_recent_videos"
+        assert r.arguments["channel_name"] == "Kneppy Invests"
+
     def test_youtube_video_selection_without_context_does_not_route(self):
         r = route_command("ingest 1")
         assert r.matched is False

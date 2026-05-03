@@ -5632,7 +5632,9 @@ class ChatController:
 
     def _recent_youtube_video_options_from_context(self) -> list[dict[str, Any]]:
         if self._recent_youtube_video_options:
-            return list(self._recent_youtube_video_options)
+            return self._prioritize_recent_youtube_selection(
+                list(self._recent_youtube_video_options)
+            )
         if self._state_store is None:
             return []
         try:
@@ -5647,8 +5649,68 @@ class ChatController:
             )
             if options:
                 self._recent_youtube_video_options = options[:20]
-                return list(self._recent_youtube_video_options)
+                return self._prioritize_recent_youtube_selection(
+                    list(self._recent_youtube_video_options)
+                )
         return []
+
+    @staticmethod
+    def _youtube_selection_index_from_text(
+        content: str,
+        *,
+        max_index: int,
+    ) -> int | None:
+        if max_index <= 0:
+            return None
+        match = re.search(
+            r"\b(?:videos?|transcripts?)\s+"
+            r"(?P<selection>#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last)\b",
+            str(content or ""),
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+        token = match.group("selection").lower().lstrip("#")
+        ordinals = {
+            "first": 1,
+            "second": 2,
+            "third": 3,
+            "fourth": 4,
+            "fifth": 5,
+            "sixth": 6,
+            "seventh": 7,
+            "eighth": 8,
+            "last": max_index,
+        }
+        if token in ordinals:
+            index = ordinals[token]
+        else:
+            try:
+                index = int(token)
+            except ValueError:
+                return None
+        if index < 1 or index > max_index:
+            return None
+        return index
+
+    def _prioritize_recent_youtube_selection(
+        self,
+        options: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        selected_index: int | None = None
+        for item in reversed(self._recent_conversation_history()):
+            if item.get("role") != "user":
+                continue
+            selected_index = self._youtube_selection_index_from_text(
+                str(item.get("content") or ""),
+                max_index=len(options),
+            )
+            if selected_index is not None:
+                break
+        if selected_index is None:
+            return options
+        selected = options[selected_index - 1]
+        return [selected, *options[: selected_index - 1], *options[selected_index:]]
 
     def _build_command_route_response(self, route: CommandRoute) -> ChatResponse | None:
         if not route.matched:
