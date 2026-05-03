@@ -52,6 +52,7 @@ class TaskRecord:
     updated_at: float
     result: Optional[dict[str, Any]] = None
     error: Optional[str] = None
+    progress: tuple[dict[str, Any], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -61,6 +62,7 @@ class TaskRecord:
             "updated_at": self.updated_at,
             "result": self.result,
             "error": self.error,
+            "progress": list(self.progress),
         }
 
 
@@ -94,6 +96,20 @@ class TaskRegistry:
 
     def set_failed(self, task_id: str, error: str) -> None:
         self._update(task_id, status=TaskStatus.FAILED, error=error)
+
+    def record_progress(self, task_id: str, event: dict[str, Any]) -> None:
+        now = time.time()
+        payload = dict(event)
+        payload.setdefault("timestamp", now)
+        with self._lock:
+            current = self._tasks.get(task_id)
+            if current is None:
+                raise KeyError(f"unknown task_id: {task_id}")
+            self._tasks[task_id] = replace(
+                current,
+                updated_at=now,
+                progress=(*current.progress, payload)[-200:],
+            )
 
     def _update(
         self,

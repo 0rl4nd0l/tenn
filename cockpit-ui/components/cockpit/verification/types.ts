@@ -47,6 +47,30 @@ export type RealGoldEvalResponse = {
   documents: RealGoldEvalDocument[]
 }
 
+export type RealGoldEvalTaskProgressEvent = {
+  stage?: string
+  status?: string
+  message?: string
+  timestamp?: number
+  document_id?: string
+  completed?: number
+  total?: number
+  trust_outcome?: string | null
+  failed_metric_count?: number | null
+  total_accuracy?: number | null
+  context_accuracy?: number | null
+}
+
+export type RealGoldEvalTaskResponse = {
+  task_id: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | string
+  created_at?: number
+  updated_at?: number
+  result?: RealGoldEvalResponse | null
+  error?: string | null
+  progress?: RealGoldEvalTaskProgressEvent[]
+}
+
 export type ProcessDocumentResponse = {
   mode?: string
   document_id?: string
@@ -83,3 +107,14 @@ export type ActiveExtractionMonitorRun = {
 }
 
 export type VerificationTab = 'review' | 'gold-eval' | 'runs' | 'verify'
+
+export type VerificationProgressLevel = 'info' | 'success' | 'warning' | 'error'
+
+export type VerificationProgressEntry = {
+  id: string
+  timestamp: string
+  level: VerificationProgressLevel
+  scope: string
+  message: string
+  detail?: string
+}

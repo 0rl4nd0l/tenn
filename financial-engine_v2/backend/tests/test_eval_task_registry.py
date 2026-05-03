@@ -79,6 +79,23 @@ def test_set_failed_records_error_and_clears_result():
 
 
 @pytest.mark.unit
+def test_record_progress_appends_timestamped_events():
+    registry = TaskRegistry()
+    record = registry.register()
+
+    registry.record_progress(
+        record.task_id,
+        {"stage": "evaluate_document", "message": "BHP 1/2", "completed": 1},
+    )
+
+    payload = registry.get(record.task_id).to_dict()
+    assert payload["progress"][0]["stage"] == "evaluate_document"
+    assert payload["progress"][0]["message"] == "BHP 1/2"
+    assert payload["progress"][0]["completed"] == 1
+    assert isinstance(payload["progress"][0]["timestamp"], float)
+
+
+@pytest.mark.unit
 def test_unknown_id_transition_raises_key_error():
     registry = TaskRegistry()
     with pytest.raises(KeyError):
@@ -87,6 +104,8 @@ def test_unknown_id_transition_raises_key_error():
         registry.set_completed("unknown", {"x": 1})
     with pytest.raises(KeyError):
         registry.set_failed("unknown", "boom")
+    with pytest.raises(KeyError):
+        registry.record_progress("unknown", {"stage": "x"})
 
 
 @pytest.mark.unit
@@ -136,5 +155,6 @@ def test_to_dict_round_trips_serializable_fields():
     assert payload["status"] == "completed"
     assert payload["result"] == {"ok": True}
     assert payload["error"] is None
+    assert payload["progress"] == []
     assert isinstance(payload["created_at"], float)
     assert isinstance(payload["updated_at"], float)

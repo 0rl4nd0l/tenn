@@ -884,8 +884,8 @@ def test_real_gold_eval_summary_rolls_up_failure_and_trigger_fields():
 # Background-task polling path (Phase B)
 #
 # Default behavior (no ?background flag) must still return the full blocking
-# result synchronously so existing callers (cockpit-ui verification screen,
-# scripts/run_prompt_model_matrix.py, E2E tests) do not break.
+# result synchronously so existing non-background callers (scripts,
+# direct tests, and ad hoc API users) do not break.
 #
 # ?background=true returns 202 + task_id and runs the eval on a daemon thread.
 # GET /api/extraction-eval/real-gold/tasks/{task_id} returns the current state.
@@ -911,7 +911,7 @@ def _stub_sync_payload() -> dict:
 
 
 def test_real_gold_eval_route_preserves_blocking_response_by_default(monkeypatch):
-    """Existing callers (UI, prompt-matrix, E2E) must keep getting a 200 + full body."""
+    """Existing non-background callers must keep getting a 200 + full body."""
     captured: dict[str, object] = {}
 
     def fake_sync(body):
@@ -936,7 +936,15 @@ def test_real_gold_eval_route_returns_202_task_id_when_background_true(monkeypat
     started = threading.Event()
     finish = threading.Event()
 
-    def slow_sync(_body):
+    def slow_sync(_body, progress_callback=None):
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "evaluate_document",
+                    "status": "running",
+                    "message": "Evaluating stub document",
+                }
+            )
         started.set()
         finish.wait(timeout=5.0)
         return _stub_sync_payload()
@@ -959,9 +967,20 @@ def test_real_gold_eval_route_returns_202_task_id_when_background_true(monkeypat
 
 
 def test_real_gold_eval_task_endpoint_reports_completed_result(monkeypatch):
-    monkeypatch.setattr(
-        main_app, "_run_real_gold_eval_sync", lambda _body: _stub_sync_payload()
-    )
+    def fake_sync(_body, progress_callback=None):
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "summarize",
+                    "status": "succeeded",
+                    "message": "Real-Gold summary ready",
+                    "completed": 0,
+                    "total": 0,
+                }
+            )
+        return _stub_sync_payload()
+
+    monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", fake_sync)
     client = TestClient(main_app.app)
     schedule = client.post("/api/extraction-eval/real-gold?background=true", json={})
     assert schedule.status_code == 202
@@ -980,10 +999,22 @@ def test_real_gold_eval_task_endpoint_reports_completed_result(monkeypatch):
     assert last.get("status") == "completed", last
     assert last["result"]["summary"]["total_documents"] == 0
     assert last["error"] is None
+    assert any(
+        event.get("message") == "Real-Gold summary ready"
+        for event in last["progress"]
+    )
 
 
 def test_real_gold_eval_task_endpoint_reports_failed_error(monkeypatch):
-    def raising_sync(_body):
+    def raising_sync(_body, progress_callback=None):
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "evaluate_document",
+                    "status": "running",
+                    "message": "Evaluating stub document",
+                }
+            )
         raise RuntimeError("extraction crashed")
 
     monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", raising_sync)

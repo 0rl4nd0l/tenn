@@ -73,7 +73,7 @@ export function GoldEvalTabPanel({
         {goldEvalLoading ? (
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            Running the current extraction pipeline across the gold set...
+            Real-Gold evaluation is running in the backend. Watch the progress log for task status and polling updates.
           </div>
         ) : null}
 

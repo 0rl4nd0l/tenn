@@ -38,8 +38,18 @@ import { GoldEvalTabPanel } from './tabs/gold-eval-tab-panel'
 import { ReviewTabPanel } from './tabs/review-tab-panel'
 import { RunsTabPanel } from './tabs/runs-tab-panel'
 import { VerifyTabPanel } from './tabs/verify-tab-panel'
+import { VerificationProgressLog } from './verification-progress-log'
 import { VerificationSidebar } from './verification-sidebar'
-import type { ActiveExtractionMonitorRun, ProcessDocumentResponse, RealGoldEvalResponse, VerificationTab } from './types'
+import type {
+  ActiveExtractionMonitorRun,
+  ProcessDocumentResponse,
+  RealGoldEvalResponse,
+  RealGoldEvalTaskProgressEvent,
+  RealGoldEvalTaskResponse,
+  VerificationProgressEntry,
+  VerificationProgressLevel,
+  VerificationTab,
+} from './types'
 import { useSnippetImage } from './use-snippet-image'
 import { VerificationHeader } from './verification-header'
 import { VerificationStatusStrip } from './verification-status-strip'
@@ -62,6 +72,73 @@ import {
 } from './utils'
 
 const BROWSER_API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
+const GOLD_EVAL_POLL_INTERVAL_MS = 1500
+const GOLD_EVAL_TIMEOUT_MS = 60 * 60 * 1000
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+async function fetchErrorDetail(response: Response, fallback: string): Promise<string> {
+  const text = await response.text().catch(() => '')
+  if (!text) return fallback
+  try {
+    const body = JSON.parse(text) as { detail?: unknown }
+    return body && typeof body === 'object' && 'detail' in body
+      ? String(body.detail)
+      : text
+  } catch {
+    return text
+  }
+}
+
+function realGoldProgressLevel(event: RealGoldEvalTaskProgressEvent): VerificationProgressLevel {
+  const status = String(event.status || '').toLowerCase()
+  if (status === 'failed' || status === 'error') return 'error'
+  if (status === 'succeeded' || status === 'completed') return 'success'
+  if (status === 'warning') return 'warning'
+  return 'info'
+}
+
+function realGoldProgressKey(event: RealGoldEvalTaskProgressEvent, index: number): string {
+  return [
+    event.timestamp ?? index,
+    event.stage || '',
+    event.status || '',
+    event.document_id || '',
+    event.message || '',
+  ].join('|')
+}
+
+function formatAccuracy(value: number | null | undefined): string | null {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `${(value * 100).toFixed(1)}%`
+    : null
+}
+
+function realGoldProgressDetail(event: RealGoldEvalTaskProgressEvent): string | undefined {
+  const parts: string[] = []
+  if (event.stage) parts.push(`stage=${event.stage}`)
+  if (event.document_id) parts.push(`document_id=${event.document_id}`)
+  if (typeof event.completed === 'number' && typeof event.total === 'number') {
+    parts.push(`progress=${event.completed}/${event.total}`)
+  }
+  if (event.trust_outcome) parts.push(`trust=${event.trust_outcome}`)
+  if (typeof event.failed_metric_count === 'number') {
+    parts.push(`failed_metrics=${event.failed_metric_count}`)
+  }
+  const metricAccuracy = formatAccuracy(event.total_accuracy)
+  if (metricAccuracy) parts.push(`metric_accuracy=${metricAccuracy}`)
+  const contextAccuracy = formatAccuracy(event.context_accuracy)
+  if (contextAccuracy) parts.push(`context_accuracy=${contextAccuracy}`)
+  return parts.length > 0 ? parts.join(' ') : undefined
+}
+
+function realGoldProgressMessage(event: RealGoldEvalTaskProgressEvent): string {
+  if (event.message) return event.message
+  if (event.stage && event.status) return `Real-Gold ${event.stage} ${event.status}`
+  return 'Real-Gold progress update'
+}
 
 export function VerificationScreen() {
   const router = useRouter()
@@ -129,6 +206,7 @@ export function VerificationScreen() {
 
   const [verificationRunHistory, setVerificationRunHistory] = useState<VerificationRunHistory[]>([])
   const [verificationHistoryLoading, setVerificationHistoryLoading] = useState(false)
+  const [progressLog, setProgressLog] = useState<VerificationProgressEntry[]>([])
 
   const documentLoadLockRef = useRef(false)
   const recentRunsLoadLockRef = useRef(false)
@@ -136,6 +214,33 @@ export function VerificationScreen() {
   const reviewActionLockRef = useRef(false)
   const unavailableRunStatusIdsRef = useRef<Set<string>>(new Set())
   const pendingRunStatusIdsRef = useRef<Set<string>>(new Set())
+  const progressSequenceRef = useRef(0)
+
+  const appendProgress = useCallback((entry: {
+    level?: VerificationProgressLevel
+    scope: string
+    message: string
+    detail?: string
+  }) => {
+    progressSequenceRef.current += 1
+    const nextEntry: VerificationProgressEntry = {
+      id: `verification-progress-${Date.now()}-${progressSequenceRef.current}`,
+      timestamp: new Date().toISOString(),
+      level: entry.level ?? 'info',
+      scope: entry.scope,
+      message: entry.message,
+      detail: entry.detail,
+    }
+    setProgressLog((current) => [nextEntry, ...current].slice(0, 100))
+  }, [])
+
+  const clearProgressLog = useCallback(() => {
+    setProgressLog([])
+  }, [])
+
+  const describeError = useCallback((err: unknown, fallback: string): string => (
+    err instanceof Error ? err.message : fallback
+  ), [])
 
   const markRunStatusUnavailable = useCallback((runId: string) => {
     if (!runId) return
@@ -181,7 +286,13 @@ export function VerificationScreen() {
     setDocumentsLoading(true)
     try {
       const parsedLimit = Number.parseInt(docsLimit, 10)
-      const docs = await getTickerDocuments(cleanTicker, Number.isFinite(parsedLimit) ? parsedLimit : 10)
+      const resolvedLimit = Number.isFinite(parsedLimit) ? parsedLimit : 10
+      appendProgress({
+        scope: 'docs',
+        message: `Loading review documents for ${cleanTicker}`,
+        detail: `docs_limit=${resolvedLimit}`,
+      })
+      const docs = await getTickerDocuments(cleanTicker, resolvedLimit)
       const runsPayload = await getExtractionReviewRuns(cleanTicker, 20)
       const sessionsPayload = await getExtractionReviewSessions(cleanTicker, 20)
       setTicker(cleanTicker)
@@ -192,16 +303,22 @@ export function VerificationScreen() {
       setSelectedDocumentId((current) => docs.some((doc) => doc.document_id === current) ? current : defaultDoc)
       setSelectedRunId((current) => runsPayload.items.some((run) => run.run_id === current) ? current : (runsPayload.items[0]?.run_id || ''))
       setSelectedReviewSessionId((current) => sessionsPayload.items.some((session) => session.session_id === current) ? current : (sessionsPayload.items[0]?.session_id || ''))
+      appendProgress({
+        level: 'success',
+        scope: 'docs',
+        message: `Loaded ${docs.length} document(s), ${runsPayload.items.length} run(s), and ${sessionsPayload.items.length} saved review(s) for ${cleanTicker}`,
+      })
       toast.success(`Loaded ${docs.length} document(s) for ${cleanTicker}`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load documents'
+      const message = describeError(err, 'Failed to load documents')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'docs', message: 'Document load failed', detail: message })
       toast.error(message)
     } finally {
       documentLoadLockRef.current = false
       setDocumentsLoading(false)
     }
-  }, [docsLimit, ticker])
+  }, [appendProgress, describeError, docsLimit, ticker])
 
   const handleLoadRecentRuns = useCallback(async (filterTicker?: string) => {
     if (recentRunsLoadLockRef.current) return
@@ -214,8 +331,19 @@ export function VerificationScreen() {
     setRecentRunsError(null)
     try {
       // Fetch recent runs (optional ticker filter)
+      appendProgress({
+        scope: 'runs',
+        message: targetTicker ? `Loading recent runs for ${targetTicker}` : 'Loading recent runs across all tickers',
+        detail: 'limit=50',
+      })
       const payload = await getExtractionReviewRuns(targetTicker, 50)
       setRecentRuns(payload.items)
+      appendProgress({
+        level: 'success',
+        scope: 'runs',
+        message: `Loaded ${payload.items.length} recent extraction run(s)`,
+        detail: targetTicker ? `ticker=${targetTicker}` : 'ticker=BROAD',
+      })
       
       // If we are filtering by a specific ticker, also update the selected run
       if (targetTicker) {
@@ -225,8 +353,9 @@ export function VerificationScreen() {
       }
     } catch (err: unknown) {
       console.error('Failed to load recent runs:', err)
-      const message = err instanceof Error ? err.message : 'Failed to load recent runs'
+      const message = describeError(err, 'Failed to load recent runs')
       setRecentRunsError(message)
+      appendProgress({ level: 'error', scope: 'runs', message: 'Recent run load failed', detail: message })
       if (targetTicker) {
         setReviewError(message)
         toast.error(message)
@@ -235,7 +364,7 @@ export function VerificationScreen() {
       recentRunsLoadLockRef.current = false
       setRecentRunsLoading(false)
     }
-  }, [ticker])
+  }, [appendProgress, describeError, ticker])
 
   const handleLoadReviewSessions = useCallback(async (filterTicker?: string) => {
     if (recentReviewSessionsLoadLockRef.current) return
@@ -246,8 +375,19 @@ export function VerificationScreen() {
     setRecentReviewSessionsLoading(true)
     setRecentReviewSessionsError(null)
     try {
+      appendProgress({
+        scope: 'sessions',
+        message: targetTicker ? `Loading review history for ${targetTicker}` : 'Loading review history across all tickers',
+        detail: 'limit=50',
+      })
       const payload = await getExtractionReviewSessions(targetTicker, 50)
       setRecentReviewSessions(payload.items)
+      appendProgress({
+        level: 'success',
+        scope: 'sessions',
+        message: `Loaded ${payload.items.length} review history record(s)`,
+        detail: targetTicker ? `ticker=${targetTicker}` : 'ticker=BROAD',
+      })
       setSelectedReviewSessionId((current) => (
         payload.items.some((session) => session.session_id === current)
           ? current
@@ -255,8 +395,9 @@ export function VerificationScreen() {
       ))
     } catch (err: unknown) {
       console.error('Failed to load review sessions:', err)
-      const message = err instanceof Error ? err.message : 'Failed to load review sessions'
+      const message = describeError(err, 'Failed to load review sessions')
       setRecentReviewSessionsError(message)
+      appendProgress({ level: 'error', scope: 'sessions', message: 'Saved review session load failed', detail: message })
       if (targetTicker) {
         setReviewError(message)
         toast.error(message)
@@ -265,7 +406,7 @@ export function VerificationScreen() {
       recentReviewSessionsLoadLockRef.current = false
       setRecentReviewSessionsLoading(false)
     }
-  }, [ticker])
+  }, [appendProgress, describeError, ticker])
 
   const handleSelectHistoryTicker = useCallback((historyTicker: string) => {
     const cleanTicker = historyTicker.trim().toUpperCase()
@@ -436,6 +577,7 @@ export function VerificationScreen() {
 
     const attachMonitor = async () => {
       try {
+        appendProgress({ scope: 'monitor', message: 'Loading active extraction run metadata from backend config' })
         const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
         if (!response.ok) {
           throw new Error(`Failed to load active extraction runs (HTTP ${response.status})`)
@@ -448,6 +590,11 @@ export function VerificationScreen() {
         if (activeRuns.length === 0) {
           setAttachedRunMetadataByDocumentId({})
           setActiveMonitorNotice('No active extraction runs were reported by the backend.')
+          appendProgress({
+            level: 'warning',
+            scope: 'monitor',
+            message: 'No active extraction runs were reported by the backend',
+          })
           return
         }
 
@@ -463,12 +610,19 @@ export function VerificationScreen() {
         setActiveMonitorNotice(
           `Attached to ${activeRuns.length} active extraction run${activeRuns.length === 1 ? '' : 's'} from backend state.`,
         )
+        appendProgress({
+          level: 'success',
+          scope: 'monitor',
+          message: `Attached to ${activeRuns.length} active extraction run${activeRuns.length === 1 ? '' : 's'}`,
+          detail: activeRuns.map((run) => `${run.documentId}:${run.runId}`).join(', '),
+        })
         await refreshRunStatuses(runIdsByDocumentId)
       } catch (err: unknown) {
         if (cancelled) return
-        const message = err instanceof Error ? err.message : 'Failed to attach to the active extraction run'
+        const message = describeError(err, 'Failed to attach to the active extraction run')
         setAttachedRunMetadataByDocumentId({})
         setActiveMonitorNotice(message)
+        appendProgress({ level: 'error', scope: 'monitor', message: 'Active extraction monitor attach failed', detail: message })
       }
     }
 
@@ -476,7 +630,7 @@ export function VerificationScreen() {
     return () => {
       cancelled = true
     }
-  }, [attachActiveRuns, hasHydrated, persistActiveRuns, refreshRunStatuses])
+  }, [appendProgress, attachActiveRuns, describeError, hasHydrated, persistActiveRuns, refreshRunStatuses])
 
   useEffect(() => {
     const activeEntries = Object.entries(activeRunIdsByDocumentId).filter(([documentId, runId]) => {
@@ -545,21 +699,35 @@ export function VerificationScreen() {
 
     const queryTicker = broad ? '' : ticker.trim()
     try {
+      appendProgress({
+        scope: 'verify',
+        message: queryTicker ? `Running backend verification for ${queryTicker}` : 'Running broad backend verification',
+        detail: 'failures_limit=100 low_confidence_threshold=0.4 low_confidence_limit=100',
+      })
       const data = await runVerificationContext({ ticker: queryTicker || null })
-      setResults(mapResponseToResults(data))
+      const mappedResults = mapResponseToResults(data)
+      setResults(mappedResults)
       if (data.run) {
         setVerificationRunHistory((current) => [
           data.run!,
           ...current.filter((run) => run.run_id !== data.run!.run_id),
         ].slice(0, 10))
       }
+      const failedCount = mappedResults.filter((result) => !result.passed).length
+      appendProgress({
+        level: failedCount > 0 ? 'warning' : 'success',
+        scope: 'verify',
+        message: `Verification finished with ${failedCount} failed check(s) out of ${mappedResults.length}`,
+        detail: data.run ? `run_id=${data.run.run_id} passed=${data.run.passed}` : undefined,
+      })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unexpected error during verification'
+      const message = describeError(err, 'Unexpected error during verification')
       setError(message)
+      appendProgress({ level: 'error', scope: 'verify', message: 'Verification request failed', detail: message })
     } finally {
       setIsRunning(false)
     }
-  }, [ticker])
+  }, [appendProgress, describeError, ticker])
 
   const failedChecksCount = useMemo(() => results?.filter((r) => !r.passed).length ?? 0, [results])
 
@@ -577,6 +745,11 @@ export function VerificationScreen() {
     const results: ProcessDocumentResponse[] = []
 
     for (const documentId of documentIds) {
+      appendProgress({
+        scope: 'extract',
+        message: `Starting extraction for ${documentId.slice(0, 12)}`,
+        detail: `method=${extractionMethod} strict=${strictMethod}`,
+      })
       const result = await processDocument({
         documentId,
         method: extractionMethod,
@@ -591,20 +764,38 @@ export function VerificationScreen() {
       }
       if (mode === 'celery') {
         queuedIds.push(documentId)
+        appendProgress({
+          level: 'warning',
+          scope: 'extract',
+          message: `Extraction queued for ${documentId.slice(0, 12)}`,
+          detail: result.run_id ? `run_id=${result.run_id}` : undefined,
+        })
         continue
       }
       if (result.run_id) {
         runIds.push(result.run_id)
+        appendProgress({
+          level: 'success',
+          scope: 'extract',
+          message: `Extraction completed for ${documentId.slice(0, 12)}`,
+          detail: `run_id=${result.run_id} status=${extractionStatus || 'unknown'} actual_method=${formatMethodLabel(result.method_provenance?.actual_method || extractionMethod)}`,
+        })
         continue
       }
       if (!isReviewableExtractionStatus(extractionStatus)) {
         failedRuns.push(`${documentId.slice(0, 12)}:${extractionStatus || 'unknown'}`)
+        appendProgress({
+          level: 'error',
+          scope: 'extract',
+          message: `Extraction did not produce a reviewable result for ${documentId.slice(0, 12)}`,
+          detail: `status=${extractionStatus || 'unknown'}`,
+        })
         continue
       }
     }
 
     return { queuedIds, failedRuns, runIds, runIdsByDocumentId, results }
-  }, [extractionMethod, selectedReviewDocumentIds, strictMethod])
+  }, [appendProgress, extractionMethod, selectedReviewDocumentIds, strictMethod])
 
   const handleRunExtraction = useCallback(async () => {
     if (reviewActionLockRef.current) return
@@ -617,6 +808,11 @@ export function VerificationScreen() {
     setReviewError(null)
     setReviewActionLoading(true)
     try {
+      appendProgress({
+        scope: 'extract',
+        message: `Running extraction for ${selectedReviewDocumentIds.length} selected document(s)`,
+        detail: selectedReviewDocumentIds.map((id) => id.slice(0, 12)).join(', '),
+      })
       const { queuedIds, failedRuns, results: extractionResults, runIdsByDocumentId } = await runSelectedDocumentExtractions()
       if (Object.keys(runIdsByDocumentId).length > 0) {
         const next = { ...activeRunIdsByDocumentId, ...runIdsByDocumentId }
@@ -626,22 +822,31 @@ export function VerificationScreen() {
       if (queuedIds.length > 0) {
         const message = `Extraction queued for ${queuedIds.length} document(s). Wait for completion before loading the review session.`
         setReviewError(message)
+        appendProgress({ level: 'warning', scope: 'extract', message, detail: queuedIds.join(', ') })
         toast.info(message)
         return
       }
       if (failedRuns.length > 0) {
         const message = `Latest extraction did not produce a reviewable result for: ${failedRuns.join(', ')}`
         setReviewError(message)
+        appendProgress({ level: 'error', scope: 'extract', message })
         toast.error(message)
         return
       }
       const methodSummary = extractionResults[0]?.method_provenance
+      appendProgress({
+        level: 'success',
+        scope: 'extract',
+        message: `Extraction request finished for ${selectedReviewDocumentIds.length} document(s)`,
+        detail: `actual_method=${formatMethodLabel(methodSummary?.actual_method || extractionMethod)} strict=${strictMethod}`,
+      })
       toast.success(
         `Extraction requested for ${selectedReviewDocumentIds.length} document(s) using ${formatMethodLabel(methodSummary?.actual_method || extractionMethod)}${strictMethod ? ' (strict)' : ''}`,
       )
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to run extraction'
+      const message = describeError(err, 'Failed to run extraction')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'extract', message: 'Extraction request failed', detail: message })
       toast.error(message)
     } finally {
       reviewActionLockRef.current = false
@@ -649,6 +854,8 @@ export function VerificationScreen() {
     }
   }, [
     activeRunIdsByDocumentId,
+    appendProgress,
+    describeError,
     extractionMethod,
     persistActiveRuns,
     refreshRunStatuses,
@@ -659,13 +866,20 @@ export function VerificationScreen() {
 
   const loadWrongQueue = useCallback(async () => {
     try {
+      appendProgress({ scope: 'queue', message: 'Loading review error queue', detail: 'limit=200' })
       const payload = await getExtractionReviewErrors(200)
       setWrongQueue(payload)
+      appendProgress({
+        level: payload.count > 0 ? 'warning' : 'success',
+        scope: 'queue',
+        message: `Wrong queue loaded with ${payload.count} item(s)`,
+      })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load wrong queue'
+      const message = describeError(err, 'Failed to load wrong queue')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'queue', message: 'Wrong queue load failed', detail: message })
     }
-  }, [])
+  }, [appendProgress, describeError])
 
   useEffect(() => {
     // Initial global load for discovery - we pass empty string to ensure global fetch
@@ -676,17 +890,30 @@ export function VerificationScreen() {
 
   useEffect(() => {
     setVerificationHistoryLoading(true)
+    appendProgress({ scope: 'verify', message: 'Loading recent verification run history', detail: 'limit=10' })
     fetch('/api/context/verification/runs?limit=10')
       .then((r) => r.json())
       .then((data: unknown) => {
         const payload = data as { ok?: boolean; runs?: unknown[] }
         if (payload.ok && Array.isArray(payload.runs)) {
           setVerificationRunHistory(payload.runs as VerificationRunHistory[])
+          appendProgress({
+            level: 'success',
+            scope: 'verify',
+            message: `Loaded ${payload.runs.length} recent verification run(s)`,
+          })
         }
       })
-      .catch(() => {/* silent — history is best-effort */})
+      .catch((err: unknown) => {
+        appendProgress({
+          level: 'warning',
+          scope: 'verify',
+          message: 'Verification history load failed',
+          detail: describeError(err, 'history is best-effort'),
+        })
+      })
       .finally(() => setVerificationHistoryLoading(false))
-  }, [])
+  }, [appendProgress, describeError])
 
   const handleInspectSelectedRun = useCallback(async (runIdOverride?: string) => {
     if (reviewActionLockRef.current) return
@@ -701,6 +928,7 @@ export function VerificationScreen() {
     setReviewActionLoading(true)
     beginReviewSessionSwap(`Loading review session for run ${runId.slice(0, 12)}...`)
     try {
+      appendProgress({ scope: 'review', message: `Creating review session for historical run ${runId.slice(0, 12)}`, detail: `run_id=${runId}` })
       const session = await createExtractionReviewSession({ runIds: [runId] })
       setReviewSession(session)
       setSelectedReviewSessionId(session.session_id)
@@ -708,17 +936,24 @@ export function VerificationScreen() {
       setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
       void handleLoadReviewSessions(ticker.trim().toUpperCase())
+      appendProgress({
+        level: 'success',
+        scope: 'review',
+        message: `Loaded review session with ${session.items.length} item(s)`,
+        detail: `session_id=${session.session_id}`,
+      })
       toast.success(`Loaded historical run ${runId.slice(0, 12)}`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to inspect selected run'
+      const message = describeError(err, 'Failed to inspect selected run')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'review', message: 'Historical run inspection failed', detail: message })
       toast.error(message)
     } finally {
       setReviewSessionLoadingMessage(null)
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [beginReviewSessionSwap, handleLoadReviewSessions, loadWrongQueue, selectedRunId, ticker])
+  }, [appendProgress, beginReviewSessionSwap, describeError, handleLoadReviewSessions, loadWrongQueue, selectedRunId, ticker])
 
   const handleSelectHistoryRun = useCallback((runId: string) => {
     setSelectedRunId(runId)
@@ -739,6 +974,7 @@ export function VerificationScreen() {
     setReviewActionLoading(true)
     beginReviewSessionSwap(`Loading saved review session ${sessionId}...`)
     try {
+      appendProgress({ scope: 'review', message: `Loading saved review session ${sessionId}` })
       const session = await getExtractionReviewSession(sessionId)
       setReviewSession(session)
       setSelectedReviewSessionId(session.session_id)
@@ -747,17 +983,24 @@ export function VerificationScreen() {
       setReviewSessionLoadingMessage(null)
       updateTab('review')
       await loadWrongQueue()
+      appendProgress({
+        level: 'success',
+        scope: 'review',
+        message: `Opened saved review session with ${session.items.length} item(s)`,
+        detail: `session_id=${session.session_id}`,
+      })
       toast.success(`Loaded saved review session ${sessionId}`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load saved review session'
+      const message = describeError(err, 'Failed to load saved review session')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'review', message: 'Saved review session load failed', detail: message })
       toast.error(message)
     } finally {
       setReviewSessionLoadingMessage(null)
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [beginReviewSessionSwap, loadWrongQueue, selectedReviewSessionId, updateTab])
+  }, [appendProgress, beginReviewSessionSwap, describeError, loadWrongQueue, selectedReviewSessionId, updateTab])
 
   const handleSelectReviewSessionHistory = useCallback((sessionId: string) => {
     setSelectedReviewSessionId(sessionId)
@@ -774,6 +1017,11 @@ export function VerificationScreen() {
     setReviewActionLoading(true)
     beginReviewSessionSwap(`Loading review session for group of ${runIds.length} runs...`)
     try {
+      appendProgress({
+        scope: 'review',
+        message: `Creating bundled review session for ${runIds.length} run(s)`,
+        detail: runIds.map((runId) => runId.slice(0, 12)).join(', '),
+      })
       const session = await createExtractionReviewSession({ runIds })
       setReviewSession(session)
       setSelectedReviewSessionId(session.session_id)
@@ -781,17 +1029,24 @@ export function VerificationScreen() {
       setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
       void handleLoadReviewSessions(ticker.trim().toUpperCase())
+      appendProgress({
+        level: 'success',
+        scope: 'review',
+        message: `Loaded bundled review session with ${session.items.length} item(s)`,
+        detail: `session_id=${session.session_id}`,
+      })
       toast.success(`Loaded bundled review session for ${runIds.length} runs`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to inspect selected group'
+      const message = describeError(err, 'Failed to inspect selected group')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'review', message: 'Bundled review load failed', detail: message })
       toast.error(message)
     } finally {
       setReviewSessionLoadingMessage(null)
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [beginReviewSessionSwap, handleLoadReviewSessions, loadWrongQueue, ticker, updateTab])
+  }, [appendProgress, beginReviewSessionSwap, describeError, handleLoadReviewSessions, loadWrongQueue, ticker, updateTab])
 
   const handleLoadReview = useCallback(async (documentIds?: string[]) => {
     if (reviewActionLockRef.current) return
@@ -806,6 +1061,11 @@ export function VerificationScreen() {
     setReviewActionLoading(true)
     beginReviewSessionSwap('Loading a fresh review session for the selected document set...')
     try {
+      appendProgress({
+        scope: 'review',
+        message: `Building latest review session for ${targetDocumentIds.length} document(s)`,
+        detail: targetDocumentIds.map((id) => id.slice(0, 12)).join(', '),
+      })
       const { queuedIds, failedRuns, runIds, runIdsByDocumentId } = await runSelectedDocumentExtractions(targetDocumentIds)
       if (Object.keys(runIdsByDocumentId).length > 0) {
         const next = { ...activeRunIdsByDocumentId, ...runIdsByDocumentId }
@@ -816,6 +1076,7 @@ export function VerificationScreen() {
       if (queuedIds.length > 0) {
         const message = `Extraction is queued for ${queuedIds.length} document(s). Wait for the worker to finish, then retry loading the review.`
         setReviewError(message)
+        appendProgress({ level: 'warning', scope: 'review', message, detail: queuedIds.join(', ') })
         toast.info(message)
         return
       }
@@ -824,10 +1085,16 @@ export function VerificationScreen() {
         await loadWrongQueue()
         const message = `Latest extraction failed or produced no reviewable metrics for: ${failedRuns.join(', ')}`
         setReviewError(message)
+        appendProgress({ level: 'error', scope: 'review', message })
         toast.error(message)
         return
       }
 
+      appendProgress({
+        scope: 'review',
+        message: `Creating backend review session from ${runIds.length} run(s)`,
+        detail: runIds.map((runId) => runId.slice(0, 12)).join(', '),
+      })
       const session = await createExtractionReviewSession({ runIds })
       setReviewSession(session)
       setSelectedReviewSessionId(session.session_id)
@@ -838,15 +1105,28 @@ export function VerificationScreen() {
       void handleLoadReviewSessions(ticker.trim().toUpperCase())
 
       if (session.items.length > 0) {
+        appendProgress({
+          level: 'success',
+          scope: 'review',
+          message: `Loaded ${session.items.length} review item(s)`,
+          detail: `session_id=${session.session_id}`,
+        })
         toast.success(`Loaded ${session.items.length} review item(s)`)
       } else {
         const diagnostic = summarizeSessionDocuments(session)
         setReviewError(`No reviewable extracted metrics were available for the selected document set. ${diagnostic}`)
+        appendProgress({
+          level: 'warning',
+          scope: 'review',
+          message: 'Review session loaded with no reviewable extracted metrics',
+          detail: diagnostic,
+        })
         toast.error('No reviewable extracted metrics were available for the selected document set')
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load review session'
+      const message = describeError(err, 'Failed to load review session')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'review', message: 'Review session load failed', detail: message })
       toast.error(message)
     } finally {
       setReviewSessionLoadingMessage(null)
@@ -855,7 +1135,9 @@ export function VerificationScreen() {
     }
   }, [
     activeRunIdsByDocumentId,
+    appendProgress,
     beginReviewSessionSwap,
+    describeError,
     loadWrongQueue,
     handleLoadReviewSessions,
     persistActiveRuns,
@@ -867,6 +1149,11 @@ export function VerificationScreen() {
 
   const handleInspectResult = useCallback((result: VerificationResult) => {
     updateTab('review')
+    appendProgress({
+      scope: 'verify',
+      message: `Opening review workflow for ${result.metric}`,
+      detail: result.document_id ? `document_id=${result.document_id}` : result.details,
+    })
 
     if (result.document_id) {
       setSelectedDocumentId(result.document_id)
@@ -899,55 +1186,124 @@ export function VerificationScreen() {
     }
 
     toast.info(`Inspecting ${result.metric}. Review evidence for ${result.document_id ? result.document_id.slice(0, 12) : 'the document'}...`)
-  }, [extraDocumentIds, handleLoadReview, reviewItems, reviewSession, updateTab])
+  }, [appendProgress, extraDocumentIds, handleLoadReview, reviewItems, reviewSession, updateTab])
 
   const handleRunGoldEval = useCallback(async () => {
     setGoldEvalLoading(true)
     setGoldEvalError(null)
     try {
       const parsedLimit = Number.parseInt(goldLimit, 10)
+      const resolvedLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 0
       const headers: HeadersInit = { 'Content-Type': 'application/json' }
       if (BROWSER_API_KEY) {
         headers['X-API-Key'] = BROWSER_API_KEY
       }
 
-      const response = await fetch('/api/extraction-eval/real-gold', {
+      appendProgress({
+        scope: 'gold',
+        message: 'Scheduling Real-Gold evaluation as a backend background task',
+        detail: `limit=${resolvedLimit} method=${extractionMethod} strict=${strictMethod}`,
+      })
+      const response = await fetch('/api/extraction-eval/real-gold?background=true', {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 0,
+          limit: resolvedLimit,
           method: extractionMethod,
           strict_method: strictMethod,
         }),
       })
 
-      if (!response.ok) {
-        let detail = `Gold set evaluation failed (HTTP ${response.status})`
-        try {
-          const body = await response.json()
-          if (body && typeof body === 'object' && 'detail' in body) {
-            detail = String((body as { detail: unknown }).detail)
-          }
-        } catch {
-          const text = await response.text().catch(() => '')
-          if (text) detail = text
-        }
-        throw new Error(detail)
+      if (response.status !== 202) {
+        throw new Error(await fetchErrorDetail(response, `Gold set evaluation scheduling failed (HTTP ${response.status})`))
       }
 
-      const data = await response.json() as RealGoldEvalResponse
-      setGoldEval(data)
-      toast.success(
-        `Gold set evaluation finished for ${data.summary.total_documents} document(s) using ${formatMethodLabel(data.requested_method || extractionMethod)}${strictMethod ? ' (strict)' : ''}`,
-      )
+      const scheduled = await response.json() as RealGoldEvalTaskResponse
+      if (!scheduled.task_id) {
+        throw new Error('Gold set evaluation scheduling did not return a task_id')
+      }
+
+      appendProgress({
+        level: 'success',
+        scope: 'gold',
+        message: `Real-Gold task scheduled (${scheduled.status})`,
+        detail: `task_id=${scheduled.task_id}`,
+      })
+
+      const startedAt = Date.now()
+      let pollCount = 0
+      let lastStatus = String(scheduled.status || 'pending')
+      const seenProgressEvents = new Set<string>()
+
+      while (Date.now() - startedAt < GOLD_EVAL_TIMEOUT_MS) {
+        await sleep(GOLD_EVAL_POLL_INTERVAL_MS)
+        pollCount += 1
+
+        const pollResponse = await fetch(`/api/extraction-eval/real-gold/tasks/${encodeURIComponent(scheduled.task_id)}`, {
+          headers,
+          cache: 'no-store',
+        })
+        if (!pollResponse.ok) {
+          throw new Error(await fetchErrorDetail(pollResponse, `Gold set evaluation polling failed (HTTP ${pollResponse.status})`))
+        }
+
+        const task = await pollResponse.json() as RealGoldEvalTaskResponse
+        const status = String(task.status || 'unknown')
+        const progressEvents = task.progress || []
+        progressEvents.forEach((event, index) => {
+          const key = realGoldProgressKey(event, index)
+          if (seenProgressEvents.has(key)) return
+          seenProgressEvents.add(key)
+          appendProgress({
+            level: realGoldProgressLevel(event),
+            scope: 'gold',
+            message: realGoldProgressMessage(event),
+            detail: realGoldProgressDetail(event),
+          })
+        })
+        const elapsedSeconds = Math.round((Date.now() - startedAt) / 1000)
+        if (status !== lastStatus || pollCount === 1 || pollCount % 4 === 0) {
+          appendProgress({
+            scope: 'gold',
+            message: `Real-Gold task ${status}`,
+            detail: `task_id=${scheduled.task_id} elapsed=${elapsedSeconds}s polls=${pollCount}`,
+          })
+        }
+        lastStatus = status
+
+        if (status === 'completed') {
+          if (!task.result) {
+            throw new Error('Gold set evaluation completed without a result payload')
+          }
+          const data = task.result
+          setGoldEval(data)
+          appendProgress({
+            level: 'success',
+            scope: 'gold',
+            message: `Gold eval completed for ${data.summary.total_documents} document(s)`,
+            detail: `metric_accuracy=${(data.summary.total_accuracy * 100).toFixed(1)}% context_accuracy=${(data.summary.context_accuracy * 100).toFixed(1)}%`,
+          })
+          toast.success(
+            `Gold set evaluation finished for ${data.summary.total_documents} document(s) using ${formatMethodLabel(data.requested_method || extractionMethod)}${strictMethod ? ' (strict)' : ''}`,
+          )
+          return
+        }
+
+        if (status === 'failed') {
+          throw new Error(task.error || 'Gold set evaluation failed')
+        }
+      }
+
+      throw new Error('Gold set evaluation timed out while polling background task')
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to run gold set evaluation'
+      const message = describeError(err, 'Failed to run gold set evaluation')
       setGoldEvalError(message)
+      appendProgress({ level: 'error', scope: 'gold', message: 'Gold eval failed', detail: message })
       toast.error(message)
     } finally {
       setGoldEvalLoading(false)
     }
-  }, [extractionMethod, goldLimit, strictMethod])
+  }, [appendProgress, describeError, extractionMethod, goldLimit, strictMethod])
 
   const handleOpenGoldEvalReviewSession = useCallback(async (sessionId: string) => {
     if (reviewActionLockRef.current) return
@@ -961,6 +1317,7 @@ export function VerificationScreen() {
     setReviewActionLoading(true)
     beginReviewSessionSwap(`Loading backend review session ${sessionId}...`)
     try {
+      appendProgress({ scope: 'gold', message: `Opening Real-Gold review session ${sessionId}` })
       const session = await getExtractionReviewSession(sessionId)
       setReviewSession(session)
       setSelectedReviewSessionId(session.session_id)
@@ -969,17 +1326,24 @@ export function VerificationScreen() {
       setReviewSessionLoadingMessage(null)
       updateTab('review')
       await loadWrongQueue()
+      appendProgress({
+        level: 'success',
+        scope: 'gold',
+        message: `Loaded Real-Gold review session with ${session.items.length} item(s)`,
+        detail: `session_id=${session.session_id}`,
+      })
       toast.success(`Loaded backend review session for ${session.document_ids[0] || 'gold-eval document'}`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load backend review session'
+      const message = describeError(err, 'Failed to load backend review session')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'gold', message: 'Real-Gold review session load failed', detail: message })
       toast.error(message)
     } finally {
       setReviewSessionLoadingMessage(null)
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [beginReviewSessionSwap, loadWrongQueue, updateTab])
+  }, [appendProgress, beginReviewSessionSwap, describeError, loadWrongQueue, updateTab])
 
   const handleSubmitReview = useCallback(async (verdict: 'correct' | 'wrong' | 'unsure') => {
     if (reviewActionLockRef.current) return
@@ -992,6 +1356,11 @@ export function VerificationScreen() {
     setReviewError(null)
     setReviewActionLoading(true)
     try {
+      appendProgress({
+        scope: 'review',
+        message: `Saving ${verdict} verdict for ${currentReviewItem.metric_name}`,
+        detail: `session_id=${reviewSession.session_id} item_id=${currentReviewItem.item_id}`,
+      })
       const result = await submitExtractionReviewDecision({
         sessionId: reviewSession.session_id,
         itemId: currentReviewItem.item_id,
@@ -1008,16 +1377,23 @@ export function VerificationScreen() {
       setReviewSession(nextSession)
       setSelectedReviewItemId(nextSelectedItemId)
       await loadWrongQueue()
+      appendProgress({
+        level: 'success',
+        scope: 'review',
+        message: `${currentReviewItem.metric_name} marked ${verdict}`,
+        detail: `pending=${result.summary.pending} correct=${result.summary.approved} wrong=${result.summary.wrong} unsure=${result.summary.abstain}`,
+      })
       toast.success(`${currentReviewItem.metric_name} marked ${verdict}`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save review decision'
+      const message = describeError(err, 'Failed to save review decision')
       setReviewError(message)
+      appendProgress({ level: 'error', scope: 'review', message: 'Review verdict save failed', detail: message })
       toast.error(message)
     } finally {
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [currentReviewIndex, currentReviewItem, loadWrongQueue, reviewItems, reviewSession])
+  }, [appendProgress, currentReviewIndex, currentReviewItem, describeError, loadWrongQueue, reviewItems, reviewSession])
 
   useEffect(() => {
     if (!activeRunId) {
@@ -1198,6 +1574,14 @@ export function VerificationScreen() {
           pendingCount={reviewSession?.summary?.pending ?? 0}
           failedChecksCount={failedChecksCount}
         />
+
+        {isIPhoneScale ? (
+          <VerificationProgressLog
+            entries={progressLog}
+            onClear={clearProgressLog}
+            compact
+          />
+        ) : null}
 
         <div className="min-h-0 flex-1">
           <TabsContent value="review" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
@@ -1423,17 +1807,23 @@ export function VerificationScreen() {
       </Tabs>
 
       {!isIPhoneScale && (
-        <aside className="w-80 shrink-0 border-l border-border/40 pl-6">
-          <VerificationSidebar
-            recentRuns={recentRuns}
-            recentReviewSessions={recentReviewSessions}
-            loading={recentRunsLoading}
-            onSelectTicker={handleSelectHistoryTicker}
-            onSelectRun={handleSelectHistoryRun}
-            onSelectSession={handleSelectReviewSessionHistory}
-            onSelectRunGroup={handleSelectRunGroup}
-            activeTicker={ticker}
+        <aside className="flex w-80 shrink-0 flex-col gap-4 border-l border-border/40 pl-6">
+          <VerificationProgressLog
+            entries={progressLog}
+            onClear={clearProgressLog}
           />
+          <div className="min-h-0 flex-1">
+            <VerificationSidebar
+              recentRuns={recentRuns}
+              recentReviewSessions={recentReviewSessions}
+              loading={recentRunsLoading}
+              onSelectTicker={handleSelectHistoryTicker}
+              onSelectRun={handleSelectHistoryRun}
+              onSelectSession={handleSelectReviewSessionHistory}
+              onSelectRunGroup={handleSelectRunGroup}
+              activeTicker={ticker}
+            />
+          </div>
         </aside>
       )}
     </div>

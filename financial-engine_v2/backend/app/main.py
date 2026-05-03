@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -761,9 +761,20 @@ def _summarize_real_gold_results(results: list[dict[str, Any]]) -> dict[str, Any
     }
 
 
-def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
+def _run_real_gold_eval_sync(
+    body: RealGoldEvalRequest,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     try:
         method = normalize_extraction_method(body.method)
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "prepare",
+                    "status": "running",
+                    "message": "Loading Real-Gold fixture manifest and policy",
+                }
+            )
         fixture_manifest = _build_real_gold_fixture_manifest(REAL_GOLD_DATASET_DIR)
         eval_policy = _build_real_gold_eval_policy(
             body,
@@ -778,8 +789,30 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
         if body.limit > 0:
             gold_docs = gold_docs[: body.limit]
         tolerance = max(float(body.tolerance), 0.0)
-        results = [
-            _evaluate_real_gold_document(
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "prepare",
+                    "status": "succeeded",
+                    "message": f"Loaded {len(gold_docs)} Real-Gold document(s)",
+                    "completed": 0,
+                    "total": len(gold_docs),
+                }
+            )
+        results: list[dict[str, Any]] = []
+        for index, doc in enumerate(gold_docs, start=1):
+            if progress_callback:
+                progress_callback(
+                    {
+                        "stage": "evaluate_document",
+                        "status": "running",
+                        "message": f"Evaluating {doc.document_id} ({index}/{len(gold_docs)})",
+                        "document_id": doc.document_id,
+                        "completed": index - 1,
+                        "total": len(gold_docs),
+                    }
+                )
+            result = _evaluate_real_gold_document(
                 doc,
                 tolerance=tolerance,
                 method=method,
@@ -787,8 +820,43 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
                 prompt_variant_id=body.prompt_variant_id,
                 model_override=body.model_override,
             )
-            for doc in gold_docs
-        ]
+            results.append(result)
+            if progress_callback:
+                progress_callback(
+                    {
+                        "stage": "evaluate_document",
+                        "status": "succeeded",
+                        "message": f"Finished {doc.document_id} ({index}/{len(gold_docs)})",
+                        "document_id": doc.document_id,
+                        "completed": index,
+                        "total": len(gold_docs),
+                        "trust_outcome": result.get("trust_outcome"),
+                        "failed_metric_count": result.get("failed_metric_count"),
+                    }
+                )
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "summarize",
+                    "status": "running",
+                    "message": "Summarizing Real-Gold evaluation results",
+                    "completed": len(results),
+                    "total": len(gold_docs),
+                }
+            )
+        summary = _summarize_real_gold_results(results)
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": "summarize",
+                    "status": "succeeded",
+                    "message": "Real-Gold summary ready",
+                    "completed": len(results),
+                    "total": len(gold_docs),
+                    "total_accuracy": summary.get("total_accuracy"),
+                    "context_accuracy": summary.get("context_accuracy"),
+                }
+            )
         return {
             "dataset_dir": str(REAL_GOLD_DATASET_DIR),
             "requested_method": method,
@@ -797,7 +865,7 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
             "model_override": body.model_override,
             "eval_policy": eval_policy,
             "fixture_manifest": fixture_manifest,
-            "summary": _summarize_real_gold_results(results),
+            "summary": summary,
             "documents": results,
         }
     except (FileNotFoundError, ValueError) as exc:
@@ -821,13 +889,45 @@ def _run_real_gold_eval_background(
     """
     registry = get_eval_task_registry()
     registry.set_running(task_id)
+    registry.record_progress(
+        task_id,
+        {"stage": "task", "status": "running", "message": "Real-Gold eval task started"},
+    )
+
+    def record_progress(event: dict[str, Any]) -> None:
+        registry.record_progress(task_id, event)
+
     try:
-        result = _run_real_gold_eval_sync(body)
+        result = _run_real_gold_eval_sync(body, progress_callback=record_progress)
     except HTTPException as exc:
+        registry.record_progress(
+            task_id,
+            {
+                "stage": "task",
+                "status": "failed",
+                "message": f"Real-Gold eval task failed: HTTP {exc.status_code}",
+            },
+        )
         registry.set_failed(task_id, f"HTTP {exc.status_code}: {exc.detail}")
     except Exception as exc:  # noqa: BLE001 — surface every failure to the poller
+        registry.record_progress(
+            task_id,
+            {
+                "stage": "task",
+                "status": "failed",
+                "message": f"Real-Gold eval task failed: {type(exc).__name__}",
+            },
+        )
         registry.set_failed(task_id, f"{type(exc).__name__}: {exc}")
     else:
+        registry.record_progress(
+            task_id,
+            {
+                "stage": "task",
+                "status": "completed",
+                "message": "Real-Gold eval task completed",
+            },
+        )
         registry.set_completed(task_id, result)
 
 

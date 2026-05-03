@@ -494,11 +494,84 @@ async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: 
     })
   })
 
-  await page.route('**/api/extraction-eval/real-gold', async (route) => {
+  await page.route('**/api/extraction-eval/real-gold**', async (route) => {
+    const requestUrl = new URL(route.request().url())
+    if (requestUrl.pathname.includes('/tasks/')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          task_id: 'gold-task-123',
+          status: 'completed',
+          created_at: 1770000000,
+          updated_at: 1770000004,
+          result: state.goldEval,
+          error: null,
+          progress: [
+            {
+              timestamp: 1770000000,
+              stage: 'task',
+              status: 'running',
+              message: 'Real-Gold eval task started',
+            },
+            {
+              timestamp: 1770000001,
+              stage: 'prepare',
+              status: 'succeeded',
+              message: 'Loaded 2 Real-Gold document(s)',
+              completed: 0,
+              total: 2,
+            },
+            {
+              timestamp: 1770000002,
+              stage: 'evaluate_document',
+              status: 'succeeded',
+              message: 'Finished doc-1234567890abcdef (1/2)',
+              document_id: 'doc-1234567890abcdef',
+              completed: 1,
+              total: 2,
+              trust_outcome: 'trusted',
+              failed_metric_count: 0,
+            },
+            {
+              timestamp: 1770000003,
+              stage: 'evaluate_document',
+              status: 'succeeded',
+              message: 'Finished doc-9876543210fedcba (2/2)',
+              document_id: 'doc-9876543210fedcba',
+              completed: 2,
+              total: 2,
+              trust_outcome: 'trusted',
+              failed_metric_count: 1,
+            },
+            {
+              timestamp: 1770000004,
+              stage: 'summarize',
+              status: 'succeeded',
+              message: 'Real-Gold summary ready',
+              completed: 2,
+              total: 2,
+              total_accuracy: 0.75,
+              context_accuracy: 1,
+            },
+          ],
+        }),
+      })
+      return
+    }
+
     await route.fulfill({
-      status: 200,
+      status: 202,
       contentType: 'application/json',
-      body: JSON.stringify(state.goldEval),
+      body: JSON.stringify({
+        task_id: 'gold-task-123',
+        status: 'pending',
+        created_at: 1770000000,
+        updated_at: 1770000000,
+        result: null,
+        error: null,
+        progress: [],
+      }),
     })
   })
 
@@ -606,8 +679,11 @@ test.describe('Verification screen', () => {
 
     await page.getByRole('tab', { name: /^Real-Gold/ }).click()
     await page.getByRole('button', { name: 'Run Gold Set' }).click()
+    await expect(page.getByText('Progress Log', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Real-Gold task scheduled/)).toBeVisible()
+    await expect(page.getByText('Finished doc-9876543210fedcba (2/2)')).toBeVisible()
     await expect(page.getByText('Metric Accuracy')).toBeVisible()
-    await expect(page.getByText('75.0%')).toBeVisible()
+    await expect(page.getByText('75.0%', { exact: true })).toBeVisible()
     await expect(page.getByText('No flagged metric review session')).toBeVisible()
     await expect(page.getByRole('button', { name: /Open Review/ })).toHaveCount(1)
     await page.getByRole('button', { name: /Open Review/ }).click()
