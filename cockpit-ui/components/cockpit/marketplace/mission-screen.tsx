@@ -58,6 +58,8 @@ type MissionFormState = {
   aggressiveAlerting: boolean
 }
 
+type BenchmarkSortMode = 'mission' | 'missing' | 'newest' | 'value' | 'confidence'
+
 const DEFAULT_FORM: MissionFormState = {
   name: '',
   brief: '',
@@ -375,6 +377,139 @@ function listingMediaForMatch(match: MarketplaceMatch): string[] {
   return []
 }
 
+function missionNameForMatch(match: MarketplaceMatch): string {
+  const name = String(match.mission_name ?? '').trim()
+  if (name) return name
+  const id = String(match.mission_id ?? '').trim()
+  return id || 'Unknown mission'
+}
+
+function timeValue(value: string | null | undefined): number {
+  if (!value) return 0
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function benchmarkConfidence(match: MarketplaceMatch): number {
+  const benchmarkConfidenceValue = match.benchmark?.confidence
+  if (typeof benchmarkConfidenceValue === 'number' && Number.isFinite(benchmarkConfidenceValue)) {
+    return benchmarkConfidenceValue
+  }
+  const matchConfidence = match.confidence
+  if (typeof matchConfidence === 'number' && Number.isFinite(matchConfidence)) {
+    return matchConfidence
+  }
+  return -1
+}
+
+function listingPriceLabel(match: MarketplaceMatch): string {
+  const evidence = priceEvidenceForMatch(match)
+  const text = String(match.price || evidence?.resolved_price_text || '').trim()
+  if (text) return text
+  const numeric = match.price_value ?? evidence?.resolved_price_value
+  if (typeof numeric === 'number' && Number.isFinite(numeric)) {
+    return formatCurrency(numeric)
+  }
+  return 'Missing'
+}
+
+function benchmarkMissingReasons(match: MarketplaceMatch): string[] {
+  const benchmark = match.benchmark ?? null
+  const evidence = priceEvidenceForMatch(match)
+  const reasons: string[] = []
+  const hasListingPrice =
+    Boolean(String(match.price || evidence?.resolved_price_text || '').trim()) ||
+    (typeof match.price_value === 'number' && Number.isFinite(match.price_value)) ||
+    (typeof evidence?.resolved_price_value === 'number' && Number.isFinite(evidence.resolved_price_value))
+
+  if (!hasListingPrice) {
+    reasons.push('Listing price missing')
+  }
+  if (!benchmark) {
+    reasons.push('Benchmark overlay missing')
+    return reasons
+  }
+  if (!benchmark.matched_product) {
+    reasons.push('No confident product match')
+  }
+  if (benchmark.current_price == null) {
+    reasons.push('Current retail price missing')
+  }
+  if (benchmark.median_30d == null) {
+    reasons.push('30d median missing')
+  }
+  if (benchmark.listing_delta_pct == null) {
+    reasons.push('Listing delta unavailable')
+  }
+  return reasons
+}
+
+function benchmarkNeedsReview(match: MarketplaceMatch): boolean {
+  const benchmark = match.benchmark ?? null
+  if (!benchmark) return true
+  if (benchmark.low_confidence) return true
+  return /pending|review/i.test(benchmark.review_status || '')
+}
+
+function benchmarkReviewLabel(match: MarketplaceMatch): string {
+  const benchmark = match.benchmark ?? null
+  if (!benchmark) return 'benchmark missing'
+  if (benchmark.low_confidence || /pending|review/i.test(benchmark.review_status || '')) {
+    return 'needs review'
+  }
+  if (benchmarkMissingReasons(match).length > 0) {
+    return 'incomplete'
+  }
+  return 'benchmarked'
+}
+
+function benchmarkReviewBadgeVariant(
+  match: MarketplaceMatch,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const benchmark = match.benchmark ?? null
+  if (!benchmark) return 'outline'
+  if (benchmark.low_confidence || /pending|review/i.test(benchmark.review_status || '')) {
+    return 'destructive'
+  }
+  if (benchmarkMissingReasons(match).length > 0) return 'secondary'
+  return 'default'
+}
+
+function sortBenchmarkMatches(
+  matches: MarketplaceMatch[],
+  sortMode: BenchmarkSortMode,
+): MarketplaceMatch[] {
+  return [...matches].sort((left, right) => {
+    if (sortMode === 'mission') {
+      const missionCompare = missionNameForMatch(left).localeCompare(missionNameForMatch(right))
+      if (missionCompare !== 0) return missionCompare
+      return timeValue(right.captured_at) - timeValue(left.captured_at)
+    }
+    if (sortMode === 'missing') {
+      const missingCompare =
+        benchmarkMissingReasons(right).length - benchmarkMissingReasons(left).length
+      if (missingCompare !== 0) return missingCompare
+      const reviewCompare = Number(benchmarkNeedsReview(right)) - Number(benchmarkNeedsReview(left))
+      if (reviewCompare !== 0) return reviewCompare
+      return timeValue(right.captured_at) - timeValue(left.captured_at)
+    }
+    if (sortMode === 'value') {
+      const leftDelta = left.benchmark?.listing_delta_pct
+      const rightDelta = right.benchmark?.listing_delta_pct
+      const safeLeftDelta = typeof leftDelta === 'number' && Number.isFinite(leftDelta) ? leftDelta : Infinity
+      const safeRightDelta = typeof rightDelta === 'number' && Number.isFinite(rightDelta) ? rightDelta : Infinity
+      if (safeLeftDelta !== safeRightDelta) return safeLeftDelta - safeRightDelta
+      return timeValue(right.captured_at) - timeValue(left.captured_at)
+    }
+    if (sortMode === 'confidence') {
+      const confidenceCompare = benchmarkConfidence(right) - benchmarkConfidence(left)
+      if (confidenceCompare !== 0) return confidenceCompare
+      return timeValue(right.captured_at) - timeValue(left.captured_at)
+    }
+    return timeValue(right.captured_at) - timeValue(left.captured_at)
+  })
+}
+
 export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenProps) {
   const { preferences } = useCockpitStore()
   const isIPhoneScale = preferences.iphoneScale
@@ -403,6 +538,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [linkingMissionId, setLinkingMissionId] = useState<string | null>(null)
   const [stoppingJobId, setStoppingJobId] = useState<string | null>(null)
   const [refreshingBenchmarks, setRefreshingBenchmarks] = useState(false)
+  const [benchmarkSortMode, setBenchmarkSortMode] = useState<BenchmarkSortMode>('mission')
   const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
   const scanAllowed = browserHealthAllowsScan(browserHealth)
@@ -789,6 +925,12 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     setSelectedScanJobId(jobId)
   }
 
+  const sortedBenchmarkMatches = sortBenchmarkMatches(benchmarkMatches, benchmarkSortMode)
+  const benchmarkMissingCount = benchmarkMatches.filter(
+    (match) => benchmarkMissingReasons(match).length > 0,
+  ).length
+  const benchmarkReviewCount = benchmarkMatches.filter(benchmarkNeedsReview).length
+
   return (
     <div className="h-full overflow-auto">
       <div className={cn(
@@ -873,122 +1015,6 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
             </div>
           </div>
         )}
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <CardTitle className="text-base">Listings & New Retail Benchmark Review</CardTitle>
-                <CardDescription>
-                  Compare captured listings against Centre Com new-retail references for GPUs, NVMe M.2, CPUs, and RAM kits.
-                </CardDescription>
-              </div>
-              <Badge variant="outline">source: centre_com</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {benchmarkMatches.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">
-                No captured listings are available yet. Run a scan to populate benchmark review cards.
-              </p>
-            ) : (
-              <div className="grid gap-3 lg:grid-cols-2">
-                {benchmarkMatches.slice(0, 10).map((match) => {
-                  const benchmark = match.benchmark ?? null
-                  const media = listingMediaForMatch(match)
-                  const firstMedia = media[0] ?? null
-                  const priceEvidence = priceEvidenceForMatch(match)
-                  return (
-                    <div key={match.match_id} className="rounded-md border border-border/70 bg-muted/10 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="text-sm font-medium">{match.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            Listing price: <span className="font-mono">{match.price || 'n/a'}</span>
-                          </div>
-                        </div>
-                        <Badge variant={benchmark?.low_confidence ? 'destructive' : 'secondary'}>
-                          {benchmark?.low_confidence ? 'needs review' : 'benchmarked'}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 overflow-hidden rounded-md border border-border/60 bg-background/60">
-                        {firstMedia ? (
-                          <img
-                            src={firstMedia}
-                            alt={`Listing photo for ${match.title}`}
-                            className="h-36 w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground">
-                            <ImageOff className="h-4 w-4" />
-                            Listing photos unavailable
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">
-                          photos: {media.length > 0 ? media.length : 0}
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          {priceSourceLabel(priceEvidence)}
-                        </Badge>
-                      </div>
-                      {priceEvidence?.warning && (
-                        <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
-                          {priceEvidence.warning}
-                        </p>
-                      )}
-                      {benchmark ? (
-                        <div className="mt-3 space-y-1 text-xs">
-                          <div>
-                            Matched product:{' '}
-                            <span className="font-medium">
-                              {benchmark.matched_product || 'No confident product match'}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>Current Centre Com: <span className="font-mono">{formatCurrency(benchmark.current_price)}</span></div>
-                            <div>30d median: <span className="font-mono">{formatCurrency(benchmark.median_30d)}</span></div>
-                            <div>Listing delta: <span className="font-mono">{formatDelta(benchmark.listing_delta_pct)}</span></div>
-                            <div>Confidence: <span className="font-mono">{Math.round(benchmark.confidence * 100)}%</span></div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-[10px]">
-                              freshness: {benchmarkFreshnessLabel(benchmark.freshness_hours)}
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px]">
-                              wording: {benchmark.wording || 'new retail benchmark'}
-                            </Badge>
-                            {benchmark.review_status && (
-                              <Badge variant="outline" className="text-[10px]">
-                                review: {benchmark.review_status}
-                              </Badge>
-                            )}
-                          </div>
-                          {benchmark.warning && (
-                            <p className="text-[11px] text-destructive">{benchmark.warning}</p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Benchmark overlay unavailable for this listing yet.
-                        </p>
-                      )}
-                      <div className="mt-3">
-                        <a
-                          href={`/marketplace/matches/${encodeURIComponent(match.match_id)}`}
-                          className="text-xs text-primary underline-offset-2 hover:underline"
-                        >
-                          Open review details
-                        </a>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         <MarketplaceAssistant
           apiKey={apiKey}
@@ -1782,6 +1808,225 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                       {selectedScanJob.result || scanOutputPlaceholder(selectedScanJob)}
                     </pre>
                   </ScrollArea>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="text-base">Listings & New Retail Benchmark Review</CardTitle>
+                <CardDescription>
+                  Captured listings stay down here for review after the mission controls and scan output.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">source: centre_com</Badge>
+                <label htmlFor="benchmark-review-sort" className="text-xs font-medium text-muted-foreground">
+                  Sort
+                </label>
+                <select
+                  id="benchmark-review-sort"
+                  aria-label="Sort benchmark review listings"
+                  value={benchmarkSortMode}
+                  onChange={(event) => setBenchmarkSortMode(event.target.value as BenchmarkSortMode)}
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                >
+                  <option value="mission">Mission</option>
+                  <option value="missing">Missing data</option>
+                  <option value="value">Best price gap</option>
+                  <option value="confidence">Confidence</option>
+                  <option value="newest">Newest captured</option>
+                </select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {benchmarkMatches.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">
+                No captured listings are available yet. Run a scan to populate benchmark review cards.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-[10px]">
+                    {benchmarkMatches.length} listings loaded
+                  </Badge>
+                  <Badge variant={benchmarkReviewCount > 0 ? 'secondary' : 'outline'} className="text-[10px]">
+                    {benchmarkReviewCount} need review
+                  </Badge>
+                  <Badge variant={benchmarkMissingCount > 0 ? 'secondary' : 'outline'} className="text-[10px]">
+                    {benchmarkMissingCount} with missing data
+                  </Badge>
+                </div>
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {sortedBenchmarkMatches.slice(0, 18).map((match) => {
+                    const benchmark = match.benchmark ?? null
+                    const media = listingMediaForMatch(match)
+                    const firstMedia = media[0] ?? null
+                    const priceEvidence = priceEvidenceForMatch(match)
+                    const missingReasons = benchmarkMissingReasons(match)
+                    const confidenceLabel =
+                      typeof benchmark?.confidence === 'number' && Number.isFinite(benchmark.confidence)
+                        ? `${Math.round(benchmark.confidence * 100)}%`
+                        : 'unknown'
+                    return (
+                      <div
+                        key={match.match_id}
+                        data-testid="marketplace-benchmark-listing"
+                        className="rounded-md border border-border/70 bg-muted/10 p-3"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          <div className="overflow-hidden rounded-md border border-border/60 bg-background/60 sm:w-36 sm:shrink-0">
+                            {firstMedia ? (
+                              <img
+                                src={firstMedia}
+                                alt={`Listing photo for ${match.title}`}
+                                className="h-28 w-full object-cover sm:h-full"
+                              />
+                            ) : (
+                              <div className="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground sm:h-full">
+                                <ImageOff className="h-4 w-4" />
+                                No photos
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge variant="outline" className="max-w-full truncate text-[10px]">
+                                    {missionNameForMatch(match)}
+                                  </Badge>
+                                  <Badge
+                                    variant={benchmarkReviewBadgeVariant(match)}
+                                    className="text-[10px]"
+                                  >
+                                    {benchmarkReviewLabel(match)}
+                                  </Badge>
+                                </div>
+                                <div className="mt-1 line-clamp-2 text-sm font-medium">{match.title}</div>
+                                <div className="text-[11px] text-muted-foreground">
+                                  Captured {formatClock(match.captured_at)}
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className="text-[10px] uppercase text-muted-foreground">Listing</div>
+                                <div className="font-mono text-sm font-semibold">{listingPriceLabel(match)}</div>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-2 text-xs sm:grid-cols-4">
+                              <div className="rounded-md border border-border/60 bg-background/70 p-2">
+                                <div className="text-[10px] uppercase text-muted-foreground">Listing</div>
+                                <div className="mt-1 font-mono font-semibold">{listingPriceLabel(match)}</div>
+                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                  {priceSourceLabel(priceEvidence)}
+                                </div>
+                              </div>
+                              <div className="rounded-md border border-border/60 bg-background/70 p-2">
+                                <div className="text-[10px] uppercase text-muted-foreground">Current retail</div>
+                                <div className="mt-1 font-mono font-semibold">
+                                  {benchmark?.current_price == null
+                                    ? 'Missing'
+                                    : formatCurrency(benchmark.current_price)}
+                                </div>
+                                <div className="mt-1 text-[10px] text-muted-foreground">Centre Com now</div>
+                              </div>
+                              <div className="rounded-md border border-border/60 bg-background/70 p-2">
+                                <div className="text-[10px] uppercase text-muted-foreground">30d median</div>
+                                <div className="mt-1 font-mono font-semibold">
+                                  {benchmark?.median_30d == null
+                                    ? 'Missing'
+                                    : formatCurrency(benchmark.median_30d)}
+                                </div>
+                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                  New-retail history
+                                </div>
+                              </div>
+                              <div className="rounded-md border border-border/60 bg-background/70 p-2">
+                                <div className="text-[10px] uppercase text-muted-foreground">Delta</div>
+                                <div className="mt-1 font-mono font-semibold">
+                                  {benchmark?.listing_delta_pct == null
+                                    ? 'Unavailable'
+                                    : formatDelta(benchmark.listing_delta_pct)}
+                                </div>
+                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                  vs benchmark
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-2 text-xs sm:grid-cols-2">
+                              <div>
+                                <span className="text-muted-foreground">Matched product: </span>
+                                <span className="font-medium">
+                                  {benchmark?.matched_product || 'No confident product match'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Confidence: </span>
+                                <span className="font-mono">{confidenceLabel}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Freshness: </span>
+                                <span>{benchmarkFreshnessLabel(benchmark?.freshness_hours)}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Photos: </span>
+                                <span className="font-mono">{media.length}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className="text-[10px]">
+                                wording: {benchmark?.wording || 'new retail benchmark'}
+                              </Badge>
+                              {benchmark?.review_status && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  review: {benchmark.review_status}
+                                </Badge>
+                              )}
+                              {missingReasons.map((reason) => (
+                                <Badge key={`${match.match_id}-${reason}`} variant="secondary" className="text-[10px]">
+                                  {reason}
+                                </Badge>
+                              ))}
+                            </div>
+
+                            {(priceEvidence?.warning || benchmark?.warning) && (
+                              <div className="space-y-1 text-[11px]">
+                                {priceEvidence?.warning && (
+                                  <p className="text-amber-700 dark:text-amber-300">
+                                    {priceEvidence.warning}
+                                  </p>
+                                )}
+                                {benchmark?.warning && (
+                                  <p className="text-destructive">{benchmark.warning}</p>
+                                )}
+                              </div>
+                            )}
+
+                            {benchmark?.rationale && benchmark.rationale.length > 0 && (
+                              <p className="text-[11px] text-muted-foreground">
+                                {benchmark.rationale.slice(0, 2).join(' ')}
+                              </p>
+                            )}
+
+                            <a
+                              href={`/marketplace/matches/${encodeURIComponent(match.match_id)}`}
+                              className="inline-flex text-xs text-primary underline-offset-2 hover:underline"
+                            >
+                              Open review details
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </>
             )}

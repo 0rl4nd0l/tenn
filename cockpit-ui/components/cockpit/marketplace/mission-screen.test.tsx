@@ -685,6 +685,163 @@ describe('MarketplaceMissionScreen', () => {
     ).toBe(false)
   })
 
+  it('keeps benchmark review listings at the bottom and sorts by mission or missing data', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/cockpit/marketplace/browser-health') {
+        return {
+          ok: true,
+          json: async () => ({
+            status: 'ready',
+            cdp_url: 'http://127.0.0.1:9222',
+            browser_family: 'chrome',
+            profile_path: '/tmp/profile',
+            challenge_detected: false,
+            last_checked_at: '2026-04-30T08:00:00Z',
+            detail: 'Marketplace browser profile is ready.',
+          }),
+        }
+      }
+      if (url === '/api/cockpit/marketplace/missions') {
+        return { ok: true, json: async () => ({ items: [] }) }
+      }
+      if (url === '/api/cockpit/marketplace/scans') {
+        return { ok: true, json: async () => ({ items: [] }) }
+      }
+      if (url === '/api/cockpit/marketplace/matches') {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                match_id: 'match-beta',
+                mission_id: 'mission-beta',
+                mission_name: 'Beta Storage',
+                listing_id: 'listing-beta',
+                listing_url: 'https://example.test/beta',
+                title: 'CUSU SSD 2TB Brand New in Box',
+                price: null,
+                price_value: null,
+                location: 'Melbourne',
+                seller_name: 'Seller B',
+                captured_at: '2026-04-30T09:00:00Z',
+                score: 42,
+                decision_band: 'needs_review',
+                reasons_for: [],
+                reasons_against: [],
+                confidence: 0.2,
+                raw_text_snapshot: '',
+                screenshot_path: null,
+                listing_media: [],
+                status: 'new',
+                metadata: {
+                  price_evidence: {
+                    source: 'search_card',
+                    warning: 'Card price was unavailable.',
+                  },
+                },
+                benchmark: {
+                  source: 'centre_com',
+                  category: 'storage',
+                  matched_product: null,
+                  current_price: null,
+                  median_30d: null,
+                  listing_delta_pct: null,
+                  freshness_hours: null,
+                  confidence: 0.2,
+                  low_confidence: true,
+                  review_status: 'pending_review',
+                  warning: 'Low-confidence benchmark match requires manual review.',
+                  rationale: [],
+                  wording: 'new retail benchmark',
+                },
+                value_context: null,
+                updated_at: '2026-04-30T09:00:00Z',
+              },
+              {
+                match_id: 'match-alpha',
+                mission_id: 'mission-alpha',
+                mission_name: 'Alpha Storage',
+                listing_id: 'listing-alpha',
+                listing_url: 'https://example.test/alpha',
+                title: 'Alpha SSD 2TB listing',
+                price: 'A$180',
+                price_value: 180,
+                location: 'Melbourne',
+                seller_name: 'Seller A',
+                captured_at: '2026-04-30T08:00:00Z',
+                score: 91,
+                decision_band: 'strong_match',
+                reasons_for: [],
+                reasons_against: [],
+                confidence: 0.9,
+                raw_text_snapshot: '',
+                screenshot_path: null,
+                listing_media: [],
+                status: 'new',
+                metadata: {
+                  price_evidence: {
+                    source: 'detail',
+                    resolved_price_text: 'A$180',
+                    resolved_price_value: 180,
+                  },
+                },
+                benchmark: {
+                  source: 'centre_com',
+                  category: 'storage',
+                  matched_product: 'Crucial P3 Plus 2TB',
+                  current_price: 197,
+                  median_30d: 205,
+                  listing_delta_pct: -12.2,
+                  freshness_hours: 12,
+                  confidence: 0.86,
+                  low_confidence: false,
+                  review_status: 'auto_scored',
+                  warning: null,
+                  rationale: ['Matched capacity and NVMe wording.'],
+                  wording: 'new retail benchmark',
+                },
+                value_context: null,
+                updated_at: '2026-04-30T08:00:00Z',
+              },
+            ],
+          }),
+        }
+      }
+      return { ok: false, json: async () => ({ detail: `Unhandled URL in test: ${url}` }) }
+    })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Listings & New Retail Benchmark Review')).toBeInTheDocument()
+    })
+
+    const scanOutputHeading = screen.getByText('Scan Output')
+    const reviewHeading = screen.getByText('Listings & New Retail Benchmark Review')
+    expect(
+      Boolean(scanOutputHeading.compareDocumentPosition(reviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true)
+
+    let reviewCards = screen.getAllByTestId('marketplace-benchmark-listing')
+    expect(within(reviewCards[0]).getByText('Alpha SSD 2TB listing')).toBeInTheDocument()
+    expect(within(reviewCards[1]).getByText('CUSU SSD 2TB Brand New in Box')).toBeInTheDocument()
+
+    await userEvent.selectOptions(
+      screen.getByLabelText(/sort benchmark review listings/i),
+      'missing',
+    )
+
+    await waitFor(() => {
+      reviewCards = screen.getAllByTestId('marketplace-benchmark-listing')
+      expect(within(reviewCards[0]).getByText('CUSU SSD 2TB Brand New in Box')).toBeInTheDocument()
+    })
+    expect(within(reviewCards[0]).getByText('Listing price missing')).toBeInTheDocument()
+    expect(within(reviewCards[0]).getByText('Current retail price missing')).toBeInTheDocument()
+  })
+
   it('links and unlinks one primary tracked product for a mission', async () => {
     let linked = false
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
