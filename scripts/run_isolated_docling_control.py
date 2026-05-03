@@ -40,6 +40,18 @@ DEFAULT_DOC_IDS = (
     "rio_a_2024-12-31",
     "tls_h_2025-12-31",
 )
+CANONICAL_10_DOC_IDS = (
+    "bhp_a_2021-06-30_difficult",
+    "bhp_a_2025-06-30",
+    "eqr_q_2025-12-31",
+    "gre_q_2024-12-31",
+    "gre_q_2025-09-30",
+    "min_h_2025-12-31",
+    "qbe_h_2025-06-30",
+    "rio_a_2023-12-31",
+    "rio_a_2024-12-31",
+    "tls_h_2025-12-31",
+)
 DEFAULT_EXTRACTION_URL = "http://127.0.0.1:8002"
 DEFAULT_SHARED_URL = "http://127.0.0.1:8001"
 DEFAULT_MODEL_PATH = "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
@@ -86,6 +98,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--min-vram-free-mb", type=int, default=9000)
     parser.add_argument("--start-runtime", action="store_true", help="Start scripts/run_extraction_server.sh when :8002 is not healthy.")
     parser.add_argument("--stop-runtime", action="store_true", help="Stop only the extraction runtime process started by this script.")
+    parser.add_argument(
+        "--disable-prompt-cache",
+        action="store_true",
+        help=(
+            "When this script starts the dedicated runtime, set llama.cpp "
+            "LLAMA_ARG_CACHE_RAM=0 and LLAMA_ARG_CACHE_PROMPT=false."
+        ),
+    )
     parser.add_argument("--runtime-log", type=Path, default=DEFAULT_RUNTIME_LOG)
     parser.add_argument("--results-json", type=Path, default=DEFAULT_RESULTS_JSON)
     parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT_MD)
@@ -161,6 +181,80 @@ def _run(
     )
 
 
+def _redact_cmdline(cmdline: str) -> str:
+    parts = str(cmdline or "").split()
+    redacted: list[str] = []
+    skip_next = False
+    for part in parts:
+        if skip_next:
+            redacted.append("<redacted>")
+            skip_next = False
+            continue
+        if part.startswith("--api-key="):
+            redacted.append("--api-key=<redacted>")
+            continue
+        if part.startswith("--api-key-file="):
+            redacted.append("--api-key-file=<redacted>")
+            continue
+        redacted.append(part)
+        if part in {"--api-key", "--api-key-file"}:
+            skip_next = True
+    return " ".join(redacted)
+
+
+def _read_pid_env(pid: int, names: tuple[str, ...]) -> dict[str, str | None]:
+    wanted = set(names)
+    values: dict[str, str | None] = {name: None for name in names}
+    try:
+        raw = Path(f"/proc/{pid}/environ").read_bytes()
+    except OSError:
+        return values
+    for item in raw.split(b"\0"):
+        if not item or b"=" not in item:
+            continue
+        key_raw, value_raw = item.split(b"=", 1)
+        key = key_raw.decode("utf-8", errors="replace")
+        if key in wanted:
+            values[key] = value_raw.decode("utf-8", errors="replace")
+    return values
+
+
+def _prompt_cache_controls_for_pid(pid: int, cmdline: str) -> dict[str, Any]:
+    parts = str(cmdline or "").split()
+    cache_ram_arg: str | None = None
+    cache_prompt_arg: str | None = None
+    for index, part in enumerate(parts):
+        if part == "--cache-ram" and index + 1 < len(parts):
+            cache_ram_arg = parts[index + 1]
+        elif part.startswith("--cache-ram="):
+            cache_ram_arg = part.split("=", 1)[1]
+        elif part in {"--cache-prompt", "--no-cache-prompt"}:
+            cache_prompt_arg = part
+    env_values = _read_pid_env(
+        pid,
+        ("LLAMA_ARG_CACHE_RAM", "LLAMA_ARG_CACHE_PROMPT"),
+    )
+    cache_ram = cache_ram_arg if cache_ram_arg is not None else env_values.get("LLAMA_ARG_CACHE_RAM")
+    cache_prompt = (
+        cache_prompt_arg
+        if cache_prompt_arg is not None
+        else env_values.get("LLAMA_ARG_CACHE_PROMPT")
+    )
+    disabled = str(cache_ram or "").strip() == "0" or str(cache_prompt or "").strip().lower() in {
+        "0",
+        "false",
+        "no",
+        "off",
+    } or cache_prompt_arg == "--no-cache-prompt"
+    return {
+        "cmdline_cache_ram": cache_ram_arg,
+        "cmdline_cache_prompt": cache_prompt_arg,
+        "env_LLAMA_ARG_CACHE_RAM": env_values.get("LLAMA_ARG_CACHE_RAM"),
+        "env_LLAMA_ARG_CACHE_PROMPT": env_values.get("LLAMA_ARG_CACHE_PROMPT"),
+        "disabled_by_runtime_config": disabled,
+    }
+
+
 def _gpu_guard_json() -> dict[str, Any]:
     proc = _run(["scripts/gpu_process_guard.sh", "--json"], timeout=10.0)
     if proc.returncode != 0:
@@ -206,7 +300,7 @@ def _pids_for_port(port: int) -> list[int]:
 
 def _cmdline_for_pid(pid: int) -> str:
     proc = _run(["ps", "-p", str(pid), "-o", "args="], timeout=10.0)
-    return proc.stdout.strip() if proc.returncode == 0 else ""
+    return _redact_cmdline(proc.stdout.strip()) if proc.returncode == 0 else ""
 
 
 def _runtime_status(endpoint: str, *, api_key: str) -> dict[str, Any]:
@@ -214,13 +308,47 @@ def _runtime_status(endpoint: str, *, api_key: str) -> dict[str, Any]:
     if port is None:
         raise RuntimeError(f"runtime endpoint has no port: {endpoint}")
     pids = _pids_for_port(port)
+    cmdlines = {str(pid): _cmdline_for_pid(pid) for pid in pids}
     return {
         "endpoint": endpoint,
         "port": port,
         "healthy": _http_ok(f"{endpoint}/health", api_key=api_key),
         "pids": pids,
-        "cmdlines": {str(pid): _cmdline_for_pid(pid) for pid in pids},
+        "cmdlines": cmdlines,
+        "prompt_cache_controls": {
+            str(pid): _prompt_cache_controls_for_pid(pid, cmdlines.get(str(pid), ""))
+            for pid in pids
+        },
     }
+
+
+def _runtime_launch_env(args: argparse.Namespace, endpoint: str) -> dict[str, str]:
+    env = dict(os.environ)
+    env.update(
+        {
+            "EXTRACTION_SERVER_HOST": _url_host(endpoint) or "127.0.0.1",
+            "EXTRACTION_SERVER_PORT": "8002",
+            "EXTRACTION_SERVER_MODEL": str(args.model_path),
+            "EXTRACTION_SERVER_ALIAS": str(args.model_alias),
+            "EXTRACTION_SERVER_CTX_SIZE": str(args.ctx_size),
+            "LLM_API_KEY": str(args.api_key or "local-openai-key"),
+        }
+    )
+    if bool(getattr(args, "disable_prompt_cache", False)):
+        env["LLAMA_ARG_CACHE_RAM"] = "0"
+        env["LLAMA_ARG_CACHE_PROMPT"] = "false"
+    return env
+
+
+def _runtime_has_disabled_prompt_cache(status: dict[str, Any]) -> bool:
+    controls = status.get("prompt_cache_controls")
+    if not isinstance(controls, dict):
+        return False
+    return any(
+        bool(control.get("disabled_by_runtime_config"))
+        for control in controls.values()
+        if isinstance(control, dict)
+    )
 
 
 def _start_extraction_runtime(args: argparse.Namespace, endpoint: str) -> int:
@@ -243,17 +371,7 @@ def _start_extraction_runtime(args: argparse.Namespace, endpoint: str) -> int:
         )
 
     args.runtime_log.parent.mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ)
-    env.update(
-        {
-            "EXTRACTION_SERVER_HOST": _url_host(endpoint) or "127.0.0.1",
-            "EXTRACTION_SERVER_PORT": "8002",
-            "EXTRACTION_SERVER_MODEL": str(args.model_path),
-            "EXTRACTION_SERVER_ALIAS": str(args.model_alias),
-            "EXTRACTION_SERVER_CTX_SIZE": str(args.ctx_size),
-            "LLM_API_KEY": str(args.api_key or "local-openai-key"),
-        }
-    )
+    env = _runtime_launch_env(args, endpoint)
     log_handle = args.runtime_log.open("ab")
     proc = subprocess.Popen(
         ["bash", "scripts/run_extraction_server.sh"],
@@ -271,6 +389,12 @@ def _start_extraction_runtime(args: argparse.Namespace, endpoint: str) -> int:
 def _ensure_runtime(args: argparse.Namespace, endpoint: str) -> tuple[str, int | None]:
     status = _runtime_status(endpoint, api_key=args.api_key)
     if status["healthy"]:
+        if bool(getattr(args, "disable_prompt_cache", False)) and not _runtime_has_disabled_prompt_cache(status):
+            raise RuntimeError(
+                "isolated extraction runtime is healthy but prompt cache is not "
+                "disabled by observable runtime config; stop it before rerunning "
+                "with --start-runtime --disable-prompt-cache"
+            )
         return "reused", None
 
     port = int(status["port"])
@@ -539,26 +663,28 @@ def _run_control(args: argparse.Namespace, endpoint: str) -> dict[str, Any]:
     temp_root = getattr(temp_dir, "name", None)
     started = time.perf_counter()
     try:
-        if args.capture_payload:
-            results = [
-                _evaluate_real_gold_document_with_payload(
+        results = []
+        for doc in docs:
+            doc_started = time.perf_counter()
+            if args.capture_payload:
+                result = _evaluate_real_gold_document_with_payload(
                     doc,
                     tolerance=max(float(args.tolerance), 0.0),
                     method="docling",
                     strict_method=True,
                 )
-                for doc in docs
-            ]
-        else:
-            results = [
-                main_app._evaluate_real_gold_document(
+            else:
+                result = main_app._evaluate_real_gold_document(
                     doc,
                     tolerance=max(float(args.tolerance), 0.0),
                     method="docling",
                     strict_method=True,
                 )
-                for doc in docs
-            ]
+            result = dict(result)
+            result["timing"] = {
+                "elapsed_seconds": round(time.perf_counter() - doc_started, 3)
+            }
+            results.append(result)
     finally:
         if temp_dir is not None:
             temp_dir.cleanup()
@@ -584,6 +710,16 @@ def _metric_status(result: dict[str, Any], metric: str) -> str:
 def _derive_acceptance(payload: dict[str, Any]) -> dict[str, Any]:
     control = payload.get("control") if isinstance(payload.get("control"), dict) else {}
     docs = control.get("documents") if isinstance(control.get("documents"), list) else []
+    doc_ids = control.get("doc_ids") if isinstance(control.get("doc_ids"), list) else []
+    if not doc_ids:
+        doc_ids = [str(doc.get("document_id") or "") for doc in docs]
+    doc_id_set = {str(doc_id) for doc_id in doc_ids}
+    if len(doc_ids) == len(DEFAULT_DOC_IDS) and doc_id_set == set(DEFAULT_DOC_IDS):
+        acceptance_profile = "strict4"
+    elif len(doc_ids) == len(CANONICAL_10_DOC_IDS) and doc_id_set == set(CANONICAL_10_DOC_IDS):
+        acceptance_profile = "canonical10"
+    else:
+        acceptance_profile = "custom"
     runtime_endpoint = str(payload.get("runtime", {}).get("endpoint") or "")
     all_runtime_ids = []
     for doc in docs:
@@ -616,6 +752,18 @@ def _derive_acceptance(payload: dict[str, Any]) -> dict[str, Any]:
     )
     summary = payload.get("control", {}).get("summary") or {}
     docs_completed = int(summary.get("total_documents") or 0)
+    failed_documents = int(summary.get("failed_documents") or 0)
+    context_correct = int(summary.get("context_correct_documents") or 0)
+    total_metric_checks = int(summary.get("total_metric_checks") or 0)
+    metric_status_counts = (
+        summary.get("metric_status_counts")
+        if isinstance(summary.get("metric_status_counts"), dict)
+        else {}
+    )
+    correct_metrics = int(metric_status_counts.get("correct") or 0)
+    wrong_metrics = int(metric_status_counts.get("wrong") or 0)
+    missing_metrics = int(metric_status_counts.get("missing") or 0)
+    abstain_metrics = int(metric_status_counts.get("abstain") or 0)
     trusted_count = int((summary.get("trust_distribution") or {}).get("trusted") or 0)
     trust_matches = int(summary.get("trust_matches_expected") or 0)
     isolated_endpoint_used = bool(runtime_endpoint) and all(
@@ -623,26 +771,72 @@ def _derive_acceptance(payload: dict[str, Any]) -> dict[str, Any]:
     )
     shared_runtime_avoided = bool(payload.get("isolation", {}).get("shared_runtime_avoided"))
 
-    passed = all(
+    common_gate = all(
         (
-            docs_completed == 4,
-            trusted_count == 4,
-            trust_matches == 4,
-            operating_cf_correct,
-            tls_revenue_correct,
             requested_docling,
             strict_method,
             actual_docling_gpu,
             not fallback_used,
-            payload.get("control", {}).get("cache_hit") is False,
+            control.get("cache_hit") is False,
             not timeout_event,
             isolated_endpoint_used,
             shared_runtime_avoided,
         )
     )
+    metric_gate = all(
+        (
+            total_metric_checks > 0,
+            correct_metrics == total_metric_checks,
+            wrong_metrics == 0,
+            missing_metrics == 0,
+            abstain_metrics == 0,
+        )
+    )
+    if acceptance_profile == "canonical10":
+        passed = all(
+            (
+                docs_completed == 10,
+                failed_documents == 0,
+                context_correct == 10,
+                total_metric_checks == 24,
+                correct_metrics == 24,
+                trusted_count == 10,
+                trust_matches == 10,
+                metric_gate,
+                common_gate,
+            )
+        )
+    elif acceptance_profile == "strict4":
+        passed = all(
+            (
+                docs_completed == 4,
+                trusted_count == 4,
+                trust_matches == 4,
+                operating_cf_correct,
+                tls_revenue_correct,
+                common_gate,
+            )
+        )
+    else:
+        passed = all(
+            (
+                docs_completed == len(doc_ids),
+                failed_documents == 0,
+                context_correct == docs_completed,
+                trust_matches == docs_completed,
+                metric_gate,
+                common_gate,
+            )
+        )
     return {
         "passed": passed,
+        "acceptance_profile": acceptance_profile,
         "docs_completed": docs_completed,
+        "failed_documents": failed_documents,
+        "context_correct_documents": context_correct,
+        "total_metric_checks": total_metric_checks,
+        "metric_status_counts": dict(metric_status_counts),
+        "metric_gate_passed": metric_gate,
         "trusted_count": trusted_count,
         "trust_matches_expected": trust_matches,
         "operating_cash_flow_correct_all": operating_cf_correct,
@@ -656,6 +850,41 @@ def _derive_acceptance(payload: dict[str, Any]) -> dict[str, Any]:
         "isolated_endpoint_used": isolated_endpoint_used,
         "shared_runtime_avoided": shared_runtime_avoided,
         "runtime_ids": all_runtime_ids,
+    }
+
+
+def _prompt_cache_provenance(args: argparse.Namespace, payload: dict[str, Any]) -> dict[str, Any]:
+    runtime_after = payload.get("runtime_after")
+    runtime_after = runtime_after if isinstance(runtime_after, dict) else {}
+    controls = runtime_after.get("prompt_cache_controls")
+    controls = controls if isinstance(controls, dict) else {}
+    try:
+        log_text = args.runtime_log.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        log_text = ""
+    log_enabled = "prompt cache is enabled" in log_text
+    log_updates = log_text.count("updating prompt cache")
+    disabled_by_config = any(
+        bool(control.get("disabled_by_runtime_config"))
+        for control in controls.values()
+        if isinstance(control, dict)
+    )
+    disabled_requested = bool(getattr(args, "disable_prompt_cache", False))
+    return {
+        "requested_mode": "disabled" if disabled_requested else "record_only",
+        "runtime_log": str(args.runtime_log),
+        "disabled_by_runtime_config": disabled_by_config,
+        "log_prompt_cache_enabled": log_enabled,
+        "log_prompt_cache_update_count": log_updates,
+        "log_disable_hint_present": "use `--cache-ram 0` to disable the prompt cache" in log_text,
+        "runtime_controls": controls,
+        "timing_classification": (
+            "prompt_cache_disabled"
+            if disabled_requested and disabled_by_config and not log_enabled and log_updates == 0
+            else "cache_contaminated"
+            if log_enabled or log_updates > 0
+            else "prompt_cache_recorded_unverified"
+        ),
     }
 
 
@@ -745,6 +974,9 @@ def main() -> int:
                 "--parallel",
                 "1",
             ],
+            "prompt_cache_requested_mode": (
+                "disabled" if args.disable_prompt_cache else "record_only"
+            ),
         },
         "shared_runtime": shared_before,
         "isolation": {
@@ -761,6 +993,7 @@ def main() -> int:
         payload["control"] = _run_control(args, extraction_url)
         payload["runtime_after"] = _runtime_status(extraction_url, api_key=args.api_key)
         payload["gpu_after"] = _gpu_guard_json()
+        payload["prompt_cache"] = _prompt_cache_provenance(args, payload)
         payload["acceptance"] = _derive_acceptance(payload)
     finally:
         if args.stop_runtime and mode == "started":
