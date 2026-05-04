@@ -88,7 +88,7 @@ _MOTHERBOARD_EVIDENCE_RE = re.compile(
     re.IGNORECASE,
 )
 _MOTHERBOARD_MODEL_RE = re.compile(
-    r"\b(?:asus\s+)?(?:pro\s*ws\s*)?x570[-\s]*ace\b",
+    r"\bx570[-\s]*ace\b",
     re.IGNORECASE,
 )
 _MOTHERBOARD_WRONG_CATEGORY_RE = re.compile(
@@ -295,6 +295,16 @@ def _candidate_variants(term: str, category: str) -> list[str]:
     return _string_list(variants)
 
 
+def _has_asus_pro_ws_x570_ace_evidence(normalized_text: str) -> bool:
+    if not _MOTHERBOARD_MODEL_RE.search(normalized_text):
+        return False
+    return bool(
+        re.search(r"\basus\b", normalized_text)
+        or re.search(r"\bpro[-\s]*ws\b", normalized_text)
+        or re.search(r"\bws[-\s]*x570[-\s]*ace\b", normalized_text)
+    )
+
+
 def _phrase_matches_text(phrase: str, normalized_text: str) -> bool:
     tokens = re.findall(r"[a-z0-9]+", phrase.lower())
     if not tokens:
@@ -317,6 +327,12 @@ def _strong_candidate_model_evidence(
             if numeric_only and category != "gpu":
                 continue
             if _phrase_matches_text(variant, normalized_text):
+                if (
+                    category == "motherboard"
+                    and _MOTHERBOARD_MODEL_RE.search(variant)
+                    and not _has_asus_pro_ws_x570_ace_evidence(normalized_text)
+                ):
+                    continue
                 return variant
     return None
 
@@ -422,6 +438,10 @@ def _category_fit_rejection(normalized_text: str, mission: dict[str, Any]) -> st
                 return "Listing appears outside the requested motherboard category"
             if not _MOTHERBOARD_EVIDENCE_RE.search(normalized_text):
                 return "Required motherboard/X570 evidence was not found"
+            if _MOTHERBOARD_MODEL_RE.search(normalized_text) and not _has_asus_pro_ws_x570_ace_evidence(
+                normalized_text
+            ):
+                return "Listing X570 ACE model is not the requested ASUS Pro WS X570-ACE"
             hard = mission.get("hard_filters") or {}
             target_terms = " ".join(
                 _string_list(hard.get("include_keywords"))
@@ -456,7 +476,7 @@ def _strong_category_identity_evidence(normalized_text: str, mission: dict[str, 
             _strong_candidate_model_evidence(normalized_text, mission)
         )
     if category == "motherboard":
-        return bool(_MOTHERBOARD_MODEL_RE.search(normalized_text)) or bool(
+        return _has_asus_pro_ws_x570_ace_evidence(normalized_text) or bool(
             _strong_candidate_model_evidence(normalized_text, mission)
         )
     return True

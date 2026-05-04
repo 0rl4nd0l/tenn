@@ -295,6 +295,9 @@ _MOTHERBOARD_CANDIDATES: list[dict[str, Any]] = [
         "aliases": [
             "ASUS Pro WS X570-ACE",
             "Pro WS X570 ACE",
+            "PRO-WS-X570-ACE",
+            "WS X570-ACE",
+            "X570 ACE",
             "X570-ACE",
         ],
         "availability_rank": 1,

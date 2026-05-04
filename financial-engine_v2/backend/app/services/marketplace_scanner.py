@@ -63,6 +63,7 @@ FACEBOOK_MARKETPLACE_ITEM_RE = re.compile(
 )
 DEFAULT_MARKETPLACE_RADIUS_KM = 160
 CALIBRATION_MARKETPLACE_RADIUS_KM = 500
+CALIBRATION_MAX_QUERY_VARIANTS = 4
 DEFAULT_DETAIL_PACING_SECONDS = (1.5, 4.0)
 DEFAULT_DETAIL_TIMEOUT_BACKOFF_SECONDS = (8.0, 15.0)
 MAX_DETAIL_TIMEOUT_BACKOFF_SECONDS = 60.0
@@ -198,7 +199,18 @@ def _scan_location_anchors(location_names: list[str]) -> list[str]:
 
 
 def _tracked_product_search_query(product: dict[str, Any]) -> str:
+    queries = _tracked_product_search_queries(product, limit=1)
+    return queries[0] if queries else str(product.get("canonical_key") or "").strip()
+
+
+def _tracked_product_search_queries(
+    product: dict[str, Any],
+    *,
+    limit: int = CALIBRATION_MAX_QUERY_VARIANTS,
+) -> list[str]:
     aliases = product.get("aliases") if isinstance(product.get("aliases"), list) else []
+    out: list[str] = []
+    seen: set[str] = set()
     for value in [
         " ".join(
             str(part or "").strip()
@@ -209,9 +221,13 @@ def _tracked_product_search_query(product: dict[str, Any]) -> str:
         str(product.get("canonical_key") or "").replace("-", " "),
     ]:
         cleaned = re.sub(r"\s+", " ", str(value or "")).strip()
-        if cleaned:
-            return cleaned
-    return str(product.get("canonical_key") or "").strip()
+        key = cleaned.lower()
+        if cleaned and key not in seen:
+            seen.add(key)
+            out.append(cleaned)
+        if len(out) >= max(1, limit):
+            return out
+    return out
 
 
 def build_marketplace_search_url(
@@ -403,7 +419,8 @@ class MarketplaceScanner:
         if product is None:
             raise ValueError(f"tracked_product_id not found: {tracked_product_id}")
 
-        query = _tracked_product_search_query(product)
+        queries = _tracked_product_search_queries(product)
+        query = queries[0] if queries else _tracked_product_search_query(product)
         health = check_marketplace_browser_health(
             cdp_url=self.cdp_url,
             timeout_ms=self.timeout_ms,
@@ -418,6 +435,7 @@ class MarketplaceScanner:
             "tracked_product_id": tracked_product_id,
             "canonical_key": product["canonical_key"],
             "query": query,
+            "query_variants": queries,
             "location_anchors_scanned": [],
             "listings_seen": 0,
             "observations_ingested": 0,
@@ -430,33 +448,40 @@ class MarketplaceScanner:
             
             cards: list[dict[str, Any]] = []
             seen_listing_ids: set[str] = set()
-            for location_name in _scan_location_anchors(["Australia"]):
-                self._raise_if_cancelled(cancel_requested)
-                page = await context.new_page()
-                try:
-                    page.set_default_timeout(self.timeout_ms)
-                    search_url = build_marketplace_search_url(
-                        query,
-                        location_name=location_name,
-                        radius_km=CALIBRATION_MARKETPLACE_RADIUS_KM,
+            for query_index, search_query in enumerate(queries, start=1):
+                if progress:
+                    progress(
+                        f"Searching for {search_query}",
+                        10.0 + ((query_index - 1) / max(len(queries), 1)) * 50.0,
                     )
-                    await page.goto(search_url, wait_until="domcontentloaded")
-                    await page.wait_for_timeout(2_000)
-                    location_cards = await self._collect_cards_for_query(
-                        page=page,
-                        query=query,
-                        card_target=12,
-                        seen_listing_ids=seen_listing_ids,
-                        log=log,
-                        cancel_requested=cancel_requested,
-                    )
-                    cards.extend(location_cards)
-                    stats["location_anchors_scanned"].append(location_name)
-                finally:
+                for location_name in _scan_location_anchors(["Australia"]):
+                    self._raise_if_cancelled(cancel_requested)
+                    page = await context.new_page()
                     try:
-                        await page.close()
-                    except Exception:
-                        pass
+                        page.set_default_timeout(self.timeout_ms)
+                        search_url = build_marketplace_search_url(
+                            search_query,
+                            location_name=location_name,
+                            radius_km=CALIBRATION_MARKETPLACE_RADIUS_KM,
+                        )
+                        await page.goto(search_url, wait_until="domcontentloaded")
+                        await page.wait_for_timeout(2_000)
+                        location_cards = await self._collect_cards_for_query(
+                            page=page,
+                            query=search_query,
+                            card_target=12,
+                            seen_listing_ids=seen_listing_ids,
+                            log=log,
+                            cancel_requested=cancel_requested,
+                        )
+                        cards.extend(location_cards)
+                        location_probe = f"{location_name}::{search_query}"
+                        stats["location_anchors_scanned"].append(location_probe)
+                    finally:
+                        try:
+                            await page.close()
+                        except Exception:
+                            pass
 
             stats["listings_seen"] = len(cards)
             if log:
@@ -519,7 +544,10 @@ class MarketplaceScanner:
                             "location": card.get("location"),
                             "match_confidence": confidence,
                             "capture_mode": "scanner",
-                            "provenance": {"query": query, "calibration": True},
+                            "provenance": {
+                                "query": card.get("query") or query,
+                                "calibration": True,
+                            },
                             "review_state": "pending_review",
                         })
                         if observation.get("created"):
@@ -528,11 +556,11 @@ class MarketplaceScanner:
                         if log:
                             log(f"    failed to ingest calibration observation: {exc}")
 
-            if stats["observations_ingested"] > 0:
-                if progress:
-                    progress("Rebuilding benchmark", 90.0)
-                price_service.rebuild_benchmark_snapshot(tracked_product_id)
-                stats["benchmark_rebuilt"] = True
+            if progress:
+                progress("Rebuilding benchmark", 90.0)
+            snapshot = price_service.rebuild_benchmark_snapshot(tracked_product_id)
+            stats["benchmark_rebuilt"] = True
+            stats["benchmark_sample_size"] = snapshot.get("total_sample_size")
             
             if progress:
                 progress("Calibration complete", 100.0)

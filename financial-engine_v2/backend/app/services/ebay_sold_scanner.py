@@ -14,6 +14,8 @@ from app.services.marketplace_price_intelligence import (
 )
 
 logger = logging.getLogger(__name__)
+EBAY_SOLD_MAX_QUERY_VARIANTS = 4
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -29,6 +31,34 @@ def _price_value(value: Any) -> float | None:
         return None
 
 
+def _sold_search_queries(product: dict[str, Any], *, limit: int = EBAY_SOLD_MAX_QUERY_VARIANTS) -> list[str]:
+    aliases = product.get("aliases") if isinstance(product.get("aliases"), list) else []
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in [
+        " ".join(
+            str(part or "").strip()
+            for part in [product.get("brand"), product.get("model_family"), product.get("variant")]
+            if str(part or "").strip()
+        ),
+        " ".join(
+            str(part or "").strip()
+            for part in [product.get("model_family"), product.get("variant")]
+            if str(part or "").strip()
+        ),
+        *(str(alias or "").strip() for alias in aliases),
+        str(product.get("canonical_key") or "").replace("-", " "),
+    ]:
+        cleaned = re.sub(r"\s+", " ", str(value or "")).strip()
+        key = cleaned.lower()
+        if cleaned and key not in seen:
+            seen.add(key)
+            out.append(cleaned)
+        if len(out) >= max(1, limit):
+            return out
+    return out
+
+
 class EbaySoldScanner:
     def __init__(
         self,
@@ -41,28 +71,32 @@ class EbaySoldScanner:
     async def scrape_sold_items(
         self,
         tracked_product_id: str,
-        query: str,
+        query: str | None = None,
         log: Callable[[str], None] | None = None,
     ) -> dict[str, Any]:
         product = self.price_service.get_tracked_product(tracked_product_id)
         if product is None:
             raise ValueError(f"tracked_product_id not found: {tracked_product_id}")
 
-        # eBay search for sold items: LH_Sold=1, LH_Complete=1
-        encoded_query = quote_plus(query)
-        search_url = f"https://www.ebay.com.au/sch/i.html?_nkw={encoded_query}&LH_Sold=1&LH_Complete=1"
+        queries = [query] if query else _sold_search_queries(product)
+        if not queries:
+            raise ValueError("no eBay sold search query could be derived")
         
         if log:
-            log(f"Starting eBay sold scrape for: {query} ({tracked_product_id})")
+            log(f"Starting eBay sold scrape for: {', '.join(queries)} ({tracked_product_id})")
 
         stats = {
             "tracked_product_id": tracked_product_id,
-            "query": query,
+            "query": queries[0],
+            "query_variants": queries,
             "listings_seen": 0,
             "observations_ingested": 0,
         }
 
-        async def perform_scrape(context: Any):
+        async def perform_scrape(context: Any, search_query: str):
+            # eBay search for sold items: LH_Sold=1, LH_Complete=1
+            encoded_query = quote_plus(search_query)
+            search_url = f"https://www.ebay.com.au/sch/i.html?_nkw={encoded_query}&LH_Sold=1&LH_Complete=1"
             page = await context.new_page()
             try:
                 page.set_default_timeout(self.timeout_ms)
@@ -125,9 +159,9 @@ class EbaySoldScanner:
                 except Exception:
                     pass
 
-            stats["listings_seen"] = len(items)
+            stats["listings_seen"] += len(items)
             if log:
-                log(f"Found {len(items)} sold items on eBay")
+                log(f"Found {len(items)} sold items on eBay for {search_query}")
 
             for item in items:
                 raw_text = str(item.get("raw_text") or item["title"])
@@ -169,7 +203,7 @@ class EbaySoldScanner:
                             "capture_mode": "scanner",
                             "is_transactional": True,
                             "provenance": {
-                                "query": query,
+                                "query": search_query,
                                 "ebay_sold_date": item["date_sold"],
                                 "raw_text": raw_text,
                             },
@@ -181,18 +215,34 @@ class EbaySoldScanner:
                         if log:
                             log(f"Failed to ingest eBay observation: {exc}")
 
-            if stats["observations_ingested"] > 0:
-                self.price_service.rebuild_benchmark_snapshot(tracked_product_id)
-
         if use_direct_marketplace_runtime():
             async with open_direct_marketplace_context() as (context, _, _):
-                await perform_scrape(context)
+                for search_query in queries:
+                    await perform_scrape(context, search_query)
         else:
             from playwright.async_api import async_playwright
             async with async_playwright() as playwright:
                 browser = await playwright.chromium.launch(headless=True)
                 context = await browser.new_context()
-                await perform_scrape(context)
+                for search_query in queries:
+                    await perform_scrape(context, search_query)
                 await browser.close()
 
+        if stats["observations_ingested"] > 0:
+            self.price_service.rebuild_benchmark_snapshot(tracked_product_id)
+
         return stats
+
+    def scrape_sold_items_sync(
+        self,
+        tracked_product_id: str,
+        query: str | None = None,
+        log: Callable[[str], None] | None = None,
+    ) -> dict[str, Any]:
+        return asyncio.run(
+            self.scrape_sold_items(
+                tracked_product_id=tracked_product_id,
+                query=query,
+                log=log,
+            )
+        )

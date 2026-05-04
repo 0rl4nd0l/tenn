@@ -76,6 +76,14 @@ _LOCATION_CLAUSE_RE = re.compile(
     r"\blocations?\s*(?:i\s*(?:want|prefer)|to\s*use)?\s*:\s*([^.;\n]+)",
     re.IGNORECASE,
 )
+_AUSTRALIA_WIDE_LOCATION_TERMS = {
+    "australia",
+    "australia wide",
+    "australia-wide",
+    "nationwide",
+    "nation wide",
+    "national",
+}
 
 
 def _clean_text(value: Any) -> str:
@@ -168,11 +176,25 @@ def _brief_location_terms(brief: str) -> list[str]:
 def _search_query_location_term(location_name: str) -> str:
     cleaned = _clean_text(location_name)
     lowered = cleaned.lower()
+    if lowered in _AUSTRALIA_WIDE_LOCATION_TERMS:
+        return ""
     if "melbourne" in lowered:
         return "Melbourne"
     if "victoria" in lowered and "australia" in lowered:
         return "Melbourne"
     return cleaned
+
+
+def _brand_prefixed(brand: str, term: str) -> str:
+    brand = _clean_text(brand)
+    term = _clean_text(term)
+    if not brand:
+        return term
+    if not term:
+        return brand
+    if re.search(rf"\b{re.escape(brand.lower())}\b", term.lower()):
+        return term
+    return f"{brand} {term}"
 
 
 def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
@@ -216,9 +238,9 @@ def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
     primary_queries.extend(seed_terms[:max_queries] or ([core_phrase] if core_phrase else []))
     for brand in brands:
         if core_phrase:
-            primary_queries.append(f"{brand} {core_phrase}")
+            primary_queries.append(_brand_prefixed(brand, core_phrase))
         for term in seed_terms[:2]:
-            primary_queries.append(f"{brand} {term}")
+            primary_queries.append(_brand_prefixed(brand, term))
 
     synonym_queries: list[str] = []
     if bool(search.get("query_variants_enabled", True)):
@@ -230,7 +252,7 @@ def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
 
     brand_model_queries = _unique(
         [
-            f"{brand} {term}"
+            _brand_prefixed(brand, term)
             for brand in brands
             for term in seed_terms[:3]
         ]
@@ -291,8 +313,19 @@ def flatten_marketplace_queries(
 
     localized_queries: list[str] = []
     query_location_names = _unique(
-        [_search_query_location_term(location) for location in location_names]
+        [
+            location_term
+            for location in location_names
+            if (location_term := _search_query_location_term(location))
+        ]
     )
+    if not query_location_names:
+        if not ordered:
+            return []
+        expanded: list[str] = []
+        while len(expanded) < max(1, max_queries):
+            expanded.append(ordered[len(expanded) % len(ordered)])
+        return expanded
     for query in ordered:
         for location in query_location_names[:2]:
             localized_queries.append(f"{query} {location}")

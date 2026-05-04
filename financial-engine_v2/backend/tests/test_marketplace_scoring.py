@@ -711,6 +711,22 @@ def test_evaluate_marketplace_listing_caps_broad_motherboard_match_at_candidate(
     )
 
 
+def test_evaluate_marketplace_listing_rejects_different_x570_ace_board() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "MSI MEG X570 ACE Gaming Motherboard",
+            "price": "AU$220",
+            "location": "Melbourne, VIC",
+            "description": "MSI MEG X570 ACE AM4 board, tested working.",
+            "raw_text_lines": ["MSI MEG X570 ACE Gaming Motherboard"],
+        },
+        _motherboard_mission(),
+    )
+
+    assert result["decision_band"] == "reject"
+    assert result["score"] < 70
+
+
 def test_evaluate_marketplace_listing_caps_motherboard_when_cheaper_deal_seen() -> None:
     result = evaluate_marketplace_listing(
         {

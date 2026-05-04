@@ -134,6 +134,18 @@ def test_product_normalizer_extracts_pc_part_attributes() -> None:
     assert motherboard["attributes"]["chipset"] == "X570"
     assert motherboard["attributes"]["socket"] == "AM4"
 
+    ws_motherboard = normalize_product_text(
+        "motherboard",
+        "ASUS WS X570-ACE X570 AM4 ATX motherboard",
+    )
+    assert ws_motherboard["attributes"]["model"] == "PRO WS X570-ACE"
+
+    ambiguous_ace = normalize_product_text(
+        "motherboard",
+        "MSI MEG X570 ACE Gaming Motherboard",
+    )
+    assert ambiguous_ace["attributes"].get("model") != "PRO WS X570-ACE"
+
 
 def test_junk_detection_flags_negative_listing_patterns() -> None:
     result = detect_listing_junk(
@@ -210,9 +222,56 @@ def test_variant_match_confidence_requires_exact_motherboard_model(
         tracked_product=product,
     ) < 0.65
     assert service.variant_match_confidence(
+        match={"title": "MSI MEG X570 ACE Gaming Motherboard", "price": "$220"},
+        tracked_product=product,
+    ) < 0.65
+    assert service.variant_match_confidence(
         match={"title": "ASUS Pro WS X570-ACE AM4 Motherboard", "price": "$220"},
         tracked_product=product,
     ) >= 0.9
+    assert service.variant_match_confidence(
+        match={"title": "ASUS WS X570-ACE X570 AM4 Motherboard", "price": "$260"},
+        tracked_product=product,
+    ) >= 0.9
+
+
+def test_get_or_create_tracked_product_refreshes_catalogue_aliases(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+    existing = service.create_tracked_product(
+        {
+            "canonical_key": "motherboard-asus-pro-ws-x570-ace-am4",
+            "category": "motherboard",
+            "brand": "ASUS",
+            "model_family": "Pro WS X570-ACE",
+            "variant": "AM4 X570",
+            "attributes": {"chipset": "X570"},
+            "aliases": ["ASUS Pro WS X570-ACE"],
+            "negative_terms": ["box only"],
+        }
+    )
+
+    refreshed = service.get_or_create_tracked_product(
+        {
+            "canonical_key": "motherboard-asus-pro-ws-x570-ace-am4",
+            "category": "motherboard",
+            "brand": "ASUS",
+            "model_family": "Pro WS X570-ACE",
+            "variant": "AM4 X570",
+            "attributes": {"socket": "AM4"},
+            "aliases": ["PRO-WS-X570-ACE", "WS X570-ACE"],
+            "negative_terms": ["B550"],
+        }
+    )
+
+    assert refreshed["tracked_product_id"] == existing["tracked_product_id"]
+    assert refreshed["aliases"] == [
+        "ASUS Pro WS X570-ACE",
+        "PRO-WS-X570-ACE",
+        "WS X570-ACE",
+    ]
+    assert refreshed["negative_terms"] == ["box only", "B550"]
+    assert refreshed["attributes"]["chipset"] == "X570"
+    assert refreshed["attributes"]["socket"] == "AM4"
 
 
 def test_listing_fingerprint_prefers_listing_id_then_url_then_text() -> None:

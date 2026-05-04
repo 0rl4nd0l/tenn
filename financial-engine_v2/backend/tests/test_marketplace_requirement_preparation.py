@@ -155,6 +155,9 @@ def test_prepare_motherboard_requirement_uses_bounded_asus_x570_candidate(
         "Pro WS X570-ACE",
         "ASUS Pro WS X570-ACE",
         "Pro WS X570 ACE",
+        "PRO-WS-X570-ACE",
+        "WS X570-ACE",
+        "X570 ACE",
         "X570-ACE",
     ]
     candidates = mission_service.list_mission_candidate_products(mission["mission_id"])

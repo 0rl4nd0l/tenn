@@ -103,6 +103,36 @@ def _identity_tokens(*values: Any) -> set[str]:
     return tokens
 
 
+def _merge_unique_strings(*values: Any) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if isinstance(value, list | tuple | set):
+            raw_items = value
+        elif value is None:
+            raw_items = []
+        else:
+            raw_items = [value]
+        for item in raw_items:
+            cleaned = _clean(item)
+            key = cleaned.lower()
+            if cleaned and key not in seen:
+                seen.add(key)
+                out.append(cleaned)
+    return out
+
+
+def _has_asus_pro_ws_x570_ace_evidence(text: str) -> bool:
+    lowered = _lower(text)
+    if not re.search(r"\bx570[-\s]*ace\b", lowered):
+        return False
+    return bool(
+        re.search(r"\basus\b", lowered)
+        or re.search(r"\bpro[-\s]*ws\b", lowered)
+        or re.search(r"\bws[-\s]*x570[-\s]*ace\b", lowered)
+    )
+
+
 def _retail_anchor_price(retail_anchor: dict[str, Any]) -> float | None:
     for key in (
         "retail_anchor_price",
@@ -379,7 +409,7 @@ def normalize_product_text(category: str, text: str) -> dict[str, Any]:
             attributes["socket"] = "AM4"
         elif re.search(r"\b(am5|x670|b650)\b", lowered):
             attributes["socket"] = "AM5"
-        if re.search(r"\bpro\s*ws\s*x570[-\s]*ace\b|\bx570[-\s]*ace\b", lowered):
+        if _has_asus_pro_ws_x570_ace_evidence(lowered):
             attributes["model"] = "PRO WS X570-ACE"
             attributes["chipset"] = "X570"
             attributes["socket"] = "AM4"
@@ -699,19 +729,91 @@ class MarketplacePriceIntelligenceService:
         ).fetchone()
         return self._product_from_row(row) if row else None
 
+    def _refresh_tracked_product_from_payload(
+        self,
+        existing: dict[str, Any],
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        tracked_product_id = _clean(existing.get("tracked_product_id"))
+        if not tracked_product_id:
+            return existing
+        category = normalize_tracked_product_category(
+            payload.get("category") or existing.get("category")
+        )
+        if category not in PRODUCT_CATEGORIES:
+            return existing
+        brand = _clean(payload.get("brand")) or existing.get("brand")
+        model_family = _clean(payload.get("model_family")) or existing.get("model_family")
+        variant = _clean(payload.get("variant")) or existing.get("variant")
+        identity_text = " ".join(
+            _clean(part) for part in [brand, model_family, variant] if _clean(part)
+        )
+        normalized = normalize_product_text(
+            category,
+            identity_text or _clean(payload.get("canonical_key") or existing.get("canonical_key")),
+        )
+        attributes = dict(existing.get("attributes") or {})
+        attributes.update(normalized.get("attributes") or {})
+        attributes.update(payload.get("attributes") or {})
+        aliases = _merge_unique_strings(existing.get("aliases"), payload.get("aliases"))
+        negative_terms = _merge_unique_strings(
+            existing.get("negative_terms"),
+            payload.get("negative_terms"),
+        )
+        status = _lower(payload.get("status") or existing.get("status") or "active")
+        if status not in PRODUCT_STATUSES:
+            status = _lower(existing.get("status") or "active")
+        desired = {
+            "category": category,
+            "brand": brand or None,
+            "model_family": model_family or None,
+            "variant": variant or None,
+            "attributes": attributes,
+            "aliases": aliases,
+            "negative_terms": negative_terms,
+            "status": status,
+        }
+        if all(existing.get(key) == value for key, value in desired.items()):
+            return existing
+        with self._lock:
+            self._conn.execute(
+                """
+                UPDATE marketplace_tracked_products
+                SET category = ?, brand = ?, model_family = ?, variant = ?,
+                    attributes_json = ?, aliases_json = ?, negative_terms_json = ?,
+                    status = ?, updated_at = ?
+                WHERE tracked_product_id = ?
+                """,
+                (
+                    desired["category"],
+                    desired["brand"],
+                    desired["model_family"],
+                    desired["variant"],
+                    _json_dumps(desired["attributes"]),
+                    _json_dumps(desired["aliases"]),
+                    _json_dumps(desired["negative_terms"]),
+                    desired["status"],
+                    _now_iso(),
+                    tracked_product_id,
+                ),
+            )
+            self._conn.commit()
+        refreshed = self.get_tracked_product(tracked_product_id)
+        return refreshed if refreshed is not None else existing
+
     def get_or_create_tracked_product(self, payload: dict[str, Any]) -> dict[str, Any]:
         canonical_key = _clean(payload.get("canonical_key"))
         if canonical_key:
             existing = self.get_tracked_product_by_canonical_key(canonical_key)
             if existing is not None:
-                return existing
+                return self._refresh_tracked_product_from_payload(existing, payload)
         try:
             return self.create_tracked_product(payload)
         except sqlite3.IntegrityError:
             if canonical_key:
                 existing = self.get_tracked_product_by_canonical_key(canonical_key)
                 if existing is not None:
-                    return existing
+                    return self._refresh_tracked_product_from_payload(existing, payload)
             raise
 
     def ingest_observation(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -1563,16 +1665,8 @@ class MarketplacePriceIntelligenceService:
         if category == "motherboard":
             model = _lower(attributes.get("model") or tracked_product.get("model_family"))
             if "x570-ace" in model or "x570 ace" in model:
-                exact_model = bool(
-                    re.search(
-                        r"\b(?:asus\s+)?(?:pro\s*ws\s*)?x570[-\s]*ace\b",
-                        listing_lower,
-                    )
-                )
-                if not exact_model:
+                if not _has_asus_pro_ws_x570_ace_evidence(listing_lower):
                     return min(score, 0.45)
-                if "asus" not in listing_lower and "pro ws" not in listing_lower:
-                    return min(score, 0.6)
                 return max(score, 0.9)
         return score
 

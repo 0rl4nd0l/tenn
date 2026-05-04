@@ -1008,3 +1008,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** API default was partly a frontend convention, so direct backend calls and explicit `/local` could still reach lower layers. The legacy keyword synthesis path called `ollama_client.chat()` directly instead of `HybridRouter`, and missing response metadata defaulted to `local` in the API/UI, making unknown provenance look like a local model route.
 **Fix:** Backend chat now applies API default before controller dispatch, `/local` and `/ops` are rewritten to `/cloud` when API default is enabled, `HybridRouter` rejects forced-local calls under `api_only`, legacy keyword synthesis routes through `HybridRouter`, and absent model/source metadata is labeled `unknown`. The web footer now renders source separately from model.
 **Rule:** API-only is a backend invariant, not a UI preference. Every LLM synthesis path must pass through the authoritative router, explicit local prefixes must fail or be rewritten under API-only, and missing routing metadata must never be displayed as `local`.
+
+---
+
+## L090 — Rare Marketplace targets need alias-refresh and clean no_data snapshots
+
+**Date:** 2026-05-05
+**Subsystem:** `financial-engine_v2/backend/app/services/marketplace_requirement_resolver.py`, `financial-engine_v2/backend/app/services/marketplace_search_builder.py`, `financial-engine_v2/backend/app/services/marketplace_scanner.py`, `financial-engine_v2/backend/app/services/ebay_sold_scanner.py`
+**Symptom:** The ASUS Pro WS X570-ACE hunt stayed effectively unfixed even after a narrow motherboard target was added: live state lacked expanded candidate aliases, searches wasted terms on `Australia` and `ASUS ASUS...`, eBay sync called a missing sync method, and adjacent MSI X570 ACE rows could still look plausible.
+**Root cause:** Requirement preparation treated existing tracked products as complete and did not refresh catalogue aliases; search generation mixed location scope into query text; calibration used only one product query; and eBay route/test coverage did not exercise the job worker's sync entrypoint.
+**Fix:** Refresh existing tracked products from catalogue payloads, add Pro ACE aliases, keep Australia-wide scope in location params/anchor rotation, expand calibration/eBay to exact query variants, add the missing sync wrapper, require ASUS/Pro WS/WS evidence for X570-ACE, and rebuild `no_data` snapshots after zero-ingest calibration.
+**Rule:** For rare exact Marketplace targets, scan readiness means live candidate terms, current tracked-product aliases, working job entrypoints, and a fresh benchmark state even when no clean data is found. Do not convert adjacent models into benchmark evidence to avoid `no_data`.

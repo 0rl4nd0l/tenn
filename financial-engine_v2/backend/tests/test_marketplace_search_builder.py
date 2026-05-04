@@ -95,6 +95,37 @@ def test_requirement_driven_search_queries_anchor_victoria_scope_to_melbourne() 
     assert not any("victoria, australia" in query.lower() for query in queries)
 
 
+def test_requirement_driven_australia_wide_queries_do_not_duplicate_scope_or_brand() -> None:
+    mission = {
+        "name": "ASUS Pro WS X570-ACE motherboard hunt",
+        "brief": "ASUS Pro WS X570-ACE motherboard Australia-wide.",
+        "hard_filters": {
+            "include_keywords": ["ASUS Pro WS X570-ACE", "X570-ACE"],
+            "location_names": ["Australia"],
+        },
+        "soft_preferences": {"preferred_brands": ["ASUS"]},
+        "search_config": {"max_queries_per_run": 8},
+        "deployment_args": {
+            "requirement_profile": {
+                "mode": "requirement_driven",
+                "category": "motherboard",
+            },
+            "candidate_search_terms": [
+                "Pro WS X570-ACE AM4 X570",
+                "ASUS Pro WS X570-ACE",
+                "X570-ACE",
+            ],
+        },
+    }
+
+    pack = build_marketplace_search_pack(mission)
+    queries = flatten_marketplace_queries(pack, max_queries=8)
+
+    assert all(not query.lower().endswith(" australia") for query in queries)
+    assert not any("asus asus" in query.lower() for query in queries)
+    assert "ASUS Pro WS X570-ACE" in queries
+
+
 def test_requirement_driven_search_pack_fails_closed_without_candidate_terms() -> None:
     mission = {
         "name": "Inference GPU",
