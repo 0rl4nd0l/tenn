@@ -103,6 +103,7 @@ class RunIsolatedDoclingControlTests(unittest.TestCase):
             model_path="/tmp/model.gguf",
             model_alias="qwen",
             ctx_size=16384,
+            server_parallel=2,
             api_key="local-openai-key",
             disable_prompt_cache=True,
         )
@@ -111,6 +112,65 @@ class RunIsolatedDoclingControlTests(unittest.TestCase):
 
         self.assertEqual(env["LLAMA_ARG_CACHE_RAM"], "0")
         self.assertEqual(env["LLAMA_ARG_CACHE_PROMPT"], "false")
+        self.assertEqual(env["EXTRACTION_SERVER_PARALLEL"], "2")
+
+    def test_runtime_parallel_parser_handles_split_and_equals_forms(self):
+        status = {
+            "cmdlines": {
+                "1": "llama-server --port 8002 --parallel 2",
+                "2": "llama-server --port 8002 --parallel=2",
+            }
+        }
+
+        self.assertEqual(mod._server_parallel_values(status), {"1": 2, "2": 2})
+        self.assertTrue(mod._runtime_has_server_parallel(status, 2))
+        self.assertFalse(mod._runtime_has_server_parallel(status, 1))
+
+    def test_pids_for_port_ignores_non_llama_processes(self):
+        original_run = mod._run
+        try:
+            mod._run = lambda cmd, **kwargs: type(
+                "Result",
+                (),
+                {
+                    "returncode": 0,
+                    "stdout": "\n".join(
+                        [
+                            "101 /usr/bin/pgrep -af llama-server.*--port 8002",
+                            "102 /opt/bin/llama-server --port 8002 --parallel 2",
+                            "103 python script.py --runtime-log llama-server --port 8002",
+                            "104 /opt/bin/llama-server --port=8002 --parallel=2",
+                        ]
+                    ),
+                },
+            )()
+
+            self.assertEqual(mod._pids_for_port(8002), [102, 104])
+        finally:
+            mod._run = original_run
+
+    def test_ensure_runtime_refuses_parallel_mismatch(self):
+        args = Namespace(
+            api_key="local-openai-key",
+            disable_prompt_cache=True,
+            server_parallel=2,
+            start_runtime=False,
+        )
+        original_runtime_status = mod._runtime_status
+        try:
+            mod._runtime_status = lambda endpoint, *, api_key: {
+                "endpoint": endpoint,
+                "port": 8002,
+                "healthy": True,
+                "cmdlines": {"123": "llama-server --port 8002 --parallel 1"},
+                "prompt_cache_controls": {
+                    "123": {"disabled_by_runtime_config": True}
+                },
+            }
+            with self.assertRaisesRegex(RuntimeError, "server --parallel"):
+                mod._ensure_runtime(args, "http://127.0.0.1:8002")
+        finally:
+            mod._runtime_status = original_runtime_status
 
     def test_cmdline_redaction_removes_api_key_value(self):
         redacted = mod._redact_cmdline("llama-server --api-key secret --port 8002")
@@ -160,6 +220,8 @@ class RunIsolatedDoclingControlTests(unittest.TestCase):
         self.assertEqual(rows[0]["document_id"], "doc-1")
         self.assertEqual(rows[0]["component"], "multipass_extraction")
         self.assertEqual(rows[0]["prompt_chars"], 5)
+        self.assertIn("started_epoch", rows[0])
+        self.assertIn("ended_epoch", rows[0])
         self.assertGreaterEqual(rows[0]["elapsed_seconds"], 0.0)
 
 

@@ -68,6 +68,12 @@ API_KEY="${LLAMA_SERVER_API_KEY:-${LLM_API_KEY:-local-openai-key}}"
 # 8K context is sufficient — extraction prompts are clipped to ~18,000 chars (~4.5K tokens).
 # Halved from 16K to reduce VRAM pressure when running dual 14B models on 24 GB M40.
 CTX_SIZE="${EXTRACTION_SERVER_CTX_SIZE:-8192}"
+PARALLEL="${EXTRACTION_SERVER_PARALLEL:-1}"
+
+if ! [[ "${PARALLEL}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Invalid EXTRACTION_SERVER_PARALLEL=${PARALLEL}; expected a positive integer." >&2
+  exit 1
+fi
 
 if [[ ! -f "${MODEL_PATH}" ]]; then
   echo "Extraction model not found at ${MODEL_PATH}" >&2
@@ -91,7 +97,7 @@ cmd=(
   --threads 4
   --host "${HOST}"
   --port "${PORT}"
-  --parallel 1
+  --parallel "${PARALLEL}"
 )
 
 if [[ -n "${LLAMA_SERVER_CACHE_TYPE_K:-}" ]]; then
@@ -115,6 +121,7 @@ echo "[extraction-server] MODEL=${MODEL_PATH}"
 echo "[extraction-server] ALIAS=${MODEL_ALIAS}"
 echo "[extraction-server] HOST=${HOST}:${PORT}"
 echo "[extraction-server] CTX_SIZE=${CTX_SIZE}"
+echo "[extraction-server] PARALLEL=${PARALLEL}"
 echo "[extraction-server] LLAMA_SERVER_MMAP=${LLAMA_SERVER_MMAP:-1} (0=--no-mmap)"
 
 exec "${cmd[@]}"

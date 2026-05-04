@@ -163,6 +163,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--model-path", default=os.environ.get("EXTRACTION_SERVER_MODEL", DEFAULT_MODEL_PATH))
     parser.add_argument("--model-alias", default=os.environ.get("EXTRACTION_SERVER_ALIAS", DEFAULT_MODEL_ALIAS))
     parser.add_argument("--ctx-size", type=int, default=int(os.environ.get("EXTRACTION_SERVER_CTX_SIZE", "16384")))
+    parser.add_argument("--server-parallel", type=int, default=int(os.environ.get("EXTRACTION_SERVER_PARALLEL", "1")))
     parser.add_argument("--startup-timeout-seconds", type=float, default=240.0)
     parser.add_argument("--min-vram-free-mb", type=int, default=9000)
     parser.add_argument("--start-runtime", action="store_true", help="Start scripts/run_extraction_server.sh when :8002 is not healthy.")
@@ -354,16 +355,34 @@ def _vram_free_mb() -> int | None:
 
 
 def _pids_for_port(port: int) -> list[int]:
-    proc = _run(["pgrep", "-af", rf"llama-server.*--port {port}\b"], timeout=10.0)
-    if proc.returncode not in {0, 1}:
+    proc = _run(["ps", "-eo", "pid=,args="], timeout=10.0)
+    if proc.returncode != 0:
         return []
     pids: list[int] = []
     for line in proc.stdout.splitlines():
-        first = line.split(maxsplit=1)[0]
+        stripped = line.strip()
+        if not stripped:
+            continue
+        first, _, cmdline = stripped.partition(" ")
         try:
-            pids.append(int(first))
+            pid = int(first)
         except ValueError:
             continue
+        if pid == os.getpid():
+            continue
+        parts = cmdline.split()
+        if not parts or Path(parts[0]).name != "llama-server":
+            continue
+        has_port = False
+        for index, part in enumerate(parts):
+            if part == "--port" and index + 1 < len(parts) and parts[index + 1] == str(port):
+                has_port = True
+                break
+            if part == f"--port={port}":
+                has_port = True
+                break
+        if has_port:
+            pids.append(pid)
     return pids
 
 
@@ -391,6 +410,35 @@ def _runtime_status(endpoint: str, *, api_key: str) -> dict[str, Any]:
     }
 
 
+def _server_parallel_values(status: dict[str, Any]) -> dict[str, int | None]:
+    values: dict[str, int | None] = {}
+    cmdlines = status.get("cmdlines")
+    cmdlines = cmdlines if isinstance(cmdlines, dict) else {}
+    for pid_text, cmdline in cmdlines.items():
+        parts = str(cmdline or "").split()
+        value: int | None = None
+        for index, part in enumerate(parts):
+            raw: str | None = None
+            if part == "--parallel" and index + 1 < len(parts):
+                raw = parts[index + 1]
+            elif part.startswith("--parallel="):
+                raw = part.split("=", 1)[1]
+            if raw is None:
+                continue
+            try:
+                value = int(raw)
+            except ValueError:
+                value = None
+            break
+        values[str(pid_text)] = value
+    return values
+
+
+def _runtime_has_server_parallel(status: dict[str, Any], requested_parallel: int) -> bool:
+    values = _server_parallel_values(status)
+    return bool(values) and all(value == requested_parallel for value in values.values())
+
+
 def _runtime_launch_env(args: argparse.Namespace, endpoint: str) -> dict[str, str]:
     env = dict(os.environ)
     env.update(
@@ -400,6 +448,7 @@ def _runtime_launch_env(args: argparse.Namespace, endpoint: str) -> dict[str, st
             "EXTRACTION_SERVER_MODEL": str(args.model_path),
             "EXTRACTION_SERVER_ALIAS": str(args.model_alias),
             "EXTRACTION_SERVER_CTX_SIZE": str(args.ctx_size),
+            "EXTRACTION_SERVER_PARALLEL": str(args.server_parallel),
             "LLM_API_KEY": str(args.api_key or "local-openai-key"),
         }
     )
@@ -457,7 +506,15 @@ def _start_extraction_runtime(args: argparse.Namespace, endpoint: str) -> int:
 
 def _ensure_runtime(args: argparse.Namespace, endpoint: str) -> tuple[str, int | None]:
     status = _runtime_status(endpoint, api_key=args.api_key)
+    requested_parallel = max(int(getattr(args, "server_parallel", 1)), 1)
     if status["healthy"]:
+        if not _runtime_has_server_parallel(status, requested_parallel):
+            raise RuntimeError(
+                "isolated extraction runtime is healthy but server --parallel "
+                f"does not match requested value {requested_parallel}; observed "
+                f"{_server_parallel_values(status)}. Stop the dedicated :8002 "
+                "runtime before rerunning with --start-runtime."
+            )
         if bool(getattr(args, "disable_prompt_cache", False)) and not _runtime_has_disabled_prompt_cache(status):
             raise RuntimeError(
                 "isolated extraction runtime is healthy but prompt cache is not "
@@ -556,6 +613,7 @@ def _capture_llm_request_timings(document_id: str):
         with rows_lock:
             next_call_index += 1
             call_index = next_call_index
+        started_epoch = time.time()
         started_at = time.perf_counter()
         error_text: str | None = None
         try:
@@ -569,6 +627,8 @@ def _capture_llm_request_timings(document_id: str):
             row = {
                 "document_id": document_id,
                 "call_index": call_index,
+                "started_epoch": round(started_epoch, 6),
+                "ended_epoch": round(time.time(), 6),
                 "component": str(metadata.get("component") or ""),
                 "task_type": str(metadata.get("task_type") or ""),
                 "requested_model": str(metadata.get("requested_model") or ""),
@@ -1126,6 +1186,8 @@ def _write_report(path: Path, payload: dict[str, Any]) -> None:
 
 def main() -> int:
     args = _parse_args()
+    if int(args.server_parallel) < 1:
+        raise SystemExit("--server-parallel must be a positive integer")
     extraction_url = _normalize_url(args.extraction_url)
     shared_url = _normalize_url(args.shared_url)
     if not extraction_url:
@@ -1173,7 +1235,7 @@ def main() -> int:
                 "--threads",
                 "4",
                 "--parallel",
-                "1",
+                str(args.server_parallel),
             ],
             "prompt_cache_requested_mode": (
                 "disabled" if args.disable_prompt_cache else "record_only"
