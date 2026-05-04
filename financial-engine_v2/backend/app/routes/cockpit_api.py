@@ -2605,6 +2605,51 @@ def _enforce_visible_source_contract(
     return []
 
 
+def _json_safe_mapping(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    try:
+        return json.loads(json.dumps(value, default=str))
+    except (TypeError, ValueError):
+        return {str(key): str(item) for key, item in value.items()}
+
+
+def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dict[str, Any]:
+    """Expose existing response metadata for the web chat presentation shell."""
+    metadata = _json_safe_mapping(getattr(response, "routing_metadata", None) or {})
+    evidence = getattr(response, "evidence", None) or []
+    for item in evidence:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("type") or "").strip().lower() != "orchestrator":
+            continue
+        details = item.get("details") if isinstance(item.get("details"), dict) else {}
+        for key in (
+            "intent",
+            "source_plan",
+            "entities",
+            "source_status",
+            "missing_data_recovery",
+            "missing_categories_before_recovery",
+            "missing_categories_after_recovery",
+            "sufficient_for_analysis",
+        ):
+            if key in details and key not in metadata:
+                metadata[key] = details[key]
+        break
+
+    if sources:
+        metadata["visible_source_count"] = len(sources)
+        metadata["visible_source_kinds"] = sorted(
+            {
+                str(source.get("kind") or source.get("doc_type") or "").strip()
+                for source in sources
+                if str(source.get("kind") or source.get("doc_type") or "").strip()
+            }
+        )
+    return _json_safe_mapping(metadata)
+
+
 def _finalize_delivered_chat_response(
     service: Any,
     *,
@@ -7616,6 +7661,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 response,
                 ui_mode=payload.mode,
             )
+            ui_metadata = _build_chat_ui_metadata(response, sources)
             _finalize_delivered_chat_response(
                 service,
                 session_id=payload.session_id,
@@ -7650,6 +7696,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "action_preview": response.action_preview,
                     "chart": rendered_chart,
                     "sources": sources,
+                    "routing_metadata": ui_metadata,
                     "auto_flag": _serialize_flag_handoff(auto_flag),
                 },
             }
@@ -7701,6 +7748,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     response,
                     ui_mode=payload.mode,
                 )
+                ui_metadata = _build_chat_ui_metadata(response, sources)
                 _finalize_delivered_chat_response(
                     service,
                     session_id=payload.session_id,
@@ -7744,6 +7792,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                             "provider_error": meta.get("provider_error"),
                             "chart": rendered_chart,
                             "sources": sources,
+                            "routing_metadata": ui_metadata,
                             "auto_flag": _serialize_flag_handoff(auto_flag),
                         },
                     }

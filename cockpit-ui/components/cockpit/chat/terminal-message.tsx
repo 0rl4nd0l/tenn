@@ -1,7 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, Copy, Check, Maximize2, ExternalLink, Rocket } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Info,
+  Maximize2,
+  Rocket,
+  ShieldCheck,
+} from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
 import {
   Dialog,
@@ -47,6 +58,252 @@ function formatDurationLabel(durationMs: number): string {
   return `${minutes}m ${seconds}s`
 }
 
+type AnalystShell = {
+  shouldRender: boolean
+  entityLabel: string | null
+  answerType: string
+  trustLabel: string
+  sourceCount: number
+  toolCount: number
+  latestSourceDate: string | null
+  evidenceKinds: string[]
+  keyFacts: string[]
+  gaps: string[]
+  sourceWarnings: string[]
+  nextActions: Array<{ label: string; enabled: boolean; onClick?: () => void }>
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function compactLabel(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+}
+
+function extractTickerFromAction(message: ChatMessageType): string | null {
+  const args = asRecord(message.actionPreview?.args)
+  const ticker = String(args.ticker || args.symbol || '').trim().toUpperCase()
+  return /^[A-Z0-9]{2,6}$/.test(ticker) ? ticker : null
+}
+
+function extractTextGaps(content: string): string[] {
+  const gaps: string[] = []
+  const unresolved = content.match(/Unresolved evidence gaps:\s*([^\n.]+)/i)
+  if (unresolved?.[1]) {
+    gaps.push(...unresolved[1].split(',').map((item) => item.trim()).filter(Boolean))
+  }
+  const dataInsufficient = content.match(/Data insufficient:\s*([^\n]+)/i)
+  if (dataInsufficient?.[1]) {
+    gaps.push(dataInsufficient[1].trim())
+  }
+  if (/financial rows unavailable/i.test(content)) {
+    gaps.push('financial rows unavailable')
+  }
+  return Array.from(new Set(gaps))
+}
+
+function extractKeyFacts(content: string): string[] {
+  const lines = content.split('\n')
+  const start = lines.findIndex((line) => /^\s*(?:#{1,4}\s*)?(?:key facts?|key takeaways?|takeaways?)\s*:?\s*$/i.test(line))
+  if (start < 0) {
+    return []
+  }
+  const facts: string[] = []
+  for (const rawLine of lines.slice(start + 1)) {
+    const line = rawLine.trim()
+    if (!line) {
+      if (facts.length > 0) break
+      continue
+    }
+    if (/^\s*(?:#{1,4}\s*)?[A-Z][A-Za-z ]+\s*:?\s*$/.test(line) && facts.length > 0) {
+      break
+    }
+    const cleaned = line.replace(/^[-*]\s+/, '').replace(/^\d+[.)]\s+/, '').trim()
+    if (cleaned) {
+      facts.push(cleaned)
+    }
+    if (facts.length >= 5) break
+  }
+  return facts
+}
+
+function latestPublishedDate(message: ChatMessageType): string | null {
+  const dates = (message.sources || [])
+    .map((source) => source.publishedAt)
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value))
+    .filter((value) => !Number.isNaN(value.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime())
+  return dates[0]?.toISOString().slice(0, 10) ?? null
+}
+
+function evidenceKindLabels(message: ChatMessageType): string[] {
+  const labels = new Set<string>()
+  for (const source of message.sources || []) {
+    const raw = source.kind || source.docType || ''
+    if (!raw) continue
+    if (raw === 'document' || /financial|annual|quarter|filing|appendix/i.test(raw)) {
+      labels.add('filings')
+    } else if (raw === 'news' || /news/i.test(raw)) {
+      labels.add('news')
+    } else if (raw === 'web') {
+      labels.add('web context')
+    } else if (raw === 'context' || raw === 'rag') {
+      labels.add('local context')
+    } else {
+      labels.add(compactLabel(raw).toLowerCase())
+    }
+  }
+  return Array.from(labels).slice(0, 4)
+}
+
+function sourceStatusWarnings(sourceStatus: Record<string, unknown> | undefined): string[] {
+  if (!sourceStatus) {
+    return []
+  }
+  return Object.entries(sourceStatus).flatMap(([source, status]) => {
+    if (typeof status === 'string') {
+      return status && status.toLowerCase() !== 'ok'
+        ? [`${compactLabel(source)}: ${compactLabel(status)}`]
+        : []
+    }
+    const record = asRecord(status)
+    const value = String(record.status || '').trim()
+    if (value && value.toLowerCase() !== 'ok') {
+      return [`${compactLabel(source)}: ${compactLabel(value)}`]
+    }
+    if (record.ok === false) {
+      return [`${compactLabel(source)}: not ok`]
+    }
+    return []
+  })
+}
+
+function buildAnalystShell(
+  message: ChatMessageType,
+  openSources: () => void,
+): AnalystShell {
+  const analyst = message.metadata?.analyst
+  const routing = asRecord(message.metadata?.routing)
+  const entityLabel =
+    analyst?.entity
+    || analyst?.ticker
+    || String(asRecord(routing.entities).primary_ticker || '').trim().toUpperCase()
+    || extractTickerFromAction(message)
+    || null
+  const sourceCount = message.sources?.length || 0
+  const toolCount = message.toolTraces?.length || 0
+  const missingFromMetadata = analyst?.missingCategories || stringArray(routing.missing_categories_after_recovery)
+  const gaps = Array.from(new Set([...missingFromMetadata, ...extractTextGaps(message.content)]))
+  const sourceWarnings = sourceStatusWarnings(analyst?.sourceStatus || asRecord(routing.source_status))
+  const responseClassification = analyst?.responseClassification || String(routing.response_classification || '')
+  const groundingGuard = analyst?.groundingGuard || String(routing.grounding_guard || '')
+  const sufficientForAnalysis =
+    analyst?.sufficientForAnalysis
+    ?? (typeof routing.sufficient_for_analysis === 'boolean' ? routing.sufficient_for_analysis : null)
+  const hasRoutingMetadata = Boolean(
+    analyst?.intent
+    || analyst?.sourcePlan?.length
+    || responseClassification
+    || groundingGuard
+    || sourceWarnings.length
+    || gaps.length
+    || sufficientForAnalysis === false
+  )
+  const shouldRender = Boolean(
+    message.actionPreview
+    || sourceCount > 0
+    || toolCount > 0
+    || hasRoutingMetadata
+    || extractKeyFacts(message.content).length > 0
+  )
+
+  let answerType = 'General model answer'
+  if (message.actionPreview) {
+    answerType = 'Action proposal'
+  } else if (groundingGuard) {
+    answerType = 'Data missing'
+  } else if (sufficientForAnalysis === false || gaps.length > 0) {
+    answerType = 'Partial evidence'
+  } else if (sourceCount > 0 || responseClassification === 'evidence_bound_answer') {
+    answerType = 'Evidence-bound'
+  } else if (responseClassification) {
+    answerType = compactLabel(responseClassification)
+  }
+
+  let trustLabel = 'No visible sources'
+  if (message.actionPreview?.requiresConfirmation) {
+    trustLabel = 'Confirmation required'
+  } else if (groundingGuard) {
+    trustLabel = 'Unsupported claim blocked'
+  } else if (sufficientForAnalysis === false || gaps.length > 0) {
+    trustLabel = 'Evidence gaps visible'
+  } else if (sourceCount > 0) {
+    trustLabel = 'Source-backed'
+  }
+
+  const nextActions: AnalystShell['nextActions'] = []
+  if (sourceCount > 0) {
+    nextActions.push({ label: 'Review evidence', enabled: true, onClick: openSources })
+    nextActions.push({ label: 'Verify against evidence', enabled: false })
+  }
+  if (gaps.some((gap) => /news|announcement|recent|market_context/i.test(gap))) {
+    nextActions.push({ label: 'Check recent news', enabled: false })
+  }
+  if (gaps.some((gap) => /financial|rows/i.test(gap))) {
+    nextActions.push({ label: 'Backfill financials', enabled: false })
+  }
+  return {
+    shouldRender,
+    entityLabel,
+    answerType,
+    trustLabel,
+    sourceCount,
+    toolCount,
+    latestSourceDate: analyst?.dataFreshness || latestPublishedDate(message),
+    evidenceKinds: evidenceKindLabels(message),
+    keyFacts: extractKeyFacts(message.content),
+    gaps,
+    sourceWarnings,
+    nextActions,
+  }
+}
+
+function actionArgsSummary(args: Record<string, unknown>): string {
+  const entries = Object.entries(args)
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+    .slice(0, 5)
+  if (!entries.length) {
+    return 'No parameters supplied'
+  }
+  return entries.map(([key, value]) => `${key}=${String(value)}`).join(', ')
+}
+
+function actionRiskLabels(actionPreview: NonNullable<ChatMessageType['actionPreview']>): string[] {
+  const id = actionPreview.id.toLowerCase()
+  const labels = [actionPreview.requiresConfirmation ? 'Confirmation required' : 'No confirmation required']
+  if (actionPreview.isMutating || /ingest|backfill|create|add|save|write|thesis|memory|update|rebuild/.test(id)) {
+    labels.push(/thesis|memory/.test(id) ? 'Memory write' : 'Mutates state')
+  }
+  if ((actionPreview.timeoutSeconds || 0) > 60 || /ingest|backfill|analysis|rebuild|scan/.test(id)) {
+    labels.push('Long job')
+  }
+  return Array.from(new Set(labels))
+}
+
 export function TerminalMessage({
   message,
   isStreaming,
@@ -62,6 +319,7 @@ export function TerminalMessage({
   const [rawDumpExpanded, setRawDumpExpanded] = useState(false)
   const [chartDialogOpen, setChartDialogOpen] = useState(false)
   const [autoOpenedFilestatsChart, setAutoOpenedFilestatsChart] = useState(false)
+  const analystShell = buildAnalystShell(message, () => setSourcesExpanded(true))
 
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
@@ -215,7 +473,30 @@ export function TerminalMessage({
           {formatContent(message.content)}
         </span>
         {codexDeployReportId && onDeployCodexFlag ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-amber-500/20 pt-2">
+          <div className="mt-2 rounded-md border border-amber-500/30 bg-black/20 p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-amber-200">
+                <AlertTriangle className="h-3 w-3" />
+                Potential issue detected
+              </span>
+              <span className="font-mono text-[11px] text-amber-100/80">
+                report: {codexDeployReportId}
+              </span>
+              <span className="font-mono text-[11px] text-amber-100/65">
+                status: {effectiveCodexDeployStatus}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {message.metadata?.codexDeploy?.readApiPath ? (
+                <span className="rounded border border-amber-400/25 px-2 py-1 font-mono text-[11px] text-amber-100/75">
+                  View diagnostic
+                </span>
+              ) : null}
+              {message.metadata?.codexDeploy?.promptPath ? (
+                <span className="rounded border border-amber-400/25 px-2 py-1 font-mono text-[11px] text-amber-100/75">
+                  Draft repair prompt
+                </span>
+              ) : null}
             <button
               type="button"
               disabled={codexDeployDisabled}
@@ -227,11 +508,9 @@ export function TerminalMessage({
                 ? 'Codex completed'
                 : effectiveCodexDeployStatus === 'running' || effectiveCodexDeployStatus === 'launching'
                   ? 'Codex running'
-                  : 'Deploy Codex'}
+                : 'Deploy Codex'}
             </button>
-            <span className="font-mono text-[11px] text-amber-200/70">
-              status: {effectiveCodexDeployStatus}
-            </span>
+            </div>
           </div>
         ) : null}
       </div>
@@ -282,6 +561,105 @@ export function TerminalMessage({
         </div>
       )}
 
+      {analystShell.shouldRender && (
+        <div className="ml-4 mb-2 rounded-md border border-blue-500/20 bg-blue-500/[0.04] p-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            {analystShell.entityLabel ? (
+              <span className="rounded border border-emerald-500/35 bg-emerald-500/10 px-2 py-0.5 font-mono text-xs text-emerald-200">
+                Entity: {analystShell.entityLabel}
+              </span>
+            ) : null}
+            <span className="rounded border border-blue-500/35 bg-blue-500/10 px-2 py-0.5 font-mono text-xs text-blue-200">
+              {analystShell.answerType}
+            </span>
+            <span className="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-xs text-cyan-100">
+              Sources: {analystShell.sourceCount}
+            </span>
+            {analystShell.toolCount > 0 ? (
+              <span className="rounded border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 font-mono text-xs text-violet-100">
+                Tools: {analystShell.toolCount}
+              </span>
+            ) : null}
+            {analystShell.latestSourceDate ? (
+              <span className="rounded border border-zinc-600 bg-zinc-900 px-2 py-0.5 font-mono text-xs text-zinc-300">
+                Updated: {analystShell.latestSourceDate}
+              </span>
+            ) : null}
+            <span className="rounded border border-zinc-600 bg-zinc-900 px-2 py-0.5 font-mono text-xs text-zinc-300">
+              Trust: {analystShell.trustLabel}
+            </span>
+          </div>
+
+          {analystShell.keyFacts.length > 0 ? (
+            <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/[0.05] p-2">
+              <div className="mb-1 flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-emerald-300/80">
+                <ShieldCheck className="h-3 w-3" />
+                Key facts
+              </div>
+              <ul className="space-y-1 text-sm text-emerald-50/90">
+                {analystShell.keyFacts.map((fact, index) => (
+                  <li key={`${fact}-${index}`} className="flex gap-2">
+                    <span className="text-emerald-400">{`>`}</span>
+                    <span>{fact}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-blue-100/80">
+            <span className="inline-flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              Evidence: {analystShell.evidenceKinds.length ? analystShell.evidenceKinds.join(' + ') : 'No visible sources'}
+            </span>
+            {analystShell.sourceCount > 0 ? <span>Financial facts: source-backed when shown below</span> : null}
+          </div>
+
+          {(analystShell.gaps.length > 0 || analystShell.sourceWarnings.length > 0) ? (
+            <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/[0.08] p-2 text-amber-100">
+              <div className="mb-1 flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-amber-300">
+                <AlertTriangle className="h-3 w-3" />
+                Missing data / gaps
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[...analystShell.gaps, ...analystShell.sourceWarnings].map((gap) => (
+                  <span key={gap} className="rounded border border-amber-500/30 bg-black/20 px-2 py-0.5 font-mono text-[11px]">
+                    {gap}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {analystShell.nextActions.length > 0 ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-blue-300/70">
+                Suggested next
+              </span>
+              {analystShell.nextActions.map((action) => action.enabled && action.onClick ? (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={action.onClick}
+                  className="rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 font-mono text-[11px] text-blue-100 transition-colors hover:bg-blue-500/20"
+                >
+                  {action.label}
+                </button>
+              ) : (
+                <span
+                  key={action.label}
+                  className={action.enabled
+                    ? 'rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 font-mono text-[11px] text-blue-100'
+                    : 'rounded border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-zinc-500'}
+                >
+                  {action.enabled ? action.label : `${action.label} (not connected)`}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* Main content */}
       <div className="flex items-start gap-2">
         <span className="text-blue-400 shrink-0">{`$`}</span>
@@ -329,28 +707,43 @@ export function TerminalMessage({
 
       {/* Action Preview */}
       {message.actionPreview && (
-        <div className="ml-4 mt-2 p-2 border border-amber-500/30 rounded bg-amber-500/5">
-          <div className="text-amber-400 text-xs font-bold mb-1">
-            ACTION: {message.actionPreview.name}
+        <div className="ml-4 mt-2 rounded-md border border-amber-500/30 bg-amber-500/[0.06] p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-amber-300">
+              Action proposal
+            </div>
+            {actionRiskLabels(message.actionPreview).map((label) => (
+              <span key={label} className="rounded border border-amber-500/30 bg-black/20 px-2 py-0.5 font-mono text-[11px] text-amber-100">
+                {label}
+              </span>
+            ))}
           </div>
-          <div className="terminal-text-dim text-xs mb-1">
-            {message.actionPreview.description}
+          <div className="mt-2 text-sm font-semibold text-amber-50">
+            {message.actionPreview.name}
           </div>
-          <div className="terminal-text text-[10px]">
-            args: {JSON.stringify(message.actionPreview.args)}
+          {message.actionPreview.description ? (
+            <div className="mt-1 text-xs text-amber-100/80">
+              Why: {message.actionPreview.description}
+            </div>
+          ) : null}
+          <div className="mt-1 text-xs text-amber-100/75">
+            What it will do: {message.actionPreview.impact || message.actionPreview.scope || 'Run the named backend action with the parameters shown below.'}
           </div>
-          <div className="terminal-text-dim mt-1 text-[10px]">
-            Click a button or type <code>yes</code>/<code>no</code>.
+          <div className="mt-1 font-mono text-[11px] text-amber-100/65">
+            Parameters: {actionArgsSummary(message.actionPreview.args)}
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="mt-1 text-[11px] text-amber-100/60">
+            No action runs until you confirm.
+          </div>
+          <div className="mt-3 flex gap-2">
             <button
-              className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors"
+              className="rounded border border-green-500/30 bg-green-500/20 px-2 py-0.5 text-xs text-green-300 transition-colors hover:bg-green-500/30"
               onClick={() => onConfirmAction?.(message.actionPreview)}
             >
               Confirm
             </button>
             <button
-              className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded hover:bg-red-500/30 transition-colors"
+              className="rounded border border-red-500/30 bg-red-500/20 px-2 py-0.5 text-xs text-red-300 transition-colors hover:bg-red-500/30"
               onClick={() => onCancelAction?.(message.actionPreview)}
             >
               Cancel

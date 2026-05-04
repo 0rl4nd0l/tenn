@@ -10,6 +10,24 @@ export interface RenderedChart {
   html: string
 }
 
+export interface AnalystChatMetadata {
+  ticker?: string | null
+  companyName?: string | null
+  entity?: string | null
+  intent?: string | null
+  sourcePlan?: string[]
+  sourceStatus?: Record<string, unknown>
+  missingCategories?: string[]
+  missingCategoriesBeforeRecovery?: string[]
+  missingDataRecovery?: Record<string, unknown>
+  sufficientForAnalysis?: boolean | null
+  responseClassification?: string | null
+  groundingGuard?: string | null
+  routingReason?: string | null
+  dataFreshness?: string | null
+  toolAudit?: Array<Record<string, unknown>>
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -19,9 +37,15 @@ export interface ChatMessage {
     model?: string
     latencyMs?: number
     costUsd?: number
-    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator'
+    routing?: Record<string, unknown>
+    analyst?: AnalystChatMetadata
     codexDeploy?: {
       reportId: string
+      reportPath?: string | null
+      readApiPath?: string | null
+      promptPath?: string | null
+      investigationPath?: string | null
     }
   }
   thinking?: ThinkingStep
@@ -111,6 +135,13 @@ export interface ActionPreview {
   description: string
   args: Record<string, unknown>
   requiresConfirmation: boolean
+  impact?: string
+  timeoutSeconds?: number
+  isMutating?: boolean
+  tool?: string
+  scope?: string
+  resumeMessage?: string
+  command?: string[]
 }
 
 export interface ServiceHealth {
@@ -524,10 +555,12 @@ export interface ChatResponse {
     model?: string
     latency_ms?: number
 	    cost_usd?: number
-	    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+	    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator'
 	    provider_error?: ChatProviderError | null
 	    chart?: RenderedChart
 	    sources?: Source[]
+	    action_preview?: unknown
+	    routing_metadata?: Record<string, unknown>
 	  }
   session_id?: string
 }

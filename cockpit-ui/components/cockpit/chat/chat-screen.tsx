@@ -250,37 +250,27 @@ function formatFlagHandoffMessage(result: FeedbackCaptureResponse, copiedPrompt:
     : null
   const status = result.investigation_status || 'queued'
   const lines = [
-    'Flag captured. Codex investigation is ready to deploy.',
+    'Potential issue detected.',
     '',
+    `Report id: \`${result.report_id}\``,
     `Report: \`${reportPath}\``,
     `Status: \`${status}\``,
   ]
   if (promptPath) {
-    lines.push(`Prompt file: \`${promptPath}\``)
+    lines.push(`Draft repair prompt: \`${promptPath}\``)
   }
   if (investigationPath) {
     lines.push(`Investigation packet: \`${investigationPath}\``)
   }
   if (result.read_api_path) {
-    lines.push(`Read API: \`${result.read_api_path}\``)
-  }
-  if (result.codex_cli_command) {
-    lines.push('', 'Deploy Codex from the repo root:', '```bash', result.codex_cli_command, '```')
+    lines.push(`View diagnostic: \`${result.read_api_path}\``)
   }
   if (result.report_id) {
-    lines.push('', 'Press **Deploy Codex** to start this investigation from Cockpit.')
+    lines.push('', 'Use the diagnostic controls below for operator-scoped repair work.')
   }
   const prompt = result.codex_prompt?.trim()
   if (prompt) {
-    lines.push(
-      '',
-      copiedPrompt
-        ? 'The Codex prompt has been copied to your clipboard. Prompt body:'
-        : 'Copy this prompt into a Codex CLI session:',
-      '```text',
-      prompt,
-      '```',
-    )
+    lines.push('', copiedPrompt ? 'Draft repair prompt copied to clipboard.' : 'Draft repair prompt saved to file.')
   }
   return lines.join('\n')
 }
@@ -356,6 +346,121 @@ function resolveResponseLatencyMs(rawLatencyMs: unknown, startedAtMs: number | n
   }
 
   return Math.max(1, Date.now() - startedAtMs)
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+}
+
+function booleanOrNull(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
+function normalizeAnalystMetadata(raw: unknown): NonNullable<ChatMessageType['metadata']>['analyst'] | undefined {
+  const metadata = asRecord(raw)
+  if (Object.keys(metadata).length === 0) {
+    return undefined
+  }
+  const entities = asRecord(metadata.entities)
+  const ticker = String(
+    metadata.primary_ticker
+    || metadata.ticker
+    || entities.primary_ticker
+    || '',
+  ).trim().toUpperCase()
+  const companyName = String(metadata.company_name || entities.company_name || '').trim()
+  const missingCategories = stringArray(
+    metadata.missing_categories_after_recovery
+    || metadata.missingCategoriesAfterRecovery
+    || metadata.missing_categories,
+  )
+  const missingCategoriesBeforeRecovery = stringArray(
+    metadata.missing_categories_before_recovery
+    || metadata.missingCategoriesBeforeRecovery,
+  )
+  const sourcePlan = stringArray(metadata.source_plan || metadata.sources)
+  const sourceStatus = asRecord(metadata.source_status)
+  const missingDataRecovery = asRecord(metadata.missing_data_recovery)
+  const toolAudit = Array.isArray(metadata.tool_audit)
+    ? metadata.tool_audit.filter((item): item is Record<string, unknown> => (
+        Boolean(item) && typeof item === 'object' && !Array.isArray(item)
+      ))
+    : undefined
+  return {
+    ticker: ticker || null,
+    companyName: companyName || null,
+    entity: ticker || companyName || null,
+    intent: String(metadata.intent || '').trim() || null,
+    sourcePlan,
+    sourceStatus: Object.keys(sourceStatus).length ? sourceStatus : undefined,
+    missingCategories,
+    missingCategoriesBeforeRecovery,
+    missingDataRecovery: Object.keys(missingDataRecovery).length ? missingDataRecovery : undefined,
+    sufficientForAnalysis: booleanOrNull(metadata.sufficient_for_analysis),
+    responseClassification: String(metadata.response_classification || '').trim() || null,
+    groundingGuard: String(metadata.grounding_guard || '').trim() || null,
+    routingReason: String(metadata.routing_reason || '').trim() || null,
+    dataFreshness: String(metadata.data_freshness || metadata.last_updated || '').trim() || null,
+    toolAudit,
+  }
+}
+
+function normalizeActionPreviewPayload(value: unknown): ActionPreview | undefined {
+  const data = asRecord(value)
+  if (Object.keys(data).length === 0) {
+    return undefined
+  }
+  const args = asRecord(data.args)
+  const alternateArgs = asRecord(data.arguments)
+  const normalizedArgs = Object.keys(args).length ? args : alternateArgs
+  const normalizedId = String(data.id || data.action_id || data.actionId || '').trim()
+  const normalizedName = String(data.name || data.action_label || normalizedId || 'Requested action').trim()
+  const timeoutRaw = data.timeout_seconds ?? data.timeoutSeconds
+  const timeoutSeconds =
+    typeof timeoutRaw === 'number'
+      ? timeoutRaw
+      : (typeof timeoutRaw === 'string' && timeoutRaw.trim() ? Number(timeoutRaw) : undefined)
+  return {
+    id: normalizedId,
+    name: normalizedName,
+    description: String(data.description || data.explanation || data.impact || '').trim(),
+    args: normalizedArgs,
+    requiresConfirmation: Boolean(data.requiresConfirmation ?? data.requires_confirmation ?? true),
+    impact: String(data.impact || '').trim() || undefined,
+    timeoutSeconds: Number.isFinite(timeoutSeconds) ? Number(timeoutSeconds) : undefined,
+    isMutating: typeof data.is_mutating === 'boolean'
+      ? data.is_mutating
+      : (typeof data.isMutating === 'boolean' ? data.isMutating : undefined),
+    tool: String(data.tool || '').trim() || undefined,
+    scope: String(data.scope || '').trim() || undefined,
+    resumeMessage: String(data.resume_message || data.resumeMessage || '').trim() || undefined,
+    command: Array.isArray(data.command) ? data.command.map(String) : undefined,
+  }
+}
+
+function buildCodexDeployMetadata(result: FeedbackCaptureResponse): NonNullable<ChatMessageType['metadata']>['codexDeploy'] {
+  return {
+    reportId: result.report_id,
+    reportPath: result.report_dir,
+    readApiPath: result.read_api_path ?? null,
+    promptPath: result.codex_prompt_path ?? null,
+    investigationPath: result.investigation_path ?? null,
+  }
+}
+
+function normalizeStoreSource(source: unknown): 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown' {
+  const value = String(source || '').trim()
+  return value === 'local' || value === 'api' || value === 'anthropic' || value === 'cockpit'
+    ? value
+    : (value ? 'local' : 'unknown')
 }
 
 function toChatMessage(record: {
@@ -1183,6 +1288,7 @@ export function ChatScreen() {
       })
 
         const latencyMs = resolveResponseLatencyMs(response.content.latency_ms, requestStartedAt)
+        const normalizedActionPreview = normalizeActionPreviewPayload(response.content.action_preview)
         const systemMessage: ChatMessageType = {
           id: generateId(),
           role: 'assistant',
@@ -1192,15 +1298,18 @@ export function ChatScreen() {
             model: response.content.model,
             latencyMs,
             costUsd: response.content.cost_usd || 0,
-            source: response.content.source || 'local'
+            source: response.content.source || 'local',
+            routing: response.content.routing_metadata,
+            analyst: normalizeAnalystMetadata(response.content.routing_metadata),
           },
           sources: response.content.sources,
+          actionPreview: normalizedActionPreview,
           chart: response.content.chart,
         }
         if (response.content.cost_usd) addCost(response.content.cost_usd)
         if (latencyMs !== undefined) setLatency(latencyMs)
 	        if (response.content.model) setActiveModel(response.content.model)
-	        setActiveSource(response.content.source || 'local')
+	        setActiveSource(normalizeStoreSource(response.content.source))
 	        const providerErrorNotice = buildProviderErrorNotice(response.content.provider_error)
 	        if (providerErrorNotice) {
 	          toast.error(providerErrorNotice, { duration: 15000 })
@@ -1213,6 +1322,7 @@ export function ChatScreen() {
 	        } else {
 	          setMessages(prev => [...prev, systemMessage])
 	        }
+	        setPendingActionPreview(normalizedActionPreview ?? null)
 	      } catch (err) {
         toast.error('Command failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
       } finally {
@@ -1286,30 +1396,8 @@ export function ChatScreen() {
               setStreamingMetadata({ ...currentMetadata })
               break
             case 'action_preview':
-              {
-                const data = event.data || {}
-                const normalizedArgs =
-                  typeof data.args === 'object' && data.args !== null
-                    ? data.args
-                    : (typeof data.arguments === 'object' && data.arguments !== null ? data.arguments : {})
-                const normalizedId =
-                  String(data.id || data.action_id || data.actionId || '').trim()
-                const normalizedName =
-                  String(data.name || data.action_label || normalizedId || 'Requested action').trim()
-                const normalizedDescription =
-                  String(data.description || data.explanation || data.impact || '').trim()
-
-              currentMetadata.actionPreview = {
-                id: normalizedId,
-                name: normalizedName,
-                description: normalizedDescription,
-                args: normalizedArgs,
-                requiresConfirmation: Boolean(
-                  data.requiresConfirmation ?? data.requires_confirmation ?? true
-                )
-              }
+              currentMetadata.actionPreview = normalizeActionPreviewPayload(event.data)
               setStreamingMetadata({ ...currentMetadata })
-              }
               break
             case 'chart':
               if (event.data && typeof event.data === 'object') {
@@ -1325,6 +1413,7 @@ export function ChatScreen() {
                   ? event.data.text
                   : currentContent
               const normalizedActionPreview = currentMetadata.actionPreview
+              const routingMetadata = asRecord(event.data?.routing_metadata)
               const sanitizedFinalText = sanitizeActionMessage(
                 finalText,
                 normalizedActionPreview,
@@ -1338,7 +1427,9 @@ export function ChatScreen() {
                   model: event.data.model,
                   latencyMs,
                   costUsd: event.data.cost_usd || 0,
-                  source: event.data.source || 'local'
+                  source: event.data.source || 'local',
+                  routing: routingMetadata,
+                  analyst: normalizeAnalystMetadata(routingMetadata),
                 },
                 thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
@@ -1351,7 +1442,7 @@ export function ChatScreen() {
               if (event.data.cost_usd) addCost(event.data.cost_usd)
               if (latencyMs !== undefined) setLatency(latencyMs)
               if (event.data.model) setActiveModel(event.data.model)
-              setActiveSource(event.data.source || 'local')
+              setActiveSource(normalizeStoreSource(event.data.source))
               setPendingActionPreview(normalizedActionPreview ?? null)
 
               const autoFlag = event.data?.auto_flag && typeof event.data.auto_flag === 'object'
@@ -1365,7 +1456,7 @@ export function ChatScreen() {
                     timestamp: new Date(),
                     metadata: {
                       source: 'cockpit',
-                      codexDeploy: { reportId: autoFlag.report_id },
+                      codexDeploy: buildCodexDeployMetadata(autoFlag),
                     },
                   }
                 : null
@@ -1867,7 +1958,7 @@ export function ChatScreen() {
           timestamp: new Date(),
           metadata: {
             source: 'cockpit',
-            codexDeploy: { reportId: result.report_id },
+            codexDeploy: buildCodexDeployMetadata(result),
           },
         }])
         toast.success(result.analysis_summary?.trim()

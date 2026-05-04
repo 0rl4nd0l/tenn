@@ -627,6 +627,8 @@ export async function sendChatMessage(params: {
 	        source: raw.data.source,
 	        provider_error: raw.data.provider_error ?? null,
 	        chart: raw.data.chart,
+	        action_preview: raw.data.action_preview,
+	        routing_metadata: raw.data.routing_metadata,
         sources: Array.isArray(raw.data.sources)
           ? raw.data.sources.map((s: any) => ({
               title: s.title,
