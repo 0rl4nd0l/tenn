@@ -67,6 +67,19 @@ function verdictLabel(value: string | null | undefined): string {
   return String(value || 'unavailable').replace(/_/g, ' ')
 }
 
+function comparisonStatusLabel(comparison: MarketplacePriceComparison | null | undefined): string {
+  if (comparison?.comparison_state === 'missing_benchmark_anchor') return 'benchmark unavailable'
+  if (comparison?.comparison_state === 'missing_listing_price') return 'listing price missing'
+  return verdictLabel(comparison?.verdict)
+}
+
+function comparisonHelpText(comparison: MarketplacePriceComparison | null | undefined): string | null {
+  const reason = String(comparison?.unavailable_reason || '').trim()
+  const action = String(comparison?.next_action || '').trim()
+  if (reason && action) return `${reason} ${action}`
+  return reason || action || null
+}
+
 function comparisonToneClass(comparison: MarketplacePriceComparison | null | undefined): string {
   const color = String(comparison?.color || '').toLowerCase()
   if (color === 'green' || color === 'emerald') {
@@ -457,48 +470,55 @@ export function MarketplaceMatchDetailScreen({
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="bg-background/70">
-                      {verdictLabel(match.price_comparison.verdict)}
+                      {comparisonStatusLabel(match.price_comparison)}
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="grid gap-3 text-sm md:grid-cols-4">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Listing</div>
-                    <div className="font-mono text-lg font-semibold">
-                      {formatCurrency(match.price_comparison.listing_price)}
+                <CardContent className="space-y-3 text-sm">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Listing</div>
+                      <div className="font-mono text-lg font-semibold">
+                        {formatCurrency(match.price_comparison.listing_price)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Marketplace avg</div>
+                      <div className="font-mono text-lg font-semibold">
+                        {formatCurrency(match.price_comparison.used_market_median)}
+                      </div>
+                      <div className="font-mono text-xs">
+                        {formatDelta(match.price_comparison.delta_vs_used_median?.percent)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">
+                        Retail/RRP{match.price_comparison.retail_anchor_label
+                          ? ` (${match.price_comparison.retail_anchor_label})`
+                          : ''}
+                      </div>
+                      <div className="font-mono text-lg font-semibold">
+                        {formatCurrency(match.price_comparison.retail_anchor_price)}
+                      </div>
+                      <div className="font-mono text-xs">
+                        {formatDelta(match.price_comparison.delta_vs_retail_anchor?.percent)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Fair range</div>
+                      <div className="font-mono text-sm font-semibold">
+                        {typeof match.price_comparison.fair_range_low === 'number' &&
+                        typeof match.price_comparison.fair_range_high === 'number'
+                          ? `${formatCurrency(match.price_comparison.fair_range_low)} - ${formatCurrency(match.price_comparison.fair_range_high)}`
+                          : 'n/a'}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Marketplace avg</div>
-                    <div className="font-mono text-lg font-semibold">
-                      {formatCurrency(match.price_comparison.used_market_median)}
-                    </div>
-                    <div className="font-mono text-xs">
-                      {formatDelta(match.price_comparison.delta_vs_used_median?.percent)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">
-                      Retail/RRP{match.price_comparison.retail_anchor_label
-                        ? ` (${match.price_comparison.retail_anchor_label})`
-                        : ''}
-                    </div>
-                    <div className="font-mono text-lg font-semibold">
-                      {formatCurrency(match.price_comparison.retail_anchor_price)}
-                    </div>
-                    <div className="font-mono text-xs">
-                      {formatDelta(match.price_comparison.delta_vs_retail_anchor?.percent)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Fair range</div>
-                    <div className="font-mono text-sm font-semibold">
-                      {typeof match.price_comparison.fair_range_low === 'number' &&
-                      typeof match.price_comparison.fair_range_high === 'number'
-                        ? `${formatCurrency(match.price_comparison.fair_range_low)} - ${formatCurrency(match.price_comparison.fair_range_high)}`
-                        : 'n/a'}
-                    </div>
-                  </div>
+                  {comparisonHelpText(match.price_comparison) && (
+                    <p className="text-sm text-muted-foreground">
+                      {comparisonHelpText(match.price_comparison)}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}

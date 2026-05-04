@@ -1306,9 +1306,16 @@ class MarketplacePriceIntelligenceService:
         retail_delta = _price_delta(listing_price, retail_anchor_price)
         verdict = "unavailable"
         color = "slate"
+        comparison_state = "unavailable"
+        unavailable_reason: str | None = None
+        next_action: str | None = None
         if listing_price is None:
             verdict = "missing_listing_price"
+            comparison_state = "missing_listing_price"
+            unavailable_reason = "Listing price could not be parsed."
+            next_action = "Rescan or inspect the listing to capture a usable listing price."
         elif used_median is not None and used_median > 0:
+            comparison_state = "used_market_comparison"
             delta_pct = used_delta["percent"]
             if delta_pct is not None and delta_pct <= -15:
                 verdict = "strong_discount"
@@ -1323,6 +1330,7 @@ class MarketplacePriceIntelligenceService:
                 verdict = "above_market"
                 color = "red"
         elif retail_anchor_price is not None and retail_anchor_price > 0:
+            comparison_state = "retail_anchor_only"
             delta_pct = retail_delta["percent"]
             if delta_pct is not None and delta_pct <= -35:
                 verdict = "below_retail_anchor"
@@ -1333,6 +1341,16 @@ class MarketplacePriceIntelligenceService:
             else:
                 verdict = "close_to_retail"
                 color = "red"
+        else:
+            comparison_state = "missing_benchmark_anchor"
+            unavailable_reason = (
+                "Listing price was captured, but no used-market benchmark or retail/RRP "
+                "anchor is available for the matched product."
+            )
+            next_action = (
+                "Link or calibrate a tracked product benchmark, then add accepted "
+                "marketplace observations or a retail anchor."
+            )
 
         return {
             "listing_price": listing_price,
@@ -1350,6 +1368,9 @@ class MarketplacePriceIntelligenceService:
             },
             "verdict": verdict,
             "color": color,
+            "comparison_state": comparison_state,
+            "unavailable_reason": unavailable_reason,
+            "next_action": next_action,
         }
 
     def variant_match_confidence(

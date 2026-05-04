@@ -101,6 +101,58 @@ describe('MarketplaceMatchDetailScreen', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('explains when a listing price exists but benchmark anchors are missing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        match_id: 'mp_match_listing_only',
+        mission_id: 'mp_mission_storage',
+        mission_name: 'NVMe storage',
+        listing_id: '123',
+        listing_url: 'https://www.facebook.com/marketplace/item/123/',
+        title: 'Kingston NV2 2TB NVMe SSD',
+        price: 'AU$300 Kingston NV2 2TB NVMe SSD Melbourne, VIC',
+        price_value: 300,
+        location: 'Melbourne VIC',
+        seller_name: null,
+        captured_at: '2026-05-04T01:28:29Z',
+        score: 95,
+        decision_band: 'strong_match',
+        reasons_for: ['Matched mission keyword: 2TB'],
+        reasons_against: [],
+        confidence: 0.66,
+        raw_text_snapshot: 'Kingston NV2 2TB NVMe SSD.',
+        status: 'new',
+        metadata: {},
+        price_comparison: {
+          listing_price: 300,
+          used_market_median: null,
+          retail_anchor_price: null,
+          delta_vs_used_median: { amount: null, percent: null },
+          verdict: 'unavailable',
+          color: 'slate',
+          comparison_state: 'missing_benchmark_anchor',
+          unavailable_reason:
+            'Listing price was captured, but no used-market benchmark or retail/RRP anchor is available for the matched product.',
+          next_action:
+            'Link or calibrate a tracked product benchmark, then add accepted marketplace observations or a retail anchor.',
+        },
+        user_feedback: null,
+        updated_at: '2026-05-04T01:28:29Z',
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchDetailScreen apiKey="" matchId="mp_match_listing_only" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Kingston NV2 2TB NVMe SSD')).toBeInTheDocument()
+    })
+    expect(screen.getByText(/benchmark unavailable/i)).toBeInTheDocument()
+    expect(screen.getByText(/listing price was captured/i)).toBeInTheDocument()
+    expect(screen.getByText(/tracked product benchmark/i)).toBeInTheDocument()
+  })
+
   it('records not interested feedback from the detail screen', async () => {
     const fetchMock = vi
       .fn()

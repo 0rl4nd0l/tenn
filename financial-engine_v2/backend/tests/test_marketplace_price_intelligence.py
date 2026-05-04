@@ -393,6 +393,35 @@ def test_match_price_comparison_reports_used_and_retail_deltas(tmp_path: Path) -
     assert comparison["primary_anchor"] == {"kind": "used_market_median", "price": 660}
     assert comparison["verdict"] == "discount"
     assert comparison["color"] == "emerald"
+    assert comparison["comparison_state"] == "used_market_comparison"
+    assert comparison["unavailable_reason"] is None
+    assert comparison["next_action"] is None
+
+
+def test_match_price_comparison_explains_missing_benchmark_anchor(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    comparison = service.build_match_price_comparison(
+        match={
+            "match_id": "mp_match_listing_only",
+            "mission_id": "mp_mission_listing_only",
+            "title": "Kingston NV2 2TB NVMe SSD",
+            "price": "AU$300 Kingston NV2 2TB NVMe SSD Melbourne, VIC",
+            "price_value": 300,
+            "raw_text_snapshot": "Kingston NV2 2TB NVMe SSD.",
+        },
+        value_context=None,
+    )
+
+    assert comparison["listing_price"] == 300
+    assert comparison["used_market_median"] is None
+    assert comparison["retail_anchor_price"] is None
+    assert comparison["primary_anchor"] == {"kind": "none", "price": None}
+    assert comparison["verdict"] == "unavailable"
+    assert comparison["comparison_state"] == "missing_benchmark_anchor"
+    assert "Listing price was captured" in comparison["unavailable_reason"]
+    assert "tracked product benchmark" in comparison["next_action"]
 
 
 def test_value_assessment_reports_no_snapshot_low_data_and_stale_states(

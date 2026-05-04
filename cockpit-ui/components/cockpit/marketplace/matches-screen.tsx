@@ -82,6 +82,26 @@ function verdictLabel(value: string | null | undefined): string {
   return String(value || 'unavailable').replace(/_/g, ' ')
 }
 
+function comparisonStatusLabel(comparison: MarketplacePriceComparison | null | undefined): string {
+  if (comparison?.comparison_state === 'missing_benchmark_anchor') return 'benchmark unavailable'
+  if (comparison?.comparison_state === 'missing_listing_price') return 'listing price missing'
+  return verdictLabel(comparison?.verdict)
+}
+
+function comparisonHelpText(comparison: MarketplacePriceComparison | null | undefined): string | null {
+  const reason = String(comparison?.unavailable_reason || '').trim()
+  const action = String(comparison?.next_action || '').trim()
+  if (reason && action) return `${reason} ${action}`
+  return reason || action || null
+}
+
+function benchmarkAnchorLabel(comparison: MarketplacePriceComparison | null | undefined): string {
+  if (typeof comparison?.used_market_median === 'number') return formatCurrency(comparison.used_market_median)
+  if (typeof comparison?.retail_anchor_price === 'number') return formatCurrency(comparison.retail_anchor_price)
+  if (typeof comparison?.listing_price === 'number') return 'Needs setup'
+  return 'N/A'
+}
+
 function comparisonToneClass(comparison: MarketplacePriceComparison | null | undefined): string {
   const color = String(comparison?.color || '').toLowerCase()
   if (color === 'green' || color === 'emerald') {
@@ -469,9 +489,9 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                           <span className="text-lg font-semibold text-primary">{match.price || 'N/A'}</span>
                         </div>
                         <div className="flex items-baseline justify-between text-sm">
-                          <span className="text-muted-foreground">Avg Price Identical:</span>
+                          <span className="text-muted-foreground">Benchmark:</span>
                           <span className="font-medium text-foreground">
-                            {comparison?.used_market_median ? formatCurrency(comparison.used_market_median) : 'N/A'}
+                            {benchmarkAnchorLabel(comparison)}
                           </span>
                         </div>
                         <div className="pt-1">
@@ -514,7 +534,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                           <div className="mb-2 flex flex-wrap items-center gap-2">
                             <span className="font-semibold">Price comparison</span>
                             <Badge variant="outline" className="bg-background/70 text-xs">
-                              {verdictLabel(comparison.verdict)}
+                              {comparisonStatusLabel(comparison)}
                             </Badge>
                           </div>
                           <div className="grid gap-1 sm:grid-cols-4">
@@ -543,6 +563,11 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                               </span>
                             </div>
                           </div>
+                          {comparisonHelpText(comparison) && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              {comparisonHelpText(comparison)}
+                            </p>
+                          )}
                         </div>
                       )}
 

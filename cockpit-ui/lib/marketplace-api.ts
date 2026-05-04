@@ -173,6 +173,9 @@ export interface MarketplacePriceComparison {
   } | null
   verdict?: string | null
   color?: string | null
+  comparison_state?: string | null
+  unavailable_reason?: string | null
+  next_action?: string | null
 }
 
 export type MarketplaceMatchFeedbackValue = 'interested' | 'not_interested'
