@@ -14,7 +14,7 @@ import {
 } from '@/lib/marketplace-api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 
@@ -111,6 +111,45 @@ function listingMedia(match: MarketplaceMatch): string[] {
     return [match.screenshot_path]
   }
   return []
+}
+
+function ScoreGauge({ score }: { score: number }) {
+  const normalizedScore = Math.max(0, Math.min(100, score))
+  const radius = 40
+  const circumference = Math.PI * radius
+  const strokeDashoffset = circumference - (normalizedScore / 100) * circumference
+
+  let colorClass = 'text-emerald-500'
+  if (normalizedScore < 50) colorClass = 'text-destructive'
+  else if (normalizedScore < 75) colorClass = 'text-amber-500'
+
+  return (
+    <div className="relative w-32 h-16">
+      <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
+        <path
+          d="M 10 50 A 40 40 0 0 1 90 50"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="10"
+          strokeLinecap="round"
+          className="text-muted/20"
+        />
+        <path
+          d="M 10 50 A 40 40 0 0 1 90 50"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className={`transition-all duration-1000 ease-in-out ${colorClass}`}
+        />
+      </svg>
+      <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center justify-end translate-y-1.5">
+        <span className="text-2xl font-bold font-mono tracking-tighter">{normalizedScore}</span>
+      </div>
+    </div>
+  )
 }
 
 export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenProps) {
@@ -239,297 +278,312 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
               const comparison = match.price_comparison ?? null
               const userFeedback = match.user_feedback?.feedback ?? null
               return (
-              <Card key={match.match_id} className="overflow-hidden transition-colors hover:bg-muted/5">
-                <CardHeader className="pb-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={decisionVariant(match.decision_band)}>
-                          {match.decision_band.replace('_', ' ')}
-                        </Badge>
-                        <Badge variant="outline" className="font-mono text-xs">
-                          Score: {match.score}
-                        </Badge>
-                      </div>
-                      <CardTitle className="pt-1 text-base">{match.title}</CardTitle>
-                      <CardDescription className="text-xs">{match.mission_name || 'Marketplace Match'}</CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {formatClock(match.captured_at)}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs">
-                          <Link href={`/marketplace/matches/${match.match_id}`}>
-                            Details
-                          </Link>
-                        </Button>
-                        <Select
-                          value={match.status}
-                          onValueChange={(val) => void handleStatus(match.match_id, val)}
-                        >
-                          <SelectTrigger className="h-7 w-[100px] text-xs font-medium">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MATCH_STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value} className="text-xs">
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant={userFeedback === 'interested' ? 'default' : 'outline'}
-                          size="sm"
-                          disabled={feedbackSavingMatchId === match.match_id}
-                          onClick={() => void handleFeedback(match.match_id, 'interested')}
-                          className="h-7 px-2 text-xs"
-                        >
-                          <ThumbsUp className="mr-1 h-3 w-3" />
-                          Interested
-                        </Button>
-                        <Button
-                          variant={userFeedback === 'not_interested' ? 'secondary' : 'outline'}
-                          size="sm"
-                          disabled={feedbackSavingMatchId === match.match_id}
-                          onClick={() => void handleFeedback(match.match_id, 'not_interested')}
-                          className="h-7 px-2 text-xs"
-                        >
-                          <ThumbsDown className="mr-1 h-3 w-3" />
-                          Not interested
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="relative mb-3 overflow-hidden rounded-md border border-border/60 bg-muted/30">
-                    {firstMedia ? (
-                      <img
-                        src={firstMedia}
-                        alt={`Listing photo for ${match.title}`}
-                        className="aspect-video w-full object-contain md:h-64"
-                      />
-                    ) : (
-                      <div className="flex h-32 items-center justify-center gap-2 text-xs text-muted-foreground">
-                        <ImageOff className="h-4 w-4" />
-                        Listing photos unavailable
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <Badge variant="outline" className="text-xs">
-                      photos: {media.length}
+              <Card key={match.match_id} className="overflow-hidden transition-colors hover:bg-muted/5 border-border/50">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 bg-muted/10 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={decisionVariant(match.decision_band)}>
+                      {match.decision_band.replace('_', ' ')}
                     </Badge>
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {priceSourceLabel(priceEvidence)}
-                    </Badge>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {formatClock(match.captured_at)}
+                    </span>
                   </div>
-                  {priceEvidence?.warning && (
-                    <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
-                      {priceEvidence.warning}
-                    </p>
-                  )}
-                  {comparison && (
-                    <div className={`mb-3 rounded-md border p-3 text-xs ${comparisonToneClass(comparison)}`}>
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">Price comparison</span>
-                        <Badge variant="outline" className="bg-background/70 text-xs">
-                          {verdictLabel(comparison.verdict)}
-                        </Badge>
-                      </div>
-                      <div className="grid gap-1 sm:grid-cols-4">
-                        <div>
-                          Listing:{' '}
-                          <span className="font-mono font-semibold">
-                            {formatCurrency(comparison.listing_price)}
-                          </span>
-                        </div>
-                        <div>
-                          Marketplace avg:{' '}
-                          <span className="font-mono">
-                            {formatCurrency(comparison.used_market_median)}
-                          </span>
-                        </div>
-                        <div>
-                          Retail/RRP:{' '}
-                          <span className="font-mono">
-                            {formatCurrency(comparison.retail_anchor_price)}
-                          </span>
-                        </div>
-                        <div>
-                          Vs avg:{' '}
-                          <span className="font-mono">
-                            {formatDelta(comparison.delta_vs_used_median?.percent)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {match.reasons_for && match.reasons_for.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-1">
-                      {match.reasons_for.map((reason, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs px-1.5 h-4 font-normal">
-                          {reason}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-4 text-xs">
-                    {match.price && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Price:</span>
-                        <span className="font-mono font-bold text-primary">{match.price}</span>
-                      </div>
-                    )}
-                    {match.location && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Loc:</span>
-                        <span>{match.location}</span>
-                      </div>
-                    )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs">
+                      <Link href={`/marketplace/matches/${match.match_id}`}>
+                        Details
+                      </Link>
+                    </Button>
                     {match.listing_url && (
-                      <a
-                        href={match.listing_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        View Listing
-                      </a>
-                    ) || (
-                      <span className="text-muted-foreground font-mono">ID: {match.listing_id.slice(0, 12)}</span>
+                      <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs text-primary">
+                        <a href={match.listing_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="mr-1 h-3 w-3" />
+                          View
+                        </a>
+                      </Button>
                     )}
+                    <Select
+                      value={match.status}
+                      onValueChange={(val) => void handleStatus(match.match_id, val)}
+                    >
+                      <SelectTrigger className="h-7 w-[100px] text-xs font-medium">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MATCH_STATUS_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value} className="text-xs">
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant={userFeedback === 'interested' ? 'default' : 'outline'}
+                      size="sm"
+                      disabled={feedbackSavingMatchId === match.match_id}
+                      onClick={() => void handleFeedback(match.match_id, 'interested')}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <ThumbsUp className="mr-1 h-3 w-3" />
+                      Interested
+                    </Button>
+                    <Button
+                      variant={userFeedback === 'not_interested' ? 'secondary' : 'outline'}
+                      size="sm"
+                      disabled={feedbackSavingMatchId === match.match_id}
+                      onClick={() => void handleFeedback(match.match_id, 'not_interested')}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <ThumbsDown className="mr-1 h-3 w-3" />
+                      Not interested
+                    </Button>
                   </div>
-                  {match.value_context && (
-                    <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="font-medium">Used-market value</span>
-                        <Badge
-                          variant={valueBadgeVariant(match.value_context.value_label)}
-                          className="text-xs"
-                        >
-                          {match.value_context.value_label}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          confidence: {match.value_context.value_confidence}
-                        </Badge>
-                        {typeof match.value_context.value_score === 'number' && (
-                          <Badge variant="outline" className="font-mono text-xs">
-                            value: {match.value_context.value_score}
-                          </Badge>
-                        )}
+                </div>
+
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_300px]">
+                    {/* Left Column */}
+                    <div className="flex flex-col border-r border-border/50">
+                      <div className="space-y-1 p-5 pb-4">
+                        <h3 className="text-lg font-semibold leading-tight">{match.title}</h3>
+                        <div className="text-sm text-muted-foreground">
+                          Brand: <span className="font-medium text-foreground">{String(match.metadata?.brand || 'Unknown')}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Location: <span className="font-medium text-foreground">{match.location || 'Unknown'}</span>
+                        </div>
                       </div>
-                      <div className="grid gap-1 sm:grid-cols-2">
-                        <div>
-                          Product:{' '}
-                          <span className="font-medium">
-                            {match.value_context.matched_candidate_name
-                              || match.value_context.linked_tracked_product_name
-                              || 'linked product'}
-                          </span>
-                        </div>
-                        <div>
-                          Source:{' '}
-                          <span className="font-mono">
-                            {match.value_context.value_source === 'matched_candidate_benchmark'
-                              ? 'matched candidate'
-                              : match.value_context.value_source || 'primary product'}
-                          </span>
-                        </div>
-                        <div>
-                          State:{' '}
-                          <span className="font-mono">
-                            {match.value_context.state.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <div>
-                          Fair range:{' '}
-                          <span className="font-mono">
-                            {typeof match.value_context.fair_low === 'number' &&
-                            typeof match.value_context.fair_high === 'number'
-                              ? `${formatCurrency(match.value_context.fair_low)} - ${formatCurrency(match.value_context.fair_high)}`
-                              : 'n/a'}
-                          </span>
-                        </div>
-                        <div>
-                          Used median:{' '}
-                          <span className="font-mono">
-                            {formatCurrency(match.value_context.used_median)}
-                          </span>
-                        </div>
-                        {typeof match.value_context.candidate_match_confidence === 'number' && (
-                          <div>
-                            Candidate match:{' '}
-                            <span className="font-mono">
-                              {Math.round(match.value_context.candidate_match_confidence * 100)}%
-                            </span>
+                      <div className="relative aspect-video w-full overflow-hidden border-t border-border/50 bg-muted/20 p-4">
+                        {firstMedia ? (
+                          <img
+                            src={firstMedia}
+                            alt={`Listing photo for ${match.title}`}
+                            className="h-full w-full object-contain md:h-64"
+                          />
+                        ) : (
+                          <div className="flex h-32 items-center justify-center gap-2 text-xs text-muted-foreground md:h-64">
+                            <ImageOff className="h-4 w-4" />
+                            Listing photos unavailable
                           </div>
                         )}
-                      </div>
-                      {match.value_context.price_movement_summary && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {match.value_context.price_movement_summary}
-                        </p>
-                      )}
-                      {match.value_context.explanation && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {match.value_context.explanation}
-                        </p>
-                      )}
-                      {match.value_context.warnings && match.value_context.warnings.length > 0 && (
-                        <p className="mt-2 text-xs text-destructive">
-                          {match.value_context.warnings.slice(0, 2).join(' ')}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {match.benchmark && (
-                    <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3 text-xs">
-                      <div className="mb-1 font-medium">New retail benchmark ({match.benchmark.source})</div>
-                      <div className="grid gap-1 sm:grid-cols-2">
-                        <div>
-                          Product: <span className="font-medium">{match.benchmark.matched_product || 'unmatched'}</span>
-                        </div>
-                        <div>
-                          Confidence: <span className="font-mono">{Math.round(match.benchmark.confidence * 100)}%</span>
-                        </div>
-                        <div>
-                          Current: <span className="font-mono">{formatCurrency(match.benchmark.current_price)}</span>
-                        </div>
-                        <div>
-                          30d median: <span className="font-mono">{formatCurrency(match.benchmark.median_30d)}</span>
-                        </div>
-                        <div>
-                          Listing delta: <span className="font-mono">{formatDelta(match.benchmark.listing_delta_pct)}</span>
-                        </div>
-                        <div>
-                          Freshness: <span className="font-mono">
-                            {typeof match.benchmark.freshness_hours === 'number'
-                              ? `${Math.round(match.benchmark.freshness_hours)}h`
-                              : 'unknown'}
-                          </span>
-                        </div>
-                      </div>
-                      {match.benchmark.review_status && (
-                        <div className="mt-2">
-                          <Badge variant="outline" className="text-xs">
-                            review: {match.benchmark.review_status}
+                        <div className="absolute bottom-2 left-2 flex flex-wrap gap-2">
+                          <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
+                            photos: {media.length}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
+                            {priceSourceLabel(priceEvidence)}
                           </Badge>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="flex flex-col">
+                      <div className="space-y-3 border-b border-border/50 bg-muted/5 p-5">
+                        <div className="flex items-baseline justify-between text-sm">
+                          <span className="text-muted-foreground">List Price:</span>
+                          <span className="text-lg font-semibold text-primary">{match.price || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-baseline justify-between text-sm">
+                          <span className="text-muted-foreground">Avg Price Identical:</span>
+                          <span className="font-medium text-foreground">
+                            {comparison?.used_market_median ? formatCurrency(comparison.used_market_median) : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="pt-1">
+                          <span className="mb-2 block text-xs font-medium text-muted-foreground">Features:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {match.reasons_for && match.reasons_for.length > 0 ? (
+                              match.reasons_for.slice(0, 4).map((reason, i) => (
+                                <Badge key={i} variant="secondary" className="h-5 px-1.5 text-xs font-normal">
+                                  {reason}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">None listed</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Score Gauge */}
+                      <div className="flex grow flex-col items-center justify-center bg-background p-5">
+                        <ScoreGauge score={match.score} />
+                        <div className="mt-5 max-w-[200px] text-center text-xs text-muted-foreground">
+                          {match.value_context?.explanation || match.reasons_for?.[0] || 'Score based on fit and price.'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Context Sections */}
+                  {(match.value_context || match.benchmark || comparison || priceEvidence?.warning) && (
+                    <div className="border-t border-border/50 bg-muted/5 p-4">
+                      {priceEvidence?.warning && (
+                        <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
+                          {priceEvidence.warning}
+                        </p>
                       )}
-                      {match.benchmark.warning && (
-                        <p className="mt-2 text-xs text-destructive">{match.benchmark.warning}</p>
+                      
+                      {comparison && (
+                        <div className={`mb-3 rounded-md border p-3 text-xs ${comparisonToneClass(comparison)} bg-background`}>
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="font-semibold">Price comparison</span>
+                            <Badge variant="outline" className="bg-background/70 text-xs">
+                              {verdictLabel(comparison.verdict)}
+                            </Badge>
+                          </div>
+                          <div className="grid gap-1 sm:grid-cols-4">
+                            <div>
+                              Listing:{' '}
+                              <span className="font-mono font-semibold">
+                                {formatCurrency(comparison.listing_price)}
+                              </span>
+                            </div>
+                            <div>
+                              Marketplace avg:{' '}
+                              <span className="font-mono">
+                                {formatCurrency(comparison.used_market_median)}
+                              </span>
+                            </div>
+                            <div>
+                              Retail/RRP:{' '}
+                              <span className="font-mono">
+                                {formatCurrency(comparison.retail_anchor_price)}
+                              </span>
+                            </div>
+                            <div>
+                              Vs avg:{' '}
+                              <span className="font-mono">
+                                {formatDelta(comparison.delta_vs_used_median?.percent)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {match.value_context && (
+                        <div className="mb-3 rounded-md border border-primary/20 bg-background p-3 text-xs shadow-sm">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="font-medium">Used-market value</span>
+                            <Badge
+                              variant={valueBadgeVariant(match.value_context.value_label)}
+                              className="text-xs"
+                            >
+                              {match.value_context.value_label}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              confidence: {match.value_context.value_confidence}
+                            </Badge>
+                            {typeof match.value_context.value_score === 'number' && (
+                              <Badge variant="outline" className="font-mono text-xs">
+                                value: {match.value_context.value_score}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="grid gap-1 sm:grid-cols-2">
+                            <div>
+                              Product:{' '}
+                              <span className="font-medium">
+                                {match.value_context.matched_candidate_name ||
+                                  match.value_context.linked_tracked_product_name ||
+                                  'linked product'}
+                              </span>
+                            </div>
+                            <div>
+                              Source:{' '}
+                              <span className="font-mono">
+                                {match.value_context.value_source === 'matched_candidate_benchmark'
+                                  ? 'matched candidate'
+                                  : match.value_context.value_source || 'primary product'}
+                              </span>
+                            </div>
+                            <div>
+                              State:{' '}
+                              <span className="font-mono">
+                                {match.value_context.state.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div>
+                              Fair range:{' '}
+                              <span className="font-mono">
+                                {typeof match.value_context.fair_low === 'number' &&
+                                typeof match.value_context.fair_high === 'number'
+                                  ? `${formatCurrency(match.value_context.fair_low)} - ${formatCurrency(match.value_context.fair_high)}`
+                                  : 'n/a'}
+                              </span>
+                            </div>
+                            <div>
+                              Used median:{' '}
+                              <span className="font-mono">
+                                {formatCurrency(match.value_context.used_median)}
+                              </span>
+                            </div>
+                            {typeof match.value_context.candidate_match_confidence === 'number' && (
+                              <div>
+                                Candidate match:{' '}
+                                <span className="font-mono">
+                                  {Math.round(match.value_context.candidate_match_confidence * 100)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {match.value_context.price_movement_summary && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              {match.value_context.price_movement_summary}
+                            </p>
+                          )}
+                          {match.value_context.warnings && match.value_context.warnings.length > 0 && (
+                            <p className="mt-2 text-xs text-destructive">
+                              {match.value_context.warnings.slice(0, 2).join(' ')}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {match.benchmark && (
+                        <div className="rounded-md border border-border/60 bg-background p-3 text-xs shadow-sm">
+                          <div className="mb-1 font-medium">New retail benchmark ({match.benchmark.source})</div>
+                          <div className="grid gap-1 sm:grid-cols-2">
+                            <div>
+                              Product: <span className="font-medium">{match.benchmark.matched_product || 'unmatched'}</span>
+                            </div>
+                            <div>
+                              Confidence: <span className="font-mono">{Math.round(match.benchmark.confidence * 100)}%</span>
+                            </div>
+                            <div>
+                              Current: <span className="font-mono">{formatCurrency(match.benchmark.current_price)}</span>
+                            </div>
+                            <div>
+                              30d median: <span className="font-mono">{formatCurrency(match.benchmark.median_30d)}</span>
+                            </div>
+                            <div>
+                              Listing delta: <span className="font-mono">{formatDelta(match.benchmark.listing_delta_pct)}</span>
+                            </div>
+                            <div>
+                              Freshness: <span className="font-mono">
+                                {typeof match.benchmark.freshness_hours === 'number'
+                                  ? `${Math.round(match.benchmark.freshness_hours)}h`
+                                  : 'unknown'}
+                              </span>
+                            </div>
+                          </div>
+                          {match.benchmark.review_status && (
+                            <div className="mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                review: {match.benchmark.review_status}
+                              </Badge>
+                            </div>
+                          )}
+                          {match.benchmark.warning && (
+                            <p className="mt-2 text-xs text-destructive">{match.benchmark.warning}</p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
                 </CardContent>
-              </Card>
-              )
+              </Card>              )
             })}
           </div>
         )}
