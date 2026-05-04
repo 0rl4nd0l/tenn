@@ -1,0 +1,85 @@
+{
+  "lane": "Financial Truth",
+  "source_artifact_root": "reports/docling_runtime_parallel2_failure_diagnostic_20260504T043131Z",
+  "generated_at_utc": "2026-05-04T05:53:57.199272+00:00",
+  "verdict": "reject_concurrent_extraction",
+  "promotion_allowed": false,
+  "speedup_claim_allowed": false,
+  "concurrent_document_extraction_allowed": false,
+  "failure_mode_classification": [
+    "failure_mode_classified_request_timeout",
+    "failure_mode_classified_runtime_health",
+    "failure_mode_classified_partial_payload"
+  ],
+  "slot_contention_classification": "failure_mode_inconclusive",
+  "source_correctness_gate_cell_b": {},
+  "source_correctness_gate_cell_c": {},
+  "cell_c_health_gate": {
+    "passed": false,
+    "reason": "runtime port remained open while /health returned false during active diagnostic sampling",
+    "port_open_health_false_samples": 23,
+    "first_port_open_health_false_utc": "2026-05-04T05:16:46.483150+00:00",
+    "last_port_open_health_false_utc": "2026-05-04T05:28:31.947498+00:00",
+    "slots_probe_timeout_samples": 53,
+    "max_vram_used_mb": 16988,
+    "min_vram_free_mb": 7588
+  },
+  "cell_c_request_timeout_gate": {
+    "passed": false,
+    "reason": "captured llm_request_timings include 120s llama.cpp request timeouts",
+    "request_timeout_count": 4,
+    "request_timeout_documents": [
+      "bhp_a_2025-06-30",
+      "qbe_h_2025-06-30",
+      "rio_a_2023-12-31"
+    ],
+    "request_timeout_calls": [
+      {
+        "cell": "cell_c_parallel2_two_doc_concurrent",
+        "document_id": "bhp_a_2025-06-30",
+        "call_index": 4,
+        "elapsed_seconds": 120.258315,
+        "component": "multipass_extraction",
+        "task_type": "reasoning",
+        "prompt_chars": 6748,
+        "error": "llama.cpp JSON generation failed at http://127.0.0.1:8002/v1/chat/completions: timed out"
+      },
+      {
+        "cell": "cell_c_parallel2_two_doc_concurrent",
+        "document_id": "rio_a_2023-12-31",
+        "call_index": 3,
+        "elapsed_seconds": 120.302518,
+        "component": "multipass_extraction",
+        "task_type": "reasoning",
+        "prompt_chars": 6892,
+        "error": "llama.cpp JSON generation failed at http://127.0.0.1:8002/v1/chat/completions: timed out"
+      },
+      {
+        "cell": "cell_c_parallel2_two_doc_concurrent",
+        "document_id": "qbe_h_2025-06-30",
+        "call_index": 2,
+        "elapsed_seconds": 120.247873,
+        "component": "multipass_extraction",
+        "task_type": "reasoning",
+        "prompt_chars": 7028,
+        "error": "llama.cpp JSON generation failed at http://127.0.0.1:8002/v1/chat/completions: timed out"
+      },
+      {
+        "cell": "cell_c_parallel2_two_doc_concurrent",
+        "document_id": "qbe_h_2025-06-30",
+        "call_index": 4,
+        "elapsed_seconds": 120.246573,
+        "component": "multipass_extraction",
+        "task_type": "reasoning",
+        "prompt_chars": 6486,
+        "error": "llama.cpp JSON generation failed at http://127.0.0.1:8002/v1/chat/completions: timed out"
+      }
+    ]
+  },
+  "cell_c_partial_payload_gate": {
+    "passed": false,
+    "reason": "multipass Pass 3a can catch per-table LLM failures, retry truncated, omit failed table output, and continue into scoring",
+    "production_semantics_changed": false
+  },
+  "required_guardrail": "Diagnostic harness must fail fast or quarantine a cell if any active run observes port-open/health-false runtime state or captured LLM request timeout; timing comparisons are invalid unless both gates are clean."
+}

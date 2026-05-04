@@ -1,0 +1,33 @@
+sed -n 1,220p CLAUDE.md
+sed -n 1,260p docs/architecture/SYSTEM_CONTRACT.md
+sed -n 1,220p /home/l4nd0/.claude/projects/-mnt-sdb2-home-l4nd0-tenn/memory/MEMORY.md
+sed -n 1,220p docs/claude/STATE.md
+sed -n 1,220p graphify-out/GRAPH_REPORT.md
+sed -n 1,220p graphify-out/wiki/index.md
+sed -n 1,220p .codex/skills/investigation-orchestrator/SKILL.md
+git status --short
+ls reports/docling_runtime_parallel2_failure_diagnostic_20260504T043131Z
+nl -ba scripts/run_docling_parallel2_experiment.py | sed -n 1,140p
+nl -ba scripts/run_docling_parallel2_experiment.py | sed -n 420,500p
+rg -n "timeout_event|llm_request_timings|_cell_gate|correctness_gate|request_timeout" scripts tests financial-engine_v2/backend/tests (tests path missing; command exited 2 after useful script matches)
+nl -ba scripts/test_run_isolated_docling_control.py | sed -n 1,260p
+nl -ba scripts/run_docling_parallel2_experiment.py | sed -n 600,760p
+nl -ba scripts/run_docling_parallel2_experiment.py | sed -n 760,900p
+financial-engine_v2/.venv/bin/python -m pytest scripts/test_run_docling_parallel2_experiment.py scripts/test_run_isolated_docling_control.py -q
+git diff -- scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py
+python3 - <<PY  # generate docling_runtime_parallel2_health_audit artifact bundle
+python3 -m json.tool reports/docling_runtime_parallel2_health_audit_20260504T055357Z/correctness_gate.json >/dev/null
+find reports/docling_runtime_parallel2_health_audit_20260504T055357Z -maxdepth 1 -type f -printf '%f\n' | sort
+python3 - <<PY  # validate derived correctness gate and runtime health row counts
+sed -n 1,220p reports/docling_runtime_parallel2_health_audit_20260504T055357Z/health_audit_summary.md
+sed -n 1,220p reports/docling_runtime_parallel2_health_audit_20260504T055357Z/failure_taxonomy.md
+sed -n 1,240p reports/docling_runtime_parallel2_health_audit_20260504T055357Z/request_timeout_analysis.md
+git diff --stat -- scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py reports/docling_runtime_parallel2_health_audit_20260504T055357Z
+head -5 reports/docling_runtime_parallel2_failure_diagnostic_20260504T043131Z/request_health_timeline.csv
+python3 - <<PY  # inspect slots_snapshot timeout encoding
+python3 - <<PY  # correct derived slot timeout classification in audit artifacts
+rg -n <stale-slot-zero-pattern> reports/docling_runtime_parallel2_health_audit_20260504T055357Z (unescaped shell backticks caused command-substitution errors; output still exposed stale slot note)
+python3 - <<PY  # correct slot_mapping_notes stale timeout count
+rg -n 'slots.*`0`|timed out `0`|probe had `0`' reports/docling_runtime_parallel2_health_audit_20260504T055357Z
+find reports/docling_runtime_parallel2_health_audit_20260504T055357Z -maxdepth 1 -type f -printf '%f\n' | sort
+financial-engine_v2/.venv/bin/python -m pytest scripts/test_run_docling_parallel2_experiment.py scripts/test_run_isolated_docling_control.py -q

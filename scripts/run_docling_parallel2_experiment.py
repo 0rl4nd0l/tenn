@@ -441,6 +441,29 @@ def _aggregate_global_stage_timing(documents: list[dict[str, Any]]) -> dict[str,
     return {key: round(value, 6) for key, value in totals.items()}
 
 
+REQUEST_TIMEOUT_MARKERS = ("timeout", "timed out", "deadline exceeded")
+
+
+def _is_request_timeout_error(error: Any) -> bool:
+    text = str(error or "").lower()
+    return any(marker in text for marker in REQUEST_TIMEOUT_MARKERS)
+
+
+def _llm_request_timeout_rows(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if payload is None:
+        return []
+    rows: list[dict[str, Any]] = []
+    for doc in payload.get("control", {}).get("documents") or []:
+        doc_id = doc.get("document_id")
+        for call in doc.get("llm_request_timings") or []:
+            if not _is_request_timeout_error(call.get("error")):
+                continue
+            row = dict(call)
+            row["document_id"] = doc_id or row.get("document_id")
+            rows.append(row)
+    return rows
+
+
 def _cell_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
     if payload is None:
         return {"status": "skipped"}
@@ -448,9 +471,13 @@ def _cell_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
     summary = payload.get("control", {}).get("summary") or {}
     metric_counts = summary.get("metric_status_counts") or {}
     runtime_ids = acceptance.get("runtime_ids") or []
+    request_timeout_rows = _llm_request_timeout_rows(payload)
+    timeout_event = bool(acceptance.get("timeout_event")) or bool(request_timeout_rows)
+    passed = bool(acceptance.get("passed")) and not timeout_event
     return {
-        "status": "pass" if acceptance.get("passed") else "fail",
-        "passed": bool(acceptance.get("passed")),
+        "status": "pass" if passed else "fail",
+        "passed": passed,
+        "acceptance_passed_before_runtime_health_gate": bool(acceptance.get("passed")),
         "metrics": {
             "correct": int(metric_counts.get("correct") or 0),
             "total": int(summary.get("total_metric_checks") or 0),
@@ -469,7 +496,17 @@ def _cell_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
         },
         "no_fallback": not bool(acceptance.get("fallback_used")),
         "no_extraction_output_cache": acceptance.get("cache_hit") is False,
-        "no_timeout": not bool(acceptance.get("timeout_event")),
+        "no_timeout": not timeout_event,
+        "request_timeouts": {
+            "count": len(request_timeout_rows),
+            "documents": sorted(
+                {
+                    str(row.get("document_id"))
+                    for row in request_timeout_rows
+                    if row.get("document_id")
+                }
+            ),
+        },
         "all_runtime_ids": runtime_ids,
         "all_docs_on_extraction_runtime": all(
             runtime_id == "http://127.0.0.1:8002" for runtime_id in runtime_ids
@@ -645,7 +682,11 @@ def _per_doc_rows(cell: str, payload: dict[str, Any] | None) -> list[dict[str, A
                 "actual_method": provenance.get("actual_method"),
                 "fallback_used": provenance.get("fallback_used"),
                 "cache_hit": payload.get("control", {}).get("cache_hit"),
-                "timeout_hit": "timeout" in str(doc.get("extraction_error") or "").lower(),
+                "timeout_hit": _is_request_timeout_error(doc.get("extraction_error"))
+                or any(
+                    _is_request_timeout_error(call.get("error"))
+                    for call in doc.get("llm_request_timings") or []
+                ),
                 "runtime_id": provenance.get("runtime_id"),
                 "extraction_error": doc.get("extraction_error"),
             }
