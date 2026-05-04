@@ -5,6 +5,7 @@ import { AlertTriangle, ImageOff, Loader2, Play, RefreshCw, Store, Trash2, X } f
 
 import {
   calibrateMarketplaceProduct,
+  syncEbaySoldData,
   createMarketplaceMission,
   deleteMarketplaceMission,
   linkMarketplaceMissionTrackedProduct,
@@ -538,6 +539,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [deletingMissionId, setDeletingMissionId] = useState<string | null>(null)
   const [linkingMissionId, setLinkingMissionId] = useState<string | null>(null)
   const [calibratingProductId, setCalibratingProductId] = useState<string | null>(null)
+  const [syncingEbayProductId, setSyncingEbayProductId] = useState<string | null>(null)
   const [stoppingJobId, setStoppingJobId] = useState<string | null>(null)
   const [refreshingBenchmarks, setRefreshingBenchmarks] = useState(false)
   const [benchmarkSortMode, setBenchmarkSortMode] = useState<BenchmarkSortMode>('mission')
@@ -769,6 +771,22 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       setError(calError instanceof Error ? calError.message : 'Calibration failed')
     } finally {
       setCalibratingProductId(null)
+    }
+  }
+
+  async function handleSyncEbay(trackedProductId: string) {
+    if (!trackedProductId) return
+    setSyncingEbayProductId(trackedProductId)
+    setError(null)
+    setNotice(null)
+    try {
+      const stats = await syncEbaySoldData(apiKey, trackedProductId)
+      setNotice(`eBay sync complete: Ingested ${stats.observations_ingested} sold items.`)
+      await load()
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : 'eBay sync failed')
+    } finally {
+      setSyncingEbayProductId(null)
     }
   }
 
@@ -1425,6 +1443,23 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                 {benchmarkState?.sample_size && benchmarkState.sample_size > 0
                                   ? 'Recalibrate Price'
                                   : 'Bootstrap Benchmark'}
+                              </Button>
+                            )}
+
+                            {linkedProductId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void handleSyncEbay(linkedProductId)}
+                                disabled={syncingEbayProductId === linkedProductId || scanBlocked}
+                                className="h-8 text-xs w-full mt-1.5 bg-background/50 hover:bg-background"
+                              >
+                                {syncingEbayProductId === linkedProductId ? (
+                                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Store className="mr-1.5 h-3 w-3" />
+                                )}
+                                Sync eBay Sold Data
                               </Button>
                             )}
                           </div>

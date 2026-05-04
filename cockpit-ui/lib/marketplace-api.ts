@@ -501,6 +501,18 @@ export async function calibrateMarketplaceProduct(
   return parseJson<MarketplaceScanJob>(response)
 }
 
+export async function syncEbaySoldData(
+  apiKey: string,
+  trackedProductId: string,
+): Promise<any> {
+  const response = await fetchWithTimeout(`/api/cockpit/marketplace/price-intelligence/tracked-products/${encodeURIComponent(trackedProductId)}/ebay-sync`, {
+    method: 'POST',
+    headers: buildHeaders(apiKey),
+    body: JSON.stringify({}),
+  }, 30_000)
+  return parseJson<any>(response)
+}
+
 export async function listMarketplaceMatches(
   apiKey: string,
   filters?: { missionId?: string; status?: string; decisionBand?: string },

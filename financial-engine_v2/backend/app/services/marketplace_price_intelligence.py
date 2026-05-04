@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import sqlite3
 import uuid
@@ -11,6 +12,7 @@ from statistics import median
 from typing import Any
 from urllib.parse import urlparse
 
+from app.services.commentary_decay import compute_recency_decay
 from cockpit.storage.state import StateStore
 
 
@@ -166,6 +168,25 @@ def _percentile(sorted_values: list[float], pct: float) -> float | None:
     upper = min(lower + 1, len(sorted_values) - 1)
     weight = rank - lower
     return float(sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight)
+
+
+def _weighted_percentile(data: list[tuple[float, float]], pct: float) -> float | None:
+    """Compute weighted percentile from a list of (value, weight) pairs."""
+    if not data:
+        return None
+    # data is list of (value, weight)
+    sorted_data = sorted(data, key=lambda x: x[0])
+    total_weight = sum(w for v, w in sorted_data)
+    if total_weight <= 0:
+        return float(sorted_data[0][0])
+
+    target_weight = total_weight * pct
+    current_weight = 0.0
+    for value, weight in sorted_data:
+        current_weight += weight
+        if current_weight >= target_weight:
+            return float(value)
+    return float(sorted_data[-1][0])
 
 
 def detect_listing_junk(
@@ -393,6 +414,7 @@ class MarketplacePriceIntelligenceService:
                     seller_type TEXT,
                     condition_label TEXT,
                     match_confidence REAL,
+                    is_transactional INTEGER DEFAULT 0,
                     capture_mode TEXT NOT NULL DEFAULT 'manual',
                     provenance_json TEXT NOT NULL DEFAULT '{}',
                     review_state TEXT NOT NULL DEFAULT 'pending_review',
@@ -622,6 +644,7 @@ class MarketplacePriceIntelligenceService:
             raise ValueError(f"unsupported review_state: {review_state}")
         observation_id = _new_id("obs_")
         created_at = _now_iso()
+        is_transactional = 1 if payload.get("is_transactional") else 0
         with self._lock:
             self._conn.execute(
                 """
@@ -629,10 +652,10 @@ class MarketplacePriceIntelligenceService:
                     observation_id, tracked_product_id, source, observed_at,
                     source_listing_id, listing_fingerprint, title, price, currency,
                     url, location, seller_type, condition_label, match_confidence,
-                    capture_mode, provenance_json, review_state, review_reason,
-                    junk_flags_json, created_at
+                    is_transactional, capture_mode, provenance_json, review_state, 
+                    review_reason, junk_flags_json, created_at
                 )
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     observation_id,
@@ -649,6 +672,7 @@ class MarketplacePriceIntelligenceService:
                     _clean(payload.get("seller_type")) or None,
                     _clean(payload.get("condition_label")) or None,
                     payload.get("match_confidence"),
+                    is_transactional,
                     capture_mode,
                     _json_dumps(payload.get("provenance") or {}),
                     review_state,
@@ -787,21 +811,39 @@ class MarketplacePriceIntelligenceService:
         observations = [self._observation_from_row(row) for row in rows]
         generated_at_dt = _now()
         generated_at = generated_at_dt.replace(microsecond=0).isoformat()
+
+        # Calculate weights for all observations
+        weighted_obs_data = []
+        for obs in observations:
+            # weight = exp(-0.05 * days_since_observed) -> half_life_days = 1/0.05 = 20
+            decay_weight = compute_recency_decay(
+                published_at=obs["observed_at"],
+                half_life_days=20,
+                now=generated_at_dt,
+            )
+            # Transactional data (sold) is weighted more heavily than asking prices
+            multiplier = 2.0 if obs.get("is_transactional") else 1.0
+            weight = decay_weight * multiplier
+            weighted_obs_data.append({"obs": obs, "weight": weight})
+
         source_counts: dict[str, int] = {}
         for obs in observations:
             source_counts[obs["source"]] = source_counts.get(obs["source"], 0) + 1
+
         rollups: dict[str, dict[str, Any]] = {}
         for days in (7, 30, 90):
             cutoff = generated_at_dt - timedelta(days=days)
-            prices = [
-                float(obs["price"])
-                for obs in observations
-                if _parse_observed_at(obs["observed_at"]) >= cutoff
+            pairs = [
+                (float(item["obs"]["price"]), item["weight"])
+                for item in weighted_obs_data
+                if _parse_observed_at(item["obs"]["observed_at"]) >= cutoff
             ]
-            rollups[f"{days}d"] = self._build_rollup(prices).as_dict()
+            rollups[f"{days}d"] = self._build_rollup(pairs).as_dict()
 
-        all_prices = sorted(float(obs["price"]) for obs in observations)
-        total = len(all_prices)
+        all_price_weight_pairs = [
+            (float(item["obs"]["price"]), item["weight"]) for item in weighted_obs_data
+        ]
+        total = len(weighted_obs_data)
         latest_seen = (
             max(_parse_observed_at(obs["observed_at"]) for obs in observations)
             if observations
@@ -814,22 +856,25 @@ class MarketplacePriceIntelligenceService:
             confidence = "no_data"
             warnings.append("No accepted or pending observations are available.")
         else:
-            age_days = (generated_at_dt - latest_seen).total_seconds() / 86400 if latest_seen else 999
+            age_days_val = (
+                (generated_at_dt - latest_seen).total_seconds() / 86400 if latest_seen else 999
+            )
             if total < 3:
                 freshness_status = "low_data"
                 confidence = "low"
                 warnings.append("Fewer than three samples; benchmark is provisional.")
-            elif age_days > 30:
+            elif age_days_val > 30:
                 freshness_status = "stale"
                 confidence = "low"
                 warnings.append("Newest observation is older than 30 days.")
-            elif age_days <= 7:
+            elif age_days_val <= 7:
                 freshness_status = "fresh"
                 confidence = "high" if total >= 12 else "medium" if total >= 5 else "low"
             else:
                 freshness_status = "aging"
                 confidence = "medium" if total >= 5 else "low"
             notes.append("Asking-price benchmark; not mission-linked and not fair-value advice.")
+
         snapshot = {
             "snapshot_id": _new_id("bench_"),
             "tracked_product_id": tracked_product_id,
@@ -837,9 +882,9 @@ class MarketplacePriceIntelligenceService:
             "total_sample_size": total,
             "source_sample_sizes": source_counts,
             "rollups": rollups,
-            "fair_range_low": _percentile(all_prices, 0.25),
-            "fair_range_high": _percentile(all_prices, 0.75),
-            "used_median": float(median(all_prices)) if all_prices else None,
+            "fair_range_low": _weighted_percentile(all_price_weight_pairs, 0.25),
+            "fair_range_high": _weighted_percentile(all_price_weight_pairs, 0.75),
+            "used_median": _weighted_percentile(all_price_weight_pairs, 0.5),
             "retail_anchor": retail_anchor or {},
             "freshness_status": freshness_status,
             "confidence_label": confidence,
@@ -1478,13 +1523,12 @@ class MarketplacePriceIntelligenceService:
             ),
         )
 
-    def _build_rollup(self, prices: list[float]) -> BenchmarkRollup:
-        sorted_prices = sorted(prices)
+    def _build_rollup(self, price_weight_pairs: list[tuple[float, float]]) -> BenchmarkRollup:
         return BenchmarkRollup(
-            sample_size=len(sorted_prices),
-            median_price=float(median(sorted_prices)) if sorted_prices else None,
-            fair_range_low=_percentile(sorted_prices, 0.25),
-            fair_range_high=_percentile(sorted_prices, 0.75),
+            sample_size=len(price_weight_pairs),
+            median_price=_weighted_percentile(price_weight_pairs, 0.5),
+            fair_range_low=_weighted_percentile(price_weight_pairs, 0.25),
+            fair_range_high=_weighted_percentile(price_weight_pairs, 0.75),
         )
 
     def _product_from_row(self, row: sqlite3.Row) -> dict[str, Any]:
@@ -1519,6 +1563,7 @@ class MarketplacePriceIntelligenceService:
             "seller_type": row["seller_type"],
             "condition_label": row["condition_label"],
             "match_confidence": row["match_confidence"],
+            "is_transactional": bool(row["is_transactional"]),
             "capture_mode": row["capture_mode"],
             "provenance": _json_loads(row["provenance_json"], {}),
             "review_state": row["review_state"],

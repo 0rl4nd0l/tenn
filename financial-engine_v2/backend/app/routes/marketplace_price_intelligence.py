@@ -14,6 +14,7 @@ from app.services.marketplace_price_intelligence import (
     detect_listing_junk,
     normalize_product_text,
 )
+from app.services.ebay_sold_scanner import EbaySoldScanner
 from cockpit.storage.state import StateStore
 
 
@@ -49,10 +50,15 @@ class PriceObservationCreateRequest(BaseModel):
     seller_type: str | None = None
     condition_label: str | None = None
     match_confidence: float | None = None
+    is_transactional: bool = False
     capture_mode: str = "manual"
     provenance: dict[str, Any] = Field(default_factory=dict)
     review_state: str | None = None
     review_reason: str | None = None
+
+
+class EbaySyncRequest(BaseModel):
+    query: str | None = None
 
 
 class BenchmarkSnapshotRequest(BaseModel):
@@ -178,6 +184,30 @@ async def rebuild_benchmark_snapshot(
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/tracked-products/{tracked_product_id}/ebay-sync")
+async def sync_ebay_sold_data(
+    tracked_product_id: str,
+    payload: EbaySyncRequest | None = None,
+):
+    service = _service()
+    product = await asyncio.to_thread(service.get_tracked_product, tracked_product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="tracked product not found")
+    
+    query = (payload.query if payload and payload.query else product["canonical_key"])
+    scanner = EbaySoldScanner(service)
+    
+    # Running synchronously in a thread for now as per project preference for simple routes
+    try:
+        stats = await scanner.scrape_sold_items(tracked_product_id, query)
+        return stats
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"eBay sold sync failed: {str(exc)}",
+        ) from exc
 
 
 @router.get("/tracked-products/{tracked_product_id}/benchmark-snapshots")

@@ -2296,7 +2296,7 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                             default_title="Watchlist alerts",
                             kind="context",
                         )
-                elif tool_name == "tv_screener":
+                elif tool_name in ("tv_screener", "screen_tickers"):
                     market = str(result.get("market") or "").strip().upper()
                     screener_results = (
                         result.get("results") if isinstance(result.get("results"), list) else []
@@ -2320,10 +2320,10 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                     f"{symbol or 'Market mover'}"
                                     f"{f' ({market})' if market else ''}"
                                 ),
-                                "source_id": f"tv_screener:{market}:{symbol or index}",
+                                "source_id": f"{tool_name}:{market}:{symbol or index}",
                                 "snippet": _summarize_scalar_fields(row, max_items=5),
                             },
-                            default_title="TradingView screener",
+                            default_title="Market screener" if tool_name == "screen_tickers" else "TradingView screener",
                             kind="context",
                         )
                     if not screener_results:
@@ -2449,13 +2449,19 @@ _ROUTING_PREFIX_RE = re.compile(r"^\s*/(?:advisor|cloud|local|ops)\b", re.IGNORE
 _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
     {
         "watch_youtube_channel",
+        "score_ticker",
+        "scan_watchlist",
+        "check_decision_outcome",
+        "review_open_decisions",
     }
 )
-_OPERATIONAL_WATCH_TOOL_RESPONSE_RE = re.compile(
+_OPERATIONAL_TOOL_RESPONSE_RE = re.compile(
     r"\b(?:add(?:ed)?|already|watch(?:ed|ing)?|monitor(?:ed|ing)?|subscrib(?:ed|e)|"
-    r"could not|failed|unable)\b.*\b(?:youtube|channel|watch list)\b|"
-    r"\b(?:youtube|channel|watch list)\b.*\b(?:add(?:ed)?|already|watch(?:ed|ing)?|"
-    r"monitor(?:ed|ing)?|subscrib(?:ed|e)|could not|failed|unable)\b",
+    r"could not|failed|unable|ingest(?:ed|ing)?|scan(?:ned|ning)?|score(?:d|ing)?|"
+    r"check(?:ed|ing)?|review(?:ed|ing)?)\b.*\b(?:youtube|channel|watch list|watchlist|video|ticker|outcome|decision)\b|"
+    r"\b(?:youtube|channel|watch list|watchlist|video|ticker|outcome|decision)\b.*\b(?:add(?:ed)?|already|watch(?:ed|ing)?|"
+    r"monitor(?:ed|ing)?|subscrib(?:ed|e)|could not|failed|unable|ingest(?:ed|ing)?|scan(?:ned|ning)?|score(?:d|ing)?|"
+    r"check(?:ed|ing)?|review(?:ed|ing)?)\b",
     re.IGNORECASE,
 )
 
@@ -2501,7 +2507,7 @@ def _has_operational_tool_evidence(response: Any) -> bool:
 def _is_operational_tool_acknowledgement(response: Any, text: str) -> bool:
     if not _has_operational_tool_evidence(response):
         return False
-    if not _OPERATIONAL_WATCH_TOOL_RESPONSE_RE.search(text):
+    if not _OPERATIONAL_TOOL_RESPONSE_RE.search(text):
         return False
     if _CONTAINS_FINANCIAL_CLAIM_RE.search(text):
         return False
@@ -4409,6 +4415,10 @@ class MarketplaceScanRequest(BaseModel):
     mission_id: str | None = None
 
 
+class MarketplaceCalibrationRequest(BaseModel):
+    tracked_product_id: str
+
+
 class MarketplaceScanJobListResponse(BaseModel):
     items: list[CockpitActionJobStatusResponse] = Field(default_factory=list)
 
@@ -5318,6 +5328,157 @@ def _run_marketplace_scan_job(
                 _best_effort_tracker_call("fail_job", job_id, str(exc))
         finally:
             _forget_queued_action_job(job_id)
+
+
+def _run_marketplace_calibration_job(
+    service: CockpitService,
+    *,
+    tracked_product_id: str,
+    job_id: str,
+    stdout_path: Path,
+    stderr_path: Path,
+    tracker: Any | None,
+    stop_event: threading.Event,
+) -> None:
+    from app.services.marketplace_scanner import MarketplaceScanner
+
+    mission_service = _marketplace_mission_service(service)
+    price_service = _marketplace_price_intelligence_service(service)
+
+    service.state_store.update_job_status(
+        job_id,
+        status="running",
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        progress_stage="Starting calibration",
+        progress_pct=0.0,
+    )
+    if tracker is not None:
+        _best_effort_tracker_call("start_job", job_id)
+        _best_effort_tracker_call(
+            "change_phase", job_id, "marketplace_calibration", message="Started calibration"
+        )
+
+    with stdout_path.open("a", encoding="utf-8") as stdout_handle, stderr_path.open(
+        "a", encoding="utf-8"
+    ) as stderr_handle:
+        scanner = MarketplaceScanner(mission_service, price_service=price_service)
+
+        def progress(stage: str, pct: float | None) -> None:
+            service.state_store.update_job_progress(job_id, stage, pct)
+            if tracker is not None:
+                _best_effort_tracker_call("change_phase", job_id, stage, message=stage)
+                if pct is not None:
+                    bounded = max(0, min(100, int(pct)))
+                    _best_effort_tracker_call("record_progress", job_id, current=bounded, total=100, message=stage)
+
+        def log(message: str) -> None:
+            _write_marketplace_job_line(stdout_handle, message)
+
+        try:
+            result = scanner.calibrate_product_price_sync(
+                tracked_product_id=tracked_product_id,
+                progress=progress,
+                log=log,
+                cancel_requested=stop_event.is_set,
+            )
+            _write_marketplace_job_line(stdout_handle, json.dumps(result, indent=2))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            service.state_store.update_job_status(
+                job_id,
+                status="success",
+                exit_code=0,
+                ended_at=ended_at,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("complete_job", job_id, f"Calibrated product price (ingested {result['observations_ingested']} observations)")
+        except Exception as exc:
+            _write_marketplace_job_line(stderr_handle, str(exc))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            service.state_store.update_job_status(
+                job_id,
+                status="failed",
+                exit_code=1,
+                ended_at=ended_at,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("fail_job", job_id, str(exc))
+        finally:
+            _forget_queued_action_job(job_id)
+
+
+def _launch_marketplace_calibration_job(
+    service: CockpitService,
+    *,
+    tracked_product_id: str,
+) -> dict[str, Any]:
+    tracker = _get_backend_job_tracker()
+    job_id = uuid.uuid4().hex
+    logs_dir = Path(service.artifact_store.logs_dir)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = logs_dir / f"{job_id}.out.log"
+    stderr_path = logs_dir / f"{job_id}.err.log"
+    started_at = datetime.now(timezone.utc).isoformat()
+    title = f"Benchmark Calibration: {tracked_product_id}"
+
+    if tracker is not None:
+        _best_effort_tracker_call(
+            "create_job",
+            job_id=job_id,
+            job_type="marketplace_calibration",
+            job_family="marketplace",
+            title=title,
+            trigger_source="cockpit",
+            entity_scope=tracked_product_id,
+            metadata={"tracked_product_id": tracked_product_id},
+        )
+        _best_effort_tracker_call("add_artifact", job_id, artifact_type="log", artifact_label="stdout log", artifact_path=str(stdout_path))
+        _best_effort_tracker_call("add_artifact", job_id, artifact_type="log", artifact_label="stderr log", artifact_path=str(stderr_path))
+
+    _persist_action_job_row(
+        service,
+        job_id=job_id,
+        action_id="marketplace_calibration",
+        args={"tracked_product_id": tracked_product_id},
+        started_at=started_at,
+        status="queued",
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        progress_stage="Queued",
+        progress_pct=0.0,
+    )
+    runtime = QueuedActionJobRuntime(
+        job_id=job_id,
+        action_id="marketplace_calibration",
+        started_at=started_at,
+    )
+    _register_queued_action_job(runtime)
+
+    worker = threading.Thread(
+        target=_run_marketplace_calibration_job,
+        kwargs={
+            "service": service,
+            "tracked_product_id": tracked_product_id,
+            "job_id": job_id,
+            "stdout_path": stdout_path,
+            "stderr_path": stderr_path,
+            "tracker": tracker,
+            "stop_event": runtime.stop_event,
+        },
+        daemon=True,
+        name=f"marketplace-calibrate-{job_id[:8]}",
+    )
+    worker.start()
+
+    return {
+        "ok": True,
+        "action_id": "marketplace_calibration",
+        "result": f"Queued benchmark calibration for {tracked_product_id}",
+        "exit_code": 0,
+        "job_id": job_id,
+        "status": "queued",
+        "queued": True,
+    }
 
 
 def _launch_marketplace_scan_job(
@@ -7141,6 +7302,48 @@ async def cockpit_refresh_marketplace_benchmarks():
             detail=f"Marketplace benchmark refresh failed: {str(exc)}",
         ) from exc
     return {"ok": True, **summary}
+
+
+@router.post(
+    "/marketplace/price-intelligence/calibrate",
+    response_model=CockpitActionExecuteResponse,
+)
+async def cockpit_calibrate_marketplace_product(payload: MarketplaceCalibrationRequest):
+    try:
+        service = CockpitService.get_instance()
+        price_service = _marketplace_price_intelligence_service(service)
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for calibration")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Service initialization failed: {str(exc)}",
+        ) from exc
+
+    tracked_product_id = str(payload.tracked_product_id or "").strip()
+    if not tracked_product_id:
+        raise HTTPException(status_code=400, detail="tracked_product_id is required")
+
+    product = await asyncio.to_thread(price_service.get_tracked_product, tracked_product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail=f"Tracked product not found: {tracked_product_id}")
+
+    health = await asyncio.to_thread(check_marketplace_browser_health)
+    if not marketplace_scan_health_allows_execution(health):
+        raise HTTPException(status_code=503, detail=str(health.get("detail") or health.get("status")))
+
+    try:
+        queued = await asyncio.to_thread(
+            _launch_marketplace_calibration_job,
+            service,
+            tracked_product_id=tracked_product_id,
+        )
+    except Exception as exc:
+        logger.exception("Marketplace calibration launch failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace calibration launch failed: {str(exc)}",
+        ) from exc
+    return CockpitActionExecuteResponse(**queued)
 
 
 @router.patch(

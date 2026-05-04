@@ -4,6 +4,7 @@ import asyncio
 import random
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import quote_plus, urlencode
@@ -45,6 +46,10 @@ from app.services.marketplace_search_builder import (
     build_marketplace_search_pack,
     flatten_marketplace_queries,
 )
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 FACEBOOK_MARKETPLACE_ITEM_RE = re.compile(
@@ -313,6 +318,147 @@ class MarketplaceScanner:
                 cancel_requested=cancel_requested,
             )
         )
+
+    def calibrate_product_price_sync(
+        self,
+        *,
+        tracked_product_id: str,
+        progress: Callable[[str, float | None], None] | None = None,
+        log: Callable[[str], None] | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> dict[str, Any]:
+        return asyncio.run(
+            self.calibrate_product_price(
+                tracked_product_id=tracked_product_id,
+                progress=progress,
+                log=log,
+                cancel_requested=cancel_requested,
+            )
+        )
+
+    async def calibrate_product_price(
+        self,
+        *,
+        tracked_product_id: str,
+        progress: Callable[[str, float | None], None] | None = None,
+        log: Callable[[str], None] | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> dict[str, Any]:
+        self._raise_if_cancelled(cancel_requested)
+        price_service = self._price_service()
+        product = price_service.get_tracked_product(tracked_product_id)
+        if product is None:
+            raise ValueError(f"tracked_product_id not found: {tracked_product_id}")
+
+        query = product["canonical_key"]
+        health = check_marketplace_browser_health(
+            cdp_url=self.cdp_url,
+            timeout_ms=self.timeout_ms,
+        )
+        if not marketplace_scan_health_allows_execution(health):
+            raise RuntimeError(str(health.get("detail") or health.get("status") or "marketplace browser is not ready"))
+
+        if log:
+            log(f"Starting calibration for: {product['canonical_key']} ({tracked_product_id})")
+
+        stats = {
+            "tracked_product_id": tracked_product_id,
+            "canonical_key": query,
+            "listings_seen": 0,
+            "observations_ingested": 0,
+            "benchmark_rebuilt": False,
+        }
+
+        async def perform_calibration(context: Any):
+            if progress:
+                progress(f"Searching for {query}", 10.0)
+            
+            page = await context.new_page()
+            try:
+                page.set_default_timeout(self.timeout_ms)
+                # Use Australia-wide city anchors for better coverage if needed, 
+                # but for calibration a single large city like Melbourne is usually enough for bootstrapping.
+                search_url = build_marketplace_search_url(query, location_name="Melbourne, Australia")
+                await page.goto(search_url, wait_until="domcontentloaded")
+                await page.wait_for_timeout(2_000)
+                
+                cards = await self._collect_cards_for_query(
+                    page=page,
+                    query=query,
+                    card_target=25,
+                    seen_listing_ids=set(),
+                    log=log,
+                    cancel_requested=cancel_requested,
+                )
+            finally:
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+
+            stats["listings_seen"] = len(cards)
+            if log:
+                log(f"  collected {len(cards)} listings for calibration")
+
+            for card in cards:
+                self._raise_if_cancelled(cancel_requested)
+                
+                # Basic card-level match check
+                confidence = price_service.variant_match_confidence(
+                    match={
+                        "title": card.get("title"),
+                        "raw_text_snapshot": " ".join(card.get("text_fragments") or []),
+                        "price": card.get("price"),
+                    },
+                    tracked_product=product,
+                )
+                
+                if confidence >= VALUE_RESALE_MIN_VARIANT_CONFIDENCE:
+                    try:
+                        observation = price_service.ingest_observation_if_new_or_changed({
+                            "tracked_product_id": tracked_product_id,
+                            "source": "facebook_calibration",
+                            "observed_at": _now_iso(),
+                            "source_listing_id": extract_marketplace_listing_id(card["listing_url"]),
+                            "title": card["title"],
+                            "price": parse_marketplace_price(card["price"]) or 0,
+                            "url": card["listing_url"],
+                            "location": card.get("location"),
+                            "match_confidence": confidence,
+                            "capture_mode": "scanner",
+                            "provenance": {"query": query, "calibration": True},
+                            "review_state": "pending_review"
+                        })
+                        if observation.get("created"):
+                            stats["observations_ingested"] += 1
+                    except Exception as exc:
+                        if log:
+                            log(f"    failed to ingest calibration observation: {exc}")
+
+            if stats["observations_ingested"] > 0:
+                if progress:
+                    progress("Rebuilding benchmark", 90.0)
+                price_service.rebuild_benchmark_snapshot(tracked_product_id)
+                stats["benchmark_rebuilt"] = True
+            
+            if progress:
+                progress("Calibration complete", 100.0)
+
+        if use_direct_marketplace_runtime():
+            async with open_direct_marketplace_context() as (context, _browser_family, _profile_path):
+                await perform_calibration(context)
+        else:
+            from playwright.async_api import async_playwright
+            async with async_playwright() as playwright:
+                browser = await _await_marketplace_probe(
+                    playwright.chromium.connect_over_cdp(self.cdp_url),
+                    stage="CDP attach",
+                    timeout_seconds=_probe_timeout_seconds(self.timeout_ms),
+                )
+                context = browser.contexts[0] if browser.contexts else await browser.new_context()
+                await perform_calibration(context)
+
+        return stats
 
     async def _run_async(
         self,

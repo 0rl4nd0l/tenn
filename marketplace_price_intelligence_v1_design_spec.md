@@ -17,17 +17,19 @@ This must be implemented as a **bounded extension of the existing Marketplace be
 
 ## 2. Locked decisions
 
-These decisions are now fixed for v1:
+These decisions are now fixed for v1.1:
 
 - Primary product scope: **PC parts generally**, starting with the easiest high-signal categories.
 - A mission may search broadly, but **value scoring is anchored to one primary tracked product per mission**.
 - **Tracked products can exist standalone** without a mission.
-- Asking prices are acceptable for v1.
-- **Facebook Marketplace** is the primary used-market source.
+- **Transactional prices (eBay Sold)** are prioritized over asking prices.
+- **Facebook Marketplace** is the primary used-market source for asking prices.
+- **eBay** is the primary source for transactional (Sold) data.
 - **Centre Com** is the first retail anchor source.
 - **Gumtree** should be designed for now, but can be deferred from initial implementation if needed.
 - Australia-wide coverage is desired, but should start bounded and scale through resumable background collection.
 - Value scoring is **additive only** in v1. It must not replace or rewrite existing mission relevance scoring.
+- Benchmarks use **Time-Decayed Weighting** (exponential decay) to ensure market responsiveness.
 - A small amount of manual review is acceptable and should be used for ambiguous observations.
 - Frontend work must target the **Next.js Cockpit web UI**, not the local TUI.
 
@@ -36,10 +38,11 @@ These decisions are now fixed for v1:
 ### 3.1 Functional goals
 
 - Allow users to create and manage **tracked products**.
-- Automatically bootstrap benchmark data for a tracked product.
+- Automatically bootstrap benchmark data for a tracked product via **Active Calibration**.
 - Continuously collect and store **dated price observations**.
+- Distinguish between **asking prices** and **transactional (Sold) prices**.
 - Preserve **listing-level price movement history** where the same listing is seen multiple times.
-- Build benchmark snapshots (fair range, medians, freshness, confidence).
+- Build **Weighted Benchmark snapshots** (fair range, medians, freshness, confidence) using time-decay.
 - Allow Marketplace missions to link to one primary tracked product.
 - Show each mission match with:
   - existing match/relevance score,
@@ -55,6 +58,7 @@ These decisions are now fixed for v1:
 - Let a user either:
   - track a product continuously, or
   - create a mission and get value scoring automatically.
+- Ensure "Fair Price" reflects actual transaction history (eBay Sold) rather than just seller optimism.
 - Keep the system explainable and reviewable.
 
 ### 3.3 System goals
@@ -67,7 +71,6 @@ These decisions are now fixed for v1:
 
 These are explicitly out of scope for v1:
 
-- Predicting final sold prices.
 - Replacing current mission scoring/ranking with value scoring.
 - Multi-product benchmark pooling within one mission.
 - Automatic bargain-buy recommendations without confidence/freshness gating.
@@ -333,6 +336,7 @@ Suggested fields:
 - `seller_type`
 - `condition_label`
 - `product_match_confidence`
+- `is_transactional` (binary flag for sold data)
 - `capture_mode`
 - `provenance_json`
 - `included_in_rollup`
