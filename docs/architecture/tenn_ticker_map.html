@@ -1,0 +1,2167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tenn Ticker Map</title>
+    <style>
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #13131a;
+        --bg-tertiary: #1a1a24;
+        --bg-card: #1f1f2e;
+        --border: #2a2a3a;
+        --text-primary: #e4e4e7;
+        --text-secondary: #a1a1aa;
+        --accent: #6366f1;
+        --accent-2: #22c55e;
+        --accent-3: #38bdf8;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        color: var(--text-primary);
+        background:
+          radial-gradient(circle at 14% 0%, rgba(99, 102, 241, 0.22), transparent 28%),
+          radial-gradient(circle at 84% 0%, rgba(34, 197, 94, 0.12), transparent 24%),
+          var(--bg-primary);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        max-width: 1540px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .nav a {
+        text-decoration: none;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 12px;
+        transition: all 0.18s;
+      }
+
+      .nav a:hover,
+      .nav a.active {
+        color: var(--text-primary);
+        border-color: var(--accent-3);
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 38px;
+        line-height: 1.05;
+      }
+
+      .lede {
+        max-width: 1040px;
+        margin-bottom: 22px;
+        color: var(--text-secondary);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .panel {
+        background: linear-gradient(180deg, rgba(31, 31, 46, 0.94), rgba(19, 19, 26, 0.98));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 20px;
+      }
+
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      .panel p,
+      .panel li,
+      .panel label,
+      .panel span {
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-size: 14px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.7fr 0.9fr auto;
+        gap: 12px;
+        align-items: end;
+        margin-top: 14px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .field label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .field input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-primary);
+        padding: 12px 14px;
+        font: inherit;
+      }
+
+      .load-btn,
+      .quick-btn {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.12));
+        color: var(--text-primary);
+        padding: 12px 14px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.18s, border-color 0.18s;
+      }
+
+      .action-btn {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(99, 102, 241, 0.12);
+        color: var(--text-primary);
+        padding: 8px 10px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.18s, border-color 0.18s, background 0.18s;
+      }
+
+      .action-btn:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent-3);
+      }
+
+      .action-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: none;
+      }
+
+      .item-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .item-note {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .load-btn:hover,
+      .quick-btn:hover,
+      .surface-node:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent-3);
+      }
+
+      .quick-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .quick-btn {
+        padding: 9px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 13px;
+      }
+
+      .hint {
+        margin-top: 12px;
+        padding: 12px 14px;
+        border: 1px dashed var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .status-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        align-self: flex-start;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .status-pill.ok {
+        border-color: rgba(34, 197, 94, 0.3);
+        color: var(--accent-2);
+      }
+
+      .status-pill.error {
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+      }
+
+      .status-pill.loading {
+        border-color: rgba(56, 189, 248, 0.3);
+        color: var(--accent-3);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .summary-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(31, 31, 46, 0.9), rgba(19, 19, 26, 0.96));
+        padding: 16px;
+      }
+
+      .summary-card strong {
+        display: block;
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
+
+      .summary-value {
+        font-size: 28px;
+        line-height: 1.05;
+        font-weight: 700;
+      }
+
+      .summary-meta {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .issues {
+        display: none;
+        margin-bottom: 18px;
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        border-radius: 16px;
+        background: rgba(245, 158, 11, 0.08);
+        padding: 16px 18px;
+      }
+
+      .issues.show {
+        display: block;
+      }
+
+      .issues h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        color: #fbbf24;
+      }
+
+      .issues ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text-secondary);
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 16px;
+      }
+
+      .map-card,
+      .detail-card {
+        background: linear-gradient(180deg, rgba(31, 31, 46, 0.94), rgba(19, 19, 26, 0.98));
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 20px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .section-head p {
+        margin: 6px 0 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .map-shell {
+        position: relative;
+        min-height: 760px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at center, rgba(99, 102, 241, 0.12), transparent 28%),
+          rgba(9, 9, 16, 0.9);
+        overflow: hidden;
+      }
+
+      .map-lines {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0.95;
+      }
+
+      .map-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: repeat(3, minmax(170px, 1fr));
+        gap: 18px;
+        min-height: 760px;
+        padding: 18px;
+      }
+
+      .surface-node,
+      .ticker-core {
+        width: 100%;
+        height: 100%;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(31, 31, 46, 0.98), rgba(19, 19, 26, 0.98));
+        padding: 16px;
+      }
+
+      .surface-node {
+        text-align: left;
+        cursor: pointer;
+        color: var(--text-primary);
+        transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+      }
+
+      .surface-node.active {
+        border-color: var(--accent-3);
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.14), 0 22px 46px rgba(0, 0, 0, 0.3);
+      }
+
+      .surface-kicker {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 9px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 12px;
+      }
+
+      .surface-node strong,
+      .ticker-core strong {
+        display: block;
+        font-size: 18px;
+        line-height: 1.2;
+        margin-bottom: 10px;
+      }
+
+      .surface-count {
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .surface-subline,
+      .ticker-core .core-meta,
+      .ticker-core .core-subtext {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .surface-tags,
+      .core-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .surface-tag,
+      .core-tag {
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        padding: 5px 8px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .ticker-core {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        border-width: 2px;
+        border-color: rgba(99, 102, 241, 0.38);
+        background:
+          radial-gradient(circle at center, rgba(99, 102, 241, 0.22), transparent 55%),
+          linear-gradient(180deg, rgba(31, 31, 46, 1), rgba(19, 19, 26, 1));
+      }
+
+      .ticker-symbol {
+        font-size: 44px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        margin-bottom: 10px;
+      }
+
+      .detail-card {
+        min-height: 760px;
+      }
+
+      .detail-meta {
+        margin-top: 6px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .detail-content {
+        margin-top: 18px;
+      }
+
+      .detail-block {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.025);
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+
+      .detail-block h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .metric-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 12px;
+      }
+
+      .metric-card strong {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
+
+      .metric-card span {
+        display: block;
+        font-size: 17px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .item {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 12px 14px;
+      }
+
+      .item-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .item-title {
+        font-weight: 600;
+        line-height: 1.45;
+      }
+
+      .item-title a {
+        text-decoration: none;
+        color: var(--text-primary);
+      }
+
+      .item-title a:hover {
+        color: var(--accent-3);
+      }
+
+      .item-date {
+        white-space: nowrap;
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .item-meta {
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .excerpt,
+      .empty-state {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .tag-chip {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        padding: 5px 9px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .sparkline-wrap {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 12px;
+        margin-top: 12px;
+      }
+
+      .sparkline-wrap svg {
+        width: 100%;
+        height: 110px;
+        display: block;
+      }
+
+      .sparkline-axis {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 10px;
+        color: var(--text-secondary);
+        font-size: 11px;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      .table th,
+      .table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .table th {
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 10px;
+      }
+
+      .table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 1280px) {
+        .summary-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .detail-card,
+        .map-shell,
+        .map-grid {
+          min-height: auto;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .controls,
+        .field-grid,
+        .summary-grid,
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .map-grid {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto;
+        }
+
+        .map-lines {
+          display: none;
+        }
+
+        .surface-node,
+        .ticker-core {
+          min-height: 150px;
+        }
+
+        .ticker-symbol {
+          font-size: 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="eyebrow">Ticker-Aware Company Map</div>
+        <div class="nav">
+          <a href="/docs/architecture/tenn_diagrams.html">Diagram Hub</a>
+          <a href="/docs/tenn-system-map.html">Runtime Topology</a>
+          <a href="/docs/architecture/tenn_system_map_frontend.html">Authority Flow</a>
+          <a class="active" href="/docs/architecture/tenn_ticker_map.html">Ticker Map</a>
+        </div>
+      </div>
+
+      <h1>Tenn Ticker Map</h1>
+      <div class="lede">
+        This view renders one company as an actual data map, not just a generic architecture
+        sketch. It reads the backend-authoritative <code>/api/context/company_dump</code> bundle
+        and shows the live surfaces connected to a ticker: financial rows, filings, risk notes,
+        price context, extraction failures, and memory layers.
+      </div>
+
+      <div class="controls">
+        <section class="panel">
+          <h2>Load a company bundle</h2>
+          <p>
+            The page stays inside the client layer. It does not talk to Postgres, Qdrant, or
+            local files directly. It only reads the existing backend context endpoint.
+          </p>
+          <form id="load-form" class="field-grid">
+            <div class="field">
+              <label for="backend-base">Backend Base URL</label>
+              <input id="backend-base" type="text" value="" />
+            </div>
+            <div class="field">
+              <label for="ticker-input">Ticker</label>
+              <input id="ticker-input" type="text" value="BHP" maxlength="12" />
+            </div>
+            <div class="field">
+              <label for="api-key-input">API Key (optional)</label>
+              <input id="api-key-input" type="password" value="" placeholder="Needed only for rerun actions" />
+            </div>
+            <button class="load-btn" type="submit" id="load-button">Load Map</button>
+          </form>
+          <div class="quick-row">
+            <button class="quick-btn" type="button" data-ticker="BHP">BHP</button>
+            <button class="quick-btn" type="button" data-ticker="RIO">RIO</button>
+            <button class="quick-btn" type="button" data-ticker="TLS">TLS</button>
+            <button class="quick-btn" type="button" data-ticker="CBA">CBA</button>
+          </div>
+          <div class="hint">
+            Recommended server: <code>python scripts/serve_docs_proxy.py --port 8766</code>.
+            That serves the HTML and proxies <code>/api/*</code> through the same origin, so the
+            ticker map works from one forwarded port. If you use
+            <code>python -m http.server</code> instead, browser fetches to a separate backend port
+            can be blocked by cross-origin policy.
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Load status</h2>
+          <div class="status-stack">
+            <div class="status-pill" id="status-pill">Idle</div>
+            <p id="status-copy">
+              Waiting for a ticker. The first load uses the current backend URL and query string
+              values if present.
+            </p>
+            <p>
+              The map is designed for real variation. Some companies will have rich financial
+              coverage, others may only have docs and price history. Empty surfaces stay visible
+              so you can see what is missing, not just what exists.
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <div class="summary-grid" id="summary-grid"></div>
+
+      <section class="issues" id="issues-box">
+        <h2>Backend warnings</h2>
+        <ul id="issues-list"></ul>
+      </section>
+
+      <div class="main-grid">
+        <section class="map-card">
+          <div class="section-head">
+            <div>
+              <h2>Company Data Map</h2>
+              <p>
+                Click any surface node to inspect the actual rows, documents, notes, or failures
+                behind it.
+              </p>
+            </div>
+          </div>
+          <div class="map-shell">
+            <svg class="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="mapLine" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(56,189,248,0.55)" />
+                  <stop offset="100%" stop-color="rgba(99,102,241,0.20)" />
+                </linearGradient>
+              </defs>
+              <line x1="50" y1="50" x2="16.5" y2="16.5" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="50" y2="16.5" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="83.5" y2="16.5" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="16.5" y2="50" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="83.5" y2="50" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="16.5" y2="83.5" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="50" y2="83.5" stroke="url(#mapLine)" stroke-width="0.45" />
+              <line x1="50" y1="50" x2="83.5" y2="83.5" stroke="url(#mapLine)" stroke-width="0.45" />
+            </svg>
+
+            <div class="map-grid">
+              <button class="surface-node" data-surface="financials" style="grid-area: 1 / 1;">
+                <span class="surface-kicker">Structured layer</span>
+                <strong>Financials</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Latest extracted periods and snapshot metrics</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <button class="surface-node" data-surface="docs" style="grid-area: 1 / 2;">
+                <span class="surface-kicker">Written layer</span>
+                <strong>Filings + Docs</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">ASX documents, reports, notices, and related items</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <button class="surface-node" data-surface="price" style="grid-area: 1 / 3;">
+                <span class="surface-kicker">Market layer</span>
+                <strong>Price Context</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Current quote plus one-year price history summary</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <button class="surface-node" data-surface="risk_notes" style="grid-area: 2 / 1;">
+                <span class="surface-kicker">Interpretive layer</span>
+                <strong>Risk Notes</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Extracted risk summaries and guidance changes</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <div class="ticker-core" style="grid-area: 2 / 2;" id="ticker-core"></div>
+
+              <button class="surface-node" data-surface="announcement_context" style="grid-area: 2 / 3;">
+                <span class="surface-kicker">Context layer</span>
+                <strong>Announcements</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Curated announcement excerpts for cockpit context</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <button class="surface-node" data-surface="extraction_failures" style="grid-area: 3 / 1;">
+                <span class="surface-kicker">Verification layer</span>
+                <strong>Extraction Failures</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Failed extraction runs and validation gate problems</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <button class="surface-node" data-surface="company_memory" style="grid-area: 3 / 2;">
+                <span class="surface-kicker">Memory layer</span>
+                <strong>Company Memory</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Ticker-specific notes and change log entries</span>
+                <div class="surface-tags"></div>
+              </button>
+
+              <button class="surface-node" data-surface="market_memory" style="grid-area: 3 / 3;">
+                <span class="surface-kicker">Memory layer</span>
+                <strong>Market Memory</strong>
+                <div class="surface-count">-</div>
+                <span class="surface-subline">Sector, macro, and related market memory items</span>
+                <div class="surface-tags"></div>
+              </button>
+            </div>
+          </div>
+          <div class="footer-note">
+            Source contract: backend authority only. This page visualizes the returned bundle and
+            keeps empty surfaces visible so missing coverage is part of the map.
+          </div>
+        </section>
+
+        <section class="detail-card">
+          <div class="section-head">
+            <div>
+              <h2 id="detail-title">Surface detail</h2>
+              <div class="detail-meta" id="detail-meta">
+                Load a ticker and select a surface node to inspect the underlying data.
+              </div>
+            </div>
+          </div>
+          <div class="detail-content" id="detail-content"></div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const SURFACE_META = {
+        financials: {
+          title: "Structured Financials",
+          description: "Reported financial rows plus the latest extracted snapshot.",
+        },
+        docs: {
+          title: "Filings + Docs",
+          description: "Authoritative ASX and filing documents returned by the backend.",
+        },
+        price: {
+          title: "Price Context",
+          description: "Current price plus one-year history summary and sparkline.",
+        },
+        risk_notes: {
+          title: "Risk Notes",
+          description: "Backend-produced risk summaries and guidance narratives.",
+        },
+        announcement_context: {
+          title: "Announcement Context",
+          description: "Contextual announcement excerpts curated for cockpit workflows.",
+        },
+        extraction_failures: {
+          title: "Extraction Failures",
+          description: "Recent failed runs and validation issues for this ticker.",
+        },
+        company_memory: {
+          title: "Company Memory",
+          description: "Ticker-specific memory entries and change log items.",
+        },
+        market_memory: {
+          title: "Market Memory",
+          description: "Sector, macro, and market memory attached to the ticker.",
+        },
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function safeArray(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function safeNumber(value) {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function formatInteger(value) {
+        const num = safeNumber(value);
+        if (num === null) {
+          return "-";
+        }
+        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num);
+      }
+
+      function formatReportedNumber(value) {
+        const num = safeNumber(value);
+        if (num === null) {
+          return "-";
+        }
+        return new Intl.NumberFormat("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: Math.abs(num) >= 100 ? 0 : 2,
+        }).format(num);
+      }
+
+      function formatPercent(value) {
+        const num = safeNumber(value);
+        if (num === null) {
+          return "-";
+        }
+        return `${num.toFixed(1)}%`;
+      }
+
+      function formatDate(value) {
+        if (!value) {
+          return "-";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return escapeHtml(value);
+        }
+        return date.toLocaleDateString("en-AU", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function formatDateTime(value) {
+        if (!value) {
+          return "-";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return escapeHtml(value);
+        }
+        return date.toLocaleString("en-AU", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function truncate(value, limit = 180) {
+        const text = String(value ?? "").trim();
+        if (!text) {
+          return "";
+        }
+        return text.length > limit ? `${text.slice(0, limit - 1)}...` : text;
+      }
+
+      function extractTextFromObject(row, preferredKeys) {
+        if (!row || typeof row !== "object") {
+          return "";
+        }
+        for (const key of preferredKeys) {
+          const value = row[key];
+          if (typeof value === "string" && value.trim()) {
+            return value.trim();
+          }
+        }
+        for (const value of Object.values(row)) {
+          if (typeof value === "string" && value.trim()) {
+            return value.trim();
+          }
+        }
+        return "";
+      }
+
+      function buildSparkline(points) {
+        const prices = safeArray(points)
+          .map((point) => safeNumber(point?.close))
+          .filter((value) => value !== null);
+
+        if (prices.length < 2) {
+          return "";
+        }
+
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        const range = max - min || 1;
+        const path = prices
+          .map((price, index) => {
+            const x = (index / (prices.length - 1)) * 100;
+            const y = 100 - ((price - min) / range) * 100;
+            return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+          })
+          .join(" ");
+
+        return `
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Price history sparkline">
+            <defs>
+              <linearGradient id="sparkline-fill" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="rgba(56,189,248,0.22)" />
+                <stop offset="100%" stop-color="rgba(56,189,248,0.02)" />
+              </linearGradient>
+            </defs>
+            <path d="${path} L 100 100 L 0 100 Z" fill="url(#sparkline-fill)" stroke="none"></path>
+            <path d="${path}" fill="none" stroke="#38bdf8" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"></path>
+          </svg>
+        `;
+      }
+
+      class TickerMapApp {
+        constructor() {
+          this.abortController = null;
+          this.data = null;
+          this.selectedSurface = "financials";
+          this.activeRerunDocumentId = null;
+
+          this.form = document.getElementById("load-form");
+          this.backendInput = document.getElementById("backend-base");
+          this.tickerInput = document.getElementById("ticker-input");
+          this.apiKeyInput = document.getElementById("api-key-input");
+          this.loadButton = document.getElementById("load-button");
+          this.statusPill = document.getElementById("status-pill");
+          this.statusCopy = document.getElementById("status-copy");
+          this.summaryGrid = document.getElementById("summary-grid");
+          this.issuesBox = document.getElementById("issues-box");
+          this.issuesList = document.getElementById("issues-list");
+          this.tickerCore = document.getElementById("ticker-core");
+          this.detailTitle = document.getElementById("detail-title");
+          this.detailMeta = document.getElementById("detail-meta");
+          this.detailContent = document.getElementById("detail-content");
+          this.surfaceNodes = Array.from(document.querySelectorAll(".surface-node"));
+          this.quickButtons = Array.from(document.querySelectorAll(".quick-btn[data-ticker]"));
+        }
+
+        init() {
+          const params = new URLSearchParams(window.location.search);
+          const storedBackend = window.localStorage.getItem("tennTickerMap.backend");
+          const queryBackend = params.get("backend");
+          const queryTicker = params.get("ticker");
+
+          if (queryBackend) {
+            this.backendInput.value = queryBackend;
+          } else if (storedBackend) {
+            this.backendInput.value = storedBackend;
+          } else if (window.location.origin) {
+            this.backendInput.value = window.location.origin;
+          }
+
+          if (queryTicker) {
+            this.tickerInput.value = queryTicker;
+          }
+
+          this.form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            this.loadTicker(this.tickerInput.value);
+          });
+
+          this.quickButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+              const ticker = button.dataset.ticker || "";
+              this.tickerInput.value = ticker;
+              this.loadTicker(ticker);
+            });
+          });
+
+          this.detailContent.addEventListener("click", (event) => {
+            const target = event.target.closest("[data-rerun-document-id]");
+            if (!(target instanceof HTMLElement)) {
+              return;
+            }
+            const documentId = String(target.dataset.rerunDocumentId || "").trim();
+            if (!documentId || target.hasAttribute("disabled")) {
+              return;
+            }
+            this.rerunFailedDocument(documentId);
+          });
+
+          this.surfaceNodes.forEach((node) => {
+            node.addEventListener("click", () => {
+              this.selectedSurface = node.dataset.surface;
+              this.renderSurfaceSelection();
+              this.renderDetail();
+            });
+          });
+
+          this.loadTicker(this.tickerInput.value || "BHP");
+        }
+
+        getBackendBase() {
+          const raw = (this.backendInput.value || "").trim();
+          return raw.replace(/\/+$/, "");
+        }
+
+        getApiKey() {
+          return String(this.apiKeyInput?.value || "").trim();
+        }
+
+        normalizeTicker(rawTicker) {
+          return String(rawTicker || "")
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9._-]/g, "");
+        }
+
+        setStatus(kind, copy) {
+          this.statusPill.className = `status-pill ${kind}`;
+          this.statusPill.textContent =
+            kind === "loading" ? "Loading" : kind === "error" ? "Load failed" : "Loaded";
+          this.statusCopy.textContent = copy;
+        }
+
+        buildUrl(ticker) {
+          const url = new URL("/api/context/company_dump", this.getBackendBase());
+          url.searchParams.set("ticker", ticker);
+          return url;
+        }
+
+        buildDocumentProcessUrl(documentId) {
+          return new URL(`/api/process/document/${encodeURIComponent(documentId)}`, this.getBackendBase());
+        }
+
+        buildRequestHeaders(withJsonBody = false) {
+          const headers = { Accept: "application/json" };
+          if (withJsonBody) {
+            headers["Content-Type"] = "application/json";
+          }
+          const apiKey = this.getApiKey();
+          if (apiKey) {
+            headers["X-API-Key"] = apiKey;
+          }
+          return headers;
+        }
+
+        pickDefaultSurface(data) {
+          const ordered = [
+            "financials",
+            "docs",
+            "risk_notes",
+            "price",
+            "announcement_context",
+            "extraction_failures",
+            "company_memory",
+            "market_memory",
+          ];
+
+          for (const surface of ordered) {
+            if (this.getSurfaceCount(surface, data) > 0) {
+              return surface;
+            }
+          }
+          return "docs";
+        }
+
+        updateUrl(ticker) {
+          const params = new URLSearchParams(window.location.search);
+          params.set("ticker", ticker);
+          params.set("backend", this.getBackendBase());
+          window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+        }
+
+        async loadTicker(rawTicker, options = {}) {
+          const ticker = this.normalizeTicker(rawTicker);
+          const preferredSurface = String(options.preferredSurface || "").trim();
+          if (!ticker) {
+            this.setStatus("error", "Enter a ticker before loading the map.");
+            return;
+          }
+
+          const backendBase = this.getBackendBase();
+          if (!backendBase) {
+            this.setStatus("error", "Enter a backend base URL before loading the map.");
+            return;
+          }
+
+          if (this.abortController) {
+            this.abortController.abort();
+          }
+
+          this.abortController = new AbortController();
+          this.loadButton.disabled = true;
+          this.loadButton.textContent = "Loading...";
+          this.setStatus(
+            "loading",
+            `Fetching ${ticker} from ${backendBase}. This reads the backend-authoritative company dump only.`
+          );
+
+          try {
+            const response = await fetch(this.buildUrl(ticker), {
+              signal: this.abortController.signal,
+              headers: { Accept: "application/json" },
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            this.data = data;
+            this.selectedSurface =
+              preferredSurface && SURFACE_META[preferredSurface]
+                ? preferredSurface
+                : this.pickDefaultSurface(data);
+            this.tickerInput.value = ticker;
+            window.localStorage.setItem("tennTickerMap.backend", backendBase);
+            this.updateUrl(ticker);
+            this.render();
+
+            const docCount = formatInteger(data?.summary?.doc_count);
+            const finCount = formatInteger(data?.summary?.financial_period_count);
+            this.setStatus(
+              "ok",
+              `Loaded ${ticker}. Docs: ${docCount}. Financial periods: ${finCount}. Click any surface node to inspect the actual backend bundle.`
+            );
+          } catch (error) {
+            if (error.name === "AbortError") {
+              return;
+            }
+            this.data = null;
+            this.renderEmptyState(ticker, error);
+            this.setStatus(
+              "error",
+              `Could not load ${ticker}. Check backend forwarding, CORS, or URL reachability. Browser error: ${error.message}.`
+            );
+          } finally {
+            this.loadButton.disabled = false;
+            this.loadButton.textContent = "Load Map";
+          }
+        }
+
+        async rerunFailedDocument(documentId) {
+          const normalizedDocumentId = String(documentId || "").trim();
+          const ticker = this.normalizeTicker(this.data?.ticker || this.tickerInput.value);
+          if (!normalizedDocumentId || !ticker) {
+            return;
+          }
+
+          this.activeRerunDocumentId = normalizedDocumentId;
+          this.renderDetail();
+          this.setStatus(
+            "loading",
+            `Re-running extraction for ${ticker} document ${normalizedDocumentId.slice(0, 12)}...`
+          );
+
+          try {
+            const response = await fetch(this.buildDocumentProcessUrl(normalizedDocumentId), {
+              method: "POST",
+              headers: this.buildRequestHeaders(true),
+              body: JSON.stringify({ method: "auto", strict_method: false }),
+            });
+
+            let payload = null;
+            const contentType = String(response.headers.get("content-type") || "");
+            if (contentType.includes("application/json")) {
+              payload = await response.json();
+            } else {
+              const text = await response.text();
+              payload = text ? { detail: text } : null;
+            }
+
+            if (!response.ok) {
+              const detail =
+                payload && typeof payload === "object"
+                  ? String(payload.detail || payload.error || `HTTP ${response.status}`)
+                  : `HTTP ${response.status}`;
+              throw new Error(detail);
+            }
+
+            const mode = String(payload?.mode || "").trim() || "unknown";
+            const runId = String(payload?.run_id || "").trim();
+            const statusSuffix =
+              mode === "celery"
+                ? "Queued on the backend worker. Refreshing the company bundle now."
+                : "Completed through the backend. Refreshing the company bundle now.";
+            this.setStatus(
+              "loading",
+              `Extraction rerun accepted for ${ticker}.${runId ? ` Run ID ${runId}.` : ""} ${statusSuffix}`
+            );
+
+            await this.loadTicker(ticker, { preferredSurface: "extraction_failures" });
+            this.setStatus(
+              "ok",
+              `Refreshed ${ticker} after re-running extraction for document ${normalizedDocumentId.slice(0, 12)}.`
+            );
+          } catch (error) {
+            this.setStatus(
+              "error",
+              `Could not rerun extraction for ${ticker}. ${error?.message || "Unknown error"}.`
+            );
+            this.renderDetail();
+          } finally {
+            this.activeRerunDocumentId = null;
+            if (this.selectedSurface === "extraction_failures") {
+              this.renderDetail();
+            }
+          }
+        }
+
+        render() {
+          this.renderSummary();
+          this.renderIssues();
+          this.renderCore();
+          this.renderSurfaceSelection();
+          this.renderDetail();
+        }
+
+        renderEmptyState(ticker, error) {
+          this.summaryGrid.innerHTML = "";
+          this.issuesBox.classList.remove("show");
+          this.tickerCore.innerHTML = `
+            <div class="ticker-symbol">${escapeHtml(ticker)}</div>
+            <strong>No backend bundle available</strong>
+            <span class="core-meta">The page could not load the company dump.</span>
+            <span class="core-subtext">${escapeHtml(error.message)}</span>
+          `;
+
+          this.surfaceNodes.forEach((node) => {
+            node.classList.remove("active");
+            node.querySelector(".surface-count").textContent = "-";
+            node.querySelector(".surface-subline").textContent = "Unavailable until the bundle loads";
+            node.querySelector(".surface-tags").innerHTML = "";
+          });
+
+          this.detailTitle.textContent = "Load failed";
+          this.detailMeta.textContent = "No company bundle is available yet.";
+          this.detailContent.innerHTML = `
+            <div class="detail-block">
+              <div class="empty-state">
+                The browser could not fetch <code>/api/context/company_dump</code>. If you are
+                viewing this page remotely, forward port 8000 in addition to the docs server.
+              </div>
+            </div>
+          `;
+        }
+
+        renderSummary() {
+          const summary = this.data?.summary || {};
+          const priceSummary = this.data?.price_summary_1y || {};
+          const cards = [
+            {
+              label: "Documents",
+              value: formatInteger(summary.doc_count),
+              meta: `${formatInteger(summary.announcement_context_count)} announcement context items`,
+            },
+            {
+              label: "Financial Periods",
+              value: formatInteger(summary.financial_period_count),
+              meta: this.data?.latest_financial_snapshot?.period_end
+                ? `Latest period ${formatDate(this.data.latest_financial_snapshot.period_end)}`
+                : "No extracted financial snapshot yet",
+            },
+            {
+              label: "Risk Notes",
+              value: formatInteger(summary.risk_note_count),
+              meta: `${formatInteger(summary.extraction_failure_count)} extraction failures`,
+            },
+            {
+              label: "Last Close",
+              value: formatReportedNumber(priceSummary.last_close),
+              meta: priceSummary.coverage_end
+                ? `Coverage through ${formatDate(priceSummary.coverage_end)}`
+                : "No price summary returned",
+            },
+            {
+              label: "1Y Return",
+              value: formatPercent(priceSummary.one_year_return_pct),
+              meta: `${formatInteger(priceSummary.points)} daily points`,
+            },
+            {
+              label: "Memory Footprint",
+              value: formatInteger(
+                (summary.company_memory_entry_count || 0) + (summary.market_memory_item_count || 0)
+              ),
+              meta: `${formatInteger(summary.company_memory_entry_count)} company, ${formatInteger(summary.market_memory_item_count)} market`,
+            },
+          ];
+
+          this.summaryGrid.innerHTML = cards
+            .map(
+              (card) => `
+                <div class="summary-card">
+                  <strong>${escapeHtml(card.label)}</strong>
+                  <div class="summary-value">${escapeHtml(card.value)}</div>
+                  <div class="summary-meta">${escapeHtml(card.meta)}</div>
+                </div>
+              `
+            )
+            .join("");
+        }
+
+        renderIssues() {
+          const issues = safeArray(this.data?.errors);
+          if (!issues.length) {
+            this.issuesBox.classList.remove("show");
+            this.issuesList.innerHTML = "";
+            return;
+          }
+
+          this.issuesBox.classList.add("show");
+          this.issuesList.innerHTML = issues
+            .map((issue) => `<li>${escapeHtml(issue)}</li>`)
+            .join("");
+        }
+
+        renderCore() {
+          const summary = this.data?.summary || {};
+          const priceSummary = this.data?.price_summary_1y || {};
+          const ticker = this.data?.ticker || this.normalizeTicker(this.tickerInput.value);
+
+          const tags = [
+            this.data?.backend_version ? `backend ${this.data.backend_version}` : "",
+            summary.price_coverage_end ? `coverage ${formatDate(summary.price_coverage_end)}` : "",
+            safeArray(this.data?.docs).length ? `${formatInteger(summary.doc_count)} docs` : "no docs",
+          ].filter(Boolean);
+
+          this.tickerCore.innerHTML = `
+            <div class="ticker-symbol">${escapeHtml(ticker)}</div>
+            <strong>Authoritative company bundle</strong>
+            <span class="core-meta">
+              ${escapeHtml(formatInteger(summary.financial_period_count))} financial periods,
+              ${escapeHtml(formatInteger(summary.doc_count))} docs,
+              ${escapeHtml(formatInteger(summary.extraction_failure_count))} failures
+            </span>
+            <span class="core-subtext">
+              Last close ${escapeHtml(formatReportedNumber(priceSummary.last_close))} ·
+              1Y return ${escapeHtml(formatPercent(priceSummary.one_year_return_pct))}
+            </span>
+            <div class="core-tags">
+              ${tags.map((tag) => `<span class="core-tag">${escapeHtml(tag)}</span>`).join("")}
+            </div>
+          `;
+        }
+
+        getSurfaceCount(surface, data = this.data) {
+          if (!data) {
+            return 0;
+          }
+
+          switch (surface) {
+            case "financials":
+            case "docs":
+            case "risk_notes":
+            case "announcement_context":
+            case "extraction_failures":
+              return safeArray(data[surface]).length;
+            case "price":
+              return safeArray(data.price_history_1y).length;
+            case "company_memory":
+              return (
+                safeArray(data.company_memory?.entries).length +
+                safeArray(data.company_memory?.change_log).length
+              );
+            case "market_memory":
+              return (
+                safeArray(data.market_memory?.sector_items).length +
+                safeArray(data.market_memory?.macro_items).length +
+                safeArray(data.market_memory?.items).length
+              );
+            default:
+              return 0;
+          }
+        }
+
+        getSurfaceSubline(surface) {
+          if (!this.data) {
+            return "No data loaded";
+          }
+
+          switch (surface) {
+            case "financials":
+              return this.data.latest_financial_snapshot?.period_end
+                ? `Latest period ${formatDate(this.data.latest_financial_snapshot.period_end)}`
+                : "No extracted financial periods yet";
+            case "docs": {
+              const latest = safeArray(this.data.docs)[0];
+              return latest?.title ? truncate(latest.title, 68) : "No company documents returned";
+            }
+            case "price":
+              return this.data.price_summary_1y?.coverage_end
+                ? `Coverage through ${formatDate(this.data.price_summary_1y.coverage_end)}`
+                : "No price history available";
+            case "risk_notes": {
+              const latest = safeArray(this.data.risk_notes)[0];
+              return latest?.risk_summary
+                ? truncate(latest.risk_summary, 76)
+                : "No risk note coverage returned";
+            }
+            case "announcement_context": {
+              const latest = safeArray(this.data.announcement_context)[0];
+              return latest?.title ? truncate(latest.title, 68) : "No announcement context returned";
+            }
+            case "extraction_failures": {
+              const latest = safeArray(this.data.extraction_failures)[0];
+              return latest?.error ? truncate(latest.error, 76) : "No extraction failures returned";
+            }
+            case "company_memory": {
+              const memory = this.data.company_memory || {};
+              return `${formatInteger(memory.entries_total)} entries · ${formatInteger(memory.change_log_total)} changes`;
+            }
+            case "market_memory": {
+              const memory = this.data.market_memory || {};
+              return memory.sector ? `Sector: ${memory.sector}` : "No market memory items returned";
+            }
+            default:
+              return "No data";
+          }
+        }
+
+        getSurfaceTags(surface) {
+          if (!this.data) {
+            return [];
+          }
+
+          switch (surface) {
+            case "financials": {
+              const snapshot = this.data.latest_financial_snapshot || {};
+              return [
+                snapshot.period_type ? `type ${snapshot.period_type}` : "",
+                snapshot.source_document_id ? "has source document" : "",
+                snapshot.confidence_metrics !== null && snapshot.confidence_metrics !== undefined
+                  ? `confidence ${formatReportedNumber(snapshot.confidence_metrics)}`
+                  : "",
+              ].filter(Boolean);
+            }
+            case "docs": {
+              const docs = safeArray(this.data.docs);
+              const topClasses = Array.from(new Set(docs.slice(0, 6).map((doc) => doc.doc_class).filter(Boolean)));
+              return topClasses.slice(0, 3);
+            }
+            case "price":
+              return [
+                this.data.price?.market_time ? `updated ${formatDate(this.data.price.market_time)}` : "",
+                this.data.price_summary_1y?.high_close ? `high ${formatReportedNumber(this.data.price_summary_1y.high_close)}` : "",
+              ].filter(Boolean);
+            case "risk_notes":
+              return safeArray(this.data.risk_notes)
+                .slice(0, 3)
+                .map((note) => note.title)
+                .filter(Boolean)
+                .map((title) => truncate(title, 36));
+            case "announcement_context":
+              return safeArray(this.data.announcement_context)
+                .slice(0, 2)
+                .map((item) => item.title)
+                .filter(Boolean)
+                .map((title) => truncate(title, 32));
+            case "extraction_failures":
+              return safeArray(this.data.extraction_failures)
+                .slice(0, 2)
+                .map((item) => truncate(item.error, 32))
+                .filter(Boolean);
+            case "company_memory":
+              return [
+                this.data.company_memory?.status ? `status ${this.data.company_memory.status}` : "",
+                this.data.company_memory?.entries_total ? `${formatInteger(this.data.company_memory.entries_total)} entries` : "",
+              ].filter(Boolean);
+            case "market_memory":
+              return [
+                this.data.market_memory?.status ? `status ${this.data.market_memory.status}` : "",
+                this.data.market_memory?.sector ? this.data.market_memory.sector : "",
+              ].filter(Boolean);
+            default:
+              return [];
+          }
+        }
+
+        renderSurfaceSelection() {
+          this.surfaceNodes.forEach((node) => {
+            const surface = node.dataset.surface;
+            node.classList.toggle("active", surface === this.selectedSurface);
+            node.querySelector(".surface-count").textContent = formatInteger(this.getSurfaceCount(surface));
+            node.querySelector(".surface-subline").textContent = this.getSurfaceSubline(surface);
+            const tags = this.getSurfaceTags(surface);
+            node.querySelector(".surface-tags").innerHTML = tags
+              .map((tag) => `<span class="surface-tag">${escapeHtml(tag)}</span>`)
+              .join("");
+          });
+        }
+
+        renderDetail() {
+          const meta = SURFACE_META[this.selectedSurface];
+          this.detailTitle.textContent = meta.title;
+          this.detailMeta.textContent = meta.description;
+
+          switch (this.selectedSurface) {
+            case "financials":
+              this.detailContent.innerHTML = this.renderFinancialDetail();
+              break;
+            case "docs":
+              this.detailContent.innerHTML = this.renderDocsDetail();
+              break;
+            case "price":
+              this.detailContent.innerHTML = this.renderPriceDetail();
+              break;
+            case "risk_notes":
+              this.detailContent.innerHTML = this.renderRiskDetail();
+              break;
+            case "announcement_context":
+              this.detailContent.innerHTML = this.renderAnnouncementDetail();
+              break;
+            case "extraction_failures":
+              this.detailContent.innerHTML = this.renderFailureDetail();
+              break;
+            case "company_memory":
+              this.detailContent.innerHTML = this.renderCompanyMemoryDetail();
+              break;
+            case "market_memory":
+              this.detailContent.innerHTML = this.renderMarketMemoryDetail();
+              break;
+            default:
+              this.detailContent.innerHTML = "";
+          }
+        }
+
+        renderFinancialDetail() {
+          const snapshot = this.data?.latest_financial_snapshot || {};
+          const rows = safeArray(this.data?.financials).slice(0, 8);
+          const metricCards = [
+            ["Period end", snapshot.period_end ? formatDate(snapshot.period_end) : "-"],
+            ["Period type", snapshot.period_type || "-"],
+            ["Revenue", formatReportedNumber(snapshot.revenue)],
+            ["EBIT", formatReportedNumber(snapshot.ebit)],
+            ["NP attributable", formatReportedNumber(snapshot.np_attributable)],
+            ["Operating CF", formatReportedNumber(snapshot.operating_cf)],
+            ["Capex", formatReportedNumber(snapshot.capex)],
+            ["Cash end", formatReportedNumber(snapshot.cash_end)],
+            ["Net debt", formatReportedNumber(snapshot.net_debt)],
+            ["Shares outstanding", formatReportedNumber(snapshot.shares_outstanding)],
+          ];
+
+          const tableRows = rows
+            .map(
+              (row) => `
+                <tr>
+                  <td>${escapeHtml(formatDate(row.period_end))}</td>
+                  <td>${escapeHtml(row.period_type || "-")}</td>
+                  <td>${escapeHtml(formatReportedNumber(row.revenue))}</td>
+                  <td>${escapeHtml(formatReportedNumber(row.ebit))}</td>
+                  <td>${escapeHtml(formatReportedNumber(row.np_attributable))}</td>
+                  <td>${escapeHtml(formatReportedNumber(row.cash_end))}</td>
+                </tr>
+              `
+            )
+            .join("");
+
+          return `
+            <div class="detail-block">
+              <h3>Latest extracted snapshot</h3>
+              <div class="metric-grid">
+                ${metricCards
+                  .map(
+                    ([label, value]) => `
+                      <div class="metric-card">
+                        <strong>${escapeHtml(label)}</strong>
+                        <span>${escapeHtml(value)}</span>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+
+            <div class="detail-block">
+              <h3>Recent financial rows</h3>
+              ${
+                tableRows
+                  ? `
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Period end</th>
+                          <th>Type</th>
+                          <th>Revenue</th>
+                          <th>EBIT</th>
+                          <th>NP attributable</th>
+                          <th>Cash end</th>
+                        </tr>
+                      </thead>
+                      <tbody>${tableRows}</tbody>
+                    </table>
+                  `
+                  : `<div class="empty-state">No extracted financial rows were returned for this ticker.</div>`
+              }
+            </div>
+          `;
+        }
+
+        renderDocsDetail() {
+          const docs = safeArray(this.data?.docs).slice(0, 12);
+          if (!docs.length) {
+            return `
+              <div class="detail-block">
+                <div class="empty-state">No documents were returned for this ticker.</div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="detail-block">
+              <h3>Most recent documents</h3>
+              <div class="list">
+                ${docs
+                  .map((doc) => {
+                    const meta = [doc.doc_class, doc.doc_subtype].filter(Boolean).join(" / ") || "Document";
+                    const source = doc.source_url
+                      ? `<a href="${escapeHtml(doc.source_url)}" target="_blank" rel="noreferrer">${escapeHtml(doc.title || "Open source")}</a>`
+                      : escapeHtml(doc.title || "Untitled document");
+                    return `
+                      <div class="item">
+                        <div class="item-top">
+                          <div class="item-title">${source}</div>
+                          <div class="item-date">${escapeHtml(formatDate(doc.published_at))}</div>
+                        </div>
+                        <div class="item-meta">${escapeHtml(meta)}</div>
+                        <div class="item-meta">Document ID: ${escapeHtml(doc.document_id || "-")}</div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        renderPriceDetail() {
+          const summary = this.data?.price_summary_1y || {};
+          const current = this.data?.price || {};
+          const sparkline = buildSparkline(this.data?.price_history_1y);
+          const metrics = [
+            ["Last close", formatReportedNumber(summary.last_close)],
+            ["1Y return", formatPercent(summary.one_year_return_pct)],
+            ["High close", formatReportedNumber(summary.high_close)],
+            ["Low close", formatReportedNumber(summary.low_close)],
+            ["Current price", formatReportedNumber(current.price)],
+            ["Previous close", formatReportedNumber(current.previous_close)],
+          ];
+
+          return `
+            <div class="detail-block">
+              <h3>Price summary</h3>
+              <div class="metric-grid">
+                ${metrics
+                  .map(
+                    ([label, value]) => `
+                      <div class="metric-card">
+                        <strong>${escapeHtml(label)}</strong>
+                        <span>${escapeHtml(value)}</span>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+              ${
+                sparkline
+                  ? `
+                    <div class="sparkline-wrap">
+                      ${sparkline}
+                      <div class="sparkline-axis">
+                        <span>${escapeHtml(formatDate(summary.coverage_start))}</span>
+                        <span>${escapeHtml(formatInteger(summary.points))} points</span>
+                        <span>${escapeHtml(formatDate(summary.coverage_end))}</span>
+                      </div>
+                    </div>
+                  `
+                  : `<div class="empty-state" style="margin-top: 12px;">No one-year price history was returned.</div>`
+              }
+            </div>
+          `;
+        }
+
+        renderRiskDetail() {
+          const notes = safeArray(this.data?.risk_notes).slice(0, 8);
+          if (!notes.length) {
+            return `
+              <div class="detail-block">
+                <div class="empty-state">No risk notes were returned for this ticker.</div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="detail-block">
+              <h3>Risk and guidance notes</h3>
+              <div class="list">
+                ${notes
+                  .map((note) => {
+                    const bullets = safeArray(note.risk_bullets)
+                      .slice(0, 4)
+                      .map((bullet) => `<span class="tag-chip">${escapeHtml(bullet)}</span>`)
+                      .join("");
+
+                    return `
+                      <div class="item">
+                        <div class="item-top">
+                          <div class="item-title">${escapeHtml(note.title || "Risk note")}</div>
+                          <div class="item-date">${escapeHtml(formatDate(note.published_at))}</div>
+                        </div>
+                        <div class="excerpt">${escapeHtml(note.risk_summary || "No risk summary")}</div>
+                        ${
+                          note.guidance_summary
+                            ? `<div class="item-meta" style="margin-top: 8px;">Guidance: ${escapeHtml(note.guidance_summary)}</div>`
+                            : ""
+                        }
+                        ${
+                          note.material_changes
+                            ? `<div class="item-meta">Material changes: ${escapeHtml(note.material_changes)}</div>`
+                            : ""
+                        }
+                        ${bullets ? `<div class="tag-row">${bullets}</div>` : ""}
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        renderAnnouncementDetail() {
+          const items = safeArray(this.data?.announcement_context).slice(0, 10);
+          if (!items.length) {
+            return `
+              <div class="detail-block">
+                <div class="empty-state">No announcement context rows were returned for this ticker.</div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="detail-block">
+              <h3>Announcement context excerpts</h3>
+              <div class="list">
+                ${items
+                  .map(
+                    (item) => `
+                      <div class="item">
+                        <div class="item-top">
+                          <div class="item-title">${escapeHtml(item.title || "Announcement context")}</div>
+                          <div class="item-date">${escapeHtml(formatDate(item.published_at))}</div>
+                        </div>
+                        <div class="excerpt">${escapeHtml(item.excerpt || "No excerpt available")}</div>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        renderFailureDetail() {
+          const failures = safeArray(this.data?.extraction_failures).slice(0, 12);
+          if (!failures.length) {
+            return `
+              <div class="detail-block">
+                <div class="empty-state">No extraction failures were returned for this ticker.</div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="detail-block">
+              <h3>Recent failed extraction runs</h3>
+              <div class="list">
+                ${failures
+                  .map(
+                    (failure) => {
+                      const documentId = String(failure.document_id || "").trim();
+                      const canRerun = Boolean(documentId);
+                      const isRunning = canRerun && this.activeRerunDocumentId === documentId;
+                      return `
+                      <div class="item">
+                        <div class="item-top">
+                          <div class="item-title">${escapeHtml(failure.title || failure.document_id || "Extraction failure")}</div>
+                          <div class="item-date">${escapeHtml(formatDateTime(failure.created_at))}</div>
+                        </div>
+                        <div class="excerpt">${escapeHtml(failure.error || "No error message")}</div>
+                        <div class="item-meta">Run ID: ${escapeHtml(failure.run_id || "-")}</div>
+                        <div class="item-meta">Document ID: ${escapeHtml(documentId || "-")}</div>
+                        <div class="item-actions">
+                          <button
+                            class="action-btn"
+                            type="button"
+                            data-rerun-document-id="${escapeHtml(documentId)}"
+                            ${canRerun ? "" : "disabled"}
+                            ${isRunning ? "disabled" : ""}
+                          >
+                            ${isRunning ? "Re-running..." : "Re-run extraction"}
+                          </button>
+                        </div>
+                        ${
+                          !canRerun
+                            ? `<div class="item-note">This failure row does not expose a document ID, so the backend rerun route cannot target it.</div>`
+                            : ""
+                        }
+                      </div>
+                    `;
+                    }
+                  )
+                  .join("")}
+              </div>
+              <div class="item-note">
+                The rerun action calls the existing backend endpoint <code>POST /api/process/document/{document_id}</code>.
+                If your backend enforces <code>X-API-Key</code>, fill the optional API key field above before retrying.
+              </div>
+            </div>
+          `;
+        }
+
+        renderCompanyMemoryDetail() {
+          const memory = this.data?.company_memory || {};
+          const entries = safeArray(memory.entries).slice(0, 8);
+          const changes = safeArray(memory.change_log).slice(0, 8);
+
+          return `
+            <div class="detail-block">
+              <h3>Status</h3>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <strong>Status</strong>
+                  <span>${escapeHtml(memory.status || "-")}</span>
+                </div>
+                <div class="metric-card">
+                  <strong>Entries</strong>
+                  <span>${escapeHtml(formatInteger(memory.entries_total))}</span>
+                </div>
+                <div class="metric-card">
+                  <strong>Change log</strong>
+                  <span>${escapeHtml(formatInteger(memory.change_log_total))}</span>
+                </div>
+                <div class="metric-card">
+                  <strong>Path exposed</strong>
+                  <span>${memory.path ? "yes" : "no"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-block">
+              <h3>Entries</h3>
+              ${
+                entries.length
+                  ? `
+                    <div class="list">
+                      ${entries
+                        .map((entry) => {
+                          const text = extractTextFromObject(entry, [
+                            "summary",
+                            "content",
+                            "note",
+                            "text",
+                            "title",
+                            "description",
+                          ]);
+                          return `
+                            <div class="item">
+                              <div class="item-title">${escapeHtml(entry.title || entry.entry_type || "Memory entry")}</div>
+                              <div class="excerpt">${escapeHtml(truncate(text || JSON.stringify(entry), 220))}</div>
+                            </div>
+                          `;
+                        })
+                        .join("")}
+                    </div>
+                  `
+                  : `<div class="empty-state">No company memory entries were returned.</div>`
+              }
+            </div>
+
+            <div class="detail-block">
+              <h3>Change log</h3>
+              ${
+                changes.length
+                  ? `
+                    <div class="list">
+                      ${changes
+                        .map((change) => {
+                          const text = extractTextFromObject(change, [
+                            "summary",
+                            "content",
+                            "note",
+                            "text",
+                            "title",
+                            "description",
+                          ]);
+                          return `
+                            <div class="item">
+                              <div class="item-title">${escapeHtml(change.title || change.change_type || "Memory change")}</div>
+                              <div class="excerpt">${escapeHtml(truncate(text || JSON.stringify(change), 220))}</div>
+                            </div>
+                          `;
+                        })
+                        .join("")}
+                    </div>
+                  `
+                  : `<div class="empty-state">No company memory change log rows were returned.</div>`
+              }
+            </div>
+          `;
+        }
+
+        renderMarketMemoryDetail() {
+          const memory = this.data?.market_memory || {};
+          const sectorItems = safeArray(memory.sector_items).slice(0, 6);
+          const macroItems = safeArray(memory.macro_items).slice(0, 6);
+          const items = safeArray(memory.items).slice(0, 6);
+
+          const renderMemoryList = (rows, label) => `
+            <div class="detail-block">
+              <h3>${escapeHtml(label)}</h3>
+              ${
+                rows.length
+                  ? `
+                    <div class="list">
+                      ${rows
+                        .map((row) => {
+                          const text = extractTextFromObject(row, [
+                            "summary",
+                            "content",
+                            "note",
+                            "text",
+                            "title",
+                            "description",
+                            "item",
+                          ]);
+                          return `
+                            <div class="item">
+                              <div class="item-title">${escapeHtml(row.title || row.kind || row.category || label)}</div>
+                              <div class="excerpt">${escapeHtml(truncate(text || JSON.stringify(row), 220))}</div>
+                            </div>
+                          `;
+                        })
+                        .join("")}
+                    </div>
+                  `
+                  : `<div class="empty-state">No ${escapeHtml(label.toLowerCase())} returned.</div>`
+              }
+            </div>
+          `;
+
+          return `
+            <div class="detail-block">
+              <h3>Status</h3>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <strong>Status</strong>
+                  <span>${escapeHtml(memory.status || "-")}</span>
+                </div>
+                <div class="metric-card">
+                  <strong>Sector</strong>
+                  <span>${escapeHtml(memory.sector || "-")}</span>
+                </div>
+                <div class="metric-card">
+                  <strong>Sector items</strong>
+                  <span>${escapeHtml(formatInteger(memory.sector_items_total))}</span>
+                </div>
+                <div class="metric-card">
+                  <strong>Macro items</strong>
+                  <span>${escapeHtml(formatInteger(memory.macro_items_total))}</span>
+                </div>
+              </div>
+            </div>
+
+            ${renderMemoryList(sectorItems, "Sector items")}
+            ${renderMemoryList(macroItems, "Macro items")}
+            ${renderMemoryList(items, "Ticker-linked items")}
+          `;
+        }
+      }
+
+      new TickerMapApp().init();
+    </script>
+  </body>
+</html>

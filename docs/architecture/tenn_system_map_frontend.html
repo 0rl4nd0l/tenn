@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tenn Authority + Delegation Flow</title>
+    <style>
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #13131a;
+        --bg-tertiary: #1a1a24;
+        --bg-card: #1f1f2e;
+        --border: #2a2a3a;
+        --text-primary: #e4e4e7;
+        --text-secondary: #a1a1aa;
+        --accent: #6366f1;
+        --accent-2: #22c55e;
+        --accent-3: #38bdf8;
+        --warn: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        color: var(--text-primary);
+        background:
+          radial-gradient(circle at 15% 0%, rgba(99,102,241,0.22), transparent 28%),
+          radial-gradient(circle at 85% 0%, rgba(34,197,94,0.12), transparent 24%),
+          var(--bg-primary);
+      }
+      .wrap {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: rgba(255,255,255,0.03);
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .nav a {
+        text-decoration: none;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 12px;
+        transition: all 0.18s;
+      }
+      .nav a:hover,
+      .nav a.active {
+        color: var(--text-primary);
+        border-color: var(--accent-3);
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 36px;
+        line-height: 1.05;
+      }
+      .lede {
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        max-width: 980px;
+        margin-bottom: 24px;
+      }
+      .explain-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .panel {
+        background: linear-gradient(180deg, rgba(31,31,46,0.94), rgba(19,19,26,0.98));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 20px;
+      }
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+      .panel p,
+      .panel li {
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-size: 14px;
+      }
+      .panel ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .focus-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .focus-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        background: rgba(255,255,255,0.03);
+      }
+      .focus-card h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--accent-3);
+      }
+      .focus-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-size: 13px;
+      }
+      .data-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .data-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        background: rgba(255,255,255,0.03);
+      }
+      .data-card h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--accent-2);
+      }
+      .data-card p {
+        margin: 0 0 10px;
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-size: 13px;
+      }
+      .data-card span {
+        display: block;
+        font-size: 11px;
+        color: #8b949e;
+        line-height: 1.45;
+      }
+      .legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 0 0 18px;
+      }
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        background: rgba(255,255,255,0.03);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .card {
+        background: linear-gradient(180deg, rgba(31,31,46,0.94), rgba(19,19,26,0.98));
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+      }
+      .card h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        color: var(--accent-3);
+      }
+      .nodes {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .node {
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--accent-2);
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: rgba(255,255,255,0.02);
+      }
+      .node strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 3px;
+      }
+      .node span {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .node.backend { border-left-color: var(--accent-3); }
+      .node.agent { border-left-color: var(--accent-2); }
+      .node.infra { border-left-color: var(--warn); }
+      .flow {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: rgba(8,8,14,0.85);
+        padding: 24px;
+      }
+      .path-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .path-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        background: rgba(255,255,255,0.03);
+      }
+      .path-card h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      .path-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-size: 13px;
+      }
+      @media (max-width: 1024px) {
+        .explain-grid,
+        .focus-strip,
+        .data-strip,
+        .grid,
+        .path-grid {
+          grid-template-columns: 1fr;
+        }
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: '#1f1f2e',
+          primaryTextColor: '#e4e4e7',
+          primaryBorderColor: '#6366f1',
+          lineColor: '#7dd3fc',
+          secondaryColor: '#13131a',
+          tertiaryColor: '#1a1a24',
+          clusterBkg: '#151524',
+          clusterBorder: '#2a2a3a'
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="eyebrow">Authority + Delegation Flow</div>
+        <div class="nav">
+          <a href="/docs/architecture/tenn_diagrams.html">Diagram Hub</a>
+          <a href="/docs/tenn-system-map.html">Runtime Topology</a>
+          <a href="/docs/architecture/tenn_ticker_map.html">Ticker Map</a>
+          <a class="active" href="/docs/architecture/tenn_system_map_frontend.html">Authority Flow</a>
+        </div>
+      </div>
+
+      <h1>Tenn Authority + Delegation Flow</h1>
+      <div class="lede">
+        This is the control-flow view of Tenn. It explains why the backend comes before the
+        agent: backend APIs are the authority boundary, the agent is the orchestration runtime,
+        and infra is the set of storage and execution resources used behind those boundaries.
+      </div>
+
+      <div class="explain-grid">
+        <section class="panel">
+          <h2>What this view is for</h2>
+          <p>
+            Use this page when you want to understand tool-calling, backend authority, read-only
+            versus mutating paths, and why infra is shown after the agent in the flow. This is
+            not a deployment diagram; it is a responsibility diagram.
+          </p>
+        </section>
+        <section class="panel">
+          <h2>Key interpretation</h2>
+          <ul>
+            <li>Frontend asks the backend for authoritative data and actions.</li>
+            <li>Backend APIs own the contract and correctness boundary.</li>
+            <li>Agent runtime decides how to orchestrate tools within that boundary.</li>
+            <li>Infra provides storage, vector search, LLM inference, and async execution.</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="focus-strip">
+        <section class="focus-card">
+          <h3>Chat features in this view</h3>
+          <p>Chat here means SSE response streaming, tool invocation, approval-gated actions, verification prompts, and temporal anchoring in the agent loop.</p>
+        </section>
+        <section class="focus-card">
+          <h3>Memory features in this view</h3>
+          <p>Recent turns, dossier state, company memory, market memory, and commentary memo context are assembled before the model answers.</p>
+        </section>
+        <section class="focus-card">
+          <h3>Why this matters</h3>
+          <p>The backend still owns truth, but the chat layer decides how those context sources are combined into an answer or an action proposal.</p>
+        </section>
+      </div>
+
+      <div class="data-strip">
+        <section class="data-card">
+          <h3>Structured Financials</h3>
+          <p>Multi-period extracted financial rows for one ticker: revenue, EBIT, NPAT, cash flow, and balance-sheet lines.</p>
+          <span>View surface: `GET /api/context/ticker` -> `asx_periodic_financials`</span>
+        </section>
+        <section class="data-card">
+          <h3>Filings + Announcements</h3>
+          <p>ASX filings, announcement records, and written filing evidence that back the extracted financial truth.</p>
+          <span>View surface: documents + `asx_docs` + announcements bundle</span>
+        </section>
+        <section class="data-card">
+          <h3>News + Commentary</h3>
+          <p>Written news context and commentary memos used for sentiment, catalysts, and narrative synthesis.</p>
+          <span>View surface: `news_chunks` + `commentary_chunks`</span>
+        </section>
+        <section class="data-card">
+          <h3>Dossier + Memory</h3>
+          <p>Per-company notes, situations, prior findings, and market context that the agent can assemble into answers.</p>
+          <span>View surface: `company_memory`, `market_memory`, recent turns, dossier state</span>
+        </section>
+      </div>
+
+      <div class="legend">
+        <div class="pill">Blue edges: contract and core data flow</div>
+        <div class="pill">Green edges: agent orchestration</div>
+        <div class="pill">Amber edges: confirmation-gated mutation path</div>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Frontend Surface (`cockpit-ui`)</h2>
+          <div class="nodes">
+            <div class="node">
+              <strong>UX Shell</strong>
+              <span>CockpitLayout, sidebar, status indicators, and the page-level frame operators use.</span>
+            </div>
+            <div class="node">
+              <strong>Feature Screens</strong>
+              <span>Chat, Operations, Verification, Intel Pulse, News, History, and Settings.</span>
+            </div>
+            <div class="node">
+              <strong>Client Integration</strong>
+              <span>`api-client.ts` provides REST, SSE streaming, stores, and job-stream hooks.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Backend Authority (`financial-engine_v2`)</h2>
+          <div class="nodes">
+            <div class="node backend">
+              <strong>FastAPI Surface</strong>
+              <span>`/api/cockpit/*`, `/api/context/*`, `/api/extraction-review/*`, and `POST /rag/query` define the authority contract.</span>
+            </div>
+            <div class="node backend">
+              <strong>Data Authority</strong>
+              <span>Backend owns ingestion, extraction, storage, retrieval, and correctness. Cockpit is a client, not an alternative source of truth.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Agent Orchestration</h2>
+          <div class="nodes">
+            <div class="node agent">
+              <strong>Agent Loop Runtime</strong>
+              <span>AgentLoop, ResponseParser, ToolExecutor, and ToolRouter coordinate reasoning and tool usage.</span>
+            </div>
+            <div class="node agent">
+              <strong>Chat + Memory Context</strong>
+              <span>Recent turns, dossier state, company_memory, market_memory, and commentary-derived evidence are assembled before the model answers.</span>
+            </div>
+            <div class="node agent">
+              <strong>Tool Surface</strong>
+              <span>Read-only tools gather context; mutating tools require confirmation and execute through controlled backend/runtime paths.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Infrastructure Resources</h2>
+          <div class="nodes">
+            <div class="node infra">
+              <strong>Storage</strong>
+              <span>Postgres for structured truth and Qdrant for vector search.</span>
+            </div>
+            <div class="node infra">
+              <strong>Execution</strong>
+              <span>llama.cpp for inference and Celery/Redis for async or mutating execution paths.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="flow">
+        <div class="mermaid">
+flowchart LR
+  classDef fe fill:#1f1f2e,stroke:#7dd3fc,stroke-width:2px,color:#fff
+  classDef be fill:#161b22,stroke:#38bdf8,stroke-width:2px,color:#fff
+  classDef agent fill:#17241b,stroke:#22c55e,stroke-width:2px,color:#fff
+  classDef data fill:#13131a,stroke:#f59e0b,stroke-width:1.5px,color:#cbd5e1
+  classDef view fill:#1a1a24,stroke:#2dd4bf,stroke-width:2px,color:#fff
+  classDef user fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff
+
+  U[Operator / User]:::user
+
+  subgraph FE["Frontend"]
+    UI["cockpit-ui<br/>(Chat/Ops/News)"]:::fe
+    CL["api-client.ts"]:::fe
+  end
+
+  subgraph BE["Backend Authority Boundary"]
+    API["FastAPI Surface"]:::be
+    AUTH["Data Authority"]:::be
+  end
+
+  subgraph VIEW["Viewable Ticker Data"]
+    FIN["Financial rows<br/>asx_periodic_financials"]:::view
+    FIL["Filings + announcements<br/>documents • asx_docs"]:::view
+    WRI["News + commentary<br/>news_chunks • commentary_chunks"]:::view
+    MEM["Dossier + memory<br/>company_memory • market_memory"]:::view
+  end
+
+  subgraph AG["Agent Orchestration Runtime"]
+    CTX["Context Assembly<br/>recent turns • dossier • company/market memory"]:::agent
+    LP["AgentLoop"]:::agent
+    EX["ToolExecutor"]:::agent
+  end
+
+  subgraph IN["Infrastructure Resources"]
+    DB[(Postgres)]:::data
+    VS[(Qdrant)]:::data
+    SQL[(SQLite state)]:::data
+    LLM[llama.cpp]:::data
+    CEL[Celery/Redis]:::data
+  end
+
+  U --> UI
+  UI --> CL
+  CL --> API
+  AUTH --> FIN
+  AUTH --> FIL
+  CTX --> WRI
+  CTX --> MEM
+  API --> CTX
+  CTX --> LP
+  LP --> EX
+
+  FIN --> DB
+  FIL --> VS
+  WRI --> VS
+  MEM --> SQL
+  EX -- read-only --> VS
+  EX -- read-only --> LLM
+  EX -- confirmation-gated --> CEL
+
+  CEL --> DB
+  CEL --> VS
+  AUTH --> DB
+        </div>
+      </div>
+
+      <div class="path-grid">
+        <section class="path-card">
+          <h3>Read path</h3>
+          <p>
+            Operator -> frontend -> backend API -> context assembly -> agent loop -> read-only tools
+            -> Qdrant, llama.cpp, or memory surfaces. Recent turns, dossier state, company memory,
+            market memory, and commentary evidence are part of the assembled answer context.
+          </p>
+        </section>
+        <section class="path-card">
+          <h3>Mutating path</h3>
+          <p>
+            When an action changes state, the agent does not write directly to core stores. It
+            proposes or confirms the action, then routes execution through controlled runtime
+            infrastructure such as Celery/Redis. Memory updates and dossier changes still happen
+            through governed paths, with backend-owned storage remaining the source of truth.
+          </p>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
