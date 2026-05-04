@@ -85,3 +85,43 @@ def test_prepare_requirement_driven_mission_bypasses_exact_product(
     assert prepared["requirement_profile"]["mode"] == "exact_product"
     assert "candidate_search_terms" not in prepared["deployment_args"]
     assert mission_service.list_mission_candidate_products(mission["mission_id"]) == []
+
+
+def test_prepare_requirement_driven_mission_repairs_stale_exact_hunt_profile(
+    tmp_path: Path,
+) -> None:
+    mission_service, price_service = _services(tmp_path)
+    mission = mission_service.create_mission(
+        {
+            "name": "2TB-4TB Gen4 NVMe storage hunt",
+            "brief": "Find 2TB Gen4 NVMe SSD deals in Melbourne.",
+            "category_hint": "ssd",
+            "hard_filters": {
+                "include_keywords": ["2TB", "Gen4", "NVMe", "SSD"],
+                "location_names": ["Melbourne"],
+            },
+            "deployment_args": {
+                "requirement_profile": {
+                    "mode": "exact_product",
+                    "category": "ssd",
+                    "extracted_terms": ["2TB", "Gen4", "NVMe", "SSD"],
+                }
+            },
+        }
+    )
+
+    prepared = prepare_requirement_driven_mission(
+        mission_service,
+        price_service,
+        mission,
+    )
+
+    assert prepared["requirement_profile"]["mode"] == "requirement_driven"
+    assert prepared["deployment_args"]["candidate_count"] > 0
+    candidate_keys = {
+        candidate["candidate_key"]
+        for candidate in mission_service.list_mission_candidate_products(
+            mission["mission_id"]
+        )
+    }
+    assert "ssd-kingston-nv2-2tb-gen4" in candidate_keys

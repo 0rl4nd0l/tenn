@@ -107,6 +107,36 @@ _GPU_CANDIDATES: list[dict[str, Any]] = [
 
 _CPU_CANDIDATES: list[dict[str, Any]] = [
     {
+        "canonical_key": "cpu-amd-ryzen-9-5950x-am4",
+        "category": "cpu",
+        "brand": "AMD",
+        "model_family": "Ryzen 9",
+        "variant": "5950X AM4",
+        "attributes": {"vendor": "AMD", "exact_sku": "Ryzen 9 5950X", "socket": "AM4"},
+        "aliases": ["Ryzen 9 5950X", "5950X"],
+        "availability_rank": 1,
+    },
+    {
+        "canonical_key": "cpu-amd-ryzen-9-5900x-am4",
+        "category": "cpu",
+        "brand": "AMD",
+        "model_family": "Ryzen 9",
+        "variant": "5900X AM4",
+        "attributes": {"vendor": "AMD", "exact_sku": "Ryzen 9 5900X", "socket": "AM4"},
+        "aliases": ["Ryzen 9 5900X", "5900X"],
+        "availability_rank": 2,
+    },
+    {
+        "canonical_key": "cpu-amd-ryzen-7-5800x3d-am4",
+        "category": "cpu",
+        "brand": "AMD",
+        "model_family": "Ryzen 7",
+        "variant": "5800X3D AM4",
+        "attributes": {"vendor": "AMD", "exact_sku": "Ryzen 7 5800X3D", "socket": "AM4"},
+        "aliases": ["Ryzen 7 5800X3D", "5800X3D"],
+        "availability_rank": 3,
+    },
+    {
         "canonical_key": "cpu-amd-ryzen-7-7800x3d-am5",
         "category": "cpu",
         "brand": "AMD",
@@ -140,6 +170,26 @@ _CPU_CANDIDATES: list[dict[str, Any]] = [
 
 _SSD_CANDIDATES: list[dict[str, Any]] = [
     {
+        "canonical_key": "ssd-kingston-nv2-2tb-gen4",
+        "category": "ssd",
+        "brand": "Kingston",
+        "model_family": "NV2",
+        "variant": "2TB Gen4",
+        "attributes": {"brand": "Kingston", "model": "NV2", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "aliases": ["Kingston NV2 2TB", "NV2 2TB"],
+        "availability_rank": 1,
+    },
+    {
+        "canonical_key": "ssd-crucial-p3-plus-2tb-gen4",
+        "category": "ssd",
+        "brand": "Crucial",
+        "model_family": "P3 Plus",
+        "variant": "2TB Gen4",
+        "attributes": {"brand": "Crucial", "model": "P3 PLUS", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "aliases": ["Crucial P3 Plus 2TB", "P3 Plus 2TB"],
+        "availability_rank": 2,
+    },
+    {
         "canonical_key": "ssd-samsung-990-pro-2tb-gen4",
         "category": "ssd",
         "brand": "Samsung",
@@ -147,7 +197,7 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "variant": "2TB Gen4",
         "attributes": {"brand": "Samsung", "model": "990 PRO", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
         "aliases": ["Samsung 990 Pro 2TB", "990 Pro 2TB"],
-        "availability_rank": 1,
+        "availability_rank": 3,
     },
     {
         "canonical_key": "ssd-wd-sn850x-2tb-gen4",
@@ -157,7 +207,7 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "variant": "2TB Gen4",
         "attributes": {"brand": "WD", "model": "SN850X", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
         "aliases": ["WD SN850X 2TB", "WD Black SN850X 2TB"],
-        "availability_rank": 2,
+        "availability_rank": 4,
     },
     {
         "canonical_key": "ssd-crucial-t500-2tb-gen4",
@@ -167,11 +217,41 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "variant": "2TB Gen4",
         "attributes": {"brand": "Crucial", "model": "T500", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
         "aliases": ["Crucial T500 2TB", "T500 2TB"],
-        "availability_rank": 3,
+        "availability_rank": 5,
     },
 ]
 
 _RAM_CANDIDATES: list[dict[str, Any]] = [
+    {
+        "canonical_key": "ram-corsair-vengeance-lpx-32gb-ddr4-3200",
+        "category": "ram",
+        "brand": "Corsair",
+        "model_family": "Vengeance LPX",
+        "variant": "32GB DDR4-3200",
+        "attributes": {"ddr_generation": 4, "total_capacity_gb": 32, "speed_mhz": 3200},
+        "aliases": ["Corsair Vengeance LPX 32GB DDR4 3200", "Vengeance LPX DDR4 3200 32GB"],
+        "availability_rank": 1,
+    },
+    {
+        "canonical_key": "ram-gskill-ripjaws-v-32gb-ddr4-3200",
+        "category": "ram",
+        "brand": "G.Skill",
+        "model_family": "Ripjaws V",
+        "variant": "32GB DDR4-3200",
+        "attributes": {"ddr_generation": 4, "total_capacity_gb": 32, "speed_mhz": 3200},
+        "aliases": ["G.Skill Ripjaws 32GB DDR4 3200", "Ripjaws DDR4 3200 32GB"],
+        "availability_rank": 2,
+    },
+    {
+        "canonical_key": "ram-kingston-fury-beast-32gb-ddr4-3200",
+        "category": "ram",
+        "brand": "Kingston",
+        "model_family": "Fury Beast",
+        "variant": "32GB DDR4-3200",
+        "attributes": {"ddr_generation": 4, "total_capacity_gb": 32, "speed_mhz": 3200},
+        "aliases": ["Kingston Fury Beast 32GB DDR4 3200", "Fury Beast DDR4 3200 32GB"],
+        "availability_rank": 3,
+    },
     {
         "canonical_key": "ram-gskill-trident-z5-neo-32gb-ddr5-6000-cl30",
         "category": "ram",
@@ -180,7 +260,7 @@ _RAM_CANDIDATES: list[dict[str, Any]] = [
         "variant": "32GB DDR5-6000 CL30",
         "attributes": {"ddr_generation": 5, "total_capacity_gb": 32, "speed_mhz": 6000, "cas_latency": 30},
         "aliases": ["G.Skill Trident Z5 Neo 32GB 6000", "DDR5 6000 CL30 32GB"],
-        "availability_rank": 1,
+        "availability_rank": 4,
     },
     {
         "canonical_key": "ram-corsair-vengeance-32gb-ddr5-6000",
@@ -190,7 +270,7 @@ _RAM_CANDIDATES: list[dict[str, Any]] = [
         "variant": "32GB DDR5-6000",
         "attributes": {"ddr_generation": 5, "total_capacity_gb": 32, "speed_mhz": 6000},
         "aliases": ["Corsair Vengeance 32GB DDR5 6000", "Vengeance DDR5 6000 32GB"],
-        "availability_rank": 2,
+        "availability_rank": 5,
     },
 ]
 
@@ -335,6 +415,10 @@ def build_requirement_profile(payload: dict[str, Any]) -> dict[str, Any]:
                 }
             )
     elif category == "cpu":
+        if "am4" in lowered:
+            hard_constraints.append(
+                {"field": "socket", "operator": "=", "value": "AM4", "source": "brief"}
+            )
         if "am5" in lowered:
             hard_constraints.append(
                 {"field": "socket", "operator": "=", "value": "AM5", "source": "brief"}
@@ -387,7 +471,8 @@ def build_requirement_profile(payload: dict[str, Any]) -> dict[str, Any]:
     exact_hint = _exact_product_hint(category, text)
     requirement_cue = bool(
         re.search(
-            r"\b(best|around|about|under|budget|deal|deals|suitable|requirement|need|at\s+least|min(?:imum)?|for\s+local|equivalent|alternatives?)\b",
+            r"\b(best|around|about|under|budget|deal|deals|hunt|trigger|suitable|"
+            r"requirement|need|at\s+least|min(?:imum)?|for\s+local|equivalent|alternatives?)\b",
             lowered,
         )
     )

@@ -17,6 +17,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  comparisonHelpText,
+  comparisonNeedsBenchmarkSetup,
+  comparisonStatusLabel,
+} from './price-comparison'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 
 interface PendingFeedback {
@@ -78,27 +83,10 @@ function formatDelta(value: number | null | undefined): string {
   return `${sign}${rounded}%`
 }
 
-function verdictLabel(value: string | null | undefined): string {
-  return String(value || 'unavailable').replace(/_/g, ' ')
-}
-
-function comparisonStatusLabel(comparison: MarketplacePriceComparison | null | undefined): string {
-  if (comparison?.comparison_state === 'missing_benchmark_anchor') return 'benchmark unavailable'
-  if (comparison?.comparison_state === 'missing_listing_price') return 'listing price missing'
-  return verdictLabel(comparison?.verdict)
-}
-
-function comparisonHelpText(comparison: MarketplacePriceComparison | null | undefined): string | null {
-  const reason = String(comparison?.unavailable_reason || '').trim()
-  const action = String(comparison?.next_action || '').trim()
-  if (reason && action) return `${reason} ${action}`
-  return reason || action || null
-}
-
 function benchmarkAnchorLabel(comparison: MarketplacePriceComparison | null | undefined): string {
   if (typeof comparison?.used_market_median === 'number') return formatCurrency(comparison.used_market_median)
   if (typeof comparison?.retail_anchor_price === 'number') return formatCurrency(comparison.retail_anchor_price)
-  if (typeof comparison?.listing_price === 'number') return 'Needs setup'
+  if (typeof comparison?.listing_price === 'number' && comparisonNeedsBenchmarkSetup(comparison)) return 'Needs setup'
   return 'N/A'
 }
 

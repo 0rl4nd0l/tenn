@@ -47,6 +47,48 @@ def test_requirement_resolver_keeps_plain_exact_gpu_request_exact() -> None:
     assert profile["exact_product_hint"].lower() == "rtx 4070 super"
 
 
+def test_requirement_resolver_classifies_storage_hunt_as_requirement_driven() -> None:
+    profile = build_requirement_profile(
+        {
+            "name": "2TB-4TB Gen4 NVMe storage hunt",
+            "brief": "Find 2TB Gen4 NVMe SSD deals in Melbourne.",
+            "category_hint": "ssd",
+            "hard_filters": {
+                "include_keywords": ["2TB", "Gen4", "NVMe", "SSD"],
+                "location_names": ["Melbourne"],
+            },
+            "soft_preferences": {},
+        }
+    )
+
+    assert profile["mode"] == "requirement_driven"
+    candidates = generate_requirement_candidate_specs(profile)
+    candidate_keys = {candidate["canonical_key"] for candidate in candidates}
+    assert "ssd-kingston-nv2-2tb-gen4" in candidate_keys
+    assert "ssd-crucial-p3-plus-2tb-gen4" in candidate_keys
+
+
+def test_requirement_resolver_classifies_am4_cpu_trigger_as_requirement_driven() -> None:
+    profile = build_requirement_profile(
+        {
+            "name": "Ryzen 9 AM4 CPU trigger",
+            "brief": "Watch for Ryzen 9 AM4 CPU deals.",
+            "category_hint": "cpu",
+            "hard_filters": {
+                "include_keywords": ["Ryzen 9", "AM4"],
+                "location_names": ["Melbourne"],
+            },
+            "soft_preferences": {},
+        }
+    )
+
+    assert profile["mode"] == "requirement_driven"
+    candidates = generate_requirement_candidate_specs(profile)
+    candidate_keys = {candidate["canonical_key"] for candidate in candidates}
+    assert "cpu-amd-ryzen-9-5950x-am4" in candidate_keys
+    assert "cpu-amd-ryzen-9-5900x-am4" in candidate_keys
+
+
 def test_requirement_candidate_generation_is_bounded_and_excludes_12gb_mismatch() -> None:
     profile = build_requirement_profile(
         {

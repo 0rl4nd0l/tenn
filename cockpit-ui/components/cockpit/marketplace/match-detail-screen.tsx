@@ -16,6 +16,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  comparisonHelpText,
+  comparisonStatusLabel,
+} from './price-comparison'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 
 interface MarketplaceMatchDetailScreenProps {
@@ -61,23 +65,6 @@ function formatDelta(value: number | null | undefined): string {
   const rounded = Math.round(value * 10) / 10
   const sign = rounded > 0 ? '+' : ''
   return `${sign}${rounded}%`
-}
-
-function verdictLabel(value: string | null | undefined): string {
-  return String(value || 'unavailable').replace(/_/g, ' ')
-}
-
-function comparisonStatusLabel(comparison: MarketplacePriceComparison | null | undefined): string {
-  if (comparison?.comparison_state === 'missing_benchmark_anchor') return 'benchmark unavailable'
-  if (comparison?.comparison_state === 'missing_listing_price') return 'listing price missing'
-  return verdictLabel(comparison?.verdict)
-}
-
-function comparisonHelpText(comparison: MarketplacePriceComparison | null | undefined): string | null {
-  const reason = String(comparison?.unavailable_reason || '').trim()
-  const action = String(comparison?.next_action || '').trim()
-  if (reason && action) return `${reason} ${action}`
-  return reason || action || null
 }
 
 function comparisonToneClass(comparison: MarketplacePriceComparison | null | undefined): string {

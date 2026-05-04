@@ -19,6 +19,17 @@ LOW_CONFIDENCE_THRESHOLD = 0.72
 UNMATCHED_THRESHOLD = 0.35
 REVIEW_STATUSES = {"pending_review", "accepted", "rejected", "auto_accepted"}
 SUPPORTED_CATEGORIES = {"gpu", "nvme_m2", "cpu", "ram_kit"}
+_NVME_BRAND_RE = re.compile(
+    r"\b(samsung|wd|western digital|crucial|kingston|seagate|lexar|"
+    r"solidigm|corsair|xpg|adata|hp)\b",
+    re.IGNORECASE,
+)
+_NVME_SERIES_RE = re.compile(
+    r"\b(nv2|9[789]0\s*pro|sn[0-9]{3,4}x?|p[0-9]\s*plus|p5\s*plus|"
+    r"mx500|t500|kc3000|firecuda\s*[0-9]+|mp600(?:\s*elite)?|"
+    r"gammix\s*s70(?:\s*blade)?|s70\s*blade)\b",
+    re.IGNORECASE,
+)
 MANUAL_SNAPSHOT_ENV = "CENTRE_COM_MANUAL_SNAPSHOT_FILE"
 OBS_SOURCE_LIVE_HTTP = "live_http"
 OBS_SOURCE_LIVE_BROWSER = "live_browser"
@@ -821,15 +832,16 @@ class MarketplaceBenchmarkService:
             gen_match = re.search(r"\bgen\s*([3-5])\b", lowered) or re.search(
                 r"\bpcie\s*([3-5])\b", lowered
             )
+            brand_match = _NVME_BRAND_RE.search(lowered)
+            brand = ""
+            if brand_match:
+                brand = _normalize(brand_match.group(1))
+                if brand == "western digital":
+                    brand = "wd"
+            series_match = _NVME_SERIES_RE.search(lowered)
             return {
-                "brand": "samsung"
-                if "samsung" in lowered
-                else "wd"
-                if "wd" in lowered or "western digital" in lowered
-                else "crucial"
-                if "crucial" in lowered
-                else "",
-                "series": "",
+                "brand": brand,
+                "series": _normalize(series_match.group(1)) if series_match else "",
                 "capacity_gb": _parse_capacity_gb(lowered),
                 "gen": int(gen_match.group(1)) if gen_match else None,
                 "heatsink": bool(re.search(r"\bheatsink\b", lowered)),
@@ -920,11 +932,17 @@ class MarketplaceBenchmarkService:
             if l_brand and c_brand and l_brand == c_brand:
                 score += 0.2
                 rationale.append("Brand aligned")
+            elif l_brand and c_brand:
+                score -= 0.15
+                rationale.append("Brand differs from retail candidate")
             l_series = _normalize(listing.get("series"))
             c_series = _normalize(attrs.get("series") or candidate.get("model"))
             if l_series and c_series and (l_series in c_series or c_series in l_series):
                 score += 0.25
                 rationale.append("Series aligned")
+            elif l_series and c_series:
+                score -= 0.25
+                rationale.append("Series differs from retail candidate")
             l_capacity = listing.get("capacity_gb")
             c_capacity = attrs.get("capacity_gb")
             if isinstance(l_capacity, int) and isinstance(c_capacity, int):

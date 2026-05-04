@@ -153,6 +153,64 @@ describe('MarketplaceMatchDetailScreen', () => {
     expect(screen.getByText(/tracked product benchmark/i)).toBeInTheDocument()
   })
 
+  it('explains when a low-confidence retail anchor is ignored', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        match_id: 'mp_match_ignored_anchor',
+        mission_id: 'mp_mission_ram',
+        mission_name: 'RAM',
+        listing_id: '456',
+        listing_url: 'https://www.facebook.com/marketplace/item/456/',
+        title: 'Corsair Vengeance LPX 32GB DDR4',
+        price: '$50',
+        price_value: 50,
+        location: 'Melbourne VIC',
+        seller_name: null,
+        captured_at: '2026-05-04T01:28:29Z',
+        score: 80,
+        decision_band: 'candidate',
+        reasons_for: ['Matched mission keyword: 32GB'],
+        reasons_against: [],
+        confidence: 0.66,
+        raw_text_snapshot: 'Corsair Vengeance LPX 32GB DDR4.',
+        status: 'new',
+        metadata: {},
+        benchmark: {
+          source: 'centre_com',
+          matched_product: 'Corsair Vengeance 32GB DDR5-6000 CL36 Memory Kit',
+          current_price: 189,
+          confidence: 0.4,
+          low_confidence: true,
+          review_status: 'pending_review',
+        },
+        price_comparison: {
+          listing_price: 50,
+          retail_anchor_price: null,
+          verdict: 'unavailable',
+          color: 'slate',
+          comparison_state: 'retail_anchor_needs_review',
+          unavailable_reason:
+            'A retail benchmark candidate exists, but it was not used because the retail benchmark match still requires review.',
+          next_action:
+            'Accept the retail benchmark review if it is correct, or link a better tracked product/retail anchor before comparing prices.',
+        },
+        user_feedback: null,
+        updated_at: '2026-05-04T01:28:29Z',
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchDetailScreen apiKey="" matchId="mp_match_ignored_anchor" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Corsair Vengeance LPX 32GB DDR4')).toBeInTheDocument()
+    })
+    expect(screen.getByText(/retail anchor needs review/i)).toBeInTheDocument()
+    expect(screen.getByText(/not used/i)).toBeInTheDocument()
+    expect(screen.getByText(/accept the retail benchmark review/i)).toBeInTheDocument()
+  })
+
   it('records not interested feedback from the detail screen', async () => {
     const fetchMock = vi
       .fn()

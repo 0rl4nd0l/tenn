@@ -176,6 +176,15 @@ export interface MarketplacePriceComparison {
   comparison_state?: string | null
   unavailable_reason?: string | null
   next_action?: string | null
+  ignored_retail_anchor?: {
+    source?: string | null
+    price?: number | null
+    matched_product?: string | null
+    confidence?: number | null
+    review_status?: string | null
+    low_confidence?: boolean | null
+    reason?: string | null
+  } | null
 }
 
 export type MarketplaceMatchFeedbackValue = 'interested' | 'not_interested'

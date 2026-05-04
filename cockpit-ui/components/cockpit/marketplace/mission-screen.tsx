@@ -40,6 +40,11 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { MarketplaceAssistant } from './marketplace-assistant'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import {
+  comparisonHelpText,
+  comparisonNeedsBenchmarkSetup,
+  comparisonStatusLabel,
+} from './price-comparison'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 import { cn } from '@/lib/utils'
 
@@ -257,10 +262,6 @@ function missionScanIntervalMinutes(mission: MarketplaceMission): number {
   return Math.round(raw)
 }
 
-function missionAggressiveAlertingEnabled(mission: MarketplaceMission): boolean {
-  return Boolean((mission.scan_config || {}).aggressive_alerting)
-}
-
 function formatCurrency(value: number | null | undefined): string {
   if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
   return new Intl.NumberFormat('en-AU', {
@@ -417,6 +418,7 @@ function listingPriceLabel(match: MarketplaceMatch): string {
 
 function benchmarkMissingReasons(match: MarketplaceMatch): string[] {
   const benchmark = match.benchmark ?? null
+  const comparison = match.price_comparison ?? null
   const evidence = priceEvidenceForMatch(match)
   const reasons: string[] = []
   const hasListingPrice =
@@ -424,8 +426,12 @@ function benchmarkMissingReasons(match: MarketplaceMatch): string[] {
     (typeof match.price_value === 'number' && Number.isFinite(match.price_value)) ||
     (typeof evidence?.resolved_price_value === 'number' && Number.isFinite(evidence.resolved_price_value))
 
-  if (!hasListingPrice) {
+  if (comparison?.comparison_state === 'missing_listing_price' || !hasListingPrice) {
     reasons.push('Listing price missing')
+  }
+  if (comparisonNeedsBenchmarkSetup(comparison)) {
+    reasons.push(comparisonStatusLabel(comparison))
+    return reasons
   }
   if (!benchmark) {
     reasons.push('Benchmark overlay missing')
@@ -454,6 +460,7 @@ function benchmarkNeedsReview(match: MarketplaceMatch): boolean {
 }
 
 function benchmarkReviewLabel(match: MarketplaceMatch): string {
+  if (comparisonNeedsBenchmarkSetup(match.price_comparison)) return 'needs setup'
   const benchmark = match.benchmark ?? null
   if (!benchmark) return 'benchmark missing'
   if (benchmark.low_confidence || /pending|review/i.test(benchmark.review_status || '')) {
@@ -1957,6 +1964,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 <div className="grid gap-3 xl:grid-cols-2">
                   {sortedBenchmarkMatches.slice(0, 18).map((match) => {
                     const benchmark = match.benchmark ?? null
+                    const comparison = match.price_comparison ?? null
+                    const comparisonHelp = comparisonHelpText(comparison)
+                    const retailAnchorIgnored = comparison?.comparison_state === 'retail_anchor_needs_review'
                     const media = listingMediaForMatch(match)
                     const firstMedia = media[0] ?? null
                     const priceEvidence = priceEvidenceForMatch(match)
@@ -2022,7 +2032,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                     ? 'Missing'
                                     : formatCurrency(benchmark.current_price)}
                                 </div>
-                                <div className="mt-1 text-xs text-muted-foreground">Centre Com now</div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {retailAnchorIgnored ? 'ignored pending review' : 'Centre Com now'}
+                                </div>
                               </div>
                               <div className="rounded-md border border-border/60 bg-background/70 p-2">
                                 <div className="text-xs uppercase text-muted-foreground">30d median</div>
@@ -2038,7 +2050,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                               <div className="rounded-md border border-border/60 bg-background/70 p-2">
                                 <div className="text-xs uppercase text-muted-foreground">Delta</div>
                                 <div className="mt-1 font-mono font-semibold">
-                                  {benchmark?.listing_delta_pct == null
+                                  {retailAnchorIgnored
+                                    ? 'Review first'
+                                    : benchmark?.listing_delta_pct == null
                                     ? 'Unavailable'
                                     : formatDelta(benchmark.listing_delta_pct)}
                                 </div>
@@ -2096,6 +2110,10 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                   <p className="text-destructive">{benchmark.warning}</p>
                                 )}
                               </div>
+                            )}
+
+                            {comparisonHelp && (
+                              <p className="text-xs text-muted-foreground">{comparisonHelp}</p>
                             )}
 
                             {benchmark?.rationale && benchmark.rationale.length > 0 && (

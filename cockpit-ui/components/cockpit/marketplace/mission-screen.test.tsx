@@ -842,6 +842,94 @@ describe('MarketplaceMissionScreen', () => {
     expect(within(reviewCards[0]).getByText('Current retail price missing')).toBeInTheDocument()
   })
 
+  it('uses price comparison state in benchmark review cards', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/cockpit/marketplace/browser-health') {
+        return {
+          ok: true,
+          json: async () => ({
+            status: 'ready',
+            cdp_url: 'http://127.0.0.1:9222',
+            browser_family: 'chrome',
+            profile_path: '/tmp/profile',
+            challenge_detected: false,
+            last_checked_at: '2026-05-04T08:00:00Z',
+            detail: 'Marketplace browser profile is ready.',
+          }),
+        }
+      }
+      if (url === '/api/cockpit/marketplace/missions') {
+        return { ok: true, json: async () => ({ items: [] }) }
+      }
+      if (url === '/api/cockpit/marketplace/scans') {
+        return { ok: true, json: async () => ({ items: [] }) }
+      }
+      if (url === '/api/cockpit/marketplace/matches') {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                match_id: 'match-listing-only',
+                mission_id: 'mission-storage',
+                mission_name: 'Storage',
+                listing_id: 'listing-storage',
+                listing_url: 'https://example.test/storage',
+                title: 'Kingston NV2 2TB NVMe SSD',
+                price: 'AU$300 Kingston NV2 2TB NVMe SSD Melbourne, VIC',
+                price_value: 300,
+                location: 'Melbourne',
+                seller_name: null,
+                captured_at: '2026-05-04T08:00:00Z',
+                score: 95,
+                decision_band: 'strong_match',
+                reasons_for: ['Matched mission keyword: 2TB'],
+                reasons_against: [],
+                confidence: 0.9,
+                raw_text_snapshot: 'Kingston NV2 2TB NVMe SSD',
+                screenshot_path: null,
+                listing_media: [],
+                status: 'new',
+                metadata: {},
+                benchmark: null,
+                value_context: null,
+                price_comparison: {
+                  listing_price: 300,
+                  used_market_median: null,
+                  retail_anchor_price: null,
+                  verdict: 'unavailable',
+                  color: 'slate',
+                  comparison_state: 'missing_benchmark_anchor',
+                  unavailable_reason:
+                    'Listing price was captured, but no used-market benchmark or retail/RRP anchor is available for the matched product.',
+                  next_action:
+                    'Link or calibrate a tracked product benchmark, then add accepted marketplace observations or a retail anchor.',
+                },
+                updated_at: '2026-05-04T08:00:00Z',
+              },
+            ],
+          }),
+        }
+      }
+      return { ok: false, json: async () => ({ detail: `Unhandled URL in test: ${url}` }) }
+    })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Kingston NV2 2TB NVMe SSD')).toBeInTheDocument()
+    })
+    const card = screen.getByTestId('marketplace-benchmark-listing')
+    expect(within(card).getByText('needs setup')).toBeInTheDocument()
+    expect(within(card).getByText('benchmark unavailable')).toBeInTheDocument()
+    expect(within(card).getByText(/listing price was captured/i)).toBeInTheDocument()
+    expect(within(card).getByText(/tracked product benchmark/i)).toBeInTheDocument()
+    expect(within(card).queryByText('Listing price missing')).not.toBeInTheDocument()
+  })
+
   it('links and unlinks one primary tracked product for a mission', async () => {
     let linked = false
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

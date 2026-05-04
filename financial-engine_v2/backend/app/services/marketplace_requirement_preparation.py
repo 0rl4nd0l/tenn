@@ -158,9 +158,17 @@ def prepare_requirement_driven_mission(
         return mission
 
     deployment_args = _deployment_args(mission)
-    profile = marketplace_requirement_profile(mission) or _build_profile_from_mission(
-        mission
-    )
+    stored_profile = marketplace_requirement_profile(mission)
+    rebuilt_profile = _build_profile_from_mission(mission)
+    if (
+        isinstance(stored_profile, dict)
+        and stored_profile.get("mode") == "exact_product"
+        and rebuilt_profile.get("mode") == "requirement_driven"
+        and not deployment_args.get("candidate_count")
+    ):
+        profile = rebuilt_profile
+    else:
+        profile = stored_profile or rebuilt_profile
     if not isinstance(profile, dict):
         raise RequirementMissionPreparationError(
             mission_id,

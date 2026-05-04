@@ -178,3 +178,22 @@ def test_enrich_match_is_read_only_unless_persist_requested(tmp_path: Path) -> N
         ).fetchone()[0]
         == 1
     )
+
+
+def test_enrich_match_keeps_known_nvme_series_mismatches_unmatched(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceBenchmarkService(store)
+    match = {
+        "match_id": "match-kingston-nv2",
+        "listing_id": "listing-kingston-nv2",
+        "mission_id": "mission-storage",
+        "title": "Kingston NV2 2TB PCIe 4.0 NVMe M.2 SSD",
+        "raw_text_snapshot": "Kingston NV2 2TB PCIe 4.0 NVMe M.2 SSD",
+        "price": "$300",
+        "price_value": 300,
+    }
+
+    enriched = service.enrich_match(match)
+
+    assert enriched["benchmark"]["matched_product"] is None
+    assert enriched["benchmark"]["confidence"] < 0.35

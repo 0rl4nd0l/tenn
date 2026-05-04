@@ -67,6 +67,22 @@ _GPU_MODEL_RE = re.compile(
     r"|\b(?:amd\s+|radeon\s+)?rx\s*[5679][0-9]{3}(?:\s*(?:xtx|xt))?\b",
     re.IGNORECASE,
 )
+_SSD_EVIDENCE_RE = re.compile(r"\b(ssd|nvme|m\.?\s*2|pcie|gen\s*[345])\b", re.IGNORECASE)
+_SSD_WRONG_CATEGORY_RE = re.compile(
+    r"\b(hdd|hhd|hard\s*drive|usb\s+storage|game\s+drive|time\s+capsule|"
+    r"portable|external|enclosure|passport|t7(?:\s*shield)?)\b",
+    re.IGNORECASE,
+)
+_SSD_MODEL_RE = re.compile(
+    r"\b(nv2|9[789]0\s*pro|sn[0-9]{3,4}x?|p[0-9]\s*plus|p5\s*plus|"
+    r"mx500|t500|kc3000|firecuda\s*[0-9]+|mp600(?:\s*elite)?|"
+    r"gammix\s*s70(?:\s*blade)?|s70\s*blade)\b",
+    re.IGNORECASE,
+)
+_RAM_MODEL_RE = re.compile(
+    r"\b(vengeance|ripjaws|fury\s*beast|trident|dominator|ballistix)\b",
+    re.IGNORECASE,
+)
 _CITY_STATE_HINTS: dict[str, str] = {
     "melbourne": "victoria",
     "geelong": "victoria",
@@ -180,11 +196,26 @@ def _is_requirement_driven_mission(mission: dict[str, Any]) -> bool:
     return isinstance(profile, dict) and profile.get("mode") == "requirement_driven"
 
 
+def _tracked_category(value: Any) -> str:
+    normalized = _normalize(value)
+    aliases = {
+        "graphics": "gpu",
+        "graphics_card": "gpu",
+        "processor": "cpu",
+        "memory": "ram",
+        "ram_kit": "ram",
+        "nvme": "ssd",
+        "nvme_m2": "ssd",
+    }
+    return aliases.get(normalized, normalized)
+
+
 def _requirement_category(mission: dict[str, Any]) -> str:
     profile = _requirement_profile(mission)
     if isinstance(profile, dict):
-        return _normalize(profile.get("category"))
-    return _normalize(mission.get("category_hint"))
+        return _tracked_category(profile.get("category"))
+    return _tracked_category(mission.get("category_hint"))
+
 
 
 def _candidate_identity_values(mission: dict[str, Any]) -> list[str]:
@@ -343,6 +374,60 @@ def _minimum_requirement_value(mission: dict[str, Any], field: str) -> float | N
         except (TypeError, ValueError):
             return None
     return None
+
+
+def _storage_capacity_gb(text: str) -> int | None:
+    match = re.search(r"\b(\d+(?:\.\d+)?)\s*(tb|gb)\b", text, re.IGNORECASE)
+    if not match:
+        return None
+    value = float(match.group(1))
+    unit = match.group(2).lower()
+    return int(value * 1000) if unit == "tb" else int(value)
+
+
+def _mission_storage_capacity_targets(mission: dict[str, Any]) -> set[int]:
+    hard = mission.get("hard_filters") or {}
+    targets: set[int] = set()
+    for term in [
+        *_string_list(hard.get("include_keywords")),
+        *_string_list(hard.get("required_terms")),
+    ]:
+        capacity = _storage_capacity_gb(term.lower())
+        if capacity is not None:
+            targets.add(capacity)
+    return targets
+
+
+def _category_fit_rejection(normalized_text: str, mission: dict[str, Any]) -> str | None:
+    category = _requirement_category(mission)
+    if category != "ssd":
+        return None
+    if _SSD_WRONG_CATEGORY_RE.search(normalized_text):
+        return "Listing appears outside the requested internal NVMe SSD category"
+    if not _SSD_EVIDENCE_RE.search(normalized_text):
+        return "Required SSD/NVMe evidence was not found"
+    targets = _mission_storage_capacity_targets(mission)
+    listing_capacity = _storage_capacity_gb(normalized_text)
+    if targets and listing_capacity is not None and listing_capacity not in targets:
+        target_label = ", ".join(
+            f"{target // 1000}TB" if target >= 1000 and target % 1000 == 0 else f"{target}GB"
+            for target in sorted(targets)
+        )
+        return f"Listing capacity does not match target capacity: {target_label}"
+    return None
+
+
+def _strong_category_identity_evidence(normalized_text: str, mission: dict[str, Any]) -> bool:
+    category = _requirement_category(mission)
+    if category == "ssd":
+        return bool(_SSD_MODEL_RE.search(normalized_text)) or bool(
+            _strong_candidate_model_evidence(normalized_text, mission)
+        )
+    if category == "ram":
+        return bool(_RAM_MODEL_RE.search(normalized_text)) or bool(
+            _strong_candidate_model_evidence(normalized_text, mission)
+        )
+    return True
 
 
 def _explicit_gpu_vram_gb(normalized_text: str) -> int | None:
@@ -749,6 +834,10 @@ def evaluate_marketplace_listing(
     if required_conditions and not any(term.lower() in normalized for term in required_conditions):
         return reject("Required condition terms were not found")
 
+    category_rejection = _category_fit_rejection(normalized, mission)
+    if category_rejection:
+        return reject(category_rejection)
+
     location_names = _string_list(hard.get("location_names"))
     if location_names and location:
         if not _location_matches_scope(location, location_names):
@@ -850,6 +939,12 @@ def evaluate_marketplace_listing(
         band = "candidate"
     else:
         band = "reject"
+
+    if band == "strong_match" and not _strong_category_identity_evidence(normalized, mission):
+        band = "candidate"
+        reasons_against.append(
+            "Strong match requires model or series evidence for this product category"
+        )
 
     return {
         "eligibility": "pass" if band != "reject" else "reject",

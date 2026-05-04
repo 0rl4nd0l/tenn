@@ -17,10 +17,20 @@ from cockpit.storage.state import StateStore
 
 
 PRODUCT_CATEGORIES = {"gpu", "cpu", "ram", "ssd"}
+TRACKED_PRODUCT_CATEGORY_ALIASES = {
+    "graphics": "gpu",
+    "graphics_card": "gpu",
+    "processor": "cpu",
+    "memory": "ram",
+    "ram_kit": "ram",
+    "nvme": "ssd",
+    "nvme_m2": "ssd",
+}
 PRODUCT_STATUSES = {"active", "inactive"}
 OBSERVATION_REVIEW_STATES = {"pending_review", "accepted", "rejected"}
 CAPTURE_MODES = {"manual", "scanner", "test_seed", "future_adapter"}
 VALUE_CONFIDENCE_ORDER = {"low": 0, "medium": 1, "high": 2}
+RETAIL_ANCHOR_REVIEW_STATES = {"accepted", "auto_accepted"}
 
 
 def _now() -> datetime:
@@ -41,6 +51,11 @@ def _clean(value: Any) -> str:
 
 def _lower(value: Any) -> str:
     return _clean(value).lower()
+
+
+def normalize_tracked_product_category(value: Any) -> str:
+    lowered = _lower(value)
+    return TRACKED_PRODUCT_CATEGORY_ALIASES.get(lowered, lowered)
 
 
 def _json_dumps(value: Any) -> str:
@@ -105,6 +120,28 @@ def _retail_anchor_label(retail_anchor: dict[str, Any]) -> str | None:
         if value:
             return value
     return None
+
+
+def _benchmark_retail_anchor_usable(benchmark: dict[str, Any]) -> bool:
+    review_status = _lower(benchmark.get("review_status"))
+    if review_status == "accepted":
+        return True
+    if review_status and review_status not in RETAIL_ANCHOR_REVIEW_STATES:
+        return False
+    if bool(benchmark.get("low_confidence")):
+        return False
+    return True
+
+
+def _ignored_retail_anchor_reason(benchmark: dict[str, Any]) -> str:
+    review_status = _lower(benchmark.get("review_status"))
+    if review_status == "rejected":
+        return "the retail benchmark match was rejected"
+    if review_status == "pending_review":
+        return "the retail benchmark match still requires review"
+    if bool(benchmark.get("low_confidence")):
+        return "the retail benchmark match is low confidence"
+    return "the retail benchmark match is not approved for comparison"
 
 
 def _price_delta(listing_price: float | None, anchor_price: float | None) -> dict[str, Any]:
@@ -221,7 +258,7 @@ def detect_listing_junk(
 
 
 def normalize_product_text(category: str, text: str) -> dict[str, Any]:
-    category = _lower(category)
+    category = normalize_tracked_product_category(category)
     if category not in PRODUCT_CATEGORIES:
         raise ValueError(f"unsupported product category: {category}")
     cleaned = _clean(text)
@@ -298,10 +335,26 @@ def normalize_product_text(category: str, text: str) -> dict[str, Any]:
         gen = re.search(r"\bgen\s*([345])\b|\bpcie\s*([345])(?:\.0)?\b", lowered)
         if gen:
             attributes["pcie_generation"] = int(gen.group(1) or gen.group(2))
-        brand = re.search(r"\b(samsung|wd|western digital|crucial|kingston|seagate|lexar|solidigm)\b", lowered)
+        brand = re.search(
+            r"\b(samsung|wd|western digital|crucial|kingston|seagate|lexar|"
+            r"solidigm|corsair|xpg|adata|hp)\b",
+            lowered,
+        )
         if brand:
-            attributes["brand"] = "WD" if brand.group(1) == "western digital" else brand.group(1).title()
-        model = re.search(r"\b(9[789]0\s*pro|sn[0-9]{3,4}x?|p[0-9]\s*plus|mx500|kc3000|firecuda\s*[0-9]+)\b", lowered)
+            brand_value = brand.group(1)
+            attributes["brand"] = (
+                "WD"
+                if brand_value == "western digital"
+                else "XPG"
+                if brand_value == "xpg"
+                else brand_value.title()
+            )
+        model = re.search(
+            r"\b(nv2|9[789]0\s*pro|sn[0-9]{3,4}x?|p[0-9]\s*plus|"
+            r"mx500|t500|kc3000|firecuda\s*[0-9]+|mp600(?:\s*elite)?|"
+            r"gammix\s*s70(?:\s*blade)?|s70\s*blade)\b",
+            lowered,
+        )
         if model:
             attributes["model"] = _clean(model.group(1)).upper()
 
@@ -514,7 +567,7 @@ class MarketplacePriceIntelligenceService:
             self._conn.commit()
 
     def create_tracked_product(self, payload: dict[str, Any]) -> dict[str, Any]:
-        category = _lower(payload.get("category"))
+        category = normalize_tracked_product_category(payload.get("category"))
         if category not in PRODUCT_CATEGORIES:
             raise ValueError(f"unsupported product category: {category}")
         brand = _clean(payload.get("brand")) or None
@@ -575,7 +628,7 @@ class MarketplacePriceIntelligenceService:
             args.append(_lower(status))
         if category:
             where.append("category = ?")
-            args.append(_lower(category))
+            args.append(normalize_tracked_product_category(category))
         query = "SELECT * FROM marketplace_tracked_products"
         if where:
             query += " WHERE " + " AND ".join(where)
@@ -1289,11 +1342,25 @@ class MarketplacePriceIntelligenceService:
         retail_anchor_price = _parse_price(value_context.get("retail_anchor_price"))
         retail_anchor_label = _clean(value_context.get("retail_anchor_label")) or None
         benchmark = match.get("benchmark") if isinstance(match.get("benchmark"), dict) else {}
+        ignored_retail_anchor: dict[str, Any] | None = None
         if retail_anchor_price is None:
             for key in ("current_price", "rrp_price", "rrp", "retail_anchor_price"):
-                retail_anchor_price = _parse_price(benchmark.get(key))
-                if retail_anchor_price is not None:
+                candidate_retail_anchor = _parse_price(benchmark.get(key))
+                if candidate_retail_anchor is None:
+                    continue
+                if _benchmark_retail_anchor_usable(benchmark):
+                    retail_anchor_price = candidate_retail_anchor
                     break
+                ignored_retail_anchor = {
+                    "source": _clean(benchmark.get("source")) or None,
+                    "price": candidate_retail_anchor,
+                    "matched_product": _clean(benchmark.get("matched_product")) or None,
+                    "confidence": benchmark.get("confidence"),
+                    "review_status": _clean(benchmark.get("review_status")) or None,
+                    "low_confidence": bool(benchmark.get("low_confidence")),
+                    "reason": _ignored_retail_anchor_reason(benchmark),
+                }
+                break
         if retail_anchor_label is None and retail_anchor_price is not None:
             retail_anchor_label = _clean(benchmark.get("source")) or None
 
@@ -1341,6 +1408,16 @@ class MarketplacePriceIntelligenceService:
             else:
                 verdict = "close_to_retail"
                 color = "red"
+        elif ignored_retail_anchor is not None:
+            comparison_state = "retail_anchor_needs_review"
+            unavailable_reason = (
+                "A retail benchmark candidate exists, but it was not used because "
+                f"{ignored_retail_anchor['reason']}."
+            )
+            next_action = (
+                "Accept the retail benchmark review if it is correct, or link a "
+                "better tracked product/retail anchor before comparing prices."
+            )
         else:
             comparison_state = "missing_benchmark_anchor"
             unavailable_reason = (
@@ -1371,6 +1448,7 @@ class MarketplacePriceIntelligenceService:
             "comparison_state": comparison_state,
             "unavailable_reason": unavailable_reason,
             "next_action": next_action,
+            "ignored_retail_anchor": ignored_retail_anchor,
         }
 
     def variant_match_confidence(

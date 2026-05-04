@@ -63,6 +63,11 @@ def test_product_normalizer_extracts_pc_part_attributes() -> None:
     assert ssd["attributes"]["interface"] == "NVMe"
     assert ssd["attributes"]["pcie_generation"] == 4
 
+    nv2 = normalize_product_text("nvme_m2", "Kingston NV2 2TB NVMe Gen4")
+    assert nv2["category"] == "ssd"
+    assert nv2["attributes"]["brand"] == "Kingston"
+    assert nv2["attributes"]["model"] == "NV2"
+
 
 def test_junk_detection_flags_negative_listing_patterns() -> None:
     result = detect_listing_junk(
@@ -171,6 +176,25 @@ def test_candidate_product_reuse_and_listing_candidate_resolution(tmp_path: Path
         contexts,
     )
     assert mismatch["matched"] is False
+
+
+def test_tracked_product_category_aliases_normalize_to_storage_contract(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = service.create_tracked_product(
+        {
+            "category": "nvme_m2",
+            "brand": "Kingston",
+            "model_family": "NV2",
+            "variant": "2TB Gen4",
+            "attributes": {"capacity_gb": 2000, "interface": "NVMe"},
+        }
+    )
+
+    assert product["category"] == "ssd"
+    listed = service.list_tracked_products(category="nvme_m2")
+    assert listed[0]["tracked_product_id"] == product["tracked_product_id"]
 
 
 def test_observation_ingest_updates_listing_timeline(tmp_path: Path) -> None:
@@ -422,6 +446,69 @@ def test_match_price_comparison_explains_missing_benchmark_anchor(
     assert comparison["comparison_state"] == "missing_benchmark_anchor"
     assert "Listing price was captured" in comparison["unavailable_reason"]
     assert "tracked product benchmark" in comparison["next_action"]
+
+
+def test_match_price_comparison_ignores_pending_low_confidence_retail_benchmark(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    match = {
+        "match_id": "mp_match_pending_retail",
+        "mission_id": "mp_mission_pending_retail",
+        "title": "Corsair Vengeance LPX 32GB DDR4",
+        "price": "$50",
+        "price_value": 50,
+        "raw_text_snapshot": "Corsair Vengeance LPX 32GB DDR4.",
+        "benchmark": {
+            "source": "centre_com",
+            "matched_product": "Corsair Vengeance 32GB DDR5-6000 CL36 Memory Kit",
+            "current_price": 189,
+            "confidence": 0.4,
+            "low_confidence": True,
+            "review_status": "pending_review",
+        },
+    }
+
+    comparison = service.build_match_price_comparison(match=match, value_context=None)
+
+    assert comparison["listing_price"] == 50
+    assert comparison["retail_anchor_price"] is None
+    assert comparison["primary_anchor"] == {"kind": "none", "price": None}
+    assert comparison["verdict"] == "unavailable"
+    assert comparison["comparison_state"] == "retail_anchor_needs_review"
+    assert comparison["ignored_retail_anchor"]["price"] == 189
+    assert comparison["ignored_retail_anchor"]["review_status"] == "pending_review"
+    assert "not used" in comparison["unavailable_reason"]
+
+
+def test_match_price_comparison_uses_manually_accepted_low_confidence_retail_benchmark(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    comparison = service.build_match_price_comparison(
+        match={
+            "match_id": "mp_match_accepted_retail",
+            "mission_id": "mp_mission_accepted_retail",
+            "title": "Corsair Vengeance LPX 32GB DDR4",
+            "price": "$50",
+            "price_value": 50,
+            "raw_text_snapshot": "Corsair Vengeance LPX 32GB DDR4.",
+            "benchmark": {
+                "source": "centre_com",
+                "matched_product": "Corsair Vengeance 32GB DDR5-6000 CL36 Memory Kit",
+                "current_price": 189,
+                "confidence": 0.4,
+                "low_confidence": True,
+                "review_status": "accepted",
+            },
+        },
+        value_context=None,
+    )
+
+    assert comparison["retail_anchor_price"] == 189
+    assert comparison["comparison_state"] == "retail_anchor_only"
+    assert comparison["verdict"] == "below_retail_anchor"
+    assert comparison["ignored_retail_anchor"] is None
 
 
 def test_value_assessment_reports_no_snapshot_low_data_and_stale_states(

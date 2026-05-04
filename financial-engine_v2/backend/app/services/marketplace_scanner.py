@@ -27,7 +27,11 @@ from app.services.marketplace_mission_service import (
     MarketplaceMissionService,
     normalize_marketplace_location_names,
 )
-from app.services.marketplace_price_intelligence import MarketplacePriceIntelligenceService
+from app.services.marketplace_price_intelligence import (
+    MarketplacePriceIntelligenceService,
+    normalize_product_text,
+    normalize_tracked_product_category,
+)
 from app.services.marketplace_requirement_preparation import (
     RequirementMissionPreparationError,
     marketplace_candidate_contexts,
@@ -271,9 +275,39 @@ def _format_detail_reasons(counter: dict[str, int]) -> str:
 def _marketplace_category(mission: dict[str, Any]) -> str | None:
     profile = marketplace_requirement_profile(mission)
     if isinstance(profile, dict) and profile.get("category"):
-        return str(profile["category"]).strip().lower()
+        return normalize_tracked_product_category(profile["category"])
     category = str(mission.get("category_hint") or "").strip().lower()
-    return category or None
+    return normalize_tracked_product_category(category) if category else None
+
+
+def _listing_product_metadata(mission: dict[str, Any], detail: dict[str, Any]) -> dict[str, Any]:
+    category = _marketplace_category(mission)
+    if category not in {"gpu", "cpu", "ram", "ssd"}:
+        return {}
+    text = " ".join(
+        str(value or "")
+        for value in [
+            detail.get("title"),
+            detail.get("raw_text_snapshot"),
+            detail.get("price"),
+        ]
+    )
+    normalized = normalize_product_text(category, text)
+    attributes = normalized.get("attributes")
+    if not isinstance(attributes, dict):
+        attributes = {}
+    metadata: dict[str, Any] = {
+        "category": normalized.get("category") or category,
+        "canonical_key": normalized.get("canonical_key"),
+        "attributes": attributes,
+    }
+    brand = attributes.get("brand") or attributes.get("vendor")
+    if brand:
+        metadata["brand"] = brand
+    model = attributes.get("model") or attributes.get("chip_model") or attributes.get("exact_sku")
+    if model:
+        metadata["model"] = model
+    return metadata
 
 
 class MarketplaceScanner:
@@ -1074,6 +1108,7 @@ class MarketplaceScanner:
                                 "material_change_reasons": material_reasons,
                                 "detail_hash": detail_hash,
                                 "price_evidence": price_evidence,
+                                **_listing_product_metadata(mission, scored_detail),
                                 "candidate_resolution": _candidate_resolution_metadata(
                                     candidate_resolution
                                 ),

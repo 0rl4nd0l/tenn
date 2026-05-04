@@ -69,6 +69,34 @@ def _requirement_gpu_mission() -> dict:
     }
 
 
+def _ssd_mission() -> dict:
+    return {
+        "category_hint": "ssd",
+        "hard_filters": {
+            "include_keywords": ["2TB", "4TB", "NVMe", "M.2", "SSD"],
+            "exclude_keywords": ["SATA", "external drive", "portable SSD", "hard drive", "HDD"],
+            "location_names": ["Melbourne"],
+            "price_max": 500,
+        },
+        "soft_preferences": {
+            "preferred_brands": ["Crucial", "Samsung", "WD", "Kingston"],
+            "nice_to_have_terms": ["Gen4", "M.2", "NVMe"],
+            "preferred_condition_terms": ["new"],
+        },
+        "deployment_args": {
+            "requirement_profile": {
+                "mode": "exact_product",
+                "category": "ssd",
+            },
+        },
+        "scan_config": {
+            "strong_match_threshold": 85,
+            "candidate_threshold": 70,
+            "aggressive_alerting": False,
+        },
+    }
+
+
 def test_prefilter_marketplace_card_rejects_forbidden_term() -> None:
     result = prefilter_marketplace_card(
         {
@@ -504,6 +532,58 @@ def test_evaluate_marketplace_listing_returns_strong_match() -> None:
     assert result["decision_band"] == "strong_match"
     assert result["eligibility"] == "pass"
     assert result["score"] >= 85
+
+
+def test_evaluate_marketplace_listing_rejects_storage_false_positive() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "New 4TB USB storage",
+            "price": "$55",
+            "location": "Melbourne",
+            "description": "USB storage device.",
+            "raw_text_lines": ["New 4TB USB storage"],
+        },
+        _ssd_mission(),
+        observed_price_band={"min": 50, "median": 300, "max": 500},
+    )
+
+    assert result["decision_band"] == "reject"
+    assert result["reasons_against"] == [
+        "Listing appears outside the requested internal NVMe SSD category"
+    ]
+
+
+def test_evaluate_marketplace_listing_caps_broad_ssd_match_at_candidate() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "2TB NVMe M.2 SSD",
+            "price": "$250",
+            "location": "Melbourne",
+            "description": "Generic 2TB NVMe SSD, no model shown.",
+            "raw_text_lines": ["2TB NVMe M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={"min": 200, "median": 350, "max": 500},
+    )
+
+    assert result["decision_band"] == "candidate"
+    assert "Strong match requires model or series evidence" in result["reasons_against"][0]
+
+
+def test_evaluate_marketplace_listing_allows_strong_ssd_model_match() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Samsung 990 Pro 2TB NVMe Gen4 SSD",
+            "price": "$260",
+            "location": "Melbourne",
+            "description": "Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={"min": 200, "median": 350, "max": 500},
+    )
+
+    assert result["decision_band"] == "strong_match"
 
 
 def test_evaluate_marketplace_listing_allows_distance_only_location() -> None:
