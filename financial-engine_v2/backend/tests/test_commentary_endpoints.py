@@ -404,6 +404,20 @@ class TestIngestUrl:
             ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
         assert exc_info.value.status_code == 502
 
+    def test_members_only_video_raises_403(self, monkeypatch):
+        import app.api.commentary as mod
+        from app.services.youtube_transcript_fetcher import MembersOnlyVideoError
+
+        monkeypatch.setattr(
+            mod,
+            "fetch_video_metadata",
+            lambda url: (_ for _ in ()).throw(MembersOnlyVideoError("members-only video")),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert exc_info.value.status_code == 403
+        assert "members-only" in str(exc_info.value.detail)
+
     def test_transcript_unavailable_raises_422(self, monkeypatch):
         import app.api.commentary as mod
         from app.services.youtube_transcript_fetcher import TranscriptUnavailableError

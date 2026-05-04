@@ -20,6 +20,10 @@ class TranscriptUnavailableError(RuntimeError):
     pass
 
 
+class MembersOnlyVideoError(RuntimeError):
+    pass
+
+
 class _QuietYtDlpLogger:
     def debug(self, message: str) -> None:
         pass
@@ -371,6 +375,8 @@ def fetch_video_metadata(url: str) -> YoutubeVideo:
             raise RuntimeError("yt-dlp is required for single-URL ingestion") from exc
         if completed.returncode != 0:
             message = completed.stderr.strip() or completed.stdout.strip() or "yt-dlp failed"
+            if "members-only" in message.lower():
+                raise MembersOnlyVideoError(f"members-only video: {url}")
             raise RuntimeError(message)
         try:
             info = json.loads(completed.stdout)
@@ -386,6 +392,9 @@ def fetch_video_metadata(url: str) -> YoutubeVideo:
             with yt_dlp.YoutubeDL(options) as ydl:
                 info = ydl.extract_info(str(url or "").strip(), download=False)
         except Exception as exc:
+            msg = str(exc)
+            if "members-only" in msg.lower():
+                raise MembersOnlyVideoError(f"members-only video: {url}") from exc
             raise RuntimeError(f"yt-dlp metadata fetch failed for URL: {url}: {exc}") from exc
 
     if not info:

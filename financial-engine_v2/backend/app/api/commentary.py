@@ -29,6 +29,7 @@ from app.services.facebook_marketplace_inspector import (
     is_facebook_marketplace_url,
 )
 from app.services.youtube_transcript_fetcher import (
+    MembersOnlyVideoError,
     TranscriptUnavailableError,
     YoutubeChannelResolutionError,
     _default_fetch_transcript,  # private module-level fetcher; patched directly in tests
@@ -821,6 +822,10 @@ def _ingest_youtube_url_to_staging(
 
     try:
         video = fetch_video_metadata(url)
+    except MembersOnlyVideoError as exc:
+        raise HTTPException(
+            status_code=403, detail=f"members-only video cannot be ingested: {url}"
+        ) from exc
     except RuntimeError as exc:
         raise HTTPException(
             status_code=502, detail=f"metadata fetch failed: {exc}"

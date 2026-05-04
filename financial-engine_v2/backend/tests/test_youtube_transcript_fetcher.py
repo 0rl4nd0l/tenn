@@ -130,6 +130,22 @@ class TestFetchVideoMetadata:
         with pytest.raises(RuntimeError, match="metadata fetch failed"):
             fetch_video_metadata("https://youtu.be/abc123")
 
+    def test_yt_dlp_members_only_error_raises_members_only_video_error(self, monkeypatch):
+        from app.services.youtube_transcript_fetcher import MembersOnlyVideoError
+
+        class StubYDL:
+            def __init__(self, opts): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def extract_info(self, url, download=False):
+                raise Exception("Join this channel to get access to members-only content")
+
+        import yt_dlp
+        monkeypatch.setattr("yt_dlp.YoutubeDL", StubYDL)
+
+        with pytest.raises(MembersOnlyVideoError, match="members-only video"):
+            fetch_video_metadata("https://youtu.be/abc123")
+
     def test_missing_video_id_raises_runtime_error(self, monkeypatch):
         info = _make_ydl_info(video_id="")
 
