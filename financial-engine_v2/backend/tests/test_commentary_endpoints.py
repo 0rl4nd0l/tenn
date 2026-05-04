@@ -12,6 +12,7 @@ from fastapi import HTTPException
 
 from app.api.commentary import (
     TranscriptReviewUpdateRequest,
+    _chunk_takeaways,
     _commentary_takeaways_payload,
     _validate_source_id,
     approve_transcript,
@@ -20,6 +21,66 @@ from app.api.commentary import (
     reject_transcript,
     update_transcript_review,
 )
+
+
+# ---------------------------------------------------------------------------
+# _chunk_takeaways — per-chunk fallback regression
+# ---------------------------------------------------------------------------
+
+def _make_point(index: int, text: str, source_id: str = "test:src:abc") -> dict:
+    return {
+        "payload": {
+            "chunk_index": index,
+            "text": text,
+            "source_id": source_id,
+        }
+    }
+
+
+class TestChunkTakeaways:
+    def test_single_chunk_with_no_punctuation_returns_fallback(self):
+        """Short caption phrases produce no sentences >= 45 chars — fallback should fire."""
+        text = "\n".join(["XJO sitting flat"] * 10)  # all phrases < 45 chars
+        points = [_make_point(0, text)]
+        result = _chunk_takeaways(points, "test:src:abc", limit=5)
+        assert len(result) == 1
+        assert result[0]["text"]  # fallback text included
+
+    def test_multiple_chunks_with_no_punctuation_all_represented(self):
+        """Each chunk should contribute at least one candidate via per-chunk fallback.
+        Regression for bug where only chunk 0 got the fallback."""
+        chunks = [
+            "\n".join([f"chunk {i} short phrase here"] * 8)  # all < 45 chars
+            for i in range(5)
+        ]
+        points = [_make_point(i, text) for i, text in enumerate(chunks)]
+        result = _chunk_takeaways(points, "test:src:abc", limit=5)
+        assert len(result) == 5, (
+            f"Expected 5 takeaways (one per chunk via fallback), got {len(result)}"
+        )
+        # Each result should come from a different chunk
+        chunk_ids = {r["citations"][0]["chunk_id"] for r in result}
+        assert len(chunk_ids) == 5
+
+    def test_chunks_with_sentences_score_above_fallback(self):
+        """Chunks with real sentences should produce multiple takeaways ranked by score."""
+        good_text = (
+            "The XJO showed strong earnings growth and solid dividend yield. "
+            "Market sentiment improved on positive guidance from major sectors. "
+            "Growth margins expanded significantly across the board."
+        )
+        points = [_make_point(0, good_text)]
+        result = _chunk_takeaways(points, "test:src:abc", limit=5)
+        assert len(result) >= 2
+        # Higher-scoring sentences should rank first
+        assert result[0]["score"] >= result[-1]["score"]
+
+    def test_limit_respected_across_many_chunks(self):
+        """With 10 chunks via fallback, limit=3 should return exactly 3."""
+        chunks = ["\n".join([f"chunk {i} phrase"] * 5) for i in range(10)]
+        points = [_make_point(i, text) for i, text in enumerate(chunks)]
+        result = _chunk_takeaways(points, "test:src:abc", limit=3)
+        assert len(result) == 3
 
 
 # ---------------------------------------------------------------------------

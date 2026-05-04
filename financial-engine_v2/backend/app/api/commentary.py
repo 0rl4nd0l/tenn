@@ -311,6 +311,7 @@ def _chunk_takeaways(
             chunk_index = 0
         text = _point_text(point)
         pieces = re.split(r"(?<=[.!?])\s+|\n+", text)
+        chunk_added = False
         for piece in pieces:
             cleaned = _clean_takeaway_text(piece)
             if len(cleaned) < 45:
@@ -320,10 +321,14 @@ def _chunk_takeaways(
                 continue
             seen.add(key)
             candidates.append((_sentence_score(cleaned), chunk_index, cleaned, point))
+            chunk_added = True
 
-        if not candidates and text:
+        # Per-chunk fallback: if no sentence from this chunk qualified (e.g. short
+        # caption phrases with no punctuation), use the first 260 chars of the chunk.
+        if not chunk_added and text:
             cleaned = _clean_takeaway_text(text[:260])
-            if cleaned:
+            if cleaned and cleaned.lower() not in seen:
+                seen.add(cleaned.lower())
                 candidates.append((_sentence_score(cleaned), chunk_index, cleaned, point))
 
     candidates.sort(key=lambda row: (-row[0], row[1], row[2].lower()))
