@@ -823,6 +823,175 @@ def test_cockpit_chat_stream_preserves_watch_youtube_tool_error(monkeypatch) -> 
     assert not [event for event in data_events if event.get("type") == "sources"]
 
 
+def test_cockpit_chat_stream_preserves_youtube_ingest_tool_error(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text=(
+                    "Could not ingest selected YouTube video(s): "
+                    "members-only video cannot be ingested: "
+                    "https://www.youtube.com/watch?v=ULVlVUSSSkI"
+                ),
+                evidence=[
+                    {
+                        "tool": "ingest_youtube_videos",
+                        "arguments": {
+                            "urls": ["https://www.youtube.com/watch?v=ULVlVUSSSkI"],
+                            "takeaway_limit": 5,
+                        },
+                        "result": {
+                            "ok": False,
+                            "count": 0,
+                            "error_count": 1,
+                            "results": [],
+                            "errors": [
+                                {
+                                    "url": "https://www.youtube.com/watch?v=ULVlVUSSSkI",
+                                    "status_code": 403,
+                                    "detail": (
+                                        "members-only video cannot be ingested: "
+                                        "https://www.youtube.com/watch?v=ULVlVUSSSkI"
+                                    ),
+                                }
+                            ],
+                            "partial_ok": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="command",
+                routing_metadata={
+                    "model": "claude-sonnet-4-20250514",
+                    "latency_ms": 1929,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "ingest 2", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == (
+        "Could not ingest selected YouTube video(s): "
+        "members-only video cannot be ingested: "
+        "https://www.youtube.com/watch?v=ULVlVUSSSkI"
+    )
+    assert "Sources dropdown" not in done_events[-1]["data"]["text"]
+    assert "grounding_guard" not in done_events[-1]["data"]["routing_metadata"]
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
+def test_cockpit_chat_stream_blocks_financial_claim_with_only_youtube_ingest(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text=(
+                    "Could not ingest selected YouTube video(s), but BHP revenue "
+                    "rose 9% according to the video."
+                ),
+                evidence=[
+                    {
+                        "tool": "ingest_youtube_videos",
+                        "arguments": {
+                            "urls": ["https://www.youtube.com/watch?v=ULVlVUSSSkI"],
+                            "takeaway_limit": 5,
+                        },
+                        "result": {
+                            "ok": False,
+                            "count": 0,
+                            "error_count": 1,
+                            "results": [],
+                            "errors": [
+                                {
+                                    "url": "https://www.youtube.com/watch?v=ULVlVUSSSkI",
+                                    "status_code": 403,
+                                    "detail": "members-only video cannot be ingested",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="agent",
+                routing_metadata={
+                    "model": "claude-sonnet-4-20250514",
+                    "latency_ms": 1929,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "ingest 2", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert "can't verify that from current evidence" in done_events[-1]["data"][
+        "text"
+    ].lower()
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
 def test_cockpit_chat_stream_preserves_bare_operational_error_reply(
     monkeypatch,
 ) -> None:

@@ -2448,6 +2448,7 @@ _COMMANDS_REQUIRING_SOURCES = (
 _ROUTING_PREFIX_RE = re.compile(r"^\s*/(?:advisor|cloud|local|ops)\b", re.IGNORECASE)
 _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
     {
+        "ingest_youtube_videos",
         "watch_youtube_channel",
         "score_ticker",
         "scan_watchlist",

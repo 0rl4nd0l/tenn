@@ -953,3 +953,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The deterministic YouTube selection parser only accepted numbered/ordinal selections (`ingest 1`, `first`, `all`). Natural-language follow-ups that clearly referred to the first/latest cached video were not routed to `ingest_youtube_videos`.
 **Fix:** Added contextual first-video selection for transcript/access/most-recent ingest phrases and made bare `<channel> youtube` route directly to the recent-video preview.
 **Rule:** Any assistant prompt that offers a natural-language next step must have a command-router test for that exact phrase. Do not leave follow-up actions to model synthesis when the backend tool call is deterministic.
+
+---
+
+## L086 — Tool failures are evidence of operations, not unsupported claims
+
+**Date:** 2026-05-04
+**Subsystem:** `financial-engine_v2/backend/app/routes/cockpit_api.py`
+**Symptom:** `ingest 2` selected the correct YouTube video, but a backend 403 members-only transcript failure was replaced by the generic visible-source refusal.
+**Root cause:** The source guard allowed `watch_youtube_channel` operational acknowledgements without visible sources, but did not allow `ingest_youtube_videos`, even though the agent loop had already formatted the concrete backend error.
+**Fix:** Treat `ingest_youtube_videos` as a narrow operational command for no-source guard purposes while preserving the financial-claim block.
+**Rule:** Failed deterministic commands should surface their concrete backend/tool error when the text is operational and non-financial; do not force operators to debug from a generic missing-sources refusal.
