@@ -533,7 +533,7 @@ def test_agent_format_search_web() -> None:
     assert sources[0]["kind"] == "web"
 
 
-def test_holdings_evidence_renders_visible_sources() -> None:
+def test_holdings_evidence_does_not_render_visible_sources() -> None:
     sources = _build_ui_sources(
         [
             {
@@ -551,10 +551,7 @@ def test_holdings_evidence_renders_visible_sources() -> None:
         ]
     )
 
-    assert len(sources) == 1
-    assert sources[0]["title"] == "EIQ holding"
-    assert sources[0]["source_id"] == "h-1"
-    assert "Quantity: 5700.0" in str(sources[0]["snippet"])
+    assert sources == []
 
 
 def test_watchlist_evidence_renders_visible_sources() -> None:

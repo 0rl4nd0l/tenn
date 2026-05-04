@@ -1844,44 +1844,11 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
             )
 
         elif ev_type == "holdings":
-            rows = (
-                details_payload
-                if isinstance(details_payload, list)
-                else (
-                    details.get("items")
-                    if isinstance(details.get("items"), list)
-                    else []
-                )
-            )
-            for row in rows:
-                if not isinstance(row, dict):
-                    continue
-                ticker = str(row.get("ticker") or "").strip().upper()
-                account = str(row.get("account_label") or "").strip()
-                qty = row.get("quantity")
-                avg_cost = row.get("avg_cost")
-                bits: list[str] = []
-                if account:
-                    bits.append(f"Account: {account}")
-                if qty is not None:
-                    bits.append(f"Quantity: {qty}")
-                if avg_cost is not None:
-                    bits.append(f"Avg cost: {avg_cost}")
-                _append_source_item(
-                    items,
-                    seen,
-                    {
-                        **row,
-                        "title": f"{ticker or 'Holding'} holding",
-                        "source_id": (
-                            row.get("holding_id")
-                            or (f"holding:{ticker}" if ticker else None)
-                        ),
-                        "snippet": "; ".join(bits) if bits else None,
-                    },
-                    default_title="Holding",
-                    kind="context",
-                )
+            # Holdings are local personal cockpit state, not source-backed
+            # financial truth or external evidence. Keep them out of the
+            # visible sources list so the web UI does not label the answer as
+            # "Source-backed" from a personal portfolio row.
+            continue
 
         elif ev_type in ("market_update_report", "market_update_reports"):
             reports = (
@@ -2538,19 +2505,52 @@ def _is_marketplace_ui_mode(value: Any) -> bool:
     return str(value or "").strip().lower() == "marketplace"
 
 
+_HOLDINGS_IRRELEVANT_SOURCE_TOOLS = {"screen_tickers", "tv_screener", "get_strategy"}
+
+
+def _response_is_holdings_answer(response: Any) -> bool:
+    metadata = getattr(response, "routing_metadata", None)
+    if isinstance(metadata, dict) and str(metadata.get("canonical_intent") or "") == "holdings":
+        return True
+    for entry in getattr(response, "evidence", None) or []:
+        if isinstance(entry, dict) and str(entry.get("type") or "") == "holdings":
+            return True
+    return False
+
+
+def _holdings_source_safe_evidence(response: Any) -> list[dict[str, Any]]:
+    safe: list[dict[str, Any]] = []
+    for entry in getattr(response, "evidence", None) or []:
+        if not isinstance(entry, dict):
+            continue
+        tool = str(entry.get("tool") or "").strip()
+        if tool in _HOLDINGS_IRRELEVANT_SOURCE_TOOLS:
+            continue
+        safe.append(entry)
+    return safe
+
+
 def _enforce_visible_source_contract(
     message: str,
     response: Any,
     *,
     ui_mode: str | None = None,
 ) -> list[dict[str, Any]]:
-    sources = _build_ui_sources(getattr(response, "evidence", None) or [])
+    holdings_answer = _response_is_holdings_answer(response)
+    evidence_for_sources = (
+        _holdings_source_safe_evidence(response)
+        if holdings_answer
+        else (getattr(response, "evidence", None) or [])
+    )
+    sources = _build_ui_sources(evidence_for_sources)
     text = str(getattr(response, "text", "") or "").strip()
     routing_metadata = dict(getattr(response, "routing_metadata", None) or {})
 
     if _is_marketplace_ui_mode(ui_mode) or _is_marketplace_ui_mode(
         routing_metadata.get("ui_mode")
     ):
+        return sources
+    if holdings_answer:
         return sources
     if not text or getattr(response, "action_preview", None) is not None:
         return sources
@@ -4298,6 +4298,37 @@ class CockpitPreferencesPatchRequest(BaseModel):
     api_default_enabled: bool | None = None
     marketplace_prefer_cloud_routing: bool | None = None
     chat_routing_policy_override: str | None = None
+
+
+class CockpitRouteAliasPreferenceRecord(BaseModel):
+    preference_id: str
+    created_at: str
+    updated_at: str
+    source_utterance: str
+    alias_phrase: str
+    normalized_alias_phrase: str
+    canonical_intent: Literal["holdings"]
+    scope: str
+    confirmation_status: Literal["proposed", "confirmed", "rejected"]
+    enabled: bool
+    provenance_message_id: str | None = None
+
+
+class CockpitRouteAliasPreferenceListResponse(BaseModel):
+    items: list[CockpitRouteAliasPreferenceRecord] = Field(default_factory=list)
+
+
+class CockpitRouteAliasPreferenceProposalRequest(BaseModel):
+    source_utterance: str
+    alias_phrase: str
+    canonical_intent: Literal["holdings"]
+    scope: str = "user"
+    provenance_message_id: str | None = None
+
+
+class CockpitRouteAliasPreferenceDeleteResponse(BaseModel):
+    ok: bool
+    preference_id: str
 
 
 class CockpitActionExecuteRequest(BaseModel):
@@ -7983,6 +8014,146 @@ def cockpit_patch_preferences(
         ) from exc
 
     return cockpit_get_preferences()
+
+
+@router.get(
+    "/preferences/route-aliases",
+    response_model=CockpitRouteAliasPreferenceListResponse,
+)
+def cockpit_list_route_alias_preferences(
+    canonical_intent: Literal["holdings"] | None = None,
+    active_only: bool = False,
+) -> CockpitRouteAliasPreferenceListResponse:
+    try:
+        service = CockpitService.get_instance()
+        rows = service.state_store.list_route_alias_preferences(
+            canonical_intent=canonical_intent,
+            active_only=active_only,
+        )
+    except Exception as exc:
+        logger.exception("Failed to list route-alias preferences")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list route-alias preferences: {str(exc)}",
+        ) from exc
+    return CockpitRouteAliasPreferenceListResponse(
+        items=[CockpitRouteAliasPreferenceRecord(**row) for row in rows]
+    )
+
+
+@router.post(
+    "/preferences/route-aliases",
+    response_model=CockpitRouteAliasPreferenceRecord,
+)
+def cockpit_propose_route_alias_preference(
+    payload: CockpitRouteAliasPreferenceProposalRequest,
+) -> CockpitRouteAliasPreferenceRecord:
+    try:
+        service = CockpitService.get_instance()
+        row = service.state_store.propose_route_alias_preference(
+            source_utterance=payload.source_utterance,
+            alias_phrase=payload.alias_phrase,
+            canonical_intent=payload.canonical_intent,
+            scope=payload.scope,
+            provenance_message_id=payload.provenance_message_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to propose route-alias preference")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to propose route-alias preference: {str(exc)}",
+        ) from exc
+    return CockpitRouteAliasPreferenceRecord(**row)
+
+
+def _route_alias_mutation_or_404(
+    preference_id: str,
+    method_name: str,
+) -> CockpitRouteAliasPreferenceRecord:
+    try:
+        service = CockpitService.get_instance()
+        mutate = getattr(service.state_store, method_name)
+        row = mutate(preference_id)
+    except Exception as exc:
+        logger.exception("Failed to mutate route-alias preference")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to mutate route-alias preference: {str(exc)}",
+        ) from exc
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Route-alias preference not found: {preference_id}",
+        )
+    return CockpitRouteAliasPreferenceRecord(**row)
+
+
+@router.post(
+    "/preferences/route-aliases/{preference_id}/confirm",
+    response_model=CockpitRouteAliasPreferenceRecord,
+)
+def cockpit_confirm_route_alias_preference(
+    preference_id: str,
+) -> CockpitRouteAliasPreferenceRecord:
+    return _route_alias_mutation_or_404(
+        preference_id,
+        "confirm_route_alias_preference",
+    )
+
+
+@router.post(
+    "/preferences/route-aliases/{preference_id}/reject",
+    response_model=CockpitRouteAliasPreferenceRecord,
+)
+def cockpit_reject_route_alias_preference(
+    preference_id: str,
+) -> CockpitRouteAliasPreferenceRecord:
+    return _route_alias_mutation_or_404(
+        preference_id,
+        "reject_route_alias_preference",
+    )
+
+
+@router.post(
+    "/preferences/route-aliases/{preference_id}/disable",
+    response_model=CockpitRouteAliasPreferenceRecord,
+)
+def cockpit_disable_route_alias_preference(
+    preference_id: str,
+) -> CockpitRouteAliasPreferenceRecord:
+    return _route_alias_mutation_or_404(
+        preference_id,
+        "disable_route_alias_preference",
+    )
+
+
+@router.delete(
+    "/preferences/route-aliases/{preference_id}",
+    response_model=CockpitRouteAliasPreferenceDeleteResponse,
+)
+def cockpit_delete_route_alias_preference(
+    preference_id: str,
+) -> CockpitRouteAliasPreferenceDeleteResponse:
+    try:
+        service = CockpitService.get_instance()
+        deleted = service.state_store.delete_route_alias_preference(preference_id)
+    except Exception as exc:
+        logger.exception("Failed to delete route-alias preference")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete route-alias preference: {str(exc)}",
+        ) from exc
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Route-alias preference not found: {preference_id}",
+        )
+    return CockpitRouteAliasPreferenceDeleteResponse(
+        ok=True,
+        preference_id=preference_id,
+    )
 
 
 @router.get("/chat/sessions", response_model=CockpitChatSessionListResponse)

@@ -115,7 +115,17 @@ def _(_m, _msg):
     return "/holdings list"
 
 
+@_rule(r"\b(?:show|list)\s+(?:my\s+)?(?:portfolio|positions?)\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
 @_rule(r"\bwhat\s+(?:(?:am\s+i)|(?:are|r)\s+my)\s+hold(?:ings?|iongs?)\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(r"\bwhat\s+(?:stocks?|stoicks?)\s+(?:(?:do\s+)?i\s+hold|i\s+hold\s+currently)\b")
 def _(_m, _msg):
     return "/holdings list"
 
@@ -125,7 +135,19 @@ def _(_m, _msg):
     return "/holdings list"
 
 
-@_rule(r"^\s*hold(?:ings?|iongs?)\s*$")
+@_rule(r"\bstocks?\s+i\s+own\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(
+    r"^\s*(?:my\s+)?(?:hold(?:ings?|iongs?)|portfolio|positions?)\s*[?!.]*\s*$"
+)
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(r"^\s*portfolio\s+hold(?:ings?|iongs?)\s*[?!.]*\s*$")
 def _(_m, _msg):
     return "/holdings list"
 

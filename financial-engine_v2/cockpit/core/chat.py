@@ -3973,14 +3973,17 @@ class ChatController:
         market_totals: dict[str, float] = {}
         cost_totals: dict[str, float] = {}
         pnl_totals: dict[str, float] = {}
+        user_notes: list[str] = []
         warnings = 0
         latest_price_as_of: str | None = None
 
         for raw in items:
             row = dict(raw)
             ticker = str(row.get("ticker") or "").strip().upper() or "?"
+            name = str(row.get("name") or row.get("company_name") or "").strip()
             account = str(row.get("account_label") or "").strip()
-            label = f"{ticker}/{account}" if account else ticker
+            label_base = f"{ticker} {name}" if name else ticker
+            label = f"{label_base}/{account}" if account else label_base
             quantity = self._holding_float(row.get("quantity"))
             avg_cost = self._holding_float(row.get("avg_cost"))
             current_price = self._holding_float(row.get("current_price"))
@@ -4012,6 +4015,17 @@ class ChatController:
                 pnl_totals[price_currency] = (
                     pnl_totals.get(price_currency, 0.0) + unrealized_pnl
                 )
+            note_bits: list[str] = []
+            if account:
+                note_bits.append(f"account={account}")
+            thesis_bucket = str(row.get("thesis_bucket") or "").strip()
+            if thesis_bucket:
+                note_bits.append(f"thesis={thesis_bucket}")
+            note = str(row.get("note") or "").strip()
+            if note:
+                note_bits.append(f"note={note}")
+            if note_bits:
+                user_notes.append(f"- {ticker}: " + "; ".join(note_bits))
 
             rows.append(
                 {
@@ -4035,7 +4049,10 @@ class ChatController:
         )
         rows.sort(key=lambda row: (row["sort_value"], row["label"]), reverse=True)
 
-        lines: list[str] = [f"Portfolio overview ({len(items)} holdings)"]
+        lines: list[str] = [
+            "Local personal holdings data (cockpit-local, not financial truth).",
+            f"Portfolio overview ({len(items)} holdings)",
+        ]
         lines.append(
             f"Live pricing coverage: {priced_positions}/{len(items)} positions."
         )
@@ -4081,9 +4098,22 @@ class ChatController:
                 f"{self._format_holding_money(row['unrealized_pnl'], row['price_currency'], signed=True):>16} "
                 f"{holding_id:<8}"
             )
+        if user_notes:
+            lines.append("")
+            lines.append("User-entered fields:")
+            lines.extend(user_notes)
         lines.append("")
         lines.append("Tip: use `/holdings remove <ID>` or `/holdings archive <ID>`.")
         return "\n".join(lines)
+
+    @staticmethod
+    def _holdings_routing_metadata(count: int) -> dict[str, Any]:
+        return {
+            "source": "local_holdings",
+            "canonical_intent": "holdings",
+            "data_scope": "local_personal_holdings",
+            "holdings_count": count,
+        }
 
     def _slash_holdings(self, sub: str, rest: str) -> ChatResponse | None:
         if self._state_store is None:
@@ -4091,6 +4121,7 @@ class ChatController:
                 text="Holdings not available (no state store).",
                 evidence=[],
                 mode=ResponseMode.FAST,
+                routing_metadata=self._holdings_routing_metadata(0),
             )
 
         if sub in ("", "list"):
@@ -4098,14 +4129,20 @@ class ChatController:
             items = self._fetch_holdings_for_chat(ticker=ticker)
             if not items:
                 return ChatResponse(
-                    text="No holdings recorded.",
+                    text=(
+                        "No holdings are stored in the local personal holdings list. "
+                        "Import a holdings CSV/XLSX, use `/holdings add <TICKER>`, "
+                        "or paste tickers to set it up."
+                    ),
                     evidence=[],
                     mode=ResponseMode.FAST,
+                    routing_metadata=self._holdings_routing_metadata(0),
                 )
             return ChatResponse(
                 text=self._render_holdings_overview(items),
                 evidence=[{"type": "holdings", "details": items}],
                 mode=ResponseMode.FAST,
+                routing_metadata=self._holdings_routing_metadata(len(items)),
             )
 
         if sub == "add":
@@ -4200,6 +4237,108 @@ class ChatController:
             text="Usage: /holdings list|add|remove|archive [args]",
             evidence=[],
             mode=ResponseMode.FAST,
+        )
+
+    @staticmethod
+    def _normalize_route_alias_phrase(value: str) -> str:
+        cleaned = re.sub(r"[^a-z0-9]+", " ", str(value or "").lower())
+        return " ".join(cleaned.split())
+
+    def _route_alias_command_for_message(self, message: str) -> str | None:
+        if self._state_store is None:
+            return None
+        list_active = getattr(self._state_store, "list_active_route_aliases", None)
+        if not callable(list_active):
+            return None
+        normalized_message = self._normalize_route_alias_phrase(message)
+        if not normalized_message:
+            return None
+        try:
+            aliases = list_active(canonical_intent="holdings")
+        except Exception:
+            return None
+        for alias in aliases:
+            if not isinstance(alias, dict):
+                continue
+            if str(alias.get("canonical_intent") or "") != "holdings":
+                continue
+            if alias.get("confirmation_status") != "confirmed" or not alias.get("enabled"):
+                continue
+            alias_phrase = str(
+                alias.get("normalized_alias_phrase")
+                or self._normalize_route_alias_phrase(str(alias.get("alias_phrase") or ""))
+            )
+            if normalized_message == alias_phrase:
+                return "/holdings list"
+        return None
+
+    _HOLDINGS_ALIAS_PROPOSAL_PATTERNS: tuple[re.Pattern[str], ...] = (
+        re.compile(
+            r"\b(?:u|you)\s+do\s+have\s+access\s+to\s+my\s+hold(?:ings?|iongs?)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bwhen\s+i\s+say\s+(?P<alias>[a-z0-9][a-z0-9\s_-]{0,80}?)\s+"
+            r"i\s+mean\s+my\s+personal\s+portfolio\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(?P<alias>[a-z0-9][a-z0-9\s_-]{0,80}?)\s+means\s+my\s+portfolio\b",
+            re.IGNORECASE,
+        ),
+    )
+
+    def _extract_holdings_route_alias_from_correction(self, message: str) -> str | None:
+        text = str(message or "").strip()
+        if not text:
+            return None
+        for pattern in self._HOLDINGS_ALIAS_PROPOSAL_PATTERNS:
+            match = pattern.search(text)
+            if not match:
+                continue
+            alias = match.groupdict().get("alias") or "holdings"
+            alias = re.sub(r"\s+", " ", alias).strip(" .?!'\"")
+            return alias or "holdings"
+        return None
+
+    def _try_route_alias_preference_proposal(self, message: str) -> ChatResponse | None:
+        if self._state_store is None:
+            return None
+        propose = getattr(self._state_store, "propose_route_alias_preference", None)
+        if not callable(propose):
+            return None
+        alias = self._extract_holdings_route_alias_from_correction(message)
+        if not alias:
+            return None
+        try:
+            proposal = propose(
+                source_utterance=message,
+                alias_phrase=alias,
+                canonical_intent="holdings",
+                scope="user",
+                provenance_message_id=self._thread_id,
+            )
+        except Exception as exc:
+            logger.debug("Failed to propose holdings route alias preference: %s", exc)
+            return None
+        preference_id = str(proposal.get("preference_id") or "").strip()
+        return ChatResponse(
+            text=(
+                "Tenn has a local personal holdings subsystem. I can save a "
+                f"confirmation-gated route preference so `{alias}` means your "
+                "personal portfolio holdings.\n\n"
+                f"Preference proposal: {preference_id}\n"
+                "Confirm it from route-alias preferences to activate it; until "
+                "then it will not affect routing."
+            ),
+            evidence=[],
+            mode=ResponseMode.FAST,
+            routing_metadata={
+                "source": "route_alias_preference",
+                "canonical_intent": "holdings",
+                "preference_id": preference_id,
+                "confirmation_status": "proposed",
+            },
         )
 
     # -- Market-update commands ----------------------------------------- #
@@ -6356,10 +6495,18 @@ class ChatController:
         forced_backend, effective_message = parse_backend_prefix(effective_message)
         attached_bundle = _build_attached_source_bundle(attached_sources)
 
+        route_alias_proposal = self._try_route_alias_preference_proposal(
+            effective_message.strip()
+        )
+        if route_alias_proposal is not None:
+            return route_alias_proposal
+
         # Web chat path parity with Textual UI: map recognised natural-language
         # control phrases to deterministic slash commands.
         if not effective_message.strip().startswith("/"):
-            derived_cmd = derive_conversational_command(effective_message.strip())
+            derived_cmd = self._route_alias_command_for_message(
+                effective_message.strip()
+            ) or derive_conversational_command(effective_message.strip())
             if derived_cmd:
                 effective_message = derived_cmd
 

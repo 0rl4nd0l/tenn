@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 import threading
 import uuid
@@ -544,6 +545,33 @@ class StateStore:
                 pass
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_holdings_status ON holdings_items(status)"
+        )
+        # Route-alias preferences: cockpit-local intent routing preferences.
+        # These are confirmation-gated operational preferences, not thesis,
+        # company, market, financial truth, or retrieval memory.
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS route_alias_preferences (
+                preference_id TEXT PRIMARY KEY,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                source_utterance TEXT NOT NULL,
+                alias_phrase TEXT NOT NULL,
+                normalized_alias_phrase TEXT NOT NULL,
+                canonical_intent TEXT NOT NULL CHECK (canonical_intent IN ('holdings')),
+                scope TEXT NOT NULL,
+                confirmation_status TEXT NOT NULL CHECK (
+                    confirmation_status IN ('proposed', 'confirmed', 'rejected')
+                ),
+                enabled INTEGER NOT NULL DEFAULT 0,
+                provenance_message_id TEXT
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_route_alias_preferences_lookup "
+            "ON route_alias_preferences(canonical_intent, normalized_alias_phrase, "
+            "confirmation_status, enabled)"
         )
         # Market-update reports + queued follow-up actions. See
         # SYSTEM_CONTRACT §1.2 — these are cockpit-local report snapshots
@@ -1228,6 +1256,192 @@ class StateStore:
             )
             self.conn.commit()
             return cur.rowcount == 1
+
+    # ------------------------------------------------------------------ #
+    # Route-alias preferences (confirmation-gated operational routing)     #
+    # ------------------------------------------------------------------ #
+
+    _ROUTE_ALIAS_COLUMNS = (
+        "preference_id",
+        "created_at",
+        "updated_at",
+        "source_utterance",
+        "alias_phrase",
+        "normalized_alias_phrase",
+        "canonical_intent",
+        "scope",
+        "confirmation_status",
+        "enabled",
+        "provenance_message_id",
+    )
+    _ROUTE_ALIAS_ALLOWED_INTENTS = {"holdings"}
+    _ROUTE_ALIAS_ALLOWED_STATUSES = {"proposed", "confirmed", "rejected"}
+
+    @staticmethod
+    def normalize_route_alias_phrase(value: str) -> str:
+        cleaned = re.sub(r"[^a-z0-9]+", " ", str(value or "").lower())
+        return " ".join(cleaned.split())
+
+    @classmethod
+    def _validate_route_alias_intent(cls, canonical_intent: str) -> str:
+        intent = str(canonical_intent or "").strip().lower()
+        if intent not in cls._ROUTE_ALIAS_ALLOWED_INTENTS:
+            allowed = ", ".join(sorted(cls._ROUTE_ALIAS_ALLOWED_INTENTS))
+            raise ValueError(f"unsupported canonical_intent '{canonical_intent}'; expected one of: {allowed}")
+        return intent
+
+    @classmethod
+    def _validate_route_alias_status(cls, status: str) -> str:
+        normalized = str(status or "").strip().lower()
+        if normalized not in cls._ROUTE_ALIAS_ALLOWED_STATUSES:
+            allowed = ", ".join(sorted(cls._ROUTE_ALIAS_ALLOWED_STATUSES))
+            raise ValueError(f"unsupported confirmation_status '{status}'; expected one of: {allowed}")
+        return normalized
+
+    @staticmethod
+    def _route_alias_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
+        data = dict(row)
+        data["enabled"] = bool(data.get("enabled"))
+        return data
+
+    def propose_route_alias_preference(
+        self,
+        *,
+        source_utterance: str,
+        alias_phrase: str,
+        canonical_intent: str,
+        scope: str = "user",
+        provenance_message_id: str | None = None,
+    ) -> dict[str, Any]:
+        intent = self._validate_route_alias_intent(canonical_intent)
+        alias = str(alias_phrase or "").strip()
+        normalized_alias = self.normalize_route_alias_phrase(alias)
+        if not normalized_alias:
+            raise ValueError("alias_phrase is required")
+        source = str(source_utterance or "").strip() or alias
+        normalized_scope = str(scope or "user").strip().lower() or "user"
+        now = datetime.now(timezone.utc).isoformat()
+        preference_id = str(uuid.uuid4())
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT INTO route_alias_preferences(
+                    preference_id, created_at, updated_at, source_utterance,
+                    alias_phrase, normalized_alias_phrase, canonical_intent, scope,
+                    confirmation_status, enabled, provenance_message_id
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    preference_id,
+                    now,
+                    now,
+                    source,
+                    alias,
+                    normalized_alias,
+                    intent,
+                    normalized_scope,
+                    "proposed",
+                    0,
+                    provenance_message_id,
+                ),
+            )
+            self.conn.commit()
+        row = self.get_route_alias_preference(preference_id)
+        if row is None:
+            raise RuntimeError("route alias preference was created but could not be reloaded")
+        return row
+
+    def get_route_alias_preference(self, preference_id: str) -> dict[str, Any] | None:
+        cols = ", ".join(self._ROUTE_ALIAS_COLUMNS)
+        row = self.conn.execute(
+            f"SELECT {cols} FROM route_alias_preferences WHERE preference_id = ? LIMIT 1",  # noqa: S608
+            (preference_id,),
+        ).fetchone()
+        return self._route_alias_row_to_dict(row) if row else None
+
+    def list_route_alias_preferences(
+        self,
+        *,
+        canonical_intent: str | None = None,
+        active_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if canonical_intent:
+            clauses.append("canonical_intent = ?")
+            params.append(self._validate_route_alias_intent(canonical_intent))
+        if active_only:
+            clauses.append("confirmation_status = 'confirmed'")
+            clauses.append("enabled = 1")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        cols = ", ".join(self._ROUTE_ALIAS_COLUMNS)
+        rows = self.conn.execute(
+            f"SELECT {cols} FROM route_alias_preferences {where} ORDER BY updated_at DESC",  # noqa: S608
+            tuple(params),
+        ).fetchall()
+        return [self._route_alias_row_to_dict(row) for row in rows]
+
+    def list_active_route_aliases(
+        self,
+        *,
+        canonical_intent: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return self.list_route_alias_preferences(
+            canonical_intent=canonical_intent,
+            active_only=True,
+        )
+
+    def _set_route_alias_preference_state(
+        self,
+        preference_id: str,
+        *,
+        confirmation_status: str | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any] | None:
+        assignments: list[str] = ["updated_at = ?"]
+        values: list[Any] = [datetime.now(timezone.utc).isoformat()]
+        if confirmation_status is not None:
+            assignments.append("confirmation_status = ?")
+            values.append(self._validate_route_alias_status(confirmation_status))
+        if enabled is not None:
+            assignments.append("enabled = ?")
+            values.append(1 if enabled else 0)
+        values.append(preference_id)
+        with self._lock:
+            cur = self.conn.execute(
+                f"UPDATE route_alias_preferences SET {', '.join(assignments)} WHERE preference_id = ?",  # noqa: S608
+                tuple(values),
+            )
+            self.conn.commit()
+        if cur.rowcount != 1:
+            return None
+        return self.get_route_alias_preference(preference_id)
+
+    def confirm_route_alias_preference(self, preference_id: str) -> dict[str, Any] | None:
+        return self._set_route_alias_preference_state(
+            preference_id,
+            confirmation_status="confirmed",
+            enabled=True,
+        )
+
+    def reject_route_alias_preference(self, preference_id: str) -> dict[str, Any] | None:
+        return self._set_route_alias_preference_state(
+            preference_id,
+            confirmation_status="rejected",
+            enabled=False,
+        )
+
+    def disable_route_alias_preference(self, preference_id: str) -> dict[str, Any] | None:
+        return self._set_route_alias_preference_state(preference_id, enabled=False)
+
+    def delete_route_alias_preference(self, preference_id: str) -> bool:
+        with self._lock:
+            cur = self.conn.execute(
+                "DELETE FROM route_alias_preferences WHERE preference_id = ?",
+                (preference_id,),
+            )
+            self.conn.commit()
+        return cur.rowcount == 1
 
     # ------------------------------------------------------------------ #
     # Market-update reports + followups                                    #

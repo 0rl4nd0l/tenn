@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from cockpit.core.conversation_commands import derive_conversational_command
 
 
@@ -106,6 +108,29 @@ class TestHoldingsConversationalCommands:
     def test_update_holdings_prices_maps_to_list(self) -> None:
         assert derive_conversational_command("update holdings prices") == "/holdings list"
 
+    @pytest.mark.parametrize(
+        "phrase",
+        [
+            "holdings?",
+            "my holdings",
+            "what are my holdings",
+            "what stocks do I hold",
+            "what stocks i hold",
+            "what stocks i hold currently",
+            "what stocks am i holding",
+            "stocks I own",
+            "my portfolio",
+            "portfolio holdings",
+            "positions",
+            "my positions",
+            "show my portfolio",
+            "show my positions",
+            "list my holdings",
+        ],
+    )
+    def test_required_holdings_aliases_map_to_list(self, phrase: str) -> None:
+        assert derive_conversational_command(phrase) == "/holdings list"
+
     # --- add --------------------------------------------------------------
     def test_add_to_holdings_maps_to_add(self) -> None:
         assert derive_conversational_command("add BHP to holdings") == "/holdings add BHP"
@@ -163,6 +188,22 @@ class TestHoldingsConversationalCommands:
             derive_conversational_command("what stocks are in my watchlist")
             == "/watch list"
         )
+
+    @pytest.mark.parametrize(
+        "phrase",
+        [
+            "screen stocks with high momentum",
+            "find cheap stocks to buy",
+            "scan the ASX market",
+            "market positions by sector",
+            "portfolio construction ideas for BHP",
+        ],
+    )
+    def test_non_holdings_market_screen_phrases_do_not_map_to_holdings(
+        self,
+        phrase: str,
+    ) -> None:
+        assert derive_conversational_command(phrase) != "/holdings list"
 
 
 class TestMarketUpdateConversationalCommands:

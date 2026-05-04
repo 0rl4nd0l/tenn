@@ -1959,6 +1959,135 @@ def test_cockpit_chat_stream_emits_holdings_chart_event(monkeypatch) -> None:
     assert done_events[-1]["data"].get("chart") is not None
 
 
+def test_cockpit_chat_holdings_sources_do_not_become_source_backed(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Local personal holdings data:\nBHP qty 10.",
+                evidence=[
+                    {
+                        "type": "holdings",
+                        "details": [
+                            {
+                                "holding_id": "h1",
+                                "ticker": "BHP",
+                                "quantity": 10,
+                            }
+                        ],
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local_holdings",
+                    "canonical_intent": "holdings",
+                    "data_scope": "local_personal_holdings",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "holdings?", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    assert not [event for event in data_events if event.get("type") == "sources"]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events, body
+    assert done_events[-1]["data"]["sources"] == []
+    routing = done_events[-1]["data"]["routing_metadata"]
+    assert routing["data_scope"] == "local_personal_holdings"
+    assert "visible_source_count" not in routing
+
+
+def test_cockpit_chat_holdings_filters_irrelevant_screener_sources(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Local personal holdings data:\nNo holdings are stored.",
+                evidence=[
+                    {"type": "holdings", "details": []},
+                    {
+                        "tool": "tv_screener",
+                        "result": {
+                            "market": "AUSTRALIA",
+                            "results": [],
+                            "count": 0,
+                        },
+                    },
+                    {
+                        "tool": "screen_tickers",
+                        "result": {"results": [], "count": 0},
+                    },
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "source": "local_holdings",
+                    "canonical_intent": "holdings",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={"message": "what stocks i hold currently", "stream": False},
+    )
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["sources"] == []
+    assert "TradingView" not in json.dumps(payload)
+    assert "tv_screener" not in json.dumps(payload)
+    assert "screen_tickers" not in json.dumps(payload)
+
+
 def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) -> None:
     class FakeService:
         def flag_chat_feedback(self, **kwargs):
