@@ -90,9 +90,15 @@ def _point_chunk_id(point: dict[str, Any], source_id: str) -> str:
 
 
 def _citation_for_point(point: dict[str, Any], source_id: str) -> dict[str, Any]:
+    payload = _point_payload(point)
+    start = payload.get("segment_start_seconds") or payload.get("chunk_start_seconds") or 0
+    try:
+        segment_start_seconds = max(0, int(float(start)))
+    except (TypeError, ValueError):
+        segment_start_seconds = 0
     return {
         "chunk_id": _point_chunk_id(point, source_id),
-        "segment_start_seconds": 0,
+        "segment_start_seconds": segment_start_seconds,
     }
 
 
@@ -184,6 +190,14 @@ def _citation_for_text(
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _bounded_takeaway_limit(value: Any) -> int:
+    try:
+        limit = int(value)
+    except (TypeError, ValueError):
+        return 5
+    return max(1, min(12, limit))
 
 
 def _write_staged_points(path: Path, points: list[dict[str, Any]]) -> None:
@@ -343,6 +357,41 @@ def _chunk_takeaways(
     ]
 
 
+def _first_readable_text(text: str) -> str:
+    for piece in re.split(r"(?<=[.!?])\s+|\n+", str(text or "")):
+        cleaned = _clean_takeaway_text(piece)
+        if len(cleaned) >= 45:
+            return cleaned
+    return _clean_takeaway_text(str(text or "")[:260])
+
+
+def _chunk_outline(
+    points: list[dict[str, Any]],
+    source_id: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    outline: list[dict[str, Any]] = []
+    for point in points[: max(0, limit)]:
+        payload = _point_payload(point)
+        try:
+            chunk_index = int(payload.get("chunk_index", 0) or 0)
+        except (TypeError, ValueError):
+            chunk_index = 0
+        summary = _first_readable_text(_point_text(point))
+        if not summary:
+            continue
+        outline.append(
+            {
+                "title": f"Transcript section {chunk_index + 1}",
+                "summary": summary,
+                "citations": [_citation_for_point(point, source_id)],
+                "chunk_index": chunk_index,
+                "source_field": "chunk_outline",
+            }
+        )
+    return outline
+
+
 _TICKER_RE = re.compile(r"^[A-Z][A-Z0-9]{1,5}$")
 _TICKER_STOPWORDS = {
     "AND",
@@ -438,12 +487,21 @@ class TranscriptReviewUpdateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/transcripts/pending")
-def get_pending_transcripts() -> dict[str, Any]:
+def get_pending_transcripts(
+    include_takeaways: bool = False,
+    takeaway_limit: int = 5,
+) -> dict[str, Any]:
     index = _load_index()
     pending = [
         {"source_id": sid, **meta}
         for sid, meta in sorted(index.items(), key=lambda kv: kv[1].get("staged_at", ""))
     ]
+    if include_takeaways:
+        for item in pending:
+            source_id = str(item.get("source_id") or "").strip()
+            if not source_id:
+                continue
+            item.update(_takeaway_enrichment(source_id, _bounded_takeaway_limit(takeaway_limit)))
     return {"pending": pending, "count": len(pending)}
 
 
@@ -697,6 +755,7 @@ class TakeawaysRequest(BaseModel):
 class IngestUrlRequest(BaseModel):
     url: str
     credibility_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    takeaway_limit: int = Field(default=5, ge=1, le=12)
 
 
 class IngestUrlsRequest(BaseModel):
@@ -784,6 +843,7 @@ def _commentary_takeaways_payload(source_id: str, limit: int) -> dict[str, Any]:
         takeaway_source = "operator_review"
 
     source_status = "staged" if points else "memo_only"
+    outline = _chunk_outline(points, source_id, min(max(limit, 3), 8)) if points else []
     return {
         "ok": True,
         "source_id": source_id,
@@ -797,9 +857,38 @@ def _commentary_takeaways_payload(source_id: str, limit: int) -> dict[str, Any]:
         "generated_takeaways": generated_takeaways,
         "review_takeaways": review_takeaways,
         "credibility_weight": (entry or {}).get("credibility_weight"),
+        "outline": outline,
+        "digest": {
+            "source_status": source_status,
+            "chunk_count": len(points),
+            "takeaway_source": takeaway_source,
+            "memo_status": memo_status,
+            "outline_count": len(outline),
+        },
         "watchlist_suggestions": _watchlist_suggestions(memo, points, source_id),
         "model": "deterministic:commentary-staged-chunks",
         "prompt_version": "takeaways-v1-deterministic",
+    }
+
+
+def _takeaway_enrichment(source_id: str, limit: int) -> dict[str, Any]:
+    try:
+        takeaway_payload = _commentary_takeaways_payload(source_id, _bounded_takeaway_limit(limit))
+    except HTTPException as exc:
+        takeaway_payload = {
+            "ok": False,
+            "status_code": exc.status_code,
+            "detail": exc.detail,
+            "takeaways": [],
+            "watchlist_suggestions": [],
+            "outline": [],
+        }
+    return {
+        "takeaway_status": "ready" if takeaway_payload.get("ok") else "error",
+        "takeaways": takeaway_payload.get("takeaways") or [],
+        "watchlist_suggestions": takeaway_payload.get("watchlist_suggestions") or [],
+        "outline": takeaway_payload.get("outline") or [],
+        "takeaway_payload": takeaway_payload,
     }
 
 
@@ -809,7 +898,7 @@ def _commentary_takeaways_payload(source_id: str, limit: int) -> dict[str, Any]:
 )
 def get_commentary_takeaways(body: TakeawaysRequest) -> dict[str, Any]:
     source_id = _validate_source_id(body.source_id)
-    return _commentary_takeaways_payload(source_id, int(body.limit))
+    return _commentary_takeaways_payload(source_id, _bounded_takeaway_limit(body.limit))
 
 
 _MIN_CHARS_PER_SECOND = 2.0  # 120 chars/min — very conservative floor; real speech ≈700 chars/min
@@ -916,10 +1005,17 @@ def _ingest_youtube_url_to_staging(
     dependencies=[Depends(require_api_key)],
 )
 def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
-    return _ingest_youtube_url_to_staging(
+    result = _ingest_youtube_url_to_staging(
         body.url,
         credibility_weight=body.credibility_weight,
     )
+    source_id = _validate_source_id(str(result.get("source_id") or ""))
+    return {
+        **result,
+        **_takeaway_enrichment(source_id, _bounded_takeaway_limit(body.takeaway_limit)),
+        "review_status": "staged" if result.get("staged") else "indexed",
+        "commit_path": "/api/commentary/transcripts/{source_id}/approve",
+    }
 
 
 @router.post(
@@ -938,26 +1034,10 @@ def ingest_urls(body: IngestUrlsRequest) -> dict[str, Any]:
                 credibility_weight=body.credibility_weight,
             )
             source_id = _validate_source_id(str(ingest_result.get("source_id") or ""))
-            try:
-                takeaway_payload = _commentary_takeaways_payload(
-                    source_id,
-                    int(body.takeaway_limit),
-                )
-            except HTTPException as exc:
-                takeaway_payload = {
-                    "ok": False,
-                    "status_code": exc.status_code,
-                    "detail": exc.detail,
-                    "takeaways": [],
-                    "watchlist_suggestions": [],
-                }
             results.append(
                 {
                     **ingest_result,
-                    "takeaway_status": "ready" if takeaway_payload.get("ok") else "error",
-                    "takeaways": takeaway_payload.get("takeaways") or [],
-                    "watchlist_suggestions": takeaway_payload.get("watchlist_suggestions") or [],
-                    "takeaway_payload": takeaway_payload,
+                    **_takeaway_enrichment(source_id, _bounded_takeaway_limit(body.takeaway_limit)),
                     "review_status": "staged" if ingest_result.get("staged") else "indexed",
                 }
             )

@@ -77,6 +77,10 @@ def test_takeaways_from_staged_chunks_without_memo(tmp_path, monkeypatch):
     assert result["takeaway_source"] == "chunks"
     assert len(result["takeaways"]) >= 2
     assert result["takeaways"][0]["citations"][0]["chunk_id"].startswith(source_id)
+    assert result["outline"][0]["title"] == "Transcript section 1"
+    assert result["outline"][0]["summary"]
+    assert result["digest"]["chunk_count"] == 2
+    assert result["digest"]["outline_count"] == len(result["outline"])
     assert result["watchlist_suggestions"] == []
 
 
@@ -114,6 +118,8 @@ def test_takeaways_http_route_returns_panel_contract(tmp_path, monkeypatch):
     assert body["takeaways"][0]["text"]
     assert body["takeaways"][0]["citations"][0]["chunk_id"] == f"{source_id}:0"
     assert body["watchlist_suggestions"] == []
+    assert body["outline"][0]["summary"]
+    assert body["digest"]["source_status"] == "staged"
     assert body["model"] == "deterministic:commentary-staged-chunks"
     assert body["prompt_version"] == "takeaways-v1-deterministic"
 

@@ -335,6 +335,58 @@ def test_ingest_transcript_staging_records_v2_collection_from_ensure_collection(
     assert idx[result["source_id"]]["collection_name"] == "commentary_chunks_v2"
 
 
+def test_ingest_transcript_uses_commentary_boundary_chunks(monkeypatch, tmp_path):
+    fake_client = object()
+    staged_dir = tmp_path / "staged_chunks"
+    staged_index = staged_dir / "index.json"
+    monkeypatch.setattr(commentary_ingest, "STAGED_CHUNKS_DIR", staged_dir)
+    monkeypatch.setattr(commentary_ingest, "STAGED_CHUNKS_INDEX", staged_index)
+    monkeypatch.setattr(commentary_ingest, "verify_qdrant", lambda **_: fake_client)
+    monkeypatch.setattr(
+        commentary_ingest,
+        "ensure_collection",
+        lambda client, collection, dim: collection,
+    )
+    monkeypatch.setattr(
+        commentary_ingest,
+        "resolve_llm_runtime_config",
+        lambda **_: ("http://127.0.0.1:8001", "qwen2.5-14b-instruct"),
+    )
+    monkeypatch.setattr(
+        commentary_ingest,
+        "extract_commentary_memo_task",
+        type("QueuedMemoTask", (), {"delay": staticmethod(lambda payload: None)})(),
+    )
+
+    def fake_embed_batch(texts: list[str], *, llm_url: str | None, model: str | None):
+        assert all(not text.startswith("egment") for text in texts)
+        return [[0.1, 0.2] for _text in texts]
+
+    transcript = "\n".join(
+        f"00:{index // 60:02d}:{index % 60:02d} Segment {index} discusses market risk and price action."
+        for index in range(120)
+    )
+    result = commentary_ingest.ingest_transcript(
+        transcript_text=transcript,
+        source_name="Boundary Channel",
+        source_type="youtube_transcript",
+        speaker="Boundary Speaker",
+        published_at="2026-05-04T00:00:00Z",
+        registry_path=tmp_path / "source_registry.jsonl",
+        memos_path=tmp_path / "commentary_memos.jsonl",
+        embed_batch_fn=fake_embed_batch,
+        memo_extractor=StubMemoExtractor(tmp_path / "commentary_memos.jsonl"),
+    )
+
+    idx = json.loads(staged_index.read_text("utf-8"))
+    staged_path = Path(idx[result["source_id"]]["path"])
+    rows = [json.loads(line) for line in staged_path.read_text("utf-8").splitlines()]
+    chunk_texts = [row["payload"]["text"] for row in rows]
+    assert len(chunk_texts) > 1
+    assert all(text.startswith("Segment ") for text in chunk_texts)
+    assert all(len(text) <= 1400 for text in chunk_texts)
+
+
 @pytest.mark.parametrize(
     ("message", "expected"),
     [

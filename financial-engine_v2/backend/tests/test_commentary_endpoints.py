@@ -139,6 +139,29 @@ class TestGetPendingTranscripts:
         assert result["pending"][0]["source_id"] == "src-001"
         assert result["pending"][1]["source_id"] == "src-002"
 
+    def test_include_takeaways_enriches_pending_item(self):
+        index = {
+            "src-001": {"staged_at": "2026-03-20T10:00:00Z", "path": "/tmp/src-001.jsonl"},
+        }
+        with (
+            patch("app.api.commentary._load_index", return_value=index),
+            patch(
+                "app.api.commentary._takeaway_enrichment",
+                return_value={
+                    "takeaway_status": "ready",
+                    "takeaways": [{"text": "Transcript takeaway"}],
+                    "watchlist_suggestions": [],
+                    "outline": [{"summary": "Section summary"}],
+                    "takeaway_payload": {"ok": True},
+                },
+            ) as enrichment,
+        ):
+            result = get_pending_transcripts(include_takeaways=True, takeaway_limit=3)
+
+        enrichment.assert_called_once_with("src-001", 3)
+        assert result["pending"][0]["takeaway_status"] == "ready"
+        assert result["pending"][0]["outline"][0]["summary"] == "Section summary"
+
 
 # ---------------------------------------------------------------------------
 # POST /api/commentary/transcripts/{source_id}/approve
@@ -537,6 +560,48 @@ class TestIngestUrl:
         assert captured["credibility_weight"] == 0.7
         assert "transcript_chars" in result
         assert "duration_seconds" in result
+        assert result["review_status"] == "staged"
+        assert result["commit_path"] == "/api/commentary/transcripts/{source_id}/approve"
+
+    def test_single_url_ingest_returns_takeaways(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(
+            mod, "_default_fetch_transcript", lambda v: "This is the transcript text."
+        )
+        monkeypatch.setattr(
+            mod,
+            "ingest_transcript",
+            lambda **kwargs: {
+                "ok": True,
+                "source_id": "youtube_transcript:test-video:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            },
+        )
+        monkeypatch.setattr(
+            mod,
+            "_commentary_takeaways_payload",
+            lambda source_id, limit: {
+                "ok": True,
+                "source_id": source_id,
+                "takeaways": [{"text": "Key takeaway", "citations": []}],
+                "watchlist_suggestions": [],
+                "outline": [{"summary": "Opening section"}],
+            },
+        )
+
+        result = ingest_url(
+            IngestUrlRequest(url="https://youtu.be/abc123abcde", takeaway_limit=3)
+        )
+
+        assert result["takeaway_status"] == "ready"
+        assert result["takeaways"] == [{"text": "Key takeaway", "citations": []}]
+        assert result["outline"] == [{"summary": "Opening section"}]
+        assert result["takeaway_payload"]["source_id"] == "youtube_transcript:test-video:abc123"
 
     def test_short_transcript_for_long_video_includes_quality_warning(self, monkeypatch):
         import app.api.commentary as mod
