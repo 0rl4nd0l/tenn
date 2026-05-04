@@ -626,6 +626,20 @@ class TestAgentLoopRegressions:
         executor.assert_called_once_with("search_files", {"pattern": "bhp"})
         assert "I need to look that up before I can answer reliably." in result.text
 
+    def test_bare_cloud_error_does_not_route_to_market_news(self):
+        """A bare operator error report is not a market-data question."""
+        executor = MagicMock()
+        loop = AgentLoop(llm_client=_make_llm([]), tool_executor=executor)
+
+        result = loop.run("/cloud Error")
+
+        assert result is not None
+        assert "specific error details" in result.text
+        assert result.tool_calls_made == 0
+        assert result.evidence == []
+        executor.assert_not_called()
+        loop._llm.chat.assert_not_called()
+
     def test_time_sensitive_market_update_rejects_stale_news_evidence(self):
         responses = [
             json.dumps(

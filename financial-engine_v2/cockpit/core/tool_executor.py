@@ -514,7 +514,11 @@ class ToolExecutor:
         if freshness_warning:
             out["freshness_warning"] = freshness_warning
             if compact_hits and current_news_query:
+                insufficiency_error = (
+                    "only historical news was returned for a current-news query"
+                )
                 out["ok"] = False
+                out["error"] = error_text or insufficiency_error
                 out["data_insufficient"] = True
                 out["historical_hits"] = list(compact_hits)
                 out["suggestion"] = (

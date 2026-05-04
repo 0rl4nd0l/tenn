@@ -2397,6 +2397,11 @@ _NON_SUBSTANTIVE_CHAT_MESSAGE_RE = re.compile(
     r")\s*$",
     re.IGNORECASE,
 )
+_BARE_OPERATIONAL_ISSUE_MESSAGE_RE = re.compile(
+    r"^\s*(?:error|errored|failed|failure|it failed|that failed|that errored|"
+    r"something failed|got an error)\s*[.!?]*\s*$",
+    re.IGNORECASE,
+)
 _EXPLICIT_UNVERIFIED_RESPONSE_RE = re.compile(
     r"\b(?:cannot|can't|can not|do not|don't|won't)\s+"
     r"(?:verify|confirm|substantiate|make factual claims)\b|"
@@ -2460,6 +2465,8 @@ def _message_requires_visible_sources(message: str) -> bool:
         text = text[route_prefix.end() :].strip()
         if not text:
             return False
+    if _BARE_OPERATIONAL_ISSUE_MESSAGE_RE.fullmatch(text):
+        return False
     explicit_command = text.lower()
     if explicit_command.startswith("/"):
         return explicit_command.startswith(_COMMANDS_REQUIRING_SOURCES)

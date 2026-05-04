@@ -183,6 +183,10 @@ class TestSearchNewsFreshnessWarning:
 
         assert result["ok"] is False
         assert result["data_insufficient"] is True
+        assert (
+            result["error"]
+            == "only historical news was returned for a current-news query"
+        )
         assert result["historical_hits"][0]["title"] == "Old market wrap"
         assert "historical news" in result["suggestion"]
         executor._freshness_tracker.record_ingest.assert_not_called()

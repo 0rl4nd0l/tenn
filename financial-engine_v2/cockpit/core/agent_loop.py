@@ -71,6 +71,11 @@ _META_OR_ACK_RE = re.compile(
     r"cool|continue|go on|help(?: me)?|what can you do\??)\s*$",
     re.IGNORECASE,
 )
+_BARE_OPERATIONAL_ISSUE_RE = re.compile(
+    r"^\s*(?:error|errored|failed|failure|it failed|that failed|that errored|"
+    r"something failed|got an error)\s*[.!?]*\s*$",
+    re.IGNORECASE,
+)
 _SUBSTANTIVE_INFO_QUERY_RE = re.compile(
     r"\b(?:what|why|how|when|which|explain|summari[sz]e|compare|tell me|"
     r"walk me through|analyse|analyze|analysis|outlook|news|headline|"
@@ -312,6 +317,14 @@ class AgentLoop:
         self._current_intent: QueryIntent | None = None
 
         try:
+            if _BARE_OPERATIONAL_ISSUE_RE.fullmatch(message):
+                return AgentResult(
+                    text=(
+                        "I need the specific error details or the failing step before "
+                        "I can investigate it."
+                    )
+                )
+
             # Pre-route explicit commands (ingest, chart, update, backfill)
             # before the full agent loop so they always produce a clean command
             # result rather than relying on the LLM to parse the imperative.
