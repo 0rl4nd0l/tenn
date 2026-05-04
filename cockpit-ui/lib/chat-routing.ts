@@ -3,7 +3,12 @@ export function applyApiDefaultOverride(message: string, enabled: boolean): stri
   if (!enabled || !trimmed) {
     return message
   }
-  // Preserve explicit slash commands and explicit routing directives as typed.
+  const localRoute = trimmed.match(/^\/(?:local|ops)\b\s*(.*)$/i)
+  if (localRoute) {
+    const rest = localRoute[1]?.trim()
+    return rest ? `/cloud ${rest}` : '/cloud'
+  }
+  // Preserve non-routing slash commands and explicit API routing directives as typed.
   if (trimmed.startsWith('/')) {
     return message
   }

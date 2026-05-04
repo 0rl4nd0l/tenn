@@ -6095,6 +6095,75 @@ class ChatController:
         suffix_lines.extend(f"- {item}" for item in missing)
         return base + "\n" + "\n".join(suffix_lines)
 
+    def _complete_keyword_llm(
+        self,
+        *,
+        user_message: str,
+        prior_messages: list[dict[str, str]],
+        prompt_fallback: str,
+        force_backend: str | None,
+        on_chunk,
+        on_status,
+    ) -> tuple[str, dict[str, Any] | None]:
+        """Complete the legacy keyword synthesis path through HybridRouter when available."""
+        if self._hybrid_router is not None:
+            answer = self._hybrid_router.chat(
+                user_message,
+                timeout=self.llm_timeout_seconds,
+                prior_messages=prior_messages,
+                on_chunk=on_chunk,
+                force_backend=force_backend,
+                on_status=on_status,
+            )
+            last_attempt = (
+                self._hybrid_router.last_attempt_metadata()
+                if hasattr(self._hybrid_router, "last_attempt_metadata")
+                else None
+            )
+            return answer, dict(last_attempt) if isinstance(last_attempt, dict) else None
+
+        if on_chunk is not None:
+            try:
+                answer = self.ollama_client.chat(
+                    user_message,
+                    timeout=self.llm_timeout_seconds,
+                    on_chunk=on_chunk,
+                    prior_messages=prior_messages,
+                )
+            except TypeError as exc:
+                if "on_chunk" not in str(exc) and "prior_messages" not in str(exc):
+                    raise
+                logger.info("ollama_client.chat fallback (unsupported kwarg): %s", exc)
+                answer = self.ollama_client.chat(
+                    prompt_fallback, timeout=self.llm_timeout_seconds
+                )
+        else:
+            try:
+                answer = self.ollama_client.chat(
+                    user_message,
+                    timeout=self.llm_timeout_seconds,
+                    prior_messages=prior_messages,
+                )
+            except TypeError as exc:
+                if "prior_messages" not in str(exc):
+                    raise
+                logger.info(
+                    "ollama_client.chat fallback (no prior_messages support): %s", exc
+                )
+                answer = self.ollama_client.chat(
+                    prompt_fallback, timeout=self.llm_timeout_seconds
+                )
+
+        return (
+            answer,
+            {
+                "source": "local",
+                "model": str(getattr(self.ollama_client, "model", "") or "local"),
+                "cost_usd": 0.0,
+                "routing_reason": "legacy_keyword_local",
+            },
+        )
+
     @staticmethod
     def _stream_plain_text(text: str, on_chunk) -> None:
         for index, token in enumerate(text.split()):
@@ -7157,37 +7226,14 @@ class ChatController:
         # Fall back to concatenated prompt for clients that don't support prior_messages.
         prompt_fallback = system_instruction + "\n\n" + user_message
 
-        if on_chunk is not None:
-            try:
-                answer = self.ollama_client.chat(
-                    user_message,
-                    timeout=self.llm_timeout_seconds,
-                    on_chunk=on_chunk,
-                    prior_messages=prior_messages,
-                )
-            except TypeError as exc:
-                if "on_chunk" not in str(exc) and "prior_messages" not in str(exc):
-                    raise
-                logger.info("ollama_client.chat fallback (unsupported kwarg): %s", exc)
-                answer = self.ollama_client.chat(
-                    prompt_fallback, timeout=self.llm_timeout_seconds
-                )
-        else:
-            try:
-                answer = self.ollama_client.chat(
-                    user_message,
-                    timeout=self.llm_timeout_seconds,
-                    prior_messages=prior_messages,
-                )
-            except TypeError as exc:
-                if "prior_messages" not in str(exc):
-                    raise
-                logger.info(
-                    "ollama_client.chat fallback (no prior_messages support): %s", exc
-                )
-                answer = self.ollama_client.chat(
-                    prompt_fallback, timeout=self.llm_timeout_seconds
-                )
+        answer, routing_metadata = self._complete_keyword_llm(
+            user_message=user_message,
+            prior_messages=prior_messages,
+            prompt_fallback=prompt_fallback,
+            force_backend=forced_backend,
+            on_chunk=on_chunk,
+            on_status=on_status,
+        )
 
         if analysis_mode == "deep" and (
             self._looks_like_framework_only_analysis(
@@ -7237,6 +7283,7 @@ class ChatController:
             action_preview=followup_action_preview,
             mode=mode,
             prompt=prompt_fallback,
+            routing_metadata=routing_metadata,
         )
 
     @staticmethod

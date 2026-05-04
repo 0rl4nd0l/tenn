@@ -871,6 +871,7 @@ export function TerminalMessage({
         <span>[{timestamp}]</span>
         {message.metadata && (
           <>
+            {message.metadata.source && <span>source:{message.metadata.source}</span>}
             {message.metadata.model && <span>{message.metadata.model}</span>}
             {responseTimingLabel && <span>{responseTimingLabel}</span>}
             {message.metadata.costUsd !== undefined && <span>${message.metadata.costUsd.toFixed(4)}</span>}

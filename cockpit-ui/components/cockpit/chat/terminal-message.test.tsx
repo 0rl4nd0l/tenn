@@ -35,7 +35,27 @@ describe('TerminalMessage', () => {
     )
 
     expect(screen.getByText('[response: 1.4s]')).toBeInTheDocument()
+    expect(screen.getByText('source:local')).toBeInTheDocument()
+    expect(screen.getByText('local-model')).toBeInTheDocument()
     expect(screen.getByText('[query_ticker_data: 87ms]')).toBeInTheDocument()
+  })
+
+  it('shows API source and model separately in the response footer', () => {
+    render(
+      <TerminalMessage
+        message={buildAssistantMessage({
+          metadata: {
+            latencyMs: 812,
+            model: 'claude-sonnet-4-20250514',
+            costUsd: 0.0021,
+            source: 'api',
+          },
+        })}
+      />,
+    )
+
+    expect(screen.getByText('source:api')).toBeInTheDocument()
+    expect(screen.getByText('claude-sonnet-4-20250514')).toBeInTheDocument()
   })
 
   it('keeps the response timing visible when latency is zero', () => {

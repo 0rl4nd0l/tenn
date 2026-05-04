@@ -35,6 +35,7 @@ from app.core.db import SessionLocal
 from app.models.documents import Document
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.cockpit_service import (
+    API_DEFAULT_ENABLED_KEY,
     CHAT_ROUTING_POLICY_CONFIG_DEFAULT,
     CHAT_ROUTING_POLICY_OVERRIDE_KEY,
     CockpitService,
@@ -7905,7 +7906,7 @@ def cockpit_get_preferences() -> CockpitPreferencesResponse:
     try:
         service = CockpitService.get_instance()
         api_default_enabled = _parse_preference_bool(
-            service.state_store.get_preference("api_default_enabled", "false"),
+            service.state_store.get_preference(API_DEFAULT_ENABLED_KEY, "false"),
             default=False,
         )
         marketplace_prefer_cloud_routing = _parse_preference_bool(
@@ -7945,7 +7946,7 @@ def cockpit_patch_preferences(
         service = CockpitService.get_instance()
         if payload.api_default_enabled is not None:
             service.state_store.set_preference(
-                "api_default_enabled",
+                API_DEFAULT_ENABLED_KEY,
                 "true" if payload.api_default_enabled else "false",
             )
         if payload.marketplace_prefer_cloud_routing is not None:
@@ -8146,7 +8147,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "text": response.text,
                     "model": response.routing_metadata.get("model")
                     if response.routing_metadata
-                    else "local",
+                    else "unknown",
                     "latency_ms": response.routing_metadata.get("latency_ms")
                     if response.routing_metadata
                     else 0,
@@ -8155,7 +8156,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     else 0,
                     "source": response.routing_metadata.get("source")
                     if response.routing_metadata
-                    else "local",
+                    else "unknown",
                     "provider_error": response.routing_metadata.get("provider_error")
                     if response.routing_metadata
                     else None,
@@ -8251,10 +8252,10 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         "type": "done",
                         "data": {
                             "text": response.text,
-                            "model": meta.get("model", "local"),
+                            "model": meta.get("model", "unknown"),
                             "latency_ms": meta.get("latency_ms", 0),
                             "cost_usd": meta.get("cost_usd", 0),
-                            "source": meta.get("source", "local"),
+                            "source": meta.get("source", "unknown"),
                             "provider_error": meta.get("provider_error"),
                             "chart": rendered_chart,
                             "sources": sources,

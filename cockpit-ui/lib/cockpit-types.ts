@@ -37,7 +37,7 @@ export interface ChatMessage {
     model?: string
     latencyMs?: number
     costUsd?: number
-    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator'
+    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator' | 'unknown'
     routing?: Record<string, unknown>
     analyst?: AnalystChatMetadata
     codexDeploy?: {
@@ -555,7 +555,7 @@ export interface ChatResponse {
     model?: string
     latency_ms?: number
 	    cost_usd?: number
-	    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator'
+	    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator' | 'unknown'
 	    provider_error?: ChatProviderError | null
 	    chart?: RenderedChart
 	    sources?: Source[]

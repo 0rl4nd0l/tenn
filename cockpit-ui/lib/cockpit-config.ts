@@ -84,7 +84,7 @@ export function resolveRuntimeModel(
   configModel: string | null | undefined,
 ): string {
   const persistedModel = String(sessionModel || '').trim()
-  if (persistedModel && persistedModel !== 'local') {
+  if (persistedModel && !['local', 'unknown'].includes(persistedModel)) {
     return persistedModel
   }
   return String(configModel || '').trim()

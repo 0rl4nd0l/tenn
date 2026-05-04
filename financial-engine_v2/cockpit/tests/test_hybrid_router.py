@@ -58,6 +58,20 @@ def test_force_local_ignores_policy(mock_llm_client):
     assert result.source == "local"
 
 
+def test_api_only_blocks_force_local(mock_llm_client, mock_api_client):
+    router = HybridRouter(
+        llm_client=mock_llm_client,
+        api_client=mock_api_client,
+        policy="api_only",
+    )
+
+    with pytest.raises(RuntimeError, match="Local LLM routing is disabled"):
+        router.complete([{"role": "user", "content": "hi"}], force_backend="local")
+
+    mock_llm_client.chat.assert_not_called()
+    mock_api_client.chat.assert_not_called()
+
+
 def test_api_not_called_without_client(mock_llm_client):
     router = HybridRouter(llm_client=mock_llm_client, policy="local_only")
     result = router.complete([{"role": "user", "content": "hi"}])

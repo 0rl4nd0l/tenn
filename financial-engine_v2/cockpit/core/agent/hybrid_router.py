@@ -254,6 +254,11 @@ class HybridRouter:
                 f"force_backend must be 'local' or 'api', got {force_backend!r}"
             )
 
+        if self._policy == "api_only" and force_backend == "local":
+            raise RuntimeError(
+                "Local LLM routing is disabled by api_only policy"
+            )
+
         if force_backend == "api":
             return "api", "force:api"
 
@@ -629,6 +634,13 @@ class HybridRouter:
             force_backend,
             on_status=on_status,
         )
+        self._last_attempt = {
+            "source": backend,
+            "model": self._resolve_backend_model_name(backend),
+            "latency_ms": 0,
+            "cost_usd": 0.0,
+            "routing_reason": routing_reason,
+        }
 
         wrapped_on_chunk, progress_start = self._wrap_chunk_progress(
             on_chunk, on_status, backend
@@ -681,6 +693,13 @@ class HybridRouter:
                     )
                 backend = "api"
                 routing_reason = f"fallback_api_after_local_failure:{type(exc).__name__}"
+                self._last_attempt = {
+                    "source": backend,
+                    "model": self._resolve_backend_model_name(backend),
+                    "latency_ms": 0,
+                    "cost_usd": 0.0,
+                    "routing_reason": routing_reason,
+                }
                 wrapped_on_chunk, progress_start = self._wrap_chunk_progress(
                     on_chunk, on_status, backend
                 )
@@ -721,6 +740,13 @@ class HybridRouter:
                 routing_reason=routing_reason,
             )
         )
+        self._last_attempt = {
+            "source": backend,
+            "model": result.model,
+            "latency_ms": elapsed_ms,
+            "cost_usd": result.cost_usd,
+            "routing_reason": routing_reason,
+        }
         return result
 
     @staticmethod

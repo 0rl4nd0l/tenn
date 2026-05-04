@@ -80,6 +80,7 @@ _ANTHROPIC_BILLING_ERROR_RE = re.compile(
 )
 CHAT_ROUTING_POLICY_OVERRIDE_KEY = "chat_routing_policy_override"
 CHAT_ROUTING_POLICY_CONFIG_DEFAULT = "config_default"
+API_DEFAULT_ENABLED_KEY = "api_default_enabled"
 VALID_CHAT_ROUTING_POLICY_PREFERENCES = frozenset(
     {CHAT_ROUTING_POLICY_CONFIG_DEFAULT, *VALID_HYBRID_ROUTER_POLICIES}
 )
@@ -92,6 +93,13 @@ def normalize_chat_routing_policy_preference(raw: Any) -> str | None:
     if value in VALID_CHAT_ROUTING_POLICY_PREFERENCES:
         return value
     return None
+
+
+def _parse_bool_preference(raw: Any, *, default: bool = False) -> bool:
+    text = str(raw or "").strip().lower()
+    if not text:
+        return default
+    return text in {"1", "true", "yes", "on"}
 
 
 def _now_iso() -> str:
@@ -1293,6 +1301,29 @@ class CockpitService:
             return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
         normalized = normalize_chat_routing_policy_preference(raw)
         return normalized or CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+
+    def api_default_enabled(self) -> bool:
+        store = getattr(self, "state_store", None)
+        if store is None or not hasattr(store, "get_preference"):
+            return False
+        try:
+            raw = store.get_preference(API_DEFAULT_ENABLED_KEY, "false")
+        except Exception:
+            return False
+        return _parse_bool_preference(raw, default=False)
+
+    def _apply_api_default_routing(self, message: str) -> tuple[str, bool]:
+        if not self.api_default_enabled():
+            return message, False
+        stripped = str(message or "").strip()
+        forced_backend, base_message = parse_backend_prefix(stripped)
+        if forced_backend == "api":
+            return message, False
+        if forced_backend is None and stripped.startswith("/"):
+            return message, False
+        target = base_message if forced_backend == "local" else stripped
+        target = target.strip()
+        return (f"/cloud {target}" if target else "/cloud"), True
 
     def _effective_cockpit_llm_config(
         self,
@@ -2706,6 +2737,11 @@ class CockpitService:
         controller = self._build_chat_controller(thread_id)
         self._seed_recent_youtube_video_options(thread_id, controller)
         controller_message = continuity_rewritten_message or message
+        controller_message, api_default_applied = self._apply_api_default_routing(
+            controller_message
+        )
+        if api_default_applied:
+            _capture_status("API default active - local LLM routing disabled")
 
         forced_backend, _effective_message = parse_backend_prefix(controller_message)
         route_preview: dict[str, Any] | None = None
@@ -2873,6 +2909,7 @@ class CockpitService:
                     "resolved_message": controller_message
                     if controller_message != message
                     else None,
+                    "api_default_applied": api_default_applied,
                     "ticker": ticker,
                     "enable_web": bool(enable_web) if enable_web is not None else False,
                     "requested_model": str(model or "").strip() or None,

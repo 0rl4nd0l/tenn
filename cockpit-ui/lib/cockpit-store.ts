@@ -65,7 +65,7 @@ export const useCockpitStore = create<CockpitState>()(
       sessionStats: {
         totalCostUsd: 0,
         lastLatencyMs: 0,
-        activeModel: 'local'
+        activeModel: 'unknown'
       },
       isBackendHealthy: true,
       backendError: null,

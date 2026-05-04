@@ -997,3 +997,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Calibration gathered broad Marketplace/eBay result sets before enough product-category and variant filters existed, and the eBay sold scraper lagged the current card DOM, so noisy evidence could be accepted as benchmark data.
 **Fix:** Added a motherboard product category with exact ASUS Pro WS X570-ACE identity checks, junk/accessory rejection, RTX 3090 vs 3090 Ti separation, readable product calibration queries, current eBay sold-card parsing, and foreign/junk/wrong-variant filtering before observation ingestion.
 **Rule:** Benchmark enrichment must be conservative. If a focused mission cannot find clean exact observations, leave the benchmark as `no_data` rather than manufacturing confidence from polluted nearby listings.
+
+---
+
+## L089 — API-only routing must be enforced server-side
+
+**Date:** 2026-05-05
+**Subsystem:** `financial-engine_v2/backend/app/services/cockpit_service.py`, `financial-engine_v2/cockpit/core/agent/hybrid_router.py`, `financial-engine_v2/cockpit/core/chat.py`, `cockpit-ui/components/cockpit/chat/`
+**Symptom:** Cockpit displayed `local` on a turn even though both settings and Cockpit config were set to API default/API-only routing.
+**Root cause:** API default was partly a frontend convention, so direct backend calls and explicit `/local` could still reach lower layers. The legacy keyword synthesis path called `ollama_client.chat()` directly instead of `HybridRouter`, and missing response metadata defaulted to `local` in the API/UI, making unknown provenance look like a local model route.
+**Fix:** Backend chat now applies API default before controller dispatch, `/local` and `/ops` are rewritten to `/cloud` when API default is enabled, `HybridRouter` rejects forced-local calls under `api_only`, legacy keyword synthesis routes through `HybridRouter`, and absent model/source metadata is labeled `unknown`. The web footer now renders source separately from model.
+**Rule:** API-only is a backend invariant, not a UI preference. Every LLM synthesis path must pass through the authoritative router, explicit local prefixes must fail or be rewritten under API-only, and missing routing metadata must never be displayed as `local`.

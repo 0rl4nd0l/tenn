@@ -11,8 +11,12 @@ describe('applyApiDefaultOverride', () => {
     expect(applyApiDefaultOverride('/watch add BHP', true)).toBe('/watch add BHP')
   })
 
-  it('keeps explicit backend routing prefixes intact', () => {
-    expect(applyApiDefaultOverride('/local summarize BHP', true)).toBe('/local summarize BHP')
+  it('overrides explicit local routing prefixes when API default is enabled', () => {
+    expect(applyApiDefaultOverride('/local summarize BHP', true)).toBe('/cloud summarize BHP')
+    expect(applyApiDefaultOverride('/ops summarize BHP', true)).toBe('/cloud summarize BHP')
+  })
+
+  it('keeps explicit API routing prefixes intact', () => {
     expect(applyApiDefaultOverride('/cloud summarize BHP', true)).toBe('/cloud summarize BHP')
   })
 

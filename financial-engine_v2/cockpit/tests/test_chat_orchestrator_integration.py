@@ -76,6 +76,44 @@ class _FakeAgentLoop:
         return text
 
 
+class _FakeHybridRouter:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+        self._last_attempt = {
+            "source": "api",
+            "model": "claude-sonnet-test",
+            "latency_ms": 25,
+            "cost_usd": 0.002,
+            "routing_reason": "policy:api_only",
+        }
+
+    def chat(
+        self,
+        prompt,
+        timeout=120.0,
+        prior_messages=None,
+        on_chunk=None,
+        force_backend=None,
+        on_status=None,
+    ):
+        self.calls.append(
+            {
+                "prompt": prompt,
+                "timeout": timeout,
+                "prior_messages": prior_messages,
+                "force_backend": force_backend,
+                "on_status": on_status,
+            }
+        )
+        text = "BHP API synthesis."
+        if on_chunk is not None:
+            on_chunk(text)
+        return text
+
+    def last_attempt_metadata(self):
+        return dict(self._last_attempt)
+
+
 def _controller(orchestration_result):
     ctrl = ChatController.__new__(ChatController)
     ctrl.repo_root = Path("/tmp")
@@ -727,6 +765,51 @@ def test_recent_update_queries_prefer_local_context_and_keep_backfill_as_optiona
             "details": ctrl.tool_router.gather_local_context.return_value.payload,
         }
     ]
+    assert ctrl._agent_loop.calls == []
+
+
+def test_keyword_context_path_uses_hybrid_router_instead_of_direct_local_llm() -> None:
+    ctrl = _controller(_result("mixed", ("financial_truth", "company_memory")))
+    hybrid_router = _FakeHybridRouter()
+    ctrl._hybrid_router = hybrid_router
+    ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(
+        payload={
+            "ticker": "BHP",
+            "docs": [],
+            "doc_snippets": [],
+            "financials": [],
+            "price": {
+                "ok": True,
+                "symbol": "BHP.AX",
+                "current": {
+                    "price": 44.0,
+                    "previous_close": 43.5,
+                    "change_percent": 1.15,
+                },
+                "recent_history": [
+                    {"timestamp": "2026-04-14T00:00:00Z", "close": 41.0},
+                    {"timestamp": "2026-04-18T00:00:00Z", "close": 44.0},
+                ],
+            },
+            "price_state": {"trend_regime": "bullish", "last_close": 44.0},
+            "qual_context_news": {"hits": []},
+            "qual_context": {"hits": []},
+            "sources": {},
+        }
+    )
+    ctrl.action_registry.preview.return_value = SimpleNamespace(
+        command=["python", "scripts/full_history_ticker_sync.py", "--ticker", "BHP"],
+        estimated_impact="mutates local data and reports",
+        timeout_seconds=14400,
+    )
+
+    response = ctrl.build_chat_response("what happened with BHP this week")
+
+    assert response.text.startswith("BHP API synthesis.")
+    assert response.routing_metadata["source"] == "api"
+    assert response.routing_metadata["model"] == "claude-sonnet-test"
+    assert hybrid_router.calls[0]["force_backend"] is None
+    ctrl.ollama_client.chat.assert_not_called()
     assert ctrl._agent_loop.calls == []
 
 

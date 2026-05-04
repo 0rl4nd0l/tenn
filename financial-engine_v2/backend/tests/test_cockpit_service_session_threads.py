@@ -45,13 +45,17 @@ def _prime_service(service: CockpitService) -> None:
 
 
 class _FakeStateStore:
-    def __init__(self) -> None:
+    def __init__(self, preferences: dict[str, str] | None = None) -> None:
         self.calls: list[tuple[str, str, str]] = []
+        self.preferences = dict(preferences or {})
 
     def add_chat_message(
         self, thread_id: str, role: str, content: str, created_at: str
     ) -> None:
         self.calls.append((thread_id, role, content))
+
+    def get_preference(self, key: str, default: str = "") -> str:
+        return self.preferences.get(key, default)
 
 
 class _FakeController:
@@ -432,6 +436,68 @@ def test_chat_stream_uses_last_attempt_route_when_controller_metadata_is_empty()
     assert response.routing_metadata["latency_ms"] >= 1
     assert response.routing_metadata["cost_usd"] == 0.0
     assert response.routing_metadata["routing_reason"] == "force:api"
+
+
+def test_chat_stream_applies_api_default_backend_side_to_plain_turn() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore({"api_default_enabled": "true"})
+    service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
+    controller = _FakeController("API default routed.")
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    statuses: list[str] = []
+
+    response = CockpitService.chat_stream(
+        service,
+        message="tell me about BHP",
+        session_id="session-api-default",
+        on_status=statuses.append,
+    )
+
+    assert response.text == "API default routed."
+    assert controller.calls[0]["message"] == "/cloud tell me about BHP"
+    assert "API default active - local LLM routing disabled" in statuses
+    saved = service._recent_turn_diagnostics["session-api-default"][-1]
+    assert saved["request"]["api_default_applied"] is True
+
+
+def test_chat_stream_api_default_overrides_local_prefix_before_controller() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore({"api_default_enabled": "true"})
+    service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
+    controller = _FakeController("Local prefix overridden.")
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+
+    CockpitService.chat_stream(
+        service,
+        message="/local tell me about BHP",
+        session_id="session-api-default-local-prefix",
+    )
+
+    assert controller.calls[0]["message"] == "/cloud tell me about BHP"
+
+
+def test_chat_stream_api_default_preserves_non_routing_slash_commands() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore({"api_default_enabled": "true"})
+    service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
+    controller = _FakeController("Sources listed.")
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    statuses: list[str] = []
+
+    CockpitService.chat_stream(
+        service,
+        message="/sources list",
+        session_id="session-api-default-slash-command",
+        on_status=statuses.append,
+    )
+
+    assert controller.calls[0]["message"] == "/sources list"
+    assert "API default active - local LLM routing disabled" not in statuses
+    saved = service._recent_turn_diagnostics["session-api-default-slash-command"][-1]
+    assert saved["request"]["api_default_applied"] is False
 
 
 def test_chat_stream_marks_anthropic_credit_error_as_provider_error() -> None:

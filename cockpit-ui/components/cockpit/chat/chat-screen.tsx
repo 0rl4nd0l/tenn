@@ -460,7 +460,7 @@ function normalizeStoreSource(source: unknown): 'local' | 'api' | 'anthropic' | 
   const value = String(source || '').trim()
   return value === 'local' || value === 'api' || value === 'anthropic' || value === 'cockpit'
     ? value
-    : (value ? 'local' : 'unknown')
+    : 'unknown'
 }
 
 function toChatMessage(record: {
@@ -1298,7 +1298,7 @@ export function ChatScreen() {
             model: response.content.model,
             latencyMs,
             costUsd: response.content.cost_usd || 0,
-            source: response.content.source || 'local',
+            source: response.content.source || 'unknown',
             routing: response.content.routing_metadata,
             analyst: normalizeAnalystMetadata(response.content.routing_metadata),
           },
@@ -1427,7 +1427,7 @@ export function ChatScreen() {
                   model: event.data.model,
                   latencyMs,
                   costUsd: event.data.cost_usd || 0,
-                  source: event.data.source || 'local',
+                  source: event.data.source || 'unknown',
                   routing: routingMetadata,
                   analyst: normalizeAnalystMetadata(routingMetadata),
                 },
