@@ -124,6 +124,16 @@ def test_product_normalizer_extracts_pc_part_attributes() -> None:
     assert nv2["attributes"]["brand"] == "Kingston"
     assert nv2["attributes"]["model"] == "NV2"
 
+    motherboard = normalize_product_text(
+        "mobo",
+        "ASUS Pro WS X570-ACE AM4 workstation motherboard",
+    )
+    assert motherboard["category"] == "motherboard"
+    assert motherboard["attributes"]["brand"] == "ASUS"
+    assert motherboard["attributes"]["model"] == "PRO WS X570-ACE"
+    assert motherboard["attributes"]["chipset"] == "X570"
+    assert motherboard["attributes"]["socket"] == "AM4"
+
 
 def test_junk_detection_flags_negative_listing_patterns() -> None:
     result = detect_listing_junk(
@@ -138,6 +148,71 @@ def test_junk_detection_flags_negative_listing_patterns() -> None:
     assert "broken_parts" in result["flags"]
     assert "box_only" in result["flags"]
     assert "placeholder_price" in result["flags"]
+
+    motherboard_accessory = detect_listing_junk(
+        title="ASUS I/O Shield bracket for Pro WS X570-ACE",
+        price=29.52,
+        category="motherboard",
+    )
+    assert motherboard_accessory["is_junk"] is True
+    assert "accessory_only" in motherboard_accessory["flags"]
+
+
+def test_variant_match_confidence_rejects_3090_ti_for_plain_3090_product(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = service.create_tracked_product(
+        {
+            "canonical_key": "gpu-nvidia-rtx-3090-24gb",
+            "category": "gpu",
+            "brand": "NVIDIA",
+            "model_family": "RTX 3090",
+            "variant": "24GB",
+            "attributes": {"chip_model": "RTX 3090", "vram_gb": 24},
+            "aliases": ["RTX 3090", "RTX 3090 24GB"],
+        }
+    )
+
+    assert service.variant_match_confidence(
+        match={"title": "ASUS RTX 3090 Ti 24GB", "price": "$1700"},
+        tracked_product=product,
+    ) < 0.65
+    assert service.variant_match_confidence(
+        match={"title": "ASUS RTX 3090 24GB", "price": "$1200"},
+        tracked_product=product,
+    ) >= 0.65
+
+
+def test_variant_match_confidence_requires_exact_motherboard_model(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = service.create_tracked_product(
+        {
+            "canonical_key": "motherboard-asus-pro-ws-x570-ace-am4",
+            "category": "motherboard",
+            "brand": "ASUS",
+            "model_family": "Pro WS X570-ACE",
+            "variant": "AM4 X570",
+            "attributes": {
+                "brand": "ASUS",
+                "model": "PRO WS X570-ACE",
+                "chipset": "X570",
+                "socket": "AM4",
+            },
+            "aliases": ["ASUS Pro WS X570-ACE", "Pro WS X570 ACE", "X570-ACE"],
+        }
+    )
+
+    assert service.variant_match_confidence(
+        match={"title": "ASUS ROG Strix X570-F AM4 Motherboard", "price": "$100"},
+        tracked_product=product,
+    ) < 0.65
+    assert service.variant_match_confidence(
+        match={"title": "ASUS Pro WS X570-ACE AM4 Motherboard", "price": "$220"},
+        tracked_product=product,
+    ) >= 0.9
 
 
 def test_listing_fingerprint_prefers_listing_id_then_url_then_text() -> None:

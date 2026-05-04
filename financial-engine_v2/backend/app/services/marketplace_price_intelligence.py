@@ -16,7 +16,7 @@ from app.services.commentary_decay import compute_recency_decay
 from cockpit.storage.state import StateStore
 
 
-PRODUCT_CATEGORIES = {"gpu", "cpu", "ram", "ssd"}
+PRODUCT_CATEGORIES = {"gpu", "cpu", "ram", "ssd", "motherboard"}
 TRACKED_PRODUCT_CATEGORY_ALIASES = {
     "graphics": "gpu",
     "graphics_card": "gpu",
@@ -25,6 +25,9 @@ TRACKED_PRODUCT_CATEGORY_ALIASES = {
     "ram_kit": "ram",
     "nvme": "ssd",
     "nvme_m2": "ssd",
+    "mainboard": "motherboard",
+    "mobo": "motherboard",
+    "workstation_board": "motherboard",
 }
 PRODUCT_STATUSES = {"active", "inactive"}
 OBSERVATION_REVIEW_STATES = {"pending_review", "accepted", "rejected"}
@@ -249,8 +252,13 @@ def detect_listing_junk(
         flags.append("placeholder_price")
     if re.search(r"\b(123456|999999|111111)\b", text):
         flags.append("placeholder_price")
-    if category in {"gpu", "cpu", "ram", "ssd"} and re.search(
+    if category in {"gpu", "cpu", "ram", "ssd", "motherboard"} and re.search(
         r"\b(photo|picture|wallpaper|keyring|sticker)\b", text
+    ):
+        flags.append("accessory_only")
+    if category == "motherboard" and re.search(
+        r"\b(i/o\s*shield|io\s*shield|backplate|bracket|faceplate)\b",
+        text,
     ):
         flags.append("accessory_only")
 
@@ -357,6 +365,25 @@ def normalize_product_text(category: str, text: str) -> dict[str, Any]:
         )
         if model:
             attributes["model"] = _clean(model.group(1)).upper()
+
+    elif category == "motherboard":
+        brand = re.search(r"\b(asus|asrock|msi|gigabyte)\b", lowered)
+        if brand:
+            attributes["brand"] = (
+                "ASRock" if brand.group(1) == "asrock" else brand.group(1).upper()
+            )
+        chipset = re.search(r"\b(x570|x570s|b550|x470|b450|x670e?|b650e?)\b", lowered)
+        if chipset:
+            attributes["chipset"] = chipset.group(1).upper()
+        if re.search(r"\b(am4|x570|x570s|b550|x470|b450)\b", lowered):
+            attributes["socket"] = "AM4"
+        elif re.search(r"\b(am5|x670|b650)\b", lowered):
+            attributes["socket"] = "AM5"
+        if re.search(r"\bpro\s*ws\s*x570[-\s]*ace\b|\bx570[-\s]*ace\b", lowered):
+            attributes["model"] = "PRO WS X570-ACE"
+            attributes["chipset"] = "X570"
+            attributes["socket"] = "AM4"
+            attributes["workstation_class"] = True
 
     identity_parts = [
         category,
@@ -1508,12 +1535,46 @@ class MarketplacePriceIntelligenceService:
         canonical = _lower(tracked_product.get("canonical_key"))
         if canonical and canonical in _lower(listing_text):
             return 1.0
+        category = _lower(tracked_product.get("category"))
+        attributes = (
+            tracked_product.get("attributes")
+            if isinstance(tracked_product.get("attributes"), dict)
+            else {}
+        )
+        listing_lower = _lower(listing_text)
         overlap = product_tokens.intersection(listing_tokens)
         exact_ratio = len(overlap) / max(len(product_tokens), 1)
         numeric_tokens = {token for token in product_tokens if any(ch.isdigit() for ch in token)}
         numeric_overlap = numeric_tokens.intersection(listing_tokens)
         numeric_ratio = len(numeric_overlap) / max(len(numeric_tokens), 1) if numeric_tokens else 0.5
-        return max(0.0, min(1.0, (exact_ratio * 0.7) + (numeric_ratio * 0.3)))
+        score = max(0.0, min(1.0, (exact_ratio * 0.7) + (numeric_ratio * 0.3)))
+        if category == "gpu":
+            chip_model = _lower(attributes.get("chip_model"))
+            suffix = _lower(attributes.get("suffix"))
+            if chip_model == "rtx 3090":
+                if not re.search(r"\brtx\s*3090\b|\b3090\b", listing_lower):
+                    return min(score, 0.45)
+                listing_is_ti = bool(re.search(r"\brtx\s*3090\s*ti\b|\b3090\s*ti\b", listing_lower))
+                if suffix != "ti" and listing_is_ti:
+                    return min(score, 0.45)
+                if suffix == "ti" and not listing_is_ti:
+                    return min(score, 0.45)
+                return max(score, 0.86)
+        if category == "motherboard":
+            model = _lower(attributes.get("model") or tracked_product.get("model_family"))
+            if "x570-ace" in model or "x570 ace" in model:
+                exact_model = bool(
+                    re.search(
+                        r"\b(?:asus\s+)?(?:pro\s*ws\s*)?x570[-\s]*ace\b",
+                        listing_lower,
+                    )
+                )
+                if not exact_model:
+                    return min(score, 0.45)
+                if "asus" not in listing_lower and "pro ws" not in listing_lower:
+                    return min(score, 0.6)
+                return max(score, 0.9)
+        return score
 
     def _condition_certainty(self, match: dict[str, Any]) -> str:
         metadata = match.get("metadata")

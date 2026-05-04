@@ -83,6 +83,19 @@ _RAM_MODEL_RE = re.compile(
     r"\b(vengeance|ripjaws|fury\s*beast|trident|dominator|ballistix)\b",
     re.IGNORECASE,
 )
+_MOTHERBOARD_EVIDENCE_RE = re.compile(
+    r"\b(motherboard|mainboard|mobo|x570|am4|pro\s*ws|x570[-\s]*ace)\b",
+    re.IGNORECASE,
+)
+_MOTHERBOARD_MODEL_RE = re.compile(
+    r"\b(?:asus\s+)?(?:pro\s*ws\s*)?x570[-\s]*ace\b",
+    re.IGNORECASE,
+)
+_MOTHERBOARD_WRONG_CATEGORY_RE = re.compile(
+    r"\b(gpu|graphics\s*card|rtx|gtx|radeon|cpu|processor|ryzen|ssd|nvme|"
+    r"ram|memory\s+kit|gaming\s+pc|full\s+pc|complete\s+pc)\b",
+    re.IGNORECASE,
+)
 _CITY_STATE_HINTS: dict[str, str] = {
     "melbourne": "victoria",
     "geelong": "victoria",
@@ -206,6 +219,9 @@ def _tracked_category(value: Any) -> str:
         "ram_kit": "ram",
         "nvme": "ssd",
         "nvme_m2": "ssd",
+        "mainboard": "motherboard",
+        "mobo": "motherboard",
+        "workstation_board": "motherboard",
     }
     return aliases.get(normalized, normalized)
 
@@ -401,6 +417,18 @@ def _mission_storage_capacity_targets(mission: dict[str, Any]) -> set[int]:
 def _category_fit_rejection(normalized_text: str, mission: dict[str, Any]) -> str | None:
     category = _requirement_category(mission)
     if category != "ssd":
+        if category == "motherboard":
+            if _MOTHERBOARD_WRONG_CATEGORY_RE.search(normalized_text):
+                return "Listing appears outside the requested motherboard category"
+            if not _MOTHERBOARD_EVIDENCE_RE.search(normalized_text):
+                return "Required motherboard/X570 evidence was not found"
+            hard = mission.get("hard_filters") or {}
+            target_terms = " ".join(
+                _string_list(hard.get("include_keywords"))
+                + _string_list(hard.get("required_terms"))
+            ).lower()
+            if "x570" in target_terms and re.search(r"\b(b550|x470|x670|b650|am5)\b", normalized_text):
+                return "Listing chipset/socket does not match target X570/AM4 board"
         return None
     if _SSD_WRONG_CATEGORY_RE.search(normalized_text):
         return "Listing appears outside the requested internal NVMe SSD category"
@@ -425,6 +453,10 @@ def _strong_category_identity_evidence(normalized_text: str, mission: dict[str, 
         )
     if category == "ram":
         return bool(_RAM_MODEL_RE.search(normalized_text)) or bool(
+            _strong_candidate_model_evidence(normalized_text, mission)
+        )
+    if category == "motherboard":
+        return bool(_MOTHERBOARD_MODEL_RE.search(normalized_text)) or bool(
             _strong_candidate_model_evidence(normalized_text, mission)
         )
     return True
@@ -902,7 +934,7 @@ def evaluate_marketplace_listing(
 
     category = _requirement_category(mission)
     better_price_already_seen = False
-    if category in {"ssd", "ram"}:
+    if category in {"gpu", "ssd", "ram", "motherboard"}:
         if price_value is None:
             better_price_already_seen = True
             reasons_against.append(

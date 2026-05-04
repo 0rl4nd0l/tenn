@@ -986,3 +986,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Marketplace scoring treated keyword, brand, and model evidence as enough for `strong_match`, while observed mission pricing was only a bonus/comparison input. The mission price band also included rejected or orphan seen rows, making the "best seen" anchor noisy.
 **Fix:** SSD/RAM strong matches now require a captured price at the current best observed mission price. More expensive comparable listings are capped to candidate with an explicit cheaper-comparable reason, and observed price bands only use saved non-dismissed candidate/strong matches.
 **Rule:** For deal-hunting categories, `strong_match` must mean both "fits the mission" and "is the best known deal right now." Keep rejected/orphan observations out of deal-ranking anchors, and add a regression test whenever a surfaced rank depends on mission price history.
+
+---
+
+## L088 — Marketplace calibration must prefer no_data over polluted benchmarks
+
+**Date:** 2026-05-04
+**Subsystem:** `financial-engine_v2/backend/app/services/marketplace_price_intelligence.py`, `financial-engine_v2/backend/app/services/marketplace_scanner.py`, `financial-engine_v2/backend/app/services/ebay_sold_scanner.py`
+**Symptom:** Narrow hardware hunts could get misleading benchmarks from adjacent or invalid rows, such as wrong X570 motherboards, I/O shields, overseas Marketplace cards, WTB/free-trade rows, or RTX 3090 Ti listings under a plain RTX 3090 mission.
+**Root cause:** Calibration gathered broad Marketplace/eBay result sets before enough product-category and variant filters existed, and the eBay sold scraper lagged the current card DOM, so noisy evidence could be accepted as benchmark data.
+**Fix:** Added a motherboard product category with exact ASUS Pro WS X570-ACE identity checks, junk/accessory rejection, RTX 3090 vs 3090 Ti separation, readable product calibration queries, current eBay sold-card parsing, and foreign/junk/wrong-variant filtering before observation ingestion.
+**Rule:** Benchmark enrichment must be conservative. If a focused mission cannot find clean exact observations, leave the benchmark as `no_data` rather than manufacturing confidence from polluted nearby listings.

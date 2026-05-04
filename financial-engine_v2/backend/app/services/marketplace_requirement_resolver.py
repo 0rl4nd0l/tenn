@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 
-SUPPORTED_REQUIREMENT_CATEGORIES = {"gpu", "cpu", "ram", "ssd"}
+SUPPORTED_REQUIREMENT_CATEGORIES = {"gpu", "cpu", "ram", "ssd", "motherboard"}
 REQUIREMENT_MODES = {"exact_product", "requirement_driven"}
 
 _GPU_EXACT_RE = re.compile(
@@ -24,6 +24,10 @@ _SSD_EXACT_RE = re.compile(
 )
 _RAM_EXACT_RE = re.compile(
     r"\b(?:trident\s*z5|vengeance|fury\s*beast|dominator|ripjaws)\b",
+    re.IGNORECASE,
+)
+_MOTHERBOARD_EXACT_RE = re.compile(
+    r"\b(?:asus\s+)?(?:pro\s*ws\s*)?x570[-\s]*ace\b",
     re.IGNORECASE,
 )
 
@@ -53,7 +57,7 @@ _GPU_CANDIDATES: list[dict[str, Any]] = [
             "vram_gb": 24,
             "acceleration_stack": "CUDA",
         },
-        "aliases": ["RTX 3090", "RTX 3090 24GB", "NVIDIA RTX 3090"],
+        "aliases": ["RTX 3090", "RTX3090", "RTX 3090 24GB", "3090 24GB", "NVIDIA RTX 3090"],
         "availability_rank": 1,
     },
     {
@@ -274,11 +278,35 @@ _RAM_CANDIDATES: list[dict[str, Any]] = [
     },
 ]
 
+_MOTHERBOARD_CANDIDATES: list[dict[str, Any]] = [
+    {
+        "canonical_key": "motherboard-asus-pro-ws-x570-ace-am4",
+        "category": "motherboard",
+        "brand": "ASUS",
+        "model_family": "Pro WS X570-ACE",
+        "variant": "AM4 X570",
+        "attributes": {
+            "brand": "ASUS",
+            "model": "PRO WS X570-ACE",
+            "chipset": "X570",
+            "socket": "AM4",
+            "workstation_class": True,
+        },
+        "aliases": [
+            "ASUS Pro WS X570-ACE",
+            "Pro WS X570 ACE",
+            "X570-ACE",
+        ],
+        "availability_rank": 1,
+    },
+]
+
 _CATALOGUE = {
     "gpu": _GPU_CANDIDATES,
     "cpu": _CPU_CANDIDATES,
     "ssd": _SSD_CANDIDATES,
     "ram": _RAM_CANDIDATES,
+    "motherboard": _MOTHERBOARD_CANDIDATES,
 }
 
 
@@ -345,6 +373,8 @@ def _infer_category(text: str, category_hint: Any) -> str | None:
         return "ssd"
     if re.search(r"\b(ram|memory|ddr\s*[45]|mt/s|mhz|cl\d{2})\b", lowered):
         return "ram"
+    if re.search(r"\b(motherboard|mainboard|mobo|x570[-\s]*ace|x570s?|am4|pro\s*ws)\b", lowered):
+        return "motherboard"
     return hint or None
 
 
@@ -376,6 +406,8 @@ def _exact_product_hint(category: str | None, text: str) -> str | None:
         match = _SSD_EXACT_RE.search(text)
     elif category == "ram":
         match = _RAM_EXACT_RE.search(text)
+    elif category == "motherboard":
+        match = _MOTHERBOARD_EXACT_RE.search(text)
     else:
         match = None
     return _clean(match.group(0)) if match else None
@@ -466,6 +498,23 @@ def build_requirement_profile(payload: dict[str, Any]) -> dict[str, Any]:
         if speed:
             soft_preferences.append(
                 {"field": "speed_mhz", "value": int(speed.group(1)), "reason": "requested memory speed"}
+            )
+    elif category == "motherboard":
+        if "am4" in lowered:
+            hard_constraints.append(
+                {"field": "socket", "operator": "=", "value": "AM4", "source": "brief"}
+            )
+        if "x570" in lowered:
+            hard_constraints.append(
+                {"field": "chipset", "operator": "=", "value": "X570", "source": "brief"}
+            )
+        if "pro ws" in lowered or "workstation" in lowered:
+            soft_preferences.append(
+                {
+                    "field": "workstation_class",
+                    "value": True,
+                    "reason": "requested workstation-class X570 board",
+                }
             )
 
     exact_hint = _exact_product_hint(category, text)
@@ -584,12 +633,15 @@ def generate_requirement_candidate_specs(
 def candidate_search_terms(candidates: list[dict[str, Any]], *, limit: int = 8) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
-    for candidate in candidates:
-        terms = [
+    primary_batches = [
+        [
             f"{candidate.get('model_family') or ''} {candidate.get('variant') or ''}",
             candidate.get("model_family"),
-            *(candidate.get("aliases") or []),
         ]
+        for candidate in candidates
+    ]
+    alias_batches = [candidate.get("aliases") or [] for candidate in candidates]
+    for terms in [*primary_batches, *alias_batches]:
         for term in terms:
             cleaned = _clean(term)
             key = cleaned.lower()

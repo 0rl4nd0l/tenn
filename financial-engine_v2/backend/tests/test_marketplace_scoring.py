@@ -97,6 +97,38 @@ def _ssd_mission() -> dict:
     }
 
 
+def _motherboard_mission() -> dict:
+    return {
+        "category_hint": "motherboard",
+        "hard_filters": {
+            "include_keywords": ["ASUS", "X570", "motherboard"],
+            "exclude_keywords": ["B550", "AM5", "bundle", "gaming pc"],
+            "location_names": ["Australia"],
+            "price_max": 500,
+        },
+        "soft_preferences": {
+            "preferred_brands": ["ASUS"],
+            "nice_to_have_terms": ["Pro WS", "AM4"],
+        },
+        "deployment_args": {
+            "requirement_profile": {
+                "mode": "requirement_driven",
+                "category": "motherboard",
+            },
+            "candidate_search_terms": [
+                "ASUS Pro WS X570-ACE",
+                "Pro WS X570 ACE",
+                "X570-ACE",
+            ],
+        },
+        "scan_config": {
+            "strong_match_threshold": 85,
+            "candidate_threshold": 70,
+            "aggressive_alerting": False,
+        },
+    }
+
+
 def test_prefilter_marketplace_card_rejects_forbidden_term() -> None:
     result = prefilter_marketplace_card(
         {
@@ -641,6 +673,87 @@ def test_evaluate_marketplace_listing_caps_ssd_without_price() -> None:
 
     assert result["decision_band"] == "candidate"
     assert "captured price" in " ".join(result["reasons_against"])
+
+
+def test_evaluate_marketplace_listing_allows_strong_motherboard_model_match() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "ASUS Pro WS X570-ACE AM4 motherboard",
+            "price": "$220",
+            "location": "Sydney NSW",
+            "description": "ASUS workstation X570 board, working.",
+            "raw_text_lines": ["ASUS Pro WS X570-ACE motherboard"],
+        },
+        _motherboard_mission(),
+        observed_price_band={"min": 220, "median": 260, "max": 350},
+    )
+
+    assert result["decision_band"] == "strong_match"
+
+
+def test_evaluate_marketplace_listing_caps_broad_motherboard_match_at_candidate() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "ASUS X570 AM4 motherboard",
+            "price": "$180",
+            "location": "Brisbane QLD",
+            "description": "ASUS X570 board, exact model not shown.",
+            "raw_text_lines": ["ASUS X570 AM4 motherboard"],
+        },
+        _motherboard_mission(),
+        observed_price_band={"min": 180, "median": 260, "max": 350},
+    )
+
+    assert result["decision_band"] == "candidate"
+    assert any(
+        "Strong match requires model or series evidence" in reason
+        for reason in result["reasons_against"]
+    )
+
+
+def test_evaluate_marketplace_listing_caps_motherboard_when_cheaper_deal_seen() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "ASUS Pro WS X570-ACE AM4 motherboard",
+            "price": "$300",
+            "location": "Perth WA",
+            "description": "ASUS workstation X570 board, working.",
+            "raw_text_lines": ["ASUS Pro WS X570-ACE motherboard"],
+        },
+        _motherboard_mission(),
+        observed_price_band={"min": 220, "median": 260, "max": 350},
+    )
+
+    assert result["decision_band"] == "candidate"
+    assert any(
+        "Cheaper comparable listing already seen" in reason
+        for reason in result["reasons_against"]
+    )
+
+
+def test_evaluate_marketplace_listing_rejects_wrong_motherboard_chipset() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "ASUS B550 AM4 motherboard",
+            "price": "$120",
+            "location": "Adelaide SA",
+            "description": "ASUS B550 board.",
+            "raw_text_lines": ["ASUS B550 AM4 motherboard"],
+        },
+        {
+            **_motherboard_mission(),
+            "hard_filters": {
+                **_motherboard_mission()["hard_filters"],
+                "exclude_keywords": [],
+            },
+        },
+        observed_price_band={"min": 120, "median": 260, "max": 350},
+    )
+
+    assert result["decision_band"] == "reject"
+    assert result["reasons_against"] == [
+        "Listing chipset/socket does not match target X570/AM4 board"
+    ]
 
 
 def test_evaluate_marketplace_listing_allows_distance_only_location() -> None:

@@ -29,6 +29,7 @@ from app.services.marketplace_mission_service import (
 )
 from app.services.marketplace_price_intelligence import (
     MarketplacePriceIntelligenceService,
+    detect_listing_junk,
     normalize_product_text,
     normalize_tracked_product_category,
 )
@@ -61,6 +62,7 @@ FACEBOOK_MARKETPLACE_ITEM_RE = re.compile(
     re.IGNORECASE,
 )
 DEFAULT_MARKETPLACE_RADIUS_KM = 160
+CALIBRATION_MARKETPLACE_RADIUS_KM = 500
 DEFAULT_DETAIL_PACING_SECONDS = (1.5, 4.0)
 DEFAULT_DETAIL_TIMEOUT_BACKOFF_SECONDS = (8.0, 15.0)
 MAX_DETAIL_TIMEOUT_BACKOFF_SECONDS = 60.0
@@ -195,6 +197,23 @@ def _scan_location_anchors(location_names: list[str]) -> list[str]:
     return list(location_names)
 
 
+def _tracked_product_search_query(product: dict[str, Any]) -> str:
+    aliases = product.get("aliases") if isinstance(product.get("aliases"), list) else []
+    for value in [
+        " ".join(
+            str(part or "").strip()
+            for part in [product.get("model_family"), product.get("variant")]
+            if str(part or "").strip()
+        ),
+        *(str(alias or "").strip() for alias in aliases),
+        str(product.get("canonical_key") or "").replace("-", " "),
+    ]:
+        cleaned = re.sub(r"\s+", " ", str(value or "")).strip()
+        if cleaned:
+            return cleaned
+    return str(product.get("canonical_key") or "").strip()
+
+
 def build_marketplace_search_url(
     query: str,
     *,
@@ -282,7 +301,7 @@ def _marketplace_category(mission: dict[str, Any]) -> str | None:
 
 def _listing_product_metadata(mission: dict[str, Any], detail: dict[str, Any]) -> dict[str, Any]:
     category = _marketplace_category(mission)
-    if category not in {"gpu", "cpu", "ram", "ssd"}:
+    if category not in {"gpu", "cpu", "ram", "ssd", "motherboard"}:
         return {}
     text = " ".join(
         str(value or "")
@@ -384,7 +403,7 @@ class MarketplaceScanner:
         if product is None:
             raise ValueError(f"tracked_product_id not found: {tracked_product_id}")
 
-        query = product["canonical_key"]
+        query = _tracked_product_search_query(product)
         health = check_marketplace_browser_health(
             cdp_url=self.cdp_url,
             timeout_ms=self.timeout_ms,
@@ -397,7 +416,9 @@ class MarketplaceScanner:
 
         stats = {
             "tracked_product_id": tracked_product_id,
-            "canonical_key": query,
+            "canonical_key": product["canonical_key"],
+            "query": query,
+            "location_anchors_scanned": [],
             "listings_seen": 0,
             "observations_ingested": 0,
             "benchmark_rebuilt": False,
@@ -407,28 +428,35 @@ class MarketplaceScanner:
             if progress:
                 progress(f"Searching for {query}", 10.0)
             
-            page = await context.new_page()
-            try:
-                page.set_default_timeout(self.timeout_ms)
-                # Use Australia-wide city anchors for better coverage if needed, 
-                # but for calibration a single large city like Melbourne is usually enough for bootstrapping.
-                search_url = build_marketplace_search_url(query, location_name="Melbourne, Australia")
-                await page.goto(search_url, wait_until="domcontentloaded")
-                await page.wait_for_timeout(2_000)
-                
-                cards = await self._collect_cards_for_query(
-                    page=page,
-                    query=query,
-                    card_target=25,
-                    seen_listing_ids=set(),
-                    log=log,
-                    cancel_requested=cancel_requested,
-                )
-            finally:
+            cards: list[dict[str, Any]] = []
+            seen_listing_ids: set[str] = set()
+            for location_name in _scan_location_anchors(["Australia"]):
+                self._raise_if_cancelled(cancel_requested)
+                page = await context.new_page()
                 try:
-                    await page.close()
-                except Exception:
-                    pass
+                    page.set_default_timeout(self.timeout_ms)
+                    search_url = build_marketplace_search_url(
+                        query,
+                        location_name=location_name,
+                        radius_km=CALIBRATION_MARKETPLACE_RADIUS_KM,
+                    )
+                    await page.goto(search_url, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(2_000)
+                    location_cards = await self._collect_cards_for_query(
+                        page=page,
+                        query=query,
+                        card_target=12,
+                        seen_listing_ids=seen_listing_ids,
+                        log=log,
+                        cancel_requested=cancel_requested,
+                    )
+                    cards.extend(location_cards)
+                    stats["location_anchors_scanned"].append(location_name)
+                finally:
+                    try:
+                        await page.close()
+                    except Exception:
+                        pass
 
             stats["listings_seen"] = len(cards)
             if log:
@@ -436,12 +464,43 @@ class MarketplaceScanner:
 
             for card in cards:
                 self._raise_if_cancelled(cancel_requested)
-                
+                price_value = parse_marketplace_price(card.get("price"))
+                if price_value is None or price_value <= 0:
+                    continue
+                title = str(card.get("title") or "")
+                raw_text = " ".join(str(item or "") for item in card.get("text_fragments") or [])
+                prefilter = prefilter_marketplace_card(
+                    {
+                        "title": title,
+                        "price": card.get("price"),
+                        "location": card.get("location"),
+                        "text_fragments": card.get("text_fragments") or [],
+                    },
+                    {
+                        "hard_filters": {
+                            "location_names": ["Australia"],
+                            "include_keywords": [],
+                            "forbidden_terms": [],
+                            "exclude_keywords": [],
+                        },
+                        "soft_preferences": {},
+                    },
+                )
+                if prefilter.get("prefilter_decision") == "reject":
+                    continue
+                junk = detect_listing_junk(
+                    title=f"{title} {raw_text}",
+                    price=price_value,
+                    category=product["category"],
+                )
+                if junk["is_junk"]:
+                    continue
+
                 # Basic card-level match check
                 confidence = price_service.variant_match_confidence(
                     match={
-                        "title": card.get("title"),
-                        "raw_text_snapshot": " ".join(card.get("text_fragments") or []),
+                        "title": title,
+                        "raw_text_snapshot": raw_text,
                         "price": card.get("price"),
                     },
                     tracked_product=product,
@@ -454,14 +513,14 @@ class MarketplaceScanner:
                             "source": "facebook_calibration",
                             "observed_at": _now_iso(),
                             "source_listing_id": extract_marketplace_listing_id(card["listing_url"]),
-                            "title": card["title"],
-                            "price": parse_marketplace_price(card["price"]) or 0,
+                            "title": title,
+                            "price": price_value,
                             "url": card["listing_url"],
                             "location": card.get("location"),
                             "match_confidence": confidence,
                             "capture_mode": "scanner",
                             "provenance": {"query": query, "calibration": True},
-                            "review_state": "pending_review"
+                            "review_state": "pending_review",
                         })
                         if observation.get("created"):
                             stats["observations_ingested"] += 1

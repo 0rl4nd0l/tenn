@@ -136,6 +136,20 @@ def test_scan_location_anchors_keeps_state_scope_single_anchor() -> None:
     ]
 
 
+def test_tracked_product_search_query_prefers_readable_product_name() -> None:
+    query = scanner._tracked_product_search_query(
+        {
+            "canonical_key": "motherboard-asus-pro-ws-x570-ace-am4",
+            "model_family": "Pro WS X570-ACE",
+            "variant": "AM4 X570",
+            "aliases": ["ASUS Pro WS X570-ACE"],
+        }
+    )
+
+    assert query == "Pro WS X570-ACE AM4 X570"
+    assert query != "motherboard-asus-pro-ws-x570-ace-am4"
+
+
 def test_detail_timeout_backoff_scales_for_consecutive_timeouts() -> None:
     marketplace_scanner = scanner.MarketplaceScanner(
         SimpleNamespace(),

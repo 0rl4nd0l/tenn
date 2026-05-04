@@ -125,3 +125,39 @@ def test_prepare_requirement_driven_mission_repairs_stale_exact_hunt_profile(
         )
     }
     assert "ssd-kingston-nv2-2tb-gen4" in candidate_keys
+
+
+def test_prepare_motherboard_requirement_uses_bounded_asus_x570_candidate(
+    tmp_path: Path,
+) -> None:
+    mission_service, price_service = _services(tmp_path)
+    mission = mission_service.create_mission(
+        {
+            "name": "ASUS Pro WS X570-ACE motherboard hunt",
+            "brief": "Find ASUS Pro WS X570-ACE AM4 X570 motherboard deals Australia-wide.",
+            "category_hint": "motherboard",
+            "hard_filters": {
+                "include_keywords": ["ASUS Pro WS X570-ACE", "X570-ACE"],
+                "location_names": ["Australia"],
+            },
+        }
+    )
+
+    prepared = prepare_requirement_driven_mission(
+        mission_service,
+        price_service,
+        mission,
+    )
+
+    assert prepared["requirement_profile"]["category"] == "motherboard"
+    assert prepared["deployment_args"]["candidate_search_terms"] == [
+        "Pro WS X570-ACE AM4 X570",
+        "Pro WS X570-ACE",
+        "ASUS Pro WS X570-ACE",
+        "Pro WS X570 ACE",
+        "X570-ACE",
+    ]
+    candidates = mission_service.list_mission_candidate_products(mission["mission_id"])
+    assert [candidate["candidate_key"] for candidate in candidates] == [
+        "motherboard-asus-pro-ws-x570-ace-am4"
+    ]
