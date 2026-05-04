@@ -249,7 +249,7 @@ def _anthropic_fallback_generate_json(
     if not api_key:
         raise RuntimeError("Anthropic API fallback unavailable: ANTHROPIC_API_KEY not set")
 
-    resolved_model = model or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+    resolved_model = model or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
     client = anthropic.Anthropic(api_key=api_key)
 
     system_msg = "Output ONLY valid JSON."
