@@ -43,6 +43,8 @@ import { cn } from '@/lib/utils'
 const HISTORY_KEY = 'thesis_audit_history'
 const MAX_HISTORY = 5
 
+const MAX_STORED_BASE64 = 200_000
+
 type AuditHistoryEntry = {
   audit_id: string
   ticker: string
@@ -51,6 +53,8 @@ type AuditHistoryEntry = {
   generated_at: string
   thesis_summary: string
   report: ThesisAuditReport
+  reportText: string
+  uploadedReport: UploadedReport | null
 }
 
 interface ThesisAuditScreenProps {
@@ -570,6 +574,11 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
       setAudit(result)
       setStatus(`Audit ${result.audit_id} completed.`)
 
+      const storedUpload = uploadedReport
+        ? uploadedReport.base64.length <= MAX_STORED_BASE64
+          ? uploadedReport
+          : { ...uploadedReport, base64: '' }
+        : null
       const entry: AuditHistoryEntry = {
         audit_id: result.audit_id,
         ticker: normalizedTicker,
@@ -578,6 +587,8 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
         generated_at: result.generated_at,
         thesis_summary: result.thesis_summary,
         report: result,
+        reportText: reportText.trim(),
+        uploadedReport: storedUpload,
       }
       const newHistory = [entry, ...history.filter((h) => h.audit_id !== entry.audit_id)].slice(0, MAX_HISTORY)
       saveHistory(newHistory)
@@ -619,10 +630,13 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
   const handleRestoreHistory = (entry: AuditHistoryEntry) => {
     setTicker(entry.ticker)
     setFocus(entry.focus || '')
-    setReportText('')
-    setUploadedReport(null)
+    setReportText(entry.reportText ?? '')
+    setUploadedReport(entry.uploadedReport ?? null)
     setAudit(entry.report)
-    setStatus(`Restored audit from ${new Date(entry.generated_at).toLocaleString()}`)
+    const canRerun = (entry.reportText ?? '').trim() || (entry.uploadedReport?.base64 ?? '')
+    setStatus(
+      `Restored audit from ${new Date(entry.generated_at).toLocaleString()}${canRerun ? '' : ' — re-upload file to re-run'}`
+    )
     setStagedProposalIndexes(new Set())
   }
 
