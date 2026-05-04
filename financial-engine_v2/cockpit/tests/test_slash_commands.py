@@ -899,6 +899,35 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         )
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_bare_channel_recent_videos_query_lists_recent_videos_directly(self) -> None:
+        backend = MagicMock()
+        backend.get_youtube_channel_recent_videos.return_value = {
+            "name": "Kneppy Invests",
+            "channel_id": "UCabc123",
+            "videos": [
+                {
+                    "title": "Status of My Trades",
+                    "published_at": "2026-05-04T00:00:00Z",
+                    "webpage_url": "https://www.youtube.com/watch?v=ULVlVUSSSkI",
+                    "duration_seconds": 960,
+                    "scores": {"overall": 0.88},
+                }
+            ],
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller.build_chat_response("kneppy invests recent videos")
+
+        assert resp.mode == "command"
+        assert "Recent videos from Kneppy Invests (UCabc123)" in resp.text
+        assert "Status of My Trades" in resp.text
+        assert "https://www.youtube.com/watch?v=ULVlVUSSSkI" in resp.text
+        backend.get_youtube_channel_recent_videos.assert_called_once_with(
+            "kneppy invests",
+            limit=8,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_youtube_recent_video_followup_without_channel_asks_clearly(self) -> None:
         self.state_store.get_chat_messages.return_value = [
             {"role": "user", "content": "most recent video?"}

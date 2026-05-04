@@ -1151,6 +1151,7 @@ class CockpitService:
         )
         self._feedback_lock = threading.Lock()
         self._recent_turn_diagnostics: dict[str, list[dict[str, Any]]] = {}
+        self._recent_youtube_video_options_by_thread: dict[str, list[dict[str, Any]]] = {}
         self._recent_auto_flag_fingerprints: set[str] = set()
         self._verification_runs_lock = threading.Lock()
 
@@ -1409,6 +1410,91 @@ class CockpitService:
                 "Failed to persist chat message",
                 extra={"thread_id": thread_id, "role": role},
             )
+
+    @staticmethod
+    def _youtube_options_from_response(response: Any) -> list[dict[str, Any]]:
+        evidence = getattr(response, "evidence", None) or []
+        for item in reversed(evidence):
+            if not isinstance(item, dict):
+                continue
+            if item.get("tool") != "check_youtube_channel_recent_videos":
+                continue
+            result = item.get("result")
+            if not isinstance(result, dict):
+                continue
+            videos = result.get("videos")
+            if not isinstance(videos, list):
+                continue
+            options: list[dict[str, Any]] = []
+            for index, video in enumerate(videos, start=1):
+                if not isinstance(video, dict):
+                    continue
+                url = str(video.get("webpage_url") or video.get("url") or "").strip()
+                if not url:
+                    continue
+                options.append(
+                    {
+                        "position": video.get("position") or index,
+                        "title": str(
+                            video.get("title") or video.get("video_id") or "Untitled"
+                        ).strip(),
+                        "webpage_url": url,
+                        "video_id": video.get("video_id"),
+                        "scores": video.get("scores")
+                        if isinstance(video.get("scores"), dict)
+                        else {},
+                    }
+                )
+            if options:
+                return options[:20]
+        return []
+
+    @staticmethod
+    def _has_youtube_recent_video_response(response: Any) -> bool:
+        evidence = getattr(response, "evidence", None) or []
+        return any(
+            isinstance(item, dict)
+            and item.get("tool") == "check_youtube_channel_recent_videos"
+            for item in evidence
+        )
+
+    def _seed_recent_youtube_video_options(
+        self,
+        thread_id: str,
+        controller: Any,
+    ) -> None:
+        options_by_thread = getattr(self, "_recent_youtube_video_options_by_thread", None)
+        if not isinstance(options_by_thread, dict):
+            return
+        options = options_by_thread.get(thread_id)
+        if not options:
+            return
+        try:
+            setattr(controller, "_recent_youtube_video_options", list(options))
+        except Exception:
+            logger.debug("Could not seed recent YouTube options into chat controller")
+
+    def _remember_recent_youtube_video_options(
+        self,
+        thread_id: str,
+        response: Any,
+    ) -> None:
+        options = self._youtube_options_from_response(response)
+        if not options:
+            if self._has_youtube_recent_video_response(response):
+                options_by_thread = getattr(
+                    self,
+                    "_recent_youtube_video_options_by_thread",
+                    None,
+                )
+                if isinstance(options_by_thread, dict):
+                    options_by_thread.pop(thread_id, None)
+            return
+        options_by_thread = getattr(self, "_recent_youtube_video_options_by_thread", None)
+        if not isinstance(options_by_thread, dict):
+            options_by_thread = {}
+            self._recent_youtube_video_options_by_thread = options_by_thread
+        options_by_thread[thread_id] = options
 
     def _remember_turn_diagnostics(
         self, thread_id: str, payload: dict[str, Any]
@@ -2618,6 +2704,7 @@ class CockpitService:
             return continuity_response
 
         controller = self._build_chat_controller(thread_id)
+        self._seed_recent_youtube_video_options(thread_id, controller)
         controller_message = continuity_rewritten_message or message
 
         forced_backend, _effective_message = parse_backend_prefix(controller_message)
@@ -2722,6 +2809,7 @@ class CockpitService:
             ui_mode=ui_mode,
             attached_sources=attached_sources or [],
         )
+        self._remember_recent_youtube_video_options(thread_id, response)
         elapsed_ms = int((time.monotonic() - response_started) * 1000)
         meta = dict(getattr(response, "routing_metadata", None) or {})
         if continuity_metadata:

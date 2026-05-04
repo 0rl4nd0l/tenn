@@ -239,6 +239,125 @@ def test_chat_stream_passes_attached_sources_to_controller() -> None:
     ]
 
 
+def test_chat_stream_seeds_recent_youtube_options_between_session_controllers() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    service._recent_youtube_video_options_by_thread = {}
+
+    class _RecentVideosController:
+        _hybrid_router = None
+
+        def build_chat_response(self, **_kwargs):
+            return SimpleNamespace(
+                text="Recent videos from Kneppy Invests (UCabc123):",
+                routing_metadata=None,
+                action_preview=None,
+                tool_traces=[],
+                evidence=[
+                    {
+                        "tool": "check_youtube_channel_recent_videos",
+                        "result": {
+                            "videos": [
+                                {
+                                    "position": 1,
+                                    "title": "Status of My Trades",
+                                    "video_id": "ULVlVUSSSkI",
+                                    "webpage_url": "https://www.youtube.com/watch?v=ULVlVUSSSkI",
+                                    "scores": {"overall": 0.88},
+                                }
+                            ]
+                        },
+                    }
+                ],
+            )
+
+    class _SelectionController:
+        _hybrid_router = None
+
+        def __init__(self) -> None:
+            self.seeded_options_at_call: list[dict[str, object]] = []
+
+        def build_chat_response(self, **_kwargs):
+            self.seeded_options_at_call = list(
+                getattr(self, "_recent_youtube_video_options", [])
+            )
+            return SimpleNamespace(
+                text="selection handled",
+                routing_metadata=None,
+                action_preview=None,
+                tool_traces=[],
+                evidence=[],
+            )
+
+    selection_controller = _SelectionController()
+    controllers = iter([_RecentVideosController(), selection_controller])
+    service._build_chat_controller = lambda _thread_id: next(controllers)  # type: ignore[method-assign]
+
+    CockpitService.chat_stream(
+        service,
+        message="kneppy invests recent videos",
+        session_id="session-youtube",
+    )
+    CockpitService.chat_stream(
+        service,
+        message="ingest most recent video",
+        session_id="session-youtube",
+    )
+
+    assert selection_controller.seeded_options_at_call == [
+        {
+            "position": 1,
+            "title": "Status of My Trades",
+            "webpage_url": "https://www.youtube.com/watch?v=ULVlVUSSSkI",
+            "video_id": "ULVlVUSSSkI",
+            "scores": {"overall": 0.88},
+        }
+    ]
+
+
+def test_chat_stream_clears_recent_youtube_options_after_empty_lookup() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    service._recent_youtube_video_options_by_thread = {
+        "session-youtube": [
+            {
+                "position": 1,
+                "title": "Old video",
+                "webpage_url": "https://www.youtube.com/watch?v=old11111111",
+            }
+        ]
+    }
+
+    class _EmptyRecentVideosController:
+        _hybrid_router = None
+
+        def build_chat_response(self, **_kwargs):
+            return SimpleNamespace(
+                text="No recent videos found.",
+                routing_metadata=None,
+                action_preview=None,
+                tool_traces=[],
+                evidence=[
+                    {
+                        "tool": "check_youtube_channel_recent_videos",
+                        "result": {"ok": True, "videos": []},
+                    }
+                ],
+            )
+
+    service._build_chat_controller = lambda _thread_id: _EmptyRecentVideosController()  # type: ignore[method-assign]
+
+    CockpitService.chat_stream(
+        service,
+        message="other channel recent videos",
+        session_id="session-youtube",
+    )
+
+    assert service._recent_youtube_video_options_by_thread == {}
+
+
 def test_chat_stream_defaults_blank_session_to_global_thread() -> None:
     service = CockpitService.__new__(CockpitService)
     _prime_service(service)

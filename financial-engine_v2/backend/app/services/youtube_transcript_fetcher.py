@@ -382,8 +382,11 @@ def fetch_video_metadata(url: str) -> YoutubeVideo:
             "skip_download": True,
             "extract_flat": False,
         }
-        with yt_dlp.YoutubeDL(options) as ydl:
-            info = ydl.extract_info(str(url or "").strip(), download=False)
+        try:
+            with yt_dlp.YoutubeDL(options) as ydl:
+                info = ydl.extract_info(str(url or "").strip(), download=False)
+        except Exception as exc:
+            raise RuntimeError(f"yt-dlp metadata fetch failed for URL: {url}: {exc}") from exc
 
     if not info:
         raise RuntimeError(f"yt-dlp returned no metadata for URL: {url}")

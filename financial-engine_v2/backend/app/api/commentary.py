@@ -832,6 +832,10 @@ def _ingest_youtube_url_to_staging(
         raise HTTPException(
             status_code=422, detail=f"transcript unavailable: {exc}"
         ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"transcript fetch failed: {exc}"
+        ) from exc
 
     ingest_kwargs: dict[str, Any] = {
         "transcript_text": transcript_text,

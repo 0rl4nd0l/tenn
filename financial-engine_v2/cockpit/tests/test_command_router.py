@@ -24,6 +24,13 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.tool == "check_youtube_channel_recent_videos"
         assert r.arguments["channel_name"] == "kneppy invests"
 
+    def test_bare_channel_recent_videos_query_checks_recent_videos(self):
+        r = route_command("kneppy invests recent videos")
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "check_youtube_channel_recent_videos"
+        assert r.arguments == {"channel_name": "kneppy invests", "limit": 8}
+
     def test_generic_youtube_question_does_not_route_to_channel_lookup(self):
         r = route_command("what is youtube?")
         assert r.matched is False
@@ -162,6 +169,17 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.action_type == "direct_tool"
         assert r.tool == "ingest_youtube_videos"
         assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=one11111111"]
+
+    def test_ingest_most_recent_youtube_video_rechecks_when_only_channel_known(self):
+        r = route_command(
+            "ingest most recent video",
+            recent_youtube_channel="Kneppy Invests",
+        )
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "check_youtube_channel_recent_videos"
+        assert r.arguments == {"channel_name": "Kneppy Invests", "limit": 8}
 
     def test_access_transcript_uses_first_context_video(self):
         r = route_command(

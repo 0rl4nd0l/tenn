@@ -116,6 +116,20 @@ class TestFetchVideoMetadata:
         with pytest.raises(RuntimeError, match="no metadata"):
             fetch_video_metadata("https://youtu.be/abc123")
 
+    def test_yt_dlp_extract_error_raises_runtime_error(self, monkeypatch):
+        class StubYDL:
+            def __init__(self, opts): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def extract_info(self, url, download=False):
+                raise Exception("video unavailable")
+
+        import yt_dlp
+        monkeypatch.setattr("yt_dlp.YoutubeDL", StubYDL)
+
+        with pytest.raises(RuntimeError, match="metadata fetch failed"):
+            fetch_video_metadata("https://youtu.be/abc123")
+
     def test_missing_video_id_raises_runtime_error(self, monkeypatch):
         info = _make_ydl_info(video_id="")
 

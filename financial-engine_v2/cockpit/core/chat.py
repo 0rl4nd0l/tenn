@@ -5539,6 +5539,14 @@ class ChatController:
         patterns = (
             re.compile(r"Recent videos from\s+(.+?)(?:\s+\(|:)", re.IGNORECASE),
             re.compile(
+                r"I found\s+(.+?)['’]?\s+recent\s+YouTube\s+videos",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"channel\s+name\s+is\s+confirmed\s+as\s+[\"']([^\"']+)[\"']",
+                re.IGNORECASE,
+            ),
+            re.compile(
                 r"(?:Added|Already watching)\s+YouTube channel\s+(.+?)(?:\s+\(|\.|$)",
                 re.IGNORECASE,
             ),

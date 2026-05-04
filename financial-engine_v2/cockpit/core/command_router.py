@@ -167,6 +167,21 @@ _BARE_YOUTUBE_CHANNEL_QUERY_RE = re.compile(
     """,
     re.IGNORECASE | re.VERBOSE,
 )
+_BARE_CHANNEL_RECENT_VIDEOS_QUERY_RE = re.compile(
+    r"""
+    ^\s*
+    (?!what\b|how\b|why\b|when\b|where\b)
+    (?!most\s+recent\b|latest\b|recent\b|newest\b)
+    (.+?)
+    \s+
+    (?:recent|latest|newest)
+    \s+
+    (?:youtube\s+)?
+    (?:videos?|uploads?)
+    \s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 _YOUTUBE_CONTEXT_ACCESS_RE = re.compile(
     r"""
     ^\s*
@@ -250,6 +265,18 @@ def route_command(
                 explanation=(
                     "Show the recent YouTube video links again before selecting "
                     "transcripts to ingest."
+                ),
+            )
+    if not recent_youtube_videos and recent_youtube_channel:
+        if _parse_youtube_contextual_first_selection(youtube_selection_text) is not None:
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="check_youtube_channel_recent_videos",
+                arguments={"channel_name": recent_youtube_channel, "limit": 8},
+                explanation=(
+                    "Re-check the channel's recent YouTube videos before selecting "
+                    "a transcript to ingest."
                 ),
             )
 
@@ -460,6 +487,18 @@ def route_command(
                 )
 
     m = _BARE_YOUTUBE_CHANNEL_QUERY_RE.match(text)
+    if m:
+        channel_name = m.group(1).strip()
+        if channel_name:
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="check_youtube_channel_recent_videos",
+                arguments={"channel_name": channel_name, "limit": 8},
+                explanation=f"Check recent YouTube videos from {channel_name!r}.",
+            )
+
+    m = _BARE_CHANNEL_RECENT_VIDEOS_QUERY_RE.match(text)
     if m:
         channel_name = m.group(1).strip()
         if channel_name:

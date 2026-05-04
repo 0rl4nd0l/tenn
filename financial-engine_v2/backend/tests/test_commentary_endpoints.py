@@ -418,6 +418,19 @@ class TestIngestUrl:
             ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
         assert exc_info.value.status_code == 422
 
+    def test_transcript_fetch_runtime_failure_raises_502(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(
+            mod,
+            "_default_fetch_transcript",
+            lambda v: (_ for _ in ()).throw(RuntimeError("transcript service failed")),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert exc_info.value.status_code == 502
+
     def test_successful_ingest_returns_staging_result(self, monkeypatch):
         import app.api.commentary as mod
 
