@@ -900,6 +900,22 @@ def evaluate_marketplace_listing(
                 score += 5
                 reasons_for.append("Within the mission price cap")
 
+    category = _requirement_category(mission)
+    better_price_already_seen = False
+    if category in {"ssd", "ram"}:
+        if price_value is None:
+            better_price_already_seen = True
+            reasons_against.append(
+                "Strong match requires a captured price for deal ranking"
+            )
+        elif observed_price_band and observed_price_band.get("min"):
+            best_seen_price = float(observed_price_band["min"])
+            if best_seen_price > 0 and price_value > best_seen_price:
+                better_price_already_seen = True
+                reasons_against.append(
+                    "Cheaper comparable listing already seen in this mission"
+                )
+
     if _NEGOTIABLE_TERMS & tokens and bool(soft.get("negotiation_expected")):
         score += 4
         reasons_for.append("Negotiation language supports the mission")
@@ -942,9 +958,13 @@ def evaluate_marketplace_listing(
 
     if band == "strong_match" and not _strong_category_identity_evidence(normalized, mission):
         band = "candidate"
+        score = min(score, strong_threshold - 1)
         reasons_against.append(
             "Strong match requires model or series evidence for this product category"
         )
+    if band == "strong_match" and better_price_already_seen:
+        band = "candidate"
+        score = min(score, strong_threshold - 1)
 
     return {
         "eligibility": "pass" if band != "reject" else "reject",

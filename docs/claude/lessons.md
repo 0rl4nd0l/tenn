@@ -964,3 +964,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The source guard allowed `watch_youtube_channel` operational acknowledgements without visible sources, but did not allow `ingest_youtube_videos`, even though the agent loop had already formatted the concrete backend error.
 **Fix:** Treat `ingest_youtube_videos` as a narrow operational command for no-source guard purposes while preserving the financial-claim block.
 **Rule:** Failed deterministic commands should surface their concrete backend/tool error when the text is operational and non-financial; do not force operators to debug from a generic missing-sources refusal.
+
+---
+
+## L087 — Marketplace strong matches must mean best known deal, not keyword fit
+
+**Date:** 2026-05-04
+**Subsystem:** `financial-engine_v2/backend/app/services/marketplace_scoring.py`, `financial-engine_v2/backend/app/services/marketplace_mission_service.py`
+**Symptom:** A Kingston NV2 2TB NVMe SSD at AU$300 still surfaced as a `strong_match` even though the same mission had already seen a cheaper comparable 2TB NVMe listing.
+**Root cause:** Marketplace scoring treated keyword, brand, and model evidence as enough for `strong_match`, while observed mission pricing was only a bonus/comparison input. The mission price band also included rejected or orphan seen rows, making the "best seen" anchor noisy.
+**Fix:** SSD/RAM strong matches now require a captured price at the current best observed mission price. More expensive comparable listings are capped to candidate with an explicit cheaper-comparable reason, and observed price bands only use saved non-dismissed candidate/strong matches.
+**Rule:** For deal-hunting categories, `strong_match` must mean both "fits the mission" and "is the best known deal right now." Keep rejected/orphan observations out of deal-ranking anchors, and add a regression test whenever a surfaced rank depends on mission price history.

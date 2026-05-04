@@ -757,10 +757,14 @@ class MarketplaceMissionService:
     def list_seen_prices(self, mission_id: str, *, limit: int = 200) -> list[float]:
         rows = self._fetchall(
             """
-            SELECT price_value
-            FROM marketplace_seen_listings
-            WHERE mission_id = ? AND price_value IS NOT NULL
-            ORDER BY last_seen_at DESC
+            SELECT s.price_value
+            FROM marketplace_seen_listings s
+            JOIN marketplace_matches m ON m.match_id = s.match_id
+            WHERE s.mission_id = ?
+              AND s.price_value IS NOT NULL
+              AND m.status != 'dismissed'
+              AND m.decision_band IN ('candidate', 'strong_match')
+            ORDER BY s.last_seen_at DESC
             LIMIT ?
             """,
             (mission_id, limit),
@@ -804,6 +808,9 @@ class MarketplaceMissionService:
         if decision_band:
             clauses.append("m.decision_band = ?")
             params.append(decision_band)
+        else:
+            clauses.append("m.decision_band != ?")
+            params.append("reject")
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         rows = self._fetchall(
             f"""

@@ -138,11 +138,6 @@ def test_marketplace_mission_service_persists_seen_matches_and_alerts(tmp_path: 
         },
     )
     assert seen["listing_id"] == "123"
-    assert service.price_band(mission["mission_id"]) == {
-        "min": 180.0,
-        "median": 180.0,
-        "max": 180.0,
-    }
 
     match = service.upsert_match(
         {
@@ -160,6 +155,26 @@ def test_marketplace_mission_service_persists_seen_matches_and_alerts(tmp_path: 
             "raw_text_snapshot": "Portable saw",
         }
     )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "123",
+            "listing_url": "https://www.facebook.com/marketplace/item/123/",
+            "title": "Portable saw",
+            "price_text": "$180",
+            "price_value": 180,
+            "raw_snapshot": {"title": "Portable saw"},
+            "last_status": "candidate",
+            "last_score": 76,
+            "last_decision_band": "candidate",
+            "match_id": match["match_id"],
+        },
+    )
+    assert service.price_band(mission["mission_id"]) == {
+        "min": 180.0,
+        "median": 180.0,
+        "max": 180.0,
+    }
     alert = service.create_alert(
         mission_id=mission["mission_id"],
         match_id=match["match_id"],
@@ -168,6 +183,82 @@ def test_marketplace_mission_service_persists_seen_matches_and_alerts(tmp_path: 
 
     assert service.get_match(match["match_id"])["title"] == "Portable saw"
     assert service.list_alerts()[0]["alert_id"] == alert["alert_id"]
+
+
+def test_marketplace_price_band_ignores_rejected_seen_prices(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceMissionService(store)
+    mission = service.create_mission(
+        {
+            "name": "Storage hunt",
+            "brief": "Find a good 2TB NVMe SSD in Melbourne.",
+            "hard_filters": {"include_keywords": ["2TB", "NVMe"], "location_names": ["Melbourne"]},
+        }
+    )
+    rejected = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "junk-usb",
+            "listing_url": "https://www.facebook.com/marketplace/item/junk-usb/",
+            "title": "USB storage stick",
+            "price": "$5",
+            "price_value": 5,
+            "captured_at": "2026-04-18T10:00:00Z",
+            "score": 0,
+            "decision_band": "reject",
+            "reasons_for": [],
+            "reasons_against": ["wrong category"],
+            "raw_text_snapshot": "USB storage stick",
+        }
+    )
+    accepted = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "good-nvme",
+            "listing_url": "https://www.facebook.com/marketplace/item/good-nvme/",
+            "title": "2TB NVMe SSD",
+            "price": "$298",
+            "price_value": 298,
+            "captured_at": "2026-04-18T11:00:00Z",
+            "score": 95,
+            "decision_band": "strong_match",
+            "reasons_for": ["good deal"],
+            "reasons_against": [],
+            "raw_text_snapshot": "2TB NVMe SSD",
+        }
+    )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "junk-usb",
+            "listing_url": "https://www.facebook.com/marketplace/item/junk-usb/",
+            "title": "USB storage stick",
+            "price_text": "$5",
+            "price_value": 5,
+            "raw_snapshot": {"title": "USB storage stick"},
+            "last_decision_band": "reject",
+            "match_id": rejected["match_id"],
+        },
+    )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "good-nvme",
+            "listing_url": "https://www.facebook.com/marketplace/item/good-nvme/",
+            "title": "2TB NVMe SSD",
+            "price_text": "$298",
+            "price_value": 298,
+            "raw_snapshot": {"title": "2TB NVMe SSD"},
+            "last_decision_band": "strong_match",
+            "match_id": accepted["match_id"],
+        },
+    )
+
+    assert service.price_band(mission["mission_id"]) == {
+        "min": 298.0,
+        "median": 298.0,
+        "max": 298.0,
+    }
 
 
 def test_marketplace_match_persists_listing_media_urls(tmp_path: Path) -> None:
@@ -250,6 +341,21 @@ def test_marketplace_match_list_hides_dismissed_by_default(tmp_path: Path) -> No
             "raw_text_snapshot": "RTX 3090 24GB",
         }
     )
+    rejected = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "gpu-rejected",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-rejected/",
+            "title": "RTX 3090 rejected",
+            "price": "$1",
+            "captured_at": "2026-04-22T12:00:00Z",
+            "score": 0,
+            "decision_band": "reject",
+            "reasons_for": [],
+            "reasons_against": ["placeholder price"],
+            "raw_text_snapshot": "RTX 3090 placeholder",
+        }
+    )
     service.update_match_status(dismissed["match_id"], "dismissed")
 
     assert [item["match_id"] for item in service.list_matches()] == [visible["match_id"]]
@@ -257,6 +363,10 @@ def test_marketplace_match_list_hides_dismissed_by_default(tmp_path: Path) -> No
         item["match_id"]
         for item in service.list_matches(status="dismissed")
     ] == [dismissed["match_id"]]
+    assert [
+        item["match_id"]
+        for item in service.list_matches(decision_band="reject")
+    ] == [rejected["match_id"]]
 
 
 def test_marketplace_mission_delete_cleans_related_records(tmp_path: Path) -> None:

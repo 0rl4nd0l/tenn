@@ -567,7 +567,10 @@ def test_evaluate_marketplace_listing_caps_broad_ssd_match_at_candidate() -> Non
     )
 
     assert result["decision_band"] == "candidate"
-    assert "Strong match requires model or series evidence" in result["reasons_against"][0]
+    assert any(
+        "Strong match requires model or series evidence" in reason
+        for reason in result["reasons_against"]
+    )
 
 
 def test_evaluate_marketplace_listing_allows_strong_ssd_model_match() -> None:
@@ -580,10 +583,64 @@ def test_evaluate_marketplace_listing_allows_strong_ssd_model_match() -> None:
             "raw_text_lines": ["Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD"],
         },
         _ssd_mission(),
-        observed_price_band={"min": 200, "median": 350, "max": 500},
+        observed_price_band={"min": 260, "median": 350, "max": 500},
     )
 
     assert result["decision_band"] == "strong_match"
+
+
+def test_evaluate_marketplace_listing_caps_ssd_when_cheaper_deal_seen() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Kingston NV2 2TB NVMe Gen4 SSD",
+            "price": "$300",
+            "location": "Melbourne",
+            "description": "Kingston NV2 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Kingston NV2 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={"min": 298, "median": 350, "max": 500},
+    )
+
+    assert result["decision_band"] == "candidate"
+    assert result["score"] < 85
+    assert any(
+        "Cheaper comparable listing already seen" in reason
+        for reason in result["reasons_against"]
+    )
+
+
+def test_evaluate_marketplace_listing_keeps_best_seen_ssd_as_strong() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Kingston NV2 2TB NVMe Gen4 SSD",
+            "price": "$298",
+            "location": "Melbourne",
+            "description": "Kingston NV2 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Kingston NV2 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={"min": 298, "median": 350, "max": 500},
+    )
+
+    assert result["decision_band"] == "strong_match"
+
+
+def test_evaluate_marketplace_listing_caps_ssd_without_price() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Kingston NV2 2TB NVMe Gen4 SSD",
+            "price": "",
+            "location": "Melbourne",
+            "description": "Kingston NV2 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Kingston NV2 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={"min": 298, "median": 350, "max": 500},
+    )
+
+    assert result["decision_band"] == "candidate"
+    assert "captured price" in " ".join(result["reasons_against"])
 
 
 def test_evaluate_marketplace_listing_allows_distance_only_location() -> None:
