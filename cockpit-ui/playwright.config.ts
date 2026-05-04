@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const externalBaseURL = process.env.COCKPIT_E2E_BASE_URL || process.env.PLAYWRIGHT_BASE_URL;
+const baseURL = externalBaseURL || 'http://localhost:3000';
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -18,7 +21,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
+    baseURL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -48,13 +51,17 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    stdout: 'pipe',
-    stderr: 'pipe',
-    timeout: 120000,
-  },
+  /* Run your local dev server unless an external verification server is supplied. */
+  ...(externalBaseURL
+    ? {}
+    : {
+        webServer: {
+          command: 'pnpm run start',
+          url: 'http://localhost:3000',
+          reuseExistingServer: !process.env.CI,
+          stdout: 'pipe',
+          stderr: 'pipe',
+          timeout: 120000,
+        },
+      }),
 });
