@@ -37,6 +37,62 @@ def _tracked_gpu(service: MarketplacePriceIntelligenceService) -> dict:
     )
 
 
+def test_price_observation_schema_adds_transactional_column_to_existing_table(
+    tmp_path: Path,
+) -> None:
+    store = _state_store(tmp_path)
+    conn = store.conn
+    conn.execute(
+        """
+        CREATE TABLE marketplace_price_observations (
+            observation_id TEXT PRIMARY KEY,
+            tracked_product_id TEXT NOT NULL,
+            source TEXT NOT NULL,
+            observed_at TEXT NOT NULL,
+            source_listing_id TEXT,
+            listing_fingerprint TEXT NOT NULL,
+            title TEXT NOT NULL,
+            price REAL NOT NULL,
+            currency TEXT NOT NULL DEFAULT 'AUD',
+            url TEXT,
+            location TEXT,
+            seller_type TEXT,
+            condition_label TEXT,
+            match_confidence REAL,
+            capture_mode TEXT NOT NULL DEFAULT 'manual',
+            provenance_json TEXT NOT NULL DEFAULT '{}',
+            review_state TEXT NOT NULL DEFAULT 'pending_review',
+            review_reason TEXT,
+            junk_flags_json TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    service = MarketplacePriceIntelligenceService(store)
+    columns = {
+        str(row[1])
+        for row in conn.execute(
+            "PRAGMA table_info(marketplace_price_observations)"
+        ).fetchall()
+    }
+    assert "is_transactional" in columns
+
+    product = _tracked_gpu(service)
+    observation = service.ingest_observation(
+        {
+            "tracked_product_id": product["tracked_product_id"],
+            "source": "ebay_sold",
+            "observed_at": "2026-04-20T10:00:00+00:00",
+            "title": "RTX 4070 Super sold listing",
+            "price": 610,
+            "is_transactional": True,
+        }
+    )
+    assert observation["is_transactional"] is True
+
+
 def test_product_normalizer_extracts_pc_part_attributes() -> None:
     gpu = normalize_product_text("gpu", "MSI GeForce RTX 4070 Ti Super 16GB")
     assert gpu["attributes"]["vendor"] == "NVIDIA"

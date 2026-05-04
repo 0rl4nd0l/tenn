@@ -798,6 +798,9 @@ class MarketplaceMissionService:
         if status:
             clauses.append("m.status = ?")
             params.append(status)
+        else:
+            clauses.append("m.status != ?")
+            params.append("dismissed")
         if decision_band:
             clauses.append("m.decision_band = ?")
             params.append(decision_band)

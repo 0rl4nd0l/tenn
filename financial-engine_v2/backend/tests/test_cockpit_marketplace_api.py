@@ -383,7 +383,21 @@ def test_marketplace_mission_link_product_and_value_context(
         json={"feedback": "not_interested"},
     )
     assert second_feedback.status_code == 200
-    assert second_feedback.json()["user_feedback"]["feedback"] == "not_interested"
+    second_feedback_payload = second_feedback.json()
+    assert second_feedback_payload["status"] == "dismissed"
+    assert second_feedback_payload["user_feedback"]["feedback"] == "not_interested"
+
+    list_after_dismissal = client.get(
+        "/api/cockpit/marketplace/matches",
+        params={"mission_id": mission["mission_id"]},
+    ).json()
+    assert list_after_dismissal["items"] == []
+
+    dismissed_list = client.get(
+        "/api/cockpit/marketplace/matches",
+        params={"mission_id": mission["mission_id"], "status": "dismissed"},
+    ).json()
+    assert dismissed_list["items"][0]["match_id"] == match["match_id"]
 
     unlink_response = client.delete(
         f"/api/cockpit/marketplace/missions/{mission['mission_id']}/link-product"

@@ -477,6 +477,12 @@ class MarketplacePriceIntelligenceService:
                 )
                 """
             )
+            self._ensure_column(
+                cur,
+                "marketplace_price_observations",
+                "is_transactional",
+                "INTEGER DEFAULT 0",
+            )
             cur.execute(
                 "CREATE INDEX IF NOT EXISTS idx_marketplace_price_obs_product "
                 "ON marketplace_price_observations(tracked_product_id, observed_at DESC)"
@@ -565,6 +571,22 @@ class MarketplacePriceIntelligenceService:
                 "ON marketplace_match_value_assessments(mission_id, tracked_product_id)"
             )
             self._conn.commit()
+
+    @staticmethod
+    def _ensure_column(
+        cur: sqlite3.Cursor,
+        table_name: str,
+        column_name: str,
+        column_definition: str,
+    ) -> None:
+        columns = {
+            str(row[1])
+            for row in cur.execute(f"PRAGMA table_info({table_name})").fetchall()
+        }
+        if column_name not in columns:
+            cur.execute(
+                f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+            )
 
     def create_tracked_product(self, payload: dict[str, Any]) -> dict[str, Any]:
         category = normalize_tracked_product_category(payload.get("category"))

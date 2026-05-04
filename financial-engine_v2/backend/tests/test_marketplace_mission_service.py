@@ -209,6 +209,56 @@ def test_marketplace_match_persists_listing_media_urls(tmp_path: Path) -> None:
     ]
 
 
+def test_marketplace_match_list_hides_dismissed_by_default(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceMissionService(store)
+    mission = service.create_mission(
+        {
+            "name": "GPU finder",
+            "brief": "Find a used RTX 3090 in Melbourne.",
+            "hard_filters": {"include_keywords": ["rtx 3090"], "location_names": ["Melbourne"]},
+        }
+    )
+
+    visible = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "gpu-visible",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-visible/",
+            "title": "RTX 3090 visible",
+            "price": "$900",
+            "captured_at": "2026-04-22T10:00:00Z",
+            "score": 88,
+            "decision_band": "strong_match",
+            "reasons_for": ["Meets budget"],
+            "reasons_against": [],
+            "raw_text_snapshot": "RTX 3090 24GB",
+        }
+    )
+    dismissed = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "gpu-dismissed",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-dismissed/",
+            "title": "RTX 3090 dismissed",
+            "price": "$950",
+            "captured_at": "2026-04-22T11:00:00Z",
+            "score": 82,
+            "decision_band": "candidate",
+            "reasons_for": ["Meets budget"],
+            "reasons_against": [],
+            "raw_text_snapshot": "RTX 3090 24GB",
+        }
+    )
+    service.update_match_status(dismissed["match_id"], "dismissed")
+
+    assert [item["match_id"] for item in service.list_matches()] == [visible["match_id"]]
+    assert [
+        item["match_id"]
+        for item in service.list_matches(status="dismissed")
+    ] == [dismissed["match_id"]]
+
+
 def test_marketplace_mission_delete_cleans_related_records(tmp_path: Path) -> None:
     store = _state_store(tmp_path)
     service = MarketplaceMissionService(store)
