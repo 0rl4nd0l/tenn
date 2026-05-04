@@ -1073,6 +1073,23 @@ class MarketplaceMissionService:
         )
         return self._parse_alert_row(row) if row else None
 
+    def list_not_interested_feedback_notes(self, mission_id: str) -> list[str]:
+        rows = self._fetchall(
+            """
+            SELECT f.note
+            FROM marketplace_match_feedback f
+            JOIN marketplace_matches m ON m.match_id = f.match_id
+            WHERE m.mission_id = ?
+              AND f.feedback = 'not_interested'
+              AND f.note IS NOT NULL
+              AND trim(f.note) != ''
+            ORDER BY f.updated_at DESC
+            LIMIT 50
+            """,
+            (str(mission_id or "").strip(),),
+        )
+        return [str(row["note"]).strip() for row in rows if row.get("note")]
+
     def list_alerts(
         self,
         *,

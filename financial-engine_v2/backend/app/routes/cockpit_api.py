@@ -7486,6 +7486,8 @@ async def cockpit_update_marketplace_match_feedback(
             payload.feedback,
             note=payload.note,
         )
+        if payload.feedback == "not_interested":
+            await asyncio.to_thread(mission_service.update_match_status, match_id, "dismissed")
         match = benchmark_service.enrich_match(match, persist=True)
         match = _enrich_marketplace_match_with_value_context(
             mission_service,

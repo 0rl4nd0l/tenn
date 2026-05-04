@@ -5,6 +5,7 @@ from app.services.marketplace_scoring import (
     evaluate_marketplace_listing,
     material_change_reasons,
     prefilter_marketplace_card,
+    _feedback_note_penalty,
 )
 
 
@@ -546,3 +547,86 @@ def test_material_change_reasons_detect_price_change() -> None:
 
     assert "price_changed" in reasons
     assert "crossed_into_strong_match" in reasons
+
+
+# ------------------------------------------------------------------ #
+# Feedback note penalty                                               #
+# ------------------------------------------------------------------ #
+
+
+def test_feedback_note_penalty_no_notes():
+    penalty, reasons = _feedback_note_penalty("rtx 3090 good condition", [])
+    assert penalty == 0
+    assert reasons == []
+
+
+def test_feedback_note_penalty_no_overlap():
+    penalty, reasons = _feedback_note_penalty("rtx 3090 good condition", ["wrong brand", "too expensive"])
+    assert penalty == 0
+    assert reasons == []
+
+
+def test_feedback_note_penalty_single_token_note_matches():
+    # A one-word note should fire when that word appears in the listing
+    penalty, reasons = _feedback_note_penalty("this item is broken parts only", ["broken"])
+    assert penalty > 0
+    assert len(reasons) == 1
+
+
+def test_feedback_note_penalty_two_token_overlap():
+    penalty, reasons = _feedback_note_penalty("wrong brand definitely not the right model", ["wrong brand"])
+    assert penalty > 0
+    assert len(reasons) == 1
+    assert "wrong" in reasons[0] or "brand" in reasons[0]
+
+
+def test_feedback_note_penalty_capped_at_20():
+    # Multiple matching notes should not exceed cap
+    notes = ["wrong brand"] * 10
+    penalty, _ = _feedback_note_penalty("wrong brand wrong brand wrong brand", notes)
+    assert penalty <= 20
+
+
+def test_feedback_notes_lower_score_in_evaluate():
+    mission_base = {
+        "hard_filters": {
+            "include_keywords": ["rtx 3090"],
+            "location_names": ["Melbourne VIC"],
+        },
+        "soft_preferences": {},
+        "scan_config": {},
+    }
+    listing = {
+        "title": "RTX 3090 wrong brand refurbished",
+        "description": "",
+        "location": "Melbourne VIC",
+        "seller_name": "",
+        "price": "$800",
+        "raw_text_lines": [],
+    }
+    score_without = evaluate_marketplace_listing(listing, mission_base)["score"]
+    mission_with_notes = {**mission_base, "_feedback_notes": ["wrong brand", "refurbished only"]}
+    score_with = evaluate_marketplace_listing(listing, mission_with_notes)["score"]
+    assert score_with < score_without
+
+
+def test_not_interested_notes_appear_in_reasons_against():
+    mission = {
+        "hard_filters": {
+            "include_keywords": ["rtx 3090"],
+            "location_names": ["Melbourne VIC"],
+        },
+        "soft_preferences": {},
+        "scan_config": {},
+        "_feedback_notes": ["wrong brand"],
+    }
+    listing = {
+        "title": "RTX 3090 wrong brand unit",
+        "description": "",
+        "location": "Melbourne VIC",
+        "seller_name": "",
+        "price": "$800",
+        "raw_text_lines": [],
+    }
+    result = evaluate_marketplace_listing(listing, mission)
+    assert any("rejection" in r.lower() for r in result["reasons_against"])

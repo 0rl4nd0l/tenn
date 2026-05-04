@@ -659,6 +659,36 @@ def prefilter_marketplace_card(card: dict[str, Any], mission: dict[str, Any]) ->
     }
 
 
+_NOTE_STOPWORDS = frozenset(
+    {"to", "too", "the", "an", "a", "is", "it", "in", "on", "at", "and", "or", "not", "no", "for", "of", "with", "this", "that", "was", "be"}
+)
+
+
+def _feedback_note_penalty(
+    normalized_listing: str,
+    notes: list[str],
+) -> tuple[int, list[str]]:
+    listing_tokens = _terms(normalized_listing)
+    total_penalty = 0
+    reasons: list[str] = []
+    for note in notes:
+        note_tokens = {
+            t for t in _terms(_normalize(note))
+            if len(t) >= 3 and t not in _NOTE_STOPWORDS
+        }
+        if not note_tokens:
+            continue
+        overlap = note_tokens & listing_tokens
+        threshold = 1 if len(note_tokens) == 1 else 2
+        if len(overlap) >= threshold:
+            penalty = min(12, 5 * len(overlap))
+            total_penalty += penalty
+            reasons.append(
+                f"Similar to a previous rejection ({', '.join(sorted(overlap)[:3])})"
+            )
+    return min(total_penalty, 20), reasons
+
+
 def evaluate_marketplace_listing(
     listing: dict[str, Any],
     mission: dict[str, Any],
@@ -801,6 +831,13 @@ def evaluate_marketplace_listing(
 
     if "kms" in tokens or "kilometres" in tokens or "kilometers" in tokens:
         reasons_against.append("Mileage should be checked manually")
+
+    feedback_notes = _string_list(mission.get("_feedback_notes"))
+    if feedback_notes:
+        note_penalty, note_reasons = _feedback_note_penalty(normalized, feedback_notes)
+        if note_penalty > 0:
+            score -= note_penalty
+            reasons_against.extend(note_reasons)
 
     candidate_threshold = int(scan_config.get("candidate_threshold") or 70)
     strong_threshold = int(scan_config.get("strong_match_threshold") or 85)

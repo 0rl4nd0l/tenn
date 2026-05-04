@@ -655,6 +655,12 @@ class MarketplaceScanner:
                 log(f"  requirement preparation failed: {exc.reason}")
             return self._mission_abort_result(mission, exc.reason)
 
+        feedback_notes = self.mission_service.list_not_interested_feedback_notes(mission_id)
+        if feedback_notes:
+            mission = {**mission, "_feedback_notes": feedback_notes}
+            if log:
+                log(f"  loaded {len(feedback_notes)} rejection note(s) into scoring context")
+
         profile = marketplace_requirement_profile(mission)
         requirement_driven = (
             isinstance(profile, dict)
