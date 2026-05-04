@@ -741,6 +741,48 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    {
+        "name": "ingest_youtube_videos",
+        "description": (
+            "Ingest transcripts and generate takeaways for one or more YouTube "
+            "videos. Use this when the user chooses specific videos to analyse "
+            "after you have listed them with check_youtube_channel_recent_videos. "
+            "Returns structured takeaways and indexed transcripts."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "urls": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "One or more YouTube video URLs to ingest.",
+                },
+                "takeaway_limit": {
+                    "type": "integer",
+                    "description": "Maximum number of key takeaways to generate per video (1-12, default 5).",
+                    "default": 5,
+                },
+                "credibility_weight": {
+                    "type": "number",
+                    "description": (
+                        "Optional credibility override (0.0–1.0). "
+                        "If omitted, uses the channel's registered weight."
+                    ),
+                },
+                "selected_videos": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": (
+                        "Optional: the video metadata objects from the previous "
+                        "check_youtube_channel_recent_videos call. Used to "
+                        "preserve context and attribution."
+                    ),
+                },
+            },
+            "required": ["urls"],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------
