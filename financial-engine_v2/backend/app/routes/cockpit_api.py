@@ -19,7 +19,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
 from typing import IO, Any, AsyncGenerator, Literal
@@ -5330,6 +5330,150 @@ def _run_marketplace_scan_job(
             _forget_queued_action_job(job_id)
 
 
+def _run_marketplace_ebay_sync_job(
+    service: CockpitService,
+    *,
+    tracked_product_id: str,
+    job_id: str,
+    stdout_path: Path,
+    stderr_path: Path,
+    tracker: Any | None,
+    stop_event: threading.Event,
+) -> None:
+    from app.services.ebay_sold_scanner import EbaySoldScanner
+
+    price_service = _marketplace_price_intelligence_service(service)
+
+    _persist_action_job_row(
+        service,
+        job_id=job_id,
+        action_id="marketplace_ebay_sync",
+        args={"tracked_product_id": tracked_product_id},
+        started_at=datetime.now(timezone.utc).isoformat(),
+        status="running",
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        progress_stage="Starting eBay sync",
+        progress_pct=0.0,
+    )
+    if tracker is not None:
+        _best_effort_tracker_call("start_job", job_id)
+        _best_effort_tracker_call(
+            "change_phase", job_id, "marketplace_ebay_sync", message="Started eBay sync"
+        )
+
+    with stdout_path.open("a", encoding="utf-8") as stdout_handle, stderr_path.open(
+        "a", encoding="utf-8"
+    ) as stderr_handle:
+        scanner = EbaySoldScanner(price_service)
+
+        def log(message: str) -> None:
+            _write_marketplace_job_line(stdout_handle, message)
+
+        try:
+            result = scanner.scrape_sold_items_sync(
+                tracked_product_id=tracked_product_id,
+                log=log,
+            )
+            _write_marketplace_job_line(stdout_handle, json.dumps(result, indent=2))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            service.state_store.update_job_status(
+                job_id,
+                status="success",
+                exit_code=0,
+                ended_at=ended_at,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("complete_job", job_id, f"Synced eBay sold data (ingested {result['observations_ingested']} observations)")
+        except Exception as exc:
+            _write_marketplace_job_line(stderr_handle, str(exc))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            service.state_store.update_job_status(
+                job_id,
+                status="failed",
+                exit_code=1,
+                ended_at=ended_at,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("fail_job", job_id, str(exc))
+        finally:
+            _forget_queued_action_job(job_id)
+
+
+def _launch_marketplace_ebay_sync_job(
+    service: CockpitService,
+    *,
+    tracked_product_id: str,
+) -> dict[str, Any]:
+    tracker = _get_backend_job_tracker()
+    job_id = uuid.uuid4().hex
+    logs_dir = Path(service.artifact_store.logs_dir)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = logs_dir / f"{job_id}.out.log"
+    stderr_path = logs_dir / f"{job_id}.err.log"
+    started_at = datetime.now(timezone.utc).isoformat()
+    title = f"eBay Sold Data Sync: {tracked_product_id}"
+
+    if tracker is not None:
+        _best_effort_tracker_call(
+            "create_job",
+            job_id=job_id,
+            job_type="marketplace_ebay_sync",
+            job_family="marketplace",
+            title=title,
+            trigger_source="cockpit",
+            entity_scope=tracked_product_id,
+            metadata={"tracked_product_id": tracked_product_id},
+        )
+        _best_effort_tracker_call("add_artifact", job_id, artifact_type="log", artifact_label="stdout log", artifact_path=str(stdout_path))
+        _best_effort_tracker_call("add_artifact", job_id, artifact_type="log", artifact_label="stderr log", artifact_path=str(stderr_path))
+
+    _persist_action_job_row(
+        service,
+        job_id=job_id,
+        action_id="marketplace_ebay_sync",
+        args={"tracked_product_id": tracked_product_id},
+        started_at=started_at,
+        status="queued",
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        progress_stage="Queued",
+        progress_pct=0.0,
+    )
+    runtime = QueuedActionJobRuntime(
+        job_id=job_id,
+        action_id="marketplace_ebay_sync",
+        started_at=started_at,
+    )
+    _register_queued_action_job(runtime)
+
+    worker = threading.Thread(
+        target=_run_marketplace_ebay_sync_job,
+        kwargs={
+            "service": service,
+            "tracked_product_id": tracked_product_id,
+            "job_id": job_id,
+            "stdout_path": stdout_path,
+            "stderr_path": stderr_path,
+            "tracker": tracker,
+            "stop_event": runtime.stop_event,
+        },
+        daemon=True,
+        name=f"marketplace-ebay-sync-{job_id[:8]}",
+    )
+    worker.start()
+
+    return {
+        "ok": True,
+        "action_id": "marketplace_ebay_sync",
+        "result": f"Queued eBay sold data sync for {tracked_product_id}",
+        "exit_code": 0,
+        "job_id": job_id,
+        "status": "queued",
+        "queued": True,
+    }
+
+
 def _run_marketplace_calibration_job(
     service: CockpitService,
     *,
@@ -5345,8 +5489,12 @@ def _run_marketplace_calibration_job(
     mission_service = _marketplace_mission_service(service)
     price_service = _marketplace_price_intelligence_service(service)
 
-    service.state_store.update_job_status(
-        job_id,
+    _persist_action_job_row(
+        service,
+        job_id=job_id,
+        action_id="marketplace_calibration",
+        args={"tracked_product_id": tracked_product_id},
+        started_at=datetime.now(timezone.utc).isoformat(),
         status="running",
         stdout_path=stdout_path,
         stderr_path=stderr_path,
@@ -6778,6 +6926,13 @@ async def cockpit_create_marketplace_mission(payload: MarketplaceMissionUpsertRe
             price_service,
             mission,
         )
+        await asyncio.to_thread(
+            _warm_up_marketplace_mission,
+            service,
+            mission_service,
+            price_service,
+            mission,
+        )
     except MarketplaceMissionError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -6787,6 +6942,66 @@ async def cockpit_create_marketplace_mission(payload: MarketplaceMissionUpsertRe
             detail=f"Marketplace mission creation failed: {str(exc)}",
         ) from exc
     return MarketplaceMissionRecord(**mission)
+
+
+def _warm_up_marketplace_mission(
+    service: CockpitService,
+    mission_service: MarketplaceMissionService,
+    price_service: MarketplacePriceIntelligenceService,
+    mission: dict[str, Any],
+) -> None:
+    mission_id = str(mission.get("mission_id") or "")
+    if not mission_id:
+        return
+
+    # 1. Ensure Primary Product Link
+    link = mission_service.get_primary_tracked_product_link(mission_id)
+    if link is None:
+        candidates = mission_service.list_mission_candidate_products(mission_id)
+        if candidates:
+            # Auto-link the best candidate
+            best = sorted(candidates, key=lambda c: float(c.get("fit_score") or 0.0), reverse=True)[0]
+            mission_service.link_primary_tracked_product(
+                mission_id,
+                best["tracked_product_id"],
+            )
+            link = mission_service.get_primary_tracked_product_link(mission_id)
+
+    if link is None:
+        return
+
+    tracked_product_id = str(link.get("tracked_product_id") or "")
+    product = price_service.get_tracked_product(tracked_product_id)
+    if product is None:
+        return
+
+    # 2. Check Freshness and Sample Size
+    snapshot = price_service.latest_benchmark_snapshot(tracked_product_id)
+    needs_calibration = False
+    if snapshot is None:
+        needs_calibration = True
+    else:
+        # If sample size is very low or snapshot is older than 24h, trigger a refresh
+        sample_size = int(snapshot.get("sample_size") or 0)
+        if sample_size < 10:
+            needs_calibration = True
+        else:
+            updated_at = snapshot.get("created_at")
+            if updated_at:
+                try:
+                    dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                    if datetime.now(timezone.utc) - dt > timedelta(hours=24):
+                        needs_calibration = True
+                except Exception:
+                    pass
+
+    # 3. Launch Jobs
+    if needs_calibration:
+        try:
+            _launch_marketplace_calibration_job(service, tracked_product_id=tracked_product_id)
+            _launch_marketplace_ebay_sync_job(service, tracked_product_id=tracked_product_id)
+        except Exception:
+            logger.warning("Auto warm-up failed for mission %s", mission_id, exc_info=True)
 
 
 @router.get(
@@ -6841,6 +7056,13 @@ async def cockpit_update_marketplace_mission(
         )
         mission = await asyncio.to_thread(
             _enrich_marketplace_mission_with_price_context,
+            mission_service,
+            price_service,
+            mission,
+        )
+        await asyncio.to_thread(
+            _warm_up_marketplace_mission,
+            service,
             mission_service,
             price_service,
             mission,
@@ -7342,6 +7564,40 @@ async def cockpit_calibrate_marketplace_product(payload: MarketplaceCalibrationR
         raise HTTPException(
             status_code=500,
             detail=f"Marketplace calibration launch failed: {str(exc)}",
+        ) from exc
+    return CockpitActionExecuteResponse(**queued)
+
+
+@router.post(
+    "/marketplace/price-intelligence/tracked-products/{tracked_product_id}/ebay-sync",
+    response_model=CockpitActionExecuteResponse,
+)
+async def cockpit_sync_marketplace_ebay_sold_data(tracked_product_id: str):
+    try:
+        service = CockpitService.get_instance()
+        price_service = _marketplace_price_intelligence_service(service)
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for eBay sync")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Service initialization failed: {str(exc)}",
+        ) from exc
+
+    product = await asyncio.to_thread(price_service.get_tracked_product, tracked_product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail=f"Tracked product not found: {tracked_product_id}")
+
+    try:
+        queued = await asyncio.to_thread(
+            _launch_marketplace_ebay_sync_job,
+            service,
+            tracked_product_id=tracked_product_id,
+        )
+    except Exception as exc:
+        logger.exception("eBay sync launch failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"eBay sync launch failed: {str(exc)}",
         ) from exc
     return CockpitActionExecuteResponse(**queued)
 
