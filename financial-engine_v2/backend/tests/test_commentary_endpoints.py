@@ -474,6 +474,75 @@ class TestIngestUrl:
         assert result["video_title"] == "Test Video"
         assert result["channel"] == "Test Channel"
         assert captured["credibility_weight"] == 0.7
+        assert "transcript_chars" in result
+        assert "duration_seconds" in result
+
+    def test_short_transcript_for_long_video_includes_quality_warning(self, monkeypatch):
+        import app.api.commentary as mod
+        from app.services.youtube_transcript_fetcher import YoutubeVideo
+
+        # 26-minute video (1560 seconds); threshold = 1560 * 2 = 3120 chars minimum
+        long_video = YoutubeVideo(
+            video_id="abc123",
+            title="Test Video",
+            channel_name="Test Channel",
+            published_at="2026-05-03T06:41:57Z",
+            webpage_url="https://www.youtube.com/watch?v=abc123",
+            duration_seconds=1560,
+        )
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: long_video)
+        # Short transcript — just an intro, 400 chars (well below 3120 minimum)
+        short_transcript = "Hi there, welcome to the channel. " * 12  # ~408 chars
+        monkeypatch.setattr(mod, "_default_fetch_transcript", lambda v: short_transcript)
+        monkeypatch.setattr(
+            mod,
+            "ingest_transcript",
+            lambda **kwargs: {
+                "ok": True,
+                "source_id": "youtube_transcript:test-video:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            },
+        )
+        result = ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert result["ok"] is True
+        assert "transcript_quality_warning" in result
+        assert "incomplete" in result["transcript_quality_warning"]
+        assert "26-minute" in result["transcript_quality_warning"]
+
+    def test_adequate_transcript_has_no_quality_warning(self, monkeypatch):
+        import app.api.commentary as mod
+        from app.services.youtube_transcript_fetcher import YoutubeVideo
+
+        # 2-minute video; minimum = 120 * 2 = 240 chars
+        short_video = YoutubeVideo(
+            video_id="abc123",
+            title="Test Video",
+            channel_name="Test Channel",
+            published_at="2026-05-03T06:41:57Z",
+            webpage_url="https://www.youtube.com/watch?v=abc123",
+            duration_seconds=120,
+        )
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: short_video)
+        adequate_transcript = "A" * 300  # 300 chars > 240 minimum
+        monkeypatch.setattr(mod, "_default_fetch_transcript", lambda v: adequate_transcript)
+        monkeypatch.setattr(
+            mod,
+            "ingest_transcript",
+            lambda **kwargs: {
+                "ok": True,
+                "source_id": "youtube_transcript:test-video:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            },
+        )
+        result = ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert result["ok"] is True
+        assert "transcript_quality_warning" not in result
 
     def test_batch_ingest_urls_returns_takeaways(self, monkeypatch):
         import app.api.commentary as mod

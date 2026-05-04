@@ -1901,6 +1901,7 @@ class ToolExecutor:
             "count",
             "limit",
             "freshness_warning",
+            "transcript_quality_warning",
             "_source",
         ):
             if key in result and result.get(key) not in (None, ""):
@@ -1992,6 +1993,11 @@ class ToolExecutor:
         )
         if freshness_warning:
             minimal["freshness_warning"] = freshness_warning
+        transcript_quality_warning = self._compact_text(
+            result.get("transcript_quality_warning"), max_chars=220
+        )
+        if transcript_quality_warning:
+            minimal["transcript_quality_warning"] = transcript_quality_warning
 
         for list_key in (
             "hits",

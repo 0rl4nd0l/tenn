@@ -807,6 +807,30 @@ def get_commentary_takeaways(body: TakeawaysRequest) -> dict[str, Any]:
     return _commentary_takeaways_payload(source_id, int(body.limit))
 
 
+_MIN_CHARS_PER_SECOND = 2.0  # 120 chars/min — very conservative floor; real speech ≈700 chars/min
+
+
+def _transcript_quality_warning(
+    transcript_text: str,
+    duration_seconds: int | None,
+) -> str | None:
+    """Return a warning string when transcript is suspiciously short for the video duration."""
+    if not duration_seconds or duration_seconds < 60:
+        return None
+    actual_chars = len(transcript_text)
+    min_expected = int(duration_seconds * _MIN_CHARS_PER_SECOND)
+    if actual_chars >= min_expected:
+        return None
+    actual_minutes = round(actual_chars / max(duration_seconds / 60, 1))
+    video_minutes = round(duration_seconds / 60)
+    return (
+        f"transcript appears incomplete: {actual_chars} chars ingested for a "
+        f"{video_minutes}-minute video (expected at least {min_expected} chars). "
+        f"Auto-generated captions may not be fully available yet — retry ingestion "
+        f"after captions have been processed by YouTube."
+    )
+
+
 def _ingest_youtube_url_to_staging(
     url: str,
     *,
@@ -842,6 +866,16 @@ def _ingest_youtube_url_to_staging(
             status_code=502, detail=f"transcript fetch failed: {exc}"
         ) from exc
 
+    quality_warning = _transcript_quality_warning(transcript_text, video.duration_seconds)
+    if quality_warning:
+        logger.warning(
+            "transcript_quality_warning video_id=%s duration_s=%s chars=%s warning=%s",
+            video.video_id,
+            video.duration_seconds,
+            len(transcript_text),
+            quality_warning,
+        )
+
     ingest_kwargs: dict[str, Any] = {
         "transcript_text": transcript_text,
         "source_name": video.title,
@@ -857,14 +891,19 @@ def _ingest_youtube_url_to_staging(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"transcript processing failed: {exc}") from exc
 
-    return {
+    staging_result: dict[str, Any] = {
         **result,
         "video_id": video.video_id,
         "video_title": video.title,
         "channel": video.channel_name,
         "published_at": video.published_at,
         "webpage_url": video.webpage_url,
+        "transcript_chars": len(transcript_text),
+        "duration_seconds": video.duration_seconds,
     }
+    if quality_warning:
+        staging_result["transcript_quality_warning"] = quality_warning
+    return staging_result
 
 
 @router.post(
