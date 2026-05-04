@@ -118,6 +118,7 @@ _GROUNDING_TOOL_NAMES = frozenset(
         "run_analysis",
         "fetch_url",
         "tv_screener",
+        "screen_tickers",
         "get_watchlist_alerts",
         # Legacy/alternate evidence emitters kept for backward compatibility
         # with older tests and payload shapes.
@@ -560,7 +561,10 @@ class AgentLoop:
             rows = result.get("results") if isinstance(result.get("results"), list) else []
             mode = str(result.get("mode") or "").strip().lower()
             if not rows:
-                return f"No TradingView screener rows returned for {market}."
+                return (
+                    f"TradingView screener returned no rows for {market}. "
+                    "That is a no-result from the screener, not an overall analysis failure."
+                )
 
             def _pick(row: dict[str, Any], *keys: str) -> Any:
                 for key in keys:
@@ -699,7 +703,13 @@ class AgentLoop:
             active_ticker=ticker,
             conversation_history=conversation_history,
         )
-        if ticker and _intent not in (QueryIntent.MARKET_WIDE, QueryIntent.COMMAND):
+        if ticker and _intent not in (
+            QueryIntent.MARKET_WIDE,
+            QueryIntent.COMMAND,
+            QueryIntent.PREVIOUS_TOOL_TRACE_QUESTION,
+            QueryIntent.CORRECTION_TURN,
+            QueryIntent.THESIS_SAVE,
+        ):
             user_content = f"Current ticker context: {ticker}\n\n{message}"
         messages.append({"role": "user", "content": user_content})
         # Pass intent downstream for use by tool execution layer.

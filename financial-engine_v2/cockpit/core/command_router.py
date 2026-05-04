@@ -12,6 +12,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from shared.ticker_inference import COMMON_TICKER_STOPWORDS
+
 __all__ = ["CommandRoute", "route_command"]
 
 
@@ -200,7 +202,7 @@ _WATCH_CHANNEL_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-_TICKER_STOPWORDS = frozenset({
+_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | frozenset({
     "ASX", "ETF", "IPO", "CEO", "AGM", "EGM", "FY", "HY",
     "USA", "AUS", "GDP", "CPI", "RBA", "AUD", "USD",
     "CLOUD", "LOCAL", "ADVISOR", "OPS",

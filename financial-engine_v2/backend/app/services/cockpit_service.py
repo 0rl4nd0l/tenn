@@ -42,6 +42,14 @@ from cockpit.core.config import (
     load_config,
     load_env,
 )
+from cockpit.core.turn_continuity import (
+    ContinuityResponse,
+    ContinuityTurnKind,
+    build_previous_tool_trace_response,
+    build_thesis_save_response,
+    classify_continuity_turn,
+    resolve_compare_referents,
+)
 from cockpit.core.tools import ToolRouter
 from cockpit.integrations.backend_api import BackendApiClient
 from cockpit.integrations.db_reader import DbReader
@@ -1411,6 +1419,170 @@ class CockpitService:
             if len(items) > 20:
                 del items[:-20]
 
+    def _recent_chat_messages_for_continuity(
+        self, thread_id: str
+    ) -> list[dict[str, Any]]:
+        if self.state_store is None:
+            return []
+        try:
+            return self.state_store.get_chat_messages(thread_id, limit=12)
+        except Exception:
+            logger.exception(
+                "Failed to read recent chat messages for continuity",
+                extra={"thread_id": thread_id},
+            )
+            return []
+
+    def _latest_turn_diagnostics_for_continuity(
+        self, thread_id: str
+    ) -> dict[str, Any] | None:
+        with self._feedback_lock:
+            items = list(self._recent_turn_diagnostics.get(thread_id) or [])
+        for item in reversed(items):
+            if isinstance(item, dict):
+                return dict(item)
+        return None
+
+    @staticmethod
+    def _chat_response_from_continuity(payload: ContinuityResponse) -> ChatResponse:
+        return ChatResponse(
+            text=payload.text,
+            evidence=list(payload.evidence or []),
+            action_preview=payload.action_preview,
+            mode=payload.mode,
+            routing_metadata=dict(payload.routing_metadata or {}),
+            tool_traces=[],
+        )
+
+    def _resolve_continuity_turn(
+        self,
+        *,
+        message: str,
+        thread_id: str,
+    ) -> tuple[ChatResponse | None, str | None, dict[str, Any]]:
+        forced_backend, base_message = parse_backend_prefix(message)
+        kind = classify_continuity_turn(base_message)
+        if kind is None:
+            return None, None, {}
+
+        latest_turn = self._latest_turn_diagnostics_for_continuity(thread_id)
+        recent_messages = self._recent_chat_messages_for_continuity(thread_id)
+
+        if kind == ContinuityTurnKind.PREVIOUS_TOOL_TRACE_QUESTION:
+            payload = build_previous_tool_trace_response(
+                message=base_message,
+                latest_turn=latest_turn,
+            )
+            return self._chat_response_from_continuity(payload), None, {}
+
+        if kind == ContinuityTurnKind.CORRECTION_TURN:
+            payload = build_previous_tool_trace_response(
+                message=base_message,
+                latest_turn=latest_turn,
+                correction=True,
+            )
+            return self._chat_response_from_continuity(payload), None, {}
+
+        if kind == ContinuityTurnKind.THESIS_SAVE:
+            payload = build_thesis_save_response(
+                message=base_message,
+                latest_turn=latest_turn,
+                recent_messages=recent_messages,
+            )
+            if payload is not None:
+                return self._chat_response_from_continuity(payload), None, {}
+            return None, None, {}
+
+        if kind == ContinuityTurnKind.REFERENT_COMPARE:
+            resolution = resolve_compare_referents(
+                message=base_message,
+                latest_turn=latest_turn,
+                recent_messages=recent_messages,
+            )
+            if not resolution.matched:
+                return None, None, {}
+            if resolution.clarification_text:
+                payload = ContinuityResponse(
+                    text=resolution.clarification_text,
+                    routing_metadata={
+                        "continuity_turn": kind.value,
+                        "requires_clarification": True,
+                    },
+                )
+                return self._chat_response_from_continuity(payload), None, {}
+            rewritten = resolution.rewritten_message
+            if not rewritten:
+                return None, None, {}
+            if forced_backend == "api":
+                rewritten = f"/cloud {rewritten}"
+            elif forced_backend == "local":
+                rewritten = f"/local {rewritten}"
+            return (
+                None,
+                rewritten,
+                {
+                    "continuity_turn": kind.value,
+                    "resolved_referent_tickers": resolution.resolved_tickers,
+                    "original_message": base_message,
+                },
+            )
+
+        return None, None, {}
+
+    def _persist_direct_chat_response(
+        self,
+        *,
+        thread_id: str,
+        message: str,
+        response: ChatResponse,
+        status_events: list[dict[str, Any]],
+        thinking_events: list[dict[str, Any]],
+        started_at_monotonic: float,
+        ticker: str | None,
+        enable_web: bool | None,
+        model: str | None,
+        rag: bool | None,
+        db_diagnostics: bool | None,
+        ui_mode: str | None,
+    ) -> None:
+        elapsed_ms = int((time.monotonic() - started_at_monotonic) * 1000)
+        meta = dict(response.routing_metadata or {})
+        meta.setdefault("source", "cockpit")
+        meta.setdefault("latency_ms", max(1, elapsed_ms))
+        meta.setdefault("cost_usd", 0.0)
+        response.routing_metadata = meta
+        self._persist_chat_message(thread_id, "user", message)
+        self._persist_chat_message(thread_id, "assistant", response.text)
+        self._remember_turn_diagnostics(
+            thread_id,
+            {
+                "created_at": _now_iso(),
+                "thread_id": thread_id,
+                "session_id": thread_id,
+                "ticker": str(ticker or "").strip().upper() or None,
+                "request": {
+                    "message": message,
+                    "ticker": ticker,
+                    "enable_web": bool(enable_web) if enable_web is not None else False,
+                    "requested_model": str(model or "").strip() or None,
+                    "rag": bool(rag) if rag is not None else True,
+                    "db_diagnostics": bool(db_diagnostics)
+                    if db_diagnostics is not None
+                    else False,
+                    "ui_mode": ui_mode,
+                },
+                "status_events": status_events,
+                "thinking_events": thinking_events,
+                "response_mode": str(getattr(response, "mode", "") or "") or None,
+                "response_text": response.text,
+                "prompt": getattr(response, "prompt", None),
+                "action_preview": response.action_preview,
+                "tool_traces": list(getattr(response, "tool_traces", None) or []),
+                "evidence": list(response.evidence or []),
+                "routing_metadata": meta,
+            },
+        )
+
     def finalize_chat_response_delivery(
         self,
         *,
@@ -2419,9 +2591,36 @@ class CockpitService:
                 on_status(stage)
 
         thread_id = self._resolve_thread_id(session_id)
-        controller = self._build_chat_controller(thread_id)
+        response_started = time.monotonic()
+        (
+            continuity_response,
+            continuity_rewritten_message,
+            continuity_metadata,
+        ) = self._resolve_continuity_turn(
+            message=message,
+            thread_id=thread_id,
+        )
+        if continuity_response is not None:
+            self._persist_direct_chat_response(
+                thread_id=thread_id,
+                message=message,
+                response=continuity_response,
+                status_events=status_events,
+                thinking_events=thinking_events,
+                started_at_monotonic=response_started,
+                ticker=ticker,
+                enable_web=enable_web,
+                model=model,
+                rag=rag,
+                db_diagnostics=db_diagnostics,
+                ui_mode=ui_mode,
+            )
+            return continuity_response
 
-        forced_backend, _effective_message = parse_backend_prefix(message)
+        controller = self._build_chat_controller(thread_id)
+        controller_message = continuity_rewritten_message or message
+
+        forced_backend, _effective_message = parse_backend_prefix(controller_message)
         route_preview: dict[str, Any] | None = None
         hybrid_router = getattr(controller, "_hybrid_router", None)
         if hybrid_router is not None and hasattr(hybrid_router, "preview_route"):
@@ -2509,9 +2708,8 @@ class CockpitService:
                 on_thinking(assessment, plan)
 
         self._persist_chat_message(thread_id, "user", message)
-        response_started = time.monotonic()
         response = controller.build_chat_response(
-            message=message,
+            message=controller_message,
             enable_web=bool(enable_web) if enable_web is not None else False,
             enable_rag=bool(rag) if rag is not None else True,
             enable_db_diagnostics=bool(db_diagnostics)
@@ -2526,6 +2724,8 @@ class CockpitService:
         )
         elapsed_ms = int((time.monotonic() - response_started) * 1000)
         meta = dict(getattr(response, "routing_metadata", None) or {})
+        if continuity_metadata:
+            meta.update(continuity_metadata)
         if not str(meta.get("source") or "").strip():
             hybrid_router = getattr(controller, "_hybrid_router", None)
             last_attempt = (
@@ -2582,6 +2782,9 @@ class CockpitService:
                 "ticker": str(ticker or "").strip().upper() or None,
                 "request": {
                     "message": message,
+                    "resolved_message": controller_message
+                    if controller_message != message
+                    else None,
                     "ticker": ticker,
                     "enable_web": bool(enable_web) if enable_web is not None else False,
                     "requested_model": str(model or "").strip() or None,
