@@ -36,6 +36,22 @@ def test_local_route_uses_llm_client(mock_llm_client):
     mock_llm_client.chat.assert_called_once()
 
 
+def test_local_route_reports_resolved_client_model(mock_llm_client):
+    def _chat(*args, **kwargs):
+        mock_llm_client.model = "model:qwen3.5-35b-a3b-apex"
+        return "resolved response"
+
+    mock_llm_client.model = "local"
+    mock_llm_client.chat.side_effect = _chat
+    router = HybridRouter(llm_client=mock_llm_client, policy="local_only")
+
+    result = router.complete([{"role": "user", "content": "hello"}])
+
+    assert result.source == "local"
+    assert result.model == "model:qwen3.5-35b-a3b-apex"
+    assert router.cost_log()[-1]["model"] == "model:qwen3.5-35b-a3b-apex"
+
+
 def test_force_local_ignores_policy(mock_llm_client):
     router = HybridRouter(llm_client=mock_llm_client, policy="api_preferred")
     result = router.complete([{"role": "user", "content": "hi"}], force_backend="local")

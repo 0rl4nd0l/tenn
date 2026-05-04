@@ -893,7 +893,42 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert "Recent videos from Kneppy Invests (UCabc123)" in resp.text
         assert "Latest ASX breakdown" in resp.text
         assert "ingest most recent video" in resp.text
+        assert resp.routing_metadata["model"] == (
+            "deterministic:check_youtube_channel_recent_videos"
+        )
+        assert resp.routing_metadata["source"] == "cockpit"
         backend.get_youtube_channel_recent_videos.assert_called_once_with(
+            "kneppy invests",
+            limit=8,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_bare_channel_youtube_query_routes_even_with_backend_prefix(self) -> None:
+        backend = MagicMock()
+        backend.get_youtube_channel_recent_videos.return_value = {
+            "name": "Kneppy Invests",
+            "channel_id": "UCabc123",
+            "videos": [
+                {
+                    "title": "Latest ASX breakdown",
+                    "published_at": "2026-04-29T00:00:00Z",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "duration_seconds": 600,
+                    "scores": {"overall": 0.88},
+                }
+            ],
+        }
+        self.tool_router.backend_api_client = backend
+
+        local_resp = self.controller.build_chat_response("/local kneppy invests youtube")
+        cloud_resp = self.controller.build_chat_response("/cloud kneppy invests youtube")
+
+        assert local_resp.mode == "command"
+        assert cloud_resp.mode == "command"
+        assert "Recent videos from Kneppy Invests (UCabc123)" in local_resp.text
+        assert "Recent videos from Kneppy Invests (UCabc123)" in cloud_resp.text
+        assert backend.get_youtube_channel_recent_videos.call_count == 2
+        backend.get_youtube_channel_recent_videos.assert_any_call(
             "kneppy invests",
             limit=8,
         )

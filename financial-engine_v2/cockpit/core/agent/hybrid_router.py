@@ -374,8 +374,6 @@ class HybridRouter:
                 "Pass llm_client= to HybridRouter or change the policy."
             )
 
-        model_name: str = getattr(self._local, "model", "local")
-
         # Split messages into prior history + final prompt (matching agent_loop.py pattern).
         if len(messages) >= 2:
             prior = messages[:-1]
@@ -390,6 +388,7 @@ class HybridRouter:
             prior_messages=prior,
             on_chunk=on_chunk,
         )
+        model_name: str = getattr(self._local, "model", "local")
         return {"text": text, "model": model_name, "cost_usd": 0.0, "tool_calls": []}
 
     # ------------------------------------------------------------------

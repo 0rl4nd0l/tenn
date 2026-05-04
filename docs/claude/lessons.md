@@ -967,6 +967,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L087 — Routing prefixes must not suppress deterministic commands
+
+**Date:** 2026-05-04
+**Subsystem:** `financial-engine_v2/cockpit/core/chat.py`, `financial-engine_v2/cockpit/core/agent/hybrid_router.py`
+**Symptom:** A YouTube channel command could fall through to the general analyst path and the footer could show only `local`, making it unclear whether a model was used.
+**Root cause:** `ChatController` skipped `route_command()` whenever `/local` or `/cloud` was present, and `HybridRouter` captured the local model name before `LlamaCppClient.chat()` resolved stale aliases.
+**Fix:** Deterministic command routing now runs after stripping backend prefixes, command responses report `deterministic:<tool>` metadata, and local router metadata is captured after model resolution.
+**Rule:** Backend-selection prefixes should choose an LLM backend only for LLM turns; they must not disable deterministic operator commands. Capture model metadata after runtime alias resolution, not before.
+
+---
+
 ## L087 — Marketplace strong matches must mean best known deal, not keyword fit
 
 **Date:** 2026-05-04

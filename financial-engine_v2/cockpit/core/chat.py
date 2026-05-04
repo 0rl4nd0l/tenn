@@ -5756,6 +5756,11 @@ class ChatController:
                 text=AgentLoop._format_direct_command_tool_result(route, result),
                 evidence=evidence,
                 mode="command",
+                routing_metadata={
+                    "source": "cockpit",
+                    "model": f"deterministic:{route.tool}",
+                    "routing_reason": "deterministic_command",
+                },
             )
 
         proposal = executor.execute(route.tool, arguments)
@@ -6255,15 +6260,11 @@ class ChatController:
                 attached_bundle=attached_bundle,
             )
 
-        command_route = (
-            CommandRoute(matched=False)
-            if forced_backend
-            else route_command(
-                effective_message,
-                active_ticker=prior_ticker or self.last_ticker,
-                recent_youtube_channel=self._recent_youtube_channel_from_context(),
-                recent_youtube_videos=self._recent_youtube_video_options_from_context(),
-            )
+        command_route = route_command(
+            effective_message,
+            active_ticker=prior_ticker or self.last_ticker,
+            recent_youtube_channel=self._recent_youtube_channel_from_context(),
+            recent_youtube_videos=self._recent_youtube_video_options_from_context(),
         )
         command_response = self._build_command_route_response(command_route)
         command_is_analysis_fallback = (
