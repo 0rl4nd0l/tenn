@@ -248,6 +248,20 @@ export type ThesisMemoryProposalCandidate = {
   metadata: Record<string, unknown>
 }
 
+export type ThesisAuditEvidenceSummary = {
+  evidence_span_count?: number | string | null
+  memory_read_only?: boolean | null
+  sufficient_for_analysis?: boolean | null
+  missing_categories_after_recovery?: string[] | null
+  coverage_status?: string | null
+  coverage_message?: string | null
+  proposal_gate?: {
+    allowed?: boolean | null
+    reason?: string | null
+    message?: string | null
+  } | null
+}
+
 export type ThesisAuditReport = {
   audit_id: string
   ticker: string
@@ -259,10 +273,33 @@ export type ThesisAuditReport = {
   verification_matrix: ClaimVerification[]
   contrarian_findings: ContrarianFinding[]
   strongest_disconfirming_evidence: ContrarianFinding[]
+  report_to_reality_delta: string | null
   change_my_mind_triggers: string[]
   next_diligence_questions: string[]
   user_thesis_memory_proposals: ThesisMemoryProposalCandidate[]
-  evidence_summary: Record<string, unknown>
+  evidence_summary: ThesisAuditEvidenceSummary
+  guardrails: Record<string, unknown>
+}
+
+export type ThesisWatchdogAlert = {
+  alert_id: string
+  entry_id: number
+  ticker: string
+  severity: 'contradict' | 'support' | 'diverge' | 'neutral'
+  finding: string
+  evidence_source_id: string
+  status: 'unread' | 'read' | 'dismissed' | 'acted'
+  metadata: {
+    excerpt?: string
+    severity_score?: number
+  }
+  created_at: string
+}
+
+export type ThesisAuditCoverageReport = {
+  ticker: string
+  generated_at?: string | null
+  evidence_summary: ThesisAuditEvidenceSummary
   guardrails: Record<string, unknown>
 }
 
@@ -538,6 +575,51 @@ export async function runThesisAudit(
       }),
     },
     240_000,
+  )
+}
+
+export async function getThesisAuditCoverage(
+  ticker: string,
+  apiKey?: string,
+): Promise<ThesisAuditCoverageReport> {
+  return apiFetch<ThesisAuditCoverageReport>(
+    `/api/cockpit/thesis-audit/coverage?ticker=${encodeURIComponent(ticker)}`,
+    {
+      method: 'GET',
+      headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+    },
+    60_000,
+  )
+}
+
+export async function listThesisWatchdogAlerts(
+  params: { ticker?: string; status?: string } = {},
+  apiKey?: string,
+): Promise<{ ok: boolean; alerts: ThesisWatchdogAlert[] }> {
+  let url = '/api/cockpit/thesis-audit/alerts'
+  const searchParams = new URLSearchParams()
+  if (params.ticker) searchParams.append('ticker', params.ticker)
+  if (params.status) searchParams.append('status', params.status)
+  if (searchParams.toString()) url += `?${searchParams.toString()}`
+
+  return apiFetch<{ ok: boolean; alerts: ThesisWatchdogAlert[] }>(url, {
+    method: 'GET',
+    headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+  })
+}
+
+export async function updateThesisWatchdogAlertStatus(
+  alertId: string,
+  status: ThesisWatchdogAlert['status'],
+  apiKey?: string,
+): Promise<{ ok: boolean; alert: ThesisWatchdogAlert }> {
+  return apiFetch<{ ok: boolean; alert: ThesisWatchdogAlert }>(
+    `/api/cockpit/thesis-audit/alerts/${alertId}/status`,
+    {
+      method: 'POST',
+      headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+      body: JSON.stringify({ status }),
+    },
   )
 }
 

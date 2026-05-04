@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.celery_app import celery
 from app.core.db import SessionLocal
 from app.services.llm import embed_texts, generate_json
@@ -107,3 +109,22 @@ def llm_embed_texts_task(
         list(texts),
         metadata=dict(metadata or {}),
     )
+
+
+@celery.task(name="thesis_watchdog_check")
+def thesis_watchdog_check(document_id: str, ticker: str, new_data: dict[str, Any], doc_title: str):
+    from app.services.thesis_watchdog import ThesisWatchdogService
+    import logging
+    
+    _logger = logging.getLogger(__name__)
+    service = ThesisWatchdogService()
+    try:
+        return service.check_document(
+            ticker=ticker,
+            document_id=document_id,
+            new_data=new_data,
+            doc_title=doc_title
+        )
+    except Exception as exc:
+        _logger.error(f"Thesis Watchdog task failed for doc {document_id}: {exc}")
+        return []

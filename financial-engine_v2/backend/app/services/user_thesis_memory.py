@@ -65,6 +65,8 @@ class UserThesisMemoryStore:
                     signal TEXT,
                     confidence REAL NOT NULL DEFAULT 0.0,
                     status TEXT NOT NULL DEFAULT 'active',
+                    auto_monitor INTEGER NOT NULL DEFAULT 1,
+                    monitoring_config TEXT NOT NULL DEFAULT '{}',
                     source TEXT NOT NULL,
                     source_id TEXT NOT NULL,
                     metadata_json TEXT NOT NULL DEFAULT '{}',
@@ -91,8 +93,34 @@ class UserThesisMemoryStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_thesis_proposals_ticker_status
                     ON thesis_proposals(ticker, status, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS thesis_alerts (
+                    alert_id TEXT PRIMARY KEY,
+                    entry_id INTEGER NOT NULL,
+                    ticker TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    finding TEXT NOT NULL,
+                    evidence_source_id TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'unread',
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(entry_id) REFERENCES thesis_entries(entry_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_thesis_alerts_ticker_status
+                    ON thesis_alerts(ticker, status, created_at DESC);
                 """
             )
+
+            # Migration: Ensure auto_monitor and monitoring_config exist for older DBs
+            try:
+                conn.execute("ALTER TABLE thesis_entries ADD COLUMN auto_monitor INTEGER NOT NULL DEFAULT 1")
+            except sqlite3.OperationalError:
+                pass  # already exists
+
+            try:
+                conn.execute("ALTER TABLE thesis_entries ADD COLUMN monitoring_config TEXT NOT NULL DEFAULT '{}'")
+            except sqlite3.OperationalError:
+                pass  # already exists
 
     def create_proposal(
         self,
@@ -333,6 +361,7 @@ class UserThesisMemoryStore:
         ticker: str,
         *,
         status: str | None = "active",
+        auto_monitor_only: bool = False,
     ) -> list[dict[str, Any]]:
         normalized_ticker = _normalize_ticker(ticker)
         query = "SELECT * FROM thesis_entries WHERE ticker = ?"
@@ -340,10 +369,91 @@ class UserThesisMemoryStore:
         if status:
             query += " AND status = ?"
             params.append(str(status or "").strip().lower())
+        if auto_monitor_only:
+            query += " AND auto_monitor = 1"
         query += " ORDER BY entry_id ASC"
         with self._connect() as conn:
             rows = conn.execute(query, params).fetchall()
         return [self._entry_row_to_dict(row) for row in rows]
+
+    def create_alert(
+        self,
+        *,
+        entry_id: int,
+        ticker: str,
+        severity: str,
+        finding: str,
+        evidence_source_id: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        alert_id = f"tha_{uuid.uuid4().hex[:16]}"
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO thesis_alerts (
+                    alert_id, entry_id, ticker, severity, finding,
+                    evidence_source_id, status, metadata_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'unread', ?, ?)
+                """,
+                (
+                    alert_id,
+                    int(entry_id),
+                    _normalize_ticker(ticker),
+                    str(severity).strip().lower(),
+                    str(finding).strip(),
+                    str(evidence_source_id).strip(),
+                    json.dumps(metadata or {}, sort_keys=True),
+                    now,
+                ),
+            )
+        return self.get_alert(alert_id)
+
+    def list_alerts(
+        self,
+        *,
+        ticker: str | None = None,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if ticker:
+            clauses.append("ticker = ?")
+            params.append(_normalize_ticker(ticker))
+        if status:
+            clauses.append("status = ?")
+            params.append(str(status or "").strip().lower())
+        query = "SELECT * FROM thesis_alerts"
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(max(1, int(limit)))
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [self._alert_row_to_dict(row) for row in rows]
+
+    def get_alert(self, alert_id: str) -> dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM thesis_alerts WHERE alert_id = ? LIMIT 1",
+                (str(alert_id or "").strip(),),
+            ).fetchone()
+        if row is None:
+            raise ValueError(f"thesis alert not found: {alert_id}")
+        return self._alert_row_to_dict(row)
+
+    def mark_alert_status(self, alert_id: str, status: str) -> dict[str, Any]:
+        valid_statuses = {"unread", "read", "dismissed", "acted"}
+        normalized_status = str(status or "").strip().lower()
+        if normalized_status not in valid_statuses:
+            raise ValueError(f"invalid alert status: {status}")
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE thesis_alerts SET status = ? WHERE alert_id = ?",
+                (normalized_status, str(alert_id or "").strip()),
+            )
+        return self.get_alert(alert_id)
 
     def retrieve(
         self,
@@ -371,6 +481,23 @@ class UserThesisMemoryStore:
 
     @staticmethod
     def _entry_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
+        data = dict(row)
+        raw_metadata = data.get("metadata_json") or "{}"
+        try:
+            data["metadata"] = json.loads(raw_metadata)
+        except json.JSONDecodeError:
+            data["metadata"] = {}
+        data.pop("metadata_json", None)
+
+        raw_config = data.get("monitoring_config") or "{}"
+        try:
+            data["monitoring_config"] = json.loads(raw_config)
+        except json.JSONDecodeError:
+            data["monitoring_config"] = {}
+        return data
+
+    @staticmethod
+    def _alert_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
         data = dict(row)
         raw_metadata = data.get("metadata_json") or "{}"
         try:

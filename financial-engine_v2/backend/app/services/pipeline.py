@@ -1743,6 +1743,19 @@ def process_document(
                 f"Extraction completed with status {extraction_stage.status.value}.",
                 details=final_summary,
             )
+            
+            # Trigger Thesis Watchdog monitoring
+            if extraction_stage.status in {ExtractionStageStatus.OK, ExtractionStageStatus.OK_LOW_CONFIDENCE}:
+                try:
+                    from app.worker_tasks import thesis_watchdog_check
+                    thesis_watchdog_check.delay(
+                        document_id=str(doc.document_id),
+                        ticker=str(doc.ticker),
+                        new_data=structured,
+                        doc_title=str(doc.title or "Unknown Announcement")
+                    )
+                except Exception as watchdog_exc:
+                    logger.warning(f"Failed to trigger Thesis Watchdog: {watchdog_exc}")
         else:
             observer.emit(
                 "failed",

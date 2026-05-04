@@ -259,9 +259,21 @@ class ThesisAuditReport:
     verification_matrix: list[ClaimVerification]
     contrarian_findings: list[ContrarianFinding]
     strongest_disconfirming_evidence: list[ContrarianFinding]
+    report_to_reality_delta: str | None
     change_my_mind_triggers: list[str]
     next_diligence_questions: list[str]
     user_thesis_memory_proposals: list[UserThesisMemoryProposal]
+    evidence_summary: dict[str, Any]
+    guardrails: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ThesisAuditCoverageReport:
+    ticker: str
+    generated_at: str
     evidence_summary: dict[str, Any]
     guardrails: dict[str, Any]
 
@@ -459,6 +471,23 @@ def _build_extraction_prompt(
     )
 
 
+def _build_evidence_query(
+    *,
+    ticker: str,
+    claims: list[ThesisClaim] | None = None,
+    focus: str | None = None,
+) -> str:
+    claim_lines = []
+    for claim in (claims or [])[:_MAX_CLAIMS]:
+        claim_lines.append(f"- {claim.claim_id} [{claim.claim_type}]: {claim.text}")
+    focus_text = f"\nFocus: {_clean_text(focus, limit=300)}" if focus else ""
+    claims_text = "\nClaims to verify:\n" + "\n".join(claim_lines) if claim_lines else ""
+    return (
+        f"Research report thesis audit for {ticker}: verify report claims against Tenn evidence."
+        f"{focus_text}{claims_text}"
+    )[:10_000]
+
+
 def _call_extractor(
     report: ResearchReportInput,
     spans: list[ReportSpan],
@@ -479,7 +508,7 @@ def _call_extractor(
                 "task_type": "reasoning",
                 "ticker": report.ticker,
             },
-            timeout=90.0,
+            timeout=18.0,
         )
     except TypeError:
         try:
@@ -773,6 +802,84 @@ def _flatten_evidence(evidence: dict[str, Any]) -> list[EvidenceSpan]:
     return spans
 
 
+def _coverage_status(
+    *,
+    evidence_span_count: int,
+    sufficient_for_analysis: bool,
+    missing_categories: list[str],
+) -> tuple[str, str]:
+    if evidence_span_count <= 0:
+        return (
+            "no_backend_evidence",
+            "No backend evidence is available for this ticker; treat the audit as extraction-only until Tenn has filings, financials, or memory context.",
+        )
+    if not sufficient_for_analysis:
+        if missing_categories:
+            missing = ", ".join(missing_categories)
+            return (
+                "limited",
+                f"Backend evidence is incomplete after recovery; missing categories: {missing}.",
+            )
+        return (
+            "limited",
+            "Backend evidence is incomplete after recovery.",
+        )
+    if missing_categories:
+        missing = ", ".join(missing_categories)
+        return (
+            "partial",
+            f"Backend evidence is usable but still missing: {missing}.",
+        )
+    return (
+        "ready",
+        "Backend evidence coverage is sufficient for a thesis audit.",
+    )
+
+
+def _proposal_gate(evidence_summary: dict[str, Any]) -> dict[str, Any]:
+    evidence_span_count = int(evidence_summary.get("evidence_span_count") or 0)
+    sufficient = evidence_summary.get("sufficient_for_analysis") is True
+    if evidence_span_count <= 0:
+        return {
+            "allowed": False,
+            "reason": "no_backend_evidence",
+            "message": "Thesis memory proposals are blocked until backend evidence exists for this ticker.",
+        }
+    if not sufficient:
+        return {
+            "allowed": False,
+            "reason": "insufficient_backend_evidence",
+            "message": "Thesis memory proposals are blocked until backend evidence is sufficient for analysis.",
+        }
+    return {
+        "allowed": True,
+        "reason": "evidence_sufficient",
+        "message": "Backend evidence is sufficient for staged thesis memory proposals.",
+    }
+
+
+def _build_evidence_summary(orchestrated: Any, evidence_spans: list[EvidenceSpan]) -> dict[str, Any]:
+    missing_categories = list(orchestrated.missing_categories_after_recovery)
+    evidence_span_count = len(evidence_spans)
+    sufficient_for_analysis = bool(orchestrated.sufficient_for_analysis)
+    coverage_status, coverage_message = _coverage_status(
+        evidence_span_count=evidence_span_count,
+        sufficient_for_analysis=sufficient_for_analysis,
+        missing_categories=missing_categories,
+    )
+    summary = {
+        "source_plan": list(orchestrated.source_plan),
+        "evidence_span_count": evidence_span_count,
+        "memory_read_only": True,
+        "sufficient_for_analysis": sufficient_for_analysis,
+        "missing_categories_after_recovery": missing_categories,
+        "coverage_status": coverage_status,
+        "coverage_message": coverage_message,
+    }
+    summary["proposal_gate"] = _proposal_gate(summary)
+    return summary
+
+
 def _score_evidence(claim: ThesisClaim, evidence: EvidenceSpan) -> tuple[float, bool, bool]:
     claim_terms = _terms(claim.text)
     evidence_terms = _terms(f"{evidence.title or ''} {evidence.text}")
@@ -1022,7 +1129,12 @@ def _memory_proposals(
     thesis_summary: str,
     claims: list[ThesisClaim],
     verifications: list[ClaimVerification],
+    evidence_summary: dict[str, Any],
 ) -> list[UserThesisMemoryProposal]:
+    proposal_gate = evidence_summary.get("proposal_gate") if isinstance(evidence_summary, dict) else None
+    if isinstance(proposal_gate, dict) and proposal_gate.get("allowed") is False:
+        return []
+
     proposals: list[UserThesisMemoryProposal] = []
     if thesis_summary:
         proposals.append(
@@ -1075,6 +1187,39 @@ def _memory_proposals(
     return proposals
 
 
+def _synthesize_delta(
+    claims: list[ThesisClaim],
+    verifications: list[ClaimVerification],
+) -> str:
+    contradicted = [v for v in verifications if v.status == "contradicted"]
+    stale = [v for v in verifications if v.status == "stale"]
+    supported = [v for v in verifications if v.status == "supported"]
+
+    if not verifications:
+        return "No claims were available for comparison."
+
+    parts = []
+    if contradicted:
+        parts.append(
+            f"The report contains {len(contradicted)} claim(s) contradicted by independent evidence, "
+            f"primarily regarding: {', '.join(v.claim_id for v in contradicted[:3])}."
+        )
+    if stale:
+        parts.append(
+            f"There are {len(stale)} stale claim(s) that appear anchored to older data context."
+        )
+
+    support_pct = (len(supported) / len(verifications)) * 100
+    if support_pct > 75:
+        parts.append("Overall, the thesis is strongly supported by current backend evidence.")
+    elif support_pct > 40:
+        parts.append("The thesis is partially supported, but with notable gaps or assumptions.")
+    else:
+        parts.append("The thesis has significant verification gaps or contradictions against current evidence.")
+
+    return " ".join(parts)
+
+
 class ThesisAuditService:
     def __init__(
         self,
@@ -1086,6 +1231,47 @@ class ThesisAuditService:
         self._orchestrator = orchestrator or QueryOrchestrator()
         self._llm_fn = llm_fn
         self._use_llm = use_llm
+
+    def _orchestrate_evidence(
+        self,
+        *,
+        ticker: str,
+        claims: list[ThesisClaim] | None = None,
+        focus: str | None = None,
+        analysis_mode: str = "thesis_audit",
+    ) -> Any:
+        return self._orchestrator.orchestrate_query_with_context(
+            _build_evidence_query(ticker=ticker, claims=claims, focus=focus),
+            context={
+                "prior_ticker": ticker,
+                "request_standard": "company_analysis",
+                "analysis_mode": analysis_mode,
+            },
+        )
+
+    def coverage(self, ticker: str) -> ThesisAuditCoverageReport:
+        normalized_ticker = _normalize_ticker(ticker)
+        orchestrated = self._orchestrate_evidence(
+            ticker=normalized_ticker,
+            analysis_mode="thesis_audit_coverage",
+        )
+        evidence_spans = _flatten_evidence(orchestrated.evidence)
+        evidence_summary = _build_evidence_summary(orchestrated, evidence_spans)
+        proposal_gate = evidence_summary["proposal_gate"]
+        return ThesisAuditCoverageReport(
+            ticker=normalized_ticker,
+            generated_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            evidence_summary=evidence_summary,
+            guardrails={
+                "memory_read_only": True,
+                "user_thesis_memory_proposals_allowed": bool(proposal_gate.get("allowed")),
+                "user_thesis_memory_proposal_gate": proposal_gate.get("reason"),
+                "company_memory_written": False,
+                "market_memory_written": False,
+                "user_thesis_memory_auto_saved": False,
+                "qdrant_written": False,
+            },
+        )
 
     def audit(self, report: ResearchReportInput) -> ThesisAuditReport:
         ticker = _normalize_ticker(report.ticker)
@@ -1118,15 +1304,13 @@ class ThesisAuditService:
             thesis_summary = _fallback_summary(report_text, [claim.text for claim in claims])
         assumptions = _normalize_assumptions(raw_payload, claims, spans)
 
-        orchestrated = self._orchestrator.orchestrate_query_with_context(
-            f"Research report thesis audit for {ticker}: verify report claims against Tenn evidence.",
-            context={
-                "prior_ticker": ticker,
-                "request_standard": "company_analysis",
-                "analysis_mode": "thesis_audit",
-            },
+        orchestrated = self._orchestrate_evidence(
+            ticker=ticker,
+            claims=claims,
+            focus=report.focus,
         )
         evidence_spans = _flatten_evidence(orchestrated.evidence)
+        evidence_summary = _build_evidence_summary(orchestrated, evidence_spans)
         verifications = _verify_claims(claims, evidence_spans)
         findings = _contrarian_findings(claims, verifications)
         strongest = sorted(
@@ -1151,6 +1335,7 @@ class ThesisAuditService:
             verification_matrix=verifications,
             contrarian_findings=findings,
             strongest_disconfirming_evidence=strongest,
+            report_to_reality_delta=_synthesize_delta(claims, verifications),
             change_my_mind_triggers=_change_my_mind_triggers(claims, verifications),
             next_diligence_questions=_diligence_questions(claims, verifications, assumptions),
             user_thesis_memory_proposals=_memory_proposals(
@@ -1159,20 +1344,19 @@ class ThesisAuditService:
                 thesis_summary=thesis_summary,
                 claims=claims,
                 verifications=verifications,
+                evidence_summary=evidence_summary,
             ),
-            evidence_summary={
-                "source_plan": list(orchestrated.source_plan),
-                "evidence_span_count": len(evidence_spans),
-                "memory_read_only": True,
-                "sufficient_for_analysis": orchestrated.sufficient_for_analysis,
-                "missing_categories_after_recovery": list(orchestrated.missing_categories_after_recovery),
-            },
+            evidence_summary=evidence_summary,
             guardrails={
                 "uploaded_report_is_canonical_truth": False,
                 "numeric_truth_source": "canonical_financial_truth_only",
                 "company_memory_written": False,
                 "market_memory_written": False,
                 "user_thesis_memory_auto_saved": False,
+                "user_thesis_memory_proposals_allowed": bool(
+                    evidence_summary["proposal_gate"].get("allowed")
+                ),
+                "user_thesis_memory_proposal_gate": evidence_summary["proposal_gate"].get("reason"),
                 "qdrant_written": False,
             },
         )

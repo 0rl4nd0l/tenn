@@ -1,15 +1,18 @@
 'use client'
 
-import { ChangeEvent, useMemo, useState } from 'react'
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
   CircleHelp,
+  Clock,
   Database,
+  ExternalLink,
   FileSearch,
   Save,
   ShieldCheck,
   Upload,
+  X,
   XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,16 +24,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
   createUserThesisProposal,
+  getThesisAuditCoverage,
+  listThesisWatchdogAlerts,
   runThesisAudit,
+  updateThesisWatchdogAlertStatus,
   type ClaimVerification,
   type EvidenceSpan,
+  type ThesisAuditCoverageReport,
   type ThesisAuditReport,
   type ThesisClaim,
   type ThesisClaimStatus,
   type ThesisMemoryProposalCandidate,
+  type ThesisWatchdogAlert,
 } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { cn } from '@/lib/utils'
+
+const HISTORY_KEY = 'thesis_audit_history'
+const MAX_HISTORY = 5
+
+type AuditHistoryEntry = {
+  audit_id: string
+  ticker: string
+  filename: string | null
+  focus: string | null
+  generated_at: string
+  thesis_summary: string
+  report: ThesisAuditReport
+}
 
 interface ThesisAuditScreenProps {
   apiKey: string
@@ -86,6 +107,11 @@ function statusLabel(status: ThesisClaimStatus): string {
   return status.replace(/_/g, ' ')
 }
 
+function coverageStatusLabel(value: string | null | undefined): string {
+  const normalized = asString(value || 'unknown', 'unknown')
+  return normalized.replace(/_/g, ' ')
+}
+
 function StatusIcon({ status }: { status: ThesisClaimStatus }) {
   if (status === 'supported') return <CheckCircle2 className="h-4 w-4" />
   if (status === 'contradicted') return <XCircle className="h-4 w-4" />
@@ -97,7 +123,7 @@ function EvidenceList({ spans }: { spans: EvidenceSpan[] }) {
   if (!spans.length) return <p className="text-xs text-muted-foreground">No independent evidence span.</p>
   return (
     <div className="space-y-2">
-      {spans.slice(0, 3).map((span) => (
+      {spans.map((span) => (
         <div key={span.evidence_id} className="rounded-md border border-border/70 bg-muted/20 p-3">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="text-[10px] uppercase tracking-normal">
@@ -108,8 +134,27 @@ function EvidenceList({ spans }: { spans: EvidenceSpan[] }) {
             </span>
           </div>
           <p className="line-clamp-4 text-xs leading-relaxed text-foreground/90">{span.text}</p>
+          {span.url ? (
+            <a
+              href={span.url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Open source
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          ) : null}
         </div>
       ))}
+    </div>
+  )
+}
+
+function EmptyState({ children }: { children: string }) {
+  return (
+    <div className="rounded-md border border-dashed border-border bg-muted/10 p-4 text-sm text-muted-foreground">
+      {children}
     </div>
   )
 }
@@ -187,19 +232,142 @@ function ProposalRow({
         <span className="text-xs text-muted-foreground">
           confidence {(proposal.confidence * 100).toFixed(0)}%
         </span>
-        <Button
-          type="button"
-          size="sm"
-          variant={staged ? 'secondary' : 'outline'}
-          className="ml-auto h-8 gap-2"
-          disabled={disabled || staged}
-          onClick={onStage}
-        >
-          <Save className="h-4 w-4" />
-          {staged ? 'Staged' : 'Stage'}
-        </Button>
+        {staged ? (
+          <a
+            href="/memory?tab=thesis"
+            className="ml-auto inline-flex h-8 items-center gap-1 rounded-md border border-border px-3 text-xs text-primary hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" />
+            View in Memory
+          </a>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="ml-auto h-8 gap-2"
+            disabled={disabled}
+            onClick={onStage}
+          >
+            <Save className="h-4 w-4" />
+            Stage
+          </Button>
+        )}
       </div>
       <p className="text-sm leading-relaxed">{proposal.statement}</p>
+    </div>
+  )
+}
+
+function HistoryList({
+  entries,
+  onRestore,
+  onDelete,
+}: {
+  entries: AuditHistoryEntry[]
+  onRestore: (entry: AuditHistoryEntry) => void
+  onDelete: (auditId: string) => void
+}) {
+  if (!entries.length) return null
+  return (
+    <div className="shrink-0 border-t border-border p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Clock className="h-3 w-3" />
+        Past Audits
+      </div>
+      <div className="space-y-1">
+        {entries.map((entry) => (
+          <div
+            key={entry.audit_id}
+            className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/30"
+            onClick={() => onRestore(entry)}
+          >
+            <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
+              {entry.ticker}
+            </Badge>
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {entry.filename || entry.focus || entry.audit_id.slice(0, 8)}
+            </span>
+            <span className="shrink-0 text-[10px] text-muted-foreground/60">
+              {new Date(entry.generated_at).toLocaleDateString()}
+            </span>
+            <button
+              type="button"
+              className="invisible shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground group-hover:visible"
+              onClick={(e) => { e.stopPropagation(); onDelete(entry.audit_id) }}
+              aria-label="Remove"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+interface AlertListProps {
+  alerts: ThesisWatchdogAlert[]
+  onDismiss: (alertId: string) => void
+  loading?: boolean
+}
+
+function AlertList({ alerts, onDismiss, loading }: AlertListProps) {
+  if (loading && alerts.length === 0) {
+    return (
+      <div className="mt-6 border-t border-border pt-4">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Watchdog Alerts</h3>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3 animate-spin" />
+          Checking for alerts...
+        </div>
+      </div>
+    )
+  }
+
+  if (alerts.length === 0) return null
+
+  return (
+    <div className="mt-6 border-t border-border pt-4">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Watchdog Alerts</h3>
+      <div className="space-y-3">
+        {alerts.map((alert) => (
+          <div
+            key={alert.alert_id}
+            className="group relative rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs transition-colors hover:bg-amber-500/10"
+          >
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'px-1 py-0 text-[10px] uppercase',
+                    alert.severity === 'contradict'
+                      ? 'border-red-500/50 text-red-500'
+                      : alert.severity === 'support'
+                      ? 'border-green-500/50 text-green-500'
+                      : 'border-amber-500/50 text-amber-500',
+                  )}
+                >
+                  {alert.severity}
+                </Badge>
+                <span className="text-[10px] text-muted-foreground">{new Date(alert.created_at).toLocaleDateString()}</span>
+              </div>
+              <button
+                onClick={() => onDismiss(alert.alert_id)}
+                className="opacity-0 transition-opacity group-hover:opacity-100"
+                title="Dismiss alert"
+              >
+                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              </button>
+            </div>
+            <p className="font-medium leading-tight text-foreground">{alert.finding}</p>
+            {alert.metadata.excerpt ? (
+              <p className="mt-2 line-clamp-2 italic text-muted-foreground">"{alert.metadata.excerpt}"</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -207,13 +375,65 @@ function ProposalRow({
 export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
   const activeTicker = useCockpitStore((state) => state.activeTicker)
   const [ticker, setTicker] = useState(activeTicker || '')
+  const prevActiveTickerRef = useRef(activeTicker || '')
+  const tickerRef = useRef(ticker)
+  tickerRef.current = ticker
+  useEffect(() => {
+    if (activeTicker && tickerRef.current === prevActiveTickerRef.current) {
+      setTicker(activeTicker)
+    }
+    prevActiveTickerRef.current = activeTicker || ''
+  }, [activeTicker])
   const [focus, setFocus] = useState('')
   const [reportText, setReportText] = useState('')
   const [uploadedReport, setUploadedReport] = useState<UploadedReport | null>(null)
   const [audit, setAudit] = useState<ThesisAuditReport | null>(null)
+  const [coverage, setCoverage] = useState<ThesisAuditCoverageReport | null>(null)
+  const [coverageLoading, setCoverageLoading] = useState(false)
+  const [coverageError, setCoverageError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [stagedProposalIndexes, setStagedProposalIndexes] = useState<Set<number>>(new Set())
+  const [history, setHistory] = useState<AuditHistoryEntry[]>([])
+  const [alerts, setAlerts] = useState<ThesisWatchdogAlert[]>([])
+  const [alertsLoading, setAlertsLoading] = useState(false)
+
+  const refreshAlerts = useCallback(
+    async (t: string) => {
+      if (!t) {
+        setAlerts([])
+        return
+      }
+      setAlertsLoading(true)
+      try {
+        const res = await listThesisWatchdogAlerts({ ticker: t, status: 'unread' }, apiKey)
+        if (res.ok) {
+          setAlerts(res.alerts)
+        }
+      } catch (e) {
+        console.error('Failed to fetch thesis alerts', e)
+      } finally {
+        setAlertsLoading(false)
+      }
+    },
+    [apiKey],
+  )
+
+  useEffect(() => {
+    const saved = localStorage.getItem(HISTORY_KEY)
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved))
+      } catch (e) {
+        console.error('Failed to parse thesis audit history', e)
+      }
+    }
+  }, [])
+
+  const saveHistory = (newHistory: AuditHistoryEntry[]) => {
+    setHistory(newHistory)
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory))
+  }
 
   const verificationByClaim = useMemo(() => {
     const map = new Map<string, ClaimVerification>()
@@ -233,6 +453,71 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
     }
   }, [audit])
 
+  const evidenceSummary = audit?.evidence_summary
+  const evidenceSpanCount = Number(evidenceSummary?.evidence_span_count ?? 0)
+  const missingCategories = evidenceSummary?.missing_categories_after_recovery || []
+  const proposalGate = evidenceSummary?.proposal_gate
+  const isEvidenceLimited = Boolean(
+    audit
+    && (
+      evidenceSummary?.sufficient_for_analysis === false
+      || evidenceSpanCount === 0
+      || missingCategories.length > 0
+    ),
+  )
+  const proposalStageDisabled = Boolean(loading || isEvidenceLimited || proposalGate?.allowed === false)
+  const normalizedTicker = ticker.trim().toUpperCase()
+
+  useEffect(() => {
+    if (normalizedTicker && /^[A-Z0-9]{3,10}$/.test(normalizedTicker)) {
+      refreshAlerts(normalizedTicker)
+    }
+  }, [normalizedTicker, refreshAlerts])
+
+  const coverageSummary = coverage?.evidence_summary
+  const coverageStatus = coverageSummary?.coverage_status
+  const coverageIsLimited = Boolean(
+    coverage
+    && (
+      coverageSummary?.sufficient_for_analysis === false
+      || Number(coverageSummary?.evidence_span_count ?? 0) === 0
+      || (coverageSummary?.missing_categories_after_recovery || []).length > 0
+    ),
+  )
+
+  useEffect(() => {
+    if (!/^[A-Z0-9]{3,10}$/.test(normalizedTicker)) {
+      setCoverage(null)
+      setCoverageError(null)
+      setCoverageLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setCoverageLoading(true)
+    setCoverageError(null)
+    const timeoutId = window.setTimeout(() => {
+      void getThesisAuditCoverage(normalizedTicker, apiKey)
+        .then((result) => {
+          if (!cancelled) setCoverage(result)
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            setCoverage(null)
+            setCoverageError(summarizeError(error))
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setCoverageLoading(false)
+        })
+    }, 450)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [apiKey, normalizedTicker])
+
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -243,7 +528,9 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
         mimeType: file.type || 'application/octet-stream',
         base64,
       })
-      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+      const ext = file.name.toLowerCase().split('.').pop() ?? ''
+      const isPlainText = file.type.startsWith('text/') || ext === 'txt' || ext === 'md'
+      if (isPlainText) {
         const text = await file.text()
         if (text.trim()) setReportText(text)
       }
@@ -282,6 +569,21 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
       )
       setAudit(result)
       setStatus(`Audit ${result.audit_id} completed.`)
+
+      const entry: AuditHistoryEntry = {
+        audit_id: result.audit_id,
+        ticker: normalizedTicker,
+        filename: uploadedReport?.filename || null,
+        focus: focus.trim() || null,
+        generated_at: result.generated_at,
+        thesis_summary: result.thesis_summary,
+        report: result,
+      }
+      const newHistory = [entry, ...history.filter((h) => h.audit_id !== entry.audit_id)].slice(0, MAX_HISTORY)
+      saveHistory(newHistory)
+      
+      // Refresh alerts after audit as it might have triggered new ones (async)
+      setTimeout(() => refreshAlerts(normalizedTicker), 3000)
     } catch (error) {
       setStatus(summarizeError(error))
     } finally {
@@ -308,9 +610,36 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
         apiKey,
       )
       setStagedProposalIndexes((prev) => new Set(prev).add(index))
-      toast.success('Proposal staged')
+      toast.success('Proposal staged — confirm it in Memory → Thesis')
     } catch (error) {
       toast.error(summarizeError(error))
+    }
+  }
+
+  const handleRestoreHistory = (entry: AuditHistoryEntry) => {
+    setTicker(entry.ticker)
+    setFocus(entry.focus || '')
+    setReportText('')
+    setUploadedReport(null)
+    setAudit(entry.report)
+    setStatus(`Restored audit from ${new Date(entry.generated_at).toLocaleString()}`)
+    setStagedProposalIndexes(new Set())
+  }
+
+  const handleDeleteHistory = (auditId: string) => {
+    const newHistory = history.filter((h) => h.audit_id !== auditId)
+    saveHistory(newHistory)
+  }
+
+  const handleDismissAlert = async (alertId: string) => {
+    try {
+      const res = await updateThesisWatchdogAlertStatus(alertId, 'dismissed', apiKey)
+      if (res.ok) {
+        setAlerts((prev) => prev.filter((a) => a.alert_id !== alertId))
+        toast.success('Alert dismissed')
+      }
+    } catch (e) {
+      toast.error('Failed to dismiss alert')
     }
   }
 
@@ -336,7 +665,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
             <span className="truncate">{uploadedReport?.filename || 'Select report'}</span>
             <input
               type="file"
-              accept=".pdf,.txt,.md,text/plain,application/pdf"
+              accept=".pdf,.docx,.txt,.md,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="sr-only"
               onChange={handleFileChange}
             />
@@ -345,8 +674,50 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
             <FileSearch className="h-4 w-4" />
             {loading ? 'Auditing' : 'Audit'}
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10"
+            disabled={coverageLoading}
+            onClick={() => {
+              if (normalizedTicker) {
+                setCoverageLoading(true)
+                getThesisAuditCoverage(normalizedTicker, apiKey)
+                  .then(setCoverage)
+                  .catch((e) => setCoverageError(summarizeError(e)))
+                  .finally(() => setCoverageLoading(false))
+              }
+            }}
+            title="Refresh Coverage"
+          >
+            <Clock className={cn('h-4 w-4', coverageLoading && 'animate-spin')} />
+          </Button>
         </div>
-        {status ? <div className="mt-3 text-xs text-muted-foreground">{status}</div> : null}
+        {status || coverageLoading || coverage || coverageError || (reportText.trim() && uploadedReport) ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {status ? <span>{status}</span> : null}
+            {coverageLoading ? <span>Checking backend evidence coverage.</span> : null}
+            {coverage ? (
+              <span
+                className={cn(
+                  'rounded border px-2 py-1',
+                  coverageIsLimited
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100',
+                )}
+                data-testid="thesis-audit-coverage-preflight"
+              >
+                Coverage: {coverageStatusLabel(coverageStatus)}
+              </span>
+            ) : null}
+            {coverageError ? <span>Coverage unavailable: {coverageError}</span> : null}
+            {reportText.trim() && uploadedReport ? (
+              <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-amber-100">
+                Text input takes priority over uploaded file.
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid flex-1 min-h-0 grid-cols-1 lg:grid-cols-[380px_1fr]">
@@ -399,9 +770,31 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
                       <Database className="h-4 w-4" />
                       Evidence
                     </div>
+                    {isEvidenceLimited ? (
+                      <div
+                        className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-100"
+                        data-testid="thesis-audit-evidence-limited"
+                      >
+                        <div className="mb-1 flex items-center gap-2 font-medium">
+                          <AlertTriangle className="h-4 w-4" />
+                          Evidence-limited result
+                        </div>
+                        <p className="leading-relaxed">
+                          Treat this as an incomplete audit until more backend evidence is available.
+                        </p>
+                        {missingCategories.length ? (
+                          <p className="mt-2 leading-relaxed">
+                            Missing after recovery: {missingCategories.join(', ')}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="space-y-1 text-xs text-muted-foreground">
-                      <p>Spans: {asString(audit.evidence_summary.evidence_span_count, '0')}</p>
-                      <p>Read only: {audit.evidence_summary.memory_read_only ? 'yes' : 'no'}</p>
+                      <p>Spans: {asString(evidenceSummary?.evidence_span_count, '0')}</p>
+                      {typeof evidenceSummary?.sufficient_for_analysis === 'boolean' ? (
+                        <p>Analysis sufficient: {evidenceSummary.sufficient_for_analysis ? 'yes' : 'no'}</p>
+                      ) : null}
+                      <p>Read only: {evidenceSummary?.memory_read_only ? 'yes' : 'no'}</p>
                       <p>Auto saved: {audit.guardrails.user_thesis_memory_auto_saved ? 'yes' : 'no'}</p>
                     </div>
                   </div>
@@ -412,6 +805,16 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
                 </div>
               )}
             </div>
+            <AlertList
+              alerts={alerts}
+              onDismiss={handleDismissAlert}
+              loading={alertsLoading}
+            />
+            <HistoryList
+              entries={history}
+              onRestore={handleRestoreHistory}
+              onDelete={handleDeleteHistory}
+            />
           </div>
         </aside>
 
@@ -441,69 +844,121 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
               </TabsContent>
               <TabsContent value="contrarian" className="min-h-0 flex-1 overflow-auto p-4">
                 <div className="space-y-3">
-                  {audit.contrarian_findings.map((finding) => (
-                    <div key={finding.break_pack} className="rounded-md border border-border bg-background/60 p-4">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">{finding.break_pack.replace(/_/g, ' ')}</Badge>
-                        <Badge className={cn('border text-[10px]', STATUS_STYLES[finding.status])}>
-                          {statusLabel(finding.status)}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{finding.confidence_label}</span>
-                      </div>
-                      <p className="mb-3 text-sm leading-relaxed">{finding.finding}</p>
-                      <EvidenceList spans={finding.evidence_spans} />
-                    </div>
-                  ))}
+                  {audit.strongest_disconfirming_evidence.length > 0 ? (
+                    <>
+                      <h2 className="text-sm font-medium">Strongest Disconfirming Evidence</h2>
+                      {audit.strongest_disconfirming_evidence.map((finding) => (
+                        <div key={finding.break_pack} className="rounded-md border border-border bg-background/60 p-4">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <Badge variant="outline">{finding.break_pack.replace(/_/g, ' ')}</Badge>
+                            <Badge className={cn('border text-[10px]', STATUS_STYLES[finding.status])}>
+                              {statusLabel(finding.status)}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{finding.confidence_label}</span>
+                          </div>
+                          <p className="mb-3 text-sm leading-relaxed">{finding.finding}</p>
+                          <EvidenceList spans={finding.evidence_spans} />
+                        </div>
+                      ))}
+                      <div className="border-t border-border my-4" />
+                    </>
+                  ) : null}
+                  {audit.contrarian_findings.filter(
+                    (f) => !audit.strongest_disconfirming_evidence.some((s) => s.break_pack === f.break_pack),
+                  ).length ? (
+                    audit.contrarian_findings
+                      .filter((f) => !audit.strongest_disconfirming_evidence.some((s) => s.break_pack === f.break_pack))
+                      .map((finding) => (
+                        <div key={finding.break_pack} className="rounded-md border border-border bg-background/60 p-4">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <Badge variant="outline">{finding.break_pack.replace(/_/g, ' ')}</Badge>
+                            <Badge className={cn('border text-[10px]', STATUS_STYLES[finding.status])}>
+                              {statusLabel(finding.status)}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{finding.confidence_label}</span>
+                          </div>
+                          <p className="mb-3 text-sm leading-relaxed">{finding.finding}</p>
+                          <EvidenceList spans={finding.evidence_spans} />
+                        </div>
+                      ))
+                  ) : audit.strongest_disconfirming_evidence.length === 0 ? (
+                    <EmptyState>No contrarian findings were returned for this audit.</EmptyState>
+                  ) : null}
                 </div>
               </TabsContent>
               <TabsContent value="proposals" className="min-h-0 flex-1 overflow-auto p-4">
                 <div className="space-y-3">
-                  {audit.user_thesis_memory_proposals.map((proposal, index) => (
-                    <ProposalRow
-                      key={`${proposal.proposal_type}-${index}`}
-                      proposal={proposal}
-                      index={index}
-                      disabled={loading}
-                      staged={stagedProposalIndexes.has(index)}
-                      onStage={() => handleStageProposal(proposal, index)}
-                    />
-                  ))}
+                  {audit.user_thesis_memory_proposals.length ? (
+                    audit.user_thesis_memory_proposals.map((proposal, index) => (
+                      <ProposalRow
+                        key={`${proposal.proposal_type}-${index}`}
+                        proposal={proposal}
+                        index={index}
+                        disabled={proposalStageDisabled}
+                        staged={stagedProposalIndexes.has(index)}
+                        onStage={() => handleStageProposal(proposal, index)}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState>No thesis memory proposals were generated.</EmptyState>
+                  )}
+                  {proposalGate?.allowed === false && proposalGate.message ? (
+                    <EmptyState>{proposalGate.message}</EmptyState>
+                  ) : null}
                 </div>
               </TabsContent>
               <TabsContent value="diligence" className="min-h-0 flex-1 overflow-auto p-4">
                 <div className="grid gap-4 xl:grid-cols-2">
+                  {audit.report_to_reality_delta ? (
+                    <div className="rounded-md border border-border bg-background/60 p-4 xl:col-span-2">
+                      <h2 className="mb-3 text-sm font-medium">Report-to-Reality Delta</h2>
+                      <p className="text-sm leading-relaxed text-foreground/90">{audit.report_to_reality_delta}</p>
+                    </div>
+                  ) : null}
                   <div className="rounded-md border border-border bg-background/60 p-4">
                     <h2 className="mb-3 text-sm font-medium">Change My Mind</h2>
-                    <ul className="space-y-2">
-                      {audit.change_my_mind_triggers.map((item) => (
-                        <li key={item} className="text-sm leading-relaxed text-foreground/90">
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
+                    {audit.change_my_mind_triggers.length ? (
+                      <ul className="space-y-2">
+                        {audit.change_my_mind_triggers.map((item) => (
+                          <li key={item} className="text-sm leading-relaxed text-foreground/90">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <EmptyState>No change-my-mind triggers were returned.</EmptyState>
+                    )}
                   </div>
                   <div className="rounded-md border border-border bg-background/60 p-4">
                     <h2 className="mb-3 text-sm font-medium">Next Questions</h2>
-                    <ul className="space-y-2">
-                      {audit.next_diligence_questions.map((item) => (
-                        <li key={item} className="text-sm leading-relaxed text-foreground/90">
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
+                    {audit.next_diligence_questions.length ? (
+                      <ul className="space-y-2">
+                        {audit.next_diligence_questions.map((item) => (
+                          <li key={item} className="text-sm leading-relaxed text-foreground/90">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <EmptyState>No next diligence questions were returned.</EmptyState>
+                    )}
                   </div>
                   <div className="rounded-md border border-border bg-background/60 p-4 xl:col-span-2">
                     <h2 className="mb-3 text-sm font-medium">Hidden Assumptions</h2>
-                    <div className="grid gap-3 lg:grid-cols-2">
-                      {audit.hidden_assumptions.map((assumption) => (
-                        <div key={assumption.assumption_id} className="rounded-md border border-border/70 p-3">
-                          <div className="mb-1 text-xs text-muted-foreground">
-                            {assumption.confidence_label} | {assumption.related_claim_ids.join(', ') || '-'}
+                    {audit.hidden_assumptions.length ? (
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        {audit.hidden_assumptions.map((assumption) => (
+                          <div key={assumption.assumption_id} className="rounded-md border border-border/70 p-3">
+                            <div className="mb-1 text-xs text-muted-foreground">
+                              {assumption.confidence_label} | {assumption.related_claim_ids.join(', ') || '-'}
+                            </div>
+                            <p className="text-sm leading-relaxed">{assumption.text}</p>
                           </div>
-                          <p className="text-sm leading-relaxed">{assumption.text}</p>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState>No hidden assumptions were extracted.</EmptyState>
+                    )}
                   </div>
                 </div>
               </TabsContent>

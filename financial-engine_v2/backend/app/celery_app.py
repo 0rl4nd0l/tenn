@@ -31,6 +31,8 @@ def _resolve_task_route(
         queue = "llm_gpu"
     elif name == "llm_embed_texts":
         queue = "embed"
+    elif name == "thesis_watchdog_check":
+        queue = "score"
     elif name == "llm_generate_json":
         prompt = str((kwargs or {}).get("prompt") or (args[0] if args else "") or "")
         metadata = (kwargs or {}).get("metadata")

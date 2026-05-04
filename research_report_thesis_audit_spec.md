@@ -1,12 +1,27 @@
 # Research Report Thesis Audit
 
-**Status:** Planning draft  
-**Primary lane:** Memory  
+**Status:** Implemented (May 2026)
+**Primary lane:** Memory
 **Execution posture:** Audit-first, safe-extension only
 
 ## 1. Purpose
 
-Allow Tenn to accept a user-authored company research report as a **non-canonical thesis source**, convert it into structured claims and assumptions, independently verify and challenge those claims, and produce a structured thesis-audit output. Tenn may propose selected insights for storage in **confirmation-gated user thesis memory**, but must never treat the uploaded report as canonical financial truth.
+Allow Tenn to accept a user-authored company research report as a **non-canonical thesis source**, audit its claims against the existing "financial truth" database, and surface a "report-to-reality" delta and active watchdog monitors.
+
+## 2. Implemented Features
+
+### 2.1. Claims & Synthesis
+- **Report-to-Reality Delta**: Automated synthesis of how a report differs from independent evidence (contradictions, staleness, support).
+- **Thesis Watchdog**: Active monitoring of saved thesis claims against all new incoming company announcements.
+- **Evidence Visibility**: Full visibility into independent evidence spans supporting or contradicting claims.
+
+### 2.2. Memory Integration
+- **Confirmation-Gated Memory**: Claims are staged as proposals; they only enter permanent memory after user confirmation.
+- **Audit History**: Local persistence of past audits for quick restoration and comparison.
+
+### 2.3. Active Watchdog (Real-time)
+- **Asynchronous Monitoring**: New documents trigger a Celery-based 'mini-audit' against active theses.
+- **Divergence Alerts**: UI alerts for factual breaks, narrative shifts, or confirming evidence.
 
 ## 2. Why this exists
 
