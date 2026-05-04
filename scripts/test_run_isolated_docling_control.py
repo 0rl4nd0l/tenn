@@ -121,6 +121,47 @@ class RunIsolatedDoclingControlTests(unittest.TestCase):
 
         self.assertEqual(redacted_inline, "llama-server --api-key=<redacted> --port 8002")
 
+    def test_in_memory_observer_records_stage_wall_time(self):
+        observer = mod._InMemoryStageObserver(
+            document_id="doc-1",
+            requested_method="docling",
+            strict_method=True,
+        )
+
+        observer.emit("parser", "running", "start")
+        observer._stage_started_at["parser"] -= 1.25
+        observer.emit("parser", "succeeded", "done")
+        timings = mod._observer_stage_timings(observer)
+
+        self.assertGreaterEqual(timings["docling_parse_layout"], 1.0)
+        self.assertEqual(observer.events[-1]["stage"], "parser")
+
+    def test_capture_llm_request_timings_wraps_and_restores_generate_json(self):
+        from app.services import llm as llm_service
+
+        original = llm_service.generate_json
+
+        def fake_generate_json(prompt, *args, **kwargs):
+            return {"ok": True, "prompt": prompt}
+
+        llm_service.generate_json = fake_generate_json
+        try:
+            with mod._capture_llm_request_timings("doc-1") as rows:
+                result = llm_service.generate_json(
+                    "hello",
+                    metadata={"component": "multipass_extraction", "task_type": "reasoning"},
+                )
+            self.assertEqual(result["ok"], True)
+            self.assertEqual(llm_service.generate_json, fake_generate_json)
+        finally:
+            llm_service.generate_json = original
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["document_id"], "doc-1")
+        self.assertEqual(rows[0]["component"], "multipass_extraction")
+        self.assertEqual(rows[0]["prompt_chars"], 5)
+        self.assertGreaterEqual(rows[0]["elapsed_seconds"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

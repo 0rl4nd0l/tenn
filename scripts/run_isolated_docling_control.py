@@ -10,6 +10,7 @@ evaluation functions from app.main.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
 import os
 import shutil
@@ -17,6 +18,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -66,6 +68,73 @@ DEFAULT_RUNTIME_LOG = (
     REPO_ROOT / "reports" / "extraction_runtime" / "llama_extraction_8002.log"
 )
 DEFAULT_EXTRACTION_LOCK = Path("/tmp/llama-extraction-server.lock")
+_TERMINAL_STAGE_STATUSES = {"succeeded", "failed", "blocked", "skipped"}
+
+
+class _InMemoryStageObserver:
+    """Capture extraction observer timings without writing backend run-status files."""
+
+    def __init__(
+        self,
+        *,
+        document_id: str,
+        requested_method: str,
+        strict_method: bool,
+    ) -> None:
+        self.document_id = document_id
+        self.requested_method = requested_method
+        self.strict_method = bool(strict_method)
+        self.actual_method: str | None = None
+        self.started_at = time.perf_counter()
+        self._stage_started_at: dict[str, float] = {}
+        self.stage_timings_seconds: dict[str, float] = {}
+        self.events: list[dict[str, Any]] = []
+
+    def set_actual_method(self, actual_method: str | None) -> None:
+        self.actual_method = str(actual_method or "").strip() or self.actual_method
+
+    def emit(
+        self,
+        stage: str,
+        status: str,
+        message: str,
+        *,
+        warning_code: str | None = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        now = time.perf_counter()
+        stage_key = str(stage or "").strip()
+        status_key = str(status or "").strip()
+        if status_key == "running":
+            self._stage_started_at.setdefault(stage_key, now)
+        elif status_key in _TERMINAL_STAGE_STATUSES:
+            started = self._stage_started_at.pop(stage_key, None)
+            elapsed = 0.0 if started is None else max(now - started, 0.0)
+            self.stage_timings_seconds[stage_key] = (
+                self.stage_timings_seconds.get(stage_key, 0.0) + elapsed
+            )
+
+        event = {
+            "document_id": self.document_id,
+            "requested_method": self.requested_method,
+            "actual_method": self.actual_method,
+            "strict_method": self.strict_method,
+            "stage": stage_key,
+            "status": status_key,
+            "elapsed_since_observer_start_seconds": round(
+                max(now - self.started_at, 0.0), 6
+            ),
+            "message": str(message or ""),
+            "warning_code": warning_code,
+            "error_code": error_code,
+            "details": dict(details or {}),
+        }
+        self.events.append(event)
+        return event
+
+    def final_summary(self, summary: dict[str, Any]) -> dict[str, Any]:
+        return {"final_summary": dict(summary or {})}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -473,6 +542,83 @@ def _remove_stale_lock(pid: int) -> None:
         _remove_lock_for_pid(pid)
 
 
+@contextmanager
+def _capture_llm_request_timings(document_id: str):
+    from app.services import llm as llm_service
+
+    rows: list[dict[str, Any]] = []
+    rows_lock = threading.Lock()
+    next_call_index = 0
+    original_generate_json = llm_service.generate_json
+
+    def timed_generate_json(prompt: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        nonlocal next_call_index
+        with rows_lock:
+            next_call_index += 1
+            call_index = next_call_index
+        started_at = time.perf_counter()
+        error_text: str | None = None
+        try:
+            return original_generate_json(prompt, *args, **kwargs)
+        except Exception as exc:  # noqa: BLE001
+            error_text = str(exc)
+            raise
+        finally:
+            metadata = kwargs.get("metadata")
+            metadata = metadata if isinstance(metadata, dict) else {}
+            row = {
+                "document_id": document_id,
+                "call_index": call_index,
+                "component": str(metadata.get("component") or ""),
+                "task_type": str(metadata.get("task_type") or ""),
+                "requested_model": str(metadata.get("requested_model") or ""),
+                "prompt_chars": len(str(prompt or "")),
+                "elapsed_seconds": round(
+                    max(time.perf_counter() - started_at, 0.0), 6
+                ),
+                "error": error_text,
+            }
+            with rows_lock:
+                rows.append(row)
+
+    llm_service.generate_json = timed_generate_json
+    try:
+        yield rows
+    finally:
+        llm_service.generate_json = original_generate_json
+
+
+def _rounded_timing_map(values: dict[str, float]) -> dict[str, float]:
+    return {
+        str(key): round(max(float(value or 0.0), 0.0), 6)
+        for key, value in values.items()
+    }
+
+
+def _observer_stage_timings(observer: _InMemoryStageObserver) -> dict[str, float]:
+    raw = observer.stage_timings_seconds
+    return _rounded_timing_map(
+        {
+            "runtime_env_check": raw.get("env_check", 0.0),
+            "docling_parse_layout": raw.get("parser", 0.0),
+            "pass1_classifier": raw.get("pass1_classifier", 0.0),
+            "pass2_locator": raw.get("pass2_locator", 0.0),
+            "pass3a_metrics": raw.get("pass3a_metrics", 0.0),
+            "pass3b_narrative": raw.get("pass3b_narrative", 0.0),
+            "pass4_reconciliation": raw.get("pass4_reconciliation", 0.0),
+            "validation": raw.get("validation", 0.0),
+            "llm_request_response_wall": (
+                raw.get("pass1_classifier", 0.0)
+                + raw.get("pass3a_metrics", 0.0)
+                + raw.get("pass3b_narrative", 0.0)
+            ),
+            "normalization_reconciliation_validation": (
+                raw.get("pass4_reconciliation", 0.0) + raw.get("validation", 0.0)
+            ),
+        }
+    )
+
+
 def _prepare_docs(doc_ids: tuple[str, ...], *, use_source_pdfs: bool):
     from app import main as main_app
 
@@ -519,26 +665,39 @@ def _evaluate_real_gold_document_with_payload(
         "ticker": main_app._extract_ticker_from_source_path(source_path),
         "title": source_path.name,
     }
+    observer = _InMemoryStageObserver(
+        document_id=doc.document_id,
+        requested_method=method,
+        strict_method=strict_method,
+    )
+    stage_timing_seconds: dict[str, float] = {}
+    llm_request_timings: list[dict[str, Any]] = []
+    captured_llm_timings_ref: list[dict[str, Any]] = []
 
     extraction_error = None
+    extraction_started_at = time.perf_counter()
     try:
-        with extraction_activity(
-            metadata={
-                "document_id": doc.document_id,
-                "requested_method": method,
-                "strict_method": strict_method,
-                "ticker": metadata["ticker"],
-                "title": metadata["title"],
-            }
-        ):
-            extraction_result = run_method_isolated_extraction(
-                str(source_path),
-                metadata,
-                None,
-                requested_method=method,
-                strict_method=strict_method,
-                skip_narrative=True,
-            )
+        with _capture_llm_request_timings(doc.document_id) as captured_llm_timings:
+            captured_llm_timings_ref = captured_llm_timings
+            with extraction_activity(
+                metadata={
+                    "document_id": doc.document_id,
+                    "requested_method": method,
+                    "strict_method": strict_method,
+                    "ticker": metadata["ticker"],
+                    "title": metadata["title"],
+                }
+            ):
+                extraction_result = run_method_isolated_extraction(
+                    str(source_path),
+                    metadata,
+                    None,
+                    requested_method=method,
+                    strict_method=strict_method,
+                    skip_narrative=True,
+                    observer=observer,
+                )
+            llm_request_timings = [dict(row) for row in captured_llm_timings]
         payload = (
             extraction_result.payload
             if isinstance(extraction_result.payload, dict)
@@ -547,10 +706,20 @@ def _evaluate_real_gold_document_with_payload(
         extraction_status = str(getattr(extraction_result, "status", "failed"))
         extraction_error = getattr(extraction_result, "error", None)
     except Exception as exc:  # noqa: BLE001
+        llm_request_timings = [dict(row) for row in captured_llm_timings_ref]
         payload = {}
         extraction_status = "failed"
         extraction_error = str(exc)
+    stage_timing_seconds["extraction_total"] = round(
+        max(time.perf_counter() - extraction_started_at, 0.0), 6
+    )
+    stage_timing_seconds.update(_observer_stage_timings(observer))
+    stage_timing_seconds["llm_request_response_cumulative"] = round(
+        sum(float(row.get("elapsed_seconds") or 0.0) for row in llm_request_timings),
+        6,
+    )
 
+    normalization_started_at = time.perf_counter()
     expected_context = {
         "period_type": doc.period_type,
         "period_end": doc.period_end,
@@ -581,7 +750,16 @@ def _evaluate_real_gold_document_with_payload(
     evaluation_payload["metrics"] = normalized_metrics
     method_provenance = payload.get("_method_provenance")
     method_provenance = method_provenance if isinstance(method_provenance, dict) else {}
+    stage_timing_seconds["eval_payload_normalization"] = round(
+        max(time.perf_counter() - normalization_started_at, 0.0), 6
+    )
+    stage_timing_seconds["normalization"] = round(
+        stage_timing_seconds.get("normalization_reconciliation_validation", 0.0)
+        + stage_timing_seconds.get("eval_payload_normalization", 0.0),
+        6,
+    )
 
+    scoring_started_at = time.perf_counter()
     evaluation = evaluate_real_gold_fixture(
         main_app._build_real_gold_fixture(doc, tolerance),
         evaluation_payload,
@@ -616,6 +794,9 @@ def _evaluate_real_gold_document_with_payload(
         )
     if extraction_error:
         mismatch_reasons.append(f"extraction_error:{extraction_error}")
+    stage_timing_seconds["real_gold_scoring_eval"] = round(
+        max(time.perf_counter() - scoring_started_at, 0.0), 6
+    )
 
     return {
         "document_id": doc.document_id,
@@ -647,6 +828,9 @@ def _evaluate_real_gold_document_with_payload(
         "review_reason": None,
         "mismatch_reasons": mismatch_reasons,
         "method_provenance": method_provenance,
+        "stage_timing_seconds": stage_timing_seconds,
+        "stage_events": observer.events,
+        "llm_request_timings": llm_request_timings,
         "raw_payload": payload,
     }
 
@@ -659,9 +843,14 @@ def _run_control(args: argparse.Namespace, endpoint: str) -> dict[str, Any]:
     from app import main as main_app
 
     doc_ids = tuple(args.doc_ids or DEFAULT_DOC_IDS)
+    staging_started_at = time.perf_counter()
     docs, temp_dir = _prepare_docs(doc_ids, use_source_pdfs=bool(args.use_source_pdfs))
+    pdf_temp_staging_seconds = round(
+        max(time.perf_counter() - staging_started_at, 0.0), 6
+    )
     temp_root = getattr(temp_dir, "name", None)
     started = time.perf_counter()
+    cleanup_seconds = 0.0
     try:
         results = []
         for doc in docs:
@@ -687,7 +876,11 @@ def _run_control(args: argparse.Namespace, endpoint: str) -> dict[str, Any]:
             results.append(result)
     finally:
         if temp_dir is not None:
+            cleanup_started_at = time.perf_counter()
             temp_dir.cleanup()
+            cleanup_seconds = round(
+                max(time.perf_counter() - cleanup_started_at, 0.0), 6
+            )
 
     elapsed = time.perf_counter() - started
     summary = main_app._summarize_real_gold_results(results)
@@ -697,6 +890,10 @@ def _run_control(args: argparse.Namespace, endpoint: str) -> dict[str, Any]:
         "temp_pdf_root": temp_root,
         "cache_hit": False if not bool(args.use_source_pdfs) else None,
         "wall_time_seconds": round(elapsed, 3),
+        "stage_timing_seconds": {
+            "pdf_temp_staging": pdf_temp_staging_seconds,
+            "cleanup": cleanup_seconds,
+        },
         "summary": summary,
         "documents": results,
     }
@@ -945,7 +1142,11 @@ def main() -> int:
     os.environ["EXTRACTION_LLAMACPP_URL"] = extraction_url
     os.environ["EXTRACT_MODEL"] = str(args.extract_model)
 
+    runtime_lease_started_at = time.perf_counter()
     mode, started_pid = _ensure_runtime(args, extraction_url)
+    runtime_lease_acquire_seconds = round(
+        max(time.perf_counter() - runtime_lease_started_at, 0.0), 6
+    )
     runtime_before = _runtime_status(extraction_url, api_key=args.api_key)
     shared_before = _runtime_status(shared_url, api_key=args.api_key)
     payload: dict[str, Any] = {
@@ -977,6 +1178,12 @@ def main() -> int:
             "prompt_cache_requested_mode": (
                 "disabled" if args.disable_prompt_cache else "record_only"
             ),
+        },
+        "run_stage_timing_seconds": {
+            "runtime_lease_acquire": runtime_lease_acquire_seconds,
+            "subprocess_startup": runtime_lease_acquire_seconds
+            if mode == "started"
+            else 0.0,
         },
         "shared_runtime": shared_before,
         "isolation": {
