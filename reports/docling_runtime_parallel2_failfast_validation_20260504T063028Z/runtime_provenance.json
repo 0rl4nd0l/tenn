@@ -1,0 +1,34 @@
+{
+  "verdict_label": "blocked_vram_preflight",
+  "extraction_runtime": {
+    "endpoint": "http://127.0.0.1:8002",
+    "role": "dedicated extraction runtime",
+    "used_for_extraction": false,
+    "health_after_abort": "connection_refused",
+    "runtime_log": "reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/llama_extraction_8002_parallel1.log",
+    "attempted_cell": "selected_doc_serial_control",
+    "attempted_server_parallel": 1,
+    "attempted_ctx_size": 16384
+  },
+  "shared_runtime": {
+    "endpoint": "http://127.0.0.1:8001",
+    "role": "authorized chat/router runtime",
+    "used_for_extraction": false,
+    "health_after_abort": "ok",
+    "observed_pid": 2308725,
+    "observed_model": "gpt-oss-20b-mxfp4.gguf",
+    "observed_port": 8001
+  },
+  "runtime_start_failure": {
+    "classification": "blocked_vram_preflight",
+    "projected_device_memory_mib": 12604,
+    "free_device_memory_mib_at_llama_fit": 10068,
+    "failed_cuda_allocation_mib": 3072,
+    "log_evidence_lines": [
+      "llama_params_fit_impl: projected to use 12604 MiB of device memory vs. 10068 MiB of free device memory",
+      "llama_params_fit: failed to fit params to free device memory: n_gpu_layers already set by user to 999, abort",
+      "ggml_backend_cuda_buffer_type_alloc_buffer: allocating 3072.00 MiB on device 0: cudaMalloc failed: out of memory",
+      "alloc_tensor_range: failed to allocate CUDA0 buffer of size 3221225472"
+    ]
+  }
+}

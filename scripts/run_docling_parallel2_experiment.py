@@ -65,6 +65,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-client-concurrency", type=int, default=2)
     parser.add_argument("--cell-timeout-seconds", type=float, default=7200.0)
     parser.add_argument("--child-timeout-seconds", type=float, default=1800.0)
+    parser.add_argument(
+        "--doc-id",
+        action="append",
+        dest="doc_ids",
+        help="Document id to include. Defaults to the canonical 10-doc set.",
+    )
+    parser.add_argument("--skip-cell-a", action="store_true")
     parser.add_argument("--skip-cell-b", action="store_true")
     parser.add_argument("--skip-cell-c", action="store_true")
     parser.add_argument("--keep-runtime", action="store_true")
@@ -130,6 +137,13 @@ def _base_env() -> dict[str, str]:
     return env
 
 
+def _doc_ids(args: argparse.Namespace) -> tuple[str, ...]:
+    doc_ids = tuple(str(item).strip() for item in (args.doc_ids or DOC_IDS) if str(item).strip())
+    if not doc_ids:
+        raise SystemExit("at least one --doc-id is required when overriding the default doc set")
+    return doc_ids
+
+
 def _stop_runtime_pids(endpoint: str, *, api_key: str) -> list[dict[str, Any]]:
     status = control._runtime_status(endpoint, api_key=api_key)
     records: list[dict[str, Any]] = []
@@ -138,19 +152,20 @@ def _stop_runtime_pids(endpoint: str, *, api_key: str) -> list[dict[str, Any]]:
     return records
 
 
-def _ensure_runtime_ready_for_parallel2(args: argparse.Namespace) -> dict[str, Any]:
+def _ensure_runtime_ready(args: argparse.Namespace, *, requested_parallel: int) -> dict[str, Any]:
     endpoint = control._normalize_url(args.extraction_url)
     status = control._runtime_status(endpoint, api_key=args.api_key)
     prompt_disabled = control._runtime_has_disabled_prompt_cache(status)
-    parallel_ok = control._runtime_has_server_parallel(status, int(args.server_parallel))
+    parallel_ok = control._runtime_has_server_parallel(status, int(requested_parallel))
     restart: dict[str, Any] = {
         "initial_status": status,
         "stopped_existing_runtime": False,
         "stop_records": [],
         "reason": None,
+        "requested_parallel": int(requested_parallel),
     }
     if status.get("healthy") and parallel_ok and prompt_disabled:
-        restart["reason"] = "existing_runtime_already_parallel2_prompt_cache_disabled"
+        restart["reason"] = f"existing_runtime_already_parallel{requested_parallel}_prompt_cache_disabled"
         return restart
     if status.get("healthy") or status.get("pids"):
         restart["stopped_existing_runtime"] = True
@@ -166,7 +181,8 @@ def _control_cmd(
     results_json: Path,
     report_path: Path,
     runtime_log: Path,
-    doc_ids: tuple[str, ...] = DOC_IDS,
+    doc_ids: tuple[str, ...],
+    server_parallel: int | None = None,
     start_runtime: bool = False,
 ) -> list[str]:
     cmd = [
@@ -177,7 +193,7 @@ def _control_cmd(
         "--shared-url",
         args.shared_url,
         "--server-parallel",
-        str(args.server_parallel),
+        str(server_parallel if server_parallel is not None else args.server_parallel),
         "--disable-prompt-cache",
         "--capture-payload",
         "--results-json",
@@ -192,6 +208,32 @@ def _control_cmd(
     for doc_id in doc_ids:
         cmd.extend(["--doc-id", doc_id])
     return cmd
+
+
+def _run_cell_a(args: argparse.Namespace, report_dir: Path, commands: list[dict[str, Any]]) -> dict[str, Any] | None:
+    results_json = report_dir / "cell_a_selected_doc_serial_control.json"
+    if args.skip_cell_a:
+        if results_json.exists():
+            payload = _read_json(results_json)
+            payload["experiment_cell"] = "selected_doc_serial_control"
+            return payload
+        return None
+    report_path = report_dir / "cell_a_selected_doc_serial_control.md"
+    runtime_log = report_dir / "llama_extraction_8002_parallel1.log"
+    cmd = _control_cmd(
+        args=args,
+        results_json=results_json,
+        report_path=report_path,
+        runtime_log=runtime_log,
+        doc_ids=_doc_ids(args),
+        server_parallel=1,
+        start_runtime=True,
+    )
+    record = _run_capture(cmd, timeout=float(args.cell_timeout_seconds))
+    commands.append(record)
+    payload = _read_json(results_json) if results_json.exists() else {"error": "missing cell A JSON"}
+    payload["experiment_cell"] = "selected_doc_serial_control"
+    return payload
 
 
 def _run_cell_b(args: argparse.Namespace, report_dir: Path, commands: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -209,6 +251,8 @@ def _run_cell_b(args: argparse.Namespace, report_dir: Path, commands: list[dict[
         results_json=results_json,
         report_path=report_path,
         runtime_log=runtime_log,
+        doc_ids=_doc_ids(args),
+        server_parallel=args.server_parallel,
         start_runtime=True,
     )
     record = _run_capture(cmd, timeout=float(args.cell_timeout_seconds))
@@ -246,7 +290,8 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
     runtime_log = report_dir / "llama_extraction_8002_parallel2.log"
     env = _base_env()
     max_workers = min(max(int(args.max_client_concurrency), 1), 2)
-    pending = list(DOC_IDS)
+    doc_ids = _doc_ids(args)
+    pending = list(doc_ids)
     active: list[dict[str, Any]] = []
     records: list[dict[str, Any]] = []
     health_rows: list[dict[str, Any]] = []
@@ -302,6 +347,7 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
             report_path=report_path,
             runtime_log=runtime_log,
             doc_ids=(doc_id,),
+            server_parallel=args.server_parallel,
             start_runtime=False,
         )
         sample_health("before_child_start", doc_id)
@@ -385,7 +431,7 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
     cell_ended = time.time()
     documents: list[dict[str, Any]] = []
     missing: list[str] = []
-    for doc_id in DOC_IDS:
+    for doc_id in doc_ids:
         record = next((row for row in records if row["doc_id"] == doc_id), None)
         if not record:
             missing.append(doc_id)
@@ -420,7 +466,7 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
         "fail_fast": fail_fast,
         "request_health_timeline": health_rows,
         "control": {
-            "doc_ids": list(DOC_IDS),
+            "doc_ids": list(doc_ids),
             "used_temp_pdf_copies": True,
             "temp_pdf_root": None,
             "cache_hit": False,
@@ -955,6 +1001,7 @@ def _per_doc_rows(cell: str, payload: dict[str, Any] | None) -> list[dict[str, A
 def _build_matrix(
     *,
     baseline_dir: Path,
+    cell_a: dict[str, Any] | None,
     cell_b: dict[str, Any] | None,
     cell_c: dict[str, Any] | None,
     concurrency_rows: list[dict[str, Any]],
@@ -969,7 +1016,41 @@ def _build_matrix(
             "verdict": "clean_baseline_reused",
         }
     }
-    fastest_clean_baseline = baseline_wall
+    cell_a_gate = _cell_gate(cell_a)
+    cell_a_wall = (
+        float(cell_a.get("control", {}).get("wall_time_seconds") or 0.0)
+        if cell_a is not None
+        else None
+    )
+    if cell_a is None:
+        cells["selected_doc_serial_control"] = {"verdict": "skipped"}
+        fastest_clean_baseline = baseline_wall
+    else:
+        cell_a_rows = [row for row in concurrency_rows if row.get("cell") == "selected_doc_serial_control"]
+        if cell_a_gate.get("passed"):
+            cell_a_verdict = "selected_doc_serial_control_passed"
+        else:
+            failure_classes = set(cell_a_gate.get("failure_classes") or [])
+            if failure_classes & {
+                "failure_mode_classified_request_timeout",
+                "failure_mode_classified_runtime_health",
+                "failure_mode_classified_slots_timeout",
+                "failure_mode_classified_partial_payload",
+            }:
+                cell_a_verdict = "candidate_invalidated_by_health_failfast"
+            else:
+                cell_a_verdict = "candidate_regressed_correctness"
+        cells["selected_doc_serial_control"] = {
+            "wall_time_seconds": cell_a_wall,
+            "stage_totals_seconds": _stage_totals(cell_a),
+            "llm_interval_union_seconds": _union_seconds(cell_a_rows),
+            "actual_other_doc_llm_overlap": any(
+                row.get("has_other_doc_overlap") for row in cell_a_rows
+            ),
+            "gate": cell_a_gate,
+            "verdict": cell_a_verdict,
+        }
+        fastest_clean_baseline = cell_a_wall if cell_a_gate.get("passed") else baseline_wall
     for name, payload in (
         ("server_parallel_2_serial_client", cell_b),
         ("server_parallel_2_two_doc_concurrent_client", cell_c),
@@ -1027,16 +1108,19 @@ def _write_reports(
     report_dir: Path,
     baseline_dir: Path,
     audit: dict[str, Any],
+    cell_a: dict[str, Any] | None,
     cell_b: dict[str, Any] | None,
     cell_c: dict[str, Any] | None,
     commands: list[dict[str, Any]],
 ) -> None:
     concurrency_rows = _annotate_overlap(
-        _llm_intervals(cell_b or {}, "server_parallel_2_serial_client")
+        _llm_intervals(cell_a or {}, "selected_doc_serial_control")
+        + _llm_intervals(cell_b or {}, "server_parallel_2_serial_client")
         + _llm_intervals(cell_c or {}, "server_parallel_2_two_doc_concurrent_client")
     )
     matrix = _build_matrix(
         baseline_dir=baseline_dir,
+        cell_a=cell_a,
         cell_b=cell_b,
         cell_c=cell_c,
         concurrency_rows=concurrency_rows,
@@ -1046,6 +1130,7 @@ def _write_reports(
         report_dir / "correctness_gate.json",
         {
             "baseline_reference": _read_json(baseline_dir / "correctness_gate.json"),
+            "selected_doc_serial_control": _cell_gate(cell_a),
             "server_parallel_2_serial_client": _cell_gate(cell_b),
             "server_parallel_2_two_doc_concurrent_client": _cell_gate(cell_c),
         },
@@ -1054,16 +1139,23 @@ def _write_reports(
         report_dir / "runtime_provenance.json",
         {
             "audit": audit,
+            "selected_doc_serial_control": (cell_a or {}).get("runtime"),
+            "selected_doc_serial_control_after": (cell_a or {}).get("runtime_after"),
             "server_parallel_2_serial_client": (cell_b or {}).get("runtime"),
             "server_parallel_2_serial_client_after": (cell_b or {}).get("runtime_after"),
             "server_parallel_2_two_doc_concurrent_client": (cell_c or {}).get("runtime"),
             "server_parallel_2_two_doc_concurrent_client_after": (cell_c or {}).get("runtime_after"),
-            "shared_runtime": (cell_c or cell_b or {}).get("shared_runtime"),
+            "shared_runtime": (cell_c or cell_b or cell_a or {}).get("shared_runtime"),
         },
     )
     _write_json(
         report_dir / "prompt_cache_provenance.json",
         {
+            "expected_env": {
+                "LLAMA_ARG_CACHE_RAM": "0",
+                "LLAMA_ARG_CACHE_PROMPT": "false",
+            },
+            "selected_doc_serial_control": (cell_a or {}).get("prompt_cache"),
             "server_parallel_2_serial_client": (cell_b or {}).get("prompt_cache"),
             "server_parallel_2_two_doc_concurrent_client": (cell_c or {}).get("prompt_cache"),
         },
@@ -1072,6 +1164,8 @@ def _write_reports(
         report_dir / "gpu_preflight.json",
         {
             "preflight": audit.get("gpu_preflight"),
+            "selected_doc_serial_control_before": (cell_a or {}).get("gpu_before"),
+            "selected_doc_serial_control_after": (cell_a or {}).get("gpu_after"),
             "server_parallel_2_serial_client_before": (cell_b or {}).get("gpu_before"),
             "server_parallel_2_serial_client_after": (cell_b or {}).get("gpu_after"),
             "server_parallel_2_two_doc_concurrent_client_before": (cell_c or {}).get("gpu_before"),
@@ -1080,7 +1174,8 @@ def _write_reports(
     )
     _write_csv(
         report_dir / "per_doc_timing.csv",
-        _per_doc_rows("server_parallel_2_serial_client", cell_b)
+        _per_doc_rows("selected_doc_serial_control", cell_a)
+        + _per_doc_rows("server_parallel_2_serial_client", cell_b)
         + _per_doc_rows("server_parallel_2_two_doc_concurrent_client", cell_c),
         [
             "cell",
@@ -1113,6 +1208,7 @@ def _write_reports(
     baseline_stages = _baseline_stage_totals(baseline_dir)
     for cell, payload in (
         ("baseline_reference", None),
+        ("selected_doc_serial_control", cell_a),
         ("server_parallel_2_serial_client", cell_b),
         ("server_parallel_2_two_doc_concurrent_client", cell_c),
     ):
@@ -1166,7 +1262,11 @@ def _write_reports(
                 "error",
             ],
         )
-    health_rows = _request_health_rows(cell_b) + _request_health_rows(cell_c)
+    health_rows = (
+        _request_health_rows(cell_a)
+        + _request_health_rows(cell_b)
+        + _request_health_rows(cell_c)
+    )
     if health_rows:
         _write_csv(
             report_dir / "request_health_timeline.csv",
@@ -1195,19 +1295,35 @@ def _write_notes(
     matrix: dict[str, Any],
     concurrency_rows: list[dict[str, Any]],
 ) -> None:
+    a_cell = matrix.get("cells", {}).get("selected_doc_serial_control", {})
+    b_cell = matrix.get("cells", {}).get("server_parallel_2_serial_client", {})
     c_cell = matrix.get("cells", {}).get("server_parallel_2_two_doc_concurrent_client", {})
     actual_concurrency = any(
         row.get("cell") == "server_parallel_2_two_doc_concurrent_client"
         and row.get("has_other_doc_overlap")
         for row in concurrency_rows
     )
+    a_gate = a_cell.get("gate") if isinstance(a_cell.get("gate"), dict) else {}
+    b_gate = b_cell.get("gate") if isinstance(b_cell.get("gate"), dict) else {}
+    c_gate = c_cell.get("gate") if isinstance(c_cell.get("gate"), dict) else {}
+    final_verdict = _validation_verdict(a_gate, b_gate, c_cell, c_gate)
+    timing_status = (
+        "accepted_for_diagnostic_comparison"
+        if final_verdict == "failfast_validation_passed_clean_candidate"
+        else "rejected_by_health_failfast"
+        if final_verdict == "failfast_validation_passed_invalidated_unsafe_candidate"
+        else "rejected"
+    )
+    selected_docs = _doc_ids(args)
     summary_lines = [
         "# Docling Runtime Parallel 2 Experiment",
         "",
         "## Verdict",
         "",
+        f"- Cell A: `{a_cell.get('verdict')}`",
         f"- Cell B: `{matrix['cells'].get('server_parallel_2_serial_client', {}).get('verdict')}`",
         f"- Cell C: `{c_cell.get('verdict')}`",
+        f"- Validation verdict: `{final_verdict}`",
         f"- Actual concurrent cross-document LLM requests: `{actual_concurrency}`",
         "",
         "## Contract Scope",
@@ -1219,9 +1335,11 @@ def _write_notes(
         "",
         "## Timing",
         "",
+        f"- Selected-doc serial control wall: `{a_cell.get('wall_time_seconds')}s`.",
         f"- Fastest clean baseline wall: `{matrix.get('fastest_clean_baseline_wall_seconds')}s`.",
         f"- Cell C wall: `{c_cell.get('wall_time_seconds')}s`.",
         f"- Cell C improvement fraction: `{c_cell.get('wall_improvement_fraction_vs_baseline')}`.",
+        f"- Timing comparison: `{timing_status}`.",
         "",
         "## DATA_MISSING",
         "",
@@ -1236,7 +1354,9 @@ def _write_notes(
         "# Harness Notes",
         "",
         f"- Worktree audit: `{audit.get('git_status_short')}`",
-        f"- Existing runtime action: `{audit.get('runtime_restart', {}).get('reason')}`",
+        f"- Cell A runtime action: `{audit.get('runtime_ready_for_cell_a', {}).get('reason')}`",
+        f"- Parallel2 runtime action: `{audit.get('runtime_ready_for_parallel2', {}).get('reason')}`",
+        f"- Selected documents: `{list(selected_docs)}`.",
         f"- Max client concurrency requested: `{args.max_client_concurrency}`.",
         f"- Max client concurrency enforced: `2`.",
         f"- Actual cross-document LLM overlap observed: `{actual_concurrency}`.",
@@ -1246,7 +1366,6 @@ def _write_notes(
         "\n".join(harness_lines).rstrip() + "\n",
         encoding="utf-8",
     )
-    c_gate = c_cell.get("gate") if isinstance(c_cell.get("gate"), dict) else {}
     health_gate = (
         c_gate.get("runtime_health") if isinstance(c_gate.get("runtime_health"), dict) else {}
     )
@@ -1289,6 +1408,145 @@ def _write_notes(
         "\n".join(failfast_lines).rstrip() + "\n",
         encoding="utf-8",
     )
+    validation_lines = [
+        "# Parallel2 Fail-Fast Validation",
+        "",
+        f"Overall verdict: `{final_verdict}`.",
+        "",
+        "## 1. Lane Classification",
+        "",
+        "Lane: Financial Truth. Mode: AUDIT -> SAFE EXTENSION.",
+        "",
+        "## 2. Collision Assessment",
+        "",
+        "Collision risk is elevated because unrelated worktree changes existed before this lane. This validation writes only the harness extension and this report directory.",
+        "",
+        "## 3. Execution Mode",
+        "",
+        f"Bounded selected-doc replay only: `{list(selected_docs)}`.",
+        "",
+        "## 4. Guardrail Behavior Observed",
+        "",
+        f"Cell C verdict: `{c_cell.get('verdict')}`. Failure classes: `{c_gate.get('failure_classes')}`.",
+        "",
+        "## 5. Actual Concurrent LLM Requests",
+        "",
+        f"Actual cross-document LLM overlap observed: `{actual_concurrency}`.",
+        "",
+        "## 6. Correctness / Trust / Context",
+        "",
+        f"Cell A gate: `{a_gate.get('status')}`; Cell B gate: `{b_gate.get('status')}`; Cell C gate: `{c_gate.get('status')}`.",
+        "",
+        "## 7. Runtime Provenance",
+        "",
+        "Extraction runtime endpoint is `http://127.0.0.1:8002`; shared runtime `:8001` is probed only for isolation and is not an extraction endpoint.",
+        "",
+        "## 8. Prompt Cache Status",
+        "",
+        "`LLAMA_ARG_CACHE_RAM=0` and `LLAMA_ARG_CACHE_PROMPT=false` are enforced by the harness; see `prompt_cache_provenance.json`.",
+        "",
+        "## 9. Health / Timeout / Slots Timeline",
+        "",
+        f"Active health samples: `{health_gate.get('active_sample_count')}`; request timeouts: `{timeout_gate.get('count')}`; `/slots` timeouts: `{health_gate.get('slots_timeout_count')}`.",
+        "",
+        "## 10. Timing Comparison",
+        "",
+        f"Timing comparison status: `{timing_status}`.",
+        "",
+        "## 11. Files Changed",
+        "",
+        "- `scripts/run_docling_parallel2_experiment.py`",
+        "- `scripts/test_run_docling_parallel2_experiment.py`",
+        f"- `{report_dir}/`",
+        "",
+        "## 12. Tests Run",
+        "",
+        "See `commands_run.txt` for live replay commands; focused unit/lint validation is recorded in the final session report.",
+        "",
+        "## 13. Artifacts Produced",
+        "",
+        "- `validation_summary.md`",
+        "- `correctness_gate.json`",
+        "- `runtime_provenance.json`",
+        "- `prompt_cache_provenance.json`",
+        "- `gpu_preflight.json`",
+        "- `request_health_timeline.csv` when request-health samples exist",
+        "- `concurrency_timeline.csv` when LLM interval rows exist",
+        "- `per_doc_timing.csv`",
+        "- `per_stage_timing.csv`",
+        "- `performance_matrix.json`",
+        "- `commands_run.txt`",
+        "- `DATA_MISSING.md`",
+        "",
+        "## 14. DATA_MISSING",
+        "",
+        "Slot/task-to-document mapping remains unresolved.",
+        "",
+        "## 15. Next Safe Step",
+        "",
+        "Keep the fail-fast guardrail in diagnostic mode and do not promote concurrent extraction unless a selected-doc and canonical replay remain clean under correctness, trust, context, health, timeout, slots, prompt-cache, and runtime-provenance gates.",
+    ]
+    (report_dir / "validation_summary.md").write_text(
+        "\n".join(validation_lines).rstrip() + "\n",
+        encoding="utf-8",
+    )
+    data_missing_lines = [
+        "# DATA_MISSING",
+        "",
+        "- Slot/task-to-document mapping remains unresolved.",
+        "- Llama.cpp does not emit a stable server task id to client document id join key in this harness.",
+        "- Server-side slot assignment timing is therefore inferred from client request overlap and `/slots` snapshots, not directly joined to document ids.",
+    ]
+    if not (_request_health_rows_from_path(report_dir / "request_health_timeline.csv")):
+        data_missing_lines.append(
+            "- `request_health_timeline.csv` is absent when no request-health samples were generated."
+        )
+    (report_dir / "DATA_MISSING.md").write_text(
+        "\n".join(data_missing_lines).rstrip() + "\n",
+        encoding="utf-8",
+    )
+
+
+def _request_health_rows_from_path(path: Path) -> bool:
+    return path.exists() and len(path.read_text(encoding="utf-8").splitlines()) > 1
+
+
+def _validation_verdict(
+    a_gate: dict[str, Any],
+    b_gate: dict[str, Any],
+    c_cell: dict[str, Any],
+    c_gate: dict[str, Any],
+) -> str:
+    for gate in (a_gate, b_gate):
+        if gate.get("status") == "skipped":
+            return "failfast_validation_incomplete"
+        if not gate.get("passed"):
+            return _regression_or_incomplete_label(gate)
+    c_verdict = str(c_cell.get("verdict") or "")
+    if c_verdict == "candidate_invalidated_by_health_failfast":
+        return "failfast_validation_passed_invalidated_unsafe_candidate"
+    if c_gate.get("passed"):
+        return "failfast_validation_passed_clean_candidate"
+    if c_gate.get("status") == "skipped":
+        return "failfast_validation_incomplete"
+    return _regression_or_incomplete_label(c_gate)
+
+
+def _regression_or_incomplete_label(gate: dict[str, Any]) -> str:
+    failure_classes = set(gate.get("failure_classes") or [])
+    if failure_classes & {
+        "failure_mode_classified_request_timeout",
+        "failure_mode_classified_runtime_health",
+        "failure_mode_classified_slots_timeout",
+        "failure_mode_classified_partial_payload",
+    }:
+        return "candidate_invalidated_by_health_failfast"
+    trust = gate.get("trust") if isinstance(gate.get("trust"), dict) else {}
+    if int(trust.get("total_documents") or 0) and int(
+        trust.get("trust_matches_expected") or 0
+    ) < int(trust.get("total_documents") or 0):
+        return "candidate_regressed_trust"
+    return "candidate_regressed_correctness"
 
 
 def main() -> int:
@@ -1321,11 +1579,16 @@ def main() -> int:
         )["stdout"].strip(),
         "gpu_preflight_check": _run_capture(["scripts/gpu_process_guard.sh", "--check"]),
         "gpu_preflight": control._gpu_guard_json(),
+        "selected_doc_ids": list(_doc_ids(args)),
     }
     if audit["gpu_preflight_check"]["returncode"] != 0:
         _write_json(report_dir / "gpu_preflight.json", audit)
         raise SystemExit("blocked_vram_preflight")
-    audit["runtime_restart"] = _ensure_runtime_ready_for_parallel2(args)
+    audit["runtime_ready_for_cell_a"] = _ensure_runtime_ready(args, requested_parallel=1)
+    cell_a = _run_cell_a(args, report_dir, commands)
+    audit["cell_a_stop_records"] = _stop_runtime_pids(args.extraction_url, api_key=args.api_key)
+    time.sleep(2)
+    audit["runtime_ready_for_parallel2"] = _ensure_runtime_ready(args, requested_parallel=2)
     cell_b = _run_cell_b(args, report_dir, commands)
     cell_c = _run_cell_c(args, report_dir, commands)
     if not args.keep_runtime:
@@ -1337,6 +1600,7 @@ def main() -> int:
         report_dir=report_dir,
         baseline_dir=args.baseline_dir,
         audit=audit,
+        cell_a=cell_a,
         cell_b=cell_b,
         cell_c=cell_c,
         commands=commands,

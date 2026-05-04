@@ -1,0 +1,15 @@
+{
+  "verdict_label": "blocked_vram_preflight",
+  "expected_env": {
+    "LLAMA_ARG_CACHE_RAM": "0",
+    "LLAMA_ARG_CACHE_PROMPT": "false"
+  },
+  "command_flags": {
+    "disable_prompt_cache": true
+  },
+  "runtime_confirmation": {
+    "available": false,
+    "reason": "The dedicated :8002 runtime failed before becoming healthy, so live prompt-cache runtime controls could not be sampled."
+  },
+  "timing_classification": "prompt_cache_disabled_requested_but_runtime_not_started"
+}

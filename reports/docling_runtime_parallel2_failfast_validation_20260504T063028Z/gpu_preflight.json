@@ -1,0 +1,35 @@
+{
+  "verdict_label": "blocked_vram_preflight",
+  "gpu_process_guard_check": {
+    "returncode": 0,
+    "status": "clean_authorized_processes_only"
+  },
+  "nvidia_smi_after_abort": {
+    "name": "Tesla M40 24GB",
+    "memory_total_mb": 24576,
+    "memory_used_mb": 14257,
+    "memory_free_mb": 10215,
+    "utilization_gpu_percent": 0,
+    "temperature_c": 33
+  },
+  "gpu_process_guard_after_abort": {
+    "vram_total_mb": 24576,
+    "vram_used_mb": 14257,
+    "vram_free_mb": 10319,
+    "vram_critical": 0,
+    "processes": [
+      {
+        "pid": 2308725,
+        "port": "8001",
+        "model": "gpt-oss-20b-mxfp4.gguf",
+        "vram_mb": 13624,
+        "status": "AUTHORISED"
+      }
+    ]
+  },
+  "extraction_runtime_fit_failure": {
+    "projected_device_memory_mib": 12604,
+    "free_device_memory_mib_at_llama_fit": 10068,
+    "failed_cuda_allocation_mib": 3072
+  }
+}

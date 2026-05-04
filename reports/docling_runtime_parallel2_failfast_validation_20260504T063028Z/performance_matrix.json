@@ -1,0 +1,38 @@
+{
+  "verdict_label": "blocked_vram_preflight",
+  "materiality_rule": "No speed comparison is accepted unless the selected-doc replay reaches clean correctness, trust, context, runtime, prompt-cache, timeout, slots, and partial-payload gates.",
+  "timing_comparison_accepted": false,
+  "selected_doc_ids": [
+    "bhp_a_2025-06-30",
+    "qbe_h_2025-06-30",
+    "rio_a_2023-12-31",
+    "eqr_q_2025-12-31"
+  ],
+  "cells": {
+    "selected_doc_serial_control": {
+      "verdict": "blocked_vram_preflight",
+      "wall_time_seconds": null,
+      "gate": {
+        "status": "blocked_vram_preflight",
+        "passed": false
+      }
+    },
+    "server_parallel_2_serial_client": {
+      "verdict": "not_run",
+      "wall_time_seconds": null,
+      "gate": {
+        "status": "not_run",
+        "passed": false
+      }
+    },
+    "server_parallel_2_two_doc_concurrent_client": {
+      "verdict": "not_run",
+      "wall_time_seconds": null,
+      "actual_other_doc_llm_overlap": false,
+      "gate": {
+        "status": "not_run",
+        "passed": false
+      }
+    }
+  }
+}

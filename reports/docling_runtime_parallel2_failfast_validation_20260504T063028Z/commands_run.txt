@@ -1,0 +1,20 @@
+pwd && git status --short && git branch --show-current && git log --oneline --decorate -8
+sed -n '1,240p' CLAUDE.md
+sed -n '1,260p' docs/architecture/SYSTEM_CONTRACT.md
+sed -n '1,240p' /home/l4nd0/.claude/projects/-mnt-sdb2-home-l4nd0-tenn/memory/MEMORY.md
+sed -n '1,240p' docs/claude/STATE.md
+sed -n '1,220p' graphify-out/GRAPH_REPORT.md
+git cat-file -t a97b07ace677 && git show --stat --oneline --decorate --no-renames a97b07ace677
+find reports -maxdepth 2 -type d \( -name 'docling_runtime_parallel2_health_audit_20260504T055357Z' -o -name 'docling_runtime_parallel2_failfast_guardrail_20260504T061412Z' \) -print
+scripts/gpu_process_guard.sh --json && scripts/gpu_process_guard.sh --check
+curl -sS --max-time 2 http://127.0.0.1:8002/health || true
+curl -sS --max-time 2 http://127.0.0.1:8001/health || true
+financial-engine_v2/.venv/bin/python -m pytest scripts/test_run_docling_parallel2_experiment.py scripts/test_run_isolated_docling_control.py -q
+financial-engine_v2/.venv/bin/python -m ruff check scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py
+git diff --check -- scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py
+LLAMA_ARG_CACHE_RAM=0 LLAMA_ARG_CACHE_PROMPT=false financial-engine_v2/.venv/bin/python scripts/run_docling_parallel2_experiment.py --output-dir reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z --doc-id bhp_a_2025-06-30 --doc-id qbe_h_2025-06-30 --doc-id rio_a_2023-12-31 --doc-id eqr_q_2025-12-31
+tail -200 reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/llama_extraction_8002_parallel1.log
+kill 2326508 2326407 2>/dev/null || true
+rg -n "projected to use|free device memory|cudaMalloc failed|failed to allocate|failed to fit|CTX_SIZE|PARALLEL|HOST=" reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/llama_extraction_8002_parallel1.log
+jq empty reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/correctness_gate.json reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/runtime_provenance.json reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/prompt_cache_provenance.json reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/gpu_preflight.json reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z/performance_matrix.json
+git diff --check -- scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py reports/docling_runtime_parallel2_failfast_validation_20260504T063028Z

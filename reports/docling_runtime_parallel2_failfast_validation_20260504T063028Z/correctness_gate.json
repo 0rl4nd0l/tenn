@@ -1,0 +1,34 @@
+{
+  "verdict_label": "blocked_vram_preflight",
+  "passed": false,
+  "selected_doc_ids": [
+    "bhp_a_2025-06-30",
+    "qbe_h_2025-06-30",
+    "rio_a_2023-12-31",
+    "eqr_q_2025-12-31"
+  ],
+  "cells": {
+    "selected_doc_serial_control": {
+      "status": "blocked_vram_preflight",
+      "passed": false,
+      "documents_completed": 0,
+      "correctness_evaluated": false,
+      "trust_evaluated": false,
+      "context_evaluated": false,
+      "reason": "Dedicated extraction runtime :8002 failed during model load before Cell A document extraction."
+    },
+    "server_parallel_2_serial_client": {
+      "status": "not_run",
+      "passed": false,
+      "documents_completed": 0,
+      "reason": "Blocked before Cell B because Cell A runtime startup failed."
+    },
+    "server_parallel_2_two_doc_concurrent_client": {
+      "status": "not_run",
+      "passed": false,
+      "documents_completed": 0,
+      "reason": "Blocked before Cell C because Cell A runtime startup failed."
+    }
+  },
+  "timing_comparison_accepted": false
+}

@@ -1,5 +1,7 @@
+import argparse
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -167,6 +169,7 @@ class RunDoclingParallel2ExperimentTests(unittest.TestCase):
 
         matrix = mod._build_matrix(
             baseline_dir=ROOT / "missing-baseline",
+            cell_a=None,
             cell_b=None,
             cell_c=payload,
             concurrency_rows=[],
@@ -187,6 +190,102 @@ class RunDoclingParallel2ExperimentTests(unittest.TestCase):
 
         self.assertEqual(len(rows), 1)
         self.assertTrue(rows[0]["timeout_hit"])
+
+    def test_doc_ids_accepts_selected_docs(self):
+        args = argparse.Namespace(doc_ids=["bhp_a_2025-06-30", "qbe_h_2025-06-30"])
+
+        self.assertEqual(
+            mod._doc_ids(args),
+            ("bhp_a_2025-06-30", "qbe_h_2025-06-30"),
+        )
+
+    def test_control_cmd_uses_selected_docs_and_parallel_override(self):
+        args = argparse.Namespace(
+            extraction_url="http://127.0.0.1:8002",
+            shared_url="http://127.0.0.1:8001",
+            server_parallel=2,
+        )
+
+        cmd = mod._control_cmd(
+            args=args,
+            results_json=ROOT / "tmp" / "results.json",
+            report_path=ROOT / "tmp" / "report.md",
+            runtime_log=ROOT / "tmp" / "runtime.log",
+            doc_ids=("bhp_a_2025-06-30", "qbe_h_2025-06-30"),
+            server_parallel=1,
+            start_runtime=True,
+        )
+
+        self.assertIn("--start-runtime", cmd)
+        parallel_index = cmd.index("--server-parallel")
+        self.assertEqual(cmd[parallel_index + 1], "1")
+        doc_args = [
+            cmd[index + 1]
+            for index, item in enumerate(cmd)
+            if item == "--doc-id"
+        ]
+        self.assertEqual(doc_args, ["bhp_a_2025-06-30", "qbe_h_2025-06-30"])
+
+    def test_validation_verdict_invalidates_unsafe_cell_c_after_clean_controls(self):
+        control_gate = mod._cell_gate(_passing_payload())
+        c_cell = {"verdict": "candidate_invalidated_by_health_failfast"}
+        c_gate = mod._cell_gate(_passing_payload())
+
+        self.assertEqual(
+            mod._validation_verdict(control_gate, control_gate, c_cell, c_gate),
+            "failfast_validation_passed_invalidated_unsafe_candidate",
+        )
+
+    def test_write_reports_emits_request_health_csv_when_samples_exist(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            baseline_dir = temp_root / "baseline"
+            baseline_dir.mkdir()
+            (baseline_dir / "correctness_gate.json").write_text("{}", encoding="utf-8")
+            report_dir = temp_root / "report"
+            payload = _passing_payload()
+            payload["runtime"] = {"endpoint": "http://127.0.0.1:8002"}
+            payload["runtime_after"] = {"endpoint": "http://127.0.0.1:8002"}
+            payload["control"]["wall_time_seconds"] = 1.0
+            payload["request_health_timeline"] = [
+                {
+                    "cell": "server_parallel_2_two_doc_concurrent_client",
+                    "epoch": 1.0,
+                    "iso_utc": "2026-05-04T00:00:00+00:00",
+                    "event": "poll",
+                    "doc_id": "qbe_h_2025-06-30",
+                    "active": True,
+                    "active_doc_ids": "[\"qbe_h_2025-06-30\"]",
+                    "port_open": True,
+                    "health_ok": True,
+                    "health_http_status": 200,
+                    "health_probe_state": "ok",
+                    "runtime_pids": "[123]",
+                    "slots_http_status": 200,
+                    "slots_probe_state": "ok",
+                    "slots_snapshot": "[]",
+                }
+            ]
+            args = argparse.Namespace(
+                doc_ids=["qbe_h_2025-06-30"],
+                max_client_concurrency=2,
+            )
+
+            mod._write_reports(
+                args=args,
+                report_dir=report_dir,
+                baseline_dir=baseline_dir,
+                audit={},
+                cell_a=payload,
+                cell_b=None,
+                cell_c=None,
+                commands=[],
+            )
+
+            rows = (report_dir / "request_health_timeline.csv").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("server_parallel_2_two_doc_concurrent_client", rows)
 
 
 if __name__ == "__main__":
