@@ -247,7 +247,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                         <Badge variant={decisionVariant(match.decision_band)}>
                           {match.decision_band.replace('_', ' ')}
                         </Badge>
-                        <Badge variant="outline" className="font-mono text-[10px]">
+                        <Badge variant="outline" className="font-mono text-xs">
                           Score: {match.score}
                         </Badge>
                       </div>
@@ -255,7 +255,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                       <CardDescription className="text-xs">{match.mission_name || 'Marketplace Match'}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className="text-[10px] text-muted-foreground font-mono">
+                      <span className="text-xs text-muted-foreground font-mono">
                         {formatClock(match.captured_at)}
                       </span>
                       <div className="flex items-center gap-1">
@@ -268,12 +268,12 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                           value={match.status}
                           onValueChange={(val) => void handleStatus(match.match_id, val)}
                         >
-                          <SelectTrigger className="h-7 w-[100px] text-[10px] font-medium">
+                          <SelectTrigger className="h-7 w-[100px] text-xs font-medium">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {MATCH_STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value} className="text-[10px]">
+                              <SelectItem key={option.value} value={option.value} className="text-xs">
                                 {option.label}
                               </SelectItem>
                             ))}
@@ -286,7 +286,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                           size="sm"
                           disabled={feedbackSavingMatchId === match.match_id}
                           onClick={() => void handleFeedback(match.match_id, 'interested')}
-                          className="h-7 px-2 text-[10px]"
+                          className="h-7 px-2 text-xs"
                         >
                           <ThumbsUp className="mr-1 h-3 w-3" />
                           Interested
@@ -296,7 +296,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                           size="sm"
                           disabled={feedbackSavingMatchId === match.match_id}
                           onClick={() => void handleFeedback(match.match_id, 'not_interested')}
-                          className="h-7 px-2 text-[10px]"
+                          className="h-7 px-2 text-xs"
                         >
                           <ThumbsDown className="mr-1 h-3 w-3" />
                           Not interested
@@ -306,38 +306,38 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                   </div>
                 </CardHeader>
                 <CardContent className="pb-4">
-                  <div className="mb-3 overflow-hidden rounded-md border border-border/60 bg-muted/20">
+                  <div className="relative mb-3 overflow-hidden rounded-md border border-border/60 bg-muted/30">
                     {firstMedia ? (
                       <img
                         src={firstMedia}
                         alt={`Listing photo for ${match.title}`}
-                        className="h-40 w-full object-cover"
+                        className="aspect-video w-full object-contain md:h-64"
                       />
                     ) : (
-                      <div className="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex h-32 items-center justify-center gap-2 text-xs text-muted-foreground">
                         <ImageOff className="h-4 w-4" />
                         Listing photos unavailable
                       </div>
                     )}
                   </div>
                   <div className="mb-3">
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-xs">
                       photos: {media.length}
                     </Badge>
-                    <Badge variant="outline" className="ml-2 text-[10px]">
+                    <Badge variant="outline" className="ml-2 text-xs">
                       {priceSourceLabel(priceEvidence)}
                     </Badge>
                   </div>
                   {priceEvidence?.warning && (
-                    <p className="mb-3 text-[11px] text-amber-700 dark:text-amber-300">
+                    <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
                       {priceEvidence.warning}
                     </p>
                   )}
                   {comparison && (
-                    <div className={`mb-3 rounded-md border p-3 text-[11px] ${comparisonToneClass(comparison)}`}>
+                    <div className={`mb-3 rounded-md border p-3 text-xs ${comparisonToneClass(comparison)}`}>
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="font-semibold">Price comparison</span>
-                        <Badge variant="outline" className="bg-background/70 text-[10px]">
+                        <Badge variant="outline" className="bg-background/70 text-xs">
                           {verdictLabel(comparison.verdict)}
                         </Badge>
                       </div>
@@ -372,7 +372,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                   {match.reasons_for && match.reasons_for.length > 0 && (
                     <div className="mb-3 flex flex-wrap gap-1">
                       {match.reasons_for.map((reason, i) => (
-                        <Badge key={i} variant="secondary" className="text-[9px] px-1.5 h-4 font-normal">
+                        <Badge key={i} variant="secondary" className="text-xs px-1.5 h-4 font-normal">
                           {reason}
                         </Badge>
                       ))}
@@ -406,20 +406,20 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                     )}
                   </div>
                   {match.value_context && (
-                    <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-[11px]">
+                    <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="font-medium">Used-market value</span>
                         <Badge
                           variant={valueBadgeVariant(match.value_context.value_label)}
-                          className="text-[10px]"
+                          className="text-xs"
                         >
                           {match.value_context.value_label}
                         </Badge>
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-xs">
                           confidence: {match.value_context.value_confidence}
                         </Badge>
                         {typeof match.value_context.value_score === 'number' && (
-                          <Badge variant="outline" className="font-mono text-[10px]">
+                          <Badge variant="outline" className="font-mono text-xs">
                             value: {match.value_context.value_score}
                           </Badge>
                         )}
@@ -472,24 +472,24 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                         )}
                       </div>
                       {match.value_context.price_movement_summary && (
-                        <p className="mt-2 text-[11px] text-muted-foreground">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           {match.value_context.price_movement_summary}
                         </p>
                       )}
                       {match.value_context.explanation && (
-                        <p className="mt-2 text-[11px] text-muted-foreground">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           {match.value_context.explanation}
                         </p>
                       )}
                       {match.value_context.warnings && match.value_context.warnings.length > 0 && (
-                        <p className="mt-2 text-[11px] text-destructive">
+                        <p className="mt-2 text-xs text-destructive">
                           {match.value_context.warnings.slice(0, 2).join(' ')}
                         </p>
                       )}
                     </div>
                   )}
                   {match.benchmark && (
-                    <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3 text-[11px]">
+                    <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3 text-xs">
                       <div className="mb-1 font-medium">New retail benchmark ({match.benchmark.source})</div>
                       <div className="grid gap-1 sm:grid-cols-2">
                         <div>
@@ -517,13 +517,13 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                       </div>
                       {match.benchmark.review_status && (
                         <div className="mt-2">
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className="text-xs">
                             review: {match.benchmark.review_status}
                           </Badge>
                         </div>
                       )}
                       {match.benchmark.warning && (
-                        <p className="mt-2 text-[11px] text-destructive">{match.benchmark.warning}</p>
+                        <p className="mt-2 text-xs text-destructive">{match.benchmark.warning}</p>
                       )}
                     </div>
                   )}

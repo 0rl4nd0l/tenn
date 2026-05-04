@@ -224,18 +224,18 @@ export function MarketplaceMatchDetailScreen({
                         href={src}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="overflow-hidden rounded-md border border-border/60 bg-muted/10"
+                        className="relative flex items-center justify-center overflow-hidden rounded-md border border-border/60 bg-muted/30 transition-colors hover:bg-muted/40"
                       >
                         <img
                           src={src}
                           alt={`Listing photo ${index + 1} for ${match.title}`}
-                          className="h-52 w-full object-cover"
+                          className="max-h-[600px] w-full object-contain"
                         />
                       </a>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex h-24 items-center justify-center gap-2 rounded-md border border-dashed text-sm text-muted-foreground">
+                  <div className="flex h-32 items-center justify-center gap-2 rounded-md border border-dashed text-sm text-muted-foreground">
                     <ImageOff className="h-4 w-4" />
                     Listing photos unavailable for this capture.
                   </div>

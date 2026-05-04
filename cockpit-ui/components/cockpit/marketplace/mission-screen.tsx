@@ -1025,22 +1025,22 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
 
         <div className={cn(
           "grid gap-6",
-          isIPhoneScale ? "grid-cols-1" : "lg:grid-cols-[1fr_320px]"
+          isIPhoneScale ? "grid-cols-1" : "lg:grid-cols-[1fr_380px]"
         )}>
           <div className="space-y-6">
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <Store className="h-5 w-5 text-primary" />
-                  <CardTitle>Active Missions</CardTitle>
+                  <CardTitle className="text-lg">Active Missions</CardTitle>
                 </div>
                 <CardDescription>Missions currently configured for automated scanning.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {missions.length === 0 ? (
-                  <p className="py-10 text-center text-sm text-muted-foreground italic">No missions configured yet.</p>
+                  <p className="py-12 text-center text-sm text-muted-foreground italic">No missions configured yet.</p>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-6 xl:grid-cols-2">
                     {missions.map((mission) => {
                       const linkedProduct = missionLinkedProduct(mission)
                       const linkedProductId = missionLinkedProductId(mission)
@@ -1050,56 +1050,194 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                       const linkedProductInOptions = trackedProducts.some(
                         (product) => product.tracked_product_id === linkedProductId,
                       )
+
+                      if (editingMissionId === mission.mission_id && editForm) {
+                        return (
+                          <Card key={mission.mission_id} className="border-primary/40 bg-primary/5 shadow-sm">
+                            <CardHeader className="p-5 pb-3">
+                              <CardTitle className="text-base font-semibold">Edit Mission</CardTitle>
+                            </CardHeader>
+                            <CardContent className="px-5 pb-5 space-y-4">
+                              <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-medium text-muted-foreground">Name</label>
+                                  <Input
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                    className="h-9 text-sm"
+                                    aria-label={`Edit name for ${mission.name}`}
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <label className="text-xs font-medium text-muted-foreground">Brief / Instructions</label>
+                                  <Textarea
+                                    value={editForm.brief}
+                                    onChange={(e) => setEditForm({ ...editForm, brief: e.target.value })}
+                                    className="min-h-[80px] text-sm"
+                                    aria-label={`Edit brief for ${mission.name}`}
+                                  />
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Include Keywords (CSV)</label>
+                                    <Input
+                                      value={editForm.includeKeywords}
+                                      onChange={(e) => setEditForm({ ...editForm, includeKeywords: e.target.value })}
+                                      placeholder="e.g. RTX 3090, 4090"
+                                      className="h-9 text-sm"
+                                      aria-label={`Edit include keywords for ${mission.name}`}
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Exclude Keywords (CSV)</label>
+                                    <Input
+                                      value={editForm.excludeKeywords}
+                                      onChange={(e) => setEditForm({ ...editForm, excludeKeywords: e.target.value })}
+                                      placeholder="e.g. fake, homage"
+                                      className="h-9 text-sm"
+                                      aria-label={`Edit exclude keywords for ${mission.name}`}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Preferred Brands (CSV)</label>
+                                    <Input
+                                      value={editForm.preferredBrands}
+                                      onChange={(e) => setEditForm({ ...editForm, preferredBrands: e.target.value })}
+                                      placeholder="e.g. MSI, ASUS, Gigabyte"
+                                      className="h-9 text-sm"
+                                      aria-label={`Edit preferred brands for ${mission.name}`}
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Locations (CSV)</label>
+                                    <Input
+                                      value={editForm.locationNames}
+                                      onChange={(e) => setEditForm({ ...editForm, locationNames: e.target.value })}
+                                      placeholder="e.g. Melbourne, Richmond"
+                                      className="h-9 text-sm"
+                                      aria-label={`Edit locations for ${mission.name}`}
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Max Price</label>
+                                    <Input
+                                      type="number"
+                                      value={editForm.priceMax}
+                                      onChange={(e) => setEditForm({ ...editForm, priceMax: e.target.value })}
+                                      placeholder="e.g. 1500"
+                                      className="h-9 text-sm"
+                                      aria-label={`Edit max price for ${mission.name}`}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Scan Cadence (min)</label>
+                                    <Input
+                                      type="number"
+                                      value={editForm.scanIntervalMinutes}
+                                      onChange={(e) => setEditForm({ ...editForm, scanIntervalMinutes: e.target.value })}
+                                      className="h-9 text-sm"
+                                      aria-label={`Edit scan cadence for ${mission.name}`}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/50 p-3">
+                                  <div className="space-y-0.5">
+                                    <div className="text-sm font-medium">Auto scan</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Enable automated periodic scanning for this mission.
+                                    </div>
+                                  </div>
+                                  <Switch
+                                    checked={editForm.autoScanEnabled}
+                                    onCheckedChange={(checked) => setEditForm({ ...editForm, autoScanEnabled: checked })}
+                                    aria-label={`Edit auto scan for ${mission.name}`}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 pt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleCancelMissionEdit}
+                                  className="flex-1"
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleSaveMissionEdit(mission)}
+                                  disabled={savingMissionId === mission.mission_id}
+                                  className="flex-1"
+                                >
+                                  {savingMissionId === mission.mission_id && (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  )}
+                                  Save Changes
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      }
+
                       return (
-                      <Card key={mission.mission_id} className="bg-muted/5 transition-colors hover:bg-muted/10">
-                        <CardHeader className="p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm font-semibold">{mission.name}</CardTitle>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditMission(mission)}
-                                disabled={
-                                  savingMissionId === mission.mission_id
-                                  || deletingMissionId === mission.mission_id
-                                }
-                                className="h-7 text-[10px]"
-                              >
-                                Edit Mission
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => void handleDeleteMission(mission)}
-                                disabled={
-                                  savingMissionId === mission.mission_id
-                                  || deletingMissionId === mission.mission_id
-                                }
-                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                title={`Delete mission ${mission.name}`}
-                                aria-label={`Delete mission ${mission.name}`}
-                              >
-                                {deletingMissionId === mission.mission_id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                              <Badge variant={mission.status === 'active' ? 'default' : 'outline'} className="text-[10px]">
+                      <Card key={mission.mission_id} className="bg-muted/5 transition-colors hover:bg-muted/10 border-border/50">
+                        <CardHeader className="p-5 pb-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <CardTitle className="text-base font-semibold leading-tight">{mission.name}</CardTitle>
+                            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                              <Badge variant={mission.status === 'active' ? 'default' : 'secondary'} className="text-xs px-2 py-0.5">
                                 {mission.status}
                               </Badge>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditMission(mission)}
+                                  disabled={
+                                    savingMissionId === mission.mission_id
+                                    || deletingMissionId === mission.mission_id
+                                  }
+                                  className="h-8 text-xs px-2"
+                                  aria-label={`Edit mission ${mission.name}`}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => void handleDeleteMission(mission)}
+                                  disabled={
+                                    savingMissionId === mission.mission_id
+                                    || deletingMissionId === mission.mission_id
+                                  }
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+                                  title={`Delete mission ${mission.name}`}
+                                  aria-label={`Delete mission ${mission.name}`}
+                                >
+                                  {deletingMissionId === mission.mission_id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="px-4 pb-4">
-                          <p className="line-clamp-2 text-xs text-muted-foreground mb-4">
+                        <CardContent className="px-5 pb-5 space-y-4">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
                             {mission.brief}
                           </p>
                           {isRequirementDrivenMission(mission) && (
-                            <div className="mb-4 space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-[11px]">
+                            <div className="mb-4 space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="outline" className="border-amber-500/40 text-[10px]">
+                                <Badge variant="outline" className="border-amber-500/40 text-xs">
                                   Requirement-driven
                                 </Badge>
                                 <span className="text-muted-foreground">
@@ -1117,11 +1255,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                         <span className="min-w-0 truncate font-medium">
                                           {candidateProductName(candidate)}
                                         </span>
-                                        <Badge variant="secondary" className="text-[9px]">
+                                        <Badge variant="secondary" className="text-xs">
                                           {candidate.fit_label.replace(/_/g, ' ')}
                                         </Badge>
                                       </div>
-                                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                         <span>fit {Math.round(candidate.fit_score)}</span>
                                         <span>{benchmarkStateLabel(candidate.benchmark_state)}</span>
                                         {candidate.warning && (
@@ -1134,13 +1272,13 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                               )}
                             </div>
                           )}
-                          <div className="mb-4 space-y-3 rounded-md border border-border/60 bg-background/70 p-3">
+                          <div className="space-y-3 rounded-md border border-border/60 bg-background/70 p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="text-[11px] font-medium text-foreground">
+                                <div className="text-xs font-semibold text-foreground uppercase tracking-wider">
                                   Primary tracked product
                                 </div>
-                                <div className="truncate text-[10px] text-muted-foreground">
+                                <div className="truncate text-sm font-medium mt-1">
                                   {linkedProduct
                                     ? trackedProductDisplayName(linkedProduct)
                                     : linkedProductId || 'No primary tracked product linked'}
@@ -1148,7 +1286,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                               </div>
                               <Badge
                                 variant={benchmarkStateBadgeVariant(benchmarkState)}
-                                className="shrink-0 text-[9px]"
+                                className="shrink-0 text-xs px-2"
                               >
                                 {linkedProductId
                                   ? benchmarkStateLabel(benchmarkState)
@@ -1157,28 +1295,28 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                             </div>
 
                             {linkedProductId && (
-                              <div className="grid gap-1 text-[10px] text-muted-foreground sm:grid-cols-2">
-                                <div>
-                                  Fair range:{' '}
-                                  <span className="font-mono">{fairRangeLabel(benchmarkState)}</span>
+                              <div className="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2 pt-1 border-t border-border/40">
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-muted-foreground">Fair range:</span>{' '}
+                                  <span className="font-mono font-medium">{fairRangeLabel(benchmarkState)}</span>
                                 </div>
-                                <div>
-                                  Used median:{' '}
-                                  <span className="font-mono">
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-muted-foreground">Used median:</span>{' '}
+                                  <span className="font-mono font-medium">
                                     {formatCurrency(benchmarkState?.used_median)}
                                   </span>
                                 </div>
-                                <div>
-                                  Samples:{' '}
-                                  <span className="font-mono">
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-muted-foreground">Samples:</span>{' '}
+                                  <span className="font-mono font-medium">
                                     {typeof benchmarkState?.sample_size === 'number'
                                       ? benchmarkState.sample_size
                                       : 'n/a'}
                                   </span>
                                 </div>
-                                <div>
-                                  Confidence:{' '}
-                                  <span className="font-mono">
+                                <div className="flex justify-between sm:block">
+                                  <span className="text-muted-foreground">Confidence:</span>{' '}
+                                  <span className="font-mono font-medium uppercase">
                                     {benchmarkState?.confidence_label || 'unknown'}
                                   </span>
                                 </div>
@@ -1186,18 +1324,18 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                             )}
 
                             {mission.primary_tracked_product?.warning && (
-                              <p className="text-[10px] text-destructive">
+                              <p className="text-xs text-destructive font-medium">
                                 {mission.primary_tracked_product.warning}
                               </p>
                             )}
                             {benchmarkState?.warnings && benchmarkState.warnings.length > 0 && (
-                              <p className="text-[10px] text-muted-foreground">
+                              <p className="text-xs text-muted-foreground italic">
                                 {benchmarkState.warnings.slice(0, 2).join(' ')}
                               </p>
                             )}
 
                             {trackedProductsLoaded ? (
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/40">
                                 <select
                                   aria-label={`Linked tracked product for ${mission.name}`}
                                   value={linkedProductId}
@@ -1238,7 +1376,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                 size="sm"
                                 onClick={() => void ensureTrackedProductsLoaded()}
                                 disabled={trackedProductsLoading}
-                                className="h-8 text-[10px]"
+                                className="h-8 text-xs w-full mt-1"
                               >
                                 {trackedProductsLoading ? (
                                   <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
@@ -1249,137 +1387,12 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                               </Button>
                             )}
                           </div>
-                          {editingMissionId === mission.mission_id && editForm && (
-                            <div className="mb-4 space-y-4 rounded-md border border-border/60 bg-background/80 p-3">
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Mission Name</label>
-                                  <Input
-                                    value={editForm.name}
-                                    onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                                    aria-label={`Edit name for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Max Price</label>
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    value={editForm.priceMax}
-                                    onChange={(event) => setEditForm({ ...editForm, priceMax: event.target.value })}
-                                    aria-label={`Edit max price for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                              </div>
+
+                          <div className="space-y-4 rounded-md border border-border/60 bg-muted/20 p-4">
+                            <div className="flex items-center justify-between gap-4">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-medium text-muted-foreground">Brief</label>
-                                <Textarea
-                                  rows={3}
-                                  value={editForm.brief}
-                                  onChange={(event) => setEditForm({ ...editForm, brief: event.target.value })}
-                                  aria-label={`Edit brief for ${mission.name}`}
-                                  className="text-xs"
-                                />
-                              </div>
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Include Keywords</label>
-                                  <Input
-                                    value={editForm.includeKeywords}
-                                    onChange={(event) => setEditForm({ ...editForm, includeKeywords: event.target.value })}
-                                    aria-label={`Edit include keywords for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Exclude Keywords</label>
-                                  <Input
-                                    value={editForm.excludeKeywords}
-                                    onChange={(event) => setEditForm({ ...editForm, excludeKeywords: event.target.value })}
-                                    aria-label={`Edit exclude keywords for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                              </div>
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Preferred Brands</label>
-                                  <Input
-                                    value={editForm.preferredBrands}
-                                    onChange={(event) => setEditForm({ ...editForm, preferredBrands: event.target.value })}
-                                    aria-label={`Edit preferred brands for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Locations</label>
-                                  <Input
-                                    value={editForm.locationNames}
-                                    onChange={(event) => setEditForm({ ...editForm, locationNames: event.target.value })}
-                                    aria-label={`Edit locations for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                              </div>
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Scan Every (Minutes)</label>
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    min="1"
-                                    value={editForm.scanIntervalMinutes}
-                                    onChange={(event) => setEditForm({ ...editForm, scanIntervalMinutes: event.target.value })}
-                                    aria-label={`Edit scan cadence for ${mission.name}`}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-medium text-muted-foreground">Auto Scan</label>
-                                  <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
-                                    <div className="text-[11px] text-muted-foreground">
-                                      {editForm.autoScanEnabled ? 'Enabled' : 'Paused'}
-                                    </div>
-                                    <Switch
-                                      aria-label={`Edit auto scan for ${mission.name}`}
-                                      checked={editForm.autoScanEnabled}
-                                      onCheckedChange={(checked) => setEditForm({ ...editForm, autoScanEnabled: checked })}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleCancelMissionEdit}
-                                  className="h-8 text-[10px]"
-                                >
-                                  Cancel
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => void handleSaveMissionEdit(mission)}
-                                  disabled={
-                                    savingMissionId === mission.mission_id
-                                    || !editForm.name.trim()
-                                    || !editForm.brief.trim()
-                                    || !editForm.locationNames.trim()
-                                  }
-                                  className="h-8 text-[10px]"
-                                >
-                                  Save Changes
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                          <div className="mb-4 space-y-3 rounded-md border border-border/60 bg-muted/15 p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <div className="text-[11px] font-medium text-foreground">Auto scan</div>
-                                <div className="text-[10px] text-muted-foreground">
+                                <div className="text-xs font-semibold text-foreground uppercase tracking-wider">Auto scan status</div>
+                                <div className="text-xs text-muted-foreground">
                                   Scheduler checks active missions continuously.
                                 </div>
                               </div>
@@ -1390,10 +1403,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                 disabled={savingMissionId === mission.mission_id}
                               />
                             </div>
-                            <div className="flex items-end gap-2">
-                              <div className="flex-1 space-y-1">
-                                <label className="text-[10px] font-medium text-muted-foreground">
-                                  Check every (minutes)
+                            
+                            <div className="flex flex-col sm:flex-row items-end gap-3 pt-2 border-t border-border/40">
+                              <div className="w-full space-y-1.5">
+                                <label className="text-xs font-medium text-muted-foreground">
+                                  Check cadence (minutes)
                                 </label>
                                 <Input
                                   type="number"
@@ -1409,57 +1423,56 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                       [mission.mission_id]: event.target.value,
                                     }))
                                   }
-                                  className="h-8 text-xs"
+                                  className="h-9 text-sm bg-background"
                                   aria-label={`Scan cadence for ${mission.name}`}
                                 />
                               </div>
                               <Button
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
                                 onClick={() => void handleSaveCadence(mission)}
                                 disabled={savingMissionId === mission.mission_id}
-                                className="h-8 text-[10px]"
+                                className="h-9 px-4 text-xs font-medium"
+                                aria-label={`Save cadence for ${mission.name}`}
                               >
-                                Save cadence
+                                Update
                               </Button>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {mission.status === 'active'
-                                ? `Auto scan is on. Next runs aim for every ${missionScanIntervalMinutes(mission)} minutes.`
-                                : `Auto scan is off. Resume it to let the scheduler keep checking every ${missionScanIntervalMinutes(mission)} minutes.`}
-                            </div>
-                            {mission.last_scan_at && (
-                              <div className="text-[10px] text-muted-foreground">
-                                Last scan: <span className="font-mono">{formatClock(mission.last_scan_at)}</span>
+                            
+                            <div className="space-y-1 text-xs">
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <div className={cn(
+                                  "h-1.5 w-1.5 rounded-full",
+                                  mission.status === 'active' ? "bg-emerald-500" : "bg-muted-foreground/40"
+                                )} />
+                                {mission.status === 'active'
+                                  ? `Scanning every ${missionScanIntervalMinutes(mission)} minutes`
+                                  : `Auto scan is paused`}
                               </div>
-                            )}
-                            {missionAggressiveAlertingEnabled(mission) && (
-                              <Badge variant="outline" className="text-[9px]">
-                                aggressive alerting
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void handleTriggerScan(mission.mission_id)}
-                                disabled={
-                                  loading
-                                  || scanBlocked
-                                  || savingMissionId === mission.mission_id
-                                  || editingMissionId === mission.mission_id
-                                }
-                                className="h-7 text-[10px]"
-                              >
-                                <Play className="mr-1.5 h-3 w-3" />
-                                Scan Now
-                              </Button>
+                              {mission.last_scan_at && (
+                                <div className="text-muted-foreground pl-3">
+                                  Last run: <span className="font-mono">{formatClock(mission.last_scan_at)}</span>
+                                </div>
+                              )}
                             </div>
-                            <Badge variant="outline" className="text-[9px] font-mono">
-                              every {missionScanIntervalMinutes(mission)} min
-                            </Badge>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-4 pt-2">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => void handleTriggerScan(mission.mission_id)}
+                              disabled={
+                                loading
+                                || scanBlocked
+                                || savingMissionId === mission.mission_id
+                                || editingMissionId === mission.mission_id
+                              }
+                              className="flex-1 h-10 text-sm font-medium"
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Run Scan Now
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -1503,7 +1516,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                         <div className="text-xs font-medium">
                           {form.autoScanEnabled ? 'Enabled' : 'Paused'}
                         </div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           Active missions are scanned by the scheduler on this cadence.
                         </div>
                       </div>
@@ -1593,15 +1606,15 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Status</span>
-                      <Badge variant={healthBadgeVariant(browserHealth.status)} className="text-[10px] font-mono">
+                      <Badge variant={healthBadgeVariant(browserHealth.status)} className="text-xs font-mono">
                         {browserHealth.status}
                       </Badge>
                     </div>
                     {browserHealth.detail && (
-                      <p className="text-[10px] text-destructive italic">{browserHealth.detail}</p>
+                      <p className="text-xs text-destructive italic">{browserHealth.detail}</p>
                     )}
                     {!scanAllowed && (
-                      <p className="text-[10px] text-destructive italic">
+                      <p className="text-xs text-destructive italic">
                         Scan blocked: {scanBlocker}
                       </p>
                     )}
@@ -1622,14 +1635,14 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 {scanJobs.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">No recent scan history.</p>
                 ) : (
-                  <div className="space-y-3">
+                    <div className="space-y-3">
                     {scanJobs.slice(0, 30).map((job) => (
                       <div
                         key={job.job_id}
-                        className={`group relative flex flex-col gap-1 rounded-md border px-2 py-2 transition-colors ${
+                        className={`group relative flex flex-col gap-1 rounded-md border transition-all ${
                           selectedScanJobId === job.job_id
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-border/50 hover:bg-muted/40'
+                            ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
+                            : 'border-border/50 hover:border-border hover:bg-muted/40'
                         }`}
                       >
                         <button
@@ -1637,44 +1650,47 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                           onClick={() => void handleSelectScanJob(job.job_id)}
                           aria-pressed={selectedScanJobId === job.job_id}
                           aria-label={`Inspect scan ${job.job_id.slice(0, 8)}`}
-                          className="w-full text-left space-y-1"
+                          className="w-full text-left p-3 space-y-2"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-medium truncate max-w-[120px]">
-                              Scan {job.job_id.slice(0, 8)}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold font-mono text-foreground">
+                              #{job.job_id.slice(0, 8)}
                             </span>
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant={scanBadgeVariant(job.status)} className="text-[9px] px-1 h-4">
-                                {job.status}
-                              </Badge>
+                            <Badge variant={scanBadgeVariant(job.status)} className="text-xs uppercase font-bold px-1.5 h-4">
+                              {job.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                {formatClock(job.started_at)}
+                              </span>
+                              <span className="font-medium text-foreground">
+                                {job.progress_stage || (job.progress_pct != null ? formatProgress(job.progress_pct) : 'idle')}
+                              </span>
                             </div>
+                            {job.progress_pct != null && (
+                              <Progress value={clampProgress(job.progress_pct)} className="h-1.5 bg-muted" />
+                            )}
                           </div>
-                          <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground font-mono">
-                            <span className="truncate">{formatClock(job.started_at)}</span>
-                            <span className="truncate text-right">
-                              {job.progress_stage || formatProgress(job.progress_pct) || 'idle'}
-                            </span>
-                          </div>
-                          {job.progress_pct != null && (
-                            <Progress value={clampProgress(job.progress_pct)} className="h-1" />
-                          )}
                         </button>
                         {['queued', 'running'].includes(job.status) && (
                           <Button
-                            variant="ghost"
+                            variant="secondary"
                             size="icon"
                             onClick={(e) => {
                               e.stopPropagation()
                               void handleStopScan(job.job_id)
                             }}
                             disabled={stoppingJobId === job.job_id}
-                            className="absolute -right-1 -top-1 h-6 w-6 rounded-full border bg-background shadow-sm hover:text-destructive"
+                            className="absolute -right-2 -top-2 h-7 w-7 rounded-full border bg-background shadow-md hover:text-destructive transition-transform hover:scale-110"
                             title="Stop Scan"
                           >
                             {stoppingJobId === job.job_id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <X className="h-3 w-3" />
+                              <X className="h-3.5 w-3.5" />
                             )}
                           </Button>
                         )}
@@ -1789,7 +1805,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 {selectedScanJob.progress_pct != null && (
                   <div className="space-y-1">
                     <Progress value={clampProgress(selectedScanJob.progress_pct)} className="h-2" />
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
                       <span>{formatProgress(selectedScanJob.progress_pct)}</span>
                       <span className="truncate pl-3">
                         {selectedScanJob.progress_stage || 'working'}
@@ -1799,9 +1815,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 )}
 
                 <div className="overflow-hidden rounded-md border border-border/60 bg-muted/20">
-                  <ScrollArea className="h-[480px]">
+                  <ScrollArea className="h-[320px]">
                     <pre
-                      className="whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-5 text-foreground/90"
+                      className="whitespace-pre-wrap break-words p-4 font-mono text-xs leading-5 text-foreground/90"
                       role="log"
                       aria-label="Marketplace scan output"
                     >
@@ -1852,13 +1868,13 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-xs">
                     {benchmarkMatches.length} listings loaded
                   </Badge>
-                  <Badge variant={benchmarkReviewCount > 0 ? 'secondary' : 'outline'} className="text-[10px]">
+                  <Badge variant={benchmarkReviewCount > 0 ? 'secondary' : 'outline'} className="text-xs">
                     {benchmarkReviewCount} need review
                   </Badge>
-                  <Badge variant={benchmarkMissingCount > 0 ? 'secondary' : 'outline'} className="text-[10px]">
+                  <Badge variant={benchmarkMissingCount > 0 ? 'secondary' : 'outline'} className="text-xs">
                     {benchmarkMissingCount} with missing data
                   </Badge>
                 </div>
@@ -1880,15 +1896,15 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                         className="rounded-md border border-border/70 bg-muted/10 p-3"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row">
-                          <div className="overflow-hidden rounded-md border border-border/60 bg-background/60 sm:w-36 sm:shrink-0">
+                          <div className="relative overflow-hidden rounded-md border border-border/60 bg-muted/30 sm:w-48 sm:shrink-0">
                             {firstMedia ? (
                               <img
                                 src={firstMedia}
                                 alt={`Listing photo for ${match.title}`}
-                                className="h-28 w-full object-cover sm:h-full"
+                                className="aspect-video w-full object-contain sm:aspect-square sm:h-full"
                               />
                             ) : (
-                              <div className="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground sm:h-full">
+                              <div className="flex aspect-video items-center justify-center gap-2 text-xs text-muted-foreground sm:aspect-square sm:h-full">
                                 <ImageOff className="h-4 w-4" />
                                 No photos
                               </div>
@@ -1898,63 +1914,59 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <Badge variant="outline" className="max-w-full truncate text-[10px]">
+                                  <Badge variant="outline" className="max-w-full truncate text-xs">
                                     {missionNameForMatch(match)}
                                   </Badge>
                                   <Badge
                                     variant={benchmarkReviewBadgeVariant(match)}
-                                    className="text-[10px]"
+                                    className="text-xs"
                                   >
                                     {benchmarkReviewLabel(match)}
                                   </Badge>
                                 </div>
                                 <div className="mt-1 line-clamp-2 text-sm font-medium">{match.title}</div>
-                                <div className="text-[11px] text-muted-foreground">
+                                <div className="text-xs text-muted-foreground">
                                   Captured {formatClock(match.captured_at)}
                                 </div>
                               </div>
-                              <div className="shrink-0 text-right">
-                                <div className="text-[10px] uppercase text-muted-foreground">Listing</div>
-                                <div className="font-mono text-sm font-semibold">{listingPriceLabel(match)}</div>
-                              </div>
                             </div>
 
-                            <div className="grid gap-2 text-xs sm:grid-cols-4">
+                            <div className="grid gap-2 text-xs grid-cols-2 lg:grid-cols-4">
                               <div className="rounded-md border border-border/60 bg-background/70 p-2">
-                                <div className="text-[10px] uppercase text-muted-foreground">Listing</div>
+                                <div className="text-xs uppercase text-muted-foreground">Listing</div>
                                 <div className="mt-1 font-mono font-semibold">{listingPriceLabel(match)}</div>
-                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                <div className="mt-1 text-xs text-muted-foreground">
                                   {priceSourceLabel(priceEvidence)}
                                 </div>
                               </div>
                               <div className="rounded-md border border-border/60 bg-background/70 p-2">
-                                <div className="text-[10px] uppercase text-muted-foreground">Current retail</div>
+                                <div className="text-xs uppercase text-muted-foreground">Current retail</div>
                                 <div className="mt-1 font-mono font-semibold">
                                   {benchmark?.current_price == null
                                     ? 'Missing'
                                     : formatCurrency(benchmark.current_price)}
                                 </div>
-                                <div className="mt-1 text-[10px] text-muted-foreground">Centre Com now</div>
+                                <div className="mt-1 text-xs text-muted-foreground">Centre Com now</div>
                               </div>
                               <div className="rounded-md border border-border/60 bg-background/70 p-2">
-                                <div className="text-[10px] uppercase text-muted-foreground">30d median</div>
+                                <div className="text-xs uppercase text-muted-foreground">30d median</div>
                                 <div className="mt-1 font-mono font-semibold">
                                   {benchmark?.median_30d == null
                                     ? 'Missing'
                                     : formatCurrency(benchmark.median_30d)}
                                 </div>
-                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                <div className="mt-1 text-xs text-muted-foreground">
                                   New-retail history
                                 </div>
                               </div>
                               <div className="rounded-md border border-border/60 bg-background/70 p-2">
-                                <div className="text-[10px] uppercase text-muted-foreground">Delta</div>
+                                <div className="text-xs uppercase text-muted-foreground">Delta</div>
                                 <div className="mt-1 font-mono font-semibold">
                                   {benchmark?.listing_delta_pct == null
                                     ? 'Unavailable'
                                     : formatDelta(benchmark.listing_delta_pct)}
                                 </div>
-                                <div className="mt-1 text-[10px] text-muted-foreground">
+                                <div className="mt-1 text-xs text-muted-foreground">
                                   vs benchmark
                                 </div>
                               </div>
@@ -1982,23 +1994,23 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className="text-[10px]">
+                              <Badge variant="outline" className="text-xs">
                                 wording: {benchmark?.wording || 'new retail benchmark'}
                               </Badge>
                               {benchmark?.review_status && (
-                                <Badge variant="outline" className="text-[10px]">
+                                <Badge variant="outline" className="text-xs">
                                   review: {benchmark.review_status}
                                 </Badge>
                               )}
                               {missingReasons.map((reason) => (
-                                <Badge key={`${match.match_id}-${reason}`} variant="secondary" className="text-[10px]">
+                                <Badge key={`${match.match_id}-${reason}`} variant="secondary" className="text-xs">
                                   {reason}
                                 </Badge>
                               ))}
                             </div>
 
                             {(priceEvidence?.warning || benchmark?.warning) && (
-                              <div className="space-y-1 text-[11px]">
+                              <div className="space-y-1 text-xs">
                                 {priceEvidence?.warning && (
                                   <p className="text-amber-700 dark:text-amber-300">
                                     {priceEvidence.warning}
@@ -2011,7 +2023,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                             )}
 
                             {benchmark?.rationale && benchmark.rationale.length > 0 && (
-                              <p className="text-[11px] text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                 {benchmark.rationale.slice(0, 2).join(' ')}
                               </p>
                             )}
