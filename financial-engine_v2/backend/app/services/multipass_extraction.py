@@ -117,6 +117,24 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
     (r"\bbillions?\b", "billions"),
 ]
 
+_MILLION_UNIT_BOUNDARY = r"(?=\s|$|\)|%|,|;|:)"
+_EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
+    (
+        rf"\b(?:AUD)\s*[Mm]{_MILLION_UNIT_BOUNDARY}"
+        rf"|\b(?:AUD)\s+millions?\b"
+        rf"|(?<!\w)(?:A\$|\$A)\s*[Mm]{_MILLION_UNIT_BOUNDARY}"
+        rf"|(?<!\w)(?:A\$|\$A)\s+millions?\b",
+        "AUD",
+    ),
+    (
+        rf"\b(?:USD)\s*[Mm]{_MILLION_UNIT_BOUNDARY}"
+        rf"|\b(?:USD)\s+millions?\b"
+        rf"|(?<!\w)(?:US\$|\$US)\s*[Mm]{_MILLION_UNIT_BOUNDARY}"
+        rf"|(?<!\w)(?:US\$|\$US)\s+millions?\b",
+        "USD",
+    ),
+]
+
 _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     # AUD markers: A$, $A, AUD, Australian dollar(s)
     (r"\b(?:A\$|\$A|AUD|AUSTRALIAN\s+DOLLARS?)\b", "AUD"),
@@ -148,6 +166,16 @@ _ROW_LEVEL_CURRENCY_CONTEXT_HINTS: tuple[str, ...] = (
 )
 
 
+def _table_allows_extended_unit_scan(table) -> bool:
+    surfaces: list[str] = []
+    if table.headers:
+        surfaces.append(" ".join(str(h) for h in table.headers))
+    if getattr(table, "caption", None):
+        surfaces.append(str(table.caption))
+    combined = " ".join(surfaces).lower()
+    return bool(_re.search(r"\bappendix\s+4[de]\b", combined, _re.IGNORECASE))
+
+
 def _table_allows_row_level_currency_scan(table) -> bool:
     """
     Only treat row text as currency evidence for canonical statement/highlight tables.
@@ -163,6 +191,43 @@ def _table_allows_row_level_currency_scan(table) -> bool:
         surfaces.append(str(table.caption))
     combined = " ".join(surfaces).lower()
     return any(hint in combined for hint in _ROW_LEVEL_CURRENCY_CONTEXT_HINTS)
+
+
+def _explicit_currency_million_hits(text: str) -> dict[str, int]:
+    hits: dict[str, int] = {}
+    for pattern, currency in _EXPLICIT_CURRENCY_MILLION_PATTERNS:
+        matches = _re.findall(pattern, text, _re.IGNORECASE)
+        if matches:
+            hits[currency] = hits.get(currency, 0) + len(matches)
+    return hits
+
+
+def _dominant_currency_from_hits(hits: dict[str, int]) -> str | None:
+    if not hits:
+        return None
+    ranked = sorted(hits.items(), key=lambda item: item[1], reverse=True)
+    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        return None
+    return ranked[0][0]
+
+
+def _detect_explicit_currency_million_header(tables) -> str | None:
+    hits: dict[str, int] = {}
+    for table in tables[:20]:
+        surfaces: list[str] = []
+        if table.headers:
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if getattr(table, "caption", None):
+            surfaces.append(str(table.caption))
+        if _table_allows_extended_unit_scan(table):
+            for row in (table.rows or [])[:20]:
+                surfaces.append(" ".join(str(cell) for cell in row))
+
+        combined = " ".join(surfaces)
+        for currency, count in _explicit_currency_million_hits(combined).items():
+            hits[currency] = hits.get(currency, 0) + count
+
+    return _dominant_currency_from_hits(hits)
 
 
 def _detect_scale_from_tables(tables) -> str:
@@ -187,6 +252,19 @@ def _detect_scale_from_tables(tables) -> str:
         for pattern, scale in _SCALE_PATTERNS:
             if _re.search(pattern, combined, _re.IGNORECASE):
                 return scale
+
+    for table in tables[:15]:
+        surfaces: list[str] = []
+        if table.headers:
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if getattr(table, "caption", None):
+            surfaces.append(table.caption)
+        if _table_allows_extended_unit_scan(table):
+            for row in (table.rows or [])[:20]:
+                surfaces.append(" ".join(str(cell) for cell in row))
+
+        if _explicit_currency_million_hits(" ".join(surfaces)):
+            return "millions"
     return "unknown"
 
 
@@ -199,6 +277,10 @@ def _detect_currency_from_tables(tables) -> str | None:
     statement/highlight tables so foreign-currency note text does not override
     the filing currency.
     """
+    explicit_header_currency = _detect_explicit_currency_million_header(tables)
+    if explicit_header_currency:
+        return explicit_header_currency
+
     hits: dict[str, int] = {}
     for table in tables[:20]:
         surfaces: list[str] = []
@@ -216,12 +298,7 @@ def _detect_currency_from_tables(tables) -> str | None:
             if matches:
                 hits[currency] = hits.get(currency, 0) + len(matches)
 
-    if not hits:
-        return None
-    ranked = sorted(hits.items(), key=lambda item: item[1], reverse=True)
-    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
-        return None
-    return ranked[0][0]
+    return _dominant_currency_from_hits(hits)
 
 
 # ---------------------------------------------------------------------------

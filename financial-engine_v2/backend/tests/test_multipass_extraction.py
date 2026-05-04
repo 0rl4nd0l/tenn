@@ -792,6 +792,128 @@ def test_currency_detection_ignores_foreign_note_body_markers():
     assert _detect_currency_from_tables(tables) is None
 
 
+@pytest.mark.parametrize(
+    "unit_header",
+    ["USD M", "usd m", "US$M", "US$m", "US$ million", "USD million"],
+)
+def test_usd_million_source_headers_detect_usd_millions(unit_header):
+    """Explicit USD million table units must resolve currency and scale deterministically."""
+    from app.services.multipass_extraction import (
+        _detect_currency_from_tables,
+        _detect_scale_from_tables,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Financial highlights",
+        headers=["Metric", unit_header],
+        rows=[["Revenue", "672.0"], ["Operating profit", "149.6"]],
+    )
+
+    assert _detect_currency_from_tables([table]) == "USD"
+    assert _detect_scale_from_tables([table]) == "millions"
+
+
+@pytest.mark.parametrize("unit_header", ["A$M", "AUD M", "A$ million"])
+def test_aud_million_source_headers_still_detect_aud_millions(unit_header):
+    """Existing AUD million source-unit handling must remain unchanged."""
+    from app.services.multipass_extraction import (
+        _detect_currency_from_tables,
+        _detect_scale_from_tables,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Financial highlights",
+        headers=["Metric", unit_header],
+        rows=[["Revenue", "672.0"], ["Operating profit", "149.6"]],
+    )
+
+    assert _detect_currency_from_tables([table]) == "AUD"
+    assert _detect_scale_from_tables([table]) == "millions"
+
+
+def test_wtc_like_appendix_row_usd_m_detects_usd_millions():
+    """WTC Appendix 4D/4E tables can carry the USD M unit in the first body row."""
+    from app.services.multipass_extraction import (
+        _detect_currency_from_tables,
+        _detect_scale_from_tables,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=2,
+        caption="APPENDIX 4D Results for Announcement to the Market",
+        headers=["", "", "", "2025", "2024"],
+        rows=[
+            ["Six months ended 31 December", "(USD M)", "", "2025", "2024"],
+            ["Revenue from ordinary activities", "", "up 76%", "672.0", "381.0"],
+            ["Statutory net profit after tax", "", "down 36%", "68.1", "106.4"],
+        ],
+    )
+
+    assert _detect_currency_from_tables([table]) == "USD"
+    assert _detect_scale_from_tables([table]) == "millions"
+
+
+def test_explicit_usd_m_header_wins_over_later_aud_note_markers():
+    """A source-unit header should beat unrelated AUD mentions in later note tables."""
+    from app.services.multipass_extraction import _detect_currency_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    tables = [
+        DoclingTable(
+            page_number=2,
+            caption="APPENDIX 4E Results for Announcement to the Market",
+            headers=["", "", "", "2025", "2024"],
+            rows=[
+                ["For the year ended 30 June", "(USD M)", "", "2025", "2024"],
+                ["Revenue from ordinary activities", "", "up 14%", "778.7", "683.7"],
+            ],
+        ),
+        DoclingTable(
+            page_number=62,
+            caption="Remuneration report",
+            headers=["AUD", "AUD", "AUD", "AUD"],
+            rows=[["Salary", "1,000", "Bonus", "500"]],
+        ),
+    ]
+
+    assert _detect_currency_from_tables(tables) == "USD"
+
+
+def test_unknown_scale_without_valid_unit_header_remains_unknown():
+    """Missing source-unit evidence must not be upgraded to millions."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Financial highlights",
+        headers=["Metric", "Current period"],
+        rows=[["Revenue", "672.0"], ["Operating profit", "149.6"]],
+    )
+
+    assert _detect_scale_from_tables([table]) == "unknown"
+
+
+def test_usd_million_detection_ignores_usd_m_and_a_prose():
+    """The USD M extension must not treat M&A prose as a million-unit marker."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="USD M&A activity summary",
+        headers=["Metric", "Current period"],
+        rows=[["Revenue", "672.0"], ["Operating profit", "149.6"]],
+    )
+
+    assert _detect_scale_from_tables([table]) == "unknown"
+
+
 def test_pass3a_applies_corrected_scale_multiplier():
     """When scale='thousands' (whether set by table-header override or Pass 1),
     Pass 3a must multiply raw values by 1000 (thousands), not 1_000_000 (millions)."""
@@ -1633,6 +1755,38 @@ def test_validate_gate_scale_unknown_hard_blocked():
     status, error = _validate_gate(_good_payload(scale="unknown"))
     assert status == "failed", f"Expected 'failed', got {status!r}"
     assert error == "validation_gate:scale_unknown", f"Unexpected error key: {error!r}"
+
+
+def test_validate_scale_blocks_wtc_like_unknown_scale_values():
+    """Raw WTC-style USD M values must still fail when scale remains unknown."""
+    from app.services.multipass_extraction import _validate_gate, _validate_scale
+
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "unknown",
+        "currency": "USD",
+        "metrics": {
+            "revenue": 672.0,
+            "ebit": 149.6,
+            "np_attributable": 68.1,
+            "operating_cf": 186.1,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+        "confidence_metrics": 0.9,
+    }
+
+    payload["scale_validation"] = _validate_scale(payload)
+    assert payload["scale_validation"] == "suspect_underscaled"
+
+    status, error = _validate_gate(payload)
+    assert status == "failed"
+    assert error == "validation_gate:scale_validation:suspect_underscaled"
 
 
 def test_validate_gate_non_aud_returns_ok_low_confidence():
