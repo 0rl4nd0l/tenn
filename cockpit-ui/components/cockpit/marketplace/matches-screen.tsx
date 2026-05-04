@@ -16,7 +16,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
+
+interface PendingFeedback {
+  matchId: string
+  feedback: MarketplaceMatchFeedbackValue
+  note: string
+}
 
 interface MarketplaceMatchesScreenProps {
   apiKey: string
@@ -159,6 +166,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedbackSavingMatchId, setFeedbackSavingMatchId] = useState<string | null>(null)
+  const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -190,14 +198,30 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
     }
   }
 
-  async function handleFeedback(matchId: string, feedback: MarketplaceMatchFeedbackValue) {
+  function handleFeedback(matchId: string, feedback: MarketplaceMatchFeedbackValue) {
+    // Toggle: clicking the same button again while pending cancels the pending state
+    if (pendingFeedback?.matchId === matchId && pendingFeedback.feedback === feedback) {
+      setPendingFeedback(null)
+      return
+    }
+    setPendingFeedback({ matchId, feedback, note: '' })
+  }
+
+  async function confirmFeedback() {
+    if (!pendingFeedback) return
+    const { matchId, feedback, note } = pendingFeedback
     setError(null)
     setFeedbackSavingMatchId(matchId)
+    setPendingFeedback(null)
     try {
-      const updated = await updateMarketplaceMatchFeedback(apiKey, matchId, feedback)
-      setMatches((current) =>
-        current.map((item) => (item.match_id === matchId ? updated : item)),
-      )
+      const updated = await updateMarketplaceMatchFeedback(apiKey, matchId, feedback, note.trim() || null)
+      if (feedback === 'not_interested') {
+        setMatches((current) => current.filter((item) => item.match_id !== matchId))
+      } else {
+        setMatches((current) =>
+          current.map((item) => (item.match_id === matchId ? updated : item)),
+        )
+      }
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Match feedback update failed')
     } finally {
@@ -318,20 +342,28 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                       </SelectContent>
                     </Select>
                     <Button
-                      variant={userFeedback === 'interested' ? 'default' : 'outline'}
+                      variant={
+                        pendingFeedback?.matchId === match.match_id && pendingFeedback.feedback === 'interested'
+                          ? 'default'
+                          : userFeedback === 'interested' ? 'default' : 'outline'
+                      }
                       size="sm"
                       disabled={feedbackSavingMatchId === match.match_id}
-                      onClick={() => void handleFeedback(match.match_id, 'interested')}
+                      onClick={() => handleFeedback(match.match_id, 'interested')}
                       className="h-7 px-2 text-xs"
                     >
                       <ThumbsUp className="mr-1 h-3 w-3" />
                       Interested
                     </Button>
                     <Button
-                      variant={userFeedback === 'not_interested' ? 'secondary' : 'outline'}
+                      variant={
+                        pendingFeedback?.matchId === match.match_id && pendingFeedback.feedback === 'not_interested'
+                          ? 'secondary'
+                          : userFeedback === 'not_interested' ? 'secondary' : 'outline'
+                      }
                       size="sm"
                       disabled={feedbackSavingMatchId === match.match_id}
-                      onClick={() => void handleFeedback(match.match_id, 'not_interested')}
+                      onClick={() => handleFeedback(match.match_id, 'not_interested')}
                       className="h-7 px-2 text-xs"
                     >
                       <ThumbsDown className="mr-1 h-3 w-3" />
@@ -339,6 +371,58 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                     </Button>
                   </div>
                 </div>
+
+                {/* Inline note panel */}
+                {pendingFeedback?.matchId === match.match_id && (
+                  <div className="border-b border-border/50 bg-muted/10 px-5 py-3 flex flex-col gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      {pendingFeedback.feedback === 'not_interested'
+                        ? 'Why not? (optional — helps the system learn)'
+                        : 'What do you like about this? (optional)'}
+                    </p>
+                    <Textarea
+                      autoFocus
+                      rows={2}
+                      placeholder={
+                        pendingFeedback.feedback === 'not_interested'
+                          ? 'e.g. wrong brand, too old, price too high…'
+                          : 'e.g. great condition, good price for spec…'
+                      }
+                      value={pendingFeedback.note}
+                      onChange={(e) =>
+                        setPendingFeedback((p) => p ? { ...p, note: e.target.value } : p)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void confirmFeedback()
+                        if (e.key === 'Escape') setPendingFeedback(null)
+                      }}
+                      className="text-xs resize-none"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" className="h-7 text-xs" onClick={() => void confirmFeedback()}>
+                        Confirm
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => setPendingFeedback(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <span className="text-xs text-muted-foreground">⌘↵ to confirm · Esc to cancel</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Existing note */}
+                {!pendingFeedback && match.user_feedback?.note && (
+                  <div className="border-b border-border/50 bg-muted/5 px-5 py-2">
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Your note:</span> {match.user_feedback.note}
+                    </p>
+                  </div>
+                )}
 
                 <CardContent className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-[1fr_300px]">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { ArrowLeft, ExternalLink, ImageOff, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 
 interface MarketplaceMatchDetailScreenProps {
@@ -113,6 +114,9 @@ export function MarketplaceMatchDetailScreen({
   const [error, setError] = useState<string | null>(null)
   const [reviewSaving, setReviewSaving] = useState(false)
   const [feedbackSaving, setFeedbackSaving] = useState(false)
+  const [pendingFeedback, setPendingFeedback] = useState<MarketplaceMatchFeedbackValue | null>(null)
+  const [pendingNote, setPendingNote] = useState('')
+  const noteRef = useRef<HTMLTextAreaElement>(null)
   const media = match ? listingMedia(match) : []
   const priceEvidence = match ? priceEvidenceForMatch(match) : null
 
@@ -157,12 +161,27 @@ export function MarketplaceMatchDetailScreen({
     }
   }
 
-  async function handleFeedback(feedback: MarketplaceMatchFeedbackValue) {
-    if (!matchId) return
+  function handleFeedback(feedback: MarketplaceMatchFeedbackValue) {
+    if (pendingFeedback === feedback) {
+      setPendingFeedback(null)
+      setPendingNote('')
+      return
+    }
+    setPendingFeedback(feedback)
+    setPendingNote('')
+    setTimeout(() => noteRef.current?.focus(), 0)
+  }
+
+  async function confirmFeedback() {
+    if (!matchId || !pendingFeedback) return
     setFeedbackSaving(true)
     setError(null)
+    const feedback = pendingFeedback
+    const note = pendingNote.trim() || null
+    setPendingFeedback(null)
+    setPendingNote('')
     try {
-      setMatch(await updateMarketplaceMatchFeedback(apiKey, matchId, feedback))
+      setMatch(await updateMarketplaceMatchFeedback(apiKey, matchId, feedback, note))
     } catch (feedbackError) {
       setError(
         feedbackError instanceof Error
@@ -261,19 +280,27 @@ export function MarketplaceMatchDetailScreen({
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button
-                    variant={match.user_feedback?.feedback === 'interested' ? 'default' : 'outline'}
+                    variant={
+                      pendingFeedback === 'interested' || match.user_feedback?.feedback === 'interested'
+                        ? 'default'
+                        : 'outline'
+                    }
                     size="sm"
                     disabled={feedbackSaving}
-                    onClick={() => void handleFeedback('interested')}
+                    onClick={() => handleFeedback('interested')}
                   >
                     <ThumbsUp className="mr-2 h-4 w-4" />
                     Interested
                   </Button>
                   <Button
-                    variant={match.user_feedback?.feedback === 'not_interested' ? 'secondary' : 'outline'}
+                    variant={
+                      pendingFeedback === 'not_interested' || match.user_feedback?.feedback === 'not_interested'
+                        ? 'secondary'
+                        : 'outline'
+                    }
                     size="sm"
                     disabled={feedbackSaving}
-                    onClick={() => void handleFeedback('not_interested')}
+                    onClick={() => handleFeedback('not_interested')}
                   >
                     <ThumbsDown className="mr-2 h-4 w-4" />
                     Not interested
@@ -288,6 +315,56 @@ export function MarketplaceMatchDetailScreen({
                   )}
                 </div>
               </CardHeader>
+
+              {/* Inline note panel */}
+              {pendingFeedback && (
+                <div className="border-t border-border/50 bg-muted/10 px-6 py-4 flex flex-col gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    {pendingFeedback === 'not_interested'
+                      ? 'Why not? (optional — helps the system learn what to avoid)'
+                      : 'What do you like about this? (optional)'}
+                  </p>
+                  <Textarea
+                    ref={noteRef}
+                    rows={2}
+                    placeholder={
+                      pendingFeedback === 'not_interested'
+                        ? 'e.g. wrong brand, too old, price too high…'
+                        : 'e.g. great condition, good price for spec…'
+                    }
+                    value={pendingNote}
+                    onChange={(e) => setPendingNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void confirmFeedback()
+                      if (e.key === 'Escape') { setPendingFeedback(null); setPendingNote('') }
+                    }}
+                    className="text-sm resize-none"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => void confirmFeedback()} disabled={feedbackSaving}>
+                      Confirm
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setPendingFeedback(null); setPendingNote('') }}
+                    >
+                      Cancel
+                    </Button>
+                    <span className="text-xs text-muted-foreground">⌘↵ to confirm · Esc to cancel</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Existing note */}
+              {!pendingFeedback && match.user_feedback?.note && (
+                <div className="border-t border-border/50 bg-muted/5 px-6 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium">Your note:</span> {match.user_feedback.note}
+                  </p>
+                </div>
+              )}
+
               <CardContent>
                 <div className="space-y-4">
                   <div>

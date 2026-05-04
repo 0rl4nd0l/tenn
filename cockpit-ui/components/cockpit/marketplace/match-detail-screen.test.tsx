@@ -183,6 +183,12 @@ describe('MarketplaceMatchDetailScreen', () => {
     })
     await userEvent.click(screen.getByRole('button', { name: /not interested/i }))
 
+    // Note panel should appear; confirm without adding a note
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^confirm$/i })).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
+
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/cockpit/marketplace/matches/mp_match_feedback/feedback',
