@@ -208,7 +208,10 @@ test.describe('thesis audit', () => {
 
     await page.getByRole('tab', { name: 'Proposals' }).click()
     await page.getByRole('button', { name: 'Stage' }).click()
-    await expect(page.getByRole('button', { name: 'Staged' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'View in Memory' })).toHaveAttribute(
+      'href',
+      '/memory?tab=thesis',
+    )
   })
 
   test('marks evidence-limited audits and shows empty sections', async ({ page }) => {
