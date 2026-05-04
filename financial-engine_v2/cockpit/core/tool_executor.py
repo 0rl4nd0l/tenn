@@ -310,6 +310,28 @@ class ToolExecutor:
                 "ticker": ticker,
                 "error": "backend API client not configured or request failed",
             }
+        if not financials:
+            return {
+                "ok": True,
+                "ticker": ticker,
+                "financials": [],
+                "narrative": "",
+                "data_insufficient": True,
+                "suggestion": (
+                    "No canonical financial rows were returned. Check data quality "
+                    "or source documents before proposing metric extraction or backfill."
+                ),
+                "recommended_next_tools": [
+                    {
+                        "tool": "get_data_quality",
+                        "arguments": {"ticker": ticker},
+                    },
+                    {
+                        "tool": "query_ticker_data",
+                        "arguments": {"ticker": ticker, "limit": 5, "deep": True},
+                    },
+                ],
+            }
         narrative = (
             self._router._build_financials_narrative(financials) if financials else ""
         )

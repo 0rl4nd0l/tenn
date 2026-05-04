@@ -17,6 +17,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from cockpit.core.agent_loop import AgentLoop
+from cockpit.core.response_classification import ResponseClassification
 
 
 def _make_llm(responses: list[str]) -> MagicMock:
@@ -308,6 +309,127 @@ class TestAgentLoopRegressions:
         assert result.tool_calls_made == 1
         executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
         assert "I found current financials" in result.text
+
+    def test_vague_company_request_allows_conversational_clarification(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": (
+                        "Which company do you mean? I can check financials, "
+                        "recent news, or announcements first."
+                    ),
+                }
+            )
+        ]
+        executor = MagicMock()
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("analyse this company")
+
+        assert result is not None
+        assert "Which company do you mean?" in result.text
+        assert "$" not in result.text
+        assert result.tool_calls_made == 0
+        assert result.routing_metadata == {
+            "response_classification": (
+                ResponseClassification.CONVERSATIONAL_CLARIFICATION.value
+            )
+        }
+        executor.assert_not_called()
+
+    def test_normal_conversational_planning_does_not_require_tool_evidence(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": (
+                        "We should check financials, recent announcements, price "
+                        "context, and data quality next."
+                    ),
+                }
+            )
+        ]
+        executor = MagicMock()
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("what should we check next?")
+
+        assert result is not None
+        assert result.text.startswith("We should check financials")
+        assert result.tool_calls_made == 0
+        assert result.routing_metadata == {
+            "response_classification": ResponseClassification.PLANNING_RESPONSE.value
+        }
+        executor.assert_not_called()
+
+    def test_unsupported_financial_claim_is_hard_blocked_after_nudge(self):
+        responses = [
+            json.dumps({"type": "response", "content": "BHP revenue was $55bn."}),
+            json.dumps({"type": "response", "content": "BHP revenue was $55bn."}),
+        ]
+        executor = MagicMock()
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("What is BHP revenue?", ticker="BHP")
+
+        assert result is not None
+        assert "I need to look that up before I can answer reliably." in result.text
+        assert "$55bn" not in result.text
+        assert result.routing_metadata == {
+            "response_classification": (
+                ResponseClassification.UNSUPPORTED_FINANCIAL_CLAIM.value
+            ),
+            "grounding_guard": "unsupported_financial_claim",
+        }
+        executor.assert_not_called()
+
+    def test_missing_financial_rows_proposes_next_read_only_checks_without_numbers(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "BHP"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": (
+                        "No canonical financial rows were returned. I can check "
+                        "data quality or source documents before proposing metric "
+                        "extraction."
+                    ),
+                }
+            ),
+            (
+                "No canonical financial rows were returned. I can check data quality "
+                "or source documents before proposing metric extraction."
+            ),
+        ]
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "ticker": "BHP",
+                "financials": [],
+                "data_insufficient": True,
+                "suggestion": (
+                    "No canonical financial rows were returned. Check data quality "
+                    "or source documents before proposing metric extraction or backfill."
+                ),
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("What is BHP revenue?", ticker="BHP")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        assert result.evidence[0]["result"]["data_insufficient"] is True
+        assert "No canonical financial rows" in result.text
+        assert "$" not in result.text
+        executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
 
     def test_direct_price_lookup_executes_tool_without_forced_thinking(self):
         """Ticker price lookups should execute get_price even if the model starts with tool_call."""

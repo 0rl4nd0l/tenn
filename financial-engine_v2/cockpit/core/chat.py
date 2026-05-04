@@ -5502,14 +5502,18 @@ class ChatController:
             cost_entries = self._hybrid_router.cost_log()
             if cost_entries:
                 last = cost_entries[-1]
-                result.routing_metadata = {
-                    "source": last["source"],
-                    "model": last["model"],
-                    "latency_ms": last["latency_ms"],
-                    "cost_usd": last["cost_usd"],
-                    "routing_reason": last.get("routing_reason"),
-                    "total_session_cost_usd": self._hybrid_router.total_cost_usd(),
-                }
+                routing_metadata = dict(result.routing_metadata or {})
+                routing_metadata.update(
+                    {
+                        "source": last["source"],
+                        "model": last["model"],
+                        "latency_ms": last["latency_ms"],
+                        "cost_usd": last["cost_usd"],
+                        "routing_reason": last.get("routing_reason"),
+                        "total_session_cost_usd": self._hybrid_router.total_cost_usd(),
+                    }
+                )
+                result.routing_metadata = routing_metadata
 
         self._record_answer_side_effects(
             query=base_message,

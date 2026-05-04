@@ -74,6 +74,10 @@ from cockpit.core.config import (
     load_env,
 )
 from cockpit.core.conversation_commands import derive_conversational_command
+from cockpit.core.response_classification import (
+    ResponseClassification,
+    classify_agent_output,
+)
 from cockpit.integrations.qual_context_bootstrap import context_enabled
 
 router = APIRouter()
@@ -2554,6 +2558,20 @@ def _enforce_visible_source_contract(
             sources = []
         else:
             return sources
+    response_classification = classify_agent_output(
+        response_type="response",
+        text=text,
+        has_current_turn_evidence=bool(sources),
+        requires_grounding=True,
+    )
+    if response_classification in {
+        ResponseClassification.CONVERSATIONAL_CLARIFICATION,
+        ResponseClassification.PLANNING_RESPONSE,
+        ResponseClassification.SYSTEM_FAILURE,
+    }:
+        routing_metadata["response_classification"] = response_classification.value
+        response.routing_metadata = routing_metadata
+        return sources
     # Only allow the "explicit unverified" bypass when the response is a PURE
     # statement of inability — no named tickers, monetary figures, events, or
     # company-specific claims. A hedged hallucination ("the evidence is
@@ -2618,6 +2636,9 @@ def _maybe_auto_flag_chat_response(
 def _serialize_flag_handoff(flag_result: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(flag_result, dict):
         return None
+    operator_only_keys: set[str] = set()
+    if str(flag_result.get("capture_kind") or "").strip() == "auto_diagnostic":
+        operator_only_keys = {"codex_prompt", "codex_cli_command"}
     keys = (
         "report_id",
         "feedback_type",
@@ -2634,7 +2655,7 @@ def _serialize_flag_handoff(flag_result: dict[str, Any] | None) -> dict[str, Any
     payload = {
         key: flag_result.get(key)
         for key in keys
-        if flag_result.get(key) is not None
+        if key not in operator_only_keys and flag_result.get(key) is not None
     }
     return payload or None
 

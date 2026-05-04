@@ -28,6 +28,10 @@ from cockpit.core.action_preview import normalize_action_preview
 from cockpit.core.tool_call_debug import build_tool_trace_entry
 from cockpit.core.query_intent import QueryIntent, classify_intent
 from cockpit.core.command_router import route_command
+from cockpit.core.response_classification import (
+    ResponseClassification,
+    classify_agent_output,
+)
 
 # ---------------------------------------------------------------------------
 # Conditional imports for modules being created in parallel.  At runtime they
@@ -208,6 +212,10 @@ Rules:
 - Never fabricate data. If you lack information after using tools, say so.
 - Use tools to fetch data rather than guessing.
 - Every substantive factual answer must be grounded in current-turn tool evidence.
+- You may answer conversational clarification or planning questions without a
+  tool when you make no financial factual claims. It is valid to ask which
+  company the user means, outline what you can check next, or offer a
+  confirmation-gated action.
 - Prior session context is background only. Do not use it as the sole evidence for
   time-sensitive or source-dependent claims. Re-run the relevant tool in the
   current turn before answering those questions.
@@ -826,12 +834,40 @@ class AgentLoop:
                         }
                     )
                     continue
-                if self._requires_current_turn_grounding(
+                requires_grounding = self._requires_current_turn_grounding(
                     message=message,
                     ticker=ticker,
                     conversation_history=conversation_history,
                     evidence=evidence,
                     force_backend=getattr(self, "_turn_force_backend", None),
+                )
+                response_classification = classify_agent_output(
+                    response_type=parsed.type,
+                    text=parsed.content or raw_response,
+                    has_current_turn_evidence=self._has_grounding_evidence(evidence),
+                    requires_grounding=requires_grounding,
+                )
+                safe_toolless_response = response_classification in {
+                    ResponseClassification.CONVERSATIONAL_CLARIFICATION,
+                    ResponseClassification.PLANNING_RESPONSE,
+                    ResponseClassification.SYSTEM_FAILURE,
+                }
+                if safe_toolless_response:
+                    final_text = parsed.content or raw_response
+                    return AgentResult(
+                        text=final_text,
+                        evidence=evidence,
+                        tool_calls_made=total_tool_calls,
+                        iterations_used=iteration,
+                        routing_metadata={
+                            "response_classification": response_classification.value
+                        },
+                        tool_traces=tool_traces,
+                    )
+                if (
+                    requires_grounding
+                    or response_classification
+                    == ResponseClassification.UNSUPPORTED_FINANCIAL_CLAIM
                 ):
                     # If we already attempted tools this turn and the model is
                     # explicitly abstaining, allow the refusal through.
@@ -845,6 +881,11 @@ class AgentLoop:
                             evidence=evidence,
                             tool_calls_made=total_tool_calls,
                             iterations_used=iteration,
+                            routing_metadata={
+                                "response_classification": (
+                                    ResponseClassification.PLANNING_RESPONSE.value
+                                )
+                            },
                             tool_traces=tool_traces,
                         )
                     if grounding_nudges_given >= 1 and not _response_is_pure_refusal(
@@ -867,6 +908,12 @@ class AgentLoop:
                             evidence=evidence,
                             tool_calls_made=total_tool_calls,
                             iterations_used=iteration,
+                            routing_metadata={
+                                "response_classification": (
+                                    ResponseClassification.UNSUPPORTED_FINANCIAL_CLAIM.value
+                                ),
+                                "grounding_guard": "unsupported_financial_claim",
+                            },
                             tool_traces=tool_traces,
                         )
                     grounding_nudges_given += 1
@@ -1276,7 +1323,9 @@ class AgentLoop:
             "If the evidence is incomplete, say so plainly. "
             "Every factual claim must be directly supported by the supplied evidence. "
             "If a claim cannot be supported, state that you cannot verify it. "
-            "Do not rely on prior session context unless the current evidence confirms it."
+            "Do not rely on prior session context unless the current evidence confirms it. "
+            "When useful, cover what was found, what was not found, what is inference, "
+            "what remains unsupported, and the best next action."
         )
         # Verbosity calibration: factual lookups get facts-only; analytical
         # questions get full narrative with interpretation.

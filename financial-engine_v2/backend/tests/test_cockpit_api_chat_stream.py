@@ -148,6 +148,61 @@ def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypat
     assert auto_flag_calls == [done_events[-1]["data"]["text"]]
 
 
+def test_cockpit_chat_non_stream_allows_planning_without_sources(monkeypatch) -> None:
+    finalized_metadata: list[dict] = []
+
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text=(
+                    "We should check financials, recent announcements, price "
+                    "context, and data quality next."
+                ),
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            finalized_metadata.append(dict(kwargs["response"].routing_metadata or {}))
+
+        def auto_flag_chat_response(self, **kwargs):
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={"message": "what should we check next?", "stream": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["text"].startswith("We should check financials")
+    assert finalized_metadata[-1]["response_classification"] == (
+        "planning_response"
+    )
+    assert "grounding_guard" not in finalized_metadata[-1]
+
+
 def test_cockpit_chat_non_stream_preserves_marketplace_draft_without_sources(
     monkeypatch,
 ) -> None:
@@ -1479,8 +1534,10 @@ def test_cockpit_chat_stream_done_event_includes_auto_flag_handoff(monkeypatch) 
     assert auto_flag["report_id"] == "auto_20260430_abc123"
     assert auto_flag["capture_kind"] == "auto_diagnostic"
     assert auto_flag["investigation_status"] == "queued"
-    assert "codex_prompt" in auto_flag
-    assert "codex_cli_command" in auto_flag
+    assert auto_flag["codex_prompt_path"].endswith("/codex_prompt.md")
+    assert auto_flag["read_api_path"].endswith("/auto_20260430_abc123")
+    assert "codex_prompt" not in auto_flag
+    assert "codex_cli_command" not in auto_flag
 
 
 def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
