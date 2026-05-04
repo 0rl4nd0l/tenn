@@ -20,6 +20,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib import request as urlrequest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -248,10 +249,48 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
     pending = list(DOC_IDS)
     active: list[dict[str, Any]] = []
     records: list[dict[str, Any]] = []
+    health_rows: list[dict[str, Any]] = []
+    fail_fast: dict[str, Any] = {"triggered": False}
     cell_started = time.time()
     cell_deadline = time.monotonic() + float(args.cell_timeout_seconds)
 
-    def start_child(doc_id: str, index: int) -> None:
+    def active_doc_ids() -> list[str]:
+        return [str(item["doc_id"]) for item in active]
+
+    def sample_health(event: str, doc_id: str | None = None) -> dict[str, Any]:
+        row = _sample_request_health(
+            endpoint=endpoint,
+            api_key=args.api_key,
+            cell="server_parallel_2_two_doc_concurrent_client",
+            event=event,
+            doc_id=doc_id,
+            active_doc_ids=active_doc_ids(),
+        )
+        health_rows.append(row)
+        return row
+
+    def fail_fast_if_runtime_unhealthy() -> bool:
+        nonlocal fail_fast
+        if fail_fast.get("triggered"):
+            return True
+        gate = _runtime_health_gate({"request_health_timeline": health_rows})
+        if gate.get("passed"):
+            return False
+        fail_fast = {
+            "triggered": True,
+            "triggered_at_epoch": round(time.time(), 6),
+            "triggered_at_utc": _iso_utc(),
+            "reason": "active_runtime_health_gate_failed",
+            "gate": gate,
+        }
+        pending.clear()
+        for item in active:
+            proc = item["proc"]
+            if proc.poll() is None:
+                proc.kill()
+        return True
+
+    def start_child(doc_id: str, index: int) -> bool:
         safe_doc = doc_id.replace("/", "_")
         result_path = child_dir / f"{index:02d}_{safe_doc}.json"
         report_path = child_dir / f"{index:02d}_{safe_doc}.md"
@@ -265,6 +304,9 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
             doc_ids=(doc_id,),
             start_runtime=False,
         )
+        sample_health("before_child_start", doc_id)
+        if fail_fast_if_runtime_unhealthy():
+            return False
         stdout_handle = stdout_path.open("w", encoding="utf-8")
         stderr_handle = stderr_path.open("w", encoding="utf-8")
         proc = subprocess.Popen(
@@ -290,12 +332,17 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
                 "started_epoch": time.time(),
             }
         )
+        return True
 
     next_index = 1
     while pending or active:
-        while pending and len(active) < max_workers:
-            start_child(pending.pop(0), next_index)
+        while pending and len(active) < max_workers and not fail_fast.get("triggered"):
+            if not start_child(pending.pop(0), next_index):
+                break
             next_index += 1
+        if active:
+            sample_health("poll")
+            fail_fast_if_runtime_unhealthy()
         completed: list[dict[str, Any]] = []
         for item in active:
             proc = item["proc"]
@@ -327,6 +374,7 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
                 }
                 records.append(record)
                 commands.append(record)
+                sample_health("after_child_end", str(item["doc_id"]))
         else:
             time.sleep(1)
         if time.monotonic() > cell_deadline and active:
@@ -369,6 +417,8 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
         },
         "gpu_before": control._gpu_guard_json(),
         "gpu_after": control._gpu_guard_json(),
+        "fail_fast": fail_fast,
+        "request_health_timeline": health_rows,
         "control": {
             "doc_ids": list(DOC_IDS),
             "used_temp_pdf_copies": True,
@@ -385,6 +435,11 @@ def _run_cell_c(args: argparse.Namespace, report_dir: Path, commands: list[dict[
     }
     payload["prompt_cache"] = _prompt_cache_from_runtime_log(args, runtime_log, payload)
     payload["acceptance"] = control._derive_acceptance(payload)
+    payload["runtime_health_gate"] = _runtime_health_gate(payload)
+    payload["partial_payload_gate"] = {
+        "passed": not bool(_partial_payload_after_timeout_rows(payload)),
+        "rows": _partial_payload_after_timeout_rows(payload),
+    }
     _write_json(report_dir / "cell_c_server_parallel2_two_doc_concurrent_client.json", payload)
     control._write_report(
         report_dir / "cell_c_server_parallel2_two_doc_concurrent_client.md",
@@ -442,11 +497,152 @@ def _aggregate_global_stage_timing(documents: list[dict[str, Any]]) -> dict[str,
 
 
 REQUEST_TIMEOUT_MARKERS = ("timeout", "timed out", "deadline exceeded")
+REQUEST_HEALTH_TIMELINE_FIELDS = [
+    "cell",
+    "epoch",
+    "iso_utc",
+    "event",
+    "doc_id",
+    "active",
+    "active_doc_ids",
+    "port_open",
+    "health_ok",
+    "health_http_status",
+    "health_probe_state",
+    "runtime_pids",
+    "slots_http_status",
+    "slots_probe_state",
+    "slots_snapshot",
+]
 
 
 def _is_request_timeout_error(error: Any) -> bool:
     text = str(error or "").lower()
     return any(marker in text for marker in REQUEST_TIMEOUT_MARKERS)
+
+
+def _iso_utc(epoch: float | None = None) -> str:
+    return datetime.fromtimestamp(epoch or time.time(), timezone.utc).isoformat()
+
+
+def _boolish(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value or "").strip().lower() in {"1", "true", "yes", "y"}
+
+
+def _probe_http_text(
+    url: str,
+    *,
+    api_key: str,
+    timeout: float,
+) -> tuple[int | None, str, str]:
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    request = urlrequest.Request(url, headers=headers)
+    try:
+        with urlrequest.urlopen(request, timeout=timeout) as response:
+            body = response.read(4096).decode("utf-8", errors="replace")
+            status = int(response.status)
+            state = "ok" if 200 <= status < 300 else f"http_{status}"
+            return status, body.replace("\n", " ")[:1000], state
+    except Exception as exc:  # noqa: BLE001
+        text = f"{type(exc).__name__}: {str(exc)[:300]}"
+        state = "timeout" if _is_request_timeout_error(text) else "error"
+        return None, text, state
+
+
+def _sample_request_health(
+    *,
+    endpoint: str,
+    api_key: str,
+    cell: str,
+    event: str,
+    doc_id: str | None = None,
+    active_doc_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    endpoint = control._normalize_url(endpoint)
+    port = control._url_port(endpoint)
+    host = control._url_host(endpoint) or "127.0.0.1"
+    active_docs = [str(item) for item in (active_doc_ids or []) if item]
+    epoch = time.time()
+    health_status, _health_body, health_state = _probe_http_text(
+        f"{endpoint}/health",
+        api_key=api_key,
+        timeout=1.0,
+    )
+    slots_status, slots_body, slots_state = _probe_http_text(
+        f"{endpoint}/slots",
+        api_key=api_key,
+        timeout=2.0,
+    )
+    return {
+        "cell": cell,
+        "epoch": round(epoch, 6),
+        "iso_utc": _iso_utc(epoch),
+        "event": event,
+        "doc_id": doc_id or "",
+        "active": bool(active_docs),
+        "active_doc_ids": json.dumps(active_docs),
+        "port_open": (
+            control._port_open(host, int(port), timeout=0.5) if port is not None else False
+        ),
+        "health_ok": health_status is not None and 200 <= health_status < 300,
+        "health_http_status": health_status,
+        "health_probe_state": health_state,
+        "runtime_pids": json.dumps(control._pids_for_port(int(port)) if port else []),
+        "slots_http_status": slots_status,
+        "slots_probe_state": slots_state,
+        "slots_snapshot": slots_body,
+    }
+
+
+def _request_health_rows(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if payload is None:
+        return []
+    rows = payload.get("request_health_timeline")
+    return [dict(row) for row in rows] if isinstance(rows, list) else []
+
+
+def _runtime_health_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
+    rows = _request_health_rows(payload)
+    active_rows = [row for row in rows if _boolish(row.get("active"))]
+    health_false_rows = [row for row in active_rows if not _boolish(row.get("health_ok"))]
+    port_open_health_false_rows = [
+        row for row in health_false_rows if _boolish(row.get("port_open"))
+    ]
+    slots_timeout_rows = [
+        row
+        for row in active_rows
+        if str(row.get("slots_probe_state") or "").strip().lower() == "timeout"
+    ]
+    failure_classes: list[str] = []
+    if health_false_rows:
+        failure_classes.append("failure_mode_classified_runtime_health")
+    if slots_timeout_rows:
+        failure_classes.append("failure_mode_classified_slots_timeout")
+    passed = not failure_classes
+    return {
+        "status": "pass" if passed else "fail",
+        "passed": passed,
+        "active_sample_count": len(active_rows),
+        "health_false_count": len(health_false_rows),
+        "port_open_health_false_count": len(port_open_health_false_rows),
+        "slots_timeout_count": len(slots_timeout_rows),
+        "failure_classes": failure_classes,
+        "first_port_open_health_false_utc": (
+            port_open_health_false_rows[0].get("iso_utc")
+            if port_open_health_false_rows
+            else None
+        ),
+        "first_health_false_utc": (
+            health_false_rows[0].get("iso_utc") if health_false_rows else None
+        ),
+        "first_slots_timeout_utc": (
+            slots_timeout_rows[0].get("iso_utc") if slots_timeout_rows else None
+        ),
+    }
 
 
 def _llm_request_timeout_rows(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -464,6 +660,42 @@ def _llm_request_timeout_rows(payload: dict[str, Any] | None) -> list[dict[str, 
     return rows
 
 
+def _partial_payload_after_timeout_rows(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if payload is None:
+        return []
+    timeout_docs = {
+        str(row.get("document_id"))
+        for row in _llm_request_timeout_rows(payload)
+        if row.get("document_id")
+    }
+    rows: list[dict[str, Any]] = []
+    for doc in payload.get("control", {}).get("documents") or []:
+        doc_id = str(doc.get("document_id") or "")
+        if doc_id not in timeout_docs:
+            continue
+        scoring_fields_present = any(
+            key in doc
+            for key in (
+                "metric_results",
+                "metric_status_counts",
+                "trust_outcome",
+                "context_actual",
+            )
+        )
+        raw_payload_present = bool(doc.get("raw_payload"))
+        if scoring_fields_present or raw_payload_present:
+            rows.append(
+                {
+                    "document_id": doc_id,
+                    "extraction_status": doc.get("extraction_status"),
+                    "has_metric_results": "metric_results" in doc,
+                    "has_trust_outcome": "trust_outcome" in doc,
+                    "has_raw_payload": raw_payload_present,
+                }
+            )
+    return rows
+
+
 def _cell_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
     if payload is None:
         return {"status": "skipped"}
@@ -472,8 +704,21 @@ def _cell_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
     metric_counts = summary.get("metric_status_counts") or {}
     runtime_ids = acceptance.get("runtime_ids") or []
     request_timeout_rows = _llm_request_timeout_rows(payload)
+    runtime_health = _runtime_health_gate(payload)
+    partial_timeout_rows = _partial_payload_after_timeout_rows(payload)
     timeout_event = bool(acceptance.get("timeout_event")) or bool(request_timeout_rows)
-    passed = bool(acceptance.get("passed")) and not timeout_event
+    failure_classes: list[str] = []
+    if timeout_event:
+        failure_classes.append("failure_mode_classified_request_timeout")
+    failure_classes.extend(runtime_health.get("failure_classes") or [])
+    if partial_timeout_rows:
+        failure_classes.append("failure_mode_classified_partial_payload")
+    passed = (
+        bool(acceptance.get("passed"))
+        and not timeout_event
+        and bool(runtime_health.get("passed"))
+        and not partial_timeout_rows
+    )
     return {
         "status": "pass" if passed else "fail",
         "passed": passed,
@@ -507,6 +752,19 @@ def _cell_gate(payload: dict[str, Any] | None) -> dict[str, Any]:
                 }
             ),
         },
+        "runtime_health": runtime_health,
+        "partial_payload_after_timeout": {
+            "passed": not bool(partial_timeout_rows),
+            "count": len(partial_timeout_rows),
+            "documents": sorted(
+                {
+                    str(row.get("document_id"))
+                    for row in partial_timeout_rows
+                    if row.get("document_id")
+                }
+            ),
+        },
+        "failure_classes": failure_classes,
         "all_runtime_ids": runtime_ids,
         "all_docs_on_extraction_runtime": all(
             runtime_id == "http://127.0.0.1:8002" for runtime_id in runtime_ids
@@ -727,7 +985,16 @@ def _build_matrix(
         cell_rows = [row for row in concurrency_rows if row.get("cell") == name]
         actual_other_doc_overlap = any(row.get("has_other_doc_overlap") for row in cell_rows)
         if not gate.get("passed"):
-            verdict = "candidate_regressed_correctness"
+            failure_classes = set(gate.get("failure_classes") or [])
+            if failure_classes & {
+                "failure_mode_classified_request_timeout",
+                "failure_mode_classified_runtime_health",
+                "failure_mode_classified_slots_timeout",
+                "failure_mode_classified_partial_payload",
+            }:
+                verdict = "candidate_invalidated_by_health_failfast"
+            else:
+                verdict = "candidate_regressed_correctness"
         elif improvement is not None and improvement >= 0.05:
             verdict = "candidate_faster_no_regression"
         else:
@@ -899,11 +1166,19 @@ def _write_reports(
                 "error",
             ],
         )
+    health_rows = _request_health_rows(cell_b) + _request_health_rows(cell_c)
+    if health_rows:
+        _write_csv(
+            report_dir / "request_health_timeline.csv",
+            health_rows,
+            REQUEST_HEALTH_TIMELINE_FIELDS,
+        )
     commands_text = "\n".join(row.get("cmd", "") for row in commands if row.get("cmd"))
     (report_dir / "commands_run.txt").write_text(commands_text.rstrip() + "\n", encoding="utf-8")
     _write_notes(report_dir, args, audit, matrix, concurrency_rows)
     if any(
         cell.get("verdict", "").startswith("candidate_regressed")
+        or cell.get("verdict", "").startswith("candidate_invalidated")
         for cell in matrix.get("cells", {}).values()
         if isinstance(cell, dict)
     ):
@@ -969,6 +1244,49 @@ def _write_notes(
     ]
     (report_dir / "harness_notes.md").write_text(
         "\n".join(harness_lines).rstrip() + "\n",
+        encoding="utf-8",
+    )
+    c_gate = c_cell.get("gate") if isinstance(c_cell.get("gate"), dict) else {}
+    health_gate = (
+        c_gate.get("runtime_health") if isinstance(c_gate.get("runtime_health"), dict) else {}
+    )
+    timeout_gate = (
+        c_gate.get("request_timeouts") if isinstance(c_gate.get("request_timeouts"), dict) else {}
+    )
+    partial_gate = (
+        c_gate.get("partial_payload_after_timeout")
+        if isinstance(c_gate.get("partial_payload_after_timeout"), dict)
+        else {}
+    )
+    failfast_lines = [
+        "# Health Fail-Fast Summary",
+        "",
+        "## Lane Classification",
+        "",
+        "Lane: Financial Truth. Execution mode: AUDIT -> SAFE EXTENSION.",
+        "",
+        "## Guardrail Added",
+        "",
+        "- Parallel2 candidate gates now invalidate timing comparisons on captured LLM request timeouts, active runtime health failure, `/slots` probe timeouts, or partial payloads after LLM timeout.",
+        "- Cell C captures `request_health_timeline.csv` rows during active child extraction.",
+        "- Production extraction semantics are unchanged.",
+        "",
+        "## Cell C Gate",
+        "",
+        f"- Status: `{c_gate.get('status')}`.",
+        f"- Failure classes: `{c_gate.get('failure_classes')}`.",
+        f"- Request timeouts: `{timeout_gate.get('count')}`.",
+        f"- Active health samples: `{health_gate.get('active_sample_count')}`.",
+        f"- Port-open/health-false samples: `{health_gate.get('port_open_health_false_count')}`.",
+        f"- `/slots` timeout samples: `{health_gate.get('slots_timeout_count')}`.",
+        f"- Partial payload after timeout documents: `{partial_gate.get('documents')}`.",
+        "",
+        "## DATA_MISSING",
+        "",
+        "- Slot/task-to-document mapping remains unresolved unless future llama.cpp telemetry exposes a stable server task id to client document id join key.",
+    ]
+    (report_dir / "health_failfast_summary.md").write_text(
+        "\n".join(failfast_lines).rstrip() + "\n",
         encoding="utf-8",
     )
 

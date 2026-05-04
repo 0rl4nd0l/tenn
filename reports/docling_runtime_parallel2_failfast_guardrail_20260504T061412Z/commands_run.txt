@@ -1,0 +1,6 @@
+date -u +%Y%m%dT%H%M%SZ
+financial-engine_v2/.venv/bin/python -m pytest scripts/test_run_docling_parallel2_experiment.py scripts/test_run_isolated_docling_control.py -q
+financial-engine_v2/.venv/bin/python -m ruff check scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py
+git diff --check -- scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py
+jq empty reports/docling_runtime_parallel2_failfast_guardrail_20260504T061412Z/correctness_gate.json
+git diff --check -- scripts/run_docling_parallel2_experiment.py scripts/test_run_docling_parallel2_experiment.py reports/docling_runtime_parallel2_failfast_guardrail_20260504T061412Z

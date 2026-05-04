@@ -1,0 +1,36 @@
+{
+  "artifact_type": "parallel2_failfast_guardrail_behavior",
+  "generated_at_utc": "2026-05-04T06:14:12Z",
+  "lane": "Financial Truth",
+  "live_experiment_run": false,
+  "promotion_allowed": false,
+  "speedup_claim_allowed": false,
+  "cell_gate_behavior": {
+    "request_timeout_invalidates_candidate": {
+      "passed": false,
+      "failure_class": "failure_mode_classified_request_timeout"
+    },
+    "active_health_false_invalidates_candidate": {
+      "passed": false,
+      "failure_class": "failure_mode_classified_runtime_health"
+    },
+    "active_slots_timeout_invalidates_candidate": {
+      "passed": false,
+      "failure_class": "failure_mode_classified_slots_timeout"
+    },
+    "partial_payload_after_timeout_invalidates_candidate": {
+      "passed": false,
+      "failure_class": "failure_mode_classified_partial_payload"
+    }
+  },
+  "request_health_timeline_csv": {
+    "generated": false,
+    "reason": "No live Cell C candidate was executed in this coding-only validation pass; the harness writes request_health_timeline.csv when request_health_timeline rows exist."
+  },
+  "validated_by": [
+    "scripts/test_run_docling_parallel2_experiment.py::RunDoclingParallel2ExperimentTests::test_cell_gate_fails_on_captured_llm_request_timeout",
+    "scripts/test_run_docling_parallel2_experiment.py::RunDoclingParallel2ExperimentTests::test_cell_gate_fails_on_active_runtime_health_false",
+    "scripts/test_run_docling_parallel2_experiment.py::RunDoclingParallel2ExperimentTests::test_cell_gate_fails_on_active_slots_timeout",
+    "scripts/test_run_docling_parallel2_experiment.py::RunDoclingParallel2ExperimentTests::test_partial_payload_after_llm_timeout_invalidates_candidate"
+  ]
+}
