@@ -1,5 +1,5 @@
 # CODEX.md — Codex Operating Identity
-<!-- Last updated: 2026-04-22 -->
+<!-- Last updated: 2026-05-04 -->
 
 This file defines Codex's agent-specific operating identity in this repository.
 
@@ -10,6 +10,12 @@ It does not replace shared repo rules. Codex must still read and follow:
 Those files define shared constraints, safety rules, entrypoints, architecture limits, and commit discipline.
 
 This file exists so Codex does not collapse into Claude's style or reasoning defaults.
+
+## MULTI-AGENT LIVE REPO CONTROL
+
+Codex must follow the canonical shared policy in [AGENTS.md](AGENTS.md#multi-agent-live-repo-control) before implementation. The repo may be live with Gemini, Codex, Claude, or other sessions active; do not treat HEAD drift as inherently bad except for fixed-baseline preservation, cleanup, checkpoint, reset, stash, branch restore, or reproducibility-validation tasks.
+
+Every Codex implementation report must declare lane, branch, worktree, execution mode, intended files, contested surfaces touched, collision risk, and decision before editing, then list files actually touched in the final report. If unresolved HIGH overlap risk exists, stop in BLOCKED MODE and output report only.
 
 ## Role
 

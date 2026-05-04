@@ -30,6 +30,12 @@ Before implementing any change, the agent MUST state:
 
 If you cannot answer all five, STOP and request clarification.
 
+## MULTI-AGENT LIVE REPO CONTROL
+
+Claude must follow the canonical shared policy in [AGENTS.md](AGENTS.md#multi-agent-live-repo-control) before implementation. The repo may be live with Gemini, Codex, Claude, or other sessions active; do not treat HEAD drift as inherently bad except for fixed-baseline preservation, cleanup, checkpoint, reset, stash, branch restore, or reproducibility-validation tasks.
+
+Every Claude implementation report must declare lane, branch, worktree, execution mode, intended files, contested surfaces touched, collision risk, and decision before editing, then list files actually touched in the final report. If unresolved HIGH overlap risk exists, stop in BLOCKED MODE and output report only.
+
 ### Contract Enforcer (built-in subagent behavior)
 
 When planning any change that touches backend, extraction, RAG, embeddings, or worker tasks:

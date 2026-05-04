@@ -5,10 +5,14 @@ Read [../CLAUDE.md](../CLAUDE.md) first — all rules there apply to Codex equal
 
 ## Cross-Agent Coordination
 
-This repo uses Claude Code and Codex in parallel. Before acting on any non-trivial task:
+This repo can use Gemini, Claude Code, Codex, and other agents in parallel. Before acting on any non-trivial task:
 1. Read Claude's memory index: `/home/l4nd0/.claude/projects/-home-l4nd0-tenn/memory/MEMORY.md`
 2. Read Codex memories: `~/.codex/memories/`
 3. Check specs and plans in `docs/superpowers/specs/` and `docs/superpowers/plans/`
+
+## MULTI-AGENT LIVE REPO CONTROL
+
+For live-repo coordination, follow the canonical shared policy in [../AGENTS.md](../AGENTS.md#multi-agent-live-repo-control). Before implementation, declare lane, branch, worktree, execution mode, intended files, contested surfaces touched, collision risk, and decision. Treat HEAD drift as expected on live branches unless the task is fixed-baseline preservation, cleanup, checkpoint, reset, stash, branch restore, or reproducibility validation.
 
 ## Current Sprint (as of 2026-03-21)
 

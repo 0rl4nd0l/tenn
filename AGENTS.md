@@ -1,5 +1,5 @@
 # AGENTS.md instructions for /home/l4nd0/tenn
-<!-- Last updated: 2026-05-01 -->
+<!-- Last updated: 2026-05-04 -->
 
 > **Note for Claude Code:** The skills listed in this file use `.codex/skills/` paths that are only accessible to the Codex agent. If you are Claude Code, ignore the skills block and use your own skills in `.claude/skills/` instead. All other repo context below applies to both agents equally.
 
@@ -75,9 +75,10 @@ Before any change, Codex agents MUST:
 
 ## Parallel Agent Architecture
 
-This repo uses two agent systems in parallel:
+This repo can use multiple agent systems in parallel:
 - **Claude Code** (primary) — claude-sonnet-4-6, skills in `.claude/skills/`
-- **Codex** (this agent) — skills in `.codex/skills/`
+- **Codex** — skills in `.codex/skills/`
+- **Gemini CLI** — agent-specific rules in `GEMINI.md`
 
 They share the same codebase. To see Claude's current progress, decisions, and feedback:
 - **Claude's memory index:** `/home/l4nd0/.claude/projects/-mnt-sdb2-home-l4nd0-tenn/memory/MEMORY.md`
@@ -86,6 +87,174 @@ They share the same codebase. To see Claude's current progress, decisions, and f
 - **Plans:** `docs/superpowers/plans/`
 
 **Before acting on any task:** Read Claude's memory index to avoid duplicating completed work.
+
+## MULTI-AGENT LIVE REPO CONTROL
+
+Tenn is in hardening/consolidation mode. The shared repo branch may be LIVE, with Gemini, Codex, Claude, or other agent sessions actively editing the repo at the same time. Other agent sessions working on the same repo is expected and allowed.
+
+### 1. Live Repo Rule
+
+- The shared branch may be LIVE.
+- Do not treat HEAD drift as inherently bad.
+- HEAD drift is expected when the branch is live.
+- A fixed HEAD is only required when a task explicitly says it is doing preservation, cleanup, checkpointing, reset, stash, branch restore, or reproducibility validation.
+- Do not repeat frozen-HEAD audits endlessly when the branch is intentionally live.
+
+### 2. Session Declaration Rule
+
+Every agent session must declare before implementation:
+
+- agent name: Gemini / Codex / Claude / other
+- branch
+- worktree path
+- lane
+- execution mode
+- files intended to touch
+- files actually touched, in final report
+- whether it touches contested surfaces
+- collision risk: LOW / MEDIUM / HIGH
+
+### 3. Lane Model
+
+Every task must be classified into exactly one lane:
+
+- Financial Truth — extraction, metric truth, parser/runtime extraction logic, normalization, canonical financial facts
+- Evaluation — tests, scorecards, audits, browser regression, eval scripts, failure analysis, benchmark artifacts
+- Provenance — evidence traceability, source attribution, citation/evidence chains, source maps, provenance validators
+- Query Orchestration — routing, chat control path, agent loop, tool selection, answer composition, continuity, intent handling
+- Memory — company memory, market memory, user thesis memory, preference memory, memory signal routing, thesis watchdog
+- Reporting — Next.js Cockpit UI, analyst shell, source drawer, route parity UI, marketplace UI, docs/report output surfaces
+
+### 4. Execution Modes
+
+- AUDIT MODE: inspect, map, report; no modifications
+- SAFE EXTENSION MODE: minimal additive edits to existing systems only
+- BLOCKED MODE: no implementation; output blockers and next safe step only
+
+### 5. Collision Rules
+
+- LOW: isolated docs/tests/reports or non-overlapping lane files
+- MEDIUM: additive work in existing subsystem but touches active product files
+- HIGH: touches shared runtime/control paths, memory writes, financial truth, source/evidence labels, or files already owned by another active session
+
+Hard stop:
+
+- If HIGH overlap risk remains unresolved, do not implement.
+- Output report only.
+
+### 6. Contested Surfaces
+
+Treat this list as collision-critical:
+
+- `financial-engine_v2/backend/app/routes/cockpit_api.py`
+- `financial-engine_v2/cockpit/core/tool_definitions.py`
+- `financial-engine_v2/cockpit/core/chat.py`
+- `financial-engine_v2/cockpit/core/agent_loop.py`
+- `financial-engine_v2/cockpit/core/command_router.py`
+- `financial-engine_v2/cockpit/core/turn_continuity.py`
+- `financial-engine_v2/cockpit/core/response_classification.py`
+- `financial-engine_v2/backend/app/services/tenn_chat.py`
+- `financial-engine_v2/backend/app/services/cockpit_service.py`
+- `financial-engine_v2/backend/app/services/query_orchestrator.py`
+- `financial-engine_v2/backend/app/services/company_memory.py`
+- `financial-engine_v2/backend/app/services/market_memory.py`
+- `financial-engine_v2/backend/app/services/memory_signal_router.py`
+- `financial-engine_v2/backend/app/services/user_thesis_memory.py`
+- `financial-engine_v2/backend/app/services/thesis_watchdog.py`
+- `cockpit-ui/lib/api-client.ts`
+- `cockpit-ui/lib/cockpit-types.ts`
+- `cockpit-ui/components/cockpit/chat/`
+- `cockpit-ui/components/cockpit/holdings/`
+- `cockpit-ui/components/cockpit/watchlist/`
+- `cockpit-ui/components/cockpit/thesis/`
+- `cockpit-ui/components/cockpit/marketplace/`
+
+### 7. Shared Branch Rule
+
+- Do not edit a shared live branch unless the task explicitly assigns that branch/session ownership.
+- Product implementation should use an isolated branch/worktree when other agents are active.
+- Do not run cleanup, stash, reset, preservation, branch restore, or checkpoint prompts on a shared live branch.
+- If cleanup/checkpoint is required, first require a user-approved freeze or a dedicated checkpoint branch.
+- If another session is actively modifying the same files, classify as HIGH risk and stop.
+
+### 8. Fixed-HEAD Rule
+
+- Do not keep rerunning fixed-HEAD audits against a branch that is intentionally live.
+- If a prompt expects HEAD X but HEAD has moved:
+  - for preservation/checkpoint/restore tasks: stop and report drift
+  - for ordinary implementation tasks: treat the branch as live, re-scope to isolated worktree/branch, and continue only if collision risk is LOW/MEDIUM
+- Never "update the expected HEAD" silently.
+
+### 9. Frontend Boundary
+
+- Cockpit frontend/product work targets the Next.js web UI under `cockpit-ui/`.
+- Do not implement new frontend behavior in `financial-engine_v2/cockpit/ui/app.py` or local TUI unless explicitly requested.
+- Treat local TUI changes as non-target work by default.
+
+### 10. Memory and Financial Truth Boundaries
+
+- Heavy, mutating, or long-running jobs and memory writes require confirmation gates.
+- Financial truth must remain deterministic, auditable, and provenance-bound.
+- Do not store route/user intent aliases in `user_thesis_memory.py`.
+- User thesis memory is for confirmation-gated investment thesis/evidence notes.
+- Preference memory must be separate from company memory, market memory, user thesis memory, and financial truth.
+- Do not let LLM outputs define canonical numbers or conflate narrative/reporting claims with canonical financial metrics.
+
+### 11. Source/Evidence Label Safety
+
+- Never label an answer source-backed using irrelevant no-row or wrong-tool evidence.
+- Holdings/personal portfolio answers must not be backed by TradingView screener or `screen_tickers` no-row evidence.
+- If evidence is missing or irrelevant, label as DATA_MISSING / unsupported rather than source-backed.
+- Web/search context is source discovery, not canonical financial truth.
+- Feedback/flags are review/evaluation artifacts, not truth or automatic training data.
+
+### 12. Subagent Policy
+
+- Subagents may be used only for parallel repo inspection, documentation gathering, or evidence collection.
+- Do not use subagents to create competing Tenn architecture proposals.
+- Do not assign subagents ownership of contested runtime surfaces.
+- Parent agent must reconcile all subagent findings into one final report.
+- If subagent findings conflict, resolve the conflict and explain which conclusion is accepted and why.
+
+### 13. Required Preflight Template
+
+Each implementation-capable agent prompt should begin its report with:
+
+```text
+Lane:
+Branch:
+Worktree:
+Execution mode:
+Intended files:
+Contested surfaces touched:
+Collision risk:
+Decision:
+- proceed
+- audit only
+- blocked
+```
+
+### 14. Required Final Report Template
+
+Each implementation-capable agent should end with:
+
+```text
+Files changed:
+Files inspected:
+Lane:
+Execution mode:
+Collision risk:
+Validation run:
+Validation result:
+Files intentionally not touched:
+Remaining blockers:
+Next safe step:
+```
+
+### 15. DATA_MISSING Rule
+
+- If repo state, branch ownership, instruction surface, storage schema, or validation evidence is missing, write DATA_MISSING and list the exact missing evidence.
+- Do not fabricate repo state, file paths, commits, validation results, or current agent ownership.
 
 ## Current Sprint State
 

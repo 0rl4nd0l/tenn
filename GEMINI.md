@@ -22,6 +22,12 @@ Gemini MUST comply with the following authoritative documents:
 2. **[CLAUDE.md](CLAUDE.md)**: Operating rules, safety checks, and behavioral constraints.
 3. **[AGENTS.md](AGENTS.md)**: Skill definitions and parallel agent coordination.
 
+## MULTI-AGENT LIVE REPO CONTROL
+
+Gemini must follow the canonical shared policy in [AGENTS.md](AGENTS.md#multi-agent-live-repo-control) before implementation. The repo may be live with Gemini, Codex, Claude, or other sessions active; do not treat HEAD drift as inherently bad except for fixed-baseline preservation, cleanup, checkpoint, reset, stash, branch restore, or reproducibility-validation tasks.
+
+Every Gemini implementation report must declare lane, branch, worktree, execution mode, intended files, contested surfaces touched, collision risk, and decision before editing, then list files actually touched in the final report. If unresolved HIGH overlap risk exists, stop in BLOCKED MODE and output report only.
+
 ---
 
 ## Core Behavioral Rules (Gemini-Specific)

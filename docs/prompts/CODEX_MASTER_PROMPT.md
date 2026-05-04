@@ -27,11 +27,17 @@ Before implementing any change, state:
 
 If you cannot answer all four: **STOP. Do not proceed.**
 
+## MULTI-AGENT LIVE REPO CONTROL
+
+Before implementation, follow the canonical shared policy in [AGENTS.md](../../AGENTS.md#multi-agent-live-repo-control). The repo may be live with Gemini, Codex, Claude, or other sessions active; do not treat HEAD drift as inherently bad except for fixed-baseline preservation, cleanup, checkpoint, reset, stash, branch restore, or reproducibility-validation tasks.
+
+Every implementation-capable agent must declare lane, branch, worktree, execution mode, intended files, contested surfaces touched, collision risk, and decision before editing, then list files actually touched in the final report. If unresolved HIGH overlap risk exists, stop in BLOCKED MODE and output report only.
+
 ---
 
 ## SUBAGENT ORCHESTRATION PATTERN
 
-For complex tasks, use this subagent structure:
+Subagent use must comply with [AGENTS.md](../../AGENTS.md#multi-agent-live-repo-control): subagents may be used only for parallel repo inspection, documentation gathering, or evidence collection. The parent agent owns the final decision, implementation, validation report, and conflict reconciliation.
 
 ### SUBAGENT — CONTRACT ENFORCER (mandatory for all multi-step tasks)
 
@@ -46,21 +52,14 @@ Purpose: Validate planned changes against SYSTEM_CONTRACT.md before execution.
 3. If any violation detected: **STOP execution immediately**
 4. Output: `PASS` (with rationale) or `VIOLATION` (with specific section reference)
 
-### SUBAGENT — IMPLEMENTATION
+### SUBAGENT — EVIDENCE COLLECTOR
 
-Purpose: Execute the approved change.
+Purpose: Inspect files, gather documentation, or collect validation evidence for the parent agent.
 
-- Only proceeds after Contract Enforcer returns `PASS`
-- Follows minimal-change discipline (CLAUDE.md §Minimal Changes)
-- Commits at milestones (CLAUDE.md §Milestone Commit Protocol)
-
-### SUBAGENT — VALIDATION
-
-Purpose: Verify the change after implementation.
-
-- Run relevant test gates (lint, pytest, eval)
-- Confirm no contract invariants were broken
-- Confirm no architecture drift introduced
+- Do not implement changes.
+- Do not create competing Tenn architecture proposals.
+- Do not take ownership of contested runtime surfaces.
+- Return findings with file paths, commands, and confidence markers for parent reconciliation.
 
 ---
 
