@@ -955,6 +955,51 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         )
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_youtube_number_selection_accepts_latest_videos_history(self) -> None:
+        backend = MagicMock()
+        backend.ingest_youtube_urls.return_value = {
+            "ok": True,
+            "count": 1,
+            "error_count": 0,
+            "results": [
+                {
+                    "source_id": "youtube_transcript:status-trades:abc123",
+                    "video_title": "Status of My Trades",
+                    "webpage_url": "https://www.youtube.com/watch?v=ULVlVUSSSkI",
+                    "staged": True,
+                    "chunks_staged": 4,
+                    "takeaways": [{"text": "Trade status takeaway"}],
+                }
+            ],
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.get_chat_messages.return_value = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Here are Kneppy Invests' latest videos:\n\n"
+                    "**Most Recent:**\n"
+                    "1. **\"Status of My Trades\"** (16 mins)\n"
+                    "   - https://www.youtube.com/watch?v=ULVlVUSSSkI\n\n"
+                    "2. **\"Technical Update\"** (26 mins)\n"
+                    "   - https://www.youtube.com/watch?v=0GW4EMwsrzY"
+                ),
+            }
+        ]
+
+        resp = self.controller.build_chat_response("ingest 1")
+
+        assert resp.mode == "command"
+        assert "Staged selected YouTube transcript" in resp.text
+        assert "Trade status takeaway" in resp.text
+        backend.ingest_youtube_urls.assert_called_once_with(
+            ["https://www.youtube.com/watch?v=ULVlVUSSSkI"],
+            credibility_weight=None,
+            takeaway_limit=5,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_youtube_most_recent_selection_ingests_first_video(self) -> None:
         backend = MagicMock()
         backend.ingest_youtube_urls.return_value = {

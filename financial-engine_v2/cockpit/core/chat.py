@@ -5562,8 +5562,6 @@ class ChatController:
 
     @staticmethod
     def _parse_youtube_video_options_from_text(content: str) -> list[dict[str, Any]]:
-        if "Recent videos from" not in content:
-            return []
         youtube_url_re = re.compile(
             r"https?://(?:www\.)?(?:youtube\.com/watch\?[^\s]*v=|youtu\.be/)"
             r"[A-Za-z0-9_\-]{6,}[^\s]*",
