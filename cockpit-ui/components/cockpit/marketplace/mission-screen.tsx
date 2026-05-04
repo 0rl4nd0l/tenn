@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { AlertTriangle, ImageOff, Loader2, Play, RefreshCw, Store, Trash2, X } from 'lucide-react'
 
 import {
+  calibrateMarketplaceProduct,
   createMarketplaceMission,
   deleteMarketplaceMission,
   linkMarketplaceMissionTrackedProduct,
@@ -536,6 +537,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [editForm, setEditForm] = useState<MissionFormState | null>(null)
   const [deletingMissionId, setDeletingMissionId] = useState<string | null>(null)
   const [linkingMissionId, setLinkingMissionId] = useState<string | null>(null)
+  const [calibratingProductId, setCalibratingProductId] = useState<string | null>(null)
   const [stoppingJobId, setStoppingJobId] = useState<string | null>(null)
   const [refreshingBenchmarks, setRefreshingBenchmarks] = useState(false)
   const [benchmarkSortMode, setBenchmarkSortMode] = useState<BenchmarkSortMode>('mission')
@@ -747,6 +749,26 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       )
     } finally {
       setLinkingMissionId(null)
+    }
+  }
+
+  async function handleCalibrateProduct(trackedProductId: string) {
+    if (!trackedProductId) return
+    setCalibratingProductId(trackedProductId)
+    setError(null)
+    setNotice(null)
+    try {
+      const queued = await calibrateMarketplaceProduct(apiKey, trackedProductId)
+      if (queued.job_id) {
+        selectedScanJobIdRef.current = queued.job_id
+        setSelectedScanJobId(queued.job_id)
+      }
+      setNotice('Benchmark calibration triggered.')
+      await load()
+    } catch (calError) {
+      setError(calError instanceof Error ? calError.message : 'Calibration failed')
+    } finally {
+      setCalibratingProductId(null)
     }
   }
 
@@ -1384,6 +1406,25 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                   <RefreshCw className="mr-1.5 h-3 w-3" />
                                 )}
                                 Load tracked products
+                              </Button>
+                            )}
+
+                            {linkedProductId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void handleCalibrateProduct(linkedProductId)}
+                                disabled={calibratingProductId === linkedProductId || scanBlocked}
+                                className="h-8 text-xs w-full mt-1.5 bg-background/50 hover:bg-background"
+                              >
+                                {calibratingProductId === linkedProductId ? (
+                                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="mr-1.5 h-3 w-3" />
+                                )}
+                                {benchmarkState?.sample_size && benchmarkState.sample_size > 0
+                                  ? 'Recalibrate Price'
+                                  : 'Bootstrap Benchmark'}
                               </Button>
                             )}
                           </div>

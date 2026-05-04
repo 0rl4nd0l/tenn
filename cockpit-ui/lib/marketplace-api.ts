@@ -489,6 +489,18 @@ export async function triggerMarketplaceScan(
   return parseJson<MarketplaceScanJob>(response)
 }
 
+export async function calibrateMarketplaceProduct(
+  apiKey: string,
+  trackedProductId: string,
+): Promise<MarketplaceScanJob> {
+  const response = await fetchWithTimeout('/api/cockpit/marketplace/price-intelligence/calibrate', {
+    method: 'POST',
+    headers: buildHeaders(apiKey),
+    body: JSON.stringify({ tracked_product_id: trackedProductId }),
+  }, 12_000)
+  return parseJson<MarketplaceScanJob>(response)
+}
+
 export async function listMarketplaceMatches(
   apiKey: string,
   filters?: { missionId?: string; status?: string; decisionBand?: string },
