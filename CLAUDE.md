@@ -1,7 +1,10 @@
 # CLAUDE.md — Tenn Operating Instructions
 
+@AGENTS.md
+
 This file is the top-level operating guide for Claude in this repository.
 Read this first. Then read the repo-native docs it references before acting.
+Claude Code must follow the Tenn task-card contract imported from `AGENTS.md`, including validating provided task cards before implementation and running `check-diff` before the final report.
 
 ---
 

@@ -256,6 +256,17 @@ Next safe step:
 - If repo state, branch ownership, instruction surface, storage schema, or validation evidence is missing, write DATA_MISSING and list the exact missing evidence.
 - Do not fabricate repo state, file paths, commits, validation results, or current agent ownership.
 
+## Tenn Dev-Agent Task-Card Contract
+
+This contract applies to Codex, Claude Code, Gemini, and any other implementation-capable dev agent working in this repo.
+
+- Every implementation task must declare exactly one lane before work begins.
+- When a task card is provided, validate it before implementation with `python scripts/agent_job_contract.py validate <task_card>`.
+- Task cards must use `production_data_access: false`; dev-agent jobs must not request or use production data access.
+- Before the final report for any task-card job, run `python scripts/agent_job_contract.py check-diff <task_card>` and resolve or report any blocked diff.
+- Stop on unresolved HIGH collision risk. Do not implement while HIGH overlap risk remains unresolved.
+- Hook activation uses `TENN_AGENT_TASK_CARD=<path>` or `.tenn/active_agent_task` to identify the active task card. Exploratory sessions without either marker must not be blocked by the task-card hook.
+
 ## Current Sprint State
 
 > **This section is a snapshot.** Always cross-reference `docs/claude/STATE.md` for current workstream status before acting.

@@ -52,7 +52,10 @@ financial-engine_v2/scripts/broad_test_results/
 .continue/
 .qoder/
 .opencode/
-.codex/
+.codex/*
+!.codex/
+!.codex/config.toml
+!.codex/hooks.json
 .sdd/
 
 # Large data / models (stored externally)
@@ -99,6 +102,7 @@ cockpit-ui/test-results/
 
 # Tool state
 .serena/
+.tenn/
 
 # Process output
 nohup.out

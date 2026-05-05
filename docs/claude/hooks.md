@@ -4,6 +4,8 @@ All automation hooks active in this repo. Agents should read this before trigger
 
 ## Source Trace
 - `.claude/settings.json` (Confirmed)
+- `.codex/config.toml` (Confirmed)
+- `.codex/hooks.json` (Confirmed)
 - `.git/hooks/pre-commit` (Confirmed)
 - `.git/hooks/pre-push` (Confirmed)
 
@@ -21,11 +23,12 @@ These fire automatically during Claude Code sessions.
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.py` file | Runs `ruff check --fix` on the file; silent on non-Python files |
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.sh` file | Runs `chmod +x` on the file |
 | `PostToolUse` / `Write\|Edit` | After Claude edits a file under `backend/app/` | Runs `pytest backend/tests/ -x -q --tb=short`; silent if venv not found |
+| `Stop` | When Claude finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is set |
 | `Stop` | When Claude finishes a task | Runs `git diff --stat HEAD` — shows all files changed since last commit |
 | `Stop` | When Claude finishes a task | Checks if infrastructure/config files changed without corresponding `docs/claude/` updates — prints WARNING if so |
 
 **Ruff binary / pytest binary:** `financial-engine_v2/.venv/bin/ruff` and `.../pytest`
-All hooks are non-blocking (`|| true`); they will not interrupt Claude if they fail.
+Legacy hygiene hooks are non-blocking (`|| true`); they warn without interrupting Claude if they fail. The Tenn task-card hook is intentionally blocking when an active task card fails validation or `check-diff`.
 
 **Note for agents:** The `SessionStart` and `Stop` hooks output context to the transcript. Use `Stop` output to verify what changed before concluding a task.
 
@@ -33,7 +36,22 @@ All hooks are non-blocking (`|| true`); they will not interrupt Claude if they f
 
 **Graphify reminder:** The `PreToolUse` search hook must emit a top-level `systemMessage`. Do not use `hookSpecificOutput.additionalContext` for this hook; recent Claude Code runtimes reject that field for `PreToolUse`.
 
-**Doc coverage warning:** The second `Stop` hook detects when infrastructure files (`.mcp.json`, `settings.json`, `scripts/mcp/`, `.claude/commands/`, etc.) were modified but no `docs/claude/` files were updated. This is a non-blocking warning — the agent must act on it before concluding the task. See CLAUDE.md "Post-Write Documentation" for the mapping of changed surfaces to required doc updates.
+**Doc coverage warning:** The doc-coverage `Stop` hook detects when infrastructure files (`.mcp.json`, `settings.json`, `scripts/mcp/`, `.claude/commands/`, etc.) were modified but no `docs/claude/` files were updated. This is a non-blocking JSON `systemMessage` warning — the agent must act on it before concluding the task. See CLAUDE.md "Post-Write Documentation" for the mapping of changed surfaces to required doc updates.
+
+**Tenn task-card hook:** `scripts/agent_job_hook.py` reads hook stdin JSON, resolves the repo root, finds an active task card from `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task`, then runs `scripts/agent_job_contract.py validate` and `check-diff`. With no active task card it returns valid empty JSON and does not block exploratory sessions. With an active task card it emits valid JSON for pass or block results.
+
+**Stop hook JSON:** Claude Stop hooks that produce output now emit JSON objects such as `{"systemMessage": "..."}`. The previous raw `git diff --stat` and plain text doc-coverage output were replaced to avoid invalid Stop hook JSON output.
+
+---
+
+## Codex Hooks (`.codex/config.toml`, `.codex/hooks.json`)
+
+Repo-local Codex hooks are enabled with `codex_hooks = true`.
+
+| Event | Trigger | What It Does |
+|-------|---------|--------------|
+| `PreToolUse` / `Bash` | Before shell commands | Emits a graphify reminder via `systemMessage` when `graphify-out/graph.json` exists |
+| `Stop` | When Codex finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is set |
 
 ---
 
@@ -84,6 +102,7 @@ financial-engine_v2/.venv/bin/ruff check --fix autodev financial-engine_v2/backe
 | Session start context | `.claude/settings.json` | Claude Code only |
 | Sensitive path warning (PreToolUse) | `.claude/settings.json` | Claude Code only |
 | Graphify search reminder (PreToolUse) | `.claude/settings.json` / `.codex/hooks.json` | Claude Code + Codex |
+| Tenn task-card contract (Stop) | `.claude/settings.json` / `.codex/hooks.json` | Claude Code + Codex |
 | Auto ruff on Python writes | `.claude/settings.json` | Claude Code only |
 | Auto chmod on shell writes | `.claude/settings.json` | Claude Code only |
 | Auto pytest on backend edits | `.claude/settings.json` | Claude Code only |
