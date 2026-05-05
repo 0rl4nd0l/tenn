@@ -2,15 +2,17 @@
 
 ## Primary Rollback
 
-Preferred rollback is restoring the raw pre-mutation backup:
+Preferred rollback is restoring the raw pre-mutation backup preserved outside git:
 
-`reports/memory_historical_cleanup_live_expiry_20260505_174752/backup/company_memory.sqlite.pre_live_expiry_20260505_174752`
+`/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/live_expiry_backup/company_memory.sqlite.pre_live_expiry_20260505_174752`
 
 Backup checksum:
 
 `aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1`
 
 This matches the live company memory DB checksum captured before the approved live expiry batch.
+
+The original in-report backup artifact was removed from git tracking during backup artifact remediation. Do not commit raw SQLite rollback copies.
 
 ## Row-Id Rollback
 

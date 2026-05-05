@@ -14,7 +14,7 @@ Live DB: `/data/reports/research_memory/company_memory.sqlite`
 - Audit rows inserted: 249
 - Status counts before: {'active': 1997, 'expired': 1}
 - Status counts after: {'active': 1748, 'expired': 250}
-- Backup path: `/workspace/reports/memory_historical_cleanup_live_expiry_20260505_174752/backup/company_memory.sqlite.pre_live_expiry_20260505_174752`
+- Backup path after git remediation: `/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/live_expiry_backup/company_memory.sqlite.pre_live_expiry_20260505_174752`
 - Backup checksum: `aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1`
 - Backup method: `raw_file_copy`
 - Live checksum before: `aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1`
@@ -24,3 +24,7 @@ Live DB: `/data/reports/research_memory/company_memory.sqlite`
 ## Scope
 
 The live mutation changed only approved `memory_entries.status` values, inserted `change_log` audit rows, and refreshed `company_memory.active_entry_count` summaries for affected companies. It did not delete rows, rewrite text, canonicalize aliases, rehome market/macro rows, touch market/thesis/session stores, reindex Qdrant, run ingestion, change retrieval/ranking, or change financial truth.
+
+## Backup Artifact Remediation
+
+The original in-report raw SQLite backup was removed from git tracking after an external rollback copy was verified byte-for-byte. The external copy above is the rollback authority for full DB restore.

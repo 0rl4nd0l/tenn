@@ -21,6 +21,7 @@ Approval: `approved_by_user_20260505_first_batch_249`
 - Live DB: `financial-engine_v2/data/reports/research_memory/company_memory.sqlite`
 - Pre-live checksum: `aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1`
 - Backup checksum: `aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1`
+- External rollback backup: `/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/live_expiry_backup/company_memory.sqlite.pre_live_expiry_20260505_174752`
 - Post-live checksum after WAL checkpoint: `62fbc2b01a6b0fb2ba50ba09fdb6ba493f1cbcef9021bdf3d9e1cc196a5b7ff1`
 - Market memory checksum unchanged: `2a1d8cc4434a4f924345939efba966609bee502eaa01cc2f92f6239d9973f9ea`
 - Thesis memory checksum unchanged: `5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94`

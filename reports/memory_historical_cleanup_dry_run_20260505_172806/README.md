@@ -20,8 +20,10 @@ Decision: copied-DB dry run completed; live mutation remains gated.
 
 ## Key Files
 
-- Copied DB: `/mnt/sdb2/home/l4nd0/tenn/reports/memory_historical_cleanup_dry_run_20260505_172806/copied_db/company_memory.sqlite`
+- Copied DB after git remediation: `/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/dry_run_copied_db/company_memory.sqlite`
 - Validation CSV: `csv/candidate_validation_results.csv`
 - Expired rows CSV: `csv/dry_run_rows_expired.csv`
 - First-batch CSV: `csv/operator_first_batch_candidates.csv`
 - SQL templates: `sql_templates/DO_NOT_RUN_live_expire_candidates.sql`, `sql_templates/DO_NOT_RUN_rollback_expire_candidates.sql`
+
+The raw copied SQLite files were preserved outside git and removed from tracking during backup artifact remediation. The tracked report keeps CSVs, markdown, SQL templates, and JSONL evidence only.

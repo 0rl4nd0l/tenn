@@ -9,9 +9,11 @@
 
 ## Copied Paths
 
-- Company memory copy: `/mnt/sdb2/home/l4nd0/tenn/reports/memory_historical_cleanup_dry_run_20260505_172806/copied_db/company_memory.sqlite`
-- Market memory copy: `reports/memory_historical_cleanup_dry_run_20260505_172806/copied_db/market_memory.sqlite`
-- User thesis copy: `reports/memory_historical_cleanup_dry_run_20260505_172806/copied_db/user_thesis_memory.sqlite`
+- Company memory copy after git remediation: `/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/dry_run_copied_db/company_memory.sqlite`
+- Market memory copy after git remediation: `/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/dry_run_copied_db/market_memory.sqlite`
+- User thesis copy after git remediation: `/mnt/sdb2/home/l4nd0/tenn_runtime_backups/memory_cleanup_20260505_174752/dry_run_copied_db/user_thesis_memory.sqlite`
+
+The original in-report raw SQLite copies were removed from git tracking. The external copies above preserve the dry-run evidence without committing database files.
 
 ## Company Schema
 
