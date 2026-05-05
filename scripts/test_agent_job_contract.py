@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import subprocess
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -38,6 +40,36 @@ def task_card(**overrides: object) -> str:
 
 def issue_fields(result: ajc.ValidationResult) -> set[str]:
     return {issue.field for issue in result.issues}
+
+
+def diff_issue_fields(result: ajc.DiffCheckResult) -> set[str]:
+    return {issue.field for issue in result.issues}
+
+
+def run_git(repo: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+def git_repo(tmp_path: Path) -> Path:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    run_git(tmp_path, "init")
+    run_git(tmp_path, "config", "user.email", "agent-job-contract@example.invalid")
+    run_git(tmp_path, "config", "user.name", "Agent Job Contract Tests")
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "allowed.py").write_text("allowed = 1\n", encoding="utf-8")
+    (src / "outside.py").write_text("outside = 1\n", encoding="utf-8")
+    run_git(tmp_path, "add", "src/allowed.py", "src/outside.py")
+    run_git(tmp_path, "commit", "-m", "init")
+    return tmp_path
 
 
 def test_valid_task_card_passes() -> None:
@@ -109,6 +141,161 @@ def test_resolve_report_dir_rejects_symlink_escape(tmp_path) -> None:
             "codex-dev-job-1",
             repo_root=tmp_path,
         )
+
+
+def test_check_diff_clean_allowed_file_change_passes(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(allowed_files=["src/allowed.py"]),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert [changed.path for changed in result.changed_files] == ["src/allowed.py"]
+    assert result.disallowed_files == []
+    assert result.report_path == "reports/agent_jobs/codex-dev-job-1/diff-check.json"
+    assert (repo / result.report_path).exists()
+
+
+def test_check_diff_changed_file_outside_allowed_files_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "outside.py").write_text("outside = 2\n", encoding="utf-8")
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(allowed_files=["src/allowed.py"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert "src/outside.py" in result.disallowed_files
+    assert "changed_files" in diff_issue_fields(result)
+
+
+def test_check_diff_untracked_outside_file_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "new_outside.py").write_text("outside = 2\n", encoding="utf-8")
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(allowed_files=["src/allowed.py"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert "src/new_outside.py" in result.disallowed_files
+
+
+def test_check_diff_deleted_outside_file_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "outside.py").unlink()
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(allowed_files=["src/allowed.py"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert "src/outside.py" in result.disallowed_files
+
+
+def test_check_diff_missing_or_invalid_task_card_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_diff_for_task_card_markdown("Task body without frontmatter.\n", repo_root=repo)
+
+    assert not result.ok
+    assert "frontmatter" in diff_issue_fields(result)
+    assert result.changed_files == []
+    assert result.report_path is None
+
+
+def test_check_diff_production_data_access_true_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(production_data_access=True),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert "production_data_access" in diff_issue_fields(result)
+
+
+def test_check_diff_output_dir_outside_agent_jobs_fails_without_report(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(output_dir="reports/not_agent_jobs/codex-dev-job-1"),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert "output_dir" in diff_issue_fields(result)
+    assert result.report_path is None
+    assert not (repo / "reports" / "not_agent_jobs" / "codex-dev-job-1" / "diff-check.json").exists()
+
+
+def test_check_diff_audit_only_code_changes_fail_unless_explicitly_allowed(tmp_path) -> None:
+    blocked_repo = git_repo(tmp_path / "blocked")
+    (blocked_repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    blocked = ajc.check_diff_for_task_card_markdown(
+        task_card(
+            allowed_files=["src/allowed.py"],
+            mutation_mode="audit_only",
+        ),
+        repo_root=blocked_repo,
+    )
+
+    assert not blocked.ok
+    assert "mutation_mode" in diff_issue_fields(blocked)
+
+    allowed_repo = git_repo(tmp_path / "allowed")
+    (allowed_repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    allowed = ajc.check_diff_for_task_card_markdown(
+        task_card(
+            allowed_files=["src/allowed.py"],
+            mutation_mode="audit_only",
+            allow_audit_code_changes=True,
+        ),
+        repo_root=allowed_repo,
+    )
+
+    assert allowed.ok
+
+
+def test_check_diff_report_output_stays_under_task_output_dir(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    result = ajc.check_diff_for_task_card_markdown(
+        task_card(allowed_files=["src/allowed.py"]),
+        repo_root=repo,
+    )
+
+    assert result.report_path is not None
+    report_path = (repo / result.report_path).resolve()
+    allowed_root = (repo / "reports" / "agent_jobs" / "codex-dev-job-1").resolve()
+    assert report_path.relative_to(allowed_root)
+
+    external = repo / "external"
+    external.mkdir()
+    job_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-2"
+    job_dir.symlink_to(external, target_is_directory=True)
+    escaped = ajc.check_diff_for_task_card_markdown(
+        task_card(
+            job_id="codex-dev-job-2",
+            allowed_files=["src/allowed.py"],
+            output_dir="reports/agent_jobs/codex-dev-job-2",
+        ),
+        repo_root=repo,
+    )
+
+    assert not escaped.ok
+    assert "output_dir" in diff_issue_fields(escaped)
+    assert not (external / "diff-check.json").exists()
 
 
 def test_frontmatter_preservation_round_trip_keeps_metadata_intact() -> None:

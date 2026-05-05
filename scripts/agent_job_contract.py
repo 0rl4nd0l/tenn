@@ -6,11 +6,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Sequence
 
 try:
     import yaml  # type: ignore
@@ -82,6 +83,35 @@ class WatchdogState:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ChangedFile:
+    path: str
+    status: str
+
+    def to_dict(self) -> dict[str, str]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class DiffCheckResult:
+    ok: bool
+    validation: ValidationResult
+    changed_files: list[ChangedFile]
+    disallowed_files: list[str]
+    issues: list[ValidationIssue]
+    report_path: str | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ok": self.ok,
+            "validation": self.validation.to_dict(),
+            "changed_files": [changed.to_dict() for changed in self.changed_files],
+            "disallowed_files": self.disallowed_files,
+            "issues": [asdict(issue) for issue in self.issues],
+            "report_path": self.report_path,
+        }
 
 
 def _require_yaml() -> None:
@@ -242,6 +272,154 @@ def write_validation_report(result: ValidationResult, output_dir: str, job_id: s
     return report_path
 
 
+def read_git_changed_files(repo_root: Path | None = None) -> list[ChangedFile]:
+    """Read changed, deleted, and untracked files from git status."""
+    root = repo_root or Path.cwd()
+    completed = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=root,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return _parse_git_status_porcelain(completed.stdout)
+
+
+def _parse_git_status_porcelain(output: str) -> list[ChangedFile]:
+    changed: list[ChangedFile] = []
+    for raw_line in output.splitlines():
+        if not raw_line:
+            continue
+        if raw_line.startswith("?? "):
+            changed.append(ChangedFile(path=_normalize_repo_path(raw_line[3:]), status="??"))
+            continue
+        if len(raw_line) < 4:
+            continue
+
+        status = raw_line[:2].strip() or raw_line[:2]
+        path_text = raw_line[3:]
+        if " -> " in path_text:
+            old_path, new_path = path_text.split(" -> ", 1)
+            changed.append(ChangedFile(path=_normalize_repo_path(old_path), status=status))
+            changed.append(ChangedFile(path=_normalize_repo_path(new_path), status=status))
+        else:
+            changed.append(ChangedFile(path=_normalize_repo_path(path_text), status=status))
+    return changed
+
+
+def _normalize_repo_path(path_text: str) -> str:
+    path = PurePosixPath(path_text.strip().replace("\\", "/"))
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        raise ValueError(f"git path must be repo-relative without parent segments: {path_text}")
+    return path.as_posix()
+
+
+def _allowed_file_set(metadata: dict[str, Any]) -> set[str]:
+    return {_normalize_repo_path(item) for item in metadata.get("allowed_files", [])}
+
+
+def check_diff_for_task_card_markdown(
+    markdown: str,
+    *,
+    repo_root: Path | None = None,
+    changed_files: Sequence[ChangedFile] | None = None,
+    write_report: bool = True,
+) -> DiffCheckResult:
+    """Validate a task card, then enforce that git changes stay within allowed_files."""
+    root = repo_root or Path.cwd()
+    validation = validate_task_card_markdown(markdown)
+    result = DiffCheckResult(
+        ok=validation.ok,
+        validation=validation,
+        changed_files=[],
+        disallowed_files=[],
+        issues=list(validation.issues),
+        report_path=None,
+    )
+
+    if validation.ok:
+        issues: list[ValidationIssue] = []
+        try:
+            changes = list(changed_files) if changed_files is not None else read_git_changed_files(root)
+            allowed_files = _allowed_file_set(validation.metadata)
+        except (subprocess.CalledProcessError, ValueError) as exc:
+            changes = []
+            allowed_files = set()
+            issues.append(ValidationIssue("git", str(exc)))
+
+        disallowed_files = sorted({changed.path for changed in changes if changed.path not in allowed_files})
+        for path in disallowed_files:
+            issues.append(ValidationIssue("changed_files", f"{path} is outside allowed_files"))
+
+        if (
+            validation.metadata.get("mutation_mode") == "audit_only"
+            and changes
+            and validation.metadata.get("allow_audit_code_changes") is not True
+        ):
+            issues.append(
+                ValidationIssue(
+                    "mutation_mode",
+                    "audit_only jobs may not include code changes unless allow_audit_code_changes=true",
+                )
+            )
+
+        result = DiffCheckResult(
+            ok=not issues,
+            validation=validation,
+            changed_files=changes,
+            disallowed_files=disallowed_files,
+            issues=issues,
+            report_path=None,
+        )
+
+    if write_report:
+        result = _write_diff_report_if_possible(result, root)
+
+    return result
+
+
+def _write_diff_report_if_possible(result: DiffCheckResult, repo_root: Path) -> DiffCheckResult:
+    metadata = result.validation.metadata
+    job_id = metadata.get("job_id")
+    output_dir = metadata.get("output_dir")
+    if not isinstance(job_id, str) or not isinstance(output_dir, str):
+        return result
+
+    try:
+        return write_diff_report(result, output_dir, job_id, repo_root=repo_root)
+    except ValueError as exc:
+        if any(issue.field == "output_dir" and issue.message == str(exc) for issue in result.issues):
+            return replace(result, ok=False)
+        return replace(
+            result,
+            ok=False,
+            issues=[*result.issues, ValidationIssue("output_dir", str(exc))],
+        )
+
+
+def write_diff_report(
+    result: DiffCheckResult,
+    output_dir: str,
+    job_id: str,
+    repo_root: Path | None = None,
+) -> DiffCheckResult:
+    root = (repo_root or Path.cwd()).resolve()
+    report_dir = resolve_report_dir(output_dir, job_id, repo_root=root)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "diff-check.json"
+    result_with_path = replace(result, report_path=_display_report_path(report_path, root))
+    report_path.write_text(json.dumps(result_with_path.to_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result_with_path
+
+
+def _display_report_path(report_path: Path, repo_root: Path) -> str:
+    try:
+        return report_path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return str(report_path.resolve())
+
+
 def _coerce_now(now: datetime | None = None) -> datetime:
     if now is None:
         return datetime.now(timezone.utc)
@@ -336,6 +514,9 @@ def _build_parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="validate a Markdown task card")
     validate.add_argument("task_card", type=Path)
     validate.add_argument("--write-report", action="store_true")
+    check_diff = sub.add_parser("check-diff", help="verify git changes stay within task-card allowed_files")
+    check_diff.add_argument("task_card", type=Path)
+    check_diff.add_argument("--repo-root", type=Path, default=Path.cwd())
     return parser
 
 
@@ -349,6 +530,11 @@ def main(argv: list[str] | None = None) -> int:
                 write_validation_report(result, str(result.metadata["output_dir"]), str(result.metadata["job_id"]))
             except ValueError:
                 pass
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        return 0 if result.ok else 1
+    if args.command == "check-diff":
+        markdown = args.task_card.read_text(encoding="utf-8")
+        result = check_diff_for_task_card_markdown(markdown, repo_root=args.repo_root)
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
         return 0 if result.ok else 1
     return 2
