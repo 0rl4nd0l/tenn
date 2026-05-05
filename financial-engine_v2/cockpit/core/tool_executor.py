@@ -1985,7 +1985,7 @@ class ToolExecutor:
             minimal["hit_count"] = result.get("hit_count")
         if result.get("count") is not None:
             minimal["count"] = result.get("count")
-        for key in ("name", "channel_id", "limit"):
+        for key in ("query", "ticker", "market", "name", "channel_id", "limit"):
             if result.get(key) not in (None, ""):
                 minimal[key] = result.get(key)
         freshness_warning = self._compact_text(
@@ -2002,6 +2002,8 @@ class ToolExecutor:
         for list_key in (
             "hits",
             "results",
+            "documents",
+            "context",
             "videos",
             "docs",
             "doc_snippets",
@@ -2056,6 +2058,15 @@ class ToolExecutor:
                         compact_takeaways.append({"text": text})
                 if compact_takeaways:
                     minimal_row["takeaways"] = compact_takeaways
+            snippet = self._compact_text(
+                first.get("snippet")
+                or first.get("text")
+                or first.get("excerpt")
+                or first.get("statement"),
+                max_chars=180,
+            )
+            if snippet:
+                minimal_row["snippet"] = snippet
             if minimal_row:
                 minimal[list_key] = [minimal_row]
 
@@ -2096,23 +2107,42 @@ class ToolExecutor:
             "freshness_warning": self._compact_text(
                 result.get("freshness_warning"), max_chars=220
             ),
-            "data": self._compact_text(serialized, max_chars=self._max_result_chars),
         }
-        for key in ("name", "channel_id", "count", "hit_count", "limit"):
+        for key in (
+            "query",
+            "ticker",
+            "market",
+            "name",
+            "channel_id",
+            "count",
+            "hit_count",
+            "limit",
+        ):
             if result.get(key) not in (None, ""):
                 fallback[key] = result.get(key)
-        video_rows = self._compact_result_list(
-            result.get("videos"),
-            max_rows=1,
-            max_result_chars=180,
-        )
-        if video_rows:
-            fallback["videos"] = video_rows
-        result_rows = self._compact_result_list(
-            result.get("results"),
-            max_rows=1,
-            max_result_chars=140,
-        )
-        if result_rows:
-            fallback["results"] = result_rows
+        source_rows_preserved = False
+        for list_key in (
+            "hits",
+            "results",
+            "documents",
+            "context",
+            "videos",
+            "docs",
+            "doc_snippets",
+            "announcement_context",
+            "financials",
+        ):
+            rows = self._compact_result_list(
+                result.get(list_key),
+                max_rows=1,
+                max_result_chars=140,
+            )
+            if rows:
+                fallback[list_key] = rows
+                source_rows_preserved = True
+        if not source_rows_preserved:
+            fallback["data"] = self._compact_text(
+                serialized,
+                max_chars=self._max_result_chars,
+            )
         return fallback

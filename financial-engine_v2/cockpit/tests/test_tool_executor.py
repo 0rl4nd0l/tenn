@@ -297,6 +297,46 @@ class TestSearchNewsFreshnessWarning:
         assert result["announcement_context"][0]["source_url"].endswith("eos-contract.pdf")
         assert result["financials"][0]["source_document_id"] == "doc-fin"
 
+    def test_search_announcements_truncation_preserves_documents_and_context(self) -> None:
+        executor = _make_executor(max_result_chars=720)
+        backend = MagicMock()
+        backend.get_ticker_context.return_value = {
+            "docs": [
+                {
+                    "title": "WTC 1H26 Appendix 4D and financial report",
+                    "source_url": "https://example.com/wtc-1h26.pdf",
+                    "document_id": "doc-1h26",
+                    "published_at": "2026-02-25T00:00:00Z",
+                    "text": "A" * 2200,
+                },
+                {
+                    "title": "WTC investor update",
+                    "source_url": "https://example.com/wtc-investor.pdf",
+                    "document_id": "doc-investor",
+                    "published_at": "2026-03-01T00:00:00Z",
+                    "text": "B" * 2200,
+                },
+            ],
+            "announcement_context": [
+                {
+                    "title": "WTC 1H26 Appendix 4D and financial report",
+                    "source_url": "https://example.com/wtc-1h26.pdf",
+                    "document_id": "ctx-1h26",
+                    "published_at": "2026-02-25T00:00:00Z",
+                    "text": "WiseTech reported 1H26 financial information." + (" C" * 900),
+                }
+            ],
+        }
+        executor._router.backend_api_client = backend
+
+        result = executor.execute("search_announcements", {"ticker": "WTC", "limit": 15})
+
+        assert result.get("_truncated") is True
+        assert result["ticker"] == "WTC"
+        assert result["documents"][0]["title"] == "WTC 1H26 Appendix 4D and financial report"
+        assert result["documents"][0]["source_url"] == "https://example.com/wtc-1h26.pdf"
+        assert result["context"][0]["snippet"].startswith("WiseTech reported 1H26")
+
     def test_youtube_recent_video_truncation_preserves_videos(self) -> None:
         """Large YouTube preview payloads must retain videos for command formatting/sources."""
         executor = _make_executor(max_result_chars=900)

@@ -1334,6 +1334,9 @@ class AgentLoop:
             "Every factual claim must be directly supported by the supplied evidence. "
             "If a claim cannot be supported, state that you cannot verify it. "
             "Do not rely on prior session context unless the current evidence confirms it. "
+            "If recent documents or announcement rows exist but extracted financial rows are older, "
+            "distinguish stale extracted metrics from available recent filings; do not say no recent "
+            "announcements were found. "
             "When useful, cover what was found, what was not found, what is inference, "
             "what remains unsupported, and the best next action."
         )
@@ -1920,7 +1923,7 @@ def _summarize_rows(rows: Any, *, title_key: str, limit: int = 3) -> str:
         date = row.get("published_at") or row.get("date")
         if date not in (None, ""):
             bits.append(str(date)[:10])
-        url = row.get("url")
+        url = row.get("url") or row.get("source_url") or row.get("webpage_url")
         if url not in (None, ""):
             bits.append(str(url))
         snippet = row.get("snippet") or row.get("text") or row.get("excerpt")

@@ -959,6 +959,34 @@ class TestAgentLoopRegressions:
         assert "previous_close=6.11" in summary
         assert "Pilbara described production" in summary
 
+    def test_evidence_summary_preserves_announcement_source_url(self):
+        summary = AgentLoop._summarize_evidence(
+            [
+                {
+                    "tool": "search_announcements",
+                    "result": {
+                        "tool": "search_announcements",
+                        "ok": True,
+                        "_truncated": True,
+                        "_original_chars": 21_157,
+                        "ticker": "WTC",
+                        "documents": [
+                            {
+                                "title": "WTC 1H26 Appendix 4D and financial report",
+                                "published_at": "2026-02-25T00:00:00Z",
+                                "source_url": "https://example.com/wtc-1h26.pdf",
+                            }
+                        ],
+                    },
+                }
+            ]
+        )
+
+        assert "_truncated" not in summary
+        assert "WTC 1H26 Appendix 4D" in summary
+        assert "2026-02-25" in summary
+        assert "https://example.com/wtc-1h26.pdf" in summary
+
     def test_financial_truth_summary_preserves_announcement_context_without_rows(self):
         summary = AgentLoop._summarize_evidence(
             [

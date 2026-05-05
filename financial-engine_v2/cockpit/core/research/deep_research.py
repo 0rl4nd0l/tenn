@@ -8,7 +8,6 @@ never calls LLM directly).
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -53,7 +52,12 @@ class DeepResearchRunner:
         synthesis = self._synthesize(ticker, gathered, focus=focus)
 
         # 3. Persist to dossier (auto-save to agent scratch memory).
-        if self._dossier is not None and synthesis.get("summary"):
+        synthesis_failed = bool(synthesis.get("synthesis_failed"))
+        if (
+            self._dossier is not None
+            and synthesis.get("summary")
+            and not synthesis_failed
+        ):
             self._dossier.save(
                 ticker,
                 synthesis["summary"],
@@ -62,17 +66,19 @@ class DeepResearchRunner:
                 category="financial",
             )
 
-        # 4. Return result (capped for context window).
-        result_text = json.dumps(synthesis, default=str, ensure_ascii=False)
-        if len(result_text) > 4000:
-            result_text = result_text[:4000]
-
-        return {
-            "ok": True,
+        result: dict[str, Any] = {
+            "ok": not synthesis_failed,
             "ticker": ticker,
             "research": synthesis,
             "sources_used": list(gathered.keys()),
         }
+        if synthesis_failed:
+            result["error"] = str(
+                synthesis.get("error")
+                or synthesis.get("summary")
+                or "Deep research synthesis failed"
+            )
+        return result
 
     # ------------------------------------------------------------------
     # Gather
@@ -269,6 +275,8 @@ class DeepResearchRunner:
                 "risks": ["Backend client not configured"],
                 "catalysts": [],
                 "data_gaps": ["Synthesis unavailable"],
+                "synthesis_failed": True,
+                "error": "Backend client not configured",
             }
 
         try:
@@ -288,4 +296,6 @@ class DeepResearchRunner:
                 "risks": ["Synthesis failed"],
                 "catalysts": [],
                 "data_gaps": ["Backend synthesis call failed"],
+                "synthesis_failed": True,
+                "error": f"Backend synthesis call failed: {str(exc)[:200]}",
             }

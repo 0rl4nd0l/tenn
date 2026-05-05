@@ -63,7 +63,8 @@ class TestDeepResearchRunner:
     def test_backend_failure_returns_graceful_fallback(self):
         runner, _, _ = _make_runner(backend_error=RuntimeError("Backend unreachable"))
         result = runner.run("BHP")
-        assert result["ok"] is True  # run() always returns ok=True
+        assert result["ok"] is False
+        assert "Backend synthesis call failed" in result["error"]
         assert "LLM synthesis failed" in result["research"]["summary"]
         assert result["research"]["confidence"] == 0.0
 
@@ -98,11 +99,7 @@ class TestDeepResearchRunner:
     def test_dossier_not_saved_on_synthesis_failure(self):
         runner, _, mock_dossier = _make_runner(backend_error=RuntimeError("fail"))
         runner.run("BHP")
-        # Dossier still saves the failure summary (it has a "summary" key)
-        # but the summary contains "LLM synthesis failed"
-        if mock_dossier.save.called:
-            saved_text = mock_dossier.save.call_args[0][1]
-            assert "failed" in saved_text.lower()
+        mock_dossier.save.assert_not_called()
 
     def test_no_hybrid_router_reference(self):
         """Confirm HybridRouter is not referenced anywhere in DeepResearchRunner."""
