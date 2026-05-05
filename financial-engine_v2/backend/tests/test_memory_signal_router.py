@@ -3,8 +3,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.company_memory import CompanyMemoryStore
@@ -14,6 +12,22 @@ from app.services.memory_signal_router import (
     signals_from_commentary_memo,
     signals_from_news_memo,
 )
+
+
+def _tickers_with_statement(
+    company_store: CompanyMemoryStore,
+    tickers: list[str],
+    text: str,
+) -> list[str]:
+    needle = text.lower()
+    return [
+        ticker
+        for ticker in tickers
+        if any(
+            needle in entry["statement"].lower()
+            for entry in company_store.list_entries(ticker)
+        )
+    ]
 
 
 def test_commentary_memo_generates_company_signals_with_required_fields() -> None:
@@ -219,13 +233,6 @@ def test_route_signals_persists_company_and_market_entries(tmp_path: Path) -> No
     assert len(market_store.list_sector_entries("Materials")) == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "CONFIRMED contamination bug: memo-level tickers are currently used as "
-        "company write targets for every statement."
-    ),
-)
 def test_multi_topic_commentary_does_not_fanout_primary_company_signal(
     tmp_path: Path,
 ) -> None:
@@ -246,7 +253,7 @@ def test_multi_topic_commentary_does_not_fanout_primary_company_signal(
         "risks": ["Inflation and interest rates remain a macro risk for the market."],
         "sentiment": "mixed",
         "time_horizon": "near-term",
-        "tickers": ["A2M", "ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC"],
+        "tickers": ["A2M", "ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC", "BHP", "COH"],
         "source_type": "youtube_transcript",
         "published_at": "2026-05-05T00:00:00+00:00",
     }
@@ -257,22 +264,140 @@ def test_multi_topic_commentary_does_not_fanout_primary_company_signal(
         market_memory_store=market_store,
     )
 
-    assert any(
-        "product recall" in entry["statement"].lower()
-        for entry in company_store.list_entries("A2M")
-    )
-    for ticker in ["ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC"]:
-        assert all(
-            "A2M" not in entry["statement"].upper()
-            for entry in company_store.list_entries(ticker)
-        )
+    all_tickers = ["A2M", "ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC", "BHP", "COH"]
+    assert _tickers_with_statement(company_store, all_tickers, "product recall") == [
+        "A2M"
+    ]
+    assert _tickers_with_statement(
+        company_store, all_tickers, "ATLASSIAN share price"
+    ) == ["ATLASSIAN"]
+    assert _tickers_with_statement(
+        company_store, all_tickers, "PETTIMED capital raising"
+    ) == ["PETTIMED"]
 
     macro_entries = market_store.list_macro_entries("Interest rates")
     assert any(
         "interest rates" in entry["statement"].lower() for entry in macro_entries
     )
-    for ticker in ["A2M", "ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC"]:
+    for ticker in all_tickers:
         assert all(
             "interest rates" not in entry["statement"].lower()
             for entry in company_store.list_entries(ticker)
         )
+
+
+def test_single_company_commentary_still_routes_all_company_statements(
+    tmp_path: Path,
+) -> None:
+    company_store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+    market_store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    memo = {
+        "source_id": "synthetic:single-company-bhp",
+        "speaker": "Synthetic Analyst",
+        "claims": [
+            "BHP management is prioritising cost-out initiatives.",
+            "Copper expansion could lift group volumes.",
+        ],
+        "catalysts": [],
+        "risks": [],
+        "sentiment": "bullish",
+        "time_horizon": "medium-term",
+        "tickers": ["BHP"],
+        "source_type": "youtube_transcript",
+        "published_at": "2026-05-05T00:00:00+00:00",
+    }
+
+    result = route_signals(
+        signals_from_commentary_memo(memo),
+        company_memory_store=company_store,
+        market_memory_store=market_store,
+    )
+
+    statements = [entry["statement"] for entry in company_store.list_entries("BHP")]
+    assert result["company_memory_count"] == 2
+    assert statements == [
+        "BHP management is prioritising cost-out initiatives",
+        "Copper expansion could lift group volumes",
+    ]
+
+
+def test_multi_ticker_memo_without_statement_target_does_not_fanout(
+    tmp_path: Path,
+) -> None:
+    company_store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+    market_store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    memo = {
+        "source_id": "synthetic:ambiguous-multi-company",
+        "speaker": "Synthetic Analyst",
+        "claims": [
+            "Management guides FY2026 growth higher after the expansion plan.",
+        ],
+        "catalysts": [],
+        "risks": [],
+        "sentiment": "bullish",
+        "time_horizon": "medium-term",
+        "tickers": ["BHP", "RIO"],
+        "source_type": "youtube_transcript",
+        "published_at": "2026-05-05T00:00:00+00:00",
+    }
+
+    result = route_signals(
+        signals_from_commentary_memo(memo),
+        company_memory_store=company_store,
+        market_memory_store=market_store,
+    )
+
+    assert result["company_memory_count"] == 0
+    assert company_store.list_entries("BHP") == []
+    assert company_store.list_entries("RIO") == []
+
+
+def test_multi_ticker_memo_honors_statement_level_target_ticker(
+    tmp_path: Path,
+) -> None:
+    company_store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+    market_store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    memo = {
+        "source_id": "synthetic:structured-target",
+        "speaker": "Synthetic Analyst",
+        "claims": [
+            {
+                "statement": "Management guides FY2026 copper growth higher through the expansion plan.",
+                "target_ticker": "BHP",
+            }
+        ],
+        "catalysts": [],
+        "risks": [],
+        "sentiment": "bullish",
+        "time_horizon": "medium-term",
+        "tickers": ["BHP", "RIO"],
+        "source_type": "youtube_transcript",
+        "published_at": "2026-05-05T00:00:00+00:00",
+    }
+
+    result = route_signals(
+        signals_from_commentary_memo(memo),
+        company_memory_store=company_store,
+        market_memory_store=market_store,
+    )
+
+    assert result["company_memory_count"] == 1
+    assert len(company_store.list_entries("BHP")) == 1
+    assert company_store.list_entries("RIO") == []
+
+
+def test_statement_dict_without_text_is_not_stringified_into_memory() -> None:
+    memo = {
+        "source_id": "synthetic:dict-without-statement",
+        "speaker": "Synthetic Analyst",
+        "claims": [{"ticker": "BHP", "metadata": {"raw": "not a statement"}}],
+        "catalysts": [],
+        "risks": [],
+        "sentiment": "mixed",
+        "time_horizon": "medium-term",
+        "tickers": ["BHP"],
+        "source_type": "youtube_transcript",
+        "published_at": "2026-05-05T00:00:00+00:00",
+    }
+
+    assert signals_from_commentary_memo(memo) == []

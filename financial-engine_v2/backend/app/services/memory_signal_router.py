@@ -86,6 +86,27 @@ _REPLACEABLE_SIGNAL_KINDS = {
     "operating_context",
     "observed_fact",
 }
+_STATEMENT_TEXT_KEYS = (
+    "statement",
+    "text",
+    "claim",
+    "event",
+    "risk",
+    "catalyst",
+    "summary",
+)
+_STATEMENT_TARGET_KEYS = (
+    "ticker",
+    "tickers",
+    "target_ticker",
+    "target_tickers",
+    "company_ticker",
+    "company_tickers",
+    "entity_id",
+    "entity_ids",
+    "company",
+    "companies",
+)
 
 
 def signals_from_commentary_memo(memo: dict[str, Any]) -> list[dict[str, Any]]:
@@ -119,6 +140,7 @@ def signals_from_commentary_memo(memo: dict[str, Any]) -> list[dict[str, Any]]:
                     item["statement"],
                     signal_type=signal_kind,
                     tickers=tickers,
+                    explicit_tickers=item["explicit_tickers"],
                     source=source,
                     source_id=source_id,
                     confidence=confidence,
@@ -176,6 +198,7 @@ def signals_from_news_memo(memo: dict[str, Any]) -> list[dict[str, Any]]:
                     item["statement"],
                     signal_type=signal_kind,
                     tickers=tickers,
+                    explicit_tickers=item["explicit_tickers"],
                     source=source,
                     source_id=source_id,
                     confidence=confidence,
@@ -240,6 +263,7 @@ def _signals_for_statement(
     *,
     signal_type: str,
     tickers: list[str],
+    explicit_tickers: list[str] | None = None,
     source: str,
     source_id: str,
     confidence: float,
@@ -248,22 +272,25 @@ def _signals_for_statement(
     metadata: dict[str, Any],
 ) -> list[dict[str, Any]]:
     signals: list[dict[str, Any]] = []
-    if tickers:
-        for ticker in tickers:
-            signals.append(
-                {
-                    "type": signal_type,
-                    "statement": statement,
-                    "entity_id": ticker,
-                    "confidence": confidence,
-                    "materiality": materiality,
-                    "persistence": persistence,
-                    "status": "active",
-                    "source": source,
-                    "source_id": source_id,
-                    "metadata": metadata,
-                }
-            )
+    for ticker in _company_targets_for_statement(
+        statement,
+        tickers=tickers,
+        explicit_tickers=explicit_tickers or [],
+    ):
+        signals.append(
+            {
+                "type": signal_type,
+                "statement": statement,
+                "entity_id": ticker,
+                "confidence": confidence,
+                "materiality": materiality,
+                "persistence": persistence,
+                "status": "active",
+                "source": source,
+                "source_id": source_id,
+                "metadata": metadata,
+            }
+        )
 
     market_signal = _market_signal_for_statement(
         statement,
@@ -279,6 +306,46 @@ def _signals_for_statement(
     if market_signal is not None:
         signals.append(market_signal)
     return signals
+
+
+def _company_targets_for_statement(
+    statement: str,
+    *,
+    tickers: list[str],
+    explicit_tickers: list[str],
+) -> list[str]:
+    normalized_tickers = _normalize_tickers(tickers)
+    normalized_explicit = _normalize_tickers(explicit_tickers)
+    if normalized_explicit:
+        if normalized_tickers:
+            allowed = set(normalized_tickers)
+            normalized_explicit = [
+                ticker for ticker in normalized_explicit if ticker in allowed
+            ]
+        return normalized_explicit if len(normalized_explicit) == 1 else []
+
+    if len(normalized_tickers) == 1:
+        return normalized_tickers
+
+    text_targets = [
+        ticker
+        for ticker in normalized_tickers
+        if _ticker_is_explicitly_mentioned(statement, ticker)
+    ]
+    return text_targets if len(text_targets) == 1 else []
+
+
+def _ticker_is_explicitly_mentioned(statement: str, ticker: str) -> bool:
+    normalized = str(ticker or "").strip().upper()
+    if not normalized:
+        return False
+    return bool(
+        re.search(
+            rf"(?<![A-Z0-9])\$?{re.escape(normalized)}(?:\.AX)?(?![A-Z0-9])",
+            str(statement or ""),
+            flags=re.IGNORECASE,
+        )
+    )
 
 
 def _market_signal_for_statement(
@@ -446,34 +513,72 @@ def _statement_candidates(values: Any, *, tickers: list[str]) -> list[dict[str, 
     candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
     for item in items:
-        for part in _split_atomic_statements(str(item or "")):
-            statement = _normalize_statement_text(part, tickers=tickers)
-            themes = _infer_themes(statement)
-            time_refs = _extract_time_refs(statement)
-            specificity = _statement_specificity(
-                statement,
-                themes=themes,
-                time_refs=time_refs,
-                tickers=tickers,
-            )
-            if _reject_low_specificity(statement, specificity):
-                continue
-            key = _statement_dedupe_key(statement)
-            if key in seen:
-                continue
-            seen.add(key)
-            candidates.append(
-                {
-                    "statement": statement,
-                    "themes": themes,
-                    "theme_key": themes[0]
-                    if themes
-                    else _fallback_theme_key(statement),
-                    "time_refs": time_refs,
-                    "specificity": specificity,
-                }
-            )
+        explicit_tickers = _explicit_tickers_from_statement_item(item)
+        for text in _statement_text_values(item):
+            for part in _split_atomic_statements(text):
+                statement = _normalize_statement_text(part, tickers=tickers)
+                themes = _infer_themes(statement)
+                time_refs = _extract_time_refs(statement)
+                specificity = _statement_specificity(
+                    statement,
+                    themes=themes,
+                    time_refs=time_refs,
+                    tickers=tickers,
+                )
+                if _reject_low_specificity(statement, specificity):
+                    continue
+                key = _statement_dedupe_key(statement)
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append(
+                    {
+                        "statement": statement,
+                        "explicit_tickers": explicit_tickers,
+                        "themes": themes,
+                        "theme_key": themes[0]
+                        if themes
+                        else _fallback_theme_key(statement),
+                        "time_refs": time_refs,
+                        "specificity": specificity,
+                    }
+                )
     return candidates
+
+
+def _statement_text_values(item: Any) -> list[str]:
+    if isinstance(item, dict):
+        for key in _STATEMENT_TEXT_KEYS:
+            if key not in item:
+                continue
+            values = _flatten_values(item.get(key))
+            if values:
+                return [value for value in values if value]
+        return []
+    return _normalize_statements(item)
+
+
+def _explicit_tickers_from_statement_item(item: Any) -> list[str]:
+    if not isinstance(item, dict):
+        return []
+    values: list[Any] = []
+    for key in _STATEMENT_TARGET_KEYS:
+        values.extend(_flatten_values(item.get(key)))
+    return _normalize_tickers(values)
+
+
+def _flatten_values(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        return []
+    if isinstance(value, (list, tuple, set)):
+        values: list[str] = []
+        for item in value:
+            values.extend(_flatten_values(item))
+        return values
+    text = str(value or "").strip()
+    return [text] if text else []
 
 
 def _split_atomic_statements(value: str) -> list[str]:
