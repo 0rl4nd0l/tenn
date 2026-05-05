@@ -1,0 +1,14 @@
+{
+  "document_id": "rms_h_2025-12-31",
+  "source_file": "data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 485630000,
+    "operating_cash_flow": 171179000,
+    "net_debt": null
+  },
+  "expected_trust": "trusted"
+}

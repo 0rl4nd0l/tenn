@@ -126,7 +126,7 @@ def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exis
     fixtures = load_real_gold_fixtures(REAL_CORPUS_DIR)
     fixture_by_id = {fixture.document_id: fixture for fixture in fixtures}
 
-    assert len(fixtures) == 10
+    assert len(fixtures) == 15
     assert fixture_by_id["qbe_h_2025-06-30"].metrics["operating_cf"] == 1_756_000_000.0
     assert "operating_cash_flow" not in fixture_by_id["qbe_h_2025-06-30"].metrics
 

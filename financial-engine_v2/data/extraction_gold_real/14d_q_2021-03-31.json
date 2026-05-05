@@ -1,0 +1,14 @@
+{
+  "document_id": "14d_q_2021-03-31",
+  "source_file": "data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+  "period_type": "Q",
+  "period_end": "2021-03-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": null,
+    "operating_cash_flow": -1106000,
+    "net_debt": null
+  },
+  "expected_trust": "trusted"
+}

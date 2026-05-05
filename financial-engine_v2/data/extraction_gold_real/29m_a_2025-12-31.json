@@ -1,0 +1,14 @@
+{
+  "document_id": "29m_a_2025-12-31",
+  "source_file": "data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+  "period_type": "A",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 566622000,
+    "operating_cash_flow": 55451000,
+    "net_debt": 85161000
+  },
+  "expected_trust": "trusted"
+}

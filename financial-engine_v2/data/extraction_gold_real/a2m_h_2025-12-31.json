@@ -1,0 +1,14 @@
+{
+  "document_id": "a2m_h_2025-12-31",
+  "source_file": "data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "NZD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 993491000,
+    "operating_cash_flow": 95189000,
+    "net_debt": null
+  },
+  "expected_trust": "trusted"
+}

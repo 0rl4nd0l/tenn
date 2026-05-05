@@ -1,0 +1,14 @@
+{
+  "document_id": "10x_q_2025-12-31_difficult",
+  "source_file": "data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+  "period_type": "Q",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": null,
+    "operating_cash_flow": -398000,
+    "net_debt": null
+  },
+  "expected_trust": "trusted"
+}
