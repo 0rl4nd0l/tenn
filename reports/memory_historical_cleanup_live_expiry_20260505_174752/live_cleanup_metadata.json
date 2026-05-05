@@ -1,0 +1,26 @@
+{
+  "after_status_counts": {
+    "active": 1748,
+    "expired": 250
+  },
+  "approval_id": "approved_by_user_20260505_first_batch_249",
+  "approved_manifest": "/workspace/reports/memory_historical_cleanup_dry_run_20260505_172806/csv/operator_first_batch_candidates.csv",
+  "approved_rows": 249,
+  "audit_rows_inserted": 249,
+  "backup_checksum": "aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1",
+  "backup_method": "raw_file_copy",
+  "backup_path": "/workspace/reports/memory_historical_cleanup_live_expiry_20260505_174752/backup/company_memory.sqlite.pre_live_expiry_20260505_174752",
+  "before_status_counts": {
+    "active": 1997,
+    "expired": 1
+  },
+  "company_summary_rows_touched": 57,
+  "db_path": "/data/reports/research_memory/company_memory.sqlite",
+  "executed_at": "2026-05-05T07:52:15+00:00",
+  "executor": "codex",
+  "mutation_scope": "memory_entries.status plus change_log audit rows and company_memory summary counts",
+  "post_live_checkpoint": "wal_checkpoint(TRUNCATE) returned (0, 0, 0)",
+  "post_live_checksum": "62fbc2b01a6b0fb2ba50ba09fdb6ba493f1cbcef9021bdf3d9e1cc196a5b7ff1",
+  "post_live_checksum_before_checkpoint": "aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1",
+  "pre_live_checksum": "aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1"
+}

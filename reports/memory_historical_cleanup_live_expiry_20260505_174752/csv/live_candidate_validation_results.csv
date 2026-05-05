@@ -1,0 +1,250 @@
+row_id,company_id,memory_type,status_before,source_id_match,statement_match,entity_match,memory_type_match,validation_status
+15,ASX,observed_fact,active,yes,yes,yes,yes,valid
+16,TXT,observed_fact,active,yes,yes,yes,yes,valid
+17,XTX,observed_fact,active,yes,yes,yes,yes,valid
+18,A2 MILK,observed_fact,active,yes,yes,yes,yes,valid
+19,ENDEAVOR GROUP,observed_fact,active,yes,yes,yes,yes,valid
+21,NAB,observed_fact,active,yes,yes,yes,yes,valid
+22,BHP,observed_fact,active,yes,yes,yes,yes,valid
+23,KEY PETROLEUM,observed_fact,active,yes,yes,yes,yes,valid
+24,GCM CORPORATION,observed_fact,active,yes,yes,yes,yes,valid
+25,MARINO AND CO,observed_fact,active,yes,yes,yes,yes,valid
+26,CLARITY,observed_fact,active,yes,yes,yes,yes,valid
+27,WIN MEDALS,observed_fact,active,yes,yes,yes,yes,valid
+28,AXEN GROUP,observed_fact,active,yes,yes,yes,yes,valid
+29,STRICKLAND METALS,observed_fact,active,yes,yes,yes,yes,valid
+30,LION TOWN,observed_fact,active,yes,yes,yes,yes,valid
+31,IMRO,observed_fact,active,yes,yes,yes,yes,valid
+32,PENINSULA,observed_fact,active,yes,yes,yes,yes,valid
+33,BRAIN CHIP,observed_fact,active,yes,yes,yes,yes,valid
+34,VERITUS,observed_fact,active,yes,yes,yes,yes,valid
+35,PETTIMED,observed_fact,active,yes,yes,yes,yes,valid
+36,IMPEDIMED,observed_fact,active,yes,yes,yes,yes,valid
+37,INDE,observed_fact,active,yes,yes,yes,yes,valid
+38,PETT,observed_fact,active,yes,yes,yes,yes,valid
+39,C79,observed_fact,active,yes,yes,yes,yes,valid
+40,A2M,observed_fact,active,yes,yes,yes,yes,valid
+41,ACCENT GROUP,observed_fact,active,yes,yes,yes,yes,valid
+668,END,observed_fact,active,yes,yes,yes,yes,valid
+669,COH,observed_fact,active,yes,yes,yes,yes,valid
+670,WES,observed_fact,active,yes,yes,yes,yes,valid
+671,WBC,observed_fact,active,yes,yes,yes,yes,valid
+672,KEY,observed_fact,active,yes,yes,yes,yes,valid
+673,GCM,observed_fact,active,yes,yes,yes,yes,valid
+674,MAR,observed_fact,active,yes,yes,yes,yes,valid
+675,CLT,observed_fact,active,yes,yes,yes,yes,valid
+676,WIN,observed_fact,active,yes,yes,yes,yes,valid
+677,SKT,observed_fact,active,yes,yes,yes,yes,valid
+678,VCE,observed_fact,active,yes,yes,yes,yes,valid
+679,SNW,observed_fact,active,yes,yes,yes,yes,valid
+680,LON,observed_fact,active,yes,yes,yes,yes,valid
+681,PET,observed_fact,active,yes,yes,yes,yes,valid
+682,STK,observed_fact,active,yes,yes,yes,yes,valid
+1607,ENDV,observed_fact,active,yes,yes,yes,yes,valid
+1608,KEYP,observed_fact,active,yes,yes,yes,yes,valid
+1609,GCMC,observed_fact,active,yes,yes,yes,yes,valid
+1610,MARINO,observed_fact,active,yes,yes,yes,yes,valid
+1611,CLAR,observed_fact,active,yes,yes,yes,yes,valid
+1612,LIVN,observed_fact,active,yes,yes,yes,yes,valid
+1613,SN,observed_fact,active,yes,yes,yes,yes,valid
+1614,LION,observed_fact,active,yes,yes,yes,yes,valid
+393,ASX,catalyst,active,yes,yes,yes,yes,valid
+394,TXT,catalyst,active,yes,yes,yes,yes,valid
+395,XTX,catalyst,active,yes,yes,yes,yes,valid
+396,A2 MILK,catalyst,active,yes,yes,yes,yes,valid
+397,ENDEAVOR GROUP,catalyst,active,yes,yes,yes,yes,valid
+399,NAB,catalyst,active,yes,yes,yes,yes,valid
+400,BHP,catalyst,active,yes,yes,yes,yes,valid
+401,KEY PETROLEUM,catalyst,active,yes,yes,yes,yes,valid
+402,GCM CORPORATION,catalyst,active,yes,yes,yes,yes,valid
+403,MARINO AND CO,catalyst,active,yes,yes,yes,yes,valid
+404,CLARITY,catalyst,active,yes,yes,yes,yes,valid
+405,WIN MEDALS,catalyst,active,yes,yes,yes,yes,valid
+406,AXEN GROUP,catalyst,active,yes,yes,yes,yes,valid
+407,STRICKLAND METALS,catalyst,active,yes,yes,yes,yes,valid
+408,LION TOWN,catalyst,active,yes,yes,yes,yes,valid
+409,IMRO,catalyst,active,yes,yes,yes,yes,valid
+410,PENINSULA,catalyst,active,yes,yes,yes,yes,valid
+411,BRAIN CHIP,catalyst,active,yes,yes,yes,yes,valid
+412,VERITUS,catalyst,active,yes,yes,yes,yes,valid
+413,PETTIMED,catalyst,active,yes,yes,yes,yes,valid
+414,IMPEDIMED,catalyst,active,yes,yes,yes,yes,valid
+415,INDE,catalyst,active,yes,yes,yes,yes,valid
+416,PETT,catalyst,active,yes,yes,yes,yes,valid
+417,C79,catalyst,active,yes,yes,yes,yes,valid
+418,A2M,catalyst,active,yes,yes,yes,yes,valid
+419,ACCENT GROUP,catalyst,active,yes,yes,yes,yes,valid
+1737,ENDV,catalyst,active,yes,yes,yes,yes,valid
+1738,COH,catalyst,active,yes,yes,yes,yes,valid
+1739,WES,catalyst,active,yes,yes,yes,yes,valid
+1740,WBC,catalyst,active,yes,yes,yes,yes,valid
+1741,KEYP,catalyst,active,yes,yes,yes,yes,valid
+1742,GCMC,catalyst,active,yes,yes,yes,yes,valid
+1743,MARINO,catalyst,active,yes,yes,yes,yes,valid
+1744,CLAR,catalyst,active,yes,yes,yes,yes,valid
+1745,WIN,catalyst,active,yes,yes,yes,yes,valid
+1746,LIVN,catalyst,active,yes,yes,yes,yes,valid
+1747,SKT,catalyst,active,yes,yes,yes,yes,valid
+1748,VCE,catalyst,active,yes,yes,yes,yes,valid
+1749,SN,catalyst,active,yes,yes,yes,yes,valid
+1750,LION,catalyst,active,yes,yes,yes,yes,valid
+709,ASX,observed_fact,active,yes,yes,yes,yes,valid
+710,TXT,observed_fact,active,yes,yes,yes,yes,valid
+711,XTX,observed_fact,active,yes,yes,yes,yes,valid
+712,A2M,observed_fact,active,yes,yes,yes,yes,valid
+713,END,observed_fact,active,yes,yes,yes,yes,valid
+714,COH,observed_fact,active,yes,yes,yes,yes,valid
+715,WES,observed_fact,active,yes,yes,yes,yes,valid
+716,BHP,observed_fact,active,yes,yes,yes,yes,valid
+718,WBC,observed_fact,active,yes,yes,yes,yes,valid
+719,KEY,observed_fact,active,yes,yes,yes,yes,valid
+720,GCM,observed_fact,active,yes,yes,yes,yes,valid
+721,MAR,observed_fact,active,yes,yes,yes,yes,valid
+722,CLT,observed_fact,active,yes,yes,yes,yes,valid
+723,WIN,observed_fact,active,yes,yes,yes,yes,valid
+724,SKT,observed_fact,active,yes,yes,yes,yes,valid
+725,VCE,observed_fact,active,yes,yes,yes,yes,valid
+726,SNW,observed_fact,active,yes,yes,yes,yes,valid
+727,LON,observed_fact,active,yes,yes,yes,yes,valid
+728,PET,observed_fact,active,yes,yes,yes,yes,valid
+729,STK,observed_fact,active,yes,yes,yes,yes,valid
+730,INDE,observed_fact,active,yes,yes,yes,yes,valid
+731,PETT,observed_fact,active,yes,yes,yes,yes,valid
+732,C79,observed_fact,active,yes,yes,yes,yes,valid
+733,A2 MILK,observed_fact,active,yes,yes,yes,yes,valid
+734,ACCENT GROUP,observed_fact,active,yes,yes,yes,yes,valid
+1640,ENDV,observed_fact,active,yes,yes,yes,yes,valid
+1641,KEYP,observed_fact,active,yes,yes,yes,yes,valid
+1642,GCMC,observed_fact,active,yes,yes,yes,yes,valid
+1643,MARINO,observed_fact,active,yes,yes,yes,yes,valid
+1644,CLAR,observed_fact,active,yes,yes,yes,yes,valid
+1645,LIVN,observed_fact,active,yes,yes,yes,yes,valid
+1646,SN,observed_fact,active,yes,yes,yes,yes,valid
+1647,LION,observed_fact,active,yes,yes,yes,yes,valid
+555,ASX,risk,active,yes,yes,yes,yes,valid
+556,TXT,risk,active,yes,yes,yes,yes,valid
+557,XTX,risk,active,yes,yes,yes,yes,valid
+558,A2 MILK,risk,active,yes,yes,yes,yes,valid
+559,ENDEAVOR GROUP,risk,active,yes,yes,yes,yes,valid
+561,NAB,risk,active,yes,yes,yes,yes,valid
+562,BHP,risk,active,yes,yes,yes,yes,valid
+563,KEY PETROLEUM,risk,active,yes,yes,yes,yes,valid
+564,GCM CORPORATION,risk,active,yes,yes,yes,yes,valid
+565,MARINO AND CO,risk,active,yes,yes,yes,yes,valid
+566,CLARITY,risk,active,yes,yes,yes,yes,valid
+567,WIN MEDALS,risk,active,yes,yes,yes,yes,valid
+568,AXEN GROUP,risk,active,yes,yes,yes,yes,valid
+569,STRICKLAND METALS,risk,active,yes,yes,yes,yes,valid
+570,LION TOWN,risk,active,yes,yes,yes,yes,valid
+571,IMRO,risk,active,yes,yes,yes,yes,valid
+572,PENINSULA,risk,active,yes,yes,yes,yes,valid
+573,BRAIN CHIP,risk,active,yes,yes,yes,yes,valid
+574,VERITUS,risk,active,yes,yes,yes,yes,valid
+575,PETTIMED,risk,active,yes,yes,yes,yes,valid
+576,IMPEDIMED,risk,active,yes,yes,yes,yes,valid
+577,INDE,risk,active,yes,yes,yes,yes,valid
+578,PETT,risk,active,yes,yes,yes,yes,valid
+579,C79,risk,active,yes,yes,yes,yes,valid
+580,A2M,risk,active,yes,yes,yes,yes,valid
+581,ACCENT GROUP,risk,active,yes,yes,yes,yes,valid
+69,ASX,observed_fact,active,yes,yes,yes,yes,valid
+70,TXT,observed_fact,active,yes,yes,yes,yes,valid
+71,XTX,observed_fact,active,yes,yes,yes,yes,valid
+72,A2 MILK,observed_fact,active,yes,yes,yes,yes,valid
+73,ENDEAVOR GROUP,observed_fact,active,yes,yes,yes,yes,valid
+75,NAB,observed_fact,active,yes,yes,yes,yes,valid
+76,BHP,observed_fact,active,yes,yes,yes,yes,valid
+77,KEY PETROLEUM,observed_fact,active,yes,yes,yes,yes,valid
+78,GCM CORPORATION,observed_fact,active,yes,yes,yes,yes,valid
+79,MARINO AND CO,observed_fact,active,yes,yes,yes,yes,valid
+80,CLARITY,observed_fact,active,yes,yes,yes,yes,valid
+81,WIN MEDALS,observed_fact,active,yes,yes,yes,yes,valid
+82,AXEN GROUP,observed_fact,active,yes,yes,yes,yes,valid
+83,STRICKLAND METALS,observed_fact,active,yes,yes,yes,yes,valid
+84,LION TOWN,observed_fact,active,yes,yes,yes,yes,valid
+85,IMRO,observed_fact,active,yes,yes,yes,yes,valid
+86,PENINSULA,observed_fact,active,yes,yes,yes,yes,valid
+87,BRAIN CHIP,observed_fact,active,yes,yes,yes,yes,valid
+88,VERITUS,observed_fact,active,yes,yes,yes,yes,valid
+89,PETTIMED,observed_fact,active,yes,yes,yes,yes,valid
+90,IMPEDIMED,observed_fact,active,yes,yes,yes,yes,valid
+91,INDE,observed_fact,active,yes,yes,yes,yes,valid
+92,PETT,observed_fact,active,yes,yes,yes,yes,valid
+93,C79,observed_fact,active,yes,yes,yes,yes,valid
+94,A2M,observed_fact,active,yes,yes,yes,yes,valid
+95,ACCENT GROUP,observed_fact,active,yes,yes,yes,yes,valid
+609,ASX,risk,active,yes,yes,yes,yes,valid
+610,TXT,risk,active,yes,yes,yes,yes,valid
+611,XTX,risk,active,yes,yes,yes,yes,valid
+612,A2 MILK,risk,active,yes,yes,yes,yes,valid
+613,ENDEAVOR GROUP,risk,active,yes,yes,yes,yes,valid
+614,ATLASSIAN,risk,active,yes,yes,yes,yes,valid
+615,NAB,risk,active,yes,yes,yes,yes,valid
+616,BHP,risk,active,yes,yes,yes,yes,valid
+617,KEY PETROLEUM,risk,active,yes,yes,yes,yes,valid
+618,GCM CORPORATION,risk,active,yes,yes,yes,yes,valid
+619,MARINO AND CO,risk,active,yes,yes,yes,yes,valid
+620,CLARITY,risk,active,yes,yes,yes,yes,valid
+621,WIN MEDALS,risk,active,yes,yes,yes,yes,valid
+622,AXEN GROUP,risk,active,yes,yes,yes,yes,valid
+623,STRICKLAND METALS,risk,active,yes,yes,yes,yes,valid
+624,LION TOWN,risk,active,yes,yes,yes,yes,valid
+625,IMRO,risk,active,yes,yes,yes,yes,valid
+626,PENINSULA,risk,active,yes,yes,yes,yes,valid
+627,BRAIN CHIP,risk,active,yes,yes,yes,yes,valid
+628,VERITUS,risk,active,yes,yes,yes,yes,valid
+629,PETTIMED,risk,active,yes,yes,yes,yes,valid
+631,INDE,risk,active,yes,yes,yes,yes,valid
+632,PETT,risk,active,yes,yes,yes,yes,valid
+633,C79,risk,active,yes,yes,yes,yes,valid
+634,A2M,risk,active,yes,yes,yes,yes,valid
+635,ACCENT GROUP,risk,active,yes,yes,yes,yes,valid
+1280,COH,operating_context,active,yes,yes,yes,yes,valid
+1281,EZZ,operating_context,active,yes,yes,yes,yes,valid
+1282,AROVELLA,operating_context,active,yes,yes,yes,yes,valid
+1284,LTR PHARMA,operating_context,active,yes,yes,yes,yes,valid
+1285,CSL,operating_context,active,yes,yes,yes,yes,valid
+1286,RESMED,operating_context,active,yes,yes,yes,yes,valid
+1287,PARADIGM BIOPHARMACEUTICALS,operating_context,active,yes,yes,yes,yes,valid
+1264,COH,observed_fact,active,yes,yes,yes,yes,valid
+1265,EZZ,observed_fact,active,yes,yes,yes,yes,valid
+1267,4DMEDICAL,observed_fact,active,yes,yes,yes,yes,valid
+1268,LTR PHARMA,observed_fact,active,yes,yes,yes,yes,valid
+1269,CSL,observed_fact,active,yes,yes,yes,yes,valid
+1270,RESMED,observed_fact,active,yes,yes,yes,yes,valid
+1271,PARADIGM BIOPHARMACEUTICALS,observed_fact,active,yes,yes,yes,yes,valid
+1328,COH,risk,active,yes,yes,yes,yes,valid
+1329,EZZ,risk,active,yes,yes,yes,yes,valid
+1331,4DMEDICAL,risk,active,yes,yes,yes,yes,valid
+1332,LTR PHARMA,risk,active,yes,yes,yes,yes,valid
+1333,CSL,risk,active,yes,yes,yes,yes,valid
+1334,RESMED,risk,active,yes,yes,yes,yes,valid
+1335,PARADIGM BIOPHARMACEUTICALS,risk,active,yes,yes,yes,yes,valid
+1296,COH,observed_fact,active,yes,yes,yes,yes,valid
+1297,EZZ,observed_fact,active,yes,yes,yes,yes,valid
+1298,AROVELLA,observed_fact,active,yes,yes,yes,yes,valid
+1299,4DMEDICAL,observed_fact,active,yes,yes,yes,yes,valid
+1300,LTR PHARMA,observed_fact,active,yes,yes,yes,yes,valid
+1302,RESMED,observed_fact,active,yes,yes,yes,yes,valid
+1303,PARADIGM BIOPHARMACEUTICALS,observed_fact,active,yes,yes,yes,yes,valid
+1336,COH,risk,active,yes,yes,yes,yes,valid
+1337,EZZ,risk,active,yes,yes,yes,yes,valid
+1338,AROVELLA,risk,active,yes,yes,yes,yes,valid
+1339,4DMEDICAL,risk,active,yes,yes,yes,yes,valid
+1340,LTR PHARMA,risk,active,yes,yes,yes,yes,valid
+1342,RESMED,risk,active,yes,yes,yes,yes,valid
+1343,PARADIGM BIOPHARMACEUTICALS,risk,active,yes,yes,yes,yes,valid
+1272,COH,observed_fact,active,yes,yes,yes,yes,valid
+1274,AROVELLA,observed_fact,active,yes,yes,yes,yes,valid
+1275,4DMEDICAL,observed_fact,active,yes,yes,yes,yes,valid
+1276,LTR PHARMA,observed_fact,active,yes,yes,yes,yes,valid
+1277,CSL,observed_fact,active,yes,yes,yes,yes,valid
+1278,RESMED,observed_fact,active,yes,yes,yes,yes,valid
+1279,PARADIGM BIOPHARMACEUTICALS,observed_fact,active,yes,yes,yes,yes,valid
+1288,COH,strategic_initiative,active,yes,yes,yes,yes,valid
+1289,EZZ,strategic_initiative,active,yes,yes,yes,yes,valid
+1290,AROVELLA,strategic_initiative,active,yes,yes,yes,yes,valid
+1291,4DMEDICAL,strategic_initiative,active,yes,yes,yes,yes,valid
+1293,CSL,strategic_initiative,active,yes,yes,yes,yes,valid
+1294,RESMED,strategic_initiative,active,yes,yes,yes,yes,valid
+1295,PARADIGM BIOPHARMACEUTICALS,strategic_initiative,active,yes,yes,yes,yes,valid
