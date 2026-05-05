@@ -16,6 +16,18 @@
       "29m"
     ]
   },
+  "A2M": {
+    "canonical_names": [
+      "The a2 Milk Company Limited",
+      "The a2 Milk Company"
+    ],
+    "aliases": [
+      "The a2 Milk Company",
+      "a2 Milk Company",
+      "A2 Milk"
+    ],
+    "news_entity_linking_enabled": true
+  },
   "AAM": {
     "canonical_names": [
       "Aumega Metals Ltd",

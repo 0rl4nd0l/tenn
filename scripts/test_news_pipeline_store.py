@@ -1,4 +1,6 @@
 import importlib
+import json
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -10,6 +12,19 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 DB = importlib.import_module("news_pipeline.db")
 MODELS = importlib.import_module("news_pipeline.models")
+CHUNK_BUILDER = importlib.import_module("news_pipeline.chunk_builder")
+CLI_COMMON = importlib.import_module("news_pipeline.cli_common")
+LINKER = importlib.import_module("news_pipeline.entity_linker")
+RELEVANCE = importlib.import_module("news_pipeline.relevance")
+
+A2M_RECALL_TITLE = "A2 Milk shares plunge after finding toxins in infant formula"
+A2M_RECALL_URL = "https://example.com/news/a2m-infant-formula-recall"
+A2M_RECALL_PUBLISHED = "2026-05-05T00:00:00Z"
+A2M_RECALL_BODY = (
+    "The a2 Milk Company said it was working through a recall of infant formula "
+    "after testing found toxins. ASX:A2M investors reacted to the update. "
+    "The company said the recall related to infant formula testing and supply-chain checks."
+)
 
 
 class StoreTests(unittest.TestCase):
@@ -218,6 +233,113 @@ class StoreTests(unittest.TestCase):
                     store.finalize_stale_running_runs(older_than_hours=2, to_status="success")
             finally:
                 store.close()
+
+    def test_a2m_recall_entity_metadata_flows_to_sqlite_chunks(self):
+        with tempfile.TemporaryDirectory() as td:
+            raw_db_path = Path(td) / "news_articles.sqlite"
+            context_db_path = Path(td) / "news.sqlite"
+            store = DB.NewsArticleStore(raw_db_path)
+            try:
+                candidate = MODELS.ArticleCandidate(
+                    provider="newspaper4k",
+                    provider_item_id="a2m-recall",
+                    canonical_url=A2M_RECALL_URL,
+                    title=A2M_RECALL_TITLE,
+                    description="Recall and infant formula update.",
+                    body=A2M_RECALL_BODY,
+                    source_name="Example Finance",
+                    language="en",
+                    published_at_utc=A2M_RECALL_PUBLISHED,
+                    fetched_at_utc="2026-05-05T01:00:00Z",
+                    provider_published_at_raw=A2M_RECALL_PUBLISHED,
+                    raw_payload={"id": "a2m-recall"},
+                )
+                upsert = store.upsert_article(candidate, lane="high_precision")
+
+                tickers_path = Path(td) / "tickers.txt"
+                tickers_path.write_text("BHP\n", encoding="utf-8")
+                linker = LINKER.EntityLinker(
+                    ticker_universe_path=tickers_path,
+                    identity_map_path=CLI_COMMON.DEFAULT_IDENTITY_MAP,
+                )
+                links = linker.link_article(
+                    article_id=upsert.article_id,
+                    title=A2M_RECALL_TITLE,
+                    description="Recall and infant formula update.",
+                    body=A2M_RECALL_BODY,
+                    published_at_utc=A2M_RECALL_PUBLISHED,
+                )
+                self.assertTrue(any(link.ticker == "A2M" for link in links))
+                store.replace_entity_links(upsert.article_id, links)
+
+                relevance_rows = RELEVANCE.score_article_relevance(
+                    article_id=upsert.article_id,
+                    title=A2M_RECALL_TITLE,
+                    description="Recall and infant formula update.",
+                    body=A2M_RECALL_BODY,
+                    links=links,
+                )
+                self.assertTrue(any(row.ticker == "A2M" for row in relevance_rows))
+                store.replace_article_relevance(upsert.article_id, relevance_rows)
+
+                entity_count = int(
+                    (
+                        store.conn.execute(
+                            "SELECT COUNT(*) FROM entity_links WHERE article_id = ? AND ticker = ?",
+                            (upsert.article_id, "A2M"),
+                        ).fetchone()
+                        or [0]
+                    )[0]
+                    or 0
+                )
+                relevance_count = int(
+                    (
+                        store.conn.execute(
+                            "SELECT COUNT(*) FROM article_relevance WHERE article_id = ? AND ticker = ?",
+                            (upsert.article_id, "A2M"),
+                        ).fetchone()
+                        or [0]
+                    )[0]
+                    or 0
+                )
+                self.assertGreater(entity_count, 0)
+                self.assertGreater(relevance_count, 0)
+            finally:
+                store.close()
+
+            stats = CHUNK_BUILDER.build_news_chunks(
+                from_db=raw_db_path,
+                to_db=context_db_path,
+                lane="high_precision",
+                embed_backend="hash",
+                hash_dim=32,
+            )
+            self.assertGreater(int(stats["chunks_written"]), 0)
+
+            conn = sqlite3.connect(str(context_db_path))
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    """
+                    SELECT ticker, company, source, title, url, published_at, ticker_relevance_json
+                      FROM context_chunks
+                     WHERE title = ?
+                    """,
+                    (A2M_RECALL_TITLE,),
+                ).fetchall()
+            finally:
+                conn.close()
+
+            self.assertTrue(rows)
+            row = dict(rows[0])
+            self.assertEqual(row["ticker"], "|A2M|")
+            self.assertEqual(row["company"], "A2M")
+            self.assertEqual(row["source"], "Example Finance")
+            self.assertEqual(row["title"], A2M_RECALL_TITLE)
+            self.assertEqual(row["url"], A2M_RECALL_URL)
+            self.assertEqual(row["published_at"], A2M_RECALL_PUBLISHED)
+            relevance_map = json.loads(str(row["ticker_relevance_json"] or "{}"))
+            self.assertIn("A2M", relevance_map)
 
 
 if __name__ == "__main__":

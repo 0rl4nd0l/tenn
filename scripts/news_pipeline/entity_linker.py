@@ -54,6 +54,7 @@ STRICT_TICKER_STOPWORDS = {
     "STOCK",
     "STOCKS",
 }
+NEWS_ENTITY_LINKING_ENABLED_KEY = "news_entity_linking_enabled"
 
 
 def _normalize_ticker(value: str) -> str:
@@ -93,11 +94,18 @@ def _should_keep_alias(alias: str, ticker: str) -> bool:
 class EntityLinker:
     def __init__(self, *, ticker_universe_path: Path, identity_map_path: Path) -> None:
         self.identity_map = self._load_identity_map(Path(identity_map_path).expanduser().resolve())
-        self.tickers = [
-            ticker
-            for ticker in load_ticker_universe(Path(ticker_universe_path).expanduser().resolve())
-            if ticker in self.identity_map
-        ]
+        universe_tickers = load_ticker_universe(Path(ticker_universe_path).expanduser().resolve())
+        self.tickers: List[str] = []
+        seen: Set[str] = set()
+        for ticker in universe_tickers:
+            if ticker in self.identity_map and ticker not in seen:
+                self.tickers.append(ticker)
+                seen.add(ticker)
+        for ticker in sorted(self.identity_map):
+            if ticker in seen or not self._identity_map_ticker_enabled(ticker):
+                continue
+            self.tickers.append(ticker)
+            seen.add(ticker)
         self.aliases_by_ticker: Dict[str, List[str]] = {}
         self.ambiguous_aliases: Set[str] = set()
         self._build_alias_index()
@@ -125,6 +133,10 @@ class EntityLinker:
                 continue
             out[ticker] = row
         return out
+
+    def _identity_map_ticker_enabled(self, ticker: str) -> bool:
+        entry = self.identity_map.get(ticker)
+        return isinstance(entry, dict) and entry.get(NEWS_ENTITY_LINKING_ENABLED_KEY) is True
 
     def _collect_aliases_for_ticker(self, ticker: str) -> List[str]:
         aliases: Set[str] = set()
