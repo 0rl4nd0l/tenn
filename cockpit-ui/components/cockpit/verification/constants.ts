@@ -13,4 +13,4 @@ export const ACTIVE_RUNS_STORAGE_KEY = 'verification-active-runs-v1'
 
 export const DEFAULT_VERIFICATION_TAB: VerificationTab = 'review'
 
-export const VERIFICATION_TAB_ORDER: VerificationTab[] = ['review', 'runs', 'gold-eval', 'verify']
+export const VERIFICATION_TAB_ORDER: VerificationTab[] = ['review', 'runs', 'gold-eval', 'metric-coverage', 'verify']

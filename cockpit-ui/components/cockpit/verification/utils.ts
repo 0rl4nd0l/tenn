@@ -350,7 +350,7 @@ export function runStatusVariant(status: string | null | undefined): 'default' |
 }
 
 export function parseVerificationTab(value: string | null | undefined): VerificationTab {
-  if (value === 'review' || value === 'gold-eval' || value === 'runs' || value === 'verify') {
+  if (value === 'review' || value === 'gold-eval' || value === 'metric-coverage' || value === 'runs' || value === 'verify') {
     return value
   }
   return DEFAULT_VERIFICATION_TAB

@@ -106,7 +106,95 @@ export type ActiveExtractionMonitorRun = {
   expiresInSeconds: number | null
 }
 
-export type VerificationTab = 'review' | 'gold-eval' | 'runs' | 'verify'
+export type MetricCoverageClassification =
+  | 'CONFIRMED_SOURCE_EVIDENCED'
+  | 'CANDIDATE_REVIEW_REQUIRED'
+  | 'AMBIGUOUS_OR_DERIVED'
+  | 'UNSUPPORTED'
+
+export type ConfirmedMetricCoverageRow = {
+  fixture_id: string
+  document_id: string
+  fixture: string
+  ticker?: string | null
+  period: {
+    period_type?: string | null
+    period_end?: string | null
+  }
+  metric_name: string
+  canonical_field?: string | null
+  expectation_type: string
+  expected_value: number | null
+  expected_null: boolean
+  currency?: string | null
+  scale?: string | null
+  source_pdf_path?: string | null
+  source_pdf_exists?: boolean | null
+  source_pdf_status: 'present' | 'missing' | 'not_declared' | string
+  source_page?: number | null
+  source_table?: string | null
+  source_row?: string | null
+  source_evidence_status: string
+  classification: MetricCoverageClassification | string
+  schema_support: {
+    schema_supported: boolean
+    extractor_output_supported: boolean
+    evaluator_supported: boolean
+  }
+  ambiguity_reason?: string | null
+  recommended_action: string
+  production_metric_tier: string
+  review_status: string
+  evaluation_status?: string | null
+  actual_value?: number | null
+  score?: number | null
+  reason?: string | null
+}
+
+export type ConfirmedMetricCoverageSummary = {
+  profile: string
+  fixture_count: number
+  total_expectations: number
+  scored_count: number
+  candidate_review_required_count: number
+  ambiguous_count: number
+  unsupported_count: number
+  missing_source_evidence_count: number
+  missing_source_pdf_count: number
+  classification_counts: Record<string, number>
+  review_status_counts: Record<string, number>
+  generated_at?: string | null
+  head?: string | null
+  branch?: string | null
+  canonical_core_unchanged: boolean
+  expanded_required_unchanged: boolean
+  canonical_labels_mutated: boolean
+}
+
+export type ConfirmedMetricCoverageArtifacts = {
+  artifact_dir?: string | null
+  json_path?: string | null
+  markdown_path?: string | null
+}
+
+export type ConfirmedMetricCoveragePacket = {
+  status: string
+  profile: string
+  generated_at?: string | null
+  head?: string | null
+  branch?: string | null
+  fixtures_dir?: string | null
+  summary: ConfirmedMetricCoverageSummary | null
+  rows: ConfirmedMetricCoverageRow[]
+  count?: number
+  artifacts?: ConfirmedMetricCoverageArtifacts | null
+  errors?: string[]
+  warnings?: string[]
+  scorecard?: Record<string, unknown>
+  copy?: Record<string, string>
+}
+
+export type VerificationTab = 'review' | 'gold-eval' | 'metric-coverage' | 'runs' | 'verify'
 
 export type VerificationProgressLevel = 'info' | 'success' | 'warning' | 'error'
 

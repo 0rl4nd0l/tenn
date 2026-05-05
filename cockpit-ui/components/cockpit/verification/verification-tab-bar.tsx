@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart3, CheckCircle2, Play, Search } from 'lucide-react'
+import { BarChart3, CheckCircle2, ClipboardCheck, Play, Search } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -26,6 +26,10 @@ export function VerificationTabBar({ wrongQueueCount, pendingCount, failedChecks
       <TabsTrigger value="gold-eval" className="justify-start gap-2 px-3 py-2">
         <Play className="h-4 w-4" />
         Real-Gold
+      </TabsTrigger>
+      <TabsTrigger value="metric-coverage" className="justify-start gap-2 px-3 py-2">
+        <ClipboardCheck className="h-4 w-4" />
+        Metric Coverage
       </TabsTrigger>
       <TabsTrigger value="verify" className="justify-start gap-2 px-3 py-2">
         <CheckCircle2 className="h-4 w-4" />

@@ -35,6 +35,7 @@ import type {
 
 import { ACTIVE_RUNS_STORAGE_KEY } from './constants'
 import { GoldEvalTabPanel } from './tabs/gold-eval-tab-panel'
+import { MetricCoverageTabPanel } from './tabs/metric-coverage-tab-panel'
 import { ReviewTabPanel } from './tabs/review-tab-panel'
 import { RunsTabPanel } from './tabs/runs-tab-panel'
 import { VerifyTabPanel } from './tabs/verify-tab-panel'
@@ -42,6 +43,10 @@ import { VerificationProgressLog } from './verification-progress-log'
 import { VerificationSidebar } from './verification-sidebar'
 import type {
   ActiveExtractionMonitorRun,
+  ConfirmedMetricCoverageArtifacts,
+  ConfirmedMetricCoveragePacket,
+  ConfirmedMetricCoverageRow,
+  ConfirmedMetricCoverageSummary,
   ProcessDocumentResponse,
   RealGoldEvalResponse,
   RealGoldEvalTaskProgressEvent,
@@ -140,6 +145,81 @@ function realGoldProgressMessage(event: RealGoldEvalTaskProgressEvent): string {
   return 'Real-Gold progress update'
 }
 
+function mergeMetricCoverageResponses(
+  summaryResponse: Partial<ConfirmedMetricCoveragePacket> & {
+    summary?: ConfirmedMetricCoverageSummary | null
+    artifacts?: ConfirmedMetricCoverageArtifacts | null
+  },
+  rowsResponse: Partial<ConfirmedMetricCoveragePacket> & {
+    rows?: ConfirmedMetricCoverageRow[]
+    count?: number
+    artifacts?: ConfirmedMetricCoverageArtifacts | null
+  },
+): ConfirmedMetricCoveragePacket {
+  const warnings = [
+    ...(Array.isArray(summaryResponse.warnings) ? summaryResponse.warnings : []),
+    ...(Array.isArray(rowsResponse.warnings) ? rowsResponse.warnings : []),
+  ]
+  const errors = [
+    ...(Array.isArray(summaryResponse.errors) ? summaryResponse.errors : []),
+    ...(Array.isArray(rowsResponse.errors) ? rowsResponse.errors : []),
+  ]
+  return {
+    status: String(rowsResponse.status || summaryResponse.status || 'not_generated'),
+    profile: String(summaryResponse.profile || rowsResponse.profile || 'confirmed_metric_coverage'),
+    generated_at: summaryResponse.generated_at || summaryResponse.summary?.generated_at || null,
+    head: summaryResponse.head || summaryResponse.summary?.head || null,
+    branch: summaryResponse.branch || summaryResponse.summary?.branch || null,
+    fixtures_dir: summaryResponse.fixtures_dir || null,
+    summary: summaryResponse.summary || null,
+    rows: Array.isArray(rowsResponse.rows) ? rowsResponse.rows : [],
+    count: typeof rowsResponse.count === 'number' ? rowsResponse.count : (rowsResponse.rows?.length ?? 0),
+    artifacts: summaryResponse.artifacts || rowsResponse.artifacts || null,
+    errors,
+    warnings: Array.from(new Set(warnings)),
+  }
+}
+
+function renderMetricCoverageMarkdown(packet: ConfirmedMetricCoveragePacket): string {
+  const summary = packet.summary
+  const lines = [
+    '# Confirmed Metric Coverage Review',
+    '',
+    '- This review does not run extraction.',
+    '- Candidate metrics require human source-evidence review before production scoring.',
+    '- Canonical trust semantics are unchanged.',
+    '',
+    '## Summary',
+    '',
+    `- status: \`${packet.status}\``,
+    `- profile: \`${packet.profile}\``,
+    `- fixtures: \`${summary?.fixture_count ?? 'DATA_MISSING'}\``,
+    `- expectations: \`${summary?.total_expectations ?? 'DATA_MISSING'}\``,
+    `- scored: \`${summary?.scored_count ?? 'DATA_MISSING'}\``,
+    `- candidates: \`${summary?.candidate_review_required_count ?? 'DATA_MISSING'}\``,
+    `- ambiguous: \`${summary?.ambiguous_count ?? 'DATA_MISSING'}\``,
+    `- unsupported: \`${summary?.unsupported_count ?? 'DATA_MISSING'}\``,
+    '',
+    '## Rows',
+    '',
+    '| ticker | fixture | period | metric | classification | source | action |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+  ]
+  packet.rows.forEach((row) => {
+    lines.push([
+      row.ticker || '-',
+      row.fixture || row.document_id,
+      row.period.period_end || '-',
+      row.metric_name,
+      row.classification,
+      row.source_pdf_status,
+      row.recommended_action,
+    ].map((value) => String(value).replaceAll('|', '\\|')).join(' | ').replace(/^/, '| ').replace(/$/, ' |'))
+  })
+  lines.push('')
+  return lines.join('\n')
+}
+
 export function VerificationScreen() {
   const router = useRouter()
   const pathname = usePathname()
@@ -203,6 +283,11 @@ export function VerificationScreen() {
   const [goldEvalLoading, setGoldEvalLoading] = useState(false)
   const [goldEvalError, setGoldEvalError] = useState<string | null>(null)
   const [goldEval, setGoldEval] = useState<RealGoldEvalResponse | null>(null)
+
+  const [metricCoverageLoading, setMetricCoverageLoading] = useState(false)
+  const [metricCoverageRunning, setMetricCoverageRunning] = useState(false)
+  const [metricCoverageError, setMetricCoverageError] = useState<string | null>(null)
+  const [metricCoverage, setMetricCoverage] = useState<ConfirmedMetricCoveragePacket | null>(null)
 
   const [verificationRunHistory, setVerificationRunHistory] = useState<VerificationRunHistory[]>([])
   const [verificationHistoryLoading, setVerificationHistoryLoading] = useState(false)
@@ -1305,6 +1390,95 @@ export function VerificationScreen() {
     }
   }, [appendProgress, describeError, extractionMethod, goldLimit, strictMethod])
 
+  const handleLoadMetricCoverageLatest = useCallback(async () => {
+    setMetricCoverageLoading(true)
+    setMetricCoverageError(null)
+    try {
+      appendProgress({
+        scope: 'metric coverage',
+        message: 'Loading latest confirmed metric coverage review artifact',
+      })
+      const [summaryResponse, rowsResponse] = await Promise.all([
+        fetch('/api/extraction-eval/confirmed-metric-coverage/summary', { cache: 'no-store' }),
+        fetch('/api/extraction-eval/confirmed-metric-coverage/rows', { cache: 'no-store' }),
+      ])
+      if (!summaryResponse.ok) {
+        throw new Error(await fetchErrorDetail(summaryResponse, `Coverage summary load failed (HTTP ${summaryResponse.status})`))
+      }
+      if (!rowsResponse.ok) {
+        throw new Error(await fetchErrorDetail(rowsResponse, `Coverage rows load failed (HTTP ${rowsResponse.status})`))
+      }
+      const summaryPayload = await summaryResponse.json() as Partial<ConfirmedMetricCoveragePacket> & {
+        summary?: ConfirmedMetricCoverageSummary | null
+        artifacts?: ConfirmedMetricCoverageArtifacts | null
+      }
+      const rowsPayload = await rowsResponse.json() as Partial<ConfirmedMetricCoveragePacket> & {
+        rows?: ConfirmedMetricCoverageRow[]
+        count?: number
+        artifacts?: ConfirmedMetricCoverageArtifacts | null
+      }
+      const merged = mergeMetricCoverageResponses(summaryPayload, rowsPayload)
+      setMetricCoverage(merged)
+      appendProgress({
+        level: merged.status === 'not_generated' ? 'warning' : 'success',
+        scope: 'metric coverage',
+        message: merged.status === 'not_generated'
+          ? 'No confirmed metric coverage review artifact has been generated yet'
+          : `Loaded confirmed metric coverage review with ${merged.rows.length} row(s)`,
+        detail: merged.artifacts?.json_path ? `artifact=${merged.artifacts.json_path}` : undefined,
+      })
+    } catch (err: unknown) {
+      const message = describeError(err, 'Failed to load confirmed metric coverage review')
+      setMetricCoverageError(message)
+      appendProgress({ level: 'error', scope: 'metric coverage', message: 'Coverage review load failed', detail: message })
+    } finally {
+      setMetricCoverageLoading(false)
+    }
+  }, [appendProgress, describeError])
+
+  const handleRunMetricCoverageReview = useCallback(async () => {
+    setMetricCoverageRunning(true)
+    setMetricCoverageError(null)
+    try {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (BROWSER_API_KEY) {
+        headers['X-API-Key'] = BROWSER_API_KEY
+      }
+      appendProgress({
+        scope: 'metric coverage',
+        message: 'Generating confirmed metric coverage review packet',
+        detail: 'dry_run=true extraction=false',
+      })
+      const response = await fetch('/api/extraction-eval/confirmed-metric-coverage/run', {
+        method: 'POST',
+        headers,
+      })
+      if (!response.ok) {
+        throw new Error(await fetchErrorDetail(response, `Coverage review generation failed (HTTP ${response.status})`))
+      }
+      const payload = await response.json() as ConfirmedMetricCoveragePacket
+      setMetricCoverage(payload)
+      appendProgress({
+        level: payload.status === 'ready' ? 'success' : 'warning',
+        scope: 'metric coverage',
+        message: `Confirmed metric coverage review ${payload.status}`,
+        detail: `rows=${payload.rows.length} artifact=${payload.artifacts?.json_path || 'DATA_MISSING'}`,
+      })
+      toast.success(`Confirmed metric coverage review generated (${payload.rows.length} rows)`)
+    } catch (err: unknown) {
+      const message = describeError(err, 'Failed to run confirmed metric coverage review')
+      setMetricCoverageError(message)
+      appendProgress({ level: 'error', scope: 'metric coverage', message: 'Coverage review generation failed', detail: message })
+      toast.error(message)
+    } finally {
+      setMetricCoverageRunning(false)
+    }
+  }, [appendProgress, describeError])
+
+  useEffect(() => {
+    void handleLoadMetricCoverageLatest()
+  }, [handleLoadMetricCoverageLatest])
+
   const handleOpenGoldEvalReviewSession = useCallback(async (sessionId: string) => {
     if (reviewActionLockRef.current) return
     if (!sessionId.trim()) {
@@ -1538,6 +1712,18 @@ export function VerificationScreen() {
     downloadFile(JSON.stringify(goldEval, null, 2), `real-gold-eval-${date}.json`, 'application/json')
   }
 
+  const handleExportMetricCoverageJson = () => {
+    if (!metricCoverage) return
+    const date = new Date().toISOString().slice(0, 10)
+    downloadFile(JSON.stringify(metricCoverage, null, 2), `confirmed-metric-coverage-${date}.json`, 'application/json')
+  }
+
+  const handleExportMetricCoverageMarkdown = () => {
+    if (!metricCoverage) return
+    const date = new Date().toISOString().slice(0, 10)
+    downloadFile(renderMetricCoverageMarkdown(metricCoverage), `confirmed-metric-coverage-${date}.md`, 'text/markdown')
+  }
+
   const runStatusCards = selectedRunStatuses.map(({ documentId, runId, status }) => {
     const document = documents.find((entry) => entry.document_id === documentId)
     return {
@@ -1734,6 +1920,23 @@ export function VerificationScreen() {
                   onRunGoldEval={() => void handleRunGoldEval()}
                   onExportGoldEvalJson={handleExportGoldEvalJson}
                   onOpenReviewSession={(sessionId) => void handleOpenGoldEvalReviewSession(sessionId)}
+                />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="metric-coverage" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
+            <ScrollArea className="h-full w-full">
+              <div className="pr-4">
+                <MetricCoverageTabPanel
+                  packet={metricCoverage}
+                  loading={metricCoverageLoading}
+                  running={metricCoverageRunning}
+                  error={metricCoverageError}
+                  onLoadLatest={() => void handleLoadMetricCoverageLatest()}
+                  onRunReview={() => void handleRunMetricCoverageReview()}
+                  onExportJson={handleExportMetricCoverageJson}
+                  onExportMarkdown={handleExportMetricCoverageMarkdown}
                 />
               </div>
             </ScrollArea>

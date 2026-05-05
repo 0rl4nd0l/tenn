@@ -259,6 +259,108 @@ function buildMockState() {
     ],
   }
 
+  const metricCoverage = {
+    status: 'ready_with_warnings',
+    profile: 'confirmed_metric_coverage',
+    generated_at: '2026-05-05T00:00:00Z',
+    summary: {
+      profile: 'confirmed_metric_coverage',
+      fixture_count: 15,
+      total_expectations: 146,
+      scored_count: 73,
+      candidate_review_required_count: 70,
+      ambiguous_count: 3,
+      unsupported_count: 0,
+      missing_source_evidence_count: 0,
+      missing_source_pdf_count: 0,
+      classification_counts: {
+        CONFIRMED_SOURCE_EVIDENCED: 1,
+        CANDIDATE_REVIEW_REQUIRED: 1,
+      },
+      review_status_counts: {
+        review_only_confirmed: 1,
+        needs_human_review: 1,
+      },
+      generated_at: '2026-05-05T00:00:00Z',
+      head: 'adb76fac485e',
+      branch: 'preserve/dirty-work-20260430T065748Z',
+      canonical_core_unchanged: true,
+      expanded_required_unchanged: true,
+      canonical_labels_mutated: false,
+    },
+    artifacts: {
+      artifact_dir: 'reports/extraction_eval/confirmed_metric_coverage_review_20260505T000000Z',
+      json_path: 'reports/extraction_eval/confirmed_metric_coverage_review_20260505T000000Z/review_packet.json',
+      markdown_path: 'reports/extraction_eval/confirmed_metric_coverage_review_20260505T000000Z/review_packet.md',
+    },
+    errors: [],
+    warnings: ['Candidate rows require human source-evidence review.'],
+    rows: [
+      {
+        fixture_id: 'bhp_fy2021_preliminary_final',
+        document_id: 'bhp_fy2021_preliminary_final',
+        fixture: 'BHP_A_2021-06-30.json',
+        ticker: 'BHP',
+        period: { period_type: 'A', period_end: '2021-06-30' },
+        metric_name: 'revenue',
+        canonical_field: 'revenue',
+        expectation_type: 'value',
+        expected_value: 60817000000,
+        expected_null: false,
+        currency: 'USD',
+        scale: 'millions',
+        source_pdf_path: 'data/asx/docs/BHP/report.pdf',
+        source_pdf_exists: true,
+        source_pdf_status: 'present',
+        source_page: 44,
+        source_table: '43',
+        source_row: 'Revenue 60,817',
+        source_evidence_status: 'CONFIRMED_SOURCE_EVIDENCED',
+        classification: 'CONFIRMED_SOURCE_EVIDENCED',
+        schema_support: {
+          schema_supported: true,
+          extractor_output_supported: true,
+          evaluator_supported: true,
+        },
+        ambiguity_reason: null,
+        recommended_action: 'score_in_confirmed_metric_coverage',
+        production_metric_tier: 'core',
+        review_status: 'review_only_confirmed',
+      },
+      {
+        fixture_id: 'anz_20250331_h',
+        document_id: 'anz_20250331_h',
+        fixture: 'ANZ_H_2025-03-31.json',
+        ticker: 'ANZ',
+        period: { period_type: 'H', period_end: '2025-03-31' },
+        metric_name: 'shares_outstanding',
+        canonical_field: 'shares_outstanding',
+        expectation_type: 'value',
+        expected_value: 3003366782,
+        expected_null: false,
+        currency: 'AUD',
+        scale: 'millions',
+        source_pdf_path: 'data/asx/docs/ANZ/report.pdf',
+        source_pdf_exists: true,
+        source_pdf_status: 'present',
+        source_page: 44,
+        source_table: null,
+        source_row: 'The Company share capital comprises 3,003,366,782 fully paid shares',
+        source_evidence_status: 'CANDIDATE_REVIEW_REQUIRED',
+        classification: 'CANDIDATE_REVIEW_REQUIRED',
+        schema_support: {
+          schema_supported: true,
+          extractor_output_supported: true,
+          evaluator_supported: true,
+        },
+        ambiguity_reason: null,
+        recommended_action: 'request_human_source_evidence_review',
+        production_metric_tier: 'capital_structure',
+        review_status: 'needs_human_review',
+      },
+    ],
+  }
+
   const verificationResults = {
     ok: true,
     extraction_failures: [
@@ -310,6 +412,7 @@ function buildMockState() {
     },
     runStatus,
     goldEval,
+    metricCoverage,
     verificationResults,
     verificationHistory,
     get decisionCalls() {
@@ -494,6 +597,54 @@ async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: 
     })
   })
 
+  await page.route('**/api/extraction-eval/confirmed-metric-coverage/**', async (route) => {
+    const requestUrl = new URL(route.request().url())
+    if (requestUrl.pathname.endsWith('/summary')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: state.metricCoverage.status,
+          profile: state.metricCoverage.profile,
+          summary: state.metricCoverage.summary,
+          artifacts: state.metricCoverage.artifacts,
+          errors: state.metricCoverage.errors,
+          warnings: state.metricCoverage.warnings,
+        }),
+      })
+      return
+    }
+    if (requestUrl.pathname.endsWith('/rows')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: state.metricCoverage.status,
+          profile: state.metricCoverage.profile,
+          rows: state.metricCoverage.rows,
+          count: state.metricCoverage.rows.length,
+          artifacts: state.metricCoverage.artifacts,
+          errors: state.metricCoverage.errors,
+          warnings: state.metricCoverage.warnings,
+        }),
+      })
+      return
+    }
+    if (requestUrl.pathname.endsWith('/run')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(state.metricCoverage),
+      })
+      return
+    }
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'unknown coverage route' }),
+    })
+  })
+
   await page.route('**/api/extraction-eval/real-gold**', async (route) => {
     const requestUrl = new URL(route.request().url())
     if (requestUrl.pathname.includes('/tasks/')) {
@@ -603,6 +754,7 @@ test.describe('Verification screen', () => {
     await expect(page.getByRole('tab', { name: /^Review/ })).toBeVisible()
     await expect(page.getByRole('tab', { name: /^Runs/ })).toBeVisible()
     await expect(page.getByRole('tab', { name: /^Real-Gold/ })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /^Metric Coverage/ })).toBeVisible()
     await expect(page.getByRole('tab', { name: /^Verify/ })).toBeVisible()
     await expect(page.getByText('Manual Extraction Review')).toBeVisible()
     await expect(page.getByText('Saved review sessions')).toBeVisible()
@@ -616,6 +768,11 @@ test.describe('Verification screen', () => {
     await page.getByRole('tab', { name: /^Real-Gold/ }).click()
     await expect(page).toHaveURL(/tab=gold-eval/)
     await expect(page.getByText('Real Gold Set Evaluation')).toBeVisible()
+
+    await page.getByRole('tab', { name: /^Metric Coverage/ }).click()
+    await expect(page).toHaveURL(/tab=metric-coverage/)
+    await expect(page.getByText('Confirmed Metric Coverage Review', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('146')).toBeVisible()
 
     await page.getByRole('tab', { name: /^Verify/ }).click()
     await expect(page).toHaveURL(/tab=verify/)
@@ -689,6 +846,12 @@ test.describe('Verification screen', () => {
     await page.getByRole('button', { name: /Open Review/ }).click()
     await expect(page.getByText('Manual Extraction Review')).toBeVisible()
     await expect(page.getByText('Review 1 of 2')).toBeVisible()
+
+    await page.getByRole('tab', { name: /^Metric Coverage/ }).click()
+    await page.getByRole('button', { name: /Refresh review/i }).click()
+    await expect(page.getByText('Confirmed Metric Coverage Review', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('BHP_A_2021-06-30.json')).toBeVisible()
+    await expect(page.getByText('score_in_confirmed_metric_coverage')).toBeVisible()
   })
 
   test('does not repeatedly poll missing historical run timelines', async ({ page }) => {

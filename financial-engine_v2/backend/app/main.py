@@ -88,6 +88,7 @@ from app.services.method_isolated_extraction import (
 from app.services.ollama import probe_ollama_embeddings
 from app.services.rag import query_news_chunks, query_rag
 from app.services.eval_task_registry import get_eval_task_registry
+from app.services import confirmed_metric_coverage_review
 from app.services.router_state import extraction_activity
 
 
@@ -981,6 +982,49 @@ def get_real_gold_eval_task(task_id: str) -> dict[str, Any]:
     if record is None:
         raise HTTPException(status_code=404, detail=f"unknown task_id: {task_id}")
     return record.to_dict()
+
+
+@app.get(
+    "/api/extraction-eval/confirmed-metric-coverage/summary",
+    dependencies=[Depends(require_api_key)],
+)
+def get_confirmed_metric_coverage_summary() -> dict[str, Any]:
+    """Return the latest confirmed metric coverage review summary."""
+
+    try:
+        return confirmed_metric_coverage_review.confirmed_metric_coverage_summary()
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/extraction-eval/confirmed-metric-coverage/rows",
+    dependencies=[Depends(require_api_key)],
+)
+def get_confirmed_metric_coverage_rows() -> dict[str, Any]:
+    """Return metric-level rows from the latest coverage review artifact."""
+
+    try:
+        return confirmed_metric_coverage_review.confirmed_metric_coverage_rows()
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post(
+    "/api/extraction-eval/confirmed-metric-coverage/run",
+    dependencies=[Depends(require_api_key)],
+)
+def run_confirmed_metric_coverage_review() -> dict[str, Any]:
+    """Generate confirmed metric coverage review artifacts without extraction."""
+
+    try:
+        return confirmed_metric_coverage_review.run_confirmed_metric_coverage_review()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.post("/rag/query", dependencies=[Depends(require_api_key)])
