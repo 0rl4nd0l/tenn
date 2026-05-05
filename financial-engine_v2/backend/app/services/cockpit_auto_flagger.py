@@ -25,6 +25,21 @@ _CONTEXT_COMPACTION_RE = re.compile(
     r"(_truncated|_original_chars|additional fields omitted|summarized\s+[—-]\s+original)",
     re.IGNORECASE,
 )
+_CONTROL_OR_GENERIC_PROMPT_RE = re.compile(
+    r"^\s*(?:/(?:advisor|cloud|local|ops)\s+)?(?:"
+    r"reply\s+(?:exactly|with)|say\s+exactly|ping|ok(?:ay)?|hi|hello|thanks|"
+    r"thank\s+you|continue|go\s+on|d"
+    r")\b",
+    re.IGNORECASE,
+)
+_ORCHESTRATOR_MEMORY_SOURCES = frozenset(
+    {
+        "financial_truth",
+        "company_memory",
+        "market_memory",
+        "user_thesis_memory",
+    }
+)
 _SOURCE_LIST_KEYS = frozenset(
     {
         "hits",
@@ -128,6 +143,40 @@ def _append(
     )
 
 
+def _request_message(turn: dict[str, Any]) -> str:
+    request = turn.get("request")
+    if isinstance(request, dict):
+        return str(request.get("message") or request.get("resolved_message") or "")
+    return ""
+
+
+def _source_plan_from_evidence(evidence: list[dict[str, Any]]) -> list[str]:
+    for item in evidence:
+        item_type = str(item.get("type") or item.get("tool") or "").strip().lower()
+        if item_type != "orchestrator":
+            continue
+        for payload_key in ("details", "result"):
+            payload = item.get(payload_key)
+            if not isinstance(payload, dict):
+                continue
+            source_plan = payload.get("source_plan") or payload.get("sources")
+            if isinstance(source_plan, list):
+                return [str(source).strip() for source in source_plan if str(source).strip()]
+    return []
+
+
+def _orchestrator_entities(evidence: list[dict[str, Any]]) -> dict[str, Any]:
+    for item in evidence:
+        item_type = str(item.get("type") or item.get("tool") or "").strip().lower()
+        if item_type != "orchestrator":
+            continue
+        for payload_key in ("details", "result"):
+            payload = item.get(payload_key)
+            if isinstance(payload, dict) and isinstance(payload.get("entities"), dict):
+                return payload["entities"]
+    return {}
+
+
 def _result_has_error(result: Any) -> str | None:
     if not isinstance(result, dict):
         return None
@@ -159,6 +208,58 @@ def detect_auto_flag_findings(turn: dict[str, Any]) -> list[dict[str, Any]]:
     evidence = _dicts(turn.get("evidence"))
     tool_traces = _dicts(turn.get("tool_traces"))
     status_events = _dicts(turn.get("status_events"))
+    request_message = _request_message(turn)
+    source = str(routing.get("source") or "").strip().lower()
+    model = str(routing.get("model") or "").strip()
+    routing_reason = str(routing.get("routing_reason") or "").strip().lower()
+
+    if source in {"api", "local", "orchestrator", "cockpit"} and model.lower() in {
+        "",
+        "null",
+        "none",
+    }:
+        _append(
+            findings,
+            category="routing_provenance",
+            severity="high",
+            reason="Response routing metadata identified a source but did not identify the model.",
+            evidence={"source": source, "model": model or None},
+        )
+
+    if source == "local" and (
+        "force:api" in routing_reason or "api_only" in routing_reason
+    ):
+        _append(
+            findings,
+            category="routing_provenance",
+            severity="high",
+            reason="Response metadata reported local routing while the routing reason required API.",
+            evidence={"source": source, "routing_reason": routing.get("routing_reason")},
+        )
+
+    source_plan = _source_plan_from_evidence(evidence)
+    entities = _orchestrator_entities(evidence)
+    has_entity_scope = bool(
+        str(entities.get("primary_ticker") or "").strip()
+        or str(entities.get("sector") or "").strip()
+    )
+    if (
+        source == "orchestrator"
+        and _CONTROL_OR_GENERIC_PROMPT_RE.search(request_message)
+        and not has_entity_scope
+        and any(source_name in _ORCHESTRATOR_MEMORY_SOURCES for source_name in source_plan)
+    ):
+        _append(
+            findings,
+            category="evidence_relevance",
+            severity="high",
+            reason="A generic/control prompt was answered by orchestrator memory evidence without ticker or sector scope.",
+            evidence={
+                "request": request_message[:240],
+                "source_plan": source_plan,
+                "entities": entities,
+            },
+        )
 
     if routing.get("grounding_guard") == "missing_visible_sources":
         _append(

@@ -155,6 +155,13 @@ def test_usage_lists_reboot_command() -> None:
     assert "cockpit reboot" in script
 
 
+def test_usage_lists_routing_smoke_command() -> None:
+    script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
+
+    assert "cockpit smoke routing" in script
+    assert "cockpit_routing_smoke.py" in script
+
+
 def test_start_config_defaults_marketplace_to_direct_runtime() -> None:
     config = (REPO_ROOT / "scripts" / "start_config.env").read_text(encoding="utf-8")
 

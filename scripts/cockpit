@@ -34,6 +34,7 @@ Usage:
   cockpit restart backend
   cockpit reboot         Kill backend + UI processes, then reboot stack and Next.js web UI
   cockpit reboot full    Hard reboot: docker down + stop systemd units + kill rogue llama-servers + full restart
+  cockpit smoke routing  Run routing/provenance smoke checks against the backend
   cockpit doctor
   cockpit bugagent       Start bug monitor web UI (http://localhost:8765)
 
@@ -718,6 +719,22 @@ case "${cmd}" in
     ;;
   doctor)
     "${REPO_ROOT}/scripts/cockpit_doctor.sh"
+    ;;
+  smoke)
+    sub="${1:-}"
+    shift || true
+    case "${sub}" in
+      routing)
+        py="$(python_cmd)"
+        "${py}" "${REPO_ROOT}/scripts/cockpit_routing_smoke.py" \
+          --backend-url "${COCKPIT_BACKEND_URL:-http://127.0.0.1:8000}" \
+          "$@"
+        ;;
+      *)
+        echo "Usage: cockpit smoke routing [--skip-chat] [--json]" >&2
+        exit 2
+        ;;
+    esac
     ;;
   kill)
     svc="${1:-}"

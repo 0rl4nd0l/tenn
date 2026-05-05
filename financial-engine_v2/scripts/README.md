@@ -29,6 +29,8 @@ For the repo-wide canonical entrypoint rules, see:
   - cleanup/reset helper
 - `smoke_local.sh`
   - local smoke check
+- `../../scripts/cockpit_routing_smoke.py`
+  - backend Cockpit routing/provenance smoke check for API-only and metadata regressions
 - `status.sh`
   - process/runtime status helper
 

@@ -57,6 +57,107 @@ def test_detect_auto_flag_findings_ignores_clean_turn() -> None:
     assert findings == []
 
 
+def test_detect_auto_flag_findings_catches_missing_model_for_known_source() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "response_text": "Here is a response.",
+            "routing_metadata": {"source": "orchestrator", "model": None},
+            "evidence": [],
+        }
+    )
+
+    assert any(item["category"] == "routing_provenance" for item in findings)
+    assert any("did not identify the model" in item["reason"] for item in findings)
+
+
+def test_detect_auto_flag_findings_catches_force_api_local_contradiction() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "response_text": "Here is a response.",
+            "routing_metadata": {
+                "source": "local",
+                "model": "model:qwen",
+                "routing_reason": "force:api",
+            },
+            "evidence": [],
+        }
+    )
+
+    assert any(item["category"] == "routing_provenance" for item in findings)
+    assert any("required API" in item["reason"] for item in findings)
+
+
+def test_detect_auto_flag_findings_catches_generic_orchestrator_memory() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "request": {"message": "Reply exactly ok."},
+            "response_text": "ok\n\nCoverage and Failure Signals:",
+            "routing_metadata": {
+                "source": "orchestrator",
+                "model": "claude-sonnet-test",
+            },
+            "evidence": [
+                {
+                    "type": "orchestrator",
+                    "details": {
+                        "intent": "mixed",
+                        "source_plan": ["financial_truth", "market_memory"],
+                        "entities": {
+                            "primary_ticker": None,
+                            "tickers": [],
+                            "sector": None,
+                        },
+                    },
+                },
+                {
+                    "type": "market_memory",
+                    "tool": "market_memory",
+                    "result": {
+                        "items": [
+                            {
+                                "type": "macro_theme",
+                                "statement": "Australian inflation gauge has cooled.",
+                            }
+                        ]
+                    },
+                },
+            ],
+        }
+    )
+
+    assert any(item["category"] == "evidence_relevance" for item in findings)
+    assert any("generic/control prompt" in item["reason"] for item in findings)
+
+
+def test_detect_auto_flag_findings_allows_scoped_orchestrator_memory() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "request": {"message": "analyse BHP"},
+            "response_text": "BHP answer with visible sources.",
+            "routing_metadata": {
+                "source": "orchestrator",
+                "model": "claude-sonnet-test",
+            },
+            "evidence": [
+                {
+                    "type": "orchestrator",
+                    "details": {
+                        "intent": "mixed",
+                        "source_plan": ["financial_truth", "market_memory"],
+                        "entities": {
+                            "primary_ticker": "BHP",
+                            "tickers": ["BHP"],
+                            "sector": "Materials",
+                        },
+                    },
+                }
+            ],
+        }
+    )
+
+    assert findings == []
+
+
 def test_detect_auto_flag_findings_ignores_sourceable_compacted_youtube_rows() -> None:
     findings = detect_auto_flag_findings(
         {

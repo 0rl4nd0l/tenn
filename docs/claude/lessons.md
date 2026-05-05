@@ -1030,3 +1030,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The query orchestrator classified no-domain prompts as `mixed`, which retrieved financial truth, company memory, market memory, and thesis memory. Cockpit then treated any returned market-memory item as substantive orchestrator evidence, while orchestrated response metadata kept `source=orchestrator` without copying the actual synthesis model attempt.
 **Fix:** Added a `general` intent with an empty source plan for no-domain prompts, made unknown plans fail closed to `general`, and copied actual synthesis source/model/latency/cost/routing metadata into orchestrated responses under `synthesis_source` plus model fields.
 **Rule:** Do not use `mixed` as a catch-all. Unknown or control prompts should retrieve no evidence until a financial/market domain is detected, and composed/orchestrated answers must still expose the actual LLM synthesis model metadata.
+
+---
+
+## L092 — Routing regressions need live smoke probes and auto diagnostics
+
+**Date:** 2026-05-05
+**Subsystem:** `scripts/cockpit_routing_smoke.py`, `scripts/cockpit`, `financial-engine_v2/backend/app/services/cockpit_auto_flagger.py`
+**Symptom:** Health checks could pass while Cockpit chat still had broken routing/provenance semantics, such as forced-local under API-only, `model=null`, or generic prompts carrying unrelated orchestrator memory sources.
+**Root cause:** Existing restart validation stopped at `/api/health`, and auto diagnostics focused on missing sources, latency, tool failures, truncation, and access errors rather than routing metadata contradictions.
+**Fix:** Added `cockpit smoke routing` for live backend routing/provenance checks and added deterministic auto-flag heuristics for missing model metadata, `force:api`/`local` contradictions, and generic/control prompts answered with unscoped orchestrator memory evidence.
+**Rule:** Backend liveness is not chat correctness. Any routing-policy or provenance fix must include a live smoke probe plus auto-diagnostic heuristics for the failure signature so regressions are visible immediately after restart.
