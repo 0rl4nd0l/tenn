@@ -6,6 +6,17 @@ from app import main as main_app
 from app.services import confirmed_metric_coverage_review as coverage_review
 
 
+def test_confirmed_metric_coverage_default_fixtures_follow_backend_module_root():
+    expected = (
+        Path(coverage_review.__file__).resolve().parents[2]
+        / "tests"
+        / "eval_fixtures"
+    )
+
+    assert coverage_review.DEFAULT_COVERAGE_FIXTURES_DIR == expected
+    assert expected.exists()
+
+
 def _client(monkeypatch, tmp_path: Path) -> TestClient:
     monkeypatch.setattr(
         coverage_review,

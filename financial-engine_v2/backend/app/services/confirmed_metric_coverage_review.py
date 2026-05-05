@@ -8,6 +8,7 @@ canonical labels, database rows, or vector collections.
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, timezone
@@ -20,12 +21,14 @@ from app.services.extraction_gold_eval_scorecard import (
 )
 
 
-WORKSPACE_ROOT = PROJECT_ROOT.parent
-BACKEND_ROOT = PROJECT_ROOT / "backend"
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_COVERAGE_FIXTURES_DIR = BACKEND_ROOT / "tests" / "eval_fixtures"
-CONFIRMED_COVERAGE_REPORTS_DIR = (
-    WORKSPACE_ROOT / "reports" / "extraction_eval"
+WORKSPACE_ROOT = Path(
+    os.getenv("COCKPIT_WORKSPACE_ROOT")
+    or os.getenv("TENN_WORKSPACE_ROOT")
+    or PROJECT_ROOT.parent
 )
+CONFIRMED_COVERAGE_REPORTS_DIR = WORKSPACE_ROOT / "reports" / "extraction_eval"
 PROFILE_NAME = "confirmed_metric_coverage"
 ARTIFACT_PREFIX = "confirmed_metric_coverage_review_"
 

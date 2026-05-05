@@ -1063,3 +1063,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `StateStore` enabled SQLite WAL mode but left the connection timeout at the default behavior and did not configure `PRAGMA busy_timeout`, so a UI read could fail fast when it overlapped a scan write lock.
 **Fix:** `StateStore` now configures a 30 second connect-time timeout and matching `PRAGMA busy_timeout` before schema initialization. The live Docker-backed backend was restarted after confirming the bind-mounted module exposed the patched constant and pragma inside the container.
 **Rule:** Any SQLite-backed Cockpit state surface that is read by the UI and written by background jobs must configure an explicit busy timeout. WAL improves concurrency, but it does not by itself make readers wait through short write locks.
+
+---
+
+## L095 — Backend-local fixtures must not be resolved through project-root guesses
+
+**Date:** 2026-05-05
+**Subsystem:** `financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py`
+**Symptom:** The confirmed metric coverage API failed at runtime with `confirmed metric coverage fixtures not found: /backend/tests/eval_fixtures`.
+**Root cause:** The review sidecar built its fixture path as `PROJECT_ROOT / "backend" / "tests" / "eval_fixtures"`. In Docker-style backend layouts, `PROJECT_ROOT` can resolve to `/`, which turns a backend-local fixture path into the invalid `/backend/tests/eval_fixtures`.
+**Fix:** Resolve confirmed metric coverage fixtures from the backend module root (`Path(__file__).resolve().parents[2]`) so local and container-mounted backend layouts both point at the actual `tests/eval_fixtures` directory.
+**Rule:** For backend-local test/report fixtures, anchor paths to the module tree that owns the files. Reserve `PROJECT_ROOT` for financial-engine data/config roots, not for locating files copied or mounted under the backend package itself.
