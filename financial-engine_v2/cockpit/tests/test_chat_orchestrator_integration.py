@@ -280,6 +280,20 @@ def _empty_result(*, ticker: str | None = "BHP"):
     )
 
 
+def _general_result():
+    return SimpleNamespace(
+        intent="general",
+        entities={"primary_ticker": None, "tickers": []},
+        source_plan=(),
+        financial_truth_results={},
+        company_memory_results={},
+        market_memory_results={},
+        raw_supporting_evidence={},
+        answer_input="general draft",
+        answer={"source_status": {}},
+    )
+
+
 def _recovery_only_result(*, ticker: str | None = "BHP"):
     source_plan = ("financial_truth", "company_memory", "market_memory")
     raw = {
@@ -445,6 +459,12 @@ def test_orchestrated_metadata_includes_routing_reason_when_router_log_available
 ):
     ctrl = _controller(_result("mixed", ("financial_truth", "company_memory")))
     ctrl._hybrid_router = SimpleNamespace(
+        last_attempt_metadata=lambda: {
+            "source": "api",
+            "model": "claude-haiku",
+            "latency_ms": 35,
+            "cost_usd": 0.005,
+        },
         cost_log=lambda: [
             {
                 "source": "api",
@@ -454,13 +474,30 @@ def test_orchestrated_metadata_includes_routing_reason_when_router_log_available
                 "routing_reason": "policy:api_preferred",
             }
         ],
+        total_cost_usd=lambda: 0.02,
     )
 
     response = ctrl.build_chat_response("Why did BHP margins fall?")
 
     assert response.routing_metadata["source"] == "orchestrator"
+    assert response.routing_metadata["synthesis_source"] == "api"
     assert response.routing_metadata["intent"] == "mixed"
+    assert response.routing_metadata["model"] == "claude-sonnet"
+    assert response.routing_metadata["latency_ms"] == 42
+    assert response.routing_metadata["cost_usd"] == 0.01
+    assert response.routing_metadata["total_session_cost_usd"] == 0.02
     assert response.routing_metadata["routing_reason"] == "policy:api_preferred"
+
+
+def test_general_orchestrator_result_falls_through_to_agent_loop() -> None:
+    ctrl = _controller(_general_result())
+
+    response = ctrl.build_chat_response("Reply exactly ok.")
+
+    assert response.text == "Agent API answer."
+    assert response.routing_metadata["source"] == "api"
+    assert ctrl._agent_loop.calls[-1]["mode"] == "run"
+    assert ctrl.tool_router.gather_local_context.call_count == 0
 
 
 def test_orchestrated_responses_stream_plain_text_only() -> None:

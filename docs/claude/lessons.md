@@ -1019,3 +1019,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Requirement preparation treated existing tracked products as complete and did not refresh catalogue aliases; search generation mixed location scope into query text; calibration used only one product query; and eBay route/test coverage did not exercise the job worker's sync entrypoint.
 **Fix:** Refresh existing tracked products from catalogue payloads, add Pro ACE aliases, keep Australia-wide scope in location params/anchor rotation, expand calibration/eBay to exact query variants, add the missing sync wrapper, require ASUS/Pro WS/WS evidence for X570-ACE, and rebuild `no_data` snapshots after zero-ingest calibration.
 **Rule:** For rare exact Marketplace targets, scan readiness means live candidate terms, current tracked-product aliases, working job entrypoints, and a fresh benchmark state even when no clean data is found. Do not convert adjacent models into benchmark evidence to avoid `no_data`.
+
+---
+
+## L091 — Generic prompts must not retrieve every memory layer
+
+**Date:** 2026-05-05
+**Subsystem:** `financial-engine_v2/backend/app/services/query_orchestrator.py`, `financial-engine_v2/cockpit/core/chat.py`
+**Symptom:** A control prompt such as `Reply exactly ok.` could be answered through `source=orchestrator`, show `model=null`, and surface unrelated macro or YouTube memory context.
+**Root cause:** The query orchestrator classified no-domain prompts as `mixed`, which retrieved financial truth, company memory, market memory, and thesis memory. Cockpit then treated any returned market-memory item as substantive orchestrator evidence, while orchestrated response metadata kept `source=orchestrator` without copying the actual synthesis model attempt.
+**Fix:** Added a `general` intent with an empty source plan for no-domain prompts, made unknown plans fail closed to `general`, and copied actual synthesis source/model/latency/cost/routing metadata into orchestrated responses under `synthesis_source` plus model fields.
+**Rule:** Do not use `mixed` as a catch-all. Unknown or control prompts should retrieve no evidence until a financial/market domain is detected, and composed/orchestrated answers must still expose the actual LLM synthesis model metadata.

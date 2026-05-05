@@ -5999,11 +5999,17 @@ class ChatController:
             "intent": orchestration_result.intent,
             "sources": list(orchestration_result.source_plan),
         }
-        if self._hybrid_router is not None:
-            cost_entries = self._hybrid_router.cost_log()
-            if cost_entries:
-                last = cost_entries[-1]
-                routing_metadata["routing_reason"] = last.get("routing_reason")
+        synthesis_metadata = self._latest_synthesis_attempt_metadata()
+        synthesis_source = synthesis_metadata.get("source")
+        if synthesis_source:
+            routing_metadata["synthesis_source"] = synthesis_source
+        for key in ("model", "latency_ms", "cost_usd", "routing_reason"):
+            value = synthesis_metadata.get(key)
+            if value is not None:
+                routing_metadata[key] = value
+        total_cost = synthesis_metadata.get("total_session_cost_usd")
+        if total_cost is not None:
+            routing_metadata["total_session_cost_usd"] = total_cost
 
         return ChatResponse(
             text=final_text.strip(),
@@ -6011,6 +6017,50 @@ class ChatController:
             mode=ResponseMode.FAST,
             routing_metadata=routing_metadata,
         )
+
+    def _latest_synthesis_attempt_metadata(self) -> dict[str, Any]:
+        router = self._hybrid_router
+        if router is None:
+            return {}
+
+        metadata: dict[str, Any] = {}
+        last_attempt = getattr(router, "last_attempt_metadata", None)
+        if callable(last_attempt):
+            try:
+                payload = last_attempt()
+                if isinstance(payload, dict):
+                    metadata.update(payload)
+            except Exception:
+                pass
+
+        cost_log = getattr(router, "cost_log", None)
+        if callable(cost_log):
+            try:
+                entries = cost_log()
+                if isinstance(entries, list) and entries:
+                    latest = entries[-1]
+                    if isinstance(latest, dict):
+                        for key in (
+                            "source",
+                            "model",
+                            "latency_ms",
+                            "cost_usd",
+                            "routing_reason",
+                        ):
+                            if latest.get(key) is not None:
+                                metadata[key] = latest.get(key)
+            except Exception:
+                pass
+
+        total_cost = getattr(router, "total_cost_usd", None)
+        if callable(total_cost):
+            try:
+                value = total_cost()
+                if value is not None:
+                    metadata["total_session_cost_usd"] = value
+            except Exception:
+                pass
+        return metadata
 
     @staticmethod
     def _collect_orchestration_coverage_disclosures(orchestration_result) -> list[str]:

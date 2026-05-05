@@ -73,6 +73,13 @@ _MARKET_KEYWORDS = (
 )
 _TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS
 _QUERY_BUDGETS = {
+    "general": {
+        "financial_periods": 0,
+        "company_items": 0,
+        "sector_items": 0,
+        "macro_items": 0,
+        "user_thesis_items": 0,
+    },
     "financial_fact": {
         "financial_periods": 2,
         "company_items": 0,
@@ -262,7 +269,7 @@ class _NullProvider:
 def classify(query: str) -> QueryIntent:
     lowered = (query or "").strip().lower()
     if not lowered:
-        return "mixed"
+        return "general"
 
     has_financial = any(token in lowered for token in _FINANCIAL_KEYWORDS)
     has_interpretation = any(token in lowered for token in _INTERPRETATION_KEYWORDS)
@@ -291,7 +298,7 @@ def classify(query: str) -> QueryIntent:
         return "financial_fact"
     if active_domains > 1 or (has_financial and has_market):
         return "mixed"
-    return "mixed"
+    return "general"
 
 
 def resolve(query: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -313,6 +320,13 @@ def _extract_tickers(query: str) -> list[str]:
 
 def build_plan(intent: QueryIntent) -> QueryPlan:
     mapping: dict[str, QueryPlan] = {
+        "general": QueryPlan(
+            intent="general",
+            sources=(),
+            needs_numbers=False,
+            needs_meaning=False,
+            needs_environment=False,
+        ),
         "financial_fact": QueryPlan(
             intent="financial_fact",
             sources=("financial_truth",),
@@ -366,7 +380,7 @@ def build_plan(intent: QueryIntent) -> QueryPlan:
             needs_environment=True,
         ),
     }
-    return mapping.get(intent, mapping["mixed"])
+    return mapping.get(intent, mapping["general"])
 
 
 def _is_company_analysis_request(

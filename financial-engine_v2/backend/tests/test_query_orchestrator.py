@@ -38,6 +38,10 @@ def test_classify_market_query() -> None:
     assert classify("How is the iron ore sector trading right now?") == "market"
 
 
+def test_classify_general_control_prompt() -> None:
+    assert classify("Reply exactly ok.") == "general"
+
+
 def test_classify_mixed_query() -> None:
     assert classify("Compare BHP revenue growth with the iron ore market outlook") == (
         "mixed"
@@ -65,6 +69,15 @@ def test_build_plan_routes_interpretation_to_all_layers() -> None:
     assert plan.needs_numbers is True
     assert plan.needs_meaning is True
     assert plan.needs_environment is True
+
+
+def test_build_plan_routes_general_to_no_sources() -> None:
+    plan = build_plan("general")
+
+    assert plan.sources == ()
+    assert plan.needs_numbers is False
+    assert plan.needs_meaning is False
+    assert plan.needs_environment is False
 
 
 def test_orchestrator_calls_only_financial_truth_for_fact_query() -> None:
@@ -104,6 +117,26 @@ def test_orchestrator_calls_only_financial_truth_for_fact_query() -> None:
     assert company.calls == 0
     assert market.calls == 0
     assert result.evidence["financial_truth"]["items"][0]["ticker"] == "BHP"
+
+
+def test_orchestrator_does_not_retrieve_memory_for_general_prompt() -> None:
+    class Provider:
+        def retrieve(self, *, query, entities, intent):
+            raise AssertionError("general prompts must not retrieve evidence")
+
+    result = orchestrate_query(
+        "Reply exactly ok.",
+        financial_truth_provider=Provider(),
+        company_memory_provider=Provider(),
+        market_memory_provider=Provider(),
+        user_thesis_memory_provider=Provider(),
+    )
+
+    assert result.intent == "general"
+    assert result.source_plan == ()
+    assert result.evidence == {}
+    assert result.raw_supporting_evidence == {}
+    assert result.answer["sources_used"] == []
 
 
 def test_orchestrator_calls_company_and_market_memory_for_risk_query() -> None:
