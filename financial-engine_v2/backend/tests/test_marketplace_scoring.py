@@ -190,6 +190,30 @@ def test_prefilter_requirement_card_keeps_obvious_junk_rejected() -> None:
     assert result["prefilter_reasons"][0].startswith("Rejected by obvious junk")
 
 
+def test_prefilter_rejects_compact_forbidden_gpu_variant() -> None:
+    base = _requirement_gpu_mission()
+    mission = {
+        **base,
+        "hard_filters": {
+            **base["hard_filters"],
+            "exclude_keywords": ["RTX 3090 Ti"],
+            "forbidden_terms": ["RTX 3090 Ti"],
+        },
+    }
+    result = prefilter_marketplace_card(
+        {
+            "title": "ASUS STRIX LC RTX3090Ti 24GB",
+            "price": "$1200",
+            "location": "Melbourne",
+            "text_fragments": ["ASUS STRIX LC RTX3090Ti 24GB GPU"],
+        },
+        mission,
+    )
+
+    assert result["prefilter_decision"] == "reject"
+    assert result["prefilter_reasons"] == ["Rejected by excluded term: RTX 3090 Ti"]
+
+
 def test_prefilter_requirement_card_rejects_swapping_junk() -> None:
     result = prefilter_marketplace_card(
         {
@@ -564,6 +588,33 @@ def test_evaluate_marketplace_listing_returns_strong_match() -> None:
     assert result["decision_band"] == "strong_match"
     assert result["eligibility"] == "pass"
     assert result["score"] >= 85
+
+
+def test_evaluate_marketplace_listing_rejects_compact_forbidden_gpu_variant() -> None:
+    base = _requirement_gpu_mission()
+    mission = {
+        **base,
+        "hard_filters": {
+            **base["hard_filters"],
+            "exclude_keywords": ["RTX 3090 Ti"],
+            "forbidden_terms": ["RTX 3090 Ti"],
+            "price_max": None,
+        },
+    }
+    result = evaluate_marketplace_listing(
+        {
+            "title": "ASUS STRIX LC RTX3090Ti 24GB",
+            "price": "$1199",
+            "location": "Melbourne",
+            "description": "ASUS STRIX LC RTX3090Ti 24GB GPU.",
+            "raw_text_lines": ["ASUS STRIX LC RTX3090Ti 24GB GPU"],
+        },
+        mission,
+        observed_price_band={"used_median": 1600, "fair_low": 1450, "fair_high": 1750},
+    )
+
+    assert result["decision_band"] == "reject"
+    assert result["reasons_against"] == ["Forbidden term present: RTX 3090 Ti"]
 
 
 def test_evaluate_marketplace_listing_rejects_storage_false_positive() -> None:

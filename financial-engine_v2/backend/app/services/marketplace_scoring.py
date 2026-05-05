@@ -317,6 +317,11 @@ def _phrase_matches_text(phrase: str, normalized_text: str) -> bool:
     return bool(re.search(pattern, normalized_text))
 
 
+def _term_matches_text(term: str, normalized_text: str) -> bool:
+    lowered = term.lower()
+    return lowered in normalized_text or _phrase_matches_text(term, normalized_text)
+
+
 def _strong_candidate_model_evidence(
     normalized_text: str,
     mission: dict[str, Any],
@@ -710,7 +715,7 @@ def prefilter_marketplace_card(card: dict[str, Any], mission: dict[str, Any]) ->
     for term in _string_list(hard.get("exclude_keywords")) + _string_list(
         hard.get("forbidden_terms")
     ):
-        if term.lower() in normalized:
+        if _term_matches_text(term, normalized):
             return {
                 "prefilter_decision": "reject",
                 "open_priority": 0,
@@ -885,18 +890,18 @@ def evaluate_marketplace_listing(
         }
 
     include_keywords = _string_list(hard.get("include_keywords"))
+    for term in _string_list(hard.get("exclude_keywords")) + _string_list(
+        hard.get("forbidden_terms")
+    ):
+        if _term_matches_text(term, normalized):
+            return reject(f"Forbidden term present: {term}")
+
     if include_keywords and not any(term.lower() in normalized for term in include_keywords):
         return reject("Required include keywords were not found")
 
     for term in _string_list(hard.get("required_terms")):
         if term.lower() not in normalized:
             return reject(f"Required term missing: {term}")
-
-    for term in _string_list(hard.get("exclude_keywords")) + _string_list(
-        hard.get("forbidden_terms")
-    ):
-        if term.lower() in normalized:
-            return reject(f"Forbidden term present: {term}")
 
     if price_value is not None:
         price_min = hard.get("price_min")

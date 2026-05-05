@@ -1041,3 +1041,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Existing restart validation stopped at `/api/health`, and auto diagnostics focused on missing sources, latency, tool failures, truncation, and access errors rather than routing metadata contradictions.
 **Fix:** Added `cockpit smoke routing` for live backend routing/provenance checks and added deterministic auto-flag heuristics for missing model metadata, `force:api`/`local` contradictions, and generic/control prompts answered with unscoped orchestrator memory evidence.
 **Rule:** Backend liveness is not chat correctness. Any routing-policy or provenance fix must include a live smoke probe plus auto-diagnostic heuristics for the failure signature so regressions are visible immediately after restart.
+
+---
+
+## L093 — Deal scores must be price-led once a benchmark exists
+
+**Date:** 2026-05-05
+**Subsystem:** `financial-engine_v2/backend/app/services/marketplace_scoring.py`, `financial-engine_v2/backend/app/services/marketplace_scanner.py`
+**Symptom:** Hardware listings could remain strong matches because they fit the mission keywords/model even when the captured price was near or above the used-market average.
+**Root cause:** The scanner passed only mission-local seen prices into scoring, and the scoring formula treated benchmark price as a small bonus/penalty instead of a strong-match gate. Existing hard-term checks also used plain substring matching, so compact forbidden variants such as `RTX3090Ti` could be rejected for a weaker reason or escape variant-specific exclusion.
+**Fix:** Scanner scoring now uses fresh tracked-product benchmark snapshots when available, falling back to mission-local prices only when no usable benchmark exists. Deal categories require a captured price and a real discount versus used-market average, or a price at/below fair-value low, before staying `strong_match`; above-average/fair-range prices are penalized. Forbidden terms now use compact phrase matching before include-keyword checks.
+**Rule:** For deal-hunting Marketplace categories, identity fit is necessary but not sufficient. Once a fresh used-market benchmark exists, `strong_match` must mean the listing is also a good deal relative to that benchmark, and adjacent compact model variants must be excluded before keyword scoring.
