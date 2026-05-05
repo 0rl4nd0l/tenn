@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.company_memory import CompanyMemoryStore
@@ -215,3 +217,62 @@ def test_route_signals_persists_company_and_market_entries(tmp_path: Path) -> No
     assert result["market_memory_count"] == 1
     assert len(company_store.list_entries("BHP")) == 1
     assert len(market_store.list_sector_entries("Materials")) == 1
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "CONFIRMED contamination bug: memo-level tickers are currently used as "
+        "company write targets for every statement."
+    ),
+)
+def test_multi_topic_commentary_does_not_fanout_primary_company_signal(
+    tmp_path: Path,
+) -> None:
+    company_store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+    market_store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    memo = {
+        "source_id": "synthetic:a2m-recall-multi-topic",
+        "speaker": "Synthetic Analyst",
+        "claims": [
+            "A2M share price dropped 10 due to a product recall.",
+            "Atlassian share price is up about 30 due to better than expected results.",
+            "Pettimed capital raising at 1 cent per share.",
+            "Chrysos Corporation share price fell 6.39 despite a positive trading update.",
+            "Accent Group share price is down 12.9 after a downgrade announcement.",
+            "US non farm payrolls data expected to show job growth of 60,000 jobs in May.",
+        ],
+        "catalysts": [],
+        "risks": ["Inflation and interest rates remain a macro risk for the market."],
+        "sentiment": "mixed",
+        "time_horizon": "near-term",
+        "tickers": ["A2M", "ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC"],
+        "source_type": "youtube_transcript",
+        "published_at": "2026-05-05T00:00:00+00:00",
+    }
+
+    route_signals(
+        signals_from_commentary_memo(memo),
+        company_memory_store=company_store,
+        market_memory_store=market_store,
+    )
+
+    assert any(
+        "product recall" in entry["statement"].lower()
+        for entry in company_store.list_entries("A2M")
+    )
+    for ticker in ["ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC"]:
+        assert all(
+            "A2M" not in entry["statement"].upper()
+            for entry in company_store.list_entries(ticker)
+        )
+
+    macro_entries = market_store.list_macro_entries("Interest rates")
+    assert any(
+        "interest rates" in entry["statement"].lower() for entry in macro_entries
+    )
+    for ticker in ["A2M", "ATLASSIAN", "PETTIMED", "CHRYSOS", "ACC"]:
+        assert all(
+            "interest rates" not in entry["statement"].lower()
+            for entry in company_store.list_entries(ticker)
+        )
