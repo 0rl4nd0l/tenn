@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+SQLITE_BUSY_TIMEOUT_MS = 30_000
 
 
 class StateStore:
@@ -18,7 +19,12 @@ class StateStore:
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        self.conn = sqlite3.connect(
+            str(self.db_path),
+            check_same_thread=False,
+            timeout=SQLITE_BUSY_TIMEOUT_MS / 1000,
+        )
+        self.conn.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.row_factory = sqlite3.Row
         self._init_schema()

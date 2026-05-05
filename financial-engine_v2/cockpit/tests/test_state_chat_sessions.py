@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from cockpit.storage.state import StateStore
+from cockpit.storage.state import SQLITE_BUSY_TIMEOUT_MS, StateStore
 
 
 @pytest.fixture
@@ -61,3 +61,10 @@ def test_ensure_chat_session_creates_empty_listable_session(store: StateStore) -
     assert sessions[0]["thread_id"] == "session-empty"
     assert int(sessions[0]["message_count"]) == 0
     assert sessions[0]["last_message"] is None
+
+
+def test_state_store_configures_sqlite_busy_timeout(store: StateStore) -> None:
+    row = store.conn.execute("PRAGMA busy_timeout").fetchone()
+
+    assert row is not None
+    assert int(row[0]) == SQLITE_BUSY_TIMEOUT_MS

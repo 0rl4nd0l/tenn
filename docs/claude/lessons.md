@@ -1052,3 +1052,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The scanner passed only mission-local seen prices into scoring, and the scoring formula treated benchmark price as a small bonus/penalty instead of a strong-match gate. Existing hard-term checks also used plain substring matching, so compact forbidden variants such as `RTX3090Ti` could be rejected for a weaker reason or escape variant-specific exclusion.
 **Fix:** Scanner scoring now uses fresh tracked-product benchmark snapshots when available, falling back to mission-local prices only when no usable benchmark exists. Deal categories require a captured price and a real discount versus used-market average, or a price at/below fair-value low, before staying `strong_match`; above-average/fair-range prices are penalized. Forbidden terms now use compact phrase matching before include-keyword checks.
 **Rule:** For deal-hunting Marketplace categories, identity fit is necessary but not sufficient. Once a fresh used-market benchmark exists, `strong_match` must mean the listing is also a good deal relative to that benchmark, and adjacent compact model variants must be excluded before keyword scoring.
+
+---
+
+## L094 — WAL does not replace busy timeouts for live Cockpit state reads
+
+**Date:** 2026-05-05
+**Subsystem:** `financial-engine_v2/cockpit/storage/state.py`, `financial-engine_v2/backend/app/routes/cockpit_api.py`
+**Symptom:** The Cockpit Marketplace missions page failed with `Marketplace mission listing failed: database is locked` immediately after a Marketplace scan wrote live state.
+**Root cause:** `StateStore` enabled SQLite WAL mode but left the connection timeout at the default behavior and did not configure `PRAGMA busy_timeout`, so a UI read could fail fast when it overlapped a scan write lock.
+**Fix:** `StateStore` now configures a 30 second connect-time timeout and matching `PRAGMA busy_timeout` before schema initialization. The live Docker-backed backend was restarted after confirming the bind-mounted module exposed the patched constant and pragma inside the container.
+**Rule:** Any SQLite-backed Cockpit state surface that is read by the UI and written by background jobs must configure an explicit busy timeout. WAL improves concurrency, but it does not by itself make readers wait through short write locks.
