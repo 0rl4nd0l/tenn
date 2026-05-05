@@ -97,15 +97,19 @@ class EntityLinker:
         universe_tickers = load_ticker_universe(Path(ticker_universe_path).expanduser().resolve())
         self.tickers: List[str] = []
         seen: Set[str] = set()
-        for ticker in universe_tickers:
-            if ticker in self.identity_map and ticker not in seen:
+
+        def add_ticker(ticker: str) -> None:
+            if ticker and ticker not in seen:
                 self.tickers.append(ticker)
                 seen.add(ticker)
+
+        for ticker in universe_tickers:
+            add_ticker(ticker)
         for ticker in sorted(self.identity_map):
-            if ticker in seen or not self._identity_map_ticker_enabled(ticker):
+            if not self._identity_map_ticker_enabled(ticker):
                 continue
-            self.tickers.append(ticker)
-            seen.add(ticker)
+            add_ticker(ticker)
+        self.token_match_tickers: Set[str] = {ticker for ticker in self.tickers if ticker not in STRICT_TICKER_STOPWORDS}
         self.aliases_by_ticker: Dict[str, List[str]] = {}
         self.ambiguous_aliases: Set[str] = set()
         self._build_alias_index()
@@ -115,7 +119,9 @@ class EntityLinker:
             sym: re.compile(rf"(?<![A-Za-z0-9]){re.escape(sym)}\.AX(?![A-Za-z0-9])", flags=re.IGNORECASE)
             for sym in self.tickers
         }
-        self.token_patterns = {sym: re.compile(rf"(?<![A-Za-z0-9]){re.escape(sym)}(?![A-Za-z0-9])") for sym in self.tickers}
+        self.token_patterns = {
+            sym: re.compile(rf"(?<![A-Za-z0-9]){re.escape(sym)}(?![A-Za-z0-9])") for sym in self.token_match_tickers
+        }
 
     def _load_identity_map(self, path: Path) -> Dict[str, Any]:
         if not path.exists():
@@ -139,6 +145,8 @@ class EntityLinker:
         return isinstance(entry, dict) and entry.get(NEWS_ENTITY_LINKING_ENABLED_KEY) is True
 
     def _collect_aliases_for_ticker(self, ticker: str) -> List[str]:
+        if ticker in STRICT_TICKER_STOPWORDS:
+            return []
         aliases: Set[str] = set()
         entry = self.identity_map.get(ticker)
         if isinstance(entry, dict):
@@ -297,19 +305,21 @@ class EntityLinker:
                     )
 
             # High-recall ticker token matching.
-            for match in self.token_patterns[ticker].finditer(text):
-                self._add_link(
-                    out,
-                    article_id=article_id,
-                    ticker=ticker,
-                    confidence=0.45,
-                    lane="high_recall",
-                    method="ticker_token",
-                    matched_alias=match.group(0),
-                    span_start=match.start(),
-                    span_end=match.end(),
-                    published_at_utc=published_at_utc,
-                )
+            token_pattern = self.token_patterns.get(ticker)
+            if token_pattern is not None:
+                for match in token_pattern.finditer(text):
+                    self._add_link(
+                        out,
+                        article_id=article_id,
+                        ticker=ticker,
+                        confidence=0.45,
+                        lane="high_recall",
+                        method="ticker_token",
+                        matched_alias=match.group(0),
+                        span_start=match.start(),
+                        span_end=match.end(),
+                        published_at_utc=published_at_utc,
+                    )
 
             # High-recall ambiguous aliases retained at low confidence.
             for alias in aliases:

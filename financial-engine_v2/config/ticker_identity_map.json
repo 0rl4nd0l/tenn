@@ -814,7 +814,8 @@
     ],
     "aliases": [
       "Commonwealth Bank of"
-    ]
+    ],
+    "news_entity_linking_enabled": true
   },
   "CC5": {
     "canonical_names": [
@@ -1951,6 +1952,15 @@
     ],
     "aliases": []
   },
+  "INA": {
+    "canonical_names": [
+      "Ingenia Communities Group",
+      "Ingenia Communities"
+    ],
+    "aliases": [
+      "Ingenia Communities"
+    ]
+  },
   "IPT": {
     "canonical_names": [
       "owned associated company, Alluminous Pty Ltd",
@@ -2532,6 +2542,15 @@
     "aliases": [
       "MyState",
       "GNK Superannuation Pty"
+    ]
+  },
+  "NAB": {
+    "canonical_names": [
+      "National Australia Bank Limited",
+      "National Australia Bank"
+    ],
+    "aliases": [
+      "National Australia Bank"
     ]
   },
   "NAN": {
@@ -3748,7 +3767,8 @@
     ],
     "aliases": [
       "Westpac Banking"
-    ]
+    ],
+    "news_entity_linking_enabled": true
   },
   "WC8": {
     "canonical_names": [
@@ -3764,6 +3784,15 @@
     ],
     "aliases": [
       "Woodside Energy"
+    ]
+  },
+  "WES": {
+    "canonical_names": [
+      "Wesfarmers Limited",
+      "Wesfarmers"
+    ],
+    "aliases": [
+      "Wesfarmers"
     ]
   },
   "WGX": {
