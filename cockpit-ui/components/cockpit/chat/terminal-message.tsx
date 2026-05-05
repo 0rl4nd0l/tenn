@@ -314,7 +314,6 @@ export function TerminalMessage({
   onDeployCodexFlag,
 }: TerminalMessageProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(Boolean(showSources))
-  const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [rawDumpExpanded, setRawDumpExpanded] = useState(false)
   const [chartDialogOpen, setChartDialogOpen] = useState(false)
@@ -520,35 +519,6 @@ export function TerminalMessage({
   // Assistant message
   return (
     <div className="group mt-2 mb-3 rounded-md border border-transparent px-2 py-1 transition-colors duration-150 hover:border-border/40 hover:bg-white/[0.02]">
-      {/* Thinking trace */}
-      {message.thinking && (message.thinking.assessment || message.thinking.plan) && (
-        <div className="ml-4 mb-1">
-          <button
-            onClick={() => setThinkingExpanded(!thinkingExpanded)}
-            className="flex items-center gap-1 text-sm text-purple-400/70 hover:text-purple-400 transition-colors"
-          >
-            {thinkingExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            [reasoning]
-          </button>
-          {thinkingExpanded && (
-            <div className="mt-1 pl-4 text-sm text-purple-400/60 space-y-1 border-l border-purple-500/20">
-              {message.thinking.assessment && (
-                <div>
-                  <span className="text-purple-400/80 font-semibold">Assessment: </span>
-                  <span className="whitespace-pre-wrap">{message.thinking.assessment}</span>
-                </div>
-              )}
-              {message.thinking.plan && (
-                <div>
-                  <span className="text-purple-400/80 font-semibold">Plan: </span>
-                  <span className="whitespace-pre-wrap">{message.thinking.plan}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Response and tool timings */}
       {(responseTimingLabel || (message.toolTraces && message.toolTraces.length > 0)) && (
         <div className="mb-1 ml-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-blue-400/70">

@@ -323,7 +323,6 @@ function serializeMessageForFeedback(message: ChatMessageType) {
     content: message.content,
     timestamp: message.timestamp.toISOString(),
     metadata: message.metadata,
-    thinking: message.thinking,
     sources: message.sources,
     toolTraces: message.toolTraces,
     actionPreview: message.actionPreview,
@@ -734,21 +733,6 @@ export function ChatScreen() {
     toast.success(`Captured ${summary.title}`)
   }, [appendSystemMessage, attached])
 
-  const buildEphemeralIndex = useCallback(async (sourceId: string) => {
-    try {
-      await fetch('/api/cockpit/commentary/ephemeral-index', {
-        method: 'POST',
-        headers: buildAuthHeaders('application/json'),
-        body: JSON.stringify({
-          session_id: sessionId,
-          source_ids: [sourceId],
-        }),
-      })
-    } catch {
-      // Session-scoped indexing is opportunistic from the UI's perspective.
-    }
-  }, [buildAuthHeaders, sessionId])
-
   const uploadAttachmentFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) {
       return
@@ -834,7 +818,6 @@ export function ChatScreen() {
             sourceKind,
             title: filename,
           })
-          await buildEphemeralIndex(sourceId)
           setLatestIngest({
             sourceId,
             title: filename,
@@ -857,7 +840,7 @@ export function ChatScreen() {
         toast.error(message)
       }
     }
-  }, [appendSystemMessage, attached, buildAuthHeaders, buildEphemeralIndex])
+  }, [appendSystemMessage, attached, buildAuthHeaders])
 
   const ingestYouTubeUrl = useCallback(async (url: string) => {
     try {
@@ -898,14 +881,13 @@ export function ChatScreen() {
 
       await Promise.allSettled([
         fetchTakeaways(body.source_id, body.webpage_url ?? url),
-        buildEphemeralIndex(body.source_id),
       ])
     } catch (error) {
       const message = error instanceof Error ? error.message : 'YouTube ingest failed'
       appendSystemMessage(`YouTube ingest failed: ${message}`)
       toast.error(message)
     }
-  }, [appendSystemMessage, attached, buildAuthHeaders, buildEphemeralIndex, fetchTakeaways])
+  }, [appendSystemMessage, attached, buildAuthHeaders, fetchTakeaways])
 
   const openMarketplaceCaptureHelper = useCallback(async (url: string) => {
     try {
@@ -1365,13 +1347,6 @@ export function ChatScreen() {
                 setStreamingStage(formatStageLabel(event.data.stage))
               }
               break
-            case 'thinking':
-              currentMetadata.thinking = {
-                assessment: event.data.assessment || '',
-                plan: event.data.plan || '',
-              }
-              setStreamingMetadata({ ...currentMetadata })
-              break
             case 'tool_trace':
               currentMetadata.toolTraces = [...(currentMetadata.toolTraces || []), {
                 tool: event.data.tool,
@@ -1431,7 +1406,6 @@ export function ChatScreen() {
                   routing: routingMetadata,
                   analyst: normalizeAnalystMetadata(routingMetadata),
                 },
-                thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
                 toolTraces: normalizedActionPreview ? [] : currentMetadata.toolTraces,
                 actionPreview: normalizedActionPreview,
@@ -1549,7 +1523,6 @@ export function ChatScreen() {
                   source: 'local',
                   latencyMs,
                 },
-                thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
                 toolTraces: normalizedActionPreview ? [] : currentMetadata.toolTraces,
                 actionPreview: normalizedActionPreview,
@@ -2353,22 +2326,6 @@ export function ChatScreen() {
                 <span className="terminal-cursor" />
                 <span>{renderStreamingStatus('Preparing request...')}</span>
               </div>
-              {streamingMetadata.thinking && (streamingMetadata.thinking.assessment || streamingMetadata.thinking.plan) && (
-                <div className="ml-4 pl-3 border-l border-purple-500/20 text-sm text-purple-400/60 space-y-1">
-                  {streamingMetadata.thinking.assessment && (
-                    <div>
-                      <span className="text-purple-400/80 font-semibold">Assessment: </span>
-                      <span className="whitespace-pre-wrap">{streamingMetadata.thinking.assessment}</span>
-                    </div>
-                  )}
-                  {streamingMetadata.thinking.plan && (
-                    <div>
-                      <span className="text-purple-400/80 font-semibold">Plan: </span>
-                      <span className="whitespace-pre-wrap">{streamingMetadata.thinking.plan}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>

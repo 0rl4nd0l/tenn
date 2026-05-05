@@ -119,6 +119,7 @@ def test_agent_loop_receives_attached_source_context(tmp_path, monkeypatch) -> N
     controller._ov_session_id = "session-1"
     controller._hybrid_router = None
     controller._agent_loop = _FakeAgentLoop()
+    controller._recent_youtube_video_options = []
     controller._record_answer_side_effects = lambda **kwargs: None  # type: ignore[method-assign]
     controller._set_latest_sources_payloads = lambda evidence: None  # type: ignore[method-assign]
     controller._recent_conversation_history = lambda: []  # type: ignore[method-assign]

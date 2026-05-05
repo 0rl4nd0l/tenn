@@ -1,10 +1,5 @@
 // Cockpit Types - Based on modernization plan
 
-export interface ThinkingStep {
-  assessment: string
-  plan: string
-}
-
 export interface RenderedChart {
   title: string
   html: string
@@ -48,7 +43,6 @@ export interface ChatMessage {
       investigationPath?: string | null
     }
   }
-  thinking?: ThinkingStep
   sources?: Source[]
   toolTraces?: ToolTrace[]
   actionPreview?: ActionPreview
@@ -647,7 +641,6 @@ export interface AvailableModelsResponse {
 export type SSEEventType =
   | 'chunk'
   | 'status'
-  | 'thinking'
   | 'sources'
   | 'action_preview'
   | 'tool_trace'

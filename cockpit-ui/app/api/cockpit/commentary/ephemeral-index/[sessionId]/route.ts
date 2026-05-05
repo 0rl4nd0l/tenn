@@ -1,23 +1,15 @@
-import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-import { copyRequestHeaders, resolveBackendUrl } from '@/lib/proxy'
-
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 30
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ sessionId: string }> },
-): Promise<NextResponse> {
-  const { sessionId } = await context.params
-  const backend = await fetch(
-    `${resolveBackendUrl()}/api/commentary/ephemeral-index/${encodeURIComponent(sessionId)}`,
+export async function DELETE(): Promise<NextResponse> {
+  return NextResponse.json(
     {
-      method: 'DELETE',
-      headers: copyRequestHeaders(request),
-      cache: 'no-store',
+      ok: false,
+      status: 'unavailable',
+      detail: 'Ephemeral commentary indexing is not available in this Cockpit build.',
     },
+    { status: 501 },
   )
-  return new NextResponse(null, { status: backend.status })
 }
