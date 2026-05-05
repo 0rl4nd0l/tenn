@@ -1,0 +1,80 @@
+{
+  "before_by_source": [
+    {
+      "row_count": 1,
+      "status": "expired",
+      "value": "backend_manual"
+    },
+    {
+      "row_count": 1568,
+      "status": "active",
+      "value": "commentary:youtube_transcript"
+    },
+    {
+      "row_count": 429,
+      "status": "active",
+      "value": "news:newspaper4k"
+    }
+  ],
+  "before_by_type": [
+    {
+      "row_count": 407,
+      "status": "active",
+      "value": "catalyst"
+    },
+    {
+      "row_count": 4,
+      "status": "active",
+      "value": "interpretation"
+    },
+    {
+      "row_count": 20,
+      "status": "active",
+      "value": "management_guidance"
+    },
+    {
+      "row_count": 935,
+      "status": "active",
+      "value": "observed_fact"
+    },
+    {
+      "row_count": 1,
+      "status": "expired",
+      "value": "observed_fact"
+    },
+    {
+      "row_count": 38,
+      "status": "active",
+      "value": "operating_context"
+    },
+    {
+      "row_count": 549,
+      "status": "active",
+      "value": "risk"
+    },
+    {
+      "row_count": 44,
+      "status": "active",
+      "value": "strategic_initiative"
+    }
+  ],
+  "candidate_rows": 1212,
+  "change_log_rows_after": 3683,
+  "checksum_after": "1358344ca9001ea6ac03d708a2298b5939b6052d8d59bc5075e785eeffd96d2a",
+  "checksum_before": "aa25e14894be56d601ce4ec9b4fd48e67eaf94b6cf60db13eae52c00c90ba5b1",
+  "copied_db": "/mnt/sdb2/home/l4nd0/tenn/reports/memory_historical_cleanup_dry_run_20260505_172806/copied_db/company_memory.sqlite",
+  "entities_below_floor_after_count": 0,
+  "entities_nearly_emptied_count": 0,
+  "excluded_from_first_batch_count": 963,
+  "first_batch_count": 249,
+  "rows_expired_in_copy": 1212,
+  "rows_skipped": 0,
+  "status_counts_after": {
+    "active": 785,
+    "expired": 1213
+  },
+  "status_counts_before": {
+    "active": 1997,
+    "expired": 1
+  }
+}

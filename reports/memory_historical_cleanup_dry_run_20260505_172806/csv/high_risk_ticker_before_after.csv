@@ -1,0 +1,27 @@
+entity,total_rows_before,active_before,expired_before,expire_candidate_count,total_rows_after,active_after,expired_after,active_delta,active_reduction_pct,nearly_emptied,below_floor_after
+A2 MILK,44,44,0,24,44,20,24,-24,54.55,no,no
+A2M,57,57,0,24,57,33,24,-24,42.11,no,no
+ACC,8,8,0,0,8,8,0,0,0.0,no,no
+ACCENT GROUP,44,44,0,29,44,15,29,-29,65.91,no,no
+ASX,58,58,0,33,58,25,33,-33,56.9,no,no
+BHP,59,58,1,33,59,25,34,-33,56.9,no,no
+COH,68,68,0,39,68,29,39,-39,57.35,no,no
+EDV,6,6,0,0,6,6,0,0,0.0,no,no
+END,26,26,0,20,26,6,20,-20,76.92,no,no
+ENDEAVOR GROUP,25,25,0,17,25,8,17,-17,68.0,no,no
+ENDV,34,34,0,22,34,12,22,-22,64.71,no,no
+GCM,26,26,0,18,26,8,18,-18,69.23,no,no
+GCM CORPORATION,25,25,0,16,25,9,16,-16,64.0,no,no
+GCMC,27,27,0,20,27,7,20,-20,74.07,no,no
+KEY,26,26,0,21,26,5,21,-21,80.77,no,no
+KEY PETROLEUM,25,25,0,18,25,7,18,-18,72.0,no,no
+KEYP,27,27,0,23,27,4,23,-23,85.19,no,no
+MAR,26,26,0,21,26,5,21,-21,80.77,no,no
+MARINO,27,27,0,23,27,4,23,-23,85.19,no,no
+MARINO AND CO,25,25,0,18,25,7,18,-18,72.0,no,no
+PET,26,26,0,18,26,8,18,-18,69.23,no,no
+PETT,44,44,0,28,44,16,28,-28,63.64,no,no
+PETTIMED,25,25,0,16,25,9,16,-16,64.0,no,no
+WES,37,37,0,30,37,7,30,-30,81.08,no,no
+WIN,37,37,0,30,37,7,30,-30,81.08,no,no
+WIN MEDALS,25,25,0,18,25,7,18,-18,72.0,no,no
