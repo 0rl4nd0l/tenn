@@ -118,6 +118,43 @@ def test_build_marketplace_search_url_anchors_sydney_scope() -> None:
     assert "longitude=151.2093" in url
 
 
+def test_snapshot_price_band_uses_only_current_supported_benchmarks() -> None:
+    band = scanner.MarketplaceScanner._snapshot_price_band(
+        {
+            "snapshot_id": "bench_good",
+            "total_sample_size": 12,
+            "freshness_status": "fresh",
+            "used_median": 1700,
+            "fair_range_low": 1450,
+            "fair_range_high": 1750,
+        },
+        source="primary_tracked_product_benchmark",
+    )
+
+    assert band == {
+        "median": 1700.0,
+        "used_median": 1700.0,
+        "average_source": "primary_tracked_product_benchmark",
+        "benchmark_sample_size": 12,
+        "fair_low": 1450.0,
+        "fair_range_low": 1450.0,
+        "fair_high": 1750.0,
+        "fair_range_high": 1750.0,
+        "benchmark_snapshot_id": "bench_good",
+    }
+    assert (
+        scanner.MarketplaceScanner._snapshot_price_band(
+            {
+                "total_sample_size": 0,
+                "freshness_status": "no_data",
+                "used_median": None,
+            },
+            source="primary_tracked_product_benchmark",
+        )
+        is None
+    )
+
+
 @pytest.mark.parametrize("scope", ["Australia", "Australia-wide", "Nationwide"])
 def test_scan_location_anchors_expands_australia_wide_scope(scope: str) -> None:
     anchors = scanner._scan_location_anchors([scope])

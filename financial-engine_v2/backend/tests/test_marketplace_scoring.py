@@ -621,6 +621,55 @@ def test_evaluate_marketplace_listing_allows_strong_ssd_model_match() -> None:
     assert result["decision_band"] == "strong_match"
 
 
+def test_evaluate_marketplace_listing_caps_exact_ssd_near_average_price() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Samsung 990 Pro 2TB NVMe Gen4 SSD",
+            "price": "$345",
+            "location": "Melbourne",
+            "description": "Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={
+            "used_median": 350,
+            "fair_low": 260,
+            "fair_high": 420,
+            "benchmark_sample_size": 12,
+        },
+    )
+
+    assert result["decision_band"] == "candidate"
+    assert result["score"] < 85
+    assert any(
+        "real discount versus the used-market average" in reason
+        for reason in result["reasons_against"]
+    )
+
+
+def test_evaluate_marketplace_listing_penalizes_above_market_exact_ssd() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Samsung 990 Pro 2TB NVMe Gen4 SSD",
+            "price": "$455",
+            "location": "Melbourne",
+            "description": "Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={
+            "used_median": 350,
+            "fair_low": 260,
+            "fair_high": 420,
+            "benchmark_sample_size": 12,
+        },
+    )
+
+    assert result["decision_band"] != "strong_match"
+    assert result["score"] < 85
+    assert any("Poor deal" in reason for reason in result["reasons_against"])
+
+
 def test_evaluate_marketplace_listing_caps_ssd_when_cheaper_deal_seen() -> None:
     result = evaluate_marketplace_listing(
         {

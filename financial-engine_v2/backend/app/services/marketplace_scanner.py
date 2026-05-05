@@ -860,7 +860,11 @@ class MarketplaceScanner:
             search_pack,
             max_queries=int(mission["search_config"]["max_queries_per_run"]),
         )
-        price_band = self.mission_service.price_band(mission_id)
+        price_band = self._scoring_price_band(
+            mission=mission,
+            mission_price_band=self.mission_service.price_band(mission_id),
+            candidate_contexts=candidate_contexts,
+        )
         seen_ids_this_run: set[str] = set()
         matches_saved = 0
         alerts_created = 0
@@ -1367,6 +1371,111 @@ class MarketplaceScanner:
                 "no candidate products generated",
             )
         return prepared
+
+    def _scoring_price_band(
+        self,
+        *,
+        mission: dict[str, Any],
+        mission_price_band: dict[str, float] | None,
+        candidate_contexts: list[dict[str, Any]],
+    ) -> dict[str, float | int | str] | None:
+        benchmark_band = self._benchmark_price_band(
+            mission=mission,
+            candidate_contexts=candidate_contexts,
+        )
+        if benchmark_band is None and mission_price_band is None:
+            return None
+
+        band: dict[str, float | int | str] = {}
+        if benchmark_band is not None:
+            band.update(benchmark_band)
+        if mission_price_band:
+            mission_min = mission_price_band.get("min")
+            mission_median = mission_price_band.get("median")
+            mission_max = mission_price_band.get("max")
+            if mission_min is not None:
+                band["min"] = float(mission_min)
+                band["best_seen"] = float(mission_min)
+            if "median" not in band and mission_median is not None:
+                band["median"] = float(mission_median)
+            if "used_median" not in band and mission_median is not None:
+                band["used_median"] = float(mission_median)
+            if "fair_high" not in band and mission_max is not None:
+                band["max"] = float(mission_max)
+        return band or None
+
+    def _benchmark_price_band(
+        self,
+        *,
+        mission: dict[str, Any],
+        candidate_contexts: list[dict[str, Any]],
+    ) -> dict[str, float | int | str] | None:
+        candidates: list[tuple[int, dict[str, float | int | str]]] = []
+
+        def add_snapshot(snapshot: dict[str, Any] | None, *, source: str) -> None:
+            band = self._snapshot_price_band(snapshot, source=source)
+            if band is None:
+                return
+            candidates.append((int(band.get("benchmark_sample_size") or 0), band))
+
+        for context in candidate_contexts:
+            if isinstance(context, dict):
+                add_snapshot(
+                    context.get("benchmark_snapshot")
+                    if isinstance(context.get("benchmark_snapshot"), dict)
+                    else None,
+                    source="requirement_candidate_benchmark",
+                )
+
+        mission_id = str(mission.get("mission_id") or "")
+        if mission_id:
+            link = self.mission_service.get_primary_tracked_product_link(mission_id)
+            if link is not None:
+                product_id = str(link.get("tracked_product_id") or "")
+                if product_id:
+                    add_snapshot(
+                        self._price_service().latest_benchmark_snapshot(product_id),
+                        source="primary_tracked_product_benchmark",
+                    )
+
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1]
+
+    @staticmethod
+    def _snapshot_price_band(
+        snapshot: dict[str, Any] | None,
+        *,
+        source: str,
+    ) -> dict[str, float | int | str] | None:
+        if not isinstance(snapshot, dict):
+            return None
+        sample_size = int(snapshot.get("total_sample_size") or 0)
+        freshness = str(snapshot.get("freshness_status") or "").strip().lower()
+        if sample_size < 3 or freshness in {"", "no_data", "stale"}:
+            return None
+        used_median = parse_marketplace_price(snapshot.get("used_median"))
+        if used_median is None or used_median <= 0:
+            return None
+        band: dict[str, float | int | str] = {
+            "median": float(used_median),
+            "used_median": float(used_median),
+            "average_source": source,
+            "benchmark_sample_size": sample_size,
+        }
+        fair_low = parse_marketplace_price(snapshot.get("fair_range_low"))
+        fair_high = parse_marketplace_price(snapshot.get("fair_range_high"))
+        if fair_low is not None and fair_low > 0:
+            band["fair_low"] = float(fair_low)
+            band["fair_range_low"] = float(fair_low)
+        if fair_high is not None and fair_high > 0:
+            band["fair_high"] = float(fair_high)
+            band["fair_range_high"] = float(fair_high)
+        snapshot_id = str(snapshot.get("snapshot_id") or "").strip()
+        if snapshot_id:
+            band["benchmark_snapshot_id"] = snapshot_id
+        return band
 
     def _price_service(self) -> MarketplacePriceIntelligenceService:
         if self.price_service is None:

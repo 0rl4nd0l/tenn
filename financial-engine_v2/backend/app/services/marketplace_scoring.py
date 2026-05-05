@@ -109,6 +109,10 @@ _CITY_STATE_HINTS: dict[str, str] = {
     "canberra": "australian capital territory",
     "darwin": "northern territory",
 }
+_DEAL_RANKED_CATEGORIES = {"gpu", "ssd", "ram", "motherboard"}
+_GOOD_DEAL_DISCOUNT_PCT = 0.05
+_STRONG_DEAL_DISCOUNT_PCT = 0.15
+_ABOVE_MARKET_PREMIUM_PCT = 0.10
 
 
 def _clean_text(value: Any) -> str:
@@ -646,6 +650,26 @@ def parse_marketplace_price(value: Any) -> float | None:
         return None
 
 
+def _band_price(value: dict[str, float] | None, *keys: str) -> float | None:
+    if not isinstance(value, dict):
+        return None
+    for key in keys:
+        try:
+            candidate = value.get(key)
+            if candidate is None:
+                continue
+            parsed = float(candidate)
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0:
+            return parsed
+    return None
+
+
+def _format_pct(value: float) -> str:
+    return f"{abs(value) * 100:.1f}%"
+
+
 def listing_material_hash(payload: dict[str, Any]) -> str:
     text = "\n".join(
         [
@@ -932,17 +956,47 @@ def evaluate_marketplace_listing(
 
     if price_value is not None:
         mission_cap = hard.get("price_max")
-        if observed_price_band and observed_price_band.get("median"):
-            median_price = float(observed_price_band["median"])
-            if price_value <= median_price * 0.85:
-                score += 15
-                reasons_for.append("Well below the observed local median")
+        median_price = _band_price(observed_price_band, "used_median", "median")
+        fair_low = _band_price(observed_price_band, "fair_low", "fair_range_low")
+        fair_high = _band_price(observed_price_band, "fair_high", "fair_range_high")
+        if median_price:
+            discount_pct = (median_price - price_value) / median_price
+            if fair_low is not None and price_value <= fair_low:
+                score += 24
+                reasons_for.append(
+                    "Good deal: listing is at or below the benchmark fair-value low"
+                )
+            elif discount_pct >= _STRONG_DEAL_DISCOUNT_PCT:
+                score += 24
+                reasons_for.append(
+                    f"Good deal: {_format_pct(discount_pct)} below the used-market average"
+                )
+            elif discount_pct >= _GOOD_DEAL_DISCOUNT_PCT:
+                score += 16
+                reasons_for.append(
+                    f"Below the used-market average by {_format_pct(discount_pct)}"
+                )
             elif price_value <= median_price:
-                score += 8
-                reasons_for.append("Below the observed local median")
-            elif price_value > median_price * 1.15:
-                score -= 10
-                reasons_against.append("Above the observed local median")
+                score += 4
+                reasons_for.append("Near the used-market average")
+            elif fair_high is not None and price_value > fair_high:
+                score -= 34
+                premium_pct = (price_value - median_price) / median_price
+                reasons_against.append(
+                    f"Poor deal: {_format_pct(premium_pct)} above the used-market average and above fair range"
+                )
+            elif price_value > median_price * (1 + _ABOVE_MARKET_PREMIUM_PCT):
+                score -= 24
+                premium_pct = (price_value - median_price) / median_price
+                reasons_against.append(
+                    f"Above the used-market average by {_format_pct(premium_pct)}"
+                )
+            else:
+                score -= 8
+                premium_pct = (price_value - median_price) / median_price
+                reasons_against.append(
+                    f"Slightly above the used-market average by {_format_pct(premium_pct)}"
+                )
         elif mission_cap is not None:
             mission_cap = float(mission_cap)
             if price_value <= mission_cap * 0.85:
@@ -954,15 +1008,30 @@ def evaluate_marketplace_listing(
 
     category = _requirement_category(mission)
     better_price_already_seen = False
-    if category in {"gpu", "ssd", "ram", "motherboard"}:
+    strong_price_not_good_enough = False
+    if category in _DEAL_RANKED_CATEGORIES:
         if price_value is None:
             better_price_already_seen = True
             reasons_against.append(
                 "Strong match requires a captured price for deal ranking"
             )
-        elif observed_price_band and observed_price_band.get("min"):
-            best_seen_price = float(observed_price_band["min"])
-            if best_seen_price > 0 and price_value > best_seen_price:
+        else:
+            median_price = _band_price(observed_price_band, "used_median", "median")
+            fair_low = _band_price(observed_price_band, "fair_low", "fair_range_low")
+            fair_high = _band_price(observed_price_band, "fair_high", "fair_range_high")
+            if median_price:
+                good_discount_price = median_price * (1 - _GOOD_DEAL_DISCOUNT_PCT)
+                if price_value > good_discount_price and (
+                    fair_low is None or price_value > fair_low
+                ):
+                    strong_price_not_good_enough = True
+                    reasons_against.append(
+                        "Strong match requires a real discount versus the used-market average"
+                    )
+                if fair_high is not None and price_value > fair_high:
+                    strong_price_not_good_enough = True
+            best_seen_price = _band_price(observed_price_band, "min", "best_seen")
+            if best_seen_price is not None and best_seen_price > 0 and price_value > best_seen_price:
                 better_price_already_seen = True
                 reasons_against.append(
                     "Cheaper comparable listing already seen in this mission"
@@ -1015,6 +1084,9 @@ def evaluate_marketplace_listing(
             "Strong match requires model or series evidence for this product category"
         )
     if band == "strong_match" and better_price_already_seen:
+        band = "candidate"
+        score = min(score, strong_threshold - 1)
+    if band == "strong_match" and strong_price_not_good_enough:
         band = "candidate"
         score = min(score, strong_threshold - 1)
 
