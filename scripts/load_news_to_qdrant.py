@@ -10,8 +10,9 @@ import json
 import logging
 import sqlite3
 import sys
+from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -320,16 +321,32 @@ def _chunk_point_id(chunk_id: str) -> str:
     return str(int(digest[:16], 16))
 
 
-def _iter_chunks(
-    conn: sqlite3.Connection,
+def _connect_news_articles_db(db_path: str | Path, *, read_only: bool) -> sqlite3.Connection:
+    db = Path(db_path).expanduser().resolve()
+    if read_only and not db.exists():
+        raise FileNotFoundError(f"news articles SQLite DB not found: {db}")
+    if read_only:
+        conn = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
+    else:
+        conn = sqlite3.connect(str(db))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _loader_where_clauses(
     since_hours: Optional[int],
-) -> List[Dict[str, Any]]:
-    """Read articles + entity_links from the news articles DB."""
-    where_clauses = [
-        "(a.language IN ('en', '') OR a.language IS NULL)",
-        "a.quality_score >= 0.3",
-    ]
+    *,
+    include_eligibility: bool,
+) -> tuple[List[str], List[Any]]:
+    where_clauses: List[str] = []
     params: List[Any] = []
+    if include_eligibility:
+        where_clauses.extend(
+            [
+                "(a.language IN ('en', '') OR a.language IS NULL)",
+                "a.quality_score >= 0.3",
+            ]
+        )
 
     if since_hours is not None and int(since_hours) > 0:
         cutoff = (
@@ -339,7 +356,18 @@ def _iter_chunks(
         )
         where_clauses.append("a.published_at_utc >= ?")
         params.append(cutoff)
+    return where_clauses, params
 
+
+def _iter_chunks(
+    conn: sqlite3.Connection,
+    since_hours: Optional[int],
+) -> List[Dict[str, Any]]:
+    """Read articles + entity_links from the news articles DB."""
+    where_clauses, params = _loader_where_clauses(
+        since_hours,
+        include_eligibility=True,
+    )
     where_sql = " AND ".join(where_clauses)
     sql = f"""
         SELECT
@@ -419,6 +447,36 @@ def _iter_chunks(
     return out
 
 
+def _iter_article_report_rows(
+    conn: sqlite3.Connection,
+    since_hours: Optional[int],
+) -> List[Dict[str, Any]]:
+    where_clauses, params = _loader_where_clauses(
+        since_hours,
+        include_eligibility=False,
+    )
+    where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+    rows = conn.execute(
+        f"""
+        SELECT
+            a.article_id,
+            a.canonical_url,
+            a.title,
+            a.description,
+            a.body,
+            a.provider_best AS provider,
+            a.language,
+            a.quality_score,
+            a.published_at_utc
+        FROM articles a
+        WHERE {where_sql}
+        ORDER BY a.published_at_utc DESC, a.article_id DESC
+        """,
+        tuple(params),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def _build_chunk_payload(
     art: Dict[str, Any], idx: int, chunk_text: str = ""
 ) -> Dict[str, Any]:
@@ -477,42 +535,450 @@ def _split_chunks(
     return chunks
 
 
+def _article_text_from_row(row: Mapping[str, Any]) -> str:
+    return "\n\n".join(
+        str(row.get(field) or "")
+        for field in ("title", "description", "body")
+        if str(row.get(field) or "").strip()
+    )
+
+
+def _is_loader_language(language: Any) -> bool:
+    return language is None or str(language) in {"en", ""}
+
+
+def _exclusion_reason(row: Mapping[str, Any]) -> str:
+    if not _is_loader_language(row.get("language")):
+        return "unsupported_language"
+    try:
+        quality_score = float(row.get("quality_score") or 0.0)
+    except (TypeError, ValueError):
+        quality_score = 0.0
+    if quality_score < 0.3:
+        return "low_quality"
+    if not _article_text_from_row(row).strip():
+        return "missing_text"
+    return ""
+
+
+def _build_target_points(articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    points: List[Dict[str, Any]] = []
+    for art in articles:
+        chunks = _split_chunks(str(art.get("text") or ""))
+        for idx, chunk_text in enumerate(chunks):
+            payload = _build_chunk_payload(art, idx, chunk_text)
+            points.append(
+                {
+                    "id": _chunk_point_id(payload["chunk_id"]),
+                    "_text": chunk_text,
+                    "payload": payload,
+                }
+            )
+    return points
+
+
+def _build_target_report(
+    *,
+    all_article_rows: List[Dict[str, Any]],
+    articles: List[Dict[str, Any]],
+    points: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    eligible_article_ids = {str(art.get("article_id") or "") for art in articles}
+    excluded_rows = [
+        row
+        for row in all_article_rows
+        if str(row.get("article_id") or "") not in eligible_article_ids
+    ]
+    excluded_reasons: Counter[str] = Counter()
+    excluded_chunks = 0
+    for row in excluded_rows:
+        reason = _exclusion_reason(row) or "unknown"
+        excluded_reasons[reason] += 1
+        text = _article_text_from_row(row)
+        if text.strip():
+            excluded_chunks += len(_split_chunks(text))
+
+    provider_spread = Counter(
+        str(art.get("provider") or "unknown").strip() or "unknown" for art in articles
+    )
+    article_primary = Counter()
+    article_any = Counter()
+    for art in articles:
+        if str(art.get("primary_ticker") or "").strip():
+            article_primary["articles_with_primary_ticker"] += 1
+        if art.get("tickers"):
+            article_any["articles_with_any_ticker"] += 1
+
+    ticker_counts: Counter[str] = Counter()
+    chunks_with_primary = 0
+    chunks_with_any = 0
+    for point in points:
+        payload = dict(point.get("payload") or {})
+        if str(payload.get("primary_ticker") or "").strip():
+            chunks_with_primary += 1
+        tickers = payload.get("tickers") or []
+        if tickers:
+            chunks_with_any += 1
+        for ticker in tickers:
+            symbol = str(ticker or "").strip().upper()
+            if symbol:
+                ticker_counts[symbol] += 1
+
+    return {
+        "eligible_articles": len(articles),
+        "eligible_chunks": len(points),
+        "excluded_articles": len(excluded_rows),
+        "excluded_chunks": excluded_chunks,
+        "total_articles_considered": len(all_article_rows),
+        "excluded_reason_counts": dict(sorted(excluded_reasons.items())),
+        "provider_spread": dict(sorted(provider_spread.items())),
+        "ticker_coverage_summary": {
+            "articles_with_primary_ticker": int(
+                article_primary["articles_with_primary_ticker"]
+            ),
+            "articles_with_any_ticker": int(article_any["articles_with_any_ticker"]),
+            "chunks_with_primary_ticker": chunks_with_primary,
+            "chunks_with_any_ticker": chunks_with_any,
+            "unique_tickers": len(ticker_counts),
+            "top_tickers": dict(ticker_counts.most_common(20)),
+        },
+    }
+
+
+def build_news_projection_target(
+    db_path: str | Path,
+    *,
+    since_hours: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Build the deterministic loader-eligible news projection target."""
+    conn = _connect_news_articles_db(db_path, read_only=True)
+    try:
+        articles = _iter_chunks(conn, since_hours)
+        all_article_rows = _iter_article_report_rows(conn, since_hours)
+    finally:
+        conn.close()
+    points = _build_target_points(articles)
+    report = _build_target_report(
+        all_article_rows=all_article_rows,
+        articles=articles,
+        points=points,
+    )
+    return {"articles": articles, "points": points, "report": report}
+
+
+def _point_payload(point: Any) -> Dict[str, Any]:
+    if isinstance(point, Mapping):
+        return dict(point.get("payload") or {})
+    return dict(getattr(point, "payload", None) or {})
+
+
+def _point_id(point: Any) -> str:
+    if isinstance(point, Mapping):
+        return str(point.get("id") or "")
+    return str(getattr(point, "id", "") or "")
+
+
+def read_qdrant_payloads(
+    client: Any,
+    collection: str,
+    *,
+    page_size: int = 512,
+) -> Dict[str, Dict[str, Any]]:
+    payloads: Dict[str, Dict[str, Any]] = {}
+    offset: Any | None = None
+    while True:
+        points, next_offset = client.scroll(
+            collection_name=collection,
+            limit=int(page_size),
+            offset=offset,
+            with_payload=True,
+            with_vectors=False,
+        )
+        for point in points:
+            point_id = _point_id(point)
+            if point_id:
+                payloads[point_id] = _point_payload(point)
+        if next_offset is None:
+            break
+        offset = next_offset
+    return payloads
+
+
+_DRIFT_FIELDS = (
+    "ticker",
+    "tickers",
+    "primary_ticker",
+    "provider",
+    "title",
+    "url",
+    "published_at",
+    "text",
+)
+
+
+def _normalize_payload_value(value: Any) -> Any:
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if value is None:
+        return ""
+    return str(value)
+
+
+def diff_qdrant_projection(
+    target_points: List[Dict[str, Any]],
+    current_payloads: Mapping[str, Mapping[str, Any]],
+) -> Dict[str, Any]:
+    expected_by_id = {str(point["id"]): point for point in target_points}
+    expected_ids = set(expected_by_id)
+    current_ids = {str(point_id) for point_id in current_payloads}
+    missing_ids = sorted(expected_ids - current_ids)
+    stale_ids = sorted(current_ids - expected_ids)
+    drift_counts: Counter[str] = Counter()
+    drift_ids: set[str] = set()
+
+    for point_id in sorted(expected_ids & current_ids):
+        expected_payload = dict(expected_by_id[point_id].get("payload") or {})
+        current_payload = dict(current_payloads.get(point_id) or {})
+        for field in _DRIFT_FIELDS:
+            if _normalize_payload_value(expected_payload.get(field)) != _normalize_payload_value(
+                current_payload.get(field)
+            ):
+                drift_counts[field] += 1
+                drift_ids.add(point_id)
+
+    def chunk_sample(point_ids: List[str]) -> List[str]:
+        samples: List[str] = []
+        for point_id in point_ids[:10]:
+            expected_payload = dict(expected_by_id.get(point_id, {}).get("payload") or {})
+            current_payload = dict(current_payloads.get(point_id) or {})
+            chunk_id = str(
+                expected_payload.get("chunk_id") or current_payload.get("chunk_id") or point_id
+            )
+            samples.append(chunk_id)
+        return samples
+
+    return {
+        "status": "available",
+        "expected_chunks": len(expected_ids),
+        "current_qdrant_chunks": len(current_ids),
+        "missing_expected_chunks": len(missing_ids),
+        "stale_qdrant_chunks": len(stale_ids),
+        "payload_drift_chunks": len(drift_ids),
+        "payload_drift_counts": {
+            field: int(drift_counts.get(field, 0)) for field in _DRIFT_FIELDS
+        },
+        "missing_samples": chunk_sample(missing_ids),
+        "stale_samples": chunk_sample(stale_ids),
+        "payload_drift_samples": chunk_sample(sorted(drift_ids)),
+    }
+
+
+def _unavailable_qdrant_diff(target_points: List[Dict[str, Any]], exc: Exception) -> Dict[str, Any]:
+    return {
+        "status": "unavailable",
+        "expected_chunks": len(target_points),
+        "current_qdrant_chunks": None,
+        "missing_expected_chunks": None,
+        "stale_qdrant_chunks": None,
+        "payload_drift_chunks": None,
+        "payload_drift_counts": {},
+        "error": str(exc),
+    }
+
+
+def _build_qdrant_diff(
+    *,
+    client: Any,
+    collection: str,
+    target_points: List[Dict[str, Any]],
+    allow_unavailable: bool,
+) -> tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
+    try:
+        current_payloads = read_qdrant_payloads(client, collection)
+    except Exception as exc:
+        if allow_unavailable:
+            return _unavailable_qdrant_diff(target_points, exc), {}
+        raise
+    return diff_qdrant_projection(target_points, current_payloads), current_payloads
+
+
+def _repair_point_ids(
+    target_points: List[Dict[str, Any]],
+    current_payloads: Mapping[str, Mapping[str, Any]],
+) -> set[str]:
+    expected_by_id = {str(point["id"]): point for point in target_points}
+    repair_ids = set(expected_by_id) - {str(point_id) for point_id in current_payloads}
+    for point_id, point in expected_by_id.items():
+        if point_id not in current_payloads:
+            continue
+        expected_payload = dict(point.get("payload") or {})
+        current_payload = dict(current_payloads.get(point_id) or {})
+        if any(
+            _normalize_payload_value(expected_payload.get(field))
+            != _normalize_payload_value(current_payload.get(field))
+            for field in _DRIFT_FIELDS
+        ):
+            repair_ids.add(point_id)
+    return repair_ids
+
+
+def _memo_skipped(reason: str, articles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    diagnostics = build_memo_coverage_diagnostics(articles)
+    return {
+        "status": "skipped",
+        "reason": reason,
+        "eligible": diagnostics["eligible"],
+        "skipped": diagnostics["skipped"],
+        "dispatched": 0,
+        "dispatch_failed": 0,
+        "missing_after_dispatch": diagnostics["missing"],
+        "completion_observable": False,
+    }
+
+
+def _coerce_qdrant_point_id(point_id: str) -> int | str:
+    text = str(point_id)
+    return int(text) if text.isdigit() else text
+
+
+def _delete_qdrant_points(
+    client: Any,
+    collection: str,
+    point_ids: List[str],
+) -> None:
+    from qdrant_client.http import models as qmodels
+
+    if not point_ids:
+        return
+    client.delete(
+        collection_name=collection,
+        points_selector=qmodels.PointIdsList(
+            points=[_coerce_qdrant_point_id(point_id) for point_id in point_ids]
+        ),
+    )
+
+
 def sync_news_to_qdrant(
     db_path: str,
     qdrant_url: str = "http://localhost:6333",
     collection: str = "news_chunks",
     batch_size: int = 64,
     since_hours: Optional[int] = None,
-) -> Dict[str, int]:
+    *,
+    dry_run: bool = False,
+    dispatch_memos: bool = True,
+    cleanup_stale: bool = False,
+    qdrant_only: bool = False,
+    target_contract_report: bool = False,
+    qdrant_client: Any | None = None,
+    embed_texts_fn: Callable[[List[str]], List[List[float]]] | None = None,
+    upsert_points_fn: Callable[[Any, str, List[Dict[str, Any]]], None] | None = None,
+    delete_points_fn: Callable[[Any, str, List[str]], None] | None = None,
+    ensure_collection_fn: Callable[[Any, str, int], None] | None = None,
+    get_vector_config_fn: Callable[[Any, str], Dict[str, Any]] | None = None,
+    memo_dispatch_fn: Callable[[List[Dict[str, Any]]], Dict[str, Any]] | None = None,
+    embed_model: str | None = None,
+    ollama_url: str | None = None,
+    write_model_marker: bool = True,
+) -> Dict[str, Any]:
     """
     Read news chunks from SQLite and upsert into Qdrant.
 
     Safe to re-run (idempotent via deterministic point IDs).
     """
-    from app.services.embeddings import ensure_collection, upsert_points
-    from app.services.ollama import ollama_embed
-    from app.core.config import settings
-    from qdrant_client import QdrantClient
+    if cleanup_stale and since_hours is not None and int(since_hours) > 0:
+        raise ValueError("--cleanup-stale requires a full target (--since-hours 0)")
 
-    db = Path(db_path).expanduser().resolve()
-    conn = sqlite3.connect(str(db))
-    conn.row_factory = sqlite3.Row
-    try:
-        articles = _iter_chunks(conn, since_hours)
-    finally:
-        conn.close()
+    target = build_news_projection_target(db_path, since_hours=since_hours)
+    articles = list(target["articles"])
+    target_points = list(target["points"])
+    stats: Dict[str, Any] = {
+        "articles": len(articles),
+        "chunks": len(target_points),
+        "upserted": 0,
+        "deleted": 0,
+        "dry_run": bool(dry_run),
+        "qdrant_only": bool(qdrant_only),
+    }
+    if target_contract_report or dry_run or qdrant_only or cleanup_stale:
+        stats["target_contract_report"] = target["report"]
 
-    if not articles:
-        return {
-            "articles": 0,
-            "chunks": 0,
-            "upserted": 0,
-            "memo_extraction": build_memo_coverage_diagnostics([]),
-        }
+    client = qdrant_client
+    current_payloads: Dict[str, Dict[str, Any]] = {}
+    needs_diff = dry_run or qdrant_only or cleanup_stale or target_contract_report
+    if needs_diff or target_points:
+        if client is None:
+            try:
+                from qdrant_client import QdrantClient
 
-    client = QdrantClient(url=qdrant_url)
-    embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
-    ollama_url = str(getattr(settings, "ollama_url", "http://localhost:11434"))
+                client = QdrantClient(url=qdrant_url)
+            except Exception as exc:
+                if dry_run:
+                    stats["qdrant_diff"] = _unavailable_qdrant_diff(target_points, exc)
+                    stats["memo_extraction"] = _memo_skipped("dry_run", articles)
+                    return stats
+                raise
+
+    if needs_diff and client is not None:
+        diff, current_payloads = _build_qdrant_diff(
+            client=client,
+            collection=collection,
+            target_points=target_points,
+            allow_unavailable=dry_run,
+        )
+        stats["qdrant_diff"] = diff
+
+    if dry_run:
+        stats["memo_extraction"] = _memo_skipped("dry_run", articles)
+        logger.info("news_chunks_sync dry run complete: %s", stats)
+        return stats
+
+    if not target_points and not cleanup_stale:
+        if dispatch_memos and not qdrant_only:
+            stats["memo_extraction"] = build_memo_coverage_diagnostics([])
+        else:
+            reason = "qdrant_only" if qdrant_only else "no_dispatch_memos"
+            stats["memo_extraction"] = _memo_skipped(reason, articles)
+        return stats
+
+    if client is None:
+        raise RuntimeError("Qdrant client unavailable")
+
+    if embed_model is None or ollama_url is None:
+        try:
+            from app.core.config import settings
+
+            embed_model = embed_model or str(
+                getattr(settings, "embed_model", "nomic-embed-text")
+            )
+            ollama_url = ollama_url or str(
+                getattr(settings, "ollama_url", "http://localhost:11434")
+            )
+        except Exception:
+            embed_model = embed_model or "nomic-embed-text"
+            ollama_url = ollama_url or "http://localhost:11434"
+
+    if embed_texts_fn is None:
+        from app.services.ollama import ollama_embed
+
+        def embed_texts_fn(texts: List[str]) -> List[List[float]]:
+            return ollama_embed(str(ollama_url), str(embed_model), texts)
+
+    if (
+        ensure_collection_fn is None
+        or upsert_points_fn is None
+        or get_vector_config_fn is None
+    ):
+        from app.services.embeddings import (
+            ensure_collection,
+            get_qdrant_collection_vector_config,
+            upsert_points,
+        )
+
+        ensure_collection_fn = ensure_collection_fn or ensure_collection
+        upsert_points_fn = upsert_points_fn or upsert_points
+        get_vector_config_fn = get_vector_config_fn or get_qdrant_collection_vector_config
+    delete_points_fn = delete_points_fn or _delete_qdrant_points
 
     # --- Preflight: log resolved configuration before any writes ---
     logger.info(
@@ -525,7 +991,7 @@ def sync_news_to_qdrant(
 
     # Check stored model marker — refuse to write if it conflicts with a populated collection.
     stored_model: Optional[str] = None
-    if NEWS_CHUNKS_MODEL_FILE.exists():
+    if write_model_marker and NEWS_CHUNKS_MODEL_FILE.exists():
         try:
             stored_model = (
                 NEWS_CHUNKS_MODEL_FILE.read_text(encoding="utf-8").strip() or None
@@ -538,12 +1004,10 @@ def sync_news_to_qdrant(
             )
     if stored_model and stored_model != embed_model:
         # Only block if the collection already has vectors.
-        from app.services.embeddings import get_qdrant_collection_vector_config
-
         try:
             existing_cols = [c.name for c in client.get_collections().collections]
             if collection in existing_cols:
-                cfg = get_qdrant_collection_vector_config(client, collection)
+                cfg = get_vector_config_fn(client, collection)
                 existing_points = int(cfg.get("points_count") or 0)
                 if existing_points > 0:
                     raise RuntimeError(
@@ -559,7 +1023,7 @@ def sync_news_to_qdrant(
             )
 
     # Determine vector dimension by embedding a probe text.
-    probe_vec = ollama_embed(ollama_url, embed_model, ["probe"])[0]
+    probe_vec = embed_texts_fn(["probe"])[0]
     dim = len(probe_vec)
     logger.info("news_chunks_sync: probe_dim=%d embed_model=%s", dim, embed_model)
 
@@ -567,9 +1031,7 @@ def sync_news_to_qdrant(
     try:
         existing_cols = [c.name for c in client.get_collections().collections]
         if collection in existing_cols:
-            from app.services.embeddings import get_qdrant_collection_vector_config
-
-            cfg = get_qdrant_collection_vector_config(client, collection)
+            cfg = get_vector_config_fn(client, collection)
             existing_dim = cfg.get("actual_dim")
             existing_points = int(cfg.get("points_count") or 0)
             if existing_dim is not None and existing_dim != dim:
@@ -593,18 +1055,34 @@ def sync_news_to_qdrant(
             "news_chunks_sync: preflight collection-dimension check failed: %s", exc
         )
 
-    ensure_collection(client, collection, dim)
+    ensure_collection_fn(client, collection, dim)
 
-    total_chunks = 0
     total_upserted = 0
     batch: List[Dict[str, Any]] = []
+    points_for_upsert = target_points
+    if qdrant_only:
+        if not current_payloads and "qdrant_diff" not in stats:
+            diff, current_payloads = _build_qdrant_diff(
+                client=client,
+                collection=collection,
+                target_points=target_points,
+                allow_unavailable=False,
+            )
+            stats["qdrant_diff"] = diff
+        if stats.get("qdrant_diff", {}).get("status") != "available":
+            raise RuntimeError("Qdrant diff is required for --qdrant-only repair")
+        repair_ids = _repair_point_ids(target_points, current_payloads)
+        points_for_upsert = [
+            point for point in target_points if str(point["id"]) in repair_ids
+        ]
+        stats["repair_candidate_chunks"] = len(points_for_upsert)
 
     def flush_batch() -> int:
         nonlocal batch
         if not batch:
             return 0
         texts = [p["_text"] for p in batch]
-        vectors = ollama_embed(ollama_url, embed_model, texts)
+        vectors = embed_texts_fn(texts)
         points = []
         for point, vec in zip(batch, vectors):
             points.append(
@@ -614,48 +1092,62 @@ def sync_news_to_qdrant(
                     "payload": point["payload"],
                 }
             )
-        upsert_points(client, collection, points)
+        upsert_points_fn(client, collection, points)
         n = len(points)
         batch = []
         return n
 
-    for art in articles:
-        article_id = art["article_id"]
-        chunks = _split_chunks(art["text"])
-        for idx, chunk_text in enumerate(chunks):
-            payload = _build_chunk_payload(art, idx, chunk_text)
-            point_id = _chunk_point_id(payload["chunk_id"])
-            batch.append({"id": point_id, "_text": chunk_text, "payload": payload})
-            total_chunks += 1
-            if len(batch) >= batch_size:
-                total_upserted += flush_batch()
+    for point in points_for_upsert:
+        batch.append(point)
+        if len(batch) >= batch_size:
+            total_upserted += flush_batch()
 
     total_upserted += flush_batch()
+    stats["upserted"] = total_upserted
+
+    if cleanup_stale:
+        if not current_payloads and "qdrant_diff" not in stats:
+            diff, current_payloads = _build_qdrant_diff(
+                client=client,
+                collection=collection,
+                target_points=target_points,
+                allow_unavailable=False,
+            )
+            stats["qdrant_diff"] = diff
+        if stats.get("qdrant_diff", {}).get("status") != "available":
+            raise RuntimeError("Qdrant diff is required for --cleanup-stale")
+        expected_ids = {str(point["id"]) for point in target_points}
+        stale_ids = sorted(set(current_payloads) - expected_ids)
+        for start in range(0, len(stale_ids), int(batch_size)):
+            delete_points_fn(client, collection, stale_ids[start : start + int(batch_size)])
+        stats["deleted"] = len(stale_ids)
 
     # Dispatch news memo extraction for each article (best-effort). Extraction
     # completes asynchronously, so diagnostics report dispatch and current
     # persisted coverage instead of pretending completion is observable here.
-    memo_diagnostics = dispatch_news_memos(articles)
+    if qdrant_only:
+        memo_diagnostics = _memo_skipped("qdrant_only", articles)
+    elif not dispatch_memos:
+        memo_diagnostics = _memo_skipped("no_dispatch_memos", articles)
+    else:
+        memo_dispatch = memo_dispatch_fn or dispatch_news_memos
+        memo_diagnostics = memo_dispatch(articles)
     logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
     # Write model marker after successful sync so future runs can verify consistency.
-    try:
-        NEWS_CHUNKS_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
-        NEWS_CHUNKS_MODEL_FILE.write_text(embed_model, encoding="utf-8")
-        logger.info(
-            "news_chunks_sync: wrote model marker %s → '%s'",
-            NEWS_CHUNKS_MODEL_FILE,
-            embed_model,
-        )
-    except OSError as exc:
-        logger.warning("news_chunks_sync: unable to write model marker: %s", exc)
+    if write_model_marker:
+        try:
+            NEWS_CHUNKS_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+            NEWS_CHUNKS_MODEL_FILE.write_text(str(embed_model), encoding="utf-8")
+            logger.info(
+                "news_chunks_sync: wrote model marker %s → '%s'",
+                NEWS_CHUNKS_MODEL_FILE,
+                embed_model,
+            )
+        except OSError as exc:
+            logger.warning("news_chunks_sync: unable to write model marker: %s", exc)
 
-    stats = {
-        "articles": len(articles),
-        "chunks": total_chunks,
-        "upserted": total_upserted,
-        "memo_extraction": memo_diagnostics,
-    }
+    stats["memo_extraction"] = memo_diagnostics
     logger.info("news_chunks_sync complete: %s", stats)
     return stats
 
@@ -705,8 +1197,42 @@ def main() -> int:
         default="",
         help="Optional path for a nightly sync summary JSON artifact",
     )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Build target and Qdrant diff report without upserts, deletes, memos, or SQLite writes",
+    )
+    ap.add_argument(
+        "--no-dispatch-memos",
+        action="store_true",
+        help="Disable asynchronous news memo extraction dispatch",
+    )
+    ap.add_argument(
+        "--cleanup-stale",
+        action="store_true",
+        help="Delete Qdrant points outside the full eligible target set; never enabled by default",
+    )
+    ap.add_argument(
+        "--qdrant-only",
+        action="store_true",
+        help="Run Qdrant projection repair only; disables memo dispatch and SQLite fallback rebuild",
+    )
+    ap.add_argument(
+        "--target-contract-report",
+        action="store_true",
+        help="Include loader-eligible target counts and Qdrant diff details in the JSON output",
+    )
     args = ap.parse_args()
     since = int(args.since_hours) if int(args.since_hours) > 0 else None
+    if bool(args.dry_run) and bool(args.refresh_sqlite_fallback):
+        ap.error("--dry-run cannot be combined with --refresh-sqlite-fallback")
+    if bool(args.qdrant_only) and bool(args.refresh_sqlite_fallback):
+        ap.error("--qdrant-only cannot be combined with --refresh-sqlite-fallback")
+    if bool(args.cleanup_stale) and since is not None:
+        ap.error("--cleanup-stale requires --since-hours 0 so the expected set is complete")
+    dispatch_memos = not bool(args.no_dispatch_memos)
+    if bool(args.qdrant_only):
+        dispatch_memos = False
     summary: Dict[str, Any] = {
         "generated_at_utc": now_utc_iso(),
         "provider": latest_provider_run_summary(args.db_path),
@@ -721,8 +1247,14 @@ def main() -> int:
             collection=args.collection,
             batch_size=int(args.batch_size),
             since_hours=since,
+            dry_run=bool(args.dry_run),
+            dispatch_memos=dispatch_memos,
+            cleanup_stale=bool(args.cleanup_stale),
+            qdrant_only=bool(args.qdrant_only),
+            target_contract_report=bool(args.target_contract_report),
         )
-        summary["qdrant_sync"] = {"status": "success", **stats}
+        sync_status = "dry_run" if bool(args.dry_run) else "success"
+        summary["qdrant_sync"] = {"status": sync_status, **stats}
         summary["memo_extraction"] = stats.get("memo_extraction", {"status": "unknown"})
         provider_params = summary.get("provider", {}).get("params", {})
         window_start_utc = (
