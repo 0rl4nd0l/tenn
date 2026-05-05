@@ -36,6 +36,8 @@ def build_news_chunks(
     to_db: Path,
     lane: str = "high_precision",
     provider_filter: Sequence[str] | None = None,
+    from_utc: str = "",
+    to_utc: str = "",
     provider_corpus_map: Mapping[str, str] | None = None,
     max_chars: int = 1200,
     overlap_words: int = 60,
@@ -52,7 +54,12 @@ def build_news_chunks(
 
     store = NewsArticleStore(from_db)
     try:
-        articles = store.get_articles_for_chunk_build(lane=lane, provider_filter=provider_filter)
+        articles = store.get_articles_for_chunk_build(
+            lane=lane,
+            provider_filter=provider_filter,
+            from_utc=from_utc,
+            to_utc=to_utc,
+        )
     finally:
         store.close()
 

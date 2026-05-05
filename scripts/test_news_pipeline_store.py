@@ -128,6 +128,59 @@ class StoreTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_duplicate_article_id_is_deduped_even_when_secondary_hashes_drift(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news_articles.sqlite"
+            store = DB.NewsArticleStore(db_path)
+            try:
+                candidate = self._candidate(
+                    provider="newspaper4k",
+                    provider_item_id="n4k-1",
+                    url="https://example.com/legacy-id",
+                    title="Legacy id story",
+                    description="Original story",
+                )
+                article_id = "art_" + DB.sha1_hex(candidate.canonical_url)[:24]
+                store.conn.execute(
+                    """
+                    INSERT INTO articles(
+                        article_id, canonical_url, url_hash, title, description, body,
+                        source_name, language, published_at_utc, fetched_at_utc,
+                        provider_best, provider_item_id, content_hash_exact,
+                        content_hash_near, quality_score, lane
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        article_id,
+                        "",
+                        "legacy-url-hash",
+                        "Legacy id story",
+                        "Legacy row with drifted hashes",
+                        "Legacy body",
+                        "source",
+                        "en",
+                        "2026-02-24T09:30:00Z",
+                        "2026-02-24T09:30:00Z",
+                        "newspaper4k",
+                        "legacy",
+                        "legacy-exact",
+                        "legacy-near",
+                        1.0,
+                        "high_precision",
+                    ),
+                )
+                store.conn.commit()
+
+                result = store.upsert_article(candidate, lane="high_precision")
+
+                self.assertFalse(result.inserted)
+                self.assertEqual(result.article_id, article_id)
+                self.assertEqual(result.dedupe_reason, "dedupe_article_id")
+                count = int((store.conn.execute("SELECT COUNT(*) FROM articles").fetchone() or [0])[0] or 0)
+                self.assertEqual(count, 1)
+            finally:
+                store.close()
+
     def test_finalize_stale_running_runs_marks_old_rows(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "news_articles.sqlite"

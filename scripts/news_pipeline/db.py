@@ -409,17 +409,28 @@ class NewsArticleStore:
         else:
             url_hash = sha256_hex(f"no-url:{exact_hash}")
 
+        identity_key = self._canonical_identity_key(canonical_url, exact_hash)
+        article_id = "art_" + sha1_hex(identity_key)[:24]
+
         existing, dedupe_reason = self._find_existing_article(
             canonical_url=canonical_url,
             url_hash=url_hash,
             exact_hash=exact_hash,
             near_hash=near_hash,
         )
+        if existing is None:
+            # Older rows may have the deterministic article_id but incomplete or
+            # drifted secondary hashes. Treat that as idempotent dedupe instead
+            # of surfacing a provider failure on INSERT.
+            existing = self.conn.execute(
+                "SELECT * FROM articles WHERE article_id = ? LIMIT 1",
+                (article_id,),
+            ).fetchone()
+            if existing is not None:
+                dedupe_reason = "dedupe_article_id"
 
         provider = str(candidate.provider or "").strip().lower()
         if existing is None:
-            identity_key = self._canonical_identity_key(canonical_url, exact_hash)
-            article_id = "art_" + sha1_hex(identity_key)[:24]
             self.conn.execute(
                 """
                 INSERT INTO articles(

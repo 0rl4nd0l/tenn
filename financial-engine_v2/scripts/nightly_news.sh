@@ -22,6 +22,7 @@ LOG_DIR="${TENN_ROOT}/reports/ops_checks/nightly"
 mkdir -p "${LOG_DIR}"
 STAMP="$(date +%F_%H%M%S)"
 LOG_FILE="${LOG_DIR}/nightly_news_${STAMP}.log"
+SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.summary.json"
 
 {
   echo "[nightly_news] started_at=$(date -Iseconds)"
@@ -45,9 +46,13 @@ LOG_FILE="${LOG_DIR}/nightly_news_${STAMP}.log"
     # Add backend to PYTHONPATH for app.* imports
     export PYTHONPATH="${TENN_ROOT}/financial-engine_v2/backend:${TENN_ROOT}/scripts${PYTHONPATH:+:${PYTHONPATH}}"
     
-    # Sync articles to Qdrant and dispatch Celery tasks for memo extraction
+    # Sync articles to Qdrant, dispatch memo extraction, and refresh the
+    # canonical news.sqlite fallback used by Cockpit local news paths.
     python3 "${TENN_ROOT}/scripts/load_news_to_qdrant.py" \
-      --since-hours 36
+      --since-hours 36 \
+      --refresh-sqlite-fallback \
+      --summary-json "${SUMMARY_FILE}"
+    echo "[nightly_news] summary_json=${SUMMARY_FILE}"
   else
     echo "[nightly_news] WARNING: Backend venv not found at ${BACKEND_VENV}, skipping Qdrant sync/extraction" >&2
   fi

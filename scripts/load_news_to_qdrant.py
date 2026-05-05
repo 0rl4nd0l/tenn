@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import json
 import logging
 import sqlite3
 import sys
@@ -29,7 +30,287 @@ NEWS_CHUNKS_MODEL_FILE = (
 
 logger = logging.getLogger(__name__)
 
-from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB  # noqa: E402
+from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, DEFAULT_NEWS_CONTEXT_DB  # noqa: E402
+from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
+
+
+def _source_id_for_article(art: Dict[str, Any]) -> str:
+    article_id = str(art.get("article_id") or "").strip()
+    return f"news:{article_id}" if article_id else ""
+
+
+def _read_news_memo_source_ids(memos_path: str | Path | None = None) -> Dict[str, Any]:
+    try:
+        from app.services.news_memo_extractor import DEFAULT_NEWS_MEMOS_PATH
+    except Exception:
+        DEFAULT_NEWS_MEMOS_PATH = None  # type: ignore[assignment]
+
+    raw_path = memos_path or DEFAULT_NEWS_MEMOS_PATH
+    if raw_path is None:
+        return {"path": "", "source_ids": set(), "read_errors": 0, "exists": False}
+    resolved = Path(raw_path).expanduser()
+    path = resolved.resolve()
+    if not path.exists():
+        return {"path": str(path), "source_ids": set(), "read_errors": 0, "exists": False}
+
+    source_ids: set[str] = set()
+    read_errors = 0
+    with path.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            text = raw_line.strip()
+            if not text:
+                continue
+            try:
+                row = json.loads(text)
+            except json.JSONDecodeError:
+                read_errors += 1
+                continue
+            if not isinstance(row, dict):
+                read_errors += 1
+                continue
+            source_id = str(row.get("source_id") or "").strip()
+            if source_id:
+                source_ids.add(source_id)
+    return {
+        "path": str(path),
+        "source_ids": source_ids,
+        "read_errors": read_errors,
+        "exists": True,
+    }
+
+
+def build_memo_coverage_diagnostics(
+    articles: List[Dict[str, Any]],
+    *,
+    memos_path: str | Path | None = None,
+) -> Dict[str, Any]:
+    eligible_ids: list[str] = []
+    skipped = 0
+    for art in articles:
+        source_id = _source_id_for_article(art)
+        text = str(art.get("text") or "").strip()
+        if not source_id or not text:
+            skipped += 1
+            continue
+        eligible_ids.append(source_id)
+
+    memo_state = _read_news_memo_source_ids(memos_path)
+    persisted_ids = memo_state["source_ids"]
+    unique_eligible = set(eligible_ids)
+    missing_ids = sorted(unique_eligible - persisted_ids)
+    persisted = len(unique_eligible & persisted_ids)
+    read_errors = int(memo_state.get("read_errors") or 0)
+    if read_errors:
+        status = "degraded"
+    elif not unique_eligible:
+        status = "empty"
+    elif not missing_ids:
+        status = "complete"
+    elif persisted:
+        status = "partial"
+    else:
+        status = "none"
+    return {
+        "status": status,
+        "eligible": len(unique_eligible),
+        "skipped": skipped,
+        "persisted": persisted,
+        "missing": len(missing_ids),
+        "missing_samples": missing_ids[:10],
+        "memos_path": str(memo_state.get("path") or ""),
+        "memos_file_exists": bool(memo_state.get("exists")),
+        "read_errors": read_errors,
+    }
+
+
+def dispatch_news_memos(
+    articles: List[Dict[str, Any]],
+    *,
+    task: Any | None = None,
+    memos_path: str | Path | None = None,
+) -> Dict[str, Any]:
+    before = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
+    dispatch_task = task
+    import_error = ""
+    if dispatch_task is None:
+        try:
+            from app.tasks.news_tasks import extract_news_memo_task  # noqa: E402
+
+            dispatch_task = extract_news_memo_task
+        except Exception as exc:
+            import_error = str(exc)
+
+    dispatched = 0
+    failed = 0
+    failed_samples: list[dict[str, str]] = []
+    if dispatch_task is not None:
+        for art in articles:
+            source_id = _source_id_for_article(art)
+            text = str(art.get("text") or "")
+            if not source_id or not text.strip():
+                continue
+            memo_payload = {
+                "source_id": source_id,
+                "article_text": text[:12000],
+                "provider": str(art.get("provider") or ""),
+                "published_at": str(art.get("published_at") or ""),
+            }
+            try:
+                dispatch_task.delay(memo_payload)
+                dispatched += 1
+            except Exception as exc:
+                failed += 1
+                if len(failed_samples) < 10:
+                    failed_samples.append({"source_id": source_id, "error": str(exc)})
+
+    after = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
+    if import_error:
+        status = "unavailable"
+    elif failed:
+        status = "degraded"
+    elif after["missing"] == 0:
+        status = "complete"
+    elif dispatched:
+        status = "pending"
+    else:
+        status = after["status"]
+    return {
+        "status": status,
+        "eligible": before["eligible"],
+        "skipped": before["skipped"],
+        "dispatched": dispatched,
+        "dispatch_failed": failed,
+        "dispatch_failed_samples": failed_samples,
+        "persisted_before_dispatch": before["persisted"],
+        "persisted_after_dispatch": after["persisted"],
+        "missing_after_dispatch": after["missing"],
+        "missing_samples": after["missing_samples"],
+        "memos_path": after["memos_path"],
+        "memos_file_exists": after["memos_file_exists"],
+        "read_errors": after["read_errors"],
+        "import_error": import_error,
+        "completion_observable": False,
+    }
+
+
+def latest_provider_run_summary(db_path: str | Path) -> Dict[str, Any]:
+    db = Path(db_path).expanduser().resolve()
+    if not db.exists():
+        return {"status": "missing_db", "db_path": str(db)}
+    conn = sqlite3.connect(str(db))
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            """
+            SELECT *
+              FROM provider_runs
+             ORDER BY started_at DESC, run_id DESC
+             LIMIT 1
+            """
+        ).fetchone()
+        if row is None:
+            return {"status": "missing_run", "db_path": str(db)}
+        payload = dict(row)
+        try:
+            params = json.loads(str(payload.get("params_json") or "{}"))
+        except json.JSONDecodeError:
+            params = {}
+        payload["params"] = params
+        payload.pop("params_json", None)
+        errors = conn.execute(
+            """
+            SELECT reason, COUNT(*) AS count
+              FROM rejected_items
+             WHERE run_id = ?
+             GROUP BY reason
+             ORDER BY reason
+            """,
+            (str(payload.get("run_id") or ""),),
+        ).fetchall()
+        payload["errors_by_class"] = {
+            str(item["reason"]): int(item["count"] or 0) for item in errors
+        }
+        return payload
+    finally:
+        conn.close()
+
+
+def validate_news_sqlite_freshness(
+    db_path: str | Path,
+    *,
+    window_start_utc: str = "",
+) -> Dict[str, Any]:
+    db = Path(db_path).expanduser().resolve()
+    if not db.exists():
+        return {
+            "status": "degraded",
+            "reason": "missing_db",
+            "db_path": str(db),
+            "window_start_utc": window_start_utc,
+        }
+    conn = sqlite3.connect(str(db))
+    try:
+        table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='context_chunks'"
+        ).fetchone()
+        if table is None:
+            return {
+                "status": "degraded",
+                "reason": "missing_context_chunks",
+                "db_path": str(db),
+                "window_start_utc": window_start_utc,
+            }
+        row = conn.execute(
+            "SELECT COUNT(*) AS chunks, MAX(published_at) AS newest FROM context_chunks"
+        ).fetchone()
+    finally:
+        conn.close()
+
+    chunks = int((row[0] if row else 0) or 0)
+    newest = str((row[1] if row else "") or "")
+    newest_norm = parse_datetime_utc(newest) or ""
+    window_start_norm = parse_datetime_utc(window_start_utc) or ""
+    stale = bool(window_start_norm and (not newest_norm or newest_norm < window_start_norm))
+    return {
+        "status": "degraded" if stale else "fresh",
+        "reason": "stale" if stale else "",
+        "db_path": str(db),
+        "chunks": chunks,
+        "newest_published_at": newest,
+        "window_start_utc": window_start_utc,
+    }
+
+
+def refresh_news_sqlite_fallback(
+    *,
+    articles_db_path: str | Path,
+    context_db_path: str | Path,
+    lane: str = "high_precision",
+    window_start_utc: str = "",
+) -> Dict[str, Any]:
+    from news_pipeline.chunk_builder import build_news_chunks
+
+    stats = build_news_chunks(
+        from_db=Path(articles_db_path),
+        to_db=Path(context_db_path),
+        lane=lane,
+        embed_backend="hash",
+    )
+    freshness = validate_news_sqlite_freshness(
+        context_db_path,
+        window_start_utc=window_start_utc,
+    )
+    return {
+        "status": "success" if freshness["status"] == "fresh" else "degraded",
+        "build": stats,
+        "freshness": freshness,
+    }
+
+
+def write_summary_json(path: str | Path, payload: Dict[str, Any]) -> None:
+    out = Path(path).expanduser().resolve()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def _chunk_point_id(chunk_id: str) -> str:
@@ -222,7 +503,12 @@ def sync_news_to_qdrant(
         conn.close()
 
     if not articles:
-        return {"articles": 0, "chunks": 0, "upserted": 0}
+        return {
+            "articles": 0,
+            "chunks": 0,
+            "upserted": 0,
+            "memo_extraction": build_memo_coverage_diagnostics([]),
+        }
 
     client = QdrantClient(url=qdrant_url)
     embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
@@ -346,40 +632,11 @@ def sync_news_to_qdrant(
 
     total_upserted += flush_batch()
 
-    # Dispatch news memo extraction for each article (best-effort).
-    # Uses Celery when available, falls back to sync extraction, or skips
-    # silently when neither is reachable (memo extraction is supplementary).
-    memos_dispatched = 0
-    try:
-        from app.tasks.news_tasks import extract_news_memo_task  # noqa: E402
-
-        for art in articles:
-            memo_payload = {
-                "source_id": f"news:{art['article_id']}",
-                "article_text": art["text"][:12000],
-                "provider": art["provider"],
-                "published_at": art["published_at"],
-            }
-            try:
-                extract_news_memo_task.delay(memo_payload)
-                memos_dispatched += 1
-            except Exception as memo_exc:
-                logger.debug(
-                    "news_chunks_sync: memo dispatch failed for %s: %s",
-                    art["article_id"],
-                    memo_exc,
-                )
-        logger.info(
-            "news_chunks_sync: dispatched %d memo extraction tasks", memos_dispatched
-        )
-    except ImportError:
-        logger.info(
-            "news_chunks_sync: news memo extraction not available (app.tasks.news_tasks not importable)"
-        )
-    except Exception as exc:
-        logger.warning(
-            "news_chunks_sync: memo extraction dispatch setup failed: %s", exc
-        )
+    # Dispatch news memo extraction for each article (best-effort). Extraction
+    # completes asynchronously, so diagnostics report dispatch and current
+    # persisted coverage instead of pretending completion is observable here.
+    memo_diagnostics = dispatch_news_memos(articles)
+    logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
     # Write model marker after successful sync so future runs can verify consistency.
     try:
@@ -397,6 +654,7 @@ def sync_news_to_qdrant(
         "articles": len(articles),
         "chunks": total_chunks,
         "upserted": total_upserted,
+        "memo_extraction": memo_diagnostics,
     }
     logger.info("news_chunks_sync complete: %s", stats)
     return stats
@@ -426,19 +684,73 @@ def main() -> int:
         default=0,
         help="Only sync articles from the last N hours (0 = all)",
     )
+    ap.add_argument(
+        "--refresh-sqlite-fallback",
+        action="store_true",
+        help="Rebuild the canonical news.sqlite fallback after a successful Qdrant sync",
+    )
+    ap.add_argument(
+        "--news-context-db",
+        default=str(DEFAULT_NEWS_CONTEXT_DB),
+        help="Canonical news.sqlite fallback path",
+    )
+    ap.add_argument(
+        "--fallback-lane",
+        default="high_precision",
+        choices=["high_precision", "high_recall"],
+        help="Lane used when rebuilding the news.sqlite fallback",
+    )
+    ap.add_argument(
+        "--summary-json",
+        default="",
+        help="Optional path for a nightly sync summary JSON artifact",
+    )
     args = ap.parse_args()
     since = int(args.since_hours) if int(args.since_hours) > 0 else None
-    stats = sync_news_to_qdrant(
-        db_path=args.db_path,
-        qdrant_url=args.qdrant_url,
-        collection=args.collection,
-        batch_size=int(args.batch_size),
-        since_hours=since,
-    )
-    import json
-
-    print(json.dumps(stats, indent=2))
-    return 0
+    summary: Dict[str, Any] = {
+        "generated_at_utc": now_utc_iso(),
+        "provider": latest_provider_run_summary(args.db_path),
+        "qdrant_sync": {"status": "not_run"},
+        "sqlite_fallback": {"status": "not_run"},
+        "memo_extraction": {"status": "not_run"},
+    }
+    try:
+        stats = sync_news_to_qdrant(
+            db_path=args.db_path,
+            qdrant_url=args.qdrant_url,
+            collection=args.collection,
+            batch_size=int(args.batch_size),
+            since_hours=since,
+        )
+        summary["qdrant_sync"] = {"status": "success", **stats}
+        summary["memo_extraction"] = stats.get("memo_extraction", {"status": "unknown"})
+        provider_params = summary.get("provider", {}).get("params", {})
+        window_start_utc = (
+            str(provider_params.get("window_start_utc") or "")
+            if isinstance(provider_params, dict)
+            else ""
+        )
+        if bool(args.refresh_sqlite_fallback):
+            summary["sqlite_fallback"] = refresh_news_sqlite_fallback(
+                articles_db_path=args.db_path,
+                context_db_path=args.news_context_db,
+                lane=args.fallback_lane,
+                window_start_utc=window_start_utc,
+            )
+        if args.summary_json:
+            write_summary_json(args.summary_json, summary)
+        print(json.dumps(summary, indent=2, sort_keys=True))
+        return 0
+    except Exception as exc:
+        if summary.get("qdrant_sync", {}).get("status") == "not_run":
+            summary["qdrant_sync"] = {"status": "error", "error": str(exc)}
+        elif summary.get("sqlite_fallback", {}).get("status") == "not_run":
+            summary["sqlite_fallback"] = {"status": "error", "error": str(exc)}
+        else:
+            summary["error"] = str(exc)
+        if args.summary_json:
+            write_summary_json(args.summary_json, summary)
+        raise
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ REQUIRED_FAILURE_BUCKETS = (
     "provider_empty_response",
     "missing_published_at",
     "invalid_published_at",
+    "dedupe_article_id",
     "dedupe_url",
     "dedupe_exact",
     "dedupe_near",

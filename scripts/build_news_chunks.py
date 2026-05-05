@@ -19,6 +19,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--from-db", default=str(DEFAULT_NEWS_ARTICLES_DB), help="Canonical news_articles SQLite path")
     ap.add_argument("--to-db", default=str(DEFAULT_NEWS_CONTEXT_DB), help="Target context_chunks SQLite path")
     ap.add_argument("--lane", default="high_precision", choices=["high_precision", "high_recall"], help="Entity-link lane filter")
+    ap.add_argument("--from-utc", default="", help="Optional published_at_utc lower bound for chunk refresh")
+    ap.add_argument("--to-utc", default="", help="Optional published_at_utc upper bound for chunk refresh")
     ap.add_argument("--max-chars", type=int, default=1200, help="Chunk size in characters")
     ap.add_argument("--overlap-words", type=int, default=60, help="Chunk overlap in words")
     ap.add_argument("--providers", default="", help="Optional comma-separated provider filter")
@@ -39,6 +41,8 @@ def main(argv: list[str] | None = None) -> int:
         to_db=to_db,
         lane=args.lane,
         provider_filter=provider_filter,
+        from_utc=args.from_utc,
+        to_utc=args.to_utc,
         provider_corpus_map=None,
         max_chars=int(args.max_chars),
         overlap_words=int(args.overlap_words),
@@ -53,6 +57,8 @@ def main(argv: list[str] | None = None) -> int:
         "from_db": str(from_db),
         "to_db": str(to_db),
         "lane": args.lane,
+        "from_utc": args.from_utc,
+        "to_utc": args.to_utc,
         "provider_filter": provider_filter,
         "stats": stats,
     }

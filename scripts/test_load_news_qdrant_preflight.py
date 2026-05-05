@@ -11,7 +11,10 @@ Covers:
 """
 from __future__ import annotations
 
+import json
+import sqlite3
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
@@ -353,6 +356,137 @@ class TestModelMarkerWritten(unittest.TestCase):
             self.assertEqual(written_content[0], "nomic-embed-text")
         finally:
             mod.NEWS_CHUNKS_MODEL_FILE = original_file
+
+
+class TestNightlyNewsDiagnostics(unittest.TestCase):
+    def test_news_sqlite_freshness_marks_stale_context_degraded(self):
+        import load_news_to_qdrant as mod
+
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news.sqlite"
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    "CREATE TABLE context_chunks(chunk_id TEXT PRIMARY KEY, published_at TEXT)"
+                )
+                conn.execute(
+                    "INSERT INTO context_chunks(chunk_id, published_at) VALUES (?, ?)",
+                    ("news:old:0", "2026-04-09T10:13:17Z"),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            result = mod.validate_news_sqlite_freshness(
+                db_path,
+                window_start_utc="2026-05-03T04:00:02Z",
+            )
+
+            self.assertEqual(result["status"], "degraded")
+            self.assertEqual(result["reason"], "stale")
+            self.assertEqual(result["newest_published_at"], "2026-04-09T10:13:17Z")
+
+    def test_refresh_news_sqlite_fallback_builds_fresh_context_chunks(self):
+        import load_news_to_qdrant as mod
+        from news_pipeline.db import NewsArticleStore
+        from news_pipeline.models import ArticleCandidate
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            articles_db = tmp / "news_articles.sqlite"
+            context_db = tmp / "news.sqlite"
+            store = NewsArticleStore(articles_db)
+            try:
+                store.upsert_article(
+                    ArticleCandidate(
+                        provider="newspaper4k",
+                        provider_item_id="n4k-1",
+                        canonical_url="https://example.com/news/bhp",
+                        title="BHP updates investors",
+                        description="BHP released an operational update.",
+                        body="BHP released an operational update with production commentary.",
+                        source_name="Example",
+                        language="en",
+                        published_at_utc="2026-05-04T08:00:00Z",
+                        fetched_at_utc="2026-05-04T16:00:00Z",
+                        raw_payload={"id": "n4k-1"},
+                    ),
+                    lane="high_precision",
+                )
+            finally:
+                store.close()
+
+            result = mod.refresh_news_sqlite_fallback(
+                articles_db_path=articles_db,
+                context_db_path=context_db,
+                window_start_utc="2026-05-03T04:00:02Z",
+            )
+
+            self.assertEqual(result["status"], "success")
+            self.assertEqual(result["freshness"]["status"], "fresh")
+            conn = sqlite3.connect(str(context_db))
+            try:
+                row = conn.execute(
+                    "SELECT COUNT(*), MAX(published_at) FROM context_chunks"
+                ).fetchone()
+            finally:
+                conn.close()
+            self.assertGreater(int(row[0] or 0), 0)
+            self.assertEqual(str(row[1] or ""), "2026-05-04T08:00:00Z")
+
+    def test_memo_diagnostics_classify_skipped_failed_and_persisted(self):
+        import load_news_to_qdrant as mod
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            memos_path.write_text(
+                json.dumps({"source_id": "news:art-1"}) + "\n",
+                encoding="utf-8",
+            )
+            articles = [
+                {
+                    "article_id": "art-1",
+                    "text": "already persisted",
+                    "provider": "newspaper4k",
+                    "published_at": "2026-05-04T08:00:00Z",
+                },
+                {
+                    "article_id": "art-2",
+                    "text": "dispatch will fail",
+                    "provider": "newspaper4k",
+                    "published_at": "2026-05-04T09:00:00Z",
+                },
+                {
+                    "article_id": "art-3",
+                    "text": "",
+                    "provider": "newspaper4k",
+                    "published_at": "2026-05-04T10:00:00Z",
+                },
+            ]
+            calls: list[str] = []
+
+            class FlakyTask:
+                def delay(self, payload):
+                    source_id = payload["source_id"]
+                    if source_id == "news:art-2":
+                        raise RuntimeError("queue unavailable")
+                    calls.append(source_id)
+
+            result = mod.dispatch_news_memos(
+                articles,
+                task=FlakyTask(),
+                memos_path=memos_path,
+            )
+
+            self.assertEqual(result["status"], "degraded")
+            self.assertEqual(result["eligible"], 2)
+            self.assertEqual(result["skipped"], 1)
+            self.assertEqual(result["dispatched"], 1)
+            self.assertEqual(result["dispatch_failed"], 1)
+            self.assertEqual(result["persisted_before_dispatch"], 1)
+            self.assertEqual(result["persisted_after_dispatch"], 1)
+            self.assertEqual(result["missing_after_dispatch"], 1)
+            self.assertEqual(calls, ["news:art-1"])
 
 
 if __name__ == "__main__":
