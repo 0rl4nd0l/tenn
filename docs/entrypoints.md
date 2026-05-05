@@ -54,6 +54,7 @@ Use these wrappers for deterministic agent control:
   - Starts the canonical backend (if not already running), then uses bounded readiness retries via `scripts/agent_check.sh`.
 - `scripts/validate_system.sh`
   - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh` (when available).
+  - Set `COCKPIT_VALIDATE_ROUTING_SMOKE=1` to also run `scripts/cockpit smoke routing` after the standard smoke checks.
 - `scripts/prepare_cloud_worktree.sh`
   - Creates a clean sibling worktree from current `HEAD` for Cursor Cloud or isolated PR review without modifying the dirty main worktree.
 - `agent_contract.json`

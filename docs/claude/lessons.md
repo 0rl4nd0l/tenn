@@ -1039,7 +1039,7 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Subsystem:** `scripts/cockpit_routing_smoke.py`, `scripts/cockpit`, `financial-engine_v2/backend/app/services/cockpit_auto_flagger.py`
 **Symptom:** Health checks could pass while Cockpit chat still had broken routing/provenance semantics, such as forced-local under API-only, `model=null`, or generic prompts carrying unrelated orchestrator memory sources.
 **Root cause:** Existing restart validation stopped at `/api/health`, and auto diagnostics focused on missing sources, latency, tool failures, truncation, and access errors rather than routing metadata contradictions.
-**Fix:** Added `cockpit smoke routing` for live backend routing/provenance checks and added deterministic auto-flag heuristics for missing model metadata, `force:api`/`local` contradictions, and generic/control prompts answered with unscoped orchestrator memory evidence.
+**Fix:** Added `cockpit smoke routing` for live backend routing/provenance checks, wired it into `scripts/validate_system.sh` behind `COCKPIT_VALIDATE_ROUTING_SMOKE=1`, and added deterministic auto-flag heuristics for missing model metadata, `force:api`/`local` contradictions, and generic/control prompts answered with unscoped orchestrator memory evidence.
 **Rule:** Backend liveness is not chat correctness. Any routing-policy or provenance fix must include a live smoke probe plus auto-diagnostic heuristics for the failure signature so regressions are visible immediately after restart.
 
 ---

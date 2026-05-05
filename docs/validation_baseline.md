@@ -11,6 +11,7 @@ This runbook captures the validated command sequence for the current stable base
 ```bash
 bash scripts/start_system.sh
 bash scripts/validate_system.sh
+COCKPIT_VALIDATE_ROUTING_SMOKE=1 bash scripts/validate_system.sh
 python -m ruff check autodev financial-engine_v2/backend scripts
 pytest autodev/tests
 pytest financial-engine_v2/backend/tests
@@ -30,6 +31,7 @@ python scripts/validate_financial_coverage_gates.py reports/financial_metrics.js
 
 ## Environment Notes
 - In restricted socket environments, health/smoke checks may print `SKIP due restricted environment`. This is expected and non-fatal.
+- `COCKPIT_VALIDATE_ROUTING_SMOKE=1` adds a live Cockpit chat provenance probe; leave it off for offline/CI runs that must avoid API-backed chat calls.
 - Canonical dataset checks support CPU fallback by default (`REQUIRE_CUDA=0`).
 - Set `REQUIRE_CUDA=1` only when CUDA must be enforced.
 
