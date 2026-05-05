@@ -852,6 +852,8 @@ test.describe('Verification screen', () => {
     await expect(page.getByText('Confirmed Metric Coverage Review', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('BHP_A_2021-06-30.json')).toBeVisible()
     await expect(page.getByText('score_in_confirmed_metric_coverage')).toBeVisible()
+    await expect(page.locator('td', { hasText: 'BHP_A_2021-06-30.json' })).toHaveCSS('white-space', 'normal')
+    await expect(page.locator('td', { hasText: 'score_in_confirmed_metric_coverage' })).toHaveCSS('white-space', 'normal')
   })
 
   test('does not repeatedly poll missing historical run timelines', async ({ page }) => {

@@ -1074,3 +1074,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The review sidecar built its fixture path as `PROJECT_ROOT / "backend" / "tests" / "eval_fixtures"`. In Docker-style backend layouts, `PROJECT_ROOT` can resolve to `/`, which turns a backend-local fixture path into the invalid `/backend/tests/eval_fixtures`.
 **Fix:** Resolve confirmed metric coverage fixtures from the backend module root (`Path(__file__).resolve().parents[2]`) so local and container-mounted backend layouts both point at the actual `tests/eval_fixtures` directory.
 **Rule:** For backend-local test/report fixtures, anchor paths to the module tree that owns the files. Reserve `PROJECT_ROOT` for financial-engine data/config roots, not for locating files copied or mounted under the backend package itself.
+
+---
+
+## L096 — Review tables must wrap evidence text, not truncate it
+
+**Date:** 2026-05-05
+**Subsystem:** `cockpit-ui/components/cockpit/verification/tabs/metric-coverage-tab-panel.tsx`
+**Symptom:** After running the confirmed metric coverage review, the main table cut off long document IDs, evidence paths, source rows, classification labels, and recommended actions.
+**Root cause:** The table inherited nowrap table-cell styling and added explicit `truncate` classes to the document, source path, and source row fields. Badge styling also defaulted to nowrap/overflow-hidden, so long classification/source labels could be clipped.
+**Fix:** The metric coverage table now uses fixed review-oriented column widths with normal wrapping, breakable identifiers/paths, and wrapping badges for long classification/source labels.
+**Rule:** Verification/review tables are audit surfaces. They should preserve readable evidence and action text by wrapping within stable columns; use horizontal scroll only for table width, not as a reason to hide row-level evidence.

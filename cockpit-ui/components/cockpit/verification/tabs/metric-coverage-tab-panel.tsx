@@ -30,6 +30,7 @@ type MetricCoverageTabPanelProps = {
 
 const ALL_VALUE = 'all'
 const EMPTY_ROWS: ConfirmedMetricCoverageRow[] = []
+const WRAPPING_BADGE_CLASS = 'max-w-full whitespace-normal break-words text-left leading-snug overflow-visible'
 
 function uniqueOptions(rows: ConfirmedMetricCoverageRow[], reader: (row: ConfirmedMetricCoverageRow) => string | null | undefined): string[] {
   return Array.from(new Set(rows.map(reader).filter((value): value is string => Boolean(value)))).sort()
@@ -300,46 +301,46 @@ export function MetricCoverageTabPanel({
             </div>
 
             <div className="overflow-x-auto rounded-lg border border-border/60">
-              <Table>
+              <Table className="min-w-[1180px] table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ticker</TableHead>
-                    <TableHead>Document</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Metric</TableHead>
-                    <TableHead>Expected</TableHead>
-                    <TableHead>Classification</TableHead>
-                    <TableHead>Source evidence</TableHead>
-                    <TableHead>Recommendation</TableHead>
+                    <TableHead className="w-[70px]">Ticker</TableHead>
+                    <TableHead className="w-[190px]">Document</TableHead>
+                    <TableHead className="w-[120px]">Period</TableHead>
+                    <TableHead className="w-[145px]">Metric</TableHead>
+                    <TableHead className="w-[135px]">Expected</TableHead>
+                    <TableHead className="w-[190px]">Classification</TableHead>
+                    <TableHead className="w-[270px]">Source evidence</TableHead>
+                    <TableHead className="w-[260px]">Recommendation</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRows.map((row) => (
                     <TableRow key={`${row.fixture_id}:${row.metric_name}`}>
-                      <TableCell className="font-mono text-xs">{row.ticker || '-'}</TableCell>
-                      <TableCell className="max-w-[240px] truncate font-mono text-xs" title={row.document_id}>{row.fixture || row.document_id}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="whitespace-normal align-top font-mono text-xs">{row.ticker || '-'}</TableCell>
+                      <TableCell className="whitespace-normal break-all align-top font-mono text-xs" title={row.document_id}>{row.fixture || row.document_id}</TableCell>
+                      <TableCell className="whitespace-normal align-top text-xs text-muted-foreground">
                         {row.period.period_type || '-'} {row.period.period_end || ''}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{row.metric_name}</TableCell>
-                      <TableCell className="text-xs">{formatExpected(row)}</TableCell>
-                      <TableCell>
-                        <Badge variant={classificationVariant(row.classification)}>{row.classification}</Badge>
+                      <TableCell className="whitespace-normal break-words align-top font-mono text-xs">{row.metric_name}</TableCell>
+                      <TableCell className="whitespace-normal break-words align-top text-xs">{formatExpected(row)}</TableCell>
+                      <TableCell className="whitespace-normal align-top">
+                        <Badge className={WRAPPING_BADGE_CLASS} variant={classificationVariant(row.classification)}>{row.classification}</Badge>
                       </TableCell>
-                      <TableCell className="min-w-[220px] text-xs text-muted-foreground">
+                      <TableCell className="whitespace-normal break-words align-top text-xs text-muted-foreground">
                         <div className="flex flex-wrap gap-1">
-                          <Badge variant={row.source_pdf_status === 'present' ? 'outline' : 'critical'}>{row.source_pdf_status}</Badge>
-                          <Badge variant="outline">{row.source_evidence_status}</Badge>
-                          {row.source_page ? <Badge variant="outline">p{row.source_page}</Badge> : null}
-                          {row.source_table ? <Badge variant="outline">table {row.source_table}</Badge> : null}
+                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_pdf_status === 'present' ? 'outline' : 'critical'}>{row.source_pdf_status}</Badge>
+                          <Badge className={WRAPPING_BADGE_CLASS} variant="outline">{row.source_evidence_status}</Badge>
+                          {row.source_page ? <Badge className={WRAPPING_BADGE_CLASS} variant="outline">p{row.source_page}</Badge> : null}
+                          {row.source_table ? <Badge className={WRAPPING_BADGE_CLASS} variant="outline">table {row.source_table}</Badge> : null}
                         </div>
-                        {row.source_pdf_path ? <div className="mt-1 max-w-[360px] truncate font-mono" title={row.source_pdf_path}>{row.source_pdf_path}</div> : null}
-                        {row.source_row ? <div className="mt-1 max-w-[360px] truncate" title={row.source_row}>{row.source_row}</div> : null}
+                        {row.source_pdf_path ? <div className="mt-1 break-all font-mono" title={row.source_pdf_path}>{row.source_pdf_path}</div> : null}
+                        {row.source_row ? <div className="mt-1 whitespace-normal break-words" title={row.source_row}>{row.source_row}</div> : null}
                       </TableCell>
-                      <TableCell className="max-w-[260px] text-xs text-muted-foreground">
-                        <div className="font-mono">{row.recommended_action}</div>
-                        <div>{row.review_status} / {row.production_metric_tier}</div>
-                        {row.ambiguity_reason ? <div>ambiguity: {row.ambiguity_reason}</div> : null}
+                      <TableCell className="whitespace-normal break-words align-top text-xs text-muted-foreground">
+                        <div className="break-words font-mono">{row.recommended_action}</div>
+                        <div className="break-words">{row.review_status} / {row.production_metric_tier}</div>
+                        {row.ambiguity_reason ? <div className="break-words">ambiguity: {row.ambiguity_reason}</div> : null}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -173,7 +173,7 @@ function renderPanel(props: Partial<ComponentProps<typeof MetricCoverageTabPanel
 
 describe('MetricCoverageTabPanel', () => {
   it('renders summary counts, review-only copy, rows, and artifacts', () => {
-    renderPanel()
+    const { container } = renderPanel()
 
     expect(screen.getByText('Confirmed Metric Coverage Review')).toBeInTheDocument()
     expect(screen.getByText(/This review does not run extraction/)).toBeInTheDocument()
@@ -186,6 +186,10 @@ describe('MetricCoverageTabPanel', () => {
     expect(screen.getByText('BHP_A_2021-06-30.json')).toBeInTheDocument()
     expect(screen.getByText('score_in_confirmed_metric_coverage')).toBeInTheDocument()
     expect(screen.getByText('Revenue 60,817')).toBeInTheDocument()
+    expect(container.querySelectorAll('td.truncate')).toHaveLength(0)
+    expect(screen.getByText('BHP_A_2021-06-30.json').closest('td')).toHaveClass('whitespace-normal')
+    expect(screen.getAllByText('CONFIRMED_SOURCE_EVIDENCED')[0].closest('[data-slot="badge"]')).toHaveClass('whitespace-normal')
+    expect(screen.getByText('score_in_confirmed_metric_coverage').closest('td')).toHaveClass('whitespace-normal')
   })
 
   it('calls the run and export actions', async () => {
