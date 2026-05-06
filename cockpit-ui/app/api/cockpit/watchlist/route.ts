@@ -8,7 +8,7 @@ export const maxDuration = 30
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const body = await request.text()
-  const backend = await fetch(`${resolveBackendUrl()}/api/watchlist`, {
+  const backend = await fetch(`${resolveBackendUrl()}/api/cockpit/watchlist`, {
     method: 'POST',
     headers: copyRequestHeaders(request),
     body,
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const backend = await fetch(`${resolveBackendUrl()}/api/watchlist`, {
+  const backend = await fetch(`${resolveBackendUrl()}/api/cockpit/watchlist`, {
     headers: copyRequestHeaders(request),
     cache: 'no-store',
   })

@@ -400,6 +400,40 @@ class CockpitHoldingMutationResponse(BaseModel):
     holding_id: str
 
 
+class CockpitWatchlistItem(BaseModel):
+    ticker: str
+    name: str | None = None
+    added_at: str
+    source: Literal["cockpit_state"] = "cockpit_state"
+    notes: str | None = None
+    note: str | None = None
+    source_id: str | None = None
+    stance: str | None = None
+
+
+class CockpitWatchlistListResponse(BaseModel):
+    ok: bool = True
+    items: list[CockpitWatchlistItem] = Field(default_factory=list)
+
+
+class CockpitWatchlistCreateRequest(BaseModel):
+    ticker: str
+    name: str | None = None
+    note: str | None = None
+    stance: str | None = None
+
+
+class CockpitWatchlistCreateResponse(BaseModel):
+    ok: bool = True
+    item: CockpitWatchlistItem
+
+
+class CockpitWatchlistDeleteResponse(BaseModel):
+    ok: bool = True
+    removed: bool
+    ticker: str
+
+
 class CockpitChatAttachmentUploadRequest(BaseModel):
     filename: str
     content_base64: str
@@ -435,6 +469,7 @@ _EXCHANGE_ALIASES = {
 }
 _CSV_BUY_SIDE_ALIASES = {"buy", "b", "long", "bot", "purchase", "add"}
 _CSV_SELL_SIDE_ALIASES = {"sell", "s", "short", "sld", "dispose", "reduce"}
+_WATCHLIST_TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,11}$")
 _CSV_HOLDINGS_REQUIRED_COLUMNS = {
     "ticker": ("ticker", "symbol", "asx", "code", "security"),
     "quantity": ("quantity", "qty", "shares", "units", "holding"),
@@ -1191,6 +1226,66 @@ class IntelPulseMatrixResponse(BaseModel):
 # Helper: normalize chat sources for cockpit UI
 # ---------------------------------------------------------------------------
 
+SOURCE_LABEL_TAXONOMY_VERSION = "source_label_semantics_v1"
+
+SOURCE_LABEL_DEFINITIONS: dict[str, str] = {
+    "claim_verified": "The source directly supports a claim in the answer.",
+    "context_only": "The source was used for background/context and does not by itself verify a claim.",
+    "no_hit": "A search/tool/source path was attempted but returned no relevant evidence.",
+    "operational_trace": "The source is a tool/runtime/system trace, not financial evidence.",
+    "local_personal_data": "User/cockpit-local data such as holdings, not financial truth.",
+    "memory_context": "Company/market/thesis memory context, not canonical truth unless separately supported.",
+    "external_web_context": "External web context, not canonical financial truth.",
+    "local_news_context": "Local/news retrieval evidence.",
+    "financial_truth": "Canonical financial truth or structured extracted metrics.",
+    "degraded_runtime": "The answer was produced under runtime/tool/synthesis degradation.",
+    "missing_required_evidence": "The answer has a known evidence gap.",
+    "unknown_unclassified": "Safe fallback for unclassified sources; never treated as verified.",
+}
+_VALID_SOURCE_LABELS = frozenset(SOURCE_LABEL_DEFINITIONS)
+_SOURCE_LABEL_PRIMARY_ORDER = (
+    "missing_required_evidence",
+    "degraded_runtime",
+    "no_hit",
+    "claim_verified",
+    "financial_truth",
+    "local_personal_data",
+    "memory_context",
+    "external_web_context",
+    "local_news_context",
+    "operational_trace",
+    "context_only",
+    "unknown_unclassified",
+)
+_CONTEXT_SOURCE_LABELS = {
+    "memory_context",
+    "external_web_context",
+    "local_news_context",
+    "operational_trace",
+    "unknown_unclassified",
+}
+_OPERATIONAL_SOURCE_ID_PREFIXES = (
+    "local_price:",
+    "price:",
+    "price_query:",
+    "price_on_date:",
+    "price_range:",
+    "watchlist:",
+    "watchlist_alerts:",
+    "market_update:",
+    "tv_screener:",
+    "tv_indicators:",
+    "analysis:",
+    "deep_research:",
+    "runtime_clock:",
+    "youtube:",
+)
+_MEMORY_SOURCE_ID_PREFIXES = (
+    "company_memory:",
+    "market_memory:",
+    "user_thesis_memory:",
+)
+
 
 def _safe_source_score(value: Any) -> float:
     try:
@@ -1224,6 +1319,70 @@ def _summarize_scalar_fields(raw: dict[str, Any], *, max_items: int = 4) -> str 
     if not bits:
         return None
     return _clean_source_text("; ".join(bits))
+
+
+def _normalize_source_labels(value: Any) -> set[str]:
+    raw_items: list[Any]
+    if isinstance(value, str):
+        raw_items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        raw_items = list(value)
+    else:
+        raw_items = []
+    labels: set[str] = set()
+    for item in raw_items:
+        label = str(item or "").strip()
+        if label in _VALID_SOURCE_LABELS:
+            labels.add(label)
+    return labels
+
+
+def _primary_source_label(labels: set[str]) -> str:
+    for label in _SOURCE_LABEL_PRIMARY_ORDER:
+        if label in labels:
+            return label
+    return "unknown_unclassified"
+
+
+def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
+    labels = _normalize_source_labels(raw.get("evidence_labels"))
+    labels.update(_normalize_source_labels(raw.get("source_labels")))
+    labels.update(_normalize_source_labels(raw.get("evidence_label")))
+    labels.update(_normalize_source_labels(raw.get("source_label")))
+    if raw.get("claim_verified") is True or raw.get("supports_claim") is True:
+        labels.add("claim_verified")
+
+    normalized_kind = str(kind or "").strip().lower()
+    source_id = str(raw.get("source_id") or raw.get("chunk_id") or "").strip()
+    doc_type = str(
+        raw.get("doc_type")
+        or raw.get("doc_class")
+        or raw.get("source_corpus")
+        or raw.get("corpus")
+        or ""
+    ).strip()
+    source_type = str(raw.get("source_type") or raw.get("source") or "").strip().lower()
+
+    if source_id.startswith("search_news:no_hits:") or doc_type == "operational_no_hit":
+        labels.update({"no_hit", "operational_trace"})
+    if normalized_kind == "news" or "news" in doc_type or "news" in source_type:
+        labels.add("local_news_context")
+    if normalized_kind == "web":
+        labels.add("external_web_context")
+    if source_id.startswith(_MEMORY_SOURCE_ID_PREFIXES):
+        labels.add("memory_context")
+    if source_id.startswith(_OPERATIONAL_SOURCE_ID_PREFIXES) or normalized_kind == "context":
+        labels.add("operational_trace")
+    if raw.get("financial_truth") is True or raw.get("canonical_financial_truth") is True:
+        labels.add("financial_truth")
+
+    if not labels:
+        labels.add("unknown_unclassified")
+    if "claim_verified" not in labels and (
+        labels & _CONTEXT_SOURCE_LABELS or "no_hit" in labels
+    ):
+        labels.add("context_only")
+    return labels
 
 
 def _normalize_source_item(
@@ -1266,6 +1425,7 @@ def _normalize_source_item(
     if not title and not url and not snippet and not document_id and not path:
         return None
 
+    evidence_labels = _default_source_labels(raw, kind=kind)
     return {
         "title": title or default_title,
         "score": _safe_source_score(
@@ -1279,6 +1439,9 @@ def _normalize_source_item(
         "doc_type": doc_type or None,
         "path": path or None,
         "kind": kind,
+        "evidence_label": _primary_source_label(evidence_labels),
+        "evidence_labels": sorted(evidence_labels),
+        "claim_verified": "claim_verified" in evidence_labels,
     }
 
 
@@ -1450,6 +1613,7 @@ def _append_financial_payload_sources(
                 "published_at": period_end or row.get("published_at"),
                 "doc_type": period_type or row.get("doc_type"),
                 "snippet": "; ".join(metric_bits) if metric_bits else None,
+                "financial_truth": True,
             },
             default_title="Financial period",
             kind="document",
@@ -2622,6 +2786,48 @@ def _json_safe_mapping(value: Any) -> dict[str, Any]:
         return {str(key): str(item) for key, item in value.items()}
 
 
+def _source_label_counts(sources: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for source in sources:
+        for label in _normalize_source_labels(source.get("evidence_labels")):
+            counts[label] = counts.get(label, 0) + 1
+    return counts
+
+
+def _response_evidence_labels(response: Any, sources: list[dict[str, Any]]) -> set[str]:
+    labels = set(_source_label_counts(sources))
+    routing_metadata = dict(getattr(response, "routing_metadata", None) or {})
+    if _response_is_holdings_answer(response):
+        labels.add("local_personal_data")
+    if str(routing_metadata.get("grounding_guard") or "").strip():
+        labels.add("missing_required_evidence")
+    if str(routing_metadata.get("system_status") or "").strip().lower() == "degraded":
+        labels.add("degraded_runtime")
+    if str(routing_metadata.get("runtime_degradation") or "").strip():
+        labels.add("degraded_runtime")
+    if routing_metadata.get("provider_error"):
+        labels.add("degraded_runtime")
+    if sources and not labels:
+        labels.add("unknown_unclassified")
+    return labels
+
+
+def _source_coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
+    if "degraded_runtime" in labels:
+        return "degraded_runtime"
+    if "missing_required_evidence" in labels:
+        return "missing_required_evidence"
+    if "local_personal_data" in labels:
+        return "local_personal_data"
+    if "claim_verified" in labels:
+        return "claim_verified"
+    if "no_hit" in labels and not any(source.get("claim_verified") for source in sources):
+        return "no_hit"
+    if sources:
+        return "context_only"
+    return "no_visible_sources"
+
+
 def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dict[str, Any]:
     """Expose existing response metadata for the web chat presentation shell."""
     metadata = _json_safe_mapping(getattr(response, "routing_metadata", None) or {})
@@ -2655,6 +2861,13 @@ def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dic
                 if str(source.get("kind") or source.get("doc_type") or "").strip()
             }
         )
+    source_label_counts = _source_label_counts(sources)
+    evidence_labels = _response_evidence_labels(response, sources)
+    metadata["source_label_taxonomy_version"] = SOURCE_LABEL_TAXONOMY_VERSION
+    metadata["source_label_counts"] = source_label_counts
+    metadata["evidence_labels"] = sorted(evidence_labels)
+    metadata["claim_verified_source_count"] = source_label_counts.get("claim_verified", 0)
+    metadata["source_coverage_status"] = _source_coverage_status(evidence_labels, sources)
     return _json_safe_mapping(metadata)
 
 
@@ -3964,6 +4177,95 @@ def _enrich_holdings_with_live_prices(rows: list[dict[str, Any]]) -> list[dict[s
         item["valuation_warning"] = valuation_warning
         enriched.append(item)
     return enriched
+
+
+def _normalize_watchlist_ticker(raw: str | None) -> str:
+    ticker = str(raw or "").strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="ticker is required")
+    if not _WATCHLIST_TICKER_RE.fullmatch(ticker):
+        raise HTTPException(status_code=400, detail=f"Invalid ticker: {raw}")
+    return ticker
+
+
+def _watchlist_item_from_row(row: dict[str, Any]) -> CockpitWatchlistItem:
+    return CockpitWatchlistItem(
+        ticker=str(row.get("ticker") or "").strip().upper(),
+        added_at=str(row.get("added_at") or ""),
+        source="cockpit_state",
+        name=None,
+        notes=None,
+        note=None,
+        source_id=None,
+        stance=None,
+    )
+
+
+@router.get("/watchlist", response_model=CockpitWatchlistListResponse)
+def cockpit_list_watchlist() -> CockpitWatchlistListResponse:
+    try:
+        service = CockpitService.get_instance()
+        rows = service.state_store.list_watch_tickers()
+    except Exception as exc:
+        logger.exception("Failed to list cockpit watchlist")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list watchlist: {str(exc)}",
+        ) from exc
+    return CockpitWatchlistListResponse(
+        ok=True,
+        items=[_watchlist_item_from_row(dict(row)) for row in rows],
+    )
+
+
+@router.post("/watchlist", response_model=CockpitWatchlistCreateResponse)
+def cockpit_add_watchlist_item(
+    payload: CockpitWatchlistCreateRequest,
+) -> CockpitWatchlistCreateResponse:
+    ticker = _normalize_watchlist_ticker(payload.ticker)
+    added_at = datetime.now(timezone.utc).isoformat()
+
+    try:
+        service = CockpitService.get_instance()
+        inserted = service.state_store.add_watch_ticker(ticker, added_at)
+    except Exception as exc:
+        logger.exception("Failed to add cockpit watchlist item")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to add watchlist item: {str(exc)}",
+        ) from exc
+
+    if not inserted:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Ticker already on watchlist: {ticker}",
+        )
+
+    return CockpitWatchlistCreateResponse(
+        ok=True,
+        item=_watchlist_item_from_row({"ticker": ticker, "added_at": added_at}),
+    )
+
+
+@router.delete("/watchlist/{ticker}", response_model=CockpitWatchlistDeleteResponse)
+def cockpit_remove_watchlist_item(ticker: str) -> CockpitWatchlistDeleteResponse:
+    normalized = _normalize_watchlist_ticker(ticker)
+    try:
+        service = CockpitService.get_instance()
+        removed = service.state_store.remove_watch_ticker(normalized)
+    except Exception as exc:
+        logger.exception("Failed to remove cockpit watchlist item")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to remove watchlist item: {str(exc)}",
+        ) from exc
+
+    if not removed:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Watchlist item not found: {normalized}",
+        )
+    return CockpitWatchlistDeleteResponse(ok=True, removed=True, ticker=normalized)
 
 
 @router.get("/holdings", response_model=CockpitHoldingListResponse)
