@@ -539,6 +539,68 @@ def test_orchestrated_evidence_is_compatible_with_tool_style_synthesis() -> None
     ]
 
 
+def test_orchestrated_sources_list_consumes_evidence_envelope() -> None:
+    result = _result("mixed", ("financial_truth", "company_memory"))
+    result.evidence_envelope = {
+        "source_label_taxonomy_version": "source_label_semantics_v1",
+        "source_coverage_status": "context_only",
+        "evidence_labels": ["financial_truth", "context_only", "memory_context"],
+        "source_label_counts": {
+            "financial_truth": 1,
+            "context_only": 1,
+            "memory_context": 1,
+        },
+        "claim_verified_source_count": 0,
+        "missing_categories": [],
+        "sufficient_for_analysis": True,
+        "sources": [
+            {
+                "source_name": "financial_truth",
+                "source_id": "financial_truth",
+                "status": "ok",
+                "source_role_labels": ["financial_truth"],
+                "evidence_label": "financial_truth",
+                "evidence_labels": ["financial_truth"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "company_memory",
+                "source_id": "company_memory",
+                "status": "ok",
+                "source_role_labels": ["memory_context"],
+                "evidence_label": "context_only",
+                "evidence_labels": ["context_only", "memory_context"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+        ],
+    }
+    ctrl = _controller(result)
+
+    response = ctrl.build_chat_response("Why did BHP margins fall?")
+    sources_response = ctrl._handle_slash_command("/sources list")
+
+    assert response.evidence[0]["details"]["evidence_envelope"] is result.evidence_envelope
+    assert sources_response is not None
+    assert "Sources list (evidence envelope" in sources_response.text
+    assert "labels=financial_truth" in sources_response.text
+    assert "labels=context_only, memory_context" in sources_response.text
+    assert "Evidence taxonomy: unavailable" not in sources_response.text
+
+
 def test_unrelated_query_does_not_leak_prior_ticker_into_orchestrator() -> None:
     ctrl, calls = _controller_with_context_capture(
         _result("market", ("market_memory",), ticker=None)

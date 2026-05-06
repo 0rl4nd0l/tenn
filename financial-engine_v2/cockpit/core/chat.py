@@ -91,6 +91,8 @@ STAGED_CHUNKS_DIR = Path("~/.tenn/memory/staged_chunks").expanduser()
 ATTACHED_SOURCE_MAX_CHARS = 3_500
 ATTACHED_SOURCE_TOTAL_MAX_CHARS = 8_000
 ATTACHED_SOURCE_MAX_SEGMENTS = 6
+_EVIDENCE_ENVELOPE_KEY = "evidence_envelope"
+_EVIDENCE_LABELS_FALLBACK = ("unknown_unclassified",)
 
 
 def _apply_backend_prefix(message: str, force_backend: str | None) -> str:
@@ -252,6 +254,207 @@ def _build_attached_source_bundle(
         evidence=evidence,
         unresolved_ids=unresolved_ids,
     )
+
+
+def _is_evidence_envelope(candidate: Any) -> bool:
+    if not isinstance(candidate, dict):
+        return False
+    sources = candidate.get("sources")
+    return isinstance(sources, list) and (
+        "source_label_taxonomy_version" in candidate
+        or "source_coverage_status" in candidate
+        or "evidence_labels" in candidate
+    )
+
+
+def _extract_evidence_envelope(candidate: Any) -> dict[str, Any] | None:
+    if _is_evidence_envelope(candidate):
+        return candidate
+    if not isinstance(candidate, dict):
+        return None
+    nested = candidate.get(_EVIDENCE_ENVELOPE_KEY)
+    if _is_evidence_envelope(nested):
+        return nested
+    return None
+
+
+def _collect_evidence_envelopes(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    envelopes: list[dict[str, Any]] = []
+    seen_ids: set[int] = set()
+    for entry in evidence or []:
+        if not isinstance(entry, dict):
+            continue
+        for candidate in (
+            entry,
+            entry.get("details"),
+            entry.get("result"),
+        ):
+            envelope = _extract_evidence_envelope(candidate)
+            if envelope is None:
+                continue
+            envelope_id = id(envelope)
+            if envelope_id in seen_ids:
+                continue
+            seen_ids.add(envelope_id)
+            envelopes.append(envelope)
+    return envelopes
+
+
+def _source_payload_envelopes(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    envelopes: list[dict[str, Any]] = []
+    seen_ids: set[int] = set()
+    for payload in payloads or []:
+        envelope = _extract_evidence_envelope(payload)
+        if envelope is None:
+            continue
+        envelope_id = id(envelope)
+        if envelope_id in seen_ids:
+            continue
+        seen_ids.add(envelope_id)
+        envelopes.append(envelope)
+    return envelopes
+
+
+def _flatten_envelope_sources(
+    envelopes: list[dict[str, Any]],
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    sources: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for envelope in envelopes:
+        for source in envelope.get("sources") or []:
+            if isinstance(source, dict):
+                sources.append((envelope, source))
+    return sources
+
+
+def _normalize_text_labels(value: Any) -> list[str]:
+    labels: list[str] = []
+    raw_items: list[Any]
+    if isinstance(value, str):
+        raw_items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        raw_items = list(value)
+    else:
+        raw_items = []
+    for item in raw_items:
+        label = str(item or "").strip()
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _source_evidence_labels(source: dict[str, Any]) -> list[str]:
+    labels = _normalize_text_labels(source.get("evidence_labels"))
+    if not labels:
+        labels = _normalize_text_labels(source.get("evidence_label"))
+    if not labels:
+        labels = _normalize_text_labels(source.get("source_role_labels"))
+    return labels or list(_EVIDENCE_LABELS_FALLBACK)
+
+
+def _source_display_name(source: dict[str, Any], fallback_index: int) -> str:
+    for key in ("source_name", "title", "name", "source_id"):
+        value = str(source.get(key) or "").strip()
+        if value:
+            return value
+    return f"source_{fallback_index}"
+
+
+def _bool_text(value: Any) -> str:
+    return "true" if bool(value) else "false"
+
+
+def _format_textual_sources_list_from_envelope(
+    payloads: list[dict[str, Any]],
+    max_hits: int = 20,
+) -> str:
+    envelopes = _source_payload_envelopes(payloads)
+    sources = _flatten_envelope_sources(envelopes)
+    if not sources:
+        return ""
+
+    first_envelope = envelopes[0]
+    taxonomy_version = str(
+        first_envelope.get("source_label_taxonomy_version") or "unknown"
+    ).strip()
+    coverage_status = str(
+        first_envelope.get("source_coverage_status") or "unknown_unclassified"
+    ).strip()
+    lines = [
+        "----------------------------------------",
+        "Sources list (evidence envelope; use `/sources show <n>` to inspect a specific source):",
+        f"  taxonomy: {taxonomy_version}",
+        f"  coverage_status: {coverage_status}",
+    ]
+    for index, (_envelope, source) in enumerate(sources[:max_hits], start=1):
+        name = _source_display_name(source, index)
+        source_id = str(source.get("source_id") or name).strip()
+        status = str(source.get("status") or "unknown").strip()
+        labels = ", ".join(_source_evidence_labels(source))
+        item_count = source.get("item_count", 0)
+        parts = [
+            f"status={status}",
+            f"labels={labels}",
+            f"items={item_count}",
+            f"claim_verified={_bool_text(source.get('claim_verified'))}",
+        ]
+        if source.get("no_hit"):
+            parts.append("no_hit=true")
+        if source.get("degraded"):
+            parts.append("degraded=true")
+        if source.get("missing_required_evidence"):
+            parts.append("missing_required_evidence=true")
+        error = str(source.get("error") or "").strip()
+        if error:
+            parts.append(f"error={error}")
+        lines.append(f"  {index:>2}. {name} [{source_id}] ({'; '.join(parts)})")
+    lines.append("----------------------------------------")
+    return "\n".join(lines)
+
+
+def _format_textual_source_show_from_envelope(
+    payloads: list[dict[str, Any]],
+    index: int,
+) -> str | None:
+    envelopes = _source_payload_envelopes(payloads)
+    sources = _flatten_envelope_sources(envelopes)
+    if not sources:
+        return None
+    if index <= 0 or index > len(sources):
+        return f"Source index out of range. Use 1..{len(sources)}."
+
+    envelope, source = sources[index - 1]
+    name = _source_display_name(source, index)
+    source_id = str(source.get("source_id") or name).strip()
+    labels = _source_evidence_labels(source)
+    role_labels = _normalize_text_labels(source.get("source_role_labels"))
+    missing_categories = _normalize_text_labels(source.get("missing_categories"))
+    lines = [
+        "----------------------------------------",
+        f"Source {index}: {name}",
+        f"  id: {source_id}",
+        "  taxonomy: "
+        + str(envelope.get("source_label_taxonomy_version") or "unknown"),
+        "  coverage_status: "
+        + str(envelope.get("source_coverage_status") or "unknown_unclassified"),
+        f"  status: {str(source.get('status') or 'unknown')}",
+        f"  evidence_label: {str(source.get('evidence_label') or labels[0])}",
+        f"  evidence_labels: {', '.join(labels)}",
+        "  source_role_labels: " + (", ".join(role_labels) if role_labels else "none"),
+        f"  item_count: {source.get('item_count', 0)}",
+        f"  has_evidence: {_bool_text(source.get('has_evidence'))}",
+        f"  claim_verified: {_bool_text(source.get('claim_verified'))}",
+        f"  no_hit: {_bool_text(source.get('no_hit'))}",
+        f"  degraded: {_bool_text(source.get('degraded'))}",
+        "  missing_required_evidence: "
+        + _bool_text(source.get("missing_required_evidence")),
+    ]
+    if missing_categories:
+        lines.append("  missing_categories: " + ", ".join(missing_categories))
+    error = str(source.get("error") or "").strip()
+    if error:
+        lines.append(f"  error: {error}")
+    lines.append("----------------------------------------")
+    return "\n".join(lines)
 
 
 ACTION_KEYWORDS = {
@@ -2336,9 +2539,14 @@ class ChatController:
         return parsed
 
     def _set_latest_sources_payloads(self, evidence: list[dict[str, Any]]) -> None:
-        self._latest_sources_payloads = SourcesFormatter.collect_sources_payloads(
-            evidence
-        )
+        envelope_payloads = [
+            {_EVIDENCE_ENVELOPE_KEY: envelope}
+            for envelope in _collect_evidence_envelopes(evidence)
+        ]
+        self._latest_sources_payloads = [
+            *envelope_payloads,
+            *SourcesFormatter.collect_sources_payloads(evidence),
+        ]
 
     def _slash_web(self, sub: str, _rest: str) -> ChatResponse | None:
         if sub not in ("on", "off"):
@@ -2396,7 +2604,20 @@ class ChatController:
             )
 
         if sub == "list":
-            footer = SourcesFormatter.format_list(self._latest_sources_payloads)
+            footer = _format_textual_sources_list_from_envelope(
+                self._latest_sources_payloads
+            )
+            if not footer:
+                legacy_footer = SourcesFormatter.format_list(
+                    self._latest_sources_payloads
+                )
+                if legacy_footer:
+                    footer = (
+                        "Evidence taxonomy: unavailable; legacy source payloads "
+                        "are listed for inspection only and are not verification "
+                        "labels.\n"
+                        + legacy_footer
+                    )
             if footer:
                 return ChatResponse(text=footer, evidence=[], mode=ResponseMode.FAST)
             return ChatResponse(
@@ -2417,9 +2638,17 @@ class ChatController:
                 return ChatResponse(
                     text="Usage: /sources show <n>", evidence=[], mode=ResponseMode.FAST
                 )
-            show_text = SourcesFormatter.format_show(
+            show_text = _format_textual_source_show_from_envelope(
                 self._latest_sources_payloads, index
             )
+            if show_text is None:
+                show_text = (
+                    "Evidence taxonomy: unavailable; legacy source payload is "
+                    "shown for inspection only and is not a verification label.\n"
+                    + SourcesFormatter.format_show(
+                        self._latest_sources_payloads, index
+                    )
+                )
             return ChatResponse(
                 text=show_text,
                 evidence=[],
@@ -6015,50 +6244,55 @@ class ChatController:
         if not self._orchestration_has_substantive_evidence(orchestration_result):
             return None
 
+        evidence_envelope = getattr(orchestration_result, "evidence_envelope", None)
+        orchestrator_details = {
+            "intent": orchestration_result.intent,
+            "source_plan": list(orchestration_result.source_plan),
+            "entities": orchestration_result.entities,
+            "source_status": orchestration_result.answer.get("source_status") or {},
+            "missing_data_recovery": getattr(
+                orchestration_result, "missing_data_recovery", {}
+            ),
+            "missing_categories_before_recovery": list(
+                getattr(
+                    orchestration_result,
+                    "missing_categories_before_recovery",
+                    (),
+                )
+            ),
+            "missing_categories_after_recovery": list(
+                getattr(
+                    orchestration_result,
+                    "missing_categories_after_recovery",
+                    (),
+                )
+            ),
+            "sufficient_for_analysis": bool(
+                getattr(orchestration_result, "sufficient_for_analysis", True)
+            ),
+        }
+        orchestrator_result = {
+            "intent": orchestration_result.intent,
+            "source_plan": list(orchestration_result.source_plan),
+            "entities": orchestration_result.entities,
+            "source_status": orchestration_result.answer.get("source_status") or {},
+            "missing_data_recovery": getattr(
+                orchestration_result, "missing_data_recovery", {}
+            ),
+            "sufficient_for_analysis": bool(
+                getattr(orchestration_result, "sufficient_for_analysis", True)
+            ),
+        }
+        if _is_evidence_envelope(evidence_envelope):
+            orchestrator_details[_EVIDENCE_ENVELOPE_KEY] = evidence_envelope
+            orchestrator_result[_EVIDENCE_ENVELOPE_KEY] = evidence_envelope
+
         evidence = [
             {
                 "type": "orchestrator",
                 "tool": "orchestrator",
-                "details": {
-                    "intent": orchestration_result.intent,
-                    "source_plan": list(orchestration_result.source_plan),
-                    "entities": orchestration_result.entities,
-                    "source_status": orchestration_result.answer.get("source_status")
-                    or {},
-                    "missing_data_recovery": getattr(
-                        orchestration_result, "missing_data_recovery", {}
-                    ),
-                    "missing_categories_before_recovery": list(
-                        getattr(
-                            orchestration_result,
-                            "missing_categories_before_recovery",
-                            (),
-                        )
-                    ),
-                    "missing_categories_after_recovery": list(
-                        getattr(
-                            orchestration_result,
-                            "missing_categories_after_recovery",
-                            (),
-                        )
-                    ),
-                    "sufficient_for_analysis": bool(
-                        getattr(orchestration_result, "sufficient_for_analysis", True)
-                    ),
-                },
-                "result": {
-                    "intent": orchestration_result.intent,
-                    "source_plan": list(orchestration_result.source_plan),
-                    "entities": orchestration_result.entities,
-                    "source_status": orchestration_result.answer.get("source_status")
-                    or {},
-                    "missing_data_recovery": getattr(
-                        orchestration_result, "missing_data_recovery", {}
-                    ),
-                    "sufficient_for_analysis": bool(
-                        getattr(orchestration_result, "sufficient_for_analysis", True)
-                    ),
-                },
+                "details": orchestrator_details,
+                "result": orchestrator_result,
             }
         ]
         for source_name in orchestration_result.source_plan:

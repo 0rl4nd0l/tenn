@@ -10,6 +10,197 @@ from cockpit.core.chat import ChatController, ChatResponse, ResponseMode
 from cockpit.core.types import ToolResult
 
 
+def _sources_test_envelope() -> dict:
+    return {
+        "source_label_taxonomy_version": "source_label_semantics_v1",
+        "source_coverage_status": "degraded_runtime",
+        "evidence_labels": [
+            "claim_verified",
+            "context_only",
+            "degraded_runtime",
+            "external_web_context",
+            "financial_truth",
+            "local_news_context",
+            "local_personal_data",
+            "memory_context",
+            "missing_required_evidence",
+            "no_hit",
+            "operational_trace",
+            "unknown_unclassified",
+        ],
+        "source_label_counts": {},
+        "claim_verified_source_count": 1,
+        "missing_categories": ["financials"],
+        "sufficient_for_analysis": False,
+        "sources": [
+            {
+                "source_name": "verified_news",
+                "source_id": "verified-news-1",
+                "status": "ok",
+                "source_role_labels": ["local_news_context"],
+                "evidence_label": "claim_verified",
+                "evidence_labels": ["claim_verified", "local_news_context"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": True,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "analyst_context",
+                "source_id": "web-context-1",
+                "status": "ok",
+                "source_role_labels": ["external_web_context"],
+                "evidence_label": "context_only",
+                "evidence_labels": ["context_only", "external_web_context"],
+                "item_count": 2,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "screen_tickers",
+                "source_id": "screen-tickers",
+                "status": "no_hit",
+                "source_role_labels": ["operational_trace"],
+                "evidence_label": "missing_required_evidence",
+                "evidence_labels": [
+                    "missing_required_evidence",
+                    "no_hit",
+                    "operational_trace",
+                    "context_only",
+                ],
+                "item_count": 0,
+                "has_evidence": False,
+                "claim_verified": False,
+                "no_hit": True,
+                "degraded": False,
+                "missing_required_evidence": True,
+                "missing_categories": ["financials"],
+                "error": None,
+            },
+            {
+                "source_name": "web_search",
+                "source_id": "web-search",
+                "status": "partial_error",
+                "source_role_labels": [
+                    "operational_trace",
+                    "external_web_context",
+                ],
+                "evidence_label": "degraded_runtime",
+                "evidence_labels": [
+                    "degraded_runtime",
+                    "operational_trace",
+                    "context_only",
+                    "external_web_context",
+                ],
+                "item_count": 0,
+                "has_evidence": False,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": True,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": "timeout",
+            },
+            {
+                "source_name": "holdings",
+                "source_id": "holdings",
+                "status": "ok",
+                "source_role_labels": ["local_personal_data"],
+                "evidence_label": "context_only",
+                "evidence_labels": ["context_only", "local_personal_data"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "company_memory",
+                "source_id": "company-memory",
+                "status": "ok",
+                "source_role_labels": ["memory_context"],
+                "evidence_label": "context_only",
+                "evidence_labels": ["context_only", "memory_context"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "financial_truth",
+                "source_id": "financial-truth",
+                "status": "ok",
+                "source_role_labels": ["financial_truth"],
+                "evidence_label": "financial_truth",
+                "evidence_labels": ["financial_truth"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "local_news",
+                "source_id": "local-news",
+                "status": "ok",
+                "source_role_labels": ["local_news_context"],
+                "evidence_label": "context_only",
+                "evidence_labels": ["context_only", "local_news_context"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+            {
+                "source_name": "unknown_provider",
+                "source_id": "unknown-provider",
+                "status": "ok",
+                "source_role_labels": ["unknown_unclassified"],
+                "evidence_label": "context_only",
+                "evidence_labels": ["context_only", "unknown_unclassified"],
+                "item_count": 1,
+                "has_evidence": True,
+                "claim_verified": False,
+                "no_hit": False,
+                "degraded": False,
+                "missing_required_evidence": False,
+                "missing_categories": [],
+                "error": None,
+            },
+        ],
+    }
+
+
+def _line_for_source(text: str, source_name: str) -> str:
+    for line in text.splitlines():
+        if source_name in line:
+            return line
+    raise AssertionError(f"missing source line for {source_name}:\n{text}")
+
+
 class SlashCommandTestBase(unittest.TestCase):
     """Base class that sets up a ChatController in keyword mode with mocked deps."""
 
@@ -138,6 +329,94 @@ class TestToggleCommands(SlashCommandTestBase):
         oob_resp = self.controller._handle_slash_command("/sources show 4")
         assert oob_resp is not None
         assert "Source index out of range. Use 1..2." in oob_resp.text
+
+    def test_sources_list_preserves_evidence_envelope_roles(self) -> None:
+        self.controller._latest_sources_payloads = [
+            {"evidence_envelope": _sources_test_envelope()}
+        ]
+
+        resp = self.controller._handle_slash_command("/sources list")
+
+        assert resp is not None
+        text = resp.text
+        assert "taxonomy: source_label_semantics_v1" in text
+        assert "coverage_status: degraded_runtime" in text
+        assert "source-backed" not in text.lower()
+
+        verified = _line_for_source(text, "verified_news")
+        assert "labels=claim_verified, local_news_context" in verified
+        assert "claim_verified=true" in verified
+
+        context = _line_for_source(text, "analyst_context")
+        assert "context_only" in context
+        assert "external_web_context" in context
+
+        no_hit = _line_for_source(text, "screen_tickers")
+        assert "no_hit=true" in no_hit
+        assert "missing_required_evidence=true" in no_hit
+        assert "claim_verified=false" in no_hit
+        assert "source-backed" not in no_hit.lower()
+
+        degraded = _line_for_source(text, "web_search")
+        assert "degraded_runtime" in degraded
+        assert "degraded=true" in degraded
+        assert "error=timeout" in degraded
+
+        holdings = _line_for_source(text, "holdings")
+        assert "local_personal_data" in holdings
+        assert "financial_truth" not in holdings
+
+        memory = _line_for_source(text, "company_memory")
+        assert "memory_context" in memory
+        assert "claim_verified=false" in memory
+
+        financial_truth = _line_for_source(text, "financial_truth")
+        assert "labels=financial_truth" in financial_truth
+
+        local_news = _line_for_source(text, "local_news")
+        assert "local_news_context" in local_news
+
+        unknown = _line_for_source(text, "unknown_provider")
+        assert "unknown_unclassified" in unknown
+        assert "claim_verified=false" in unknown
+
+    def test_sources_show_preserves_envelope_status_and_roles(self) -> None:
+        self.controller._latest_sources_payloads = [
+            {"evidence_envelope": _sources_test_envelope()}
+        ]
+
+        resp = self.controller._handle_slash_command("/sources show 4")
+
+        assert resp is not None
+        assert "Source 4: web_search" in resp.text
+        assert "evidence_labels: degraded_runtime, operational_trace" in resp.text
+        assert "degraded: true" in resp.text
+        assert "claim_verified: false" in resp.text
+        assert "error: timeout" in resp.text
+
+    def test_sources_list_without_envelope_falls_back_non_verified(self) -> None:
+        self.controller._latest_sources_payloads = [
+            {
+                "rag_hits": [
+                    {
+                        "title": "Legacy document",
+                        "score": 0.91,
+                        "doc_type": "company",
+                        "source_id": "legacy-1",
+                    }
+                ]
+            }
+        ]
+
+        resp = self.controller._handle_slash_command("/sources list")
+
+        assert resp is not None
+        assert "Evidence taxonomy: unavailable" in resp.text
+        assert "listed for inspection only" in resp.text
+        assert "not verification labels" in resp.text
+        assert "Legacy document" in resp.text
+        assert "source-backed" not in resp.text.lower()
+        assert "claim_verified" not in resp.text
 
 
 class TestInfoCommands(SlashCommandTestBase):
