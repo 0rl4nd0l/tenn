@@ -304,6 +304,108 @@ class TestChatWithTennTickerPropagation(unittest.TestCase):
                 for source in result["sources"]
             )
         )
+        recall_source = next(
+            source
+            for source in result["sources"]
+            if source.get("article_id") == "art_aa13edd261034dba97055d8a"
+        )
+        self.assertIn("local_news_context", recall_source["evidence_labels"])
+        self.assertIn("claim_verified", recall_source["evidence_labels"])
+        self.assertTrue(recall_source["claim_verified"])
+        self.assertEqual(result["source_coverage_status"], "claim_verified")
+
+    @patch("app.services.tenn_chat.generate_json")
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_local_news_is_context_only_without_direct_support_marker(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+        mock_generate_json,
+    ):
+        mock_rag.return_value = {"hits": [], "research_context": {"evidence_chunks": []}}
+        commentary_mock = self._make_retriever_mock()
+        news_mock = MagicMock()
+        news_mock.retrieve.return_value = {
+            "chunks": [
+                {
+                    "chunk_id": "news:a2m:0",
+                    "article_id": "art_a2m_context",
+                    "ticker": "A2M",
+                    "title": "A2M recall background",
+                    "text": "A2M recall background was retrieved.",
+                    "url": "https://example.com/a2m-context",
+                    "provider": "local-news",
+                    "published_at": "2026-05-03T00:00:00Z",
+                    "source_type": "news_article",
+                    "relevance_score": 0.7,
+                    "final_score": 0.7,
+                }
+            ]
+        }
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+        mock_generate_json.return_value = {
+            "answer": "A2M context was retrieved.",
+            "insights": [],
+            "supporting_evidence": [{"source_name": "Different source"}],
+            "confidence": 0.4,
+        }
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        result = chat_with_tenn("tell me about A2M", ticker="A2M")
+
+        source = result["sources"][0]
+        self.assertIn("local_news_context", source["evidence_labels"])
+        self.assertIn("context_only", source["evidence_labels"])
+        self.assertNotIn("claim_verified", source["evidence_labels"])
+        self.assertFalse(source["claim_verified"])
+        self.assertEqual(result["source_coverage_status"], "context_only")
+
+    @patch("app.services.tenn_chat.generate_json")
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_expected_ticker_news_no_hit_surfaces_evidence_gap(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+        mock_generate_json,
+    ):
+        mock_rag.return_value = {"hits": [], "research_context": {"evidence_chunks": []}}
+        commentary_mock = MagicMock()
+        commentary_mock.retrieve.return_value = {
+            "chunks": [
+                {
+                    "chunk_id": "commentary-1",
+                    "source_name": "Company context",
+                    "source_type": "commentary",
+                    "text": "Company context exists but no local news was returned.",
+                    "relevance_score": 0.6,
+                    "final_score": 0.6,
+                }
+            ]
+        }
+        news_mock = MagicMock()
+        news_mock.retrieve.return_value = {"chunks": []}
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+        mock_generate_json.return_value = {
+            "answer": "A2M context is incomplete without local news.",
+            "insights": [],
+            "supporting_evidence": [{"source_name": "Company context"}],
+            "confidence": 0.3,
+        }
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        result = chat_with_tenn("what changed for A2M recently?", ticker="A2M")
+
+        self.assertIn("missing_required_evidence", result["evidence_labels"])
+        self.assertIn("no_hit", result["evidence_labels"])
+        self.assertEqual(result["source_coverage_status"], "missing_required_evidence")
+        self.assertEqual(
+            result["evidence_status"]["missing_required_evidence"],
+            ["local_news_context"],
+        )
 
     @patch("app.services.tenn_chat.query_rag")
     @patch("app.services.tenn_chat.HybridRetriever")
@@ -541,6 +643,9 @@ class TestRetrievalFailureLogging(unittest.TestCase):
         self.assertIn("answer", result)
         self.assertIn("confidence", result)
         self.assertEqual(result["confidence"], 0.0)
+        self.assertEqual(result["system_status"], "degraded")
+        self.assertIn("degraded_runtime", result["evidence_labels"])
+        self.assertEqual(result["source_coverage_status"], "degraded_runtime")
 
 
 def _make_failing_retriever():

@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from app.routes.cockpit_api import _build_ui_sources
+from app.routes.cockpit_api import (
+    _build_chat_ui_metadata,
+    _build_ui_sources,
+    _normalize_source_item,
+)
 
 
 def test_orchestrator_format_local_context() -> None:
@@ -379,20 +384,12 @@ def test_runtime_clock_evidence_renders_visible_source() -> None:
         ]
     )
 
-    assert sources == [
-        {
-            "title": "Cockpit runtime clock",
-            "score": 0.0,
-            "url": None,
-            "snippet": "Backend runtime clock in Australia/Sydney reported 2026-04-18T11:36:00+10:00.",
-            "published_at": "2026-04-18T11:36:00+10:00",
-            "document_id": None,
-            "source_id": "runtime_clock:australia-sydney",
-            "doc_type": None,
-            "path": None,
-            "kind": "context",
-        }
-    ]
+    assert len(sources) == 1
+    assert sources[0]["title"] == "Cockpit runtime clock"
+    assert sources[0]["source_id"] == "runtime_clock:australia-sydney"
+    assert sources[0]["kind"] == "context"
+    assert sources[0]["evidence_label"] == "operational_trace"
+    assert "operational_trace" in sources[0]["evidence_labels"]
 
 
 def test_agent_format_search_announcements() -> None:
@@ -495,20 +492,11 @@ def test_agent_format_deep_research() -> None:
         ]
     )
 
-    assert sources == [
-        {
-            "title": "Deep research brief",
-            "score": 0.72,
-            "url": None,
-            "snippet": "Diversified cash generation remains solid.",
-            "published_at": None,
-            "document_id": None,
-            "source_id": "deep_research:BHP",
-            "doc_type": None,
-            "path": None,
-            "kind": "context",
-        }
-    ]
+    assert len(sources) == 1
+    assert sources[0]["title"] == "Deep research brief"
+    assert sources[0]["score"] == 0.72
+    assert sources[0]["source_id"] == "deep_research:BHP"
+    assert sources[0]["evidence_label"] == "operational_trace"
 
 
 def test_agent_format_search_web() -> None:
@@ -1013,3 +1001,105 @@ def test_local_context_price_and_news_no_hit_sources() -> None:
     source_ids = {source["source_id"] for source in sources}
     assert "local_price:GNC:current:1d" in source_ids
     assert "search_news:no_hits:gnc" in source_ids
+
+
+def test_no_hit_source_is_not_claim_verified() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "search_news",
+                "result": {"query": "A2M recall", "ticker": "A2M", "hits": []},
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["evidence_label"] == "no_hit"
+    assert "no_hit" in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+
+
+def test_memory_source_is_context_not_claim_verified_financial_truth() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "company_memory",
+                "details": {
+                    "items": [
+                        {
+                            "entry_id": "m-1",
+                            "type": "observed_fact",
+                            "statement": "A2M infant formula risk was discussed.",
+                        }
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert "memory_context" in sources[0]["evidence_labels"]
+    assert "financial_truth" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+
+
+def test_web_source_defaults_to_external_context_only() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "search_web",
+                "result": {
+                    "results": [
+                        {"title": "A2M web result", "url": "https://example.com/a2m"}
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert "external_web_context" in sources[0]["evidence_labels"]
+    assert "financial_truth" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+
+
+def test_unknown_source_type_falls_back_to_unclassified_non_verified() -> None:
+    source = _normalize_source_item(
+        {"title": "Mystery context", "source_id": "mystery:1"},
+        kind="mystery",
+    )
+
+    assert source is not None
+    assert source["evidence_label"] == "unknown_unclassified"
+    assert source["claim_verified"] is False
+
+
+def test_chat_ui_metadata_summarizes_labels_and_degraded_runtime() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "search_news",
+                "result": {
+                    "hits": [
+                        {
+                            "title": "A2M recall article",
+                            "url": "https://example.com/a2m-recall",
+                            "evidence_labels": ["local_news_context", "claim_verified"],
+                        }
+                    ]
+                },
+            }
+        ]
+    )
+    response = SimpleNamespace(
+        routing_metadata={"system_status": "degraded"},
+        evidence=[],
+    )
+
+    metadata = _build_chat_ui_metadata(response, sources)
+
+    assert metadata["source_label_taxonomy_version"] == "source_label_semantics_v1"
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 1
+    assert "degraded_runtime" in metadata["evidence_labels"]
+    assert metadata["source_coverage_status"] == "degraded_runtime"

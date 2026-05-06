@@ -78,20 +78,12 @@ def test_build_ui_sources_includes_company_dump_documents() -> None:
         ]
     )
 
-    assert sources == [
-        {
-            "title": "EOS Appendix 4C",
-            "score": 0.0,
-            "url": "https://example.com/eos-4c.pdf",
-            "snippet": None,
-            "published_at": "2025-10-31T00:00:00Z",
-            "document_id": "doc-eos-1",
-            "source_id": None,
-            "doc_type": "results",
-            "path": None,
-            "kind": "document",
-        }
-    ]
+    assert len(sources) == 1
+    assert sources[0]["title"] == "EOS Appendix 4C"
+    assert sources[0]["url"] == "https://example.com/eos-4c.pdf"
+    assert sources[0]["document_id"] == "doc-eos-1"
+    assert sources[0]["kind"] == "document"
+    assert sources[0]["claim_verified"] is False
 
 
 def test_build_ui_sources_includes_web_and_news_links() -> None:

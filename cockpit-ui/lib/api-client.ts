@@ -723,6 +723,9 @@ export async function sendChatMessage(params: {
               docType: s.doc_type,
               path: s.path,
               kind: s.kind,
+              evidenceLabel: s.evidence_label,
+              evidenceLabels: Array.isArray(s.evidence_labels) ? s.evidence_labels : undefined,
+              claimVerified: Boolean(s.claim_verified),
             }))
           : undefined,
       },

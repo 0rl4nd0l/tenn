@@ -211,6 +211,21 @@ function buildAnalystShell(
   const sourceWarnings = sourceStatusWarnings(analyst?.sourceStatus || asRecord(routing.source_status))
   const responseClassification = analyst?.responseClassification || String(routing.response_classification || '')
   const groundingGuard = analyst?.groundingGuard || String(routing.grounding_guard || '')
+  const evidenceLabels = analyst?.evidenceLabels || stringArray(routing.evidence_labels)
+  const sourceCoverageStatus =
+    analyst?.sourceCoverageStatus || String(routing.source_coverage_status || '')
+  const claimVerifiedRaw = routing.claim_verified_source_count
+  const claimVerifiedSourceCount =
+    analyst?.claimVerifiedSourceCount
+    ?? (typeof claimVerifiedRaw === 'number'
+      ? claimVerifiedRaw
+      : (typeof claimVerifiedRaw === 'string' && claimVerifiedRaw.trim() ? Number(claimVerifiedRaw) || 0 : 0))
+  const hasEvidenceLabel = (label: string) => (
+    evidenceLabels.includes(label) || sourceCoverageStatus === label
+  )
+  const hasMeaningfulSourceCoverage = Boolean(
+    sourceCoverageStatus && sourceCoverageStatus !== 'no_visible_sources',
+  )
   const sufficientForAnalysis =
     analyst?.sufficientForAnalysis
     ?? (typeof routing.sufficient_for_analysis === 'boolean' ? routing.sufficient_for_analysis : null)
@@ -221,6 +236,8 @@ function buildAnalystShell(
     || groundingGuard
     || sourceWarnings.length
     || gaps.length
+    || evidenceLabels.length
+    || hasMeaningfulSourceCoverage
     || sufficientForAnalysis === false
   )
   const shouldRender = Boolean(
@@ -234,12 +251,18 @@ function buildAnalystShell(
   let answerType = 'General model answer'
   if (message.actionPreview) {
     answerType = 'Action proposal'
+  } else if (hasEvidenceLabel('degraded_runtime')) {
+    answerType = 'Degraded runtime'
   } else if (groundingGuard) {
     answerType = 'Data missing'
   } else if (sufficientForAnalysis === false || gaps.length > 0) {
     answerType = 'Partial evidence'
-  } else if (sourceCount > 0 || responseClassification === 'evidence_bound_answer') {
+  } else if (claimVerifiedSourceCount > 0 || responseClassification === 'evidence_bound_answer') {
     answerType = 'Evidence-bound'
+  } else if (hasEvidenceLabel('financial_truth')) {
+    answerType = 'Financial truth'
+  } else if (sourceCount > 0) {
+    answerType = 'Context only'
   } else if (responseClassification) {
     answerType = compactLabel(responseClassification)
   }
@@ -247,12 +270,22 @@ function buildAnalystShell(
   let trustLabel = 'No visible sources'
   if (message.actionPreview?.requiresConfirmation) {
     trustLabel = 'Confirmation required'
+  } else if (hasEvidenceLabel('degraded_runtime')) {
+    trustLabel = 'Degraded runtime'
   } else if (groundingGuard) {
     trustLabel = 'Unsupported claim blocked'
   } else if (sufficientForAnalysis === false || gaps.length > 0) {
     trustLabel = 'Evidence gaps visible'
+  } else if (claimVerifiedSourceCount > 0) {
+    trustLabel = 'Claim-supported'
+  } else if (hasEvidenceLabel('financial_truth')) {
+    trustLabel = 'Financial truth evidence'
+  } else if (hasEvidenceLabel('no_hit')) {
+    trustLabel = 'No-hit audit'
+  } else if (hasEvidenceLabel('local_personal_data')) {
+    trustLabel = 'Local personal data'
   } else if (sourceCount > 0) {
-    trustLabel = 'Source-backed'
+    trustLabel = 'Context sources only'
   }
 
   const nextActions: AnalystShell['nextActions'] = []
@@ -808,6 +841,7 @@ export function TerminalMessage({
                       <div className="break-words text-blue-200">{source.title}</div>
                     )}
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-blue-200/60">
+                      {source.evidenceLabel && <span>{compactLabel(source.evidenceLabel)}</span>}
                       {source.kind && <span>{source.kind}</span>}
                       {source.docType && <span>{source.docType}</span>}
                       {formatSourceDate(source.publishedAt) && (

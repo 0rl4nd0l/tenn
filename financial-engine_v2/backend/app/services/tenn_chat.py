@@ -35,6 +35,27 @@ _UNVERIFIED_ANSWER_RE = re.compile(
     r"\bunable to verify\b",
     re.IGNORECASE,
 )
+_LOCAL_NEWS_EXPECTED_RE = re.compile(
+    r"\b(news|headline|headlines|latest|recent|recall|today|changed|happened|"
+    r"update|updates|overview|selloff|rally|plunge)\b|"
+    r"\b(?:tell me about|what(?:'s| is)?\s+going\s+on|what(?:'s| is)?\s+new|"
+    r"what\s+changed)\b",
+    re.IGNORECASE,
+)
+_SOURCE_LABEL_ORDER = (
+    "missing_required_evidence",
+    "degraded_runtime",
+    "no_hit",
+    "claim_verified",
+    "financial_truth",
+    "local_personal_data",
+    "memory_context",
+    "external_web_context",
+    "local_news_context",
+    "operational_trace",
+    "unknown_unclassified",
+    "context_only",
+)
 _CHAT_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | frozenset(
     {
         "CHANGED",
@@ -312,6 +333,98 @@ def _normalize_supporting_evidence(value: Any) -> list[dict[str, Any]]:
     return [_json_safe_value(item) for item in value if isinstance(item, dict)]
 
 
+def _primary_source_label(labels: set[str]) -> str:
+    for label in _SOURCE_LABEL_ORDER:
+        if label in labels:
+            return label
+    return "unknown_unclassified"
+
+
+def _row_is_local_news(row: dict[str, Any]) -> bool:
+    source_type = str(row.get("source_type") or "").strip().lower()
+    if "news" in source_type:
+        return True
+    return bool(str(row.get("article_id") or "").strip()) and bool(
+        str(row.get("provider") or row.get("url") or "").strip()
+    )
+
+
+def _support_value(item: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = str(item.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _row_matches_supporting_evidence(
+    row: dict[str, Any],
+    supporting_evidence: list[dict[str, Any]],
+) -> bool:
+    row_values = {
+        "article_id": _support_value(row, "article_id"),
+        "chunk_id": _support_value(row, "chunk_id"),
+        "document_id": _support_value(row, "document_id"),
+        "url": _support_value(row, "url"),
+        "source_name": _support_value(row, "source_name").casefold(),
+        "published_at": _support_value(row, "published_at"),
+    }
+    for item in supporting_evidence:
+        item_values = {
+            "article_id": _support_value(item, "article_id"),
+            "chunk_id": _support_value(item, "chunk_id"),
+            "document_id": _support_value(item, "document_id", "source_document_id"),
+            "url": _support_value(item, "url", "source_url"),
+            "source_name": _support_value(item, "source_name", "title", "source").casefold(),
+            "published_at": _support_value(item, "published_at", "date"),
+        }
+        for key in ("article_id", "chunk_id", "document_id", "url"):
+            if row_values[key] and row_values[key] == item_values[key]:
+                return True
+        if row_values["source_name"] and row_values["source_name"] == item_values["source_name"]:
+            if not row_values["published_at"] or not item_values["published_at"]:
+                return True
+            if row_values["published_at"] == item_values["published_at"]:
+                return True
+    return False
+
+
+def _labels_for_context_row(
+    row: dict[str, Any],
+    supporting_evidence: list[dict[str, Any]],
+) -> set[str]:
+    labels: set[str] = set()
+    source_type = str(row.get("source_type") or "").strip().lower()
+    if _row_is_local_news(row):
+        labels.add("local_news_context")
+    elif source_type in {"financial_truth", "canonical_financial_truth"}:
+        labels.add("financial_truth")
+    else:
+        labels.add("context_only")
+    if _row_matches_supporting_evidence(row, supporting_evidence):
+        labels.add("claim_verified")
+        labels.discard("context_only")
+    elif "claim_verified" not in labels:
+        labels.add("context_only")
+    return labels or {"unknown_unclassified"}
+
+
+def _coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
+    if "degraded_runtime" in labels:
+        return "degraded_runtime"
+    if "missing_required_evidence" in labels:
+        return "missing_required_evidence"
+    if "claim_verified" in labels:
+        return "claim_verified"
+    if "financial_truth" in labels:
+        return "financial_truth"
+    if "no_hit" in labels:
+        return "no_hit"
+    if sources:
+        return "context_only"
+    return "no_visible_sources"
+
+
 def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
     lines: list[str] = ["Relevant prior session context (use as background only):"]
     for turn in prior_turns:
@@ -429,6 +542,13 @@ def _degraded_chat_payload(message: str, *, error: str | None = None) -> dict[st
         "confidence": 0.0,
         "sources": [],
         "system_status": "degraded",
+        "evidence_labels": ["degraded_runtime"],
+        "source_coverage_status": "degraded_runtime",
+        "evidence_status": {
+            "system_status": "degraded",
+            "runtime_degraded": True,
+            "labels": ["degraded_runtime"],
+        },
     }
     detail = str(error or "").strip()
     if detail:
@@ -508,6 +628,8 @@ def chat_with_tenn(
             commentary_chunks = []
 
         news_retriever = HybridRetriever(collection_name="news_chunks")
+        news_retrieval_attempted = bool(normalized_ticker)
+        news_retrieval_failed = False
         try:
             news_retrieval = news_retriever.retrieve(
                 query=normalized_query,
@@ -532,6 +654,7 @@ def chat_with_tenn(
                     "detail": str(exc)[:200],
                 },
             )
+            news_retrieval_failed = True
             news_chunks = []
 
         ranked_chunks = _apply_chat_strategy(commentary_chunks + news_chunks)
@@ -591,23 +714,29 @@ def chat_with_tenn(
         insights = guarded_insights
 
     confidence = _normalize_confidence(llm_payload.get("confidence"))
-    sources = [
-        {
-            "source_name": row["source_name"],
-            "url": row.get("url") or "",
-            "relevance_score": row["relevance_score"],
-            "recency_decay": row["recency_decay"],
-            "final_score": row["final_score"],
-            "source_type": row["source_type"],
-            "published_at": row["published_at"],
-            "chunk_id": row.get("chunk_id") or "",
-            "article_id": row.get("article_id") or "",
-            "document_id": row.get("document_id") or "",
-            "ticker": row.get("ticker") or "",
-            "provider": row.get("provider") or "",
-        }
-        for row in context_rows
-    ]
+    supporting_evidence = _normalize_supporting_evidence(llm_payload.get("supporting_evidence"))
+    sources: list[dict[str, Any]] = []
+    for row in context_rows:
+        labels = _labels_for_context_row(row, supporting_evidence)
+        sources.append(
+            {
+                "source_name": row["source_name"],
+                "url": row.get("url") or "",
+                "relevance_score": row["relevance_score"],
+                "recency_decay": row["recency_decay"],
+                "final_score": row["final_score"],
+                "source_type": row["source_type"],
+                "published_at": row["published_at"],
+                "chunk_id": row.get("chunk_id") or "",
+                "article_id": row.get("article_id") or "",
+                "document_id": row.get("document_id") or "",
+                "ticker": row.get("ticker") or "",
+                "provider": row.get("provider") or "",
+                "evidence_label": _primary_source_label(labels),
+                "evidence_labels": sorted(labels),
+                "claim_verified": "claim_verified" in labels,
+            }
+        )
     if answer and not sources and not _UNVERIFIED_ANSWER_RE.search(answer):
         logger.warning(
             "chat_missing_sources_guard query=%s",
@@ -630,7 +759,22 @@ def chat_with_tenn(
         )
         confidence = 0.0
 
-    supporting_evidence = _normalize_supporting_evidence(llm_payload.get("supporting_evidence"))
+    response_labels = {
+        label
+        for source in sources
+        for label in list(source.get("evidence_labels") or [])
+        if str(label).strip()
+    }
+    evidence_gaps: list[str] = []
+    if (
+        news_retrieval_attempted
+        and not any("local_news_context" in (source.get("evidence_labels") or []) for source in sources)
+        and _LOCAL_NEWS_EXPECTED_RE.search(normalized_query)
+    ):
+        response_labels.update({"missing_required_evidence", "no_hit"})
+        evidence_gaps.append("local_news_context")
+    if news_retrieval_failed:
+        response_labels.add("degraded_runtime")
 
     result: dict[str, Any] = {
         "answer": answer,
@@ -638,6 +782,20 @@ def chat_with_tenn(
         "supporting_evidence": supporting_evidence,
         "confidence": confidence,
         "sources": sources,
+        "evidence_labels": sorted(response_labels),
+        "source_coverage_status": _coverage_status(response_labels, sources),
+        "evidence_status": {
+            "system_status": "degraded" if "degraded_runtime" in response_labels else "ok",
+            "runtime_degraded": "degraded_runtime" in response_labels,
+            "missing_required_evidence": evidence_gaps,
+            "ticker_news_attempted": news_retrieval_attempted,
+            "ticker_news_hit_count": sum(
+                1
+                for source in sources
+                if "local_news_context" in (source.get("evidence_labels") or [])
+            ),
+            "labels": sorted(response_labels),
+        },
     }
 
     if session_memory_enabled:

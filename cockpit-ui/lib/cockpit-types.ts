@@ -21,6 +21,10 @@ export interface AnalystChatMetadata {
   routingReason?: string | null
   dataFreshness?: string | null
   toolAudit?: Array<Record<string, unknown>>
+  evidenceLabels?: string[]
+  sourceLabelCounts?: Record<string, number>
+  claimVerifiedSourceCount?: number
+  sourceCoverageStatus?: string | null
 }
 
 export interface ChatMessage {
@@ -69,6 +73,9 @@ export interface Source {
   docType?: string
   path?: string
   kind?: 'rag' | 'document' | 'news' | 'web' | 'context'
+  evidenceLabel?: string
+  evidenceLabels?: string[]
+  claimVerified?: boolean
 }
 
 export interface ToolTrace {

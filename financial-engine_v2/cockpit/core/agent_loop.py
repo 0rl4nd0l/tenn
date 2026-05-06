@@ -811,6 +811,10 @@ class AgentLoop:
                         evidence=evidence,
                         tool_calls_made=total_tool_calls,
                         iterations_used=iteration + 1,
+                        routing_metadata={
+                            "system_status": "degraded",
+                            "runtime_degradation": "synthesis_timeout",
+                        },
                         tool_traces=tool_traces,
                     )
                 logger.error("LLM call failed on iteration %d: %s", iteration, exc)
@@ -819,6 +823,10 @@ class AgentLoop:
                     evidence=evidence,
                     tool_calls_made=total_tool_calls,
                     iterations_used=iteration + 1,
+                    routing_metadata={
+                        "system_status": "degraded",
+                        "runtime_degradation": "llm_call_failed",
+                    },
                     tool_traces=tool_traces,
                 )
 

@@ -89,6 +89,9 @@ describe('TerminalMessage', () => {
               intent: 'financial_interpretation',
               sourcePlan: ['financial_truth'],
               sufficientForAnalysis: true,
+              evidenceLabels: ['claim_verified', 'financial_truth'],
+              claimVerifiedSourceCount: 1,
+              sourceCoverageStatus: 'claim_verified',
             },
           },
           sources: [
@@ -97,6 +100,9 @@ describe('TerminalMessage', () => {
               score: 0.92,
               kind: 'document',
               publishedAt: '2025-08-19T00:00:00Z',
+              evidenceLabel: 'claim_verified',
+              evidenceLabels: ['claim_verified', 'financial_truth'],
+              claimVerified: true,
             },
           ],
         })}
@@ -105,6 +111,7 @@ describe('TerminalMessage', () => {
 
     expect(screen.getByText('Entity: BHP')).toBeInTheDocument()
     expect(screen.getByText('Evidence-bound')).toBeInTheDocument()
+    expect(screen.getByText(/Claim-supported/)).toBeInTheDocument()
     expect(screen.getByText('Sources: 1')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /review evidence/i }))
@@ -133,6 +140,39 @@ describe('TerminalMessage', () => {
     expect(screen.getByText('Missing data / gaps')).toBeInTheDocument()
     expect(screen.getByText('financials')).toBeInTheDocument()
     expect(screen.getByText('market_context')).toBeInTheDocument()
+  })
+
+  it('does not call no-hit audit sources source-backed', () => {
+    render(
+      <TerminalMessage
+        showSources={false}
+        message={buildAssistantMessage({
+          content: 'No news results were returned for A2M.',
+          metadata: {
+            source: 'local',
+            analyst: {
+              evidenceLabels: ['no_hit', 'operational_trace'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'no_hit',
+            },
+          },
+          sources: [
+            {
+              title: 'News search: no hits for A2M recall',
+              score: 1,
+              kind: 'context',
+              docType: 'operational_no_hit',
+              evidenceLabel: 'no_hit',
+              evidenceLabels: ['no_hit', 'operational_trace'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getByText(/No-hit audit/)).toBeInTheDocument()
+    expect(screen.queryByText('Source-backed')).not.toBeInTheDocument()
   })
 
   it('renders action proposals as confirmation-gated and does not auto-run', async () => {

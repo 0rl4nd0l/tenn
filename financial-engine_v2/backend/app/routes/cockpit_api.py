@@ -1254,8 +1254,8 @@ _SOURCE_LABEL_PRIMARY_ORDER = (
     "external_web_context",
     "local_news_context",
     "operational_trace",
-    "context_only",
     "unknown_unclassified",
+    "context_only",
 )
 _CONTEXT_SOURCE_LABELS = {
     "memory_context",
@@ -2821,6 +2821,8 @@ def _source_coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> 
         return "local_personal_data"
     if "claim_verified" in labels:
         return "claim_verified"
+    if "financial_truth" in labels:
+        return "financial_truth"
     if "no_hit" in labels and not any(source.get("claim_verified") for source in sources):
         return "no_hit"
     if sources:

@@ -1184,6 +1184,8 @@ def test_cockpit_chat_stream_financial_truth_sources_satisfy_source_contract(mon
     assert done_events[-1]["data"]["text"] == "BHP reported revenue in the latest annual period."
     assert source_events
     assert source_events[-1]["data"]["items"][0]["document_id"] == "doc-bhp-fy25"
+    assert source_events[-1]["data"]["items"][0]["evidence_label"] == "financial_truth"
+    assert "financial_truth" in done_events[-1]["data"]["routing_metadata"]["evidence_labels"]
 
 
 def test_cockpit_chat_stream_youtube_recent_videos_emit_sources(monkeypatch) -> None:
@@ -1323,7 +1325,13 @@ def test_cockpit_chat_stream_search_news_zero_hit_allows_pure_no_hit_response(mo
     source_events = [event for event in data_events if event.get("type") == "sources"]
 
     assert done_events[-1]["data"]["text"] == "No news results were returned for BHP."
-    assert source_events[-1]["data"]["items"][0]["source_id"] == "search_news:no_hits:bhp news"
+    item = source_events[-1]["data"]["items"][0]
+    assert item["source_id"] == "search_news:no_hits:bhp news"
+    assert item["evidence_label"] == "no_hit"
+    assert item["claim_verified"] is False
+    routing = done_events[-1]["data"]["routing_metadata"]
+    assert routing["source_coverage_status"] == "no_hit"
+    assert routing["claim_verified_source_count"] == 0
 
 
 def test_cockpit_chat_stream_search_news_zero_hit_does_not_support_claims(monkeypatch) -> None:
@@ -1385,6 +1393,74 @@ def test_cockpit_chat_stream_search_news_zero_hit_does_not_support_claims(monkey
     done_events = [event for event in data_events if event.get("type") == "done"]
 
     assert "can't verify that from current evidence" in done_events[-1]["data"]["text"].lower()
+
+
+def test_cockpit_chat_stream_surfaces_degraded_runtime_metadata(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Based on available evidence: search_news returned one article.",
+                evidence=[
+                    {
+                        "tool": "search_news",
+                        "result": {
+                            "hits": [
+                                {
+                                    "title": "A2M recall article",
+                                    "url": "https://example.com/a2m-recall",
+                                }
+                            ]
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                    "system_status": "degraded",
+                    "runtime_degradation": "synthesis_timeout",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "tell me about A2M", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    routing = done_events[-1]["data"]["routing_metadata"]
+    assert routing["source_coverage_status"] == "degraded_runtime"
+    assert "degraded_runtime" in routing["evidence_labels"]
+    assert routing["claim_verified_source_count"] == 0
 
 
 def test_cockpit_chat_stream_tv_screener_evidence_satisfies_source_contract(monkeypatch) -> None:
@@ -2026,6 +2102,9 @@ def test_cockpit_chat_holdings_sources_do_not_become_source_backed(
     assert done_events[-1]["data"]["sources"] == []
     routing = done_events[-1]["data"]["routing_metadata"]
     assert routing["data_scope"] == "local_personal_holdings"
+    assert routing["source_coverage_status"] == "local_personal_data"
+    assert "local_personal_data" in routing["evidence_labels"]
+    assert "financial_truth" not in routing["evidence_labels"]
     assert "visible_source_count" not in routing
 
 

@@ -97,6 +97,10 @@ def test_synthesis_timeout_returns_evidence_summary():
     assert "get_financials" in result.text
     assert result.tool_calls_made == 1
     assert result.iterations_used == 2
+    assert result.routing_metadata == {
+        "system_status": "degraded",
+        "runtime_degradation": "synthesis_timeout",
+    }
     assert any("timed out" in status.lower() for status in statuses)
 
 

@@ -388,6 +388,12 @@ function normalizeAnalystMetadata(raw: unknown): NonNullable<ChatMessageType['me
   const sourcePlan = stringArray(metadata.source_plan || metadata.sources)
   const sourceStatus = asRecord(metadata.source_status)
   const missingDataRecovery = asRecord(metadata.missing_data_recovery)
+  const sourceLabelCounts = asRecord(metadata.source_label_counts)
+  const claimVerifiedRaw = metadata.claim_verified_source_count
+  const claimVerifiedSourceCount =
+    typeof claimVerifiedRaw === 'number'
+      ? claimVerifiedRaw
+      : (typeof claimVerifiedRaw === 'string' && claimVerifiedRaw.trim() ? Number(claimVerifiedRaw) || 0 : 0)
   const toolAudit = Array.isArray(metadata.tool_audit)
     ? metadata.tool_audit.filter((item): item is Record<string, unknown> => (
         Boolean(item) && typeof item === 'object' && !Array.isArray(item)
@@ -409,6 +415,17 @@ function normalizeAnalystMetadata(raw: unknown): NonNullable<ChatMessageType['me
     routingReason: String(metadata.routing_reason || '').trim() || null,
     dataFreshness: String(metadata.data_freshness || metadata.last_updated || '').trim() || null,
     toolAudit,
+    evidenceLabels: stringArray(metadata.evidence_labels),
+    sourceLabelCounts: Object.keys(sourceLabelCounts).length
+      ? Object.fromEntries(
+          Object.entries(sourceLabelCounts).map(([key, value]) => [
+            key,
+            typeof value === 'number' ? value : Number(value) || 0,
+          ]),
+        )
+      : undefined,
+    claimVerifiedSourceCount,
+    sourceCoverageStatus: String(metadata.source_coverage_status || '').trim() || null,
   }
 }
 
@@ -1367,6 +1384,9 @@ export function ChatScreen() {
                 docType: s.doc_type,
                 path: s.path,
                 kind: s.kind,
+                evidenceLabel: s.evidence_label,
+                evidenceLabels: Array.isArray(s.evidence_labels) ? s.evidence_labels : undefined,
+                claimVerified: Boolean(s.claim_verified),
               }))
               setStreamingMetadata({ ...currentMetadata })
               break
