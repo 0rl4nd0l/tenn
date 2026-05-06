@@ -1,0 +1,234 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_home_backend_bff_contract_audit_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/dirty_preserve_worktree_classification_20260506.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/query_legacy_api_chat_taxonomy_audit_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/query_legacy_chat_merge_readiness_audit_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/source_label_998d68e_integration_review.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/verification-metric-clickthrough-review-v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/verification_lock_dirty_preserve_gate_20260506.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/README.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/manifest.json",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/next_steps/01_next_steps_and_bundle_usage.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/plans/01_cockpit_home_product_plan.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/plans/02_image_manifest.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/prompts/01_gemini_handoff_prompt.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/prompts/02_codex_audit_prompt_after_gemini.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/design_system_reference_pasted_markdown.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_agent_control_protocol.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_failure_pattern_regression_seed_ledger.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_lessons_learned_ledger.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_project_memory_export_v4_import_safe.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_prompt_process_rules.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_repo_github_codex_audit_protocol.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_cockpit_home_design_export_20260506/source_refs/user_agent_brief_building_new_cockpit_screens.md",
+      "status": "??"
+    },
+    {
+      "path": "tenn_prompt_contracts_response_guidelines.zip",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/cockpit_home_backend_bff_contract_audit_v1.md",
+    "docs/agent_tasks/dirty_preserve_worktree_classification_20260506.md",
+    "docs/agent_tasks/query_legacy_api_chat_taxonomy_audit_v1.md",
+    "docs/agent_tasks/source_label_998d68e_integration_review.md",
+    "docs/agent_tasks/verification-metric-clickthrough-review-v1.md",
+    "docs/agent_tasks/verification_lock_dirty_preserve_gate_20260506.md",
+    "tenn_cockpit_home_design_export_20260506/README.md",
+    "tenn_cockpit_home_design_export_20260506/manifest.json",
+    "tenn_cockpit_home_design_export_20260506/next_steps/01_next_steps_and_bundle_usage.md",
+    "tenn_cockpit_home_design_export_20260506/plans/01_cockpit_home_product_plan.md",
+    "tenn_cockpit_home_design_export_20260506/plans/02_image_manifest.md",
+    "tenn_cockpit_home_design_export_20260506/prompts/01_gemini_handoff_prompt.md",
+    "tenn_cockpit_home_design_export_20260506/prompts/02_codex_audit_prompt_after_gemini.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/design_system_reference_pasted_markdown.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/tenn_agent_control_protocol.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/tenn_failure_pattern_regression_seed_ledger.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/tenn_lessons_learned_ledger.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/tenn_project_memory_export_v4_import_safe.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/tenn_prompt_process_rules.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/tenn_repo_github_codex_audit_protocol.md",
+    "tenn_cockpit_home_design_export_20260506/source_refs/user_agent_brief_building_new_cockpit_screens.md",
+    "tenn_prompt_contracts_response_guidelines.zip"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_home_backend_bff_contract_audit_v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/dirty_preserve_worktree_classification_20260506.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/query_legacy_api_chat_taxonomy_audit_v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/source_label_998d68e_integration_review.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/verification-metric-clickthrough-review-v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/verification_lock_dirty_preserve_gate_20260506.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/manifest.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/next_steps/01_next_steps_and_bundle_usage.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/plans/01_cockpit_home_product_plan.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/plans/02_image_manifest.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/prompts/01_gemini_handoff_prompt.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/prompts/02_codex_audit_prompt_after_gemini.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/design_system_reference_pasted_markdown.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_agent_control_protocol.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_failure_pattern_regression_seed_ledger.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_lessons_learned_ledger.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_project_memory_export_v4_import_safe.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_prompt_process_rules.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/tenn_repo_github_codex_audit_protocol.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_cockpit_home_design_export_20260506/source_refs/user_agent_brief_building_new_cockpit_screens.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "tenn_prompt_contracts_response_guidelines.zip is outside allowed_files"
+    },
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/query_legacy_chat_merge_readiness_audit_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/query_legacy_chat_merge_readiness_audit_v1.md",
+        "reports/agent_jobs/query_legacy_chat_merge_readiness_audit_v1/"
+      ],
+      "approval_required": false,
+      "job_id": "query_legacy_chat_merge_readiness_audit_v1",
+      "lane": "Query Orchestration",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/query_legacy_chat_merge_readiness_audit_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
