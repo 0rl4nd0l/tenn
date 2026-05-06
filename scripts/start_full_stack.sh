@@ -127,6 +127,44 @@ set_env_key() {
   fi
 }
 
+export_git_provenance_env() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "WARN: git missing on host; backend git provenance env not exported" >&2
+    return 0
+  fi
+  if ! git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "WARN: ${REPO_ROOT} is not a git checkout; backend git provenance env not exported" >&2
+    return 0
+  fi
+
+  local head head_short branch status_line_count dirty build_time
+  head="$(git -C "${REPO_ROOT}" rev-parse HEAD 2>/dev/null || true)"
+  head_short="$(git -C "${REPO_ROOT}" rev-parse --short=12 HEAD 2>/dev/null || true)"
+  branch="$(git -C "${REPO_ROOT}" branch --show-current 2>/dev/null || true)"
+  if [[ -z "${branch}" ]]; then
+    branch="DETACHED_HEAD"
+  fi
+  status_line_count="$(git -C "${REPO_ROOT}" status --short 2>/dev/null | wc -l | tr -d '[:space:]')"
+  if [[ -z "${status_line_count}" ]]; then
+    status_line_count="0"
+  fi
+  if [[ "${status_line_count}" -gt 0 ]]; then
+    dirty="true"
+  else
+    dirty="false"
+  fi
+  build_time="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+  export TENN_GIT_HEAD="${TENN_GIT_HEAD:-${head}}"
+  export TENN_GIT_HEAD_SHORT="${TENN_GIT_HEAD_SHORT:-${head_short}}"
+  export TENN_GIT_BRANCH="${TENN_GIT_BRANCH:-${branch}}"
+  export TENN_GIT_DIRTY="${TENN_GIT_DIRTY:-${dirty}}"
+  export TENN_GIT_STATUS_LINE_COUNT="${TENN_GIT_STATUS_LINE_COUNT:-${status_line_count}}"
+  export TENN_BUILD_TIME="${TENN_BUILD_TIME:-${build_time}}"
+
+  echo "Exported backend git provenance: head=${TENN_GIT_HEAD_SHORT:-DATA_MISSING} branch=${TENN_GIT_BRANCH:-DATA_MISSING} dirty=${TENN_GIT_DIRTY:-DATA_MISSING}"
+}
+
 if [[ -n "${LLAMACPP_URL_CONTAINER:-}" ]]; then
   current_llamacpp="$(grep -E '^LLAMACPP_URL=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
   if [[ -z "${current_llamacpp}" || "${current_llamacpp}" != "${LLAMACPP_URL_CONTAINER}" ]]; then
@@ -221,6 +259,8 @@ fi
 if [[ -n "${MARKETPLACE_BROWSER_EXECUTABLE_PATH_ON_STARTUP:-}" ]]; then
   export MARKETPLACE_BROWSER_EXECUTABLE_PATH="${MARKETPLACE_BROWSER_EXECUTABLE_PATH_ON_STARTUP}"
 fi
+
+export_git_provenance_env
 
 # Preflight probe: verify llama.cpp models endpoint is reachable from Docker network.
 if [[ -n "${LLAMACPP_URL_CONTAINER:-}" ]]; then

@@ -36,6 +36,12 @@ CLASS_CONFIRMED = "CONFIRMED_SOURCE_EVIDENCED"
 CLASS_CANDIDATE = "CANDIDATE_REVIEW_REQUIRED"
 CLASS_AMBIGUOUS = "AMBIGUOUS_OR_DERIVED"
 CLASS_UNSUPPORTED = "UNSUPPORTED"
+GIT_ENV_HEAD = "TENN_GIT_HEAD"
+GIT_ENV_HEAD_SHORT = "TENN_GIT_HEAD_SHORT"
+GIT_ENV_BRANCH = "TENN_GIT_BRANCH"
+GIT_ENV_DIRTY = "TENN_GIT_DIRTY"
+GIT_ENV_STATUS_LINE_COUNT = "TENN_GIT_STATUS_LINE_COUNT"
+GIT_ENV_BUILD_TIME = "TENN_BUILD_TIME"
 
 
 def latest_confirmed_metric_coverage_packet() -> dict[str, Any] | None:
@@ -234,8 +240,10 @@ def _build_summary(
         "git_head_short": provenance.get("git_head_short"),
         "git_branch": provenance.get("git_branch"),
         "git_dirty": provenance.get("git_dirty"),
+        "git_metadata_source": provenance.get("git_metadata_source"),
         "git_status_short_summary": provenance.get("git_status_short_summary"),
         "git_unavailable_reason": provenance.get("git_unavailable_reason"),
+        "build_time": provenance.get("build_time"),
         "fixture_dir": provenance.get("fixture_dir"),
         "artifact_path": provenance.get("artifact_path"),
         "app_runtime_context": provenance.get("app_runtime_context"),
@@ -515,6 +523,8 @@ def _render_markdown_packet(packet: Mapping[str, Any]) -> str:
         "git_head_short",
         "git_branch",
         "git_dirty",
+        "git_metadata_source",
+        "build_time",
         "git_unavailable_reason",
         "fixture_dir",
         "artifact_path",
@@ -563,8 +573,10 @@ def _packet_provenance(packet: Mapping[str, Any]) -> dict[str, Any]:
         "git_head_short": packet.get("git_head_short"),
         "git_branch": packet.get("git_branch"),
         "git_dirty": packet.get("git_dirty"),
+        "git_metadata_source": packet.get("git_metadata_source"),
         "git_status_short_summary": packet.get("git_status_short_summary"),
         "git_unavailable_reason": packet.get("git_unavailable_reason"),
+        "build_time": packet.get("build_time"),
         "fixture_dir": packet.get("fixture_dir") or packet.get("fixtures_dir"),
         "artifact_path": packet.get("artifact_path"),
         "app_runtime_context": packet.get("app_runtime_context"),
@@ -589,6 +601,10 @@ def _build_provenance(generated_at: str, fixtures_dir: Path) -> dict[str, Any]:
 
 
 def _git_provenance(workspace_root: Path = WORKSPACE_ROOT) -> dict[str, Any]:
+    env_provenance = _git_provenance_from_environment()
+    if env_provenance is not None:
+        return env_provenance
+
     git_dir_check = _git_command(workspace_root, "rev-parse", "--git-dir")
     if git_dir_check["returncode"] != 0:
         return _git_unavailable(
@@ -616,33 +632,94 @@ def _git_provenance(workspace_root: Path = WORKSPACE_ROOT) -> dict[str, Any]:
     status_lines = [line for line in status["stdout"].splitlines() if line.strip()]
     return {
         "git_available": True,
+        "git_metadata_source": "git_command",
         "git_head": head["stdout"].strip(),
         "git_head_short": head_short["stdout"].strip(),
         "git_branch": branch_value,
         "git_dirty": bool(status_lines),
-        "git_status_short_summary": {
-            "line_count": len(status_lines),
-            "entries": status_lines[:20],
-            "truncated": len(status_lines) > 20,
-        },
+        "git_status_short_summary": _git_status_short_summary(len(status_lines)),
         "git_unavailable_reason": None,
+        "build_time": _env_text(GIT_ENV_BUILD_TIME),
     }
 
 
 def _git_unavailable(reason: str) -> dict[str, Any]:
     return {
         "git_available": False,
+        "git_metadata_source": None,
         "git_head": None,
         "git_head_short": None,
         "git_branch": None,
         "git_dirty": None,
-        "git_status_short_summary": {
-            "line_count": 0,
-            "entries": [],
-            "truncated": False,
-        },
+        "git_status_short_summary": _git_status_short_summary(0),
         "git_unavailable_reason": reason,
+        "build_time": _env_text(GIT_ENV_BUILD_TIME),
     }
+
+
+def _git_provenance_from_environment() -> dict[str, Any] | None:
+    head = _env_text(GIT_ENV_HEAD)
+    branch = _env_text(GIT_ENV_BRANCH)
+    if head is None and branch is None:
+        return None
+
+    head_short = _env_text(GIT_ENV_HEAD_SHORT) or (head[:12] if head else None)
+    line_count = _parse_nonnegative_int(_env_text(GIT_ENV_STATUS_LINE_COUNT))
+    dirty = _parse_optional_bool(_env_text(GIT_ENV_DIRTY))
+    if dirty is None and line_count is not None:
+        dirty = line_count > 0
+    if line_count is None:
+        line_count = 1 if dirty else 0
+
+    return {
+        "git_available": True,
+        "git_metadata_source": "environment",
+        "git_head": head,
+        "git_head_short": head_short,
+        "git_branch": branch,
+        "git_dirty": dirty,
+        "git_status_short_summary": _git_status_short_summary(line_count),
+        "git_unavailable_reason": None,
+        "build_time": _env_text(GIT_ENV_BUILD_TIME),
+    }
+
+
+def _git_status_short_summary(line_count: int) -> dict[str, Any]:
+    safe_count = max(0, int(line_count))
+    return {
+        "line_count": safe_count,
+        "entries": [],
+        "truncated": safe_count > 0,
+    }
+
+
+def _env_text(key: str) -> str | None:
+    value = os.getenv(key)
+    if value is None:
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _parse_optional_bool(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "dirty"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "clean"}:
+        return False
+    return None
+
+
+def _parse_nonnegative_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError:
+        return None
+    return max(0, parsed)
 
 
 def _git_command(workspace_root: Path, *args: str) -> dict[str, Any]:

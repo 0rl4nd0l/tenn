@@ -180,6 +180,16 @@ def test_start_full_stack_propagates_marketplace_runtime_flags() -> None:
     assert 'export MARKETPLACE_BROWSER_RUNTIME="${MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP}"' in script
 
 
+def test_start_full_stack_exports_backend_git_provenance_env() -> None:
+    script = (REPO_ROOT / "scripts" / "start_full_stack.sh").read_text(encoding="utf-8")
+
+    assert "export_git_provenance_env()" in script
+    assert "git -C \"${REPO_ROOT}\" rev-parse HEAD" in script
+    assert 'export TENN_GIT_HEAD="${TENN_GIT_HEAD:-${head}}"' in script
+    assert 'export TENN_GIT_BRANCH="${TENN_GIT_BRANCH:-${branch}}"' in script
+    assert 'export TENN_GIT_STATUS_LINE_COUNT="${TENN_GIT_STATUS_LINE_COUNT:-${status_line_count}}"' in script
+
+
 def test_stop_backend_api_falls_back_to_sudo_for_root_owned_process(
     tmp_path: Path,
 ) -> None:

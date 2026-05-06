@@ -39,6 +39,12 @@ services:
       COCKPIT_MODELS_HDD_DIR: /models/hdd
       COCKPIT_SHARED_SCRIPTS_ROOT: /workspace/scripts
       COCKPIT_WORKSPACE_ROOT: /workspace
+      TENN_GIT_HEAD: ${TENN_GIT_HEAD:-}
+      TENN_GIT_HEAD_SHORT: ${TENN_GIT_HEAD_SHORT:-}
+      TENN_GIT_BRANCH: ${TENN_GIT_BRANCH:-}
+      TENN_GIT_DIRTY: ${TENN_GIT_DIRTY:-}
+      TENN_GIT_STATUS_LINE_COUNT: ${TENN_GIT_STATUS_LINE_COUNT:-}
+      TENN_BUILD_TIME: ${TENN_BUILD_TIME:-}
     dns:
       - 1.1.1.1
       - 8.8.8.8
