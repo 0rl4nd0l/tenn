@@ -23,7 +23,7 @@ These fire automatically during Claude Code sessions.
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.py` file | Runs `ruff check --fix` on the file; silent on non-Python files |
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.sh` file | Runs `chmod +x` on the file |
 | `PostToolUse` / `Write\|Edit` | After Claude edits a file under `backend/app/` | Runs `pytest backend/tests/ -x -q --tb=short`; silent if venv not found |
-| `Stop` | When Claude finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is set |
+| `Stop` | When Claude finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
 | `Stop` | When Claude finishes a task | Runs `git diff --stat HEAD` — shows all files changed since last commit |
 | `Stop` | When Claude finishes a task | Checks if infrastructure/config files changed without corresponding `docs/claude/` updates — prints WARNING if so |
 
@@ -38,7 +38,16 @@ Legacy hygiene hooks are non-blocking (`|| true`); they warn without interruptin
 
 **Doc coverage warning:** The doc-coverage `Stop` hook detects when infrastructure files (`.mcp.json`, `settings.json`, `scripts/mcp/`, `.claude/commands/`, etc.) were modified but no `docs/claude/` files were updated. This is a non-blocking JSON `systemMessage` warning — the agent must act on it before concluding the task. See CLAUDE.md "Post-Write Documentation" for the mapping of changed surfaces to required doc updates.
 
-**Tenn task-card hook:** `scripts/agent_job_hook.py` reads hook stdin JSON, resolves the repo root, finds an active task card from `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task`, then runs `scripts/agent_job_contract.py validate` and `check-diff`. With no active task card it returns valid empty JSON and does not block exploratory sessions. With an active task card it emits valid JSON for pass or block results.
+**Tenn task-card hook:** `scripts/agent_job_hook.py` reads hook stdin JSON, resolves the repo root, finds the current session task card from `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task`, then runs `scripts/agent_job_contract.py validate`, registry `list-active`, registry `check-overlap`, and contract `check-diff`. With no active task card it returns valid empty JSON and does not block exploratory sessions. With an active task card it emits valid JSON for pass or block results.
+
+**Agent job registry:** `scripts/agent_job_registry.py` is the shared dev-agent source of truth for active Codex/Claude task-card claims. The registry root is resolved in this order:
+
+1. `TENN_AGENT_REGISTRY_ROOT`
+2. `git config tenn.agentRegistryRoot`
+3. `git rev-parse --git-common-dir` plus `tenn-agent-registry`
+4. repo-local `.tenn/agent_jobs` fallback with a warning when git metadata is unavailable
+
+Active records live under `<registry_root>/active/<job_id>.json`. The worktree-local markers `TENN_AGENT_TASK_CARD` and `.tenn/active_agent_task` only select the current session task card; they are not the registry source of truth. `list-active` includes `registry_root`, `registry_scope`, `repo_root`, and `git_common_dir` so agents can confirm whether a session is using shared or fallback visibility.
 
 **Stop hook JSON:** Claude Stop hooks that produce output now emit JSON objects such as `{"systemMessage": "..."}`. The previous raw `git diff --stat` and plain text doc-coverage output were replaced to avoid invalid Stop hook JSON output.
 
@@ -51,7 +60,7 @@ Repo-local Codex hooks are enabled with `codex_hooks = true`.
 | Event | Trigger | What It Does |
 |-------|---------|--------------|
 | `PreToolUse` / `Bash` | Before shell commands | Emits a graphify reminder via `systemMessage` when `graphify-out/graph.json` exists |
-| `Stop` | When Codex finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is set |
+| `Stop` | When Codex finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
 
 ---
 

@@ -10,6 +10,8 @@ import json
 import os
 import socket
 import subprocess
+import tempfile
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -21,8 +23,11 @@ except ModuleNotFoundError:  # pragma: no cover - used when executed as scripts/
     import agent_job_contract as contract  # type: ignore
 
 
-ACTIVE_JOB_DIR = Path(".tenn/agent_jobs/active")
+REPO_LOCAL_REGISTRY_ROOT = Path(".tenn/agent_jobs")
+ACTIVE_JOB_SUBDIR = "active"
+SHARED_REGISTRY_DIR_NAME = "tenn-agent-registry"
 DEFAULT_STALE_AFTER_SECONDS = 30 * 60
+LOCK_TIMEOUT_SECONDS = 10.0
 SCHEMA_VERSION = 1
 
 
@@ -43,6 +48,70 @@ class RegistryIssue:
 class LoadedJob:
     path: Path
     record: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RegistryLocation:
+    root: Path
+    registry_scope: str
+    repo_root: Path
+    git_common_dir: Path | None
+    warnings: tuple[RegistryIssue, ...] = ()
+
+    def metadata(self) -> dict[str, Any]:
+        return {
+            "registry_root": str(self.root),
+            "registry_scope": self.registry_scope,
+            "repo_root": str(self.repo_root),
+            "git_common_dir": None if self.git_common_dir is None else str(self.git_common_dir),
+        }
+
+
+class RegistryLock:
+    """Small local-filesystem lock using atomic directory creation."""
+
+    def __init__(self, registry_root: Path, *, timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> None:
+        self.registry_root = registry_root
+        self.timeout_seconds = timeout_seconds
+        self.lock_dir = registry_root / ".lock"
+        self._acquired = False
+
+    def __enter__(self) -> RegistryLock:
+        self.registry_root.mkdir(parents=True, exist_ok=True)
+        deadline = time.monotonic() + self.timeout_seconds
+        while True:
+            try:
+                self.lock_dir.mkdir()
+                self._acquired = True
+                owner = {
+                    "hostname": socket.gethostname(),
+                    "pid": os.getpid(),
+                    "locked_at": _to_iso(_coerce_now()),
+                }
+                try:
+                    _atomic_write_json(self.lock_dir / "owner.json", owner)
+                except Exception:
+                    self._cleanup()
+                    raise
+                return self
+            except FileExistsError as exc:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(f"timed out waiting for registry lock: {self.lock_dir}") from exc
+                time.sleep(0.05)
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        if not self._acquired:
+            return
+        try:
+            self._cleanup()
+        finally:
+            self._acquired = False
+
+    def _cleanup(self) -> None:
+        owner_path = self.lock_dir / "owner.json"
+        if owner_path.exists():
+            owner_path.unlink()
+        self.lock_dir.rmdir()
 
 
 def _coerce_now(now: datetime | None = None) -> datetime:
@@ -75,17 +144,105 @@ def _display_path(path: Path, repo_root: Path) -> str:
         return str(path.resolve(strict=False))
 
 
-def _read_git_branch(repo_root: Path) -> str | None:
+def _git_output(repo_root: Path, args: Sequence[str]) -> str | None:
     completed = subprocess.run(
-        ["git", "branch", "--show-current"],
+        ["git", *args],
         cwd=repo_root,
         check=False,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    branch = completed.stdout.strip()
-    return branch or None
+    if completed.returncode != 0:
+        return None
+    value = completed.stdout.strip()
+    return value or None
+
+
+def _path_from_config(raw_path: str, repo_root: Path) -> Path:
+    candidate = Path(raw_path.strip()).expanduser()
+    if not candidate.is_absolute():
+        candidate = repo_root / candidate
+    return candidate.resolve(strict=False)
+
+
+def _read_git_common_dir(repo_root: Path) -> Path | None:
+    raw = _git_output(repo_root, ["rev-parse", "--git-common-dir"])
+    if not raw:
+        return None
+    return _path_from_config(raw, repo_root)
+
+
+def _read_git_config_registry_root(repo_root: Path) -> Path | None:
+    raw = _git_output(repo_root, ["config", "--get", "tenn.agentRegistryRoot"])
+    if not raw:
+        return None
+    return _path_from_config(raw, repo_root)
+
+
+def _resolve_repo_root(repo_root: Path | None = None) -> Path:
+    start = (repo_root or Path.cwd()).resolve()
+    raw = _git_output(start, ["rev-parse", "--show-toplevel"])
+    if raw:
+        return _path_from_config(raw, start)
+    return start
+
+
+def resolve_registry_location(repo_root: Path | None = None) -> RegistryLocation:
+    root = _resolve_repo_root(repo_root)
+    git_common_dir = _read_git_common_dir(root)
+
+    env_root = os.environ.get("TENN_AGENT_REGISTRY_ROOT", "").strip()
+    if env_root:
+        return RegistryLocation(
+            root=_path_from_config(env_root, root),
+            registry_scope="shared",
+            repo_root=root,
+            git_common_dir=git_common_dir,
+        )
+
+    configured_root = _read_git_config_registry_root(root)
+    if configured_root is not None:
+        return RegistryLocation(
+            root=configured_root,
+            registry_scope="shared",
+            repo_root=root,
+            git_common_dir=git_common_dir,
+        )
+
+    if git_common_dir is not None:
+        return RegistryLocation(
+            root=(git_common_dir / SHARED_REGISTRY_DIR_NAME).resolve(strict=False),
+            registry_scope="shared",
+            repo_root=root,
+            git_common_dir=git_common_dir,
+        )
+
+    fallback_root = (root / REPO_LOCAL_REGISTRY_ROOT).resolve(strict=False)
+    return RegistryLocation(
+        root=fallback_root,
+        registry_scope="repo_local_fallback",
+        repo_root=root,
+        git_common_dir=None,
+        warnings=(
+            RegistryIssue(
+                "registry_root",
+                "using repo-local .tenn/agent_jobs fallback; cross-worktree visibility is unavailable",
+            ),
+        ),
+    )
+
+
+def _read_git_branch(repo_root: Path) -> str | None:
+    return _git_output(repo_root, ["branch", "--show-current"])
+
+
+def _read_session_id(job_id: str) -> str:
+    for key in ("TENN_AGENT_SESSION_ID", "CODEX_SESSION_ID", "CLAUDE_SESSION_ID"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            return value
+    return f"{socket.gethostname()}:{os.getpid()}:{job_id}"
 
 
 def _configured_stale_after(
@@ -146,10 +303,10 @@ def _validate_task_card(markdown: str) -> tuple[bool, dict[str, Any], list[Regis
     return not issues, validation.metadata, issues, validation.to_dict()
 
 
-def _active_record_path(repo_root: Path, job_id: str) -> Path:
+def _active_record_path(registry_root: Path, job_id: str) -> Path:
     if not contract.JOB_ID_RE.fullmatch(job_id):
         raise ValueError("job_id must contain only letters, numbers, dot, underscore, or dash")
-    return repo_root / ACTIVE_JOB_DIR / f"{job_id}.json"
+    return registry_root / ACTIVE_JOB_SUBDIR / f"{job_id}.json"
 
 
 def _status_path(repo_root: Path, output_dir: str, job_id: str) -> Path:
@@ -159,13 +316,37 @@ def _status_path(repo_root: Path, output_dir: str, job_id: str) -> Path:
 
 def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(f"{path.suffix}.tmp")
-    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    tmp_path.replace(path)
+    tmp_fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+        text=True,
+    )
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
+        try:
+            dir_fd = os.open(path.parent, os.O_RDONLY)
+        except OSError:
+            return
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+    except Exception:
+        try:
+            tmp_path.unlink()
+        except FileNotFoundError:
+            pass
+        raise
 
 
-def _load_active_jobs(repo_root: Path) -> tuple[list[LoadedJob], list[RegistryIssue]]:
-    active_dir = repo_root / ACTIVE_JOB_DIR
+def _load_active_jobs(registry_root: Path, repo_root: Path) -> tuple[list[LoadedJob], list[RegistryIssue]]:
+    active_dir = registry_root / ACTIVE_JOB_SUBDIR
     if not active_dir.exists():
         return [], []
 
@@ -195,7 +376,7 @@ def _read_active_record(path: Path, repo_root: Path) -> tuple[dict[str, Any] | N
 
 
 def _record_timestamp(record: dict[str, Any]) -> datetime | None:
-    for key in ("heartbeat_at", "claimed_at"):
+    for key in ("last_seen_at", "heartbeat_at", "started_at", "claimed_at"):
         value = record.get(key)
         if isinstance(value, str) and value.strip():
             try:
@@ -267,12 +448,19 @@ def _overlapping_files(left: Sequence[str], right: Sequence[str]) -> list[str]:
     return sorted(set(overlaps))
 
 
-def _is_registry_internal_path(path: str) -> bool:
-    return (
+def _is_registry_internal_path(path: str, *, repo_root: Path, registry_root: Path) -> bool:
+    if (
         path == ".tenn/active_agent_task"
         or path.startswith(".tenn/agent_jobs/")
         or path.startswith("reports/agent_jobs/")
-    )
+    ):
+        return True
+
+    try:
+        registry_path = registry_root.resolve(strict=False).relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return False
+    return path == registry_path or path.startswith(f"{registry_path}/")
 
 
 def _dirty_files_outside_card(
@@ -280,6 +468,7 @@ def _dirty_files_outside_card(
     *,
     task_card_path: str | None,
     repo_root: Path,
+    registry_root: Path,
     changed_files: Sequence[contract.ChangedFile] | None = None,
 ) -> tuple[list[str], list[RegistryIssue]]:
     try:
@@ -295,7 +484,7 @@ def _dirty_files_outside_card(
 
     dirty = []
     for changed in changes:
-        if _is_registry_internal_path(changed.path):
+        if _is_registry_internal_path(changed.path, repo_root=repo_root, registry_root=registry_root):
             continue
         if not any(_path_matches(pattern, changed.path) for pattern in allowed_patterns):
             dirty.append(changed.path)
@@ -308,10 +497,12 @@ def list_active_jobs(
     now: datetime | None = None,
     stale_after_seconds: int | None = None,
 ) -> dict[str, Any]:
-    root = (repo_root or Path.cwd()).resolve()
+    location = resolve_registry_location(repo_root)
+    root = location.repo_root
     current = _coerce_now(now)
     fallback_stale_after = _configured_stale_after(override=stale_after_seconds)
-    jobs, warnings = _load_active_jobs(root)
+    with RegistryLock(location.root):
+        jobs, warnings = _load_active_jobs(location.root, root)
     active = [
         _job_summary(
             job,
@@ -332,20 +523,21 @@ def list_active_jobs(
     ]
     return {
         "ok": True,
+        **location.metadata(),
         "active_jobs": active,
-        "warnings": [issue.to_dict() for issue in [*warnings, *stale_warnings]],
+        "warnings": [issue.to_dict() for issue in [*location.warnings, *warnings, *stale_warnings]],
     }
 
 
-def check_overlap_for_task_card(
+def _check_overlap_for_task_card_locked(
     task_card: Path,
     *,
-    repo_root: Path | None = None,
+    location: RegistryLocation,
     now: datetime | None = None,
     stale_after_seconds: int | None = None,
     changed_files: Sequence[contract.ChangedFile] | None = None,
 ) -> dict[str, Any]:
-    root = (repo_root or Path.cwd()).resolve()
+    root = location.repo_root
     current = _coerce_now(now)
 
     try:
@@ -353,8 +545,9 @@ def check_overlap_for_task_card(
     except FileNotFoundError:
         return {
             "ok": False,
+            **location.metadata(),
             "issues": [RegistryIssue("task_card", f"task card not found: {task_card}").to_dict()],
-            "warnings": [],
+            "warnings": [issue.to_dict() for issue in location.warnings],
             "active_jobs": [],
         }
 
@@ -362,9 +555,10 @@ def check_overlap_for_task_card(
     if not valid:
         return {
             "ok": False,
+            **location.metadata(),
             "validation": validation,
             "issues": [issue.to_dict() for issue in validation_issues],
-            "warnings": [],
+            "warnings": [issue.to_dict() for issue in location.warnings],
             "active_jobs": [],
         }
 
@@ -373,7 +567,7 @@ def check_overlap_for_task_card(
     output_dir = str(metadata["output_dir"])
     allowed = _allowed_files(metadata)
     fallback_stale_after = _configured_stale_after(metadata, override=stale_after_seconds)
-    loaded_jobs, load_warnings = _load_active_jobs(root)
+    loaded_jobs, load_warnings = _load_active_jobs(location.root, root)
     active_jobs = [
         _job_summary(
             job,
@@ -385,7 +579,7 @@ def check_overlap_for_task_card(
     ]
 
     issues: list[RegistryIssue] = []
-    warnings = list(load_warnings)
+    warnings = [*location.warnings, *load_warnings]
     for active in active_jobs:
         active_job_id = str(active.get("job_id") or "")
         if active_job_id == job_id:
@@ -420,6 +614,7 @@ def check_overlap_for_task_card(
         metadata,
         task_card_path=task_card_path,
         repo_root=root,
+        registry_root=location.root,
         changed_files=changed_files,
     )
     issues.extend(dirty_issues)
@@ -428,6 +623,7 @@ def check_overlap_for_task_card(
 
     return {
         "ok": not issues,
+        **location.metadata(),
         "job_id": job_id,
         "lane": lane,
         "task_card": task_card_path,
@@ -437,20 +633,49 @@ def check_overlap_for_task_card(
     }
 
 
-def _write_status(repo_root: Path, record: dict[str, Any], *, status: str, now: datetime) -> str:
+def check_overlap_for_task_card(
+    task_card: Path,
+    *,
+    repo_root: Path | None = None,
+    now: datetime | None = None,
+    stale_after_seconds: int | None = None,
+    changed_files: Sequence[contract.ChangedFile] | None = None,
+) -> dict[str, Any]:
+    location = resolve_registry_location(repo_root)
+    with RegistryLock(location.root):
+        return _check_overlap_for_task_card_locked(
+            task_card,
+            location=location,
+            now=now,
+            stale_after_seconds=stale_after_seconds,
+            changed_files=changed_files,
+        )
+
+
+def _write_status(location: RegistryLocation, record: dict[str, Any], *, status: str, now: datetime) -> str:
+    repo_root = location.repo_root
+    active_path = _active_record_path(location.root, str(record["job_id"]))
     payload = {
         "schema_version": SCHEMA_VERSION,
         "job_id": record["job_id"],
         "status": status,
         "lane": record.get("lane"),
         "owner": record.get("owner"),
+        "agent": record.get("agent"),
+        "session_id": record.get("session_id"),
         "allowed_files": record.get("allowed_files", []),
         "output_dir": record.get("output_dir"),
         "task_card": record.get("task_card"),
+        "worktree": record.get("worktree"),
+        "branch": record.get("branch"),
+        "git_common_dir": record.get("git_common_dir"),
+        "started_at": record.get("started_at"),
+        "last_seen_at": record.get("last_seen_at"),
         "claimed_at": record.get("claimed_at"),
         "heartbeat_at": record.get("heartbeat_at"),
         "updated_at": _to_iso(now),
-        "active_record": f"{ACTIVE_JOB_DIR.as_posix()}/{record['job_id']}.json",
+        "active_record": _display_path(active_path, repo_root),
+        **location.metadata(),
     }
     if status == "released":
         payload["released_at"] = _to_iso(now)
@@ -467,7 +692,8 @@ def claim_task_card(
     now: datetime | None = None,
     stale_after_seconds: int | None = None,
 ) -> dict[str, Any]:
-    root = (repo_root or Path.cwd()).resolve()
+    location = resolve_registry_location(repo_root)
+    root = location.repo_root
     current = _coerce_now(now)
 
     try:
@@ -475,81 +701,94 @@ def claim_task_card(
     except FileNotFoundError:
         return {
             "ok": False,
+            **location.metadata(),
             "issues": [RegistryIssue("task_card", f"task card not found: {task_card}").to_dict()],
-            "warnings": [],
+            "warnings": [issue.to_dict() for issue in location.warnings],
         }
 
     valid, metadata, validation_issues, validation = _validate_task_card(markdown)
     if not valid:
         return {
             "ok": False,
+            **location.metadata(),
             "validation": validation,
             "issues": [issue.to_dict() for issue in validation_issues],
-            "warnings": [],
+            "warnings": [issue.to_dict() for issue in location.warnings],
         }
 
     job_id = str(metadata["job_id"])
     fallback_stale_after = _configured_stale_after(metadata, override=stale_after_seconds)
-    existing_jobs, load_warnings = _load_active_jobs(root)
-    for existing in existing_jobs:
-        existing_job_id = str(existing.record.get("job_id") or "")
-        if existing_job_id != job_id:
-            continue
-        stale, _, _ = _stale_state(
-            existing.record,
+    with RegistryLock(location.root):
+        existing_jobs, load_warnings = _load_active_jobs(location.root, root)
+        for existing in existing_jobs:
+            existing_job_id = str(existing.record.get("job_id") or "")
+            if existing_job_id != job_id:
+                continue
+            stale, _, _ = _stale_state(
+                existing.record,
+                now=current,
+                fallback_stale_after_seconds=fallback_stale_after,
+            )
+            if not stale:
+                return {
+                    "ok": False,
+                    **location.metadata(),
+                    "issues": [
+                        RegistryIssue("job_id", f"active job already exists for {job_id}", job_id=job_id).to_dict()
+                    ],
+                    "warnings": [issue.to_dict() for issue in [*location.warnings, *load_warnings]],
+                }
+
+        overlap = _check_overlap_for_task_card_locked(
+            task_card,
+            location=location,
             now=current,
-            fallback_stale_after_seconds=fallback_stale_after,
+            stale_after_seconds=stale_after_seconds,
         )
-        if not stale:
+        if not overlap.get("ok"):
             return {
                 "ok": False,
-                "issues": [
-                    RegistryIssue("job_id", f"active job already exists for {job_id}", job_id=job_id).to_dict()
-                ],
-                "warnings": [issue.to_dict() for issue in load_warnings],
+                **location.metadata(),
+                "issues": overlap.get("issues", []),
+                "warnings": [*overlap.get("warnings", []), *[issue.to_dict() for issue in load_warnings]],
+                "overlap": overlap,
             }
 
-    overlap = check_overlap_for_task_card(
-        task_card,
-        repo_root=root,
-        now=current,
-        stale_after_seconds=stale_after_seconds,
-    )
-    if not overlap.get("ok"):
-        return {
-            "ok": False,
-            "issues": overlap.get("issues", []),
-            "warnings": [*overlap.get("warnings", []), *[issue.to_dict() for issue in load_warnings]],
-            "overlap": overlap,
+        timestamp = _to_iso(current)
+        record = {
+            "schema_version": SCHEMA_VERSION,
+            "job_id": job_id,
+            "lane": metadata["lane"],
+            "owner": metadata["owner"],
+            "agent": metadata["owner"],
+            "session_id": _read_session_id(job_id),
+            "allowed_files": _allowed_files(metadata),
+            "approval_required": metadata["approval_required"],
+            "timeout_seconds": metadata["timeout_seconds"],
+            "output_dir": metadata["output_dir"],
+            "mutation_mode": metadata["mutation_mode"],
+            "production_data_access": metadata["production_data_access"],
+            "task_card": task_card_path,
+            "task_card_sha256": hashlib.sha256(markdown.encode("utf-8")).hexdigest(),
+            "worktree": str(root),
+            "branch": _read_git_branch(root),
+            "git_common_dir": None if location.git_common_dir is None else str(location.git_common_dir),
+            "started_at": timestamp,
+            "last_seen_at": timestamp,
+            "claimed_at": timestamp,
+            "heartbeat_at": timestamp,
+            "status": "active",
+            "stale_after_seconds": fallback_stale_after,
+            "hostname": socket.gethostname(),
+            "pid": os.getpid(),
         }
-
-    record = {
-        "schema_version": SCHEMA_VERSION,
-        "job_id": job_id,
-        "lane": metadata["lane"],
-        "owner": metadata["owner"],
-        "allowed_files": _allowed_files(metadata),
-        "approval_required": metadata["approval_required"],
-        "timeout_seconds": metadata["timeout_seconds"],
-        "output_dir": metadata["output_dir"],
-        "mutation_mode": metadata["mutation_mode"],
-        "production_data_access": metadata["production_data_access"],
-        "task_card": task_card_path,
-        "task_card_sha256": hashlib.sha256(markdown.encode("utf-8")).hexdigest(),
-        "claimed_at": _to_iso(current),
-        "heartbeat_at": _to_iso(current),
-        "status": "active",
-        "stale_after_seconds": fallback_stale_after,
-        "hostname": socket.gethostname(),
-        "pid": os.getpid(),
-        "branch": _read_git_branch(root),
-    }
-    active_path = _active_record_path(root, job_id)
-    _atomic_write_json(active_path, record)
-    status_path = _write_status(root, record, status="active", now=current)
+        active_path = _active_record_path(location.root, job_id)
+        _atomic_write_json(active_path, record)
+        status_path = _write_status(location, record, status="active", now=current)
 
     return {
         "ok": True,
+        **location.metadata(),
         "job_id": job_id,
         "active_record": _display_path(active_path, root),
         "status_path": status_path,
@@ -564,39 +803,53 @@ def heartbeat_job(
     repo_root: Path | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    root = (repo_root or Path.cwd()).resolve()
+    location = resolve_registry_location(repo_root)
+    root = location.repo_root
     current = _coerce_now(now)
     try:
-        active_path = _active_record_path(root, job_id)
+        active_path = _active_record_path(location.root, job_id)
     except ValueError as exc:
-        return {"ok": False, "issues": [RegistryIssue("job_id", str(exc)).to_dict()], "warnings": []}
-
-    if not active_path.exists():
         return {
             "ok": False,
-            "issues": [RegistryIssue("job_id", f"active job not found: {job_id}", job_id=job_id).to_dict()],
-            "warnings": [],
+            **location.metadata(),
+            "issues": [RegistryIssue("job_id", str(exc)).to_dict()],
+            "warnings": [issue.to_dict() for issue in location.warnings],
         }
 
-    record, issue = _read_active_record(active_path, root)
-    if issue is not None or record is None:
-        return {
-            "ok": False,
-            "issues": [issue.to_dict() if issue else RegistryIssue("active_jobs", "active record is unreadable").to_dict()],
-            "warnings": [],
-        }
+    with RegistryLock(location.root):
+        if not active_path.exists():
+            return {
+                "ok": False,
+                **location.metadata(),
+                "issues": [RegistryIssue("job_id", f"active job not found: {job_id}", job_id=job_id).to_dict()],
+                "warnings": [issue.to_dict() for issue in location.warnings],
+            }
 
-    record["heartbeat_at"] = _to_iso(current)
-    record["status"] = "active"
-    _atomic_write_json(active_path, record)
-    status_path = _write_status(root, record, status="active", now=current)
+        record, issue = _read_active_record(active_path, root)
+        if issue is not None or record is None:
+            return {
+                "ok": False,
+                **location.metadata(),
+                "issues": [
+                    issue.to_dict() if issue else RegistryIssue("active_jobs", "active record is unreadable").to_dict()
+                ],
+                "warnings": [issue.to_dict() for issue in location.warnings],
+            }
+
+        timestamp = _to_iso(current)
+        record["heartbeat_at"] = timestamp
+        record["last_seen_at"] = timestamp
+        record["status"] = "active"
+        _atomic_write_json(active_path, record)
+        status_path = _write_status(location, record, status="active", now=current)
     return {
         "ok": True,
+        **location.metadata(),
         "job_id": job_id,
         "active_record": _display_path(active_path, root),
         "status_path": status_path,
         "record": record,
-        "warnings": [],
+        "warnings": [issue.to_dict() for issue in location.warnings],
     }
 
 
@@ -606,36 +859,50 @@ def release_job(
     repo_root: Path | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    root = (repo_root or Path.cwd()).resolve()
+    location = resolve_registry_location(repo_root)
+    root = location.repo_root
     current = _coerce_now(now)
     try:
-        active_path = _active_record_path(root, job_id)
+        active_path = _active_record_path(location.root, job_id)
     except ValueError as exc:
-        return {"ok": False, "issues": [RegistryIssue("job_id", str(exc)).to_dict()], "warnings": []}
-
-    if not active_path.exists():
         return {
             "ok": False,
-            "issues": [RegistryIssue("job_id", f"active job not found: {job_id}", job_id=job_id).to_dict()],
-            "warnings": [],
+            **location.metadata(),
+            "issues": [RegistryIssue("job_id", str(exc)).to_dict()],
+            "warnings": [issue.to_dict() for issue in location.warnings],
         }
 
-    record, issue = _read_active_record(active_path, root)
-    if issue is not None or record is None:
-        return {
-            "ok": False,
-            "issues": [issue.to_dict() if issue else RegistryIssue("active_jobs", "active record is unreadable").to_dict()],
-            "warnings": [],
-        }
+    with RegistryLock(location.root):
+        if not active_path.exists():
+            return {
+                "ok": False,
+                **location.metadata(),
+                "issues": [RegistryIssue("job_id", f"active job not found: {job_id}", job_id=job_id).to_dict()],
+                "warnings": [issue.to_dict() for issue in location.warnings],
+            }
 
-    active_path.unlink()
-    status_path = _write_status(root, record, status="released", now=current)
+        record, issue = _read_active_record(active_path, root)
+        if issue is not None or record is None:
+            return {
+                "ok": False,
+                **location.metadata(),
+                "issues": [
+                    issue.to_dict() if issue else RegistryIssue("active_jobs", "active record is unreadable").to_dict()
+                ],
+                "warnings": [issue.to_dict() for issue in location.warnings],
+            }
+
+        record["last_seen_at"] = _to_iso(current)
+        record["status"] = "released"
+        active_path.unlink()
+        status_path = _write_status(location, record, status="released", now=current)
     return {
         "ok": True,
+        **location.metadata(),
         "job_id": job_id,
         "removed_active_record": _display_path(active_path, root),
         "status_path": status_path,
-        "warnings": [],
+        "warnings": [issue.to_dict() for issue in location.warnings],
     }
 
 
@@ -674,26 +941,33 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"ok": False, "issues": [stale_issue.to_dict()], "warnings": []}, indent=2, sort_keys=True))
         return 1
 
-    if args.command == "list-active":
-        result = list_active_jobs(repo_root=args.repo_root, stale_after_seconds=args.stale_after_seconds)
-    elif args.command == "claim":
-        result = claim_task_card(
-            args.task_card,
-            repo_root=args.repo_root,
-            stale_after_seconds=args.stale_after_seconds,
-        )
-    elif args.command == "heartbeat":
-        result = heartbeat_job(args.job_id, repo_root=args.repo_root)
-    elif args.command == "release":
-        result = release_job(args.job_id, repo_root=args.repo_root)
-    elif args.command == "check-overlap":
-        result = check_overlap_for_task_card(
-            args.task_card,
-            repo_root=args.repo_root,
-            stale_after_seconds=args.stale_after_seconds,
-        )
-    else:  # pragma: no cover - argparse prevents this
-        return 2
+    try:
+        if args.command == "list-active":
+            result = list_active_jobs(repo_root=args.repo_root, stale_after_seconds=args.stale_after_seconds)
+        elif args.command == "claim":
+            result = claim_task_card(
+                args.task_card,
+                repo_root=args.repo_root,
+                stale_after_seconds=args.stale_after_seconds,
+            )
+        elif args.command == "heartbeat":
+            result = heartbeat_job(args.job_id, repo_root=args.repo_root)
+        elif args.command == "release":
+            result = release_job(args.job_id, repo_root=args.repo_root)
+        elif args.command == "check-overlap":
+            result = check_overlap_for_task_card(
+                args.task_card,
+                repo_root=args.repo_root,
+                stale_after_seconds=args.stale_after_seconds,
+            )
+        else:  # pragma: no cover - argparse prevents this
+            return 2
+    except Exception as exc:
+        result = {
+            "ok": False,
+            "issues": [RegistryIssue("registry", str(exc)).to_dict()],
+            "warnings": [],
+        }
 
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("ok") else 1

@@ -6,11 +6,20 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HOOK_SCRIPT = REPO_ROOT / "scripts" / "agent_job_hook.py"
 CONTRACT_SCRIPT = REPO_ROOT / "scripts" / "agent_job_contract.py"
 REGISTRY_SCRIPT = REPO_ROOT / "scripts" / "agent_job_registry.py"
+
+
+@pytest.fixture(autouse=True)
+def isolated_registry_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TENN_AGENT_REGISTRY_ROOT", raising=False)
+    monkeypatch.delenv("TENN_AGENT_TASK_CARD", raising=False)
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
 
 
 def run_git(repo: Path, *args: str) -> None:
@@ -24,8 +33,16 @@ def run_git(repo: Path, *args: str) -> None:
     )
 
 
-def task_card(repo: Path, *, allowed_files: list[str], production_data_access: bool = False) -> Path:
-    card = repo / "docs" / "agent_tasks" / "test-task.md"
+def task_card(
+    repo: Path,
+    *,
+    allowed_files: list[str],
+    production_data_access: bool = False,
+    job_id: str = "hook-test-job",
+    lane: str = "Evaluation",
+    filename: str = "test-task.md",
+) -> Path:
+    card = repo / "docs" / "agent_tasks" / filename
     card.parent.mkdir(parents=True, exist_ok=True)
     production_access = "true" if production_data_access else "false"
     allowed = "\n".join(f"  - {path}" for path in allowed_files)
@@ -33,14 +50,14 @@ def task_card(repo: Path, *, allowed_files: list[str], production_data_access: b
         "\n".join(
             [
                 "---",
-                "job_id: hook-test-job",
-                "lane: Evaluation",
+                f"job_id: {job_id}",
+                f"lane: {lane}",
                 "owner: Codex",
                 "allowed_files:",
                 allowed,
                 "approval_required: true",
                 "timeout_seconds: 300",
-                "output_dir: reports/agent_jobs/hook-test-job",
+                f"output_dir: reports/agent_jobs/{job_id}",
                 "mutation_mode: safe_extension",
                 f"production_data_access: {production_access}",
                 "---",
@@ -111,6 +128,26 @@ def run_hook(
     return completed, payload
 
 
+def run_repo_registry(
+    repo: Path,
+    *args: str,
+    env: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    merged_env = os.environ.copy()
+    if env is not None:
+        merged_env.update(env)
+    completed = subprocess.run(
+        [sys.executable, str(repo / "scripts" / "agent_job_registry.py"), *args, "--repo-root", str(repo)],
+        cwd=repo,
+        env=merged_env,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return completed, json.loads(completed.stdout)
+
+
 def test_no_active_task_card_exits_success_with_valid_json(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
@@ -118,6 +155,27 @@ def test_no_active_task_card_exits_success_with_valid_json(tmp_path: Path) -> No
     assert completed.returncode == 0
     assert payload == {}
     assert completed.stderr == ""
+
+
+def test_no_active_task_card_stays_silent_with_shared_registry_jobs(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    shared_root = tmp_path / "shared-registry"
+    claim_completed, claim_payload = run_repo_registry(
+        repo,
+        "claim",
+        "docs/agent_tasks/test-task.md",
+        env={"TENN_AGENT_REGISTRY_ROOT": str(shared_root)},
+    )
+    assert claim_completed.returncode == 0
+    assert claim_payload["ok"] is True
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "", "TENN_AGENT_REGISTRY_ROOT": str(shared_root)},
+    )
+
+    assert completed.returncode == 0
+    assert payload == {}
 
 
 def test_active_valid_task_card_with_allowed_diff_passes(tmp_path: Path) -> None:
@@ -191,6 +249,48 @@ def test_active_task_marker_is_supported(tmp_path: Path) -> None:
 
     assert completed.returncode == 0
     assert payload == {"systemMessage": "Tenn agent-job contract passed: docs/agent_tasks/test-task.md"}
+
+
+def test_active_task_card_blocks_overlap_using_shared_registry_root(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    shared_root = tmp_path / "shared-registry"
+    active = task_card(
+        repo,
+        allowed_files=["src/allowed.py"],
+        job_id="active-lock",
+        lane="Evaluation",
+        filename="active-lock.md",
+    )
+    overlap = task_card(
+        repo,
+        allowed_files=["src/allowed.py"],
+        job_id="hook-overlap",
+        lane="Reporting",
+        filename="overlap.md",
+    )
+    run_git(repo, "add", str(active.relative_to(repo)), str(overlap.relative_to(repo)))
+    run_git(repo, "commit", "-m", "add shared registry hook cards")
+    claim_completed, claim_payload = run_repo_registry(
+        repo,
+        "claim",
+        active.relative_to(repo).as_posix(),
+        env={"TENN_AGENT_REGISTRY_ROOT": str(shared_root)},
+    )
+    assert claim_completed.returncode == 0
+    assert claim_payload["registry_root"] == str(shared_root.resolve())
+
+    completed, payload = run_hook(
+        repo,
+        env={
+            "TENN_AGENT_REGISTRY_ROOT": str(shared_root),
+            "TENN_AGENT_TASK_CARD": overlap.relative_to(repo).as_posix(),
+        },
+    )
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "active-lock" in str(payload["reason"])
+    assert "allowed_files src/allowed.py" in str(payload["reason"])
 
 
 def test_claude_stop_hook_no_longer_contains_plain_diff_output() -> None:
