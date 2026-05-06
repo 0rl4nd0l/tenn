@@ -14,9 +14,10 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 from cockpit.core.agent_loop import AgentLoop
+from cockpit.core.query_intent import QueryIntent
 from cockpit.core.response_classification import ResponseClassification
 
 
@@ -28,6 +29,74 @@ def _make_llm(responses: list[str]) -> MagicMock:
 
 
 class TestAgentLoopRegressions:
+    def test_ticker_company_overview_prefetches_ticker_filtered_news(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "A2M recall evidence was found in local news.",
+                }
+            ),
+            "A2M recall evidence was found in local news.",
+        ]
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "ticker": "A2M",
+                "hits": [
+                    {
+                        "title": (
+                            "A2 Milk shares plunge after finding toxins in infant formula"
+                        ),
+                        "snippet": (
+                            "A2 Milk recall evidence says infant formula was recalled."
+                        ),
+                        "published_at": "2026-05-03T22:52:00Z",
+                        "url": "https://example.com/a2m-recall",
+                        "ticker": "A2M",
+                    }
+                ],
+                "hit_count": 1,
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("tell me about A2M", ticker="A2M")
+
+        assert result is not None
+        assert result.evidence[0]["tool"] == "search_news"
+        assert result.evidence[0]["result"]["hits"][0]["ticker"] == "A2M"
+        assert result.tool_calls_made == 1
+        executor.assert_has_calls(
+            [
+                call(
+                    "search_news",
+                    {"query": "tell me about A2M", "ticker": "A2M", "limit": 5},
+                )
+            ]
+        )
+        assert "recall evidence" in result.text
+
+    def test_ticker_news_prefetch_skips_holdings_questions(self):
+        assert (
+            AgentLoop._should_prefetch_ticker_news(
+                message="tell me about my holdings for A2M",
+                ticker="A2M",
+                intent=QueryIntent.TICKER_SPECIFIC,
+            )
+            is False
+        )
+
+    def test_no_resolved_ticker_does_not_prefetch_news(self):
+        assert (
+            AgentLoop._should_prefetch_ticker_news(
+                message="Broad market outlook",
+                ticker=None,
+                intent=QueryIntent.MARKET_WIDE,
+            )
+            is False
+        )
+
     def test_tool_calls_missing_id_key(self):
         """tool_calls entries without 'id' don't raise KeyError; loop completes normally.
 

@@ -125,9 +125,22 @@ class TestContextRows:
 
     def test_all_fields_present(self):
         rows = _context_rows([{}])
-        required = {"text", "source_name", "url", "relevance_score",
-                    "recency_decay", "final_score", "source_type",
-                    "published_at", "retrieval_strategies"}
+        required = {
+            "chunk_id",
+            "article_id",
+            "document_id",
+            "text",
+            "source_name",
+            "url",
+            "ticker",
+            "provider",
+            "relevance_score",
+            "recency_decay",
+            "final_score",
+            "source_type",
+            "published_at",
+            "retrieval_strategies",
+        }
         assert required == set(rows[0].keys())
 
 
@@ -147,9 +160,14 @@ class TestEvidenceContextRows:
         )
         assert rows == [
             {
+                "chunk_id": "",
+                "article_id": "",
+                "document_id": "doc-1",
                 "text": "BHP updated guidance.",
                 "source_name": "BHP guidance update",
                 "url": "",
+                "ticker": "",
+                "provider": "",
                 "relevance_score": 0.87,
                 "recency_decay": 1.0,
                 "final_score": 0.87,

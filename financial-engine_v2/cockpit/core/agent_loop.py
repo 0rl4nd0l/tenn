@@ -70,6 +70,19 @@ _TIME_SENSITIVE_RE = re.compile(
     r"\b(today|latest|recent|current|now|market\s+update|market\s+wrap|market\s+movers?)\b",
     re.IGNORECASE,
 )
+_TICKER_NEWS_PREFETCH_RE = re.compile(
+    r"\b(news|headline|headlines|latest|recent|recall|today|changed|happened|"
+    r"update|updates|overview|selloff|rally|plunge)\b|"
+    r"\b(?:tell me about|what(?:'s| is)?\s+going\s+on|what(?:'s| is)?\s+new|"
+    r"what\s+changed)\b",
+    re.IGNORECASE,
+)
+_TICKER_NEWS_PREFETCH_SKIP_RE = re.compile(
+    r"\b(revenue|profit|ebit|ebitda|npat|earnings|dividend|cash\s*flow|"
+    r"net\s+debt|debt|margin|capex|balance\s+sheet|valuation|holdings?|"
+    r"portfolio|personal\s+portfolio)\b",
+    re.IGNORECASE,
+)
 _META_OR_ACK_RE = re.compile(
     r"^\s*(?:hi|hello|hey|yo|sup|thanks|thank you|ok(?:ay)?|yes|no|sure|"
     r"cool|continue|go on|help(?: me)?|what can you do\??)\s*$",
@@ -721,6 +734,47 @@ class AgentLoop:
         thinking_steps = 0
         has_thought = False  # Track whether the LLM has completed a thinking step
         grounding_nudges_given = 0
+
+        if self._should_prefetch_ticker_news(
+            message=message,
+            ticker=ticker,
+            intent=_intent,
+        ):
+            arguments = {
+                "query": message,
+                "ticker": str(ticker or "").strip().upper(),
+                "limit": 5,
+            }
+            if on_status:
+                on_status(
+                    "Executing tool: search_news "
+                    f"(query={message}, ticker={arguments['ticker']})"
+                )
+            t0 = time.perf_counter()
+            result = self._execute_tool("search_news", arguments)
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            result_dict = result if isinstance(result, dict) else {"result": result}
+            trace = build_tool_trace_entry(
+                iteration=0,
+                tool_name="search_news",
+                arguments=arguments,
+                result=result_dict,
+                duration_ms=elapsed_ms,
+            )
+            tool_traces.append(trace)
+            if not trace["ok"]:
+                logger.warning(
+                    "agent ticker-news prefetch failed: %s | %s",
+                    trace.get("error"),
+                    trace.get("hint"),
+                )
+            evidence.append(
+                {"tool": "search_news", "arguments": arguments, "result": result_dict}
+            )
+            total_tool_calls += 1
+            messages.append(
+                {"role": "user", "content": format_tool_result("search_news", result_dict)}
+            )
 
         iteration = 0
         while iteration < self.MAX_ITERATIONS:
@@ -1421,6 +1475,29 @@ class AgentLoop:
         except Exception as exc:
             logger.error("Tool %s raised: %s", tool_name, exc, exc_info=True)
             return {"error": f"Tool '{tool_name}' failed: {exc}"}
+
+    @staticmethod
+    def _should_prefetch_ticker_news(
+        *,
+        message: str,
+        ticker: str | None,
+        intent: QueryIntent | None,
+    ) -> bool:
+        normalized_ticker = str(ticker or "").strip().upper()
+        query = str(message or "").strip()
+        if not normalized_ticker or not query:
+            return False
+        if intent in (
+            QueryIntent.MARKET_WIDE,
+            QueryIntent.COMMAND,
+            QueryIntent.PREVIOUS_TOOL_TRACE_QUESTION,
+            QueryIntent.CORRECTION_TURN,
+            QueryIntent.THESIS_SAVE,
+        ):
+            return False
+        if _TICKER_NEWS_PREFETCH_SKIP_RE.search(query):
+            return False
+        return bool(_TICKER_NEWS_PREFETCH_RE.search(query))
 
     @staticmethod
     def _looks_like_json_non_answer(

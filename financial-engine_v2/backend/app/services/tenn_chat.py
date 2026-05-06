@@ -20,6 +20,7 @@ from app.services.session_memory import (
 )
 from app.services.source_weighting import apply_weighting_to_chunk
 from app.services.strategy_controller import get_active_strategy_state
+from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
 
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,19 @@ _UNVERIFIED_ANSWER_RE = re.compile(
     r"\bnot enough (?:evidence|context|information)\b|"
     r"\bunable to verify\b",
     re.IGNORECASE,
+)
+_CHAT_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | frozenset(
+    {
+        "CHANGED",
+        "CURRENT",
+        "LATEST",
+        "RECENT",
+        "RECENTLY",
+        "TICKER",
+        "TODAY",
+        "UPDATE",
+        "UPDATES",
+    }
 )
 
 
@@ -63,6 +77,13 @@ def _safe_float(value: Any, default: float) -> float:
 
 def _is_small_talk_query(query: str) -> bool:
     return bool(_SMALL_TALK_RE.match(str(query or "").strip()))
+
+
+def _resolve_chat_ticker(query: str, ticker: str | None) -> str | None:
+    explicit_ticker = str(ticker or "").strip().upper()
+    if explicit_ticker:
+        return explicit_ticker
+    return detect_primary_ticker(query, stopwords=_CHAT_TICKER_STOPWORDS)
 
 
 def _today_iso_utc() -> str:
@@ -142,6 +163,50 @@ def _apply_chat_strategy(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return ranked[:10]
 
 
+def _chunk_identity(chunk: dict[str, Any]) -> str:
+    for key in ("chunk_id", "id", "article_id", "url"):
+        value = str(chunk.get(key) or "").strip()
+        if value:
+            return f"{key}:{value}"
+    return (
+        "fallback:"
+        + str(chunk.get("source_name") or chunk.get("title") or "").strip()
+        + ":"
+        + str(chunk.get("text") or "").strip()[:120]
+    )
+
+
+def _ensure_ticker_news_context(
+    ranked_chunks: list[dict[str, Any]],
+    news_chunks: list[dict[str, Any]],
+    *,
+    ticker: str | None,
+    max_chunks: int = 10,
+    min_news: int = 3,
+) -> list[dict[str, Any]]:
+    normalized_ticker = str(ticker or "").strip().upper()
+    if not normalized_ticker or not news_chunks:
+        return ranked_chunks[:max_chunks]
+
+    ranked_news = _apply_chat_strategy(
+        _filter_news_by_ticker(news_chunks, normalized_ticker)
+    )[:min_news]
+    if not ranked_news:
+        return ranked_chunks[:max_chunks]
+
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for chunk in [*ranked_news, *ranked_chunks]:
+        identity = _chunk_identity(chunk)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        merged.append(chunk)
+        if len(merged) >= max_chunks:
+            break
+    return merged
+
+
 def _normalize_news_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
     """Map news payload fields to the shape expected by _apply_chat_strategy."""
     normalized = dict(chunk)
@@ -159,9 +224,14 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for chunk in chunks:
         rows.append(
             {
+                "chunk_id": str(chunk.get("chunk_id") or chunk.get("id") or "").strip(),
+                "article_id": str(chunk.get("article_id") or "").strip(),
+                "document_id": str(chunk.get("document_id") or "").strip(),
                 "text": str(chunk.get("text") or "").strip(),
                 "source_name": str(chunk.get("source_name") or chunk.get("source_file") or "").strip(),
                 "url": str(chunk.get("url") or "").strip(),
+                "ticker": str(chunk.get("ticker") or "").strip().upper(),
+                "provider": str(chunk.get("provider") or "").strip(),
                 "relevance_score": _safe_float(chunk.get("relevance_score"), 0.0),
                 "recency_decay": _safe_float(chunk.get("recency_decay"), 1.0),
                 "final_score": _safe_float(chunk.get("final_score"), 0.0),
@@ -198,9 +268,14 @@ def _evidence_context_rows(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
         rows.append(
             {
+                "chunk_id": str(hit.get("chunk_id") or hit.get("id") or "").strip(),
+                "article_id": str(hit.get("article_id") or "").strip(),
+                "document_id": str(hit.get("document_id") or "").strip(),
                 "text": text,
                 "source_name": source_name,
                 "url": url,
+                "ticker": str(hit.get("ticker") or "").strip().upper(),
+                "provider": str(hit.get("provider") or "").strip(),
                 "relevance_score": relevance_score,
                 "recency_decay": 1.0,
                 "final_score": relevance_score,
@@ -370,7 +445,7 @@ def chat_with_tenn(
     normalized_query = str(query or "").strip()
     if not normalized_query:
         raise ValueError("query is required")
-    normalized_ticker = str(ticker or "").strip().upper() or None
+    normalized_ticker = _resolve_chat_ticker(normalized_query, ticker)
     normalized_session_id = str(session_id or "").strip() or None
 
     if _is_small_talk_query(normalized_query):
@@ -406,7 +481,7 @@ def chat_with_tenn(
         )
 
     try:
-        rag_result = query_rag(query=normalized_query, top_k=10)
+        rag_result = query_rag(query=normalized_query, ticker=normalized_ticker, top_k=10)
         rag_hits = rag_result.get("hits") or []
         evidence = rag_result.get("research_context", {}).get("evidence_chunks") or rag_hits
 
@@ -460,6 +535,11 @@ def chat_with_tenn(
             news_chunks = []
 
         ranked_chunks = _apply_chat_strategy(commentary_chunks + news_chunks)
+        ranked_chunks = _ensure_ticker_news_context(
+            ranked_chunks,
+            news_chunks,
+            ticker=normalized_ticker,
+        )
         context_rows = _context_rows(ranked_chunks)
 
         if not context_rows and evidence:
@@ -520,6 +600,11 @@ def chat_with_tenn(
             "final_score": row["final_score"],
             "source_type": row["source_type"],
             "published_at": row["published_at"],
+            "chunk_id": row.get("chunk_id") or "",
+            "article_id": row.get("article_id") or "",
+            "document_id": row.get("document_id") or "",
+            "ticker": row.get("ticker") or "",
+            "provider": row.get("provider") or "",
         }
         for row in context_rows
     ]

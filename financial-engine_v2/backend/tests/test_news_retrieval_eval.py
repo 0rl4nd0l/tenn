@@ -207,6 +207,123 @@ class TestChatWithTennTickerPropagation(unittest.TestCase):
         _, kwargs = call_kwargs
         self.assertIsNone(kwargs.get("ticker"))
 
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_query_ticker_is_inferred_for_rag_and_news_retriever(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+    ):
+        mock_rag.return_value = {"hits": [], "research_context": {"evidence_chunks": []}}
+        commentary_mock = self._make_retriever_mock()
+        news_mock = self._make_retriever_mock()
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        chat_with_tenn("what changed for A2M recently?")
+
+        self.assertEqual(mock_rag.call_args.kwargs.get("ticker"), "A2M")
+        self.assertEqual(news_mock.retrieve.call_args.kwargs.get("ticker"), "A2M")
+
+    @patch("app.services.tenn_chat.generate_json")
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_ticker_filtered_recall_news_is_kept_in_prompt_and_sources(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+        mock_generate_json,
+    ):
+        mock_rag.return_value = {"hits": [], "research_context": {"evidence_chunks": []}}
+        commentary_mock = MagicMock()
+        commentary_mock.retrieve.return_value = {
+            "chunks": [
+                {
+                    "chunk_id": f"commentary-{index}",
+                    "source_name": "General dairy commentary",
+                    "source_type": "commentary",
+                    "text": "General dairy market commentary without local recall evidence.",
+                    "relevance_score": 0.99,
+                    "final_score": 0.99,
+                }
+                for index in range(12)
+            ]
+        }
+        news_mock = MagicMock()
+        news_mock.retrieve.return_value = {
+            "chunks": [
+                {
+                    "chunk_id": "news:art_aa13edd261034dba97055d8a:0",
+                    "article_id": "art_aa13edd261034dba97055d8a",
+                    "ticker": "A2M",
+                    "title": "A2 Milk shares plunge after finding toxins in infant formula",
+                    "text": (
+                        "A2 Milk recall evidence says infant formula was recalled "
+                        "after toxins were detected."
+                    ),
+                    "url": "https://example.com/a2m-recall",
+                    "provider": "Capital Brief",
+                    "published_at": "2026-05-03T22:52:00Z",
+                    "relevance_score": 0.2,
+                    "final_score": 0.2,
+                }
+            ]
+        }
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+        captured: dict[str, str] = {}
+
+        def _fake_generate_json(prompt, metadata=None, timeout=None):
+            captured["prompt"] = prompt
+            return {
+                "answer": "A2M recall evidence is available in local news.",
+                "insights": ["A2M recall evidence is available."],
+                "supporting_evidence": [
+                    {
+                        "source_name": (
+                            "A2 Milk shares plunge after finding toxins in infant formula"
+                        ),
+                        "published_at": "2026-05-03T22:52:00Z",
+                    }
+                ],
+                "confidence": 0.7,
+            }
+
+        mock_generate_json.side_effect = _fake_generate_json
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        result = chat_with_tenn("tell me about A2M with ticker A2M")
+
+        self.assertIn("art_aa13edd261034dba97055d8a", captured["prompt"])
+        self.assertIn("infant formula was recalled", captured["prompt"])
+        self.assertTrue(
+            any(
+                source.get("article_id") == "art_aa13edd261034dba97055d8a"
+                and source.get("ticker") == "A2M"
+                for source in result["sources"]
+            )
+        )
+
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_no_resolved_ticker_keeps_broad_semantic_behavior(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+    ):
+        mock_rag.return_value = {"hits": [], "research_context": {"evidence_chunks": []}}
+        commentary_mock = self._make_retriever_mock()
+        news_mock = self._make_retriever_mock()
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        chat_with_tenn("Broad market outlook")
+
+        self.assertIsNone(mock_rag.call_args.kwargs.get("ticker"))
+        self.assertIsNone(news_mock.retrieve.call_args.kwargs.get("ticker"))
+
     @patch("app.services.tenn_chat.generate_json")
     @patch("app.services.tenn_chat.get_session_context")
     @patch("app.services.tenn_chat.query_rag")
