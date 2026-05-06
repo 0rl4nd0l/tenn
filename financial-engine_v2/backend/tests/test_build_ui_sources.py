@@ -450,6 +450,35 @@ def test_agent_format_get_financials() -> None:
     assert "Revenue grew" in str(sources[0]["snippet"])
 
 
+def test_agent_format_get_financials_zero_rows_emits_missing_evidence() -> None:
+    evidence = [
+        {
+            "tool": "get_financials",
+            "result": {
+                "ok": True,
+                "ticker": "BHP",
+                "financials": [],
+                "data_insufficient": True,
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(routing_metadata={}, evidence=evidence),
+        sources,
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["source_id"] == "financial_truth:no_hit:bhp"
+    assert sources[0]["evidence_label"] == "missing_required_evidence"
+    assert "missing_required_evidence" in sources[0]["evidence_labels"]
+    assert "no_hit" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+
+
 def test_agent_format_recall_dossier() -> None:
     sources = _build_ui_sources(
         [
@@ -499,6 +528,36 @@ def test_agent_format_deep_research() -> None:
     assert sources[0]["evidence_label"] == "operational_trace"
 
 
+def test_agent_format_deep_research_failure_is_degraded_runtime() -> None:
+    evidence = [
+        {
+            "tool": "deep_research",
+            "result": {
+                "ok": False,
+                "ticker": "BHP",
+                "error": "research API returned HTTP 500",
+                "research": {
+                    "summary": "Partial source gathering completed before synthesis failed.",
+                    "confidence": 0.1,
+                    "synthesis_failed": True,
+                },
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(routing_metadata={}, evidence=evidence),
+        sources,
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["evidence_label"] == "degraded_runtime"
+    assert "degraded_runtime" in sources[0]["evidence_labels"]
+    assert "operational_trace" in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "degraded_runtime"
+
+
 def test_agent_format_search_web() -> None:
     sources = _build_ui_sources(
         [
@@ -519,6 +578,76 @@ def test_agent_format_search_web() -> None:
 
     assert len(sources) == 1
     assert sources[0]["kind"] == "web"
+
+
+def test_agent_format_search_web_failure_is_degraded_runtime() -> None:
+    evidence = [
+        {
+            "tool": "search_web",
+            "result": {
+                "ok": False,
+                "query": "BHP latest announcement",
+                "error": "search timed out",
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(routing_metadata={}, evidence=evidence),
+        sources,
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["source_id"] == "runtime_failure:search_web:bhp-latest-announcement"
+    assert sources[0]["evidence_label"] == "degraded_runtime"
+    assert "degraded_runtime" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "degraded_runtime"
+    assert metadata["claim_verified_source_count"] == 0
+
+
+def test_partial_evidence_with_runtime_failure_keeps_evidence_and_degradation() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "hits": [
+                    {
+                        "title": "A2M local news",
+                        "url": "https://example.com/a2m-news",
+                        "evidence_labels": [
+                            "local_news_context",
+                            "claim_verified",
+                        ],
+                    }
+                ]
+            },
+        },
+        {
+            "tool": "search_web",
+            "result": {
+                "ok": False,
+                "query": "A2M latest",
+                "error": "web provider timeout",
+            },
+        },
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(routing_metadata={}, evidence=evidence),
+        sources,
+    )
+
+    assert len(sources) == 2
+    assert any(source["claim_verified"] is True for source in sources)
+    assert any(
+        source["evidence_label"] == "degraded_runtime" for source in sources
+    )
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["source_coverage_status"] == "degraded_runtime"
+    assert "local_news_context" in metadata["evidence_labels"]
+    assert "degraded_runtime" in metadata["evidence_labels"]
 
 
 def test_holdings_evidence_does_not_render_visible_sources() -> None:
@@ -831,6 +960,10 @@ def test_agent_format_get_watchlist_alerts_without_rows_still_emits_source_item(
     assert len(sources) == 1
     assert sources[0]["title"] == "BHP alerts"
     assert sources[0]["source_id"] == "watchlist_alerts:BHP"
+    assert sources[0]["evidence_label"] == "no_hit"
+    assert "no_hit" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
 
 
 def test_agent_format_tv_screener() -> None:
@@ -876,6 +1009,35 @@ def test_agent_format_tv_screener_without_rows_still_emits_source_item() -> None
     assert len(sources) == 1
     assert sources[0]["title"] == "TradingView screener (AUSTRALIA)"
     assert sources[0]["source_id"] == "tv_screener:AUSTRALIA"
+    assert sources[0]["evidence_label"] == "no_hit"
+    assert "no_hit" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+
+
+def test_operational_no_hit_trace_is_not_financial_evidence() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "get_tv_indicators",
+                "result": {
+                    "ok": False,
+                    "ticker": "BHP",
+                    "exchange": "ASX",
+                    "indicators": {"RSI": {"error": "indicator not returned"}},
+                    "error": "No indicator values returned",
+                    "evidence_labels": ["no_hit", "operational_trace"],
+                    "source_coverage_status": "no_hit",
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["evidence_label"] == "no_hit"
+    assert "operational_trace" in sources[0]["evidence_labels"]
+    assert "financial_truth" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
 
 
 def test_agent_format_get_tv_indicators() -> None:

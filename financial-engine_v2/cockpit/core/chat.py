@@ -6715,8 +6715,32 @@ class ChatController:
             except Exception as exc:
                 return ChatResponse(
                     text=f"Web search failed: {exc}",
-                    evidence=[],
+                    evidence=[
+                        {
+                            "type": "web",
+                            "details": {
+                                "ok": False,
+                                "query": explicit_web_query,
+                                "error": str(exc),
+                                "evidence_labels": [
+                                    "degraded_runtime",
+                                    "operational_trace",
+                                ],
+                                "source_coverage_status": "degraded_runtime",
+                                "runtime_degradation": "web_search_failed",
+                            },
+                        }
+                    ],
                     mode=ResponseMode.WEB,
+                    routing_metadata={
+                        "system_status": "degraded",
+                        "runtime_degradation": "web_search_failed",
+                        "evidence_labels": [
+                            "degraded_runtime",
+                            "operational_trace",
+                        ],
+                        "source_coverage_status": "degraded_runtime",
+                    },
                 )
 
             payload = (
@@ -6724,6 +6748,15 @@ class ChatController:
                 if isinstance(getattr(web_result, "payload", None), dict)
                 else {}
             )
+            if not bool(getattr(web_result, "ok", False)):
+                payload = {
+                    **payload,
+                    "ok": False,
+                    "query": explicit_web_query,
+                    "evidence_labels": ["degraded_runtime", "operational_trace"],
+                    "source_coverage_status": "degraded_runtime",
+                    "runtime_degradation": "web_search_failed",
+                }
             evidence: list[dict[str, Any]] = [{"type": "web", "details": payload}]
             if attached_bundle.evidence:
                 evidence.extend(attached_bundle.evidence)
@@ -6744,6 +6777,19 @@ class ChatController:
                 text="\n".join(lines),
                 evidence=evidence,
                 mode=ResponseMode.WEB,
+                routing_metadata=(
+                    {
+                        "system_status": "degraded",
+                        "runtime_degradation": "web_search_failed",
+                        "evidence_labels": [
+                            "degraded_runtime",
+                            "operational_trace",
+                        ],
+                        "source_coverage_status": "degraded_runtime",
+                    }
+                    if not bool(getattr(web_result, "ok", False))
+                    else None
+                ),
             )
 
         # --- Chart intent short-circuit (before general action detection) ---

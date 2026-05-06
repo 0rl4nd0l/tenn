@@ -42,6 +42,19 @@ _CURRENT_NEWS_QUERY_RE = re.compile(
     r"market\s+movers?|movers?\s+today|news\s+today|today'?s?\s+news)\b",
     re.IGNORECASE,
 )
+_NO_HIT_ERROR_RE = re.compile(
+    r"\bno [^.?!]{0,120}\b(?:found|returned|available)\b|"
+    r"\bnot returned by provider\b",
+    re.IGNORECASE,
+)
+_SOURCE_SEMANTIC_KEYS = (
+    "evidence_labels",
+    "source_coverage_status",
+    "runtime_degradation",
+    "provider_error",
+    "data_insufficient",
+    "failure_kind",
+)
 
 
 class ToolExecutor:
@@ -126,11 +139,14 @@ class ToolExecutor:
             return self._execute_read_only(tool_name, arguments)
         except Exception as exc:
             logger.exception("tool_executor: %s failed", tool_name)
-            return {
-                "tool": tool_name,
-                "ok": False,
-                "error": f"Tool execution failed: {str(exc)[:500]}",
-            }
+            return self._annotate_result_semantics(
+                tool_name,
+                {
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": f"Tool execution failed: {str(exc)[:500]}",
+                },
+            )
 
     __call__ = execute
 
@@ -144,13 +160,155 @@ class ToolExecutor:
         """Dispatch a read-only tool and return truncated result."""
         handler = self._READ_ONLY_DISPATCH.get(tool_name)
         if handler is None:
-            return {
-                "tool": tool_name,
-                "ok": False,
-                "error": f"Unknown tool: {tool_name}",
-            }
+            return self._annotate_result_semantics(
+                tool_name,
+                {
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": f"Unknown tool: {tool_name}",
+                },
+            )
         result = handler(self, args)
-        return self._truncate({"tool": tool_name, **result})
+        annotated = self._annotate_result_semantics(
+            tool_name,
+            {"tool": tool_name, **result},
+        )
+        return self._truncate(annotated)
+
+    @staticmethod
+    def _merge_semantic_labels(
+        result: dict[str, Any],
+        labels: set[str],
+    ) -> None:
+        existing = result.get("evidence_labels")
+        if isinstance(existing, str):
+            labels.add(existing)
+        elif isinstance(existing, (list, tuple, set)):
+            labels.update(str(item) for item in existing if str(item or "").strip())
+        if labels:
+            result["evidence_labels"] = sorted(labels)
+
+    @staticmethod
+    def _has_result_rows(result: dict[str, Any], *keys: str) -> bool:
+        for key in keys:
+            rows = result.get(key)
+            if isinstance(rows, list) and rows:
+                return True
+        return False
+
+    @staticmethod
+    def _has_indicator_values(result: dict[str, Any]) -> bool:
+        indicators = result.get("indicators")
+        if not isinstance(indicators, dict):
+            return False
+        return any(
+            not isinstance(value, dict) and value not in (None, "")
+            for value in indicators.values()
+        )
+
+    def _annotate_result_semantics(
+        self,
+        tool_name: str,
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Attach evidence-state metadata without changing tool behavior."""
+        labels: set[str] = set()
+        ok = result.get("ok")
+        error_text = str(result.get("error") or "").strip()
+        data_insufficient = result.get("data_insufficient") is True
+
+        if data_insufficient:
+            labels.update({"missing_required_evidence", "no_hit", "operational_trace"})
+            result.setdefault("source_coverage_status", "missing_required_evidence")
+
+        if tool_name == "get_financials" and not self._has_result_rows(result, "financials"):
+            labels.update({"missing_required_evidence", "no_hit", "operational_trace"})
+            if ok is not False:
+                result.setdefault("data_insufficient", True)
+            result.setdefault("source_coverage_status", "missing_required_evidence")
+        elif tool_name == "search_announcements" and not self._has_result_rows(
+            result, "documents", "context"
+        ):
+            labels.update({"no_hit", "operational_trace"})
+            result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name == "search_web":
+            if ok is False:
+                labels.update({"degraded_runtime", "operational_trace"})
+                result.setdefault("source_coverage_status", "degraded_runtime")
+                result.setdefault("runtime_degradation", "search_web_failed")
+            elif not self._has_result_rows(result, "results", "pages"):
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name == "fetch_url":
+            if ok is False or error_text:
+                labels.update({"degraded_runtime", "operational_trace"})
+                result.setdefault("source_coverage_status", "degraded_runtime")
+                result.setdefault("runtime_degradation", "fetch_url_failed")
+            elif not any(str(result.get(key) or "").strip() for key in ("url", "content", "text")):
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name == "deep_research":
+            research = result.get("research") if isinstance(result.get("research"), dict) else {}
+            if ok is False or research.get("synthesis_failed") is True:
+                labels.update({"degraded_runtime", "operational_trace"})
+                result.setdefault("source_coverage_status", "degraded_runtime")
+                result.setdefault("runtime_degradation", "deep_research_failed")
+            elif not research:
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name in {"get_watchlist_alerts"} and not self._has_result_rows(
+            result, "alerts"
+        ):
+            labels.update({"no_hit", "operational_trace"})
+            result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name in {"tv_screener", "screen_tickers"}:
+            if ok is False and error_text:
+                labels.update({"degraded_runtime", "operational_trace"})
+                result.setdefault("source_coverage_status", "degraded_runtime")
+                result.setdefault("runtime_degradation", f"{tool_name}_failed")
+            elif not self._has_result_rows(result, "results"):
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name == "get_tv_indicators":
+            if ok is False and error_text and "no indicator values" not in error_text.lower():
+                labels.update({"degraded_runtime", "operational_trace"})
+                result.setdefault("source_coverage_status", "degraded_runtime")
+                result.setdefault("runtime_degradation", "get_tv_indicators_failed")
+            elif not self._has_indicator_values(result):
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+        elif tool_name in {"search_social", "recall_dossier"}:
+            if ok is False and error_text:
+                labels.update({"degraded_runtime", "operational_trace"})
+                result.setdefault("source_coverage_status", "degraded_runtime")
+                result.setdefault("runtime_degradation", f"{tool_name}_failed")
+            elif tool_name == "search_social" and not self._has_result_rows(
+                result, "stories", "results"
+            ):
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+            elif tool_name == "recall_dossier" and not self._has_result_rows(
+                result, "findings"
+            ):
+                labels.update({"no_hit", "operational_trace"})
+                result.setdefault("source_coverage_status", "no_hit")
+
+        if (
+            ok is False
+            and error_text
+            and not data_insufficient
+            and _NO_HIT_ERROR_RE.search(error_text)
+            and "degraded_runtime" not in labels
+        ):
+            labels.update({"no_hit", "operational_trace"})
+            result.setdefault("source_coverage_status", "no_hit")
+        elif ok is False and error_text and not data_insufficient:
+            labels.update({"degraded_runtime", "operational_trace"})
+            result["source_coverage_status"] = "degraded_runtime"
+            result.setdefault("runtime_degradation", f"{tool_name}_failed")
+
+        self._merge_semantic_labels(result, labels)
+        return result
 
     def _exec_query_ticker_data(self, args: dict[str, Any]) -> dict[str, Any]:
         ticker = str(args.get("ticker", "")).strip().upper()
@@ -691,7 +849,15 @@ class ToolExecutor:
             return self._router.brave_search_client.search(query, count=count)
         # Fallback to WebFetcher if no Brave client wired.
         result = self._router.web_fetcher.search_and_fetch(query, max_results=count)
-        return {"ok": result.get("ok", True), "results": result.get("pages", [])}
+        out: dict[str, Any] = {
+            "ok": result.get("ok", True),
+            "query": query,
+            "results": result.get("pages", []),
+        }
+        for key in ("error", "urls", "facts", "facts_count"):
+            if key in result:
+                out[key] = result.get(key)
+        return out
 
     def _exec_search_social(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).strip()
@@ -1911,6 +2077,11 @@ class ToolExecutor:
                 else:
                     compact[key] = value
 
+        for key in _SOURCE_SEMANTIC_KEYS:
+            value = result.get(key)
+            if value not in (None, "", [], {}):
+                compact[key] = value
+
         if isinstance(result.get("staleness_preflight"), dict):
             compact["staleness_preflight"] = result.get("staleness_preflight")
 
@@ -1985,6 +2156,10 @@ class ToolExecutor:
             minimal["hit_count"] = result.get("hit_count")
         if result.get("count") is not None:
             minimal["count"] = result.get("count")
+        for key in _SOURCE_SEMANTIC_KEYS:
+            value = result.get(key)
+            if value not in (None, "", [], {}):
+                minimal[key] = value
         for key in ("query", "ticker", "market", "name", "channel_id", "limit"):
             if result.get(key) not in (None, ""):
                 minimal[key] = result.get(key)
@@ -2120,6 +2295,10 @@ class ToolExecutor:
         ):
             if result.get(key) not in (None, ""):
                 fallback[key] = result.get(key)
+        for key in _SOURCE_SEMANTIC_KEYS:
+            value = result.get(key)
+            if value not in (None, "", [], {}):
+                fallback[key] = value
         source_rows_preserved = False
         for list_key in (
             "hits",

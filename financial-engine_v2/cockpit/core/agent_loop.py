@@ -142,6 +142,81 @@ _GROUNDING_TOOL_NAMES = frozenset(
         "market_memory",
     }
 )
+_EVIDENCE_STATE_LABELS = frozenset(
+    {
+        "degraded_runtime",
+        "missing_required_evidence",
+        "no_hit",
+        "operational_trace",
+        "context_only",
+        "local_personal_data",
+        "memory_context",
+        "external_web_context",
+        "local_news_context",
+        "financial_truth",
+        "unknown_unclassified",
+    }
+)
+_EVIDENCE_COVERAGE_PRIORITY = (
+    "degraded_runtime",
+    "missing_required_evidence",
+    "local_personal_data",
+    "financial_truth",
+    "no_hit",
+    "context_only",
+)
+
+
+def _normalize_evidence_state_labels(value: Any) -> set[str]:
+    if isinstance(value, str):
+        raw_items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        raw_items = list(value)
+    else:
+        raw_items = []
+    return {
+        str(item).strip()
+        for item in raw_items
+        if str(item).strip() in _EVIDENCE_STATE_LABELS
+    }
+
+
+def _coverage_from_evidence_labels(labels: set[str]) -> str | None:
+    for label in _EVIDENCE_COVERAGE_PRIORITY:
+        if label in labels:
+            return label
+    return None
+
+
+def _evidence_semantic_metadata(evidence: list[dict]) -> dict[str, Any]:
+    labels: set[str] = set()
+    for entry in evidence or []:
+        if not isinstance(entry, dict):
+            continue
+        for payload in (entry, entry.get("result"), entry.get("details")):
+            if not isinstance(payload, dict):
+                continue
+            labels.update(_normalize_evidence_state_labels(payload.get("evidence_labels")))
+            labels.update(_normalize_evidence_state_labels(payload.get("source_labels")))
+            status = str(payload.get("source_coverage_status") or "").strip()
+            if status in _EVIDENCE_STATE_LABELS:
+                labels.add(status)
+            if str(payload.get("runtime_degradation") or "").strip():
+                labels.add("degraded_runtime")
+            if str(payload.get("system_status") or "").strip().lower() == "degraded":
+                labels.add("degraded_runtime")
+            if payload.get("provider_error"):
+                labels.add("degraded_runtime")
+    if not labels:
+        return {}
+    metadata: dict[str, Any] = {"evidence_labels": sorted(labels)}
+    coverage = _coverage_from_evidence_labels(labels)
+    if coverage:
+        metadata["source_coverage_status"] = coverage
+    if "degraded_runtime" in labels:
+        metadata["system_status"] = "degraded"
+        metadata["runtime_degradation"] = "tool_runtime_failure"
+    return metadata
 
 
 def _response_is_pure_refusal(text: str) -> bool:
@@ -420,6 +495,7 @@ class AgentLoop:
             mode="command",
             tool_calls_made=1,
             iterations_used=1,
+            routing_metadata=_evidence_semantic_metadata(evidence) or None,
             tool_traces=[trace],
         )
 
@@ -1258,6 +1334,7 @@ class AgentLoop:
         on_chunk: Callable[[str], None] | None,
         on_status: Callable[[str], None] | None,
     ) -> AgentResult:
+        self._merge_evidence_semantic_metadata(result)
         if result.action_preview is not None:
             return result
 
@@ -1290,6 +1367,30 @@ class AgentLoop:
         if on_chunk and result.text:
             self._replay_through_chunks(result.text, on_chunk)
         return result
+
+    @staticmethod
+    def _merge_evidence_semantic_metadata(result: AgentResult) -> None:
+        semantic_metadata = _evidence_semantic_metadata(result.evidence)
+        if not semantic_metadata:
+            return
+        metadata = dict(result.routing_metadata or {})
+        existing_labels = _normalize_evidence_state_labels(metadata.get("evidence_labels"))
+        new_labels = _normalize_evidence_state_labels(semantic_metadata.get("evidence_labels"))
+        labels = existing_labels | new_labels
+        if labels:
+            metadata["evidence_labels"] = sorted(labels)
+        if "source_coverage_status" not in metadata and semantic_metadata.get(
+            "source_coverage_status"
+        ):
+            metadata["source_coverage_status"] = semantic_metadata["source_coverage_status"]
+        if (
+            semantic_metadata.get("system_status") == "degraded"
+            and "system_status" not in metadata
+        ):
+            metadata["system_status"] = "degraded"
+        if semantic_metadata.get("runtime_degradation") and "runtime_degradation" not in metadata:
+            metadata["runtime_degradation"] = semantic_metadata["runtime_degradation"]
+        result.routing_metadata = metadata
 
     def synthesize_final_answer(
         self,

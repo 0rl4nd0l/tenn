@@ -500,6 +500,48 @@ class TestAgentLoopRegressions:
         assert "$" not in result.text
         executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
 
+    def test_degraded_tool_result_is_reflected_in_final_routing_metadata(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_web",
+                    "arguments": {"query": "BHP latest announcement"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": (
+                        "Web search failed, so I cannot verify current web evidence."
+                    ),
+                }
+            ),
+            "Web search failed, so I cannot verify current web evidence.",
+        ]
+        executor = MagicMock(
+            return_value={
+                "ok": False,
+                "query": "BHP latest announcement",
+                "error": "search timed out",
+                "evidence_labels": ["degraded_runtime", "operational_trace"],
+                "source_coverage_status": "degraded_runtime",
+                "runtime_degradation": "search_web_failed",
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("search the web for BHP latest announcement")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        assert result.routing_metadata is not None
+        assert result.routing_metadata["system_status"] == "degraded"
+        assert result.routing_metadata["runtime_degradation"] == "tool_runtime_failure"
+        assert result.routing_metadata["source_coverage_status"] == "degraded_runtime"
+        assert "degraded_runtime" in result.routing_metadata["evidence_labels"]
+        assert "claim_verified" not in result.routing_metadata["evidence_labels"]
+
     def test_direct_price_lookup_executes_tool_without_forced_thinking(self):
         """Ticker price lookups should execute get_price even if the model starts with tool_call."""
         responses = [

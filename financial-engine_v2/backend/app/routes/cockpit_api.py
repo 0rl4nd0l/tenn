@@ -1277,6 +1277,9 @@ _OPERATIONAL_SOURCE_ID_PREFIXES = (
     "tv_indicators:",
     "analysis:",
     "deep_research:",
+    "tool_no_hit:",
+    "runtime_failure:",
+    "financial_truth:no_hit:",
     "runtime_clock:",
     "youtube:",
 )
@@ -1284,6 +1287,11 @@ _MEMORY_SOURCE_ID_PREFIXES = (
     "company_memory:",
     "market_memory:",
     "user_thesis_memory:",
+)
+_TOOL_NO_HIT_ERROR_RE = re.compile(
+    r"\bno [^.?!]{0,120}\b(?:found|returned|available)\b|"
+    r"\bnot returned by provider\b",
+    re.IGNORECASE,
 )
 
 
@@ -1363,8 +1371,20 @@ def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
     ).strip()
     source_type = str(raw.get("source_type") or raw.get("source") or "").strip().lower()
 
-    if source_id.startswith("search_news:no_hits:") or doc_type == "operational_no_hit":
+    if (
+        source_id.startswith("search_news:no_hits:")
+        or source_id.startswith("tool_no_hit:")
+        or source_id.startswith("financial_truth:no_hit:")
+        or doc_type in {"operational_no_hit", "missing_required_evidence"}
+    ):
         labels.update({"no_hit", "operational_trace"})
+    if (
+        source_id.startswith("financial_truth:no_hit:")
+        or doc_type == "missing_required_evidence"
+    ):
+        labels.add("missing_required_evidence")
+    if source_id.startswith("runtime_failure:") or doc_type == "runtime_failure":
+        labels.update({"degraded_runtime", "operational_trace"})
     if normalized_kind == "news" or "news" in doc_type or "news" in source_type:
         labels.add("local_news_context")
     if normalized_kind == "web":
@@ -1740,6 +1760,141 @@ def _append_news_no_hit_source(
     )
 
 
+def _source_id_slug(value: Any, *, fallback: str = "unknown") -> str:
+    text = str(value or "").strip().lower()
+    text = re.sub(r"[^a-z0-9._:-]+", "-", text).strip("-")
+    return text[:96] or fallback
+
+
+def _tool_result_identity(tool_name: str, result: dict[str, Any]) -> str:
+    for key in (
+        "ticker",
+        "query",
+        "normalized_query",
+        "market",
+        "exchange",
+        "url",
+        "name",
+        "channel_id",
+    ):
+        value = result.get(key)
+        if value not in (None, "", [], {}):
+            return _source_id_slug(value, fallback=tool_name)
+    return tool_name
+
+
+def _tool_error_text(result: dict[str, Any]) -> str | None:
+    error = result.get("error") or result.get("provider_error")
+    if error in (None, "", False):
+        return None
+    return _clean_source_text(error, max_chars=220)
+
+
+def _tool_result_has_runtime_failure(tool_name: str, result: dict[str, Any]) -> bool:
+    labels = _normalize_source_labels(result.get("evidence_labels"))
+    if "degraded_runtime" in labels:
+        return True
+    if labels & {"no_hit", "missing_required_evidence"}:
+        return False
+    if str(result.get("source_coverage_status") or "") == "degraded_runtime":
+        return True
+    if str(result.get("runtime_degradation") or "").strip():
+        return True
+    research = result.get("research") if isinstance(result.get("research"), dict) else {}
+    if research.get("synthesis_failed") is True:
+        return True
+    error = _tool_error_text(result)
+    if result.get("ok") is False and error:
+        if _TOOL_NO_HIT_ERROR_RE.search(error):
+            return False
+        return not bool(result.get("data_insufficient"))
+    return False
+
+
+def _tool_result_is_no_hit(result: dict[str, Any]) -> bool:
+    labels = _normalize_source_labels(result.get("evidence_labels"))
+    if labels & {"no_hit", "missing_required_evidence"}:
+        return True
+    status = str(result.get("source_coverage_status") or "")
+    return status in {"no_hit", "missing_required_evidence"}
+
+
+def _append_tool_no_hit_source(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    *,
+    tool_name: str,
+    result: dict[str, Any],
+    title: str,
+    snippet: str,
+    missing_required: bool = False,
+) -> None:
+    identity = _tool_result_identity(tool_name, result)
+    labels = ["no_hit", "operational_trace"]
+    if missing_required:
+        labels.insert(0, "missing_required_evidence")
+    source_id_prefix = (
+        "financial_truth:no_hit"
+        if tool_name == "get_financials"
+        else f"tool_no_hit:{tool_name}"
+    )
+    _append_source_item(
+        items,
+        seen,
+        {
+            "title": title,
+            "source_id": f"{source_id_prefix}:{identity}",
+            "snippet": snippet,
+            "score": 1.0,
+            "doc_type": "operational_no_hit",
+            "evidence_labels": labels,
+            "claim_verified": False,
+        },
+        default_title=title,
+        kind="context",
+    )
+
+
+def _append_tool_runtime_failure_source(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    *,
+    tool_name: str,
+    result: dict[str, Any],
+    title: str,
+    snippet: str | None = None,
+) -> None:
+    identity = _tool_result_identity(tool_name, result)
+    error = _tool_error_text(result)
+    bits = [snippet.strip()] if isinstance(snippet, str) and snippet.strip() else []
+    if error:
+        bits.append(f"Error: {error}")
+    if not bits:
+        bits.append("Tool/runtime failure affected this answer.")
+    _append_source_item(
+        items,
+        seen,
+        {
+            "title": title,
+            "source_id": f"runtime_failure:{tool_name}:{identity}",
+            "snippet": " ".join(bits),
+            "score": 0.0,
+            "doc_type": "runtime_failure",
+            "evidence_labels": ["degraded_runtime", "operational_trace"],
+            "claim_verified": False,
+        },
+        default_title=title,
+        kind="context",
+    )
+
+
+def _has_web_source_content(payload: dict[str, Any]) -> bool:
+    for key in ("url", "source_url", "title", "snippet", "text", "excerpt", "content", "claim"):
+        if str(payload.get(key) or "").strip():
+            return True
+    return False
+
+
 def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -1993,6 +2148,15 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
             )
 
         elif ev_type == "web":
+            if _tool_result_has_runtime_failure("web", details):
+                _append_tool_runtime_failure_source(
+                    items,
+                    seen,
+                    tool_name="web",
+                    result=details,
+                    title="Web search/fetch degraded",
+                    snippet="Web search or fetch did not complete successfully.",
+                )
             pages = details.get("pages") if isinstance(details.get("pages"), list) else []
             facts = details.get("facts") if isinstance(details.get("facts"), list) else []
             if pages:
@@ -2016,13 +2180,25 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                             kind="web",
                         )
             else:
-                _append_source_item(
-                    items,
-                    seen,
-                    details,
-                    default_title="Web source",
-                    kind="web",
-                )
+                if _has_web_source_content(details) and not _tool_result_has_runtime_failure(
+                    "web", details
+                ):
+                    _append_source_item(
+                        items,
+                        seen,
+                        details,
+                        default_title="Web source",
+                        kind="web",
+                    )
+                elif not _tool_result_has_runtime_failure("web", details):
+                    _append_tool_no_hit_source(
+                        items,
+                        seen,
+                        tool_name="web",
+                        result=details,
+                        title="Web search: no usable evidence",
+                        snippet="Web search returned no usable source rows.",
+                    )
 
         elif ev_type == "runtime_clock":
             _append_source_item(
@@ -2139,6 +2315,7 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     if not hits:
                         _append_news_no_hit_source(items, seen, result)
                 elif tool_name == "search_announcements":
+                    before_count = len(items)
                     for row in result.get("documents") or []:
                         if isinstance(row, dict):
                             _append_source_item(
@@ -2157,11 +2334,32 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Announcement excerpt",
                                 kind="document",
                             )
+                    if len(items) == before_count:
+                        if _tool_result_has_runtime_failure(tool_name, result):
+                            _append_tool_runtime_failure_source(
+                                items,
+                                seen,
+                                tool_name=tool_name,
+                                result=result,
+                                title="Announcement search degraded",
+                                snippet="Announcement search did not complete successfully.",
+                            )
+                        else:
+                            _append_tool_no_hit_source(
+                                items,
+                                seen,
+                                tool_name=tool_name,
+                                result=result,
+                                title="Announcement search: no hits",
+                                snippet="No announcement documents or excerpts were returned.",
+                                missing_required=bool(result.get("data_insufficient")),
+                            )
                 elif tool_name in (
                     "gather_local_context",
                     "query_ticker_data",
                     "get_company_dump",
                 ):
+                    before_count = len(items)
                     for hit in result.get("hits") or result.get("rag_hits") or []:
                         if isinstance(hit, dict):
                             _append_source_item(
@@ -2190,8 +2388,29 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 kind="document",
                             )
                     _append_financial_payload_sources(items, seen, result)
+                    if len(items) == before_count:
+                        if _tool_result_has_runtime_failure(tool_name, result):
+                            _append_tool_runtime_failure_source(
+                                items,
+                                seen,
+                                tool_name=tool_name,
+                                result=result,
+                                title="Local context retrieval degraded",
+                                snippet="Local context retrieval did not complete successfully.",
+                            )
+                        else:
+                            _append_tool_no_hit_source(
+                                items,
+                                seen,
+                                tool_name=tool_name,
+                                result=result,
+                                title="Local context: no matching sources",
+                                snippet="No matching local source rows were returned.",
+                                missing_required=bool(result.get("data_insufficient")),
+                            )
                 elif tool_name == "get_financials":
-                    for row in result.get("financials") or []:
+                    financial_rows = _dict_rows(result.get("financials"))
+                    for row in financial_rows:
                         if isinstance(row, dict):
                             _append_source_item(
                                 items,
@@ -2211,8 +2430,32 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Financial period",
                                 kind="document",
                             )
+                    if not financial_rows:
+                        ticker = str(result.get("ticker") or "ticker").strip().upper()
+                        if _tool_result_has_runtime_failure(tool_name, result):
+                            _append_tool_runtime_failure_source(
+                                items,
+                                seen,
+                                tool_name=tool_name,
+                                result=result,
+                                title=f"{ticker} financial truth degraded",
+                                snippet="Canonical financial rows could not be retrieved.",
+                            )
+                        else:
+                            _append_tool_no_hit_source(
+                                items,
+                                seen,
+                                tool_name=tool_name,
+                                result=result,
+                                title=f"{ticker} financial truth: missing rows",
+                                snippet=(
+                                    f"No canonical financial rows were returned for {ticker}."
+                                ),
+                                missing_required=True,
+                            )
                 elif tool_name == "recall_dossier":
-                    for row in result.get("findings") or []:
+                    findings = _dict_rows(result.get("findings"))
+                    for row in findings:
                         if isinstance(row, dict):
                             _append_source_item(
                                 items,
@@ -2232,9 +2475,21 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Dossier finding",
                                 kind="context",
                             )
+                    if not findings:
+                        _append_tool_no_hit_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Dossier recall: no findings",
+                            snippet="No dossier findings were returned for this query.",
+                        )
                 elif tool_name == "deep_research":
                     research = result.get("research")
                     if isinstance(research, dict):
+                        labels = ["operational_trace"]
+                        if _tool_result_has_runtime_failure(tool_name, result):
+                            labels = ["degraded_runtime", "operational_trace"]
                         _append_source_item(
                             items,
                             seen,
@@ -2243,12 +2498,38 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 "source_id": f"deep_research:{result.get('ticker') or ''}",
                                 "snippet": research.get("summary"),
                                 "score": research.get("confidence"),
+                                "doc_type": (
+                                    "runtime_failure"
+                                    if _tool_result_has_runtime_failure(tool_name, result)
+                                    else "deep_research"
+                                ),
+                                "evidence_labels": labels,
+                                "claim_verified": False,
                             },
                             default_title="Deep research brief",
                             kind="context",
                         )
+                    elif _tool_result_has_runtime_failure(tool_name, result):
+                        _append_tool_runtime_failure_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Deep research degraded",
+                            snippet="Deep research did not complete successfully.",
+                        )
+                    else:
+                        _append_tool_no_hit_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Deep research: no usable brief",
+                            snippet="Deep research returned no usable brief.",
+                        )
                 elif tool_name == "search_web":
-                    for row in result.get("results") or result.get("pages") or []:
+                    web_rows = _dict_rows(result.get("results")) or _dict_rows(result.get("pages"))
+                    for row in web_rows:
                         if isinstance(row, dict):
                             _append_source_item(
                                 items,
@@ -2257,14 +2538,51 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Web result",
                                 kind="web",
                             )
+                    if _tool_result_has_runtime_failure(tool_name, result):
+                        _append_tool_runtime_failure_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Web search degraded",
+                            snippet="Web search did not complete successfully.",
+                        )
+                    elif not web_rows:
+                        _append_tool_no_hit_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Web search: no results",
+                            snippet="Web search returned no result rows.",
+                        )
                 elif tool_name == "fetch_url":
-                    _append_source_item(
-                        items,
-                        seen,
-                        result,
-                        default_title="Fetched page",
-                        kind="web",
-                    )
+                    if _tool_result_has_runtime_failure(tool_name, result):
+                        _append_tool_runtime_failure_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Web fetch degraded",
+                            snippet="The requested page could not be fetched successfully.",
+                        )
+                    elif _has_web_source_content(result):
+                        _append_source_item(
+                            items,
+                            seen,
+                            result,
+                            default_title="Fetched page",
+                            kind="web",
+                        )
+                    else:
+                        _append_tool_no_hit_source(
+                            items,
+                            seen,
+                            tool_name=tool_name,
+                            result=result,
+                            title="Web fetch: no usable content",
+                            snippet="The fetch returned no usable source content.",
+                        )
                 elif tool_name == "get_data_quality":
                     for row in result.get("recent_failures") or []:
                         if isinstance(row, dict):
@@ -2450,6 +2768,9 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 "title": f"{ticker or 'Watchlist'} alerts",
                                 "source_id": f"watchlist_alerts:{ticker or 'all'}",
                                 "snippet": snippet,
+                                "doc_type": "operational_no_hit",
+                                "evidence_labels": ["no_hit", "operational_trace"],
+                                "claim_verified": False,
                             },
                             default_title="Watchlist alerts",
                             kind="context",
@@ -2502,6 +2823,9 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 ),
                                 "source_id": f"tv_screener:{market or 'unknown'}",
                                 "snippet": snippet,
+                                "doc_type": "operational_no_hit",
+                                "evidence_labels": ["no_hit", "operational_trace"],
+                                "claim_verified": False,
                             },
                             default_title="TradingView screener",
                             kind="context",
@@ -2531,6 +2855,25 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                             "title": f"{exchange + ':' if exchange else ''}{ticker or 'Ticker'} indicators",
                             "source_id": f"tv_indicators:{exchange}:{ticker}",
                             "snippet": _clean_source_text("; ".join(indicator_bits)),
+                            "doc_type": (
+                                "runtime_failure"
+                                if _tool_result_has_runtime_failure(tool_name, result)
+                                else (
+                                    "operational_no_hit"
+                                    if _tool_result_is_no_hit(result) or not indicator_bits
+                                    else "tv_indicators"
+                                )
+                            ),
+                            "evidence_labels": (
+                                ["degraded_runtime", "operational_trace"]
+                                if _tool_result_has_runtime_failure(tool_name, result)
+                                else (
+                                    ["no_hit", "operational_trace"]
+                                    if _tool_result_is_no_hit(result) or not indicator_bits
+                                    else ["operational_trace"]
+                                )
+                            ),
+                            "claim_verified": False,
                         },
                         default_title="TradingView indicators",
                         kind="context",
@@ -2582,13 +2925,24 @@ _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
 )
 _PURE_OPERATIONAL_NO_HIT_RE = re.compile(
     r"^\s*(?:"
+    r"(?:data_missing:?\s*)?(?:no|zero) (?:[\w-]+\s+){0,3}(?:canonical )?"
+    r"(?:financial rows|financial data|watchlist alerts?|indicator values?|"
+    r"local sources?|attached sources?|web results?|dossier findings?|"
+    r"announcement documents?|announcement excerpts?|movers?|rows?) "
+    r"(?:were )?(?:returned|found)(?:\s+(?:for|matching)\s+[^.!?]+)?|"
     r"no (?:news )?(?:hits|results|articles|videos?) (?:were )?"
     r"(?:returned|found)(?:\s+(?:for|matching)\s+[^.!?]+)?|"
     r"(?:search|query|screener|channel|tool)?\s*returned no "
     r"(?:news )?(?:hits|results|articles|videos?)"
     r"(?:\s+(?:for|matching)\s+[^.!?]+)?|"
+    r"(?:web search|web fetch|deep research|tool|runtime|provider) "
+    r"(?:failed|timed out|was unavailable|is unavailable|did not complete)"
+    r"(?:[:;]\s*[^.!?]+)?|"
     r"i (?:couldn't|could not|didn't|did not) find (?:any )?"
-    r"(?:recent )?(?:indexed )?(?:news|articles|videos?)"
+    r"(?:recent )?(?:indexed )?"
+    r"(?:news|articles|videos?|canonical financial rows|financial data|watchlist alerts?|"
+    r"indicator values?|local sources?|attached sources?|web results?|dossier findings?|"
+    r"announcement documents?|announcement excerpts?|movers?|rows?)"
     r"(?:\s+(?:for|on|about)\s+[^.!?]+)?"
     r")\.?\s*$",
     re.IGNORECASE,
@@ -2673,13 +3027,38 @@ def _is_operational_tool_acknowledgement(response: Any, text: str) -> bool:
     return True
 
 
+_OPERATIONAL_NON_EVIDENCE_LABELS = frozenset(
+    {
+        "context_only",
+        "degraded_runtime",
+        "missing_required_evidence",
+        "no_hit",
+        "operational_trace",
+    }
+)
+
+
 def _only_operational_no_hit_sources(sources: list[dict[str, Any]]) -> bool:
     if not sources:
         return False
     for source in sources:
         source_id = str(source.get("source_id") or "")
         doc_type = str(source.get("doc_type") or "")
-        if not source_id.startswith("search_news:no_hits:") and doc_type != "operational_no_hit":
+        labels = _normalize_source_labels(source.get("evidence_labels"))
+        if (
+            labels
+            and labels <= _OPERATIONAL_NON_EVIDENCE_LABELS
+            and labels & {"degraded_runtime", "missing_required_evidence", "no_hit"}
+        ):
+            continue
+        if not source_id.startswith(
+            (
+                "search_news:no_hits:",
+                "tool_no_hit:",
+                "financial_truth:no_hit:",
+                "runtime_failure:",
+            )
+        ) and doc_type not in {"operational_no_hit", "runtime_failure"}:
             return False
     return True
 
@@ -2820,9 +3199,37 @@ def _source_label_counts(sources: list[dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
+def _evidence_payload_labels(response: Any) -> set[str]:
+    labels: set[str] = set()
+    for entry in getattr(response, "evidence", None) or []:
+        if not isinstance(entry, dict):
+            continue
+        for payload in (entry, entry.get("result"), entry.get("details")):
+            if not isinstance(payload, dict):
+                continue
+            labels.update(_normalize_source_labels(payload.get("evidence_labels")))
+            labels.update(_normalize_source_labels(payload.get("source_labels")))
+            status = str(payload.get("source_coverage_status") or "").strip()
+            if status in _VALID_SOURCE_LABELS:
+                labels.add(status)
+            if str(payload.get("runtime_degradation") or "").strip():
+                labels.add("degraded_runtime")
+            if str(payload.get("system_status") or "").strip().lower() == "degraded":
+                labels.add("degraded_runtime")
+            if payload.get("provider_error"):
+                labels.add("degraded_runtime")
+    # Tool-level metadata is not allowed to claim verification by itself.
+    labels.discard("claim_verified")
+    return labels
+
+
 def _response_evidence_labels(response: Any, sources: list[dict[str, Any]]) -> set[str]:
     labels = set(_source_label_counts(sources))
+    labels.update(_evidence_payload_labels(response))
     routing_metadata = dict(getattr(response, "routing_metadata", None) or {})
+    routing_labels = _normalize_source_labels(routing_metadata.get("evidence_labels"))
+    routing_labels.discard("claim_verified")
+    labels.update(routing_labels)
     if _response_is_holdings_answer(response):
         labels.add("local_personal_data")
     if str(routing_metadata.get("grounding_guard") or "").strip():

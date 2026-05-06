@@ -53,6 +53,10 @@ class TestGetFinancials:
 
         assert result["ok"] is True
         assert result["financials"] == []
+        assert result["source_coverage_status"] == "missing_required_evidence"
+        assert "missing_required_evidence" in result["evidence_labels"]
+        assert "no_hit" in result["evidence_labels"]
+        assert "claim_verified" not in result["evidence_labels"]
         backend.get_ticker_context.assert_called_once_with("PLS", financials_limit=6)
 
     def test_backend_financials_exception_remains_tool_failure(self) -> None:
@@ -65,7 +69,52 @@ class TestGetFinancials:
 
         assert result["ok"] is False
         assert result["error"] == "backend API client not configured or request failed"
+        assert result["source_coverage_status"] == "degraded_runtime"
+        assert "degraded_runtime" in result["evidence_labels"]
+        assert "claim_verified" not in result["evidence_labels"]
         backend.get_ticker_context.assert_called_once_with("PLS", financials_limit=6)
+
+
+class TestWebRuntimeSemantics:
+    def test_exec_search_web_fallback_preserves_failure_metadata(self) -> None:
+        executor = _make_executor()
+        executor._router.web_default_enabled = True
+        executor._router.brave_search_client = None
+        executor._router.web_fetcher.search_and_fetch.return_value = {
+            "ok": False,
+            "error": "search timed out",
+            "pages": [],
+            "facts": [],
+            "facts_count": 0,
+        }
+
+        result = executor.execute("search_web", {"query": "BHP latest"})
+
+        assert result["ok"] is False
+        assert result["query"] == "BHP latest"
+        assert result["error"] == "search timed out"
+        assert result["source_coverage_status"] == "degraded_runtime"
+        assert result["runtime_degradation"] == "search_web_failed"
+        assert "degraded_runtime" in result["evidence_labels"]
+        assert "claim_verified" not in result["evidence_labels"]
+
+    def test_exec_deep_research_failure_is_degraded_runtime(self) -> None:
+        runner = MagicMock()
+        runner.run.return_value = {
+            "ok": False,
+            "ticker": "BHP",
+            "error": "deep research returned HTTP 500",
+        }
+        executor = _make_executor()
+        executor._deep_research_runner = runner
+
+        result = executor.execute("deep_research", {"ticker": "BHP"})
+
+        assert result["ok"] is False
+        assert result["source_coverage_status"] == "degraded_runtime"
+        assert result["runtime_degradation"] == "deep_research_failed"
+        assert "degraded_runtime" in result["evidence_labels"]
+        assert "claim_verified" not in result["evidence_labels"]
 
 
 class TestGetPrice:
@@ -549,6 +598,8 @@ class TestTradingViewIndicators:
 
         assert result["ok"] is False
         assert result["error"] == "TradingView indicator request failed"
+        assert result["source_coverage_status"] == "degraded_runtime"
+        assert "degraded_runtime" in result["evidence_labels"]
         assert "error" in result["indicators"]["RSI"]
 
     def test_exec_get_tv_indicators_maps_macd_alias(self, monkeypatch) -> None:
@@ -621,6 +672,29 @@ class TestTradingViewScreener:
 
         assert result["ok"] is False
         assert "upstream error" in str(result["error"])
+        assert result["source_coverage_status"] == "degraded_runtime"
+        assert "degraded_runtime" in result["evidence_labels"]
+
+    def test_exec_tv_screener_empty_rows_are_no_hit(self, monkeypatch) -> None:
+        executor = _make_executor()
+
+        class FakeScreener:
+            def screen(self, **kwargs):  # noqa: ARG002
+                return {"status": "success", "data": []}
+
+        monkeypatch.setattr(
+            executor,
+            "_get_tradingview_screener_cls",
+            lambda: FakeScreener,
+        )
+
+        result = executor.execute("tv_screener", {"market": "australia", "limit": 3})
+
+        assert result["ok"] is True
+        assert result["count"] == 0
+        assert result["source_coverage_status"] == "no_hit"
+        assert "no_hit" in result["evidence_labels"]
+        assert "claim_verified" not in result["evidence_labels"]
 
     def test_exec_tv_screener_market_movers_fetches_gainers_and_decliners(
         self, monkeypatch

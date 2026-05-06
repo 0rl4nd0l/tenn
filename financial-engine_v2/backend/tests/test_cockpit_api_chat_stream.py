@@ -1593,7 +1593,154 @@ def test_cockpit_chat_stream_tv_screener_empty_result_still_emits_source_item(mo
     assert done_events
     assert done_events[-1]["data"]["text"] == "No high-conviction movers were returned."
     assert source_events
-    assert source_events[-1]["data"]["items"][0]["source_id"] == "tv_screener:AUSTRALIA"
+    item = source_events[-1]["data"]["items"][0]
+    assert item["source_id"] == "tv_screener:AUSTRALIA"
+    assert item["evidence_label"] == "no_hit"
+    assert item["claim_verified"] is False
+    routing = done_events[-1]["data"]["routing_metadata"]
+    assert routing["source_coverage_status"] == "no_hit"
+    assert routing["claim_verified_source_count"] == 0
+
+
+def test_cockpit_chat_stream_financial_truth_missing_rows_surfaces_missing_evidence(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="No canonical financial rows were returned for BHP.",
+                evidence=[
+                    {
+                        "tool": "get_financials",
+                        "result": {
+                            "ok": True,
+                            "ticker": "BHP",
+                            "financials": [],
+                            "data_insufficient": True,
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 121,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "What is BHP revenue?", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events[-1]["data"]["text"] == "No canonical financial rows were returned for BHP."
+    item = source_events[-1]["data"]["items"][0]
+    assert item["source_id"] == "financial_truth:no_hit:bhp"
+    assert item["evidence_label"] == "missing_required_evidence"
+    assert item["claim_verified"] is False
+    routing = done_events[-1]["data"]["routing_metadata"]
+    assert routing["source_coverage_status"] == "missing_required_evidence"
+    assert routing["claim_verified_source_count"] == 0
+
+
+def test_cockpit_chat_stream_web_tool_failure_surfaces_degraded_runtime(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Web search failed: search timed out.",
+                evidence=[
+                    {
+                        "tool": "search_web",
+                        "result": {
+                            "ok": False,
+                            "query": "BHP latest announcement",
+                            "error": "search timed out",
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 121,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "search web for BHP latest announcement", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events[-1]["data"]["text"] == "Web search failed: search timed out."
+    item = source_events[-1]["data"]["items"][0]
+    assert item["evidence_label"] == "degraded_runtime"
+    assert item["claim_verified"] is False
+    routing = done_events[-1]["data"]["routing_metadata"]
+    assert routing["source_coverage_status"] == "degraded_runtime"
+    assert "degraded_runtime" in routing["evidence_labels"]
+    assert routing["claim_verified_source_count"] == 0
 
 
 def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) -> None:
