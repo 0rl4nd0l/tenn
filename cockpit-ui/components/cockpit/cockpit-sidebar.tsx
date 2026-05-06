@@ -85,12 +85,12 @@ const INITIAL_CONFIG_SUMMARY: ConfigSummary = {
 }
 
 const navItems = [
-  { href: '/', icon: MessageSquare, label: 'Chat', shortcut: '1' },
-  { href: '/operations', icon: Settings2, label: 'Operations', shortcut: '2' },
-  { href: '/updater', icon: RefreshCw, label: 'Updater', shortcut: '3' },
-  { href: '/verification', icon: CheckCircle2, label: 'Verification', shortcut: '4' },
-  { href: '/history', icon: History, label: 'History', shortcut: '5' },
-  { href: '/settings', icon: Gauge, label: 'Settings', shortcut: '6' },
+  { href: '/', icon: Gauge, label: 'Overview', shortcut: '1' },
+  { href: '/full-chat', icon: MessageSquare, label: 'Chat', shortcut: '2' },
+  { href: '/operations', icon: Settings2, label: 'Operations', shortcut: '3' },
+  { href: '/updater', icon: RefreshCw, label: 'Updater', shortcut: '4' },
+  { href: '/verification', icon: CheckCircle2, label: 'Verification', shortcut: '5' },
+  { href: '/history', icon: History, label: 'History', shortcut: '6' },
   { href: '/news', icon: Newspaper, label: 'News', shortcut: '7' },
   { href: '/intel-ops', icon: Activity, label: 'Intel Pulse', shortcut: '8' },
   { href: '/holdings', icon: Wallet, label: 'Holdings', shortcut: '9' },
