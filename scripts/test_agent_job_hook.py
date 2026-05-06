@@ -10,6 +10,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HOOK_SCRIPT = REPO_ROOT / "scripts" / "agent_job_hook.py"
 CONTRACT_SCRIPT = REPO_ROOT / "scripts" / "agent_job_contract.py"
+REGISTRY_SCRIPT = REPO_ROOT / "scripts" / "agent_job_registry.py"
 
 
 def run_git(repo: Path, *args: str) -> None:
@@ -63,7 +64,8 @@ def git_repo(tmp_path: Path) -> Path:
     scripts = repo / "scripts"
     scripts.mkdir()
     (scripts / "agent_job_contract.py").write_text(CONTRACT_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
-    (repo / ".gitignore").write_text(".tenn/\n", encoding="utf-8")
+    (scripts / "agent_job_registry.py").write_text(REGISTRY_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+    (repo / ".gitignore").write_text(".tenn/\nreports/agent_jobs/\n__pycache__/\n", encoding="utf-8")
 
     src = repo / "src"
     src.mkdir()
@@ -76,6 +78,7 @@ def git_repo(tmp_path: Path) -> Path:
         "add",
         ".gitignore",
         "scripts/agent_job_contract.py",
+        "scripts/agent_job_registry.py",
         "src/allowed.py",
         "src/outside.py",
         "docs/agent_tasks/test-task.md",

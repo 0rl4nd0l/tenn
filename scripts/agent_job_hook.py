@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 ACTIVE_TASK_MARKER = Path(".tenn/active_agent_task")
 CONTRACT_SCRIPT = Path("scripts/agent_job_contract.py")
+REGISTRY_SCRIPT = Path("scripts/agent_job_registry.py")
 
 
 @dataclass(frozen=True)
@@ -87,14 +88,14 @@ def find_active_task_card(repo_root: Path, env: Mapping[str, str] | None = None)
     return _resolve_card_path(repo_root, marker_value[0], ACTIVE_TASK_MARKER.as_posix())
 
 
-def _run_contract(repo_root: Path, name: str, args: list[str]) -> ContractRun:
-    script = repo_root / CONTRACT_SCRIPT
+def _run_script(repo_root: Path, script_path: Path, name: str, args: list[str]) -> ContractRun:
+    script = repo_root / script_path
     if not script.exists():
         return ContractRun(
             name=name,
             returncode=1,
             stdout="",
-            stderr=f"missing contract script: {CONTRACT_SCRIPT.as_posix()}",
+            stderr=f"missing script: {script_path.as_posix()}",
             parsed=None,
         )
 
@@ -123,6 +124,14 @@ def _run_contract(repo_root: Path, name: str, args: list[str]) -> ContractRun:
         stderr=completed.stderr.strip(),
         parsed=parsed,
     )
+
+
+def _run_contract(repo_root: Path, name: str, args: list[str]) -> ContractRun:
+    return _run_script(repo_root, CONTRACT_SCRIPT, name, args)
+
+
+def _run_registry(repo_root: Path, name: str, args: list[str]) -> ContractRun:
+    return _run_script(repo_root, REGISTRY_SCRIPT, name, args)
 
 
 def _issue_messages(payload: dict[str, Any] | None) -> list[str]:
@@ -205,12 +214,22 @@ def build_hook_payload(
         return _blocking_payload(f"Tenn agent-job contract blocked: task card not found: {card.display_path}")
 
     validate = _run_contract(repo_root, "validate", ["validate", card.display_path])
+    list_active = _run_registry(
+        repo_root,
+        "list-active",
+        ["list-active", "--repo-root", str(repo_root)],
+    )
+    check_overlap = _run_registry(
+        repo_root,
+        "check-overlap",
+        ["check-overlap", card.display_path, "--repo-root", str(repo_root)],
+    )
     check_diff = _run_contract(
         repo_root,
         "check-diff",
         ["check-diff", card.display_path, "--repo-root", str(repo_root)],
     )
-    runs = [validate, check_diff]
+    runs = [validate, list_active, check_overlap, check_diff]
     passed = all(
         run.returncode == 0 and run.parsed is not None and run.parsed.get("ok", False)
         for run in runs
