@@ -45,12 +45,14 @@ SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.summary.json"
     
     # Add backend to PYTHONPATH for app.* imports
     export PYTHONPATH="${TENN_ROOT}/financial-engine_v2/backend:${TENN_ROOT}/scripts${PYTHONPATH:+:${PYTHONPATH}}"
+    MEMO_DIAGNOSTICS_PATH="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory/news_memos.jsonl"
     
     # Sync articles to Qdrant, dispatch memo extraction, and refresh the
     # canonical news.sqlite fallback used by Cockpit local news paths.
     python3 "${TENN_ROOT}/scripts/load_news_to_qdrant.py" \
       --since-hours 36 \
       --refresh-sqlite-fallback \
+      --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}" \
       --summary-json "${SUMMARY_FILE}"
     echo "[nightly_news] summary_json=${SUMMARY_FILE}"
   else

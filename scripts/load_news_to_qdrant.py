@@ -877,6 +877,7 @@ def sync_news_to_qdrant(
     ensure_collection_fn: Callable[[Any, str, int], None] | None = None,
     get_vector_config_fn: Callable[[Any, str], Dict[str, Any]] | None = None,
     memo_dispatch_fn: Callable[[List[Dict[str, Any]]], Dict[str, Any]] | None = None,
+    memo_diagnostics_path: str | Path | None = None,
     embed_model: str | None = None,
     ollama_url: str | None = None,
     write_model_marker: bool = True,
@@ -935,7 +936,10 @@ def sync_news_to_qdrant(
 
     if not target_points and not cleanup_stale:
         if dispatch_memos and not qdrant_only:
-            stats["memo_extraction"] = build_memo_coverage_diagnostics([])
+            stats["memo_extraction"] = build_memo_coverage_diagnostics(
+                [],
+                memos_path=memo_diagnostics_path,
+            )
         else:
             reason = "qdrant_only" if qdrant_only else "no_dispatch_memos"
             stats["memo_extraction"] = _memo_skipped(reason, articles)
@@ -1130,8 +1134,13 @@ def sync_news_to_qdrant(
     elif not dispatch_memos:
         memo_diagnostics = _memo_skipped("no_dispatch_memos", articles)
     else:
-        memo_dispatch = memo_dispatch_fn or dispatch_news_memos
-        memo_diagnostics = memo_dispatch(articles)
+        if memo_dispatch_fn is not None:
+            memo_diagnostics = memo_dispatch_fn(articles)
+        else:
+            memo_diagnostics = dispatch_news_memos(
+                articles,
+                memos_path=memo_diagnostics_path,
+            )
     logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
     # Write model marker after successful sync so future runs can verify consistency.
@@ -1198,6 +1207,14 @@ def main() -> int:
         help="Optional path for a nightly sync summary JSON artifact",
     )
     ap.add_argument(
+        "--memo-diagnostics-path",
+        default="",
+        help=(
+            "Optional host-readable news_memos.jsonl path used for memo coverage "
+            "diagnostics. Does not change the Celery worker output path."
+        ),
+    )
+    ap.add_argument(
         "--dry-run",
         action="store_true",
         help="Build target and Qdrant diff report without upserts, deletes, memos, or SQLite writes",
@@ -1252,6 +1269,7 @@ def main() -> int:
             cleanup_stale=bool(args.cleanup_stale),
             qdrant_only=bool(args.qdrant_only),
             target_contract_report=bool(args.target_contract_report),
+            memo_diagnostics_path=args.memo_diagnostics_path or None,
         )
         sync_status = "dry_run" if bool(args.dry_run) else "success"
         summary["qdrant_sync"] = {"status": sync_status, **stats}

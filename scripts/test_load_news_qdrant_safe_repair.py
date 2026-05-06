@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -238,6 +239,46 @@ class NewsQdrantSafeRepairTests(unittest.TestCase):
             self.assertEqual(stats["upserted"], 1)
             self.assertEqual(len(fake_client.upserted), 1)
             self.assertEqual(stats["memo_extraction"]["status"], "skipped")
+
+    def test_explicit_memo_diagnostics_path_reaches_default_dispatch(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news_articles.sqlite"
+            memos_path = Path(td) / "news_memos.jsonl"
+            _create_articles_db(db_path, [{"article_id": "memo-path-art"}])
+            fake_client = FakeQdrantClient()
+            seen: dict[str, Any] = {}
+
+            def fake_dispatch(
+                articles: list[dict[str, Any]],
+                *,
+                memos_path: str | Path | None = None,
+            ) -> dict[str, Any]:
+                seen["articles"] = articles
+                seen["memos_path"] = memos_path
+                return {
+                    "status": "pending",
+                    "memos_path": str(memos_path or ""),
+                    "eligible": len(articles),
+                    "completion_observable": False,
+                }
+
+            with patch("load_news_to_qdrant.dispatch_news_memos", side_effect=fake_dispatch):
+                stats = sync_news_to_qdrant(
+                    str(db_path),
+                    qdrant_client=fake_client,
+                    embed_texts_fn=_embed_texts,
+                    upsert_points_fn=_upsert_points,
+                    delete_points_fn=_delete_points,
+                    ensure_collection_fn=_ensure_collection,
+                    get_vector_config_fn=_vector_config,
+                    dispatch_memos=True,
+                    memo_diagnostics_path=memos_path,
+                    write_model_marker=False,
+                )
+
+            self.assertEqual(seen["memos_path"], memos_path)
+            self.assertEqual(len(seen["articles"]), 1)
+            self.assertEqual(stats["memo_extraction"]["memos_path"], str(memos_path))
 
     def test_stale_cleanup_is_explicit(self) -> None:
         with tempfile.TemporaryDirectory() as td:
