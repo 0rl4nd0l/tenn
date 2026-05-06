@@ -7,6 +7,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.query_orchestrator import (
     QueryOrchestrator,
+    SOURCE_LABEL_TAXONOMY_VERSION,
+    build_evidence_envelope,
     build_plan,
     classify,
     orchestrate_query,
@@ -671,3 +673,167 @@ def test_company_analysis_keeps_announcement_context_when_financial_rows_missing
     assert "Available announcement/news context from financial truth:" in result.answer_input
     assert "Sale of Wealth Management business" in result.answer_input
     assert "binding agreement to sell its wealth management business" in result.answer_input
+
+
+def _source_labels(envelope: dict, source_name: str) -> set[str]:
+    for source in envelope["sources"]:
+        if source["source_name"] == source_name:
+            return set(source["evidence_labels"])
+    raise AssertionError(f"missing source envelope for {source_name}")
+
+
+def test_direct_orchestrator_result_contains_evidence_envelope() -> None:
+    class TruthProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "ticker": entities.get("primary_ticker"),
+                "financials": [{"ticker": "BHP", "period_end": "2025-12-31"}],
+                "latest_financial_snapshot": {
+                    "ticker": "BHP",
+                    "period_end": "2025-12-31",
+                    "revenue": 55000,
+                },
+            }
+
+    result = orchestrate_query(
+        "What was BHP revenue?",
+        financial_truth_provider=TruthProvider(),
+    )
+
+    envelope = result.evidence_envelope
+    assert envelope["source_label_taxonomy_version"] == SOURCE_LABEL_TAXONOMY_VERSION
+    assert envelope["claim_verified_source_count"] == 0
+    assert envelope["source_coverage_status"] == "financial_truth"
+    assert "financial_truth" in envelope["evidence_labels"]
+    assert _source_labels(envelope, "financial_truth") == {"financial_truth"}
+
+
+def test_direct_orchestrator_memory_context_is_not_claim_verified() -> None:
+    class CompanyProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "items": [
+                    {
+                        "type": "strategic_initiative",
+                        "statement": "BHP is expanding copper capacity.",
+                        "active_score": 0.86,
+                    }
+                ],
+            }
+
+    result = orchestrate_query(
+        "What is the investment thesis for BHP?",
+        company_memory_provider=CompanyProvider(),
+    )
+
+    labels = _source_labels(result.evidence_envelope, "company_memory")
+    assert "memory_context" in labels
+    assert "context_only" in labels
+    assert "claim_verified" not in labels
+    assert "financial_truth" not in labels
+    assert result.evidence_envelope["source_coverage_status"] == "context_only"
+    user_thesis_labels = _source_labels(result.evidence_envelope, "user_thesis_memory")
+    assert "no_hit" in user_thesis_labels
+    assert "degraded_runtime" not in user_thesis_labels
+
+
+def test_direct_orchestrator_no_hit_financial_truth_is_representable() -> None:
+    class EmptyTruthProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "financials": [],
+                "latest_financial_snapshot": {},
+            }
+
+    result = orchestrate_query(
+        "What was BHP revenue?",
+        financial_truth_provider=EmptyTruthProvider(),
+    )
+
+    labels = _source_labels(result.evidence_envelope, "financial_truth")
+    assert "no_hit" in labels
+    assert "missing_required_evidence" in labels
+    assert "claim_verified" not in labels
+    assert "financial_truth" not in labels
+    assert result.evidence_envelope["source_coverage_status"] == (
+        "missing_required_evidence"
+    )
+
+
+def test_direct_orchestrator_degraded_runtime_is_representable() -> None:
+    class FailingTruthProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "partial_error",
+                "error": "context endpoint timed out",
+                "financials": [],
+                "latest_financial_snapshot": {},
+            }
+
+    result = orchestrate_query(
+        "What was BHP revenue?",
+        financial_truth_provider=FailingTruthProvider(),
+    )
+
+    source = result.evidence_envelope["sources"][0]
+    assert source["source_name"] == "financial_truth"
+    assert source["degraded"] is True
+    assert source["error"] == "context endpoint timed out"
+    assert "degraded_runtime" in source["evidence_labels"]
+    assert "operational_trace" in source["evidence_labels"]
+    assert "claim_verified" not in source["evidence_labels"]
+    assert result.evidence_envelope["source_coverage_status"] == "degraded_runtime"
+
+
+def test_evidence_envelope_distinguishes_source_roles() -> None:
+    plan = build_plan("mixed")
+
+    envelope = build_evidence_envelope(
+        plan=plan,
+        source_plan=(
+            "financial_truth",
+            "local_news",
+            "web_search",
+            "holdings",
+            "company_memory",
+            "unknown_provider",
+        ),
+        evidence={
+            "financial_truth": {
+                "status": "ok",
+                "financials": [{"ticker": "BHP"}],
+            },
+            "local_news": {
+                "status": "ok",
+                "items": [{"title": "A2M recall update", "source_type": "news"}],
+            },
+            "web_search": {
+                "status": "ok",
+                "items": [{"title": "External result", "url": "https://example.com"}],
+            },
+            "holdings": {
+                "status": "ok",
+                "items": [{"ticker": "BHP", "quantity": 10}],
+            },
+            "company_memory": {
+                "status": "ok",
+                "items": [{"statement": "Management is cost focused."}],
+            },
+            "unknown_provider": {
+                "status": "ok",
+                "items": [{"title": "Unclassified context"}],
+            },
+        },
+    )
+
+    assert "financial_truth" in _source_labels(envelope, "financial_truth")
+    assert "local_news_context" in _source_labels(envelope, "local_news")
+    assert "external_web_context" in _source_labels(envelope, "web_search")
+    assert "local_personal_data" in _source_labels(envelope, "holdings")
+    assert "memory_context" in _source_labels(envelope, "company_memory")
+    assert "unknown_unclassified" in _source_labels(envelope, "unknown_provider")
+    assert "financial_truth" not in _source_labels(envelope, "holdings")
+    assert "claim_verified" not in envelope["evidence_labels"]

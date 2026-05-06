@@ -15,6 +15,101 @@ from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_tickers
 QueryIntent = str
 SourceName = str
 
+SOURCE_LABEL_TAXONOMY_VERSION = "source_label_semantics_v1"
+_VALID_EVIDENCE_LABELS = frozenset(
+    {
+        "claim_verified",
+        "context_only",
+        "no_hit",
+        "operational_trace",
+        "local_personal_data",
+        "memory_context",
+        "external_web_context",
+        "local_news_context",
+        "financial_truth",
+        "degraded_runtime",
+        "missing_required_evidence",
+        "unknown_unclassified",
+    }
+)
+_SOURCE_LABEL_PRIMARY_ORDER = (
+    "missing_required_evidence",
+    "degraded_runtime",
+    "no_hit",
+    "claim_verified",
+    "financial_truth",
+    "local_personal_data",
+    "memory_context",
+    "external_web_context",
+    "local_news_context",
+    "operational_trace",
+    "unknown_unclassified",
+    "context_only",
+)
+_SOURCE_ROLE_LABELS = {
+    "financial_truth",
+    "local_personal_data",
+    "memory_context",
+    "external_web_context",
+    "local_news_context",
+    "operational_trace",
+    "unknown_unclassified",
+}
+_CONTEXT_SOURCE_LABELS = {
+    "local_personal_data",
+    "memory_context",
+    "external_web_context",
+    "local_news_context",
+    "unknown_unclassified",
+}
+_OK_SOURCE_STATUSES = {"", "ok", "success", "succeeded", "complete", "completed"}
+_NO_HIT_SOURCE_STATUSES = {
+    "no_hit",
+    "no_hits",
+    "not_found",
+    "empty",
+    "no_results",
+    "not_configured",
+}
+_MEMORY_SOURCE_NAMES = {
+    "company_memory",
+    "market_memory",
+    "user_thesis_memory",
+    "thesis_memory",
+}
+_LOCAL_NEWS_SOURCE_NAMES = {
+    "local_news",
+    "news",
+    "news_context",
+    "ticker_news",
+    "search_news",
+}
+_EXTERNAL_WEB_SOURCE_NAMES = {
+    "web",
+    "web_search",
+    "external_web",
+    "external_web_context",
+}
+_LOCAL_PERSONAL_SOURCE_NAMES = {
+    "holdings",
+    "portfolio",
+    "watchlist",
+    "local_personal_data",
+    "personal_data",
+}
+_FINANCIAL_TRUTH_MISSING_CATEGORIES = {
+    "financials",
+    "announcements_news_context",
+}
+_COMPANY_MEMORY_MISSING_CATEGORIES = {
+    "business_profile_context",
+    "peer_set",
+}
+_MARKET_MEMORY_MISSING_CATEGORIES = {
+    "market_context",
+    "peer_set",
+}
+
 _FINANCIAL_KEYWORDS = (
     "revenue",
     "ebit",
@@ -237,6 +332,7 @@ class OrchestratedQueryResult:
     market_memory_results: dict[str, Any]
     evidence: dict[str, dict[str, Any]]
     raw_supporting_evidence: dict[str, dict[str, Any]]
+    evidence_envelope: dict[str, Any]
     answer_input: str
     answer: dict[str, Any]
     missing_categories_before_recovery: tuple[str, ...] = ()
@@ -550,6 +646,343 @@ def _payload_signal_count(source: SourceName, payload: dict[str, Any]) -> int:
     return (len(sector_items) if isinstance(sector_items, list) else 0) + (
         len(macro_items) if isinstance(macro_items, list) else 0
     )
+
+
+def _normalize_evidence_labels(value: Any) -> set[str]:
+    if isinstance(value, str):
+        raw_items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        raw_items = list(value)
+    else:
+        raw_items = []
+    labels: set[str] = set()
+    for item in raw_items:
+        label = str(item or "").strip()
+        if label in _VALID_EVIDENCE_LABELS:
+            labels.add(label)
+    return labels
+
+
+def _ordered_evidence_labels(labels: Iterable[str]) -> list[str]:
+    label_set = {str(label) for label in labels if str(label) in _VALID_EVIDENCE_LABELS}
+    ordered = [label for label in _SOURCE_LABEL_PRIMARY_ORDER if label in label_set]
+    ordered.extend(sorted(label_set.difference(ordered)))
+    return ordered
+
+
+def _primary_evidence_label(labels: set[str]) -> str:
+    for label in _SOURCE_LABEL_PRIMARY_ORDER:
+        if label in labels:
+            return label
+    return "unknown_unclassified"
+
+
+def _source_status(payload: dict[str, Any]) -> str:
+    return str(payload.get("status") or payload.get("source_status") or "ok").strip()
+
+
+def _status_is_degraded(status: str) -> bool:
+    normalized = str(status or "").strip().lower()
+    if normalized in _OK_SOURCE_STATUSES or normalized in _NO_HIT_SOURCE_STATUSES:
+        return False
+    return True
+
+
+def _payload_has_runtime_error(payload: dict[str, Any]) -> bool:
+    errors = payload.get("errors")
+    if isinstance(errors, list) and any(str(error).strip() for error in errors):
+        return True
+    for key in ("error", "provider_error", "runtime_degradation"):
+        if str(payload.get(key) or "").strip():
+            return True
+    return str(payload.get("system_status") or "").strip().lower() == "degraded"
+
+
+def _payload_error_summary(payload: dict[str, Any]) -> str | None:
+    errors = payload.get("errors")
+    if isinstance(errors, list):
+        joined = "; ".join(str(error).strip() for error in errors if str(error).strip())
+        if joined:
+            return joined
+    for key in ("error", "provider_error", "runtime_degradation"):
+        text = str(payload.get(key) or "").strip()
+        if text:
+            return text
+    if str(payload.get("system_status") or "").strip().lower() == "degraded":
+        return "system_status=degraded"
+    return None
+
+
+def _list_count(payload: dict[str, Any], key: str) -> int:
+    value = payload.get(key)
+    return len(value) if isinstance(value, list) else 0
+
+
+def _evidence_payload_item_count(source: SourceName, payload: dict[str, Any]) -> int:
+    normalized_source = str(source or "").strip().lower()
+    if normalized_source == "financial_truth":
+        financials = payload.get("financials")
+        items = payload.get("items")
+        financial_rows = financials if isinstance(financials, list) else items
+        snapshot = payload.get("latest_financial_snapshot")
+        return (
+            (len(financial_rows) if isinstance(financial_rows, list) else 0)
+            + _list_count(payload, "docs")
+            + _list_count(payload, "announcement_context")
+            + (1 if isinstance(snapshot, dict) and bool(snapshot) else 0)
+        )
+    if normalized_source == "market_memory":
+        items = payload.get("items")
+        if isinstance(items, list):
+            return len(items)
+        return _list_count(payload, "sector_items") + _list_count(payload, "macro_items")
+    for key in (
+        "items",
+        "results",
+        "hits",
+        "documents",
+        "docs",
+        "web_sources",
+        "sources",
+        "financials",
+    ):
+        count = _list_count(payload, key)
+        if count:
+            return count
+    return 0
+
+
+def _source_type_tokens(source: SourceName, payload: dict[str, Any]) -> set[str]:
+    tokens = {str(source or "").strip().lower()}
+    for key in (
+        "source",
+        "source_type",
+        "doc_type",
+        "doc_class",
+        "source_corpus",
+        "corpus",
+        "kind",
+    ):
+        value = str(payload.get(key) or "").strip().lower()
+        if value:
+            tokens.add(value)
+    source_id = str(payload.get("source_id") or payload.get("chunk_id") or "").strip().lower()
+    if source_id:
+        tokens.add(source_id)
+        tokens.add(source_id.split(":", 1)[0])
+    for row_key in ("items", "results", "hits", "documents", "docs", "sources"):
+        rows = payload.get(row_key)
+        if not isinstance(rows, list):
+            continue
+        first_row = next((row for row in rows if isinstance(row, dict)), None)
+        if not isinstance(first_row, dict):
+            continue
+        for key in ("source", "source_type", "doc_type", "doc_class", "kind"):
+            value = str(first_row.get(key) or "").strip().lower()
+            if value:
+                tokens.add(value)
+        row_source_id = str(
+            first_row.get("source_id") or first_row.get("chunk_id") or ""
+        ).strip().lower()
+        if row_source_id:
+            tokens.add(row_source_id)
+            tokens.add(row_source_id.split(":", 1)[0])
+        break
+    return tokens
+
+
+def _has_any_token(tokens: set[str], candidates: set[str]) -> bool:
+    for token in tokens:
+        if token in candidates:
+            return True
+        if token.startswith(tuple(candidate + ":" for candidate in candidates)):
+            return True
+    return False
+
+
+def _base_source_role_labels(
+    source: SourceName,
+    payload: dict[str, Any],
+    *,
+    has_evidence: bool,
+) -> set[str]:
+    labels = _normalize_evidence_labels(payload.get("evidence_labels"))
+    labels.update(_normalize_evidence_labels(payload.get("source_labels")))
+    labels.update(_normalize_evidence_labels(payload.get("evidence_label")))
+    labels.update(_normalize_evidence_labels(payload.get("source_label")))
+    labels.discard("claim_verified")
+
+    tokens = _source_type_tokens(source, payload)
+    if has_evidence and (
+        "financial_truth" in tokens
+        or "canonical_financial_truth" in tokens
+        or payload.get("financial_truth") is True
+        or payload.get("canonical_financial_truth") is True
+    ):
+        labels.add("financial_truth")
+    elif has_evidence and _has_any_token(tokens, _MEMORY_SOURCE_NAMES):
+        labels.add("memory_context")
+    elif has_evidence and _has_any_token(tokens, _LOCAL_PERSONAL_SOURCE_NAMES):
+        labels.add("local_personal_data")
+    elif has_evidence and (
+        _has_any_token(tokens, _LOCAL_NEWS_SOURCE_NAMES)
+        or any("news" in token for token in tokens)
+    ):
+        labels.add("local_news_context")
+    elif has_evidence and _has_any_token(tokens, _EXTERNAL_WEB_SOURCE_NAMES):
+        labels.add("external_web_context")
+
+    if not labels:
+        labels.add("unknown_unclassified")
+    return labels
+
+
+def _missing_categories_for_source(
+    source: SourceName,
+    missing_categories: set[str],
+) -> list[str]:
+    normalized_source = str(source or "").strip().lower()
+    if normalized_source == "financial_truth":
+        matched = missing_categories & _FINANCIAL_TRUTH_MISSING_CATEGORIES
+    elif normalized_source == "company_memory":
+        matched = missing_categories & _COMPANY_MEMORY_MISSING_CATEGORIES
+    elif normalized_source == "market_memory":
+        matched = missing_categories & _MARKET_MEMORY_MISSING_CATEGORIES
+    elif normalized_source in _LOCAL_NEWS_SOURCE_NAMES:
+        matched = missing_categories & {"announcements_news_context"}
+    else:
+        matched = set()
+    return sorted(matched)
+
+
+def _source_coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
+    if "degraded_runtime" in labels:
+        return "degraded_runtime"
+    if "missing_required_evidence" in labels:
+        return "missing_required_evidence"
+    if "local_personal_data" in labels:
+        return "local_personal_data"
+    if "claim_verified" in labels:
+        return "claim_verified"
+    if "financial_truth" in labels:
+        return "financial_truth"
+    if (
+        "no_hit" in labels
+        and not any(source.get("claim_verified") for source in sources)
+        and not any(source.get("has_evidence") for source in sources)
+    ):
+        return "no_hit"
+    if sources:
+        return "context_only"
+    return "unknown_unclassified"
+
+
+def build_evidence_envelope(
+    *,
+    plan: QueryPlan | None,
+    source_plan: tuple[SourceName, ...],
+    evidence: dict[str, dict[str, Any]],
+    raw_evidence: dict[str, dict[str, Any]] | None = None,
+    missing_categories: Iterable[str] = (),
+    sufficient_for_analysis: bool = True,
+) -> dict[str, Any]:
+    """Build the backend-neutral evidence taxonomy envelope for direct results."""
+    raw_evidence = raw_evidence or {}
+    missing_category_set = {
+        str(category).strip()
+        for category in missing_categories
+        if str(category).strip()
+    }
+    source_names = tuple(
+        dict.fromkeys(tuple(source_plan) + tuple(evidence) + tuple(raw_evidence))
+    )
+    sources: list[dict[str, Any]] = []
+    response_labels: set[str] = set()
+    source_label_counts: dict[str, int] = {}
+
+    for source_name in source_names:
+        payload = evidence.get(source_name) or raw_evidence.get(source_name) or {}
+        if not isinstance(payload, dict):
+            payload = {"items": payload}
+        status = _source_status(payload)
+        item_count = _evidence_payload_item_count(source_name, payload)
+        has_evidence = item_count > 0
+        labels = _base_source_role_labels(
+            source_name,
+            payload,
+            has_evidence=has_evidence,
+        )
+
+        missing_for_source = _missing_categories_for_source(
+            source_name,
+            missing_category_set,
+        )
+        if (
+            str(source_name).strip().lower() == "financial_truth"
+            and not has_evidence
+            and plan is not None
+            and plan.needs_numbers
+        ):
+            missing_for_source = sorted(set(missing_for_source) | {"financials"})
+        if missing_for_source:
+            labels.add("missing_required_evidence")
+        if not has_evidence:
+            labels.add("no_hit")
+            labels.add("operational_trace")
+            labels.discard("financial_truth")
+            labels.discard("memory_context")
+            labels.discard("external_web_context")
+            labels.discard("local_news_context")
+            labels.discard("local_personal_data")
+        if _status_is_degraded(status) or _payload_has_runtime_error(payload):
+            labels.add("degraded_runtime")
+            labels.add("operational_trace")
+        if "claim_verified" not in labels and (
+            labels & _CONTEXT_SOURCE_LABELS or "no_hit" in labels
+        ):
+            labels.add("context_only")
+        labels.discard("claim_verified")
+
+        ordered_labels = _ordered_evidence_labels(labels)
+        source_item = {
+            "source_name": str(source_name),
+            "source_id": str(source_name),
+            "status": status or "ok",
+            "source_role_labels": [
+                label for label in ordered_labels if label in _SOURCE_ROLE_LABELS
+            ],
+            "evidence_label": _primary_evidence_label(labels),
+            "evidence_labels": ordered_labels,
+            "item_count": item_count,
+            "has_evidence": has_evidence,
+            "claim_verified": False,
+            "no_hit": "no_hit" in labels,
+            "degraded": "degraded_runtime" in labels,
+            "missing_required_evidence": "missing_required_evidence" in labels,
+            "missing_categories": missing_for_source,
+            "error": _payload_error_summary(payload),
+        }
+        sources.append(source_item)
+        response_labels.update(labels)
+        for label in ordered_labels:
+            source_label_counts[label] = source_label_counts.get(label, 0) + 1
+
+    if not sufficient_for_analysis:
+        response_labels.add("missing_required_evidence")
+    if not response_labels:
+        response_labels.add("unknown_unclassified")
+
+    ordered_response_labels = _ordered_evidence_labels(response_labels)
+    return {
+        "source_label_taxonomy_version": SOURCE_LABEL_TAXONOMY_VERSION,
+        "sources": sources,
+        "evidence_labels": ordered_response_labels,
+        "source_label_counts": source_label_counts,
+        "source_coverage_status": _source_coverage_status(response_labels, sources),
+        "claim_verified_source_count": 0,
+        "missing_categories": sorted(missing_category_set),
+        "sufficient_for_analysis": bool(sufficient_for_analysis),
+    }
 
 
 def _prefer_payload(
@@ -1259,6 +1692,14 @@ class QueryOrchestrator:
             evidence,
             answer,
         )
+        evidence_envelope = build_evidence_envelope(
+            plan=effective_plan,
+            source_plan=effective_plan.sources,
+            evidence=evidence,
+            raw_evidence=raw_evidence,
+            missing_categories=missing_after,
+            sufficient_for_analysis=sufficient_for_analysis,
+        )
         return OrchestratedQueryResult(
             query=query,
             intent=intent,
@@ -1270,6 +1711,7 @@ class QueryOrchestrator:
             market_memory_results=evidence.get("market_memory") or {},
             evidence=evidence,
             raw_supporting_evidence=raw_evidence,
+            evidence_envelope=evidence_envelope,
             answer_input=answer_input,
             answer=answer,
             missing_categories_before_recovery=tuple(missing_before),
