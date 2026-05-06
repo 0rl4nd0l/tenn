@@ -22,7 +22,10 @@ from app.services.marketplace_browser_profile import (
     check_marketplace_browser_health,
     marketplace_scan_health_allows_execution,
 )
-from app.services.marketplace_headless_runtime import open_direct_marketplace_context, use_direct_marketplace_runtime
+from app.services.marketplace_headless_runtime import (
+    open_direct_marketplace_context,
+    use_direct_marketplace_runtime,
+)
 from app.services.marketplace_mission_service import (
     MarketplaceMissionService,
     normalize_marketplace_location_names,
@@ -138,7 +141,9 @@ def _resolved_price_evidence(
         "source": source,
     }
     if source == "search_card":
-        evidence["warning"] = "Detail page did not expose a price; preserved search-card price."
+        evidence["warning"] = (
+            "Detail page did not expose a price; preserved search-card price."
+        )
     elif source == "missing":
         evidence["warning"] = "No price was exposed by the search card or detail page."
     return evidence
@@ -151,6 +156,215 @@ def _detail_with_resolved_price(
     return {
         **detail,
         "price": price_evidence.get("resolved_price_text"),
+    }
+
+
+def _price_movement_metadata(
+    previous_seen: dict[str, Any] | None,
+    current_price: float | None,
+) -> dict[str, Any] | None:
+    if previous_seen is None or current_price is None or current_price <= 0:
+        return None
+    previous_price = parse_marketplace_price(previous_seen.get("price_value"))
+    if previous_price is None:
+        previous_price = parse_marketplace_price(previous_seen.get("price_text"))
+    if previous_price is None or previous_price <= 0 or previous_price == current_price:
+        return None
+    amount = current_price - previous_price
+    percent = (amount / previous_price) * 100
+    return {
+        "direction": "drop" if amount < 0 else "increase",
+        "amount": round(amount, 2),
+        "percent": round(percent, 1),
+        "previous_price": round(previous_price, 2),
+        "current_price": round(current_price, 2),
+        "first_seen_at": previous_seen.get("first_seen_at"),
+        "last_seen_at": previous_seen.get("last_seen_at"),
+    }
+
+
+def _config_float(config: dict[str, Any], *keys: str) -> float | None:
+    for key in keys:
+        value = config.get(key)
+        if value is None or value == "":
+            continue
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _config_bool(config: dict[str, Any], key: str) -> bool:
+    value = config.get(key)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
+def _health_rank(label: Any) -> int:
+    return {"unknown": -1, "low": 0, "medium": 1, "high": 2}.get(
+        str(label or "").strip().lower(),
+        -1,
+    )
+
+
+def _alert_policy_decision(
+    mission: dict[str, Any],
+    score: dict[str, Any],
+    deal_metrics: dict[str, Any] | None,
+    value_resale_candidate: dict[str, Any] | None,
+) -> dict[str, Any]:
+    scan_config = (
+        mission.get("scan_config")
+        if isinstance(mission.get("scan_config"), dict)
+        else {}
+    )
+    decision_band = str(score.get("decision_band") or "")
+    reasons: list[str] = []
+    blocked_reasons: list[str] = []
+
+    if value_resale_candidate is not None:
+        reasons.append("value resale candidate")
+    elif decision_band == "strong_match":
+        reasons.append("strong match")
+    elif decision_band == "candidate" and bool(scan_config.get("aggressive_alerting")):
+        reasons.append("candidate allowed by aggressive alerting")
+    else:
+        blocked_reasons.append("decision band is not alertable")
+
+    rules: dict[str, Any] = {}
+    if value_resale_candidate is not None:
+        return {
+            "allowed": True,
+            "base_reasons": reasons,
+            "blocked_reasons": [],
+            "rules": rules,
+        }
+
+    metrics = deal_metrics if isinstance(deal_metrics, dict) else {}
+
+    min_score = _config_float(scan_config, "alert_min_score", "min_alert_score")
+    if min_score is not None:
+        rules["min_score"] = min_score
+        try:
+            actual_score = float(score.get("score"))
+        except (TypeError, ValueError):
+            actual_score = -1.0
+        if actual_score < min_score:
+            blocked_reasons.append(
+                f"score below alert rule minimum ({actual_score:.0f} < {min_score:.0f})"
+            )
+
+    min_deal_score = _config_float(
+        scan_config, "alert_min_deal_score", "min_alert_deal_score"
+    )
+    if min_deal_score is not None:
+        rules["min_deal_score"] = min_deal_score
+        try:
+            deal_score = float(metrics.get("deal_score"))
+        except (TypeError, ValueError):
+            deal_score = -1.0
+        if deal_score < min_deal_score:
+            blocked_reasons.append(
+                f"deal score below alert rule minimum ({deal_score:.0f} < {min_deal_score:.0f})"
+            )
+
+    min_discount_pct = _config_float(
+        scan_config,
+        "alert_min_discount_pct",
+        "min_alert_discount_pct",
+    )
+    if min_discount_pct is not None:
+        rules["min_discount_pct"] = abs(min_discount_pct)
+        used_delta = metrics.get("delta_vs_used_median")
+        used_delta_pct = (
+            used_delta.get("percent") if isinstance(used_delta, dict) else None
+        )
+        try:
+            used_delta_pct_float = float(used_delta_pct)
+        except (TypeError, ValueError):
+            used_delta_pct_float = None
+        if used_delta_pct_float is None:
+            blocked_reasons.append("used-market discount is unknown")
+        elif used_delta_pct_float > -abs(min_discount_pct):
+            blocked_reasons.append(
+                f"used-market discount below alert rule minimum ({abs(used_delta_pct_float):.1f}% < {abs(min_discount_pct):.1f}%)"
+            )
+
+    max_price_per_tb = _config_float(
+        scan_config,
+        "alert_max_price_per_tb",
+        "max_alert_price_per_tb",
+    )
+    if max_price_per_tb is not None:
+        rules["max_price_per_tb"] = max_price_per_tb
+        try:
+            price_per_tb = float(metrics.get("price_per_tb"))
+        except (TypeError, ValueError):
+            price_per_tb = None
+        if price_per_tb is None:
+            blocked_reasons.append("SSD price per TB is unknown")
+        elif price_per_tb > max_price_per_tb:
+            blocked_reasons.append(
+                f"SSD price per TB exceeds alert rule maximum ({price_per_tb:.0f} > {max_price_per_tb:.0f})"
+            )
+
+    min_sample_size = _config_float(
+        scan_config,
+        "alert_min_benchmark_sample_size",
+        "min_alert_benchmark_sample_size",
+    )
+    if min_sample_size is not None:
+        rules["min_benchmark_sample_size"] = min_sample_size
+        health = metrics.get("benchmark_health")
+        health_sample_size = (
+            health.get("sample_size") if isinstance(health, dict) else None
+        )
+        sample_size = metrics.get("benchmark_sample_size", health_sample_size)
+        try:
+            sample_size_float = float(sample_size)
+        except (TypeError, ValueError):
+            sample_size_float = 0.0
+        if sample_size_float < min_sample_size:
+            blocked_reasons.append(
+                f"benchmark sample size below alert rule minimum ({sample_size_float:.0f} < {min_sample_size:.0f})"
+            )
+
+    required_health = (
+        str(scan_config.get("alert_require_benchmark_health") or "").strip().lower()
+    )
+    if required_health:
+        rules["require_benchmark_health"] = required_health
+        health = metrics.get("benchmark_health")
+        health_label = health.get("label") if isinstance(health, dict) else None
+        if _health_rank(health_label) < _health_rank(required_health):
+            blocked_reasons.append(
+                f"benchmark health below alert rule minimum ({health_label or 'unknown'} < {required_health})"
+            )
+
+    if _config_bool(scan_config, "alert_only_below_retail"):
+        rules["only_below_retail"] = True
+        retail_delta = metrics.get("delta_vs_retail_anchor")
+        retail_delta_pct = (
+            retail_delta.get("percent") if isinstance(retail_delta, dict) else None
+        )
+        try:
+            retail_delta_pct_float = float(retail_delta_pct)
+        except (TypeError, ValueError):
+            retail_delta_pct_float = None
+        if retail_delta_pct_float is None:
+            blocked_reasons.append("retail anchor delta is unknown")
+        elif retail_delta_pct_float >= 0:
+            blocked_reasons.append("listing is not below retail anchor")
+
+    return {
+        "allowed": not blocked_reasons,
+        "base_reasons": reasons,
+        "blocked_reasons": blocked_reasons,
+        "rules": rules,
     }
 
 
@@ -263,7 +477,9 @@ def _rejection_bucket(reasons: Any) -> str:
     return "requirement_fit"
 
 
-def _candidate_resolution_metadata(resolution: dict[str, Any] | None) -> dict[str, Any] | None:
+def _candidate_resolution_metadata(
+    resolution: dict[str, Any] | None,
+) -> dict[str, Any] | None:
     if not isinstance(resolution, dict):
         return None
     candidate = resolution.get("candidate")
@@ -315,7 +531,9 @@ def _marketplace_category(mission: dict[str, Any]) -> str | None:
     return normalize_tracked_product_category(category) if category else None
 
 
-def _listing_product_metadata(mission: dict[str, Any], detail: dict[str, Any]) -> dict[str, Any]:
+def _listing_product_metadata(
+    mission: dict[str, Any], detail: dict[str, Any]
+) -> dict[str, Any]:
     category = _marketplace_category(mission)
     if category not in {"gpu", "cpu", "ram", "ssd", "motherboard"}:
         return {}
@@ -339,7 +557,11 @@ def _listing_product_metadata(mission: dict[str, Any], detail: dict[str, Any]) -
     brand = attributes.get("brand") or attributes.get("vendor")
     if brand:
         metadata["brand"] = brand
-    model = attributes.get("model") or attributes.get("chip_model") or attributes.get("exact_sku")
+    model = (
+        attributes.get("model")
+        or attributes.get("chip_model")
+        or attributes.get("exact_sku")
+    )
     if model:
         metadata["model"] = model
     return metadata
@@ -426,10 +648,18 @@ class MarketplaceScanner:
             timeout_ms=self.timeout_ms,
         )
         if not marketplace_scan_health_allows_execution(health):
-            raise RuntimeError(str(health.get("detail") or health.get("status") or "marketplace browser is not ready"))
+            raise RuntimeError(
+                str(
+                    health.get("detail")
+                    or health.get("status")
+                    or "marketplace browser is not ready"
+                )
+            )
 
         if log:
-            log(f"Starting calibration for: {product['canonical_key']} ({tracked_product_id})")
+            log(
+                f"Starting calibration for: {product['canonical_key']} ({tracked_product_id})"
+            )
 
         stats = {
             "tracked_product_id": tracked_product_id,
@@ -445,7 +675,7 @@ class MarketplaceScanner:
         async def perform_calibration(context: Any):
             if progress:
                 progress(f"Searching for {query}", 10.0)
-            
+
             cards: list[dict[str, Any]] = []
             seen_listing_ids: set[str] = set()
             for query_index, search_query in enumerate(queries, start=1):
@@ -493,7 +723,9 @@ class MarketplaceScanner:
                 if price_value is None or price_value <= 0:
                     continue
                 title = str(card.get("title") or "")
-                raw_text = " ".join(str(item or "") for item in card.get("text_fragments") or [])
+                raw_text = " ".join(
+                    str(item or "") for item in card.get("text_fragments") or []
+                )
                 prefilter = prefilter_marketplace_card(
                     {
                         "title": title,
@@ -530,26 +762,32 @@ class MarketplaceScanner:
                     },
                     tracked_product=product,
                 )
-                
+
                 if confidence >= VALUE_RESALE_MIN_VARIANT_CONFIDENCE:
                     try:
-                        observation = price_service.ingest_observation_if_new_or_changed({
-                            "tracked_product_id": tracked_product_id,
-                            "source": "facebook_calibration",
-                            "observed_at": _now_iso(),
-                            "source_listing_id": extract_marketplace_listing_id(card["listing_url"]),
-                            "title": title,
-                            "price": price_value,
-                            "url": card["listing_url"],
-                            "location": card.get("location"),
-                            "match_confidence": confidence,
-                            "capture_mode": "scanner",
-                            "provenance": {
-                                "query": card.get("query") or query,
-                                "calibration": True,
-                            },
-                            "review_state": "pending_review",
-                        })
+                        observation = (
+                            price_service.ingest_observation_if_new_or_changed(
+                                {
+                                    "tracked_product_id": tracked_product_id,
+                                    "source": "facebook_calibration",
+                                    "observed_at": _now_iso(),
+                                    "source_listing_id": extract_marketplace_listing_id(
+                                        card["listing_url"]
+                                    ),
+                                    "title": title,
+                                    "price": price_value,
+                                    "url": card["listing_url"],
+                                    "location": card.get("location"),
+                                    "match_confidence": confidence,
+                                    "capture_mode": "scanner",
+                                    "provenance": {
+                                        "query": card.get("query") or query,
+                                        "calibration": True,
+                                    },
+                                    "review_state": "pending_review",
+                                }
+                            )
+                        )
                         if observation.get("created"):
                             stats["observations_ingested"] += 1
                     except Exception as exc:
@@ -561,22 +799,31 @@ class MarketplaceScanner:
             snapshot = price_service.rebuild_benchmark_snapshot(tracked_product_id)
             stats["benchmark_rebuilt"] = True
             stats["benchmark_sample_size"] = snapshot.get("total_sample_size")
-            
+
             if progress:
                 progress("Calibration complete", 100.0)
 
         if use_direct_marketplace_runtime():
-            async with open_direct_marketplace_context() as (context, _browser_family, _profile_path):
+            async with open_direct_marketplace_context() as (
+                context,
+                _browser_family,
+                _profile_path,
+            ):
                 await perform_calibration(context)
         else:
             from playwright.async_api import async_playwright
+
             async with async_playwright() as playwright:
                 browser = await _await_marketplace_probe(
                     playwright.chromium.connect_over_cdp(self.cdp_url),
                     stage="CDP attach",
                     timeout_seconds=_probe_timeout_seconds(self.timeout_ms),
                 )
-                context = browser.contexts[0] if browser.contexts else await browser.new_context()
+                context = (
+                    browser.contexts[0]
+                    if browser.contexts
+                    else await browser.new_context()
+                )
                 await perform_calibration(context)
 
         return stats
@@ -596,7 +843,13 @@ class MarketplaceScanner:
         )
         self._raise_if_cancelled(cancel_requested)
         if not marketplace_scan_health_allows_execution(health):
-            raise RuntimeError(str(health.get("detail") or health.get("status") or "marketplace browser is not ready"))
+            raise RuntimeError(
+                str(
+                    health.get("detail")
+                    or health.get("status")
+                    or "marketplace browser is not ready"
+                )
+            )
 
         if mission_id:
             mission = self.mission_service.get_mission(mission_id)
@@ -637,7 +890,11 @@ class MarketplaceScanner:
         }
 
         if use_direct_marketplace_runtime():
-            async with open_direct_marketplace_context() as (context, _browser_family, _profile_path):
+            async with open_direct_marketplace_context() as (
+                context,
+                _browser_family,
+                _profile_path,
+            ):
                 for index, mission in enumerate(missions, start=1):
                     self._raise_if_cancelled(cancel_requested)
                     if progress:
@@ -683,7 +940,9 @@ class MarketplaceScanner:
             try:
                 from playwright.async_api import async_playwright
             except Exception as exc:
-                raise RuntimeError("Playwright is not installed in this environment.") from exc
+                raise RuntimeError(
+                    "Playwright is not installed in this environment."
+                ) from exc
 
             async with async_playwright() as playwright:
                 try:
@@ -701,7 +960,11 @@ class MarketplaceScanner:
                             stage=exc.stage,
                         )
                     ) from exc
-                context = browser.contexts[0] if browser.contexts else await browser.new_context()
+                context = (
+                    browser.contexts[0]
+                    if browser.contexts
+                    else await browser.new_context()
+                )
                 for index, mission in enumerate(missions, start=1):
                     self._raise_if_cancelled(cancel_requested)
                     if progress:
@@ -776,16 +1039,19 @@ class MarketplaceScanner:
                 log(f"  requirement preparation failed: {exc.reason}")
             return self._mission_abort_result(mission, exc.reason)
 
-        feedback_notes = self.mission_service.list_not_interested_feedback_notes(mission_id)
+        feedback_notes = self.mission_service.list_not_interested_feedback_notes(
+            mission_id
+        )
         if feedback_notes:
             mission = {**mission, "_feedback_notes": feedback_notes}
             if log:
-                log(f"  loaded {len(feedback_notes)} rejection note(s) into scoring context")
+                log(
+                    f"  loaded {len(feedback_notes)} rejection note(s) into scoring context"
+                )
 
         profile = marketplace_requirement_profile(mission)
         requirement_driven = (
-            isinstance(profile, dict)
-            and profile.get("mode") == "requirement_driven"
+            isinstance(profile, dict) and profile.get("mode") == "requirement_driven"
         )
         candidate_contexts = (
             marketplace_candidate_contexts(
@@ -882,16 +1148,19 @@ class MarketplaceScanner:
 
         for query_index, query in enumerate(queries):
             self._raise_if_cancelled(cancel_requested)
-            if time.monotonic() - scan_started > int(
-                mission["scan_config"]["run_time_budget_minutes"]
-            ) * 60:
+            if (
+                time.monotonic() - scan_started
+                > int(mission["scan_config"]["run_time_budget_minutes"]) * 60
+            ):
                 if log:
                     log("Time budget reached; stopping mission scan.")
                 break
 
             search_location = search_locations[query_index % len(search_locations)]
             if log:
-                radius_suffix = f", radius={radius_km}km" if radius_km is not None else ""
+                radius_suffix = (
+                    f", radius={radius_km}km" if radius_km is not None else ""
+                )
                 log(f"  query: {query} (location={search_location}{radius_suffix})")
             page = await context.new_page()
             try:
@@ -1049,7 +1318,10 @@ class MarketplaceScanner:
                 candidate_resolution: dict[str, Any] | None = None
                 post_detail_outcome: dict[str, Any] | None = None
                 if score["decision_band"] == "reject":
-                    if value_resale_candidate is not None and self._allows_value_resale_override(score):
+                    if (
+                        value_resale_candidate is not None
+                        and self._allows_value_resale_override(score)
+                    ):
                         score = self._value_resale_score(
                             score,
                             value_resale_candidate,
@@ -1151,18 +1423,45 @@ class MarketplaceScanner:
                 )
                 previous_match = None
                 if previous_seen and previous_seen.get("match_id"):
-                    previous_match = self.mission_service.get_match(previous_seen["match_id"])
+                    previous_match = self.mission_service.get_match(
+                        previous_seen["match_id"]
+                    )
+                current_price_value = parse_marketplace_price(
+                    scored_detail.get("price")
+                )
                 material_reasons = material_change_reasons(
                     previous_seen,
                     new_hash=detail_hash,
-                    new_price_value=parse_marketplace_price(scored_detail.get("price")),
+                    new_price_value=current_price_value,
                     new_score=int(score["score"]),
                     new_band=str(score["decision_band"]),
+                )
+                price_movement = _price_movement_metadata(
+                    previous_seen,
+                    current_price_value,
                 )
 
                 match_record = None
                 alert_record = None
                 if score["decision_band"] in {"candidate", "strong_match"}:
+                    deal_metrics = (
+                        score.get("deal_metrics")
+                        if isinstance(score.get("deal_metrics"), dict)
+                        else None
+                    )
+                    if price_movement is not None:
+                        deal_metrics = {
+                            **(deal_metrics or {}),
+                            "price_movement": price_movement,
+                        }
+                    alert_policy = _alert_policy_decision(
+                        mission,
+                        score,
+                        deal_metrics,
+                        value_resale_candidate,
+                    )
+                    if deal_metrics is not None:
+                        deal_metrics = {**deal_metrics, "alert_policy": alert_policy}
                     match_status = "new"
                     if previous_match is not None:
                         previous_status = str(previous_match.get("status") or "new")
@@ -1199,6 +1498,12 @@ class MarketplaceScanner:
                                 "material_change_reasons": material_reasons,
                                 "detail_hash": detail_hash,
                                 "price_evidence": price_evidence,
+                                **(
+                                    {"deal_metrics": deal_metrics}
+                                    if deal_metrics is not None
+                                    else {}
+                                ),
+                                "alert_policy": alert_policy,
                                 **_listing_product_metadata(mission, scored_detail),
                                 "candidate_resolution": _candidate_resolution_metadata(
                                     candidate_resolution
@@ -1232,17 +1537,18 @@ class MarketplaceScanner:
                         log=log,
                     )
 
-                    should_alert = score["decision_band"] == "strong_match" or (
-                        score["decision_band"] == "candidate"
-                        and bool(mission["scan_config"]["aggressive_alerting"])
-                    ) or value_resale_candidate is not None
+                    should_alert = bool(alert_policy.get("allowed"))
                     latest_alert = (
-                        self.mission_service.latest_alert_for_match(match_record["match_id"])
+                        self.mission_service.latest_alert_for_match(
+                            match_record["match_id"]
+                        )
                         if match_record
                         else None
                     )
                     if should_alert and (
-                        previous_seen is None or material_reasons or latest_alert is None
+                        previous_seen is None
+                        or material_reasons
+                        or latest_alert is None
                     ):
                         alert_record = self.mission_service.create_alert(
                             mission_id=mission_id,
@@ -1257,6 +1563,12 @@ class MarketplaceScanner:
                                 "query": query,
                                 "decision_band": score["decision_band"],
                                 "price_evidence": price_evidence,
+                                **(
+                                    {"deal_metrics": deal_metrics}
+                                    if deal_metrics is not None
+                                    else {}
+                                ),
+                                "alert_policy": alert_policy,
                                 **(
                                     {
                                         "value_resale_candidate": self._value_resale_metadata(
@@ -1281,7 +1593,9 @@ class MarketplaceScanner:
                         "listing_url": detail["listing_url"],
                         "title": detail["title"],
                         "price_text": scored_detail.get("price"),
-                        "price_value": parse_marketplace_price(scored_detail.get("price")),
+                        "price_value": parse_marketplace_price(
+                            scored_detail.get("price")
+                        ),
                         "location": detail.get("location"),
                         "seller_name": detail.get("seller_name"),
                         "query_text": query,
@@ -1292,6 +1606,11 @@ class MarketplaceScanner:
                             "score": score,
                             "candidate_resolution": candidate_resolution,
                             "material_change_reasons": material_reasons,
+                            **(
+                                {"price_movement": price_movement}
+                                if price_movement is not None
+                                else {}
+                            ),
                             **(
                                 {"post_detail_outcome": post_detail_outcome}
                                 if post_detail_outcome
@@ -1348,8 +1667,7 @@ class MarketplaceScanner:
         )
         profile = marketplace_requirement_profile(prepared)
         if not (
-            isinstance(profile, dict)
-            and profile.get("mode") == "requirement_driven"
+            isinstance(profile, dict) and profile.get("mode") == "requirement_driven"
         ):
             return prepared
 
@@ -1378,7 +1696,7 @@ class MarketplaceScanner:
         mission: dict[str, Any],
         mission_price_band: dict[str, float] | None,
         candidate_contexts: list[dict[str, Any]],
-    ) -> dict[str, float | int | str] | None:
+    ) -> dict[str, Any] | None:
         benchmark_band = self._benchmark_price_band(
             mission=mission,
             candidate_contexts=candidate_contexts,
@@ -1386,7 +1704,7 @@ class MarketplaceScanner:
         if benchmark_band is None and mission_price_band is None:
             return None
 
-        band: dict[str, float | int | str] = {}
+        band: dict[str, Any] = {}
         if benchmark_band is not None:
             band.update(benchmark_band)
         if mission_price_band:
@@ -1409,22 +1727,47 @@ class MarketplaceScanner:
         *,
         mission: dict[str, Any],
         candidate_contexts: list[dict[str, Any]],
-    ) -> dict[str, float | int | str] | None:
-        candidates: list[tuple[int, dict[str, float | int | str]]] = []
+    ) -> dict[str, Any] | None:
+        candidates: list[tuple[int, dict[str, Any]]] = []
+        candidate_bands: list[dict[str, Any]] = []
 
-        def add_snapshot(snapshot: dict[str, Any] | None, *, source: str) -> None:
+        def add_snapshot(
+            snapshot: dict[str, Any] | None,
+            *,
+            source: str,
+            product: dict[str, Any] | None = None,
+        ) -> None:
             band = self._snapshot_price_band(snapshot, source=source)
             if band is None:
                 return
+            attributes = product.get("attributes") if isinstance(product, dict) else {}
+            if isinstance(attributes, dict):
+                capacity = parse_marketplace_price(attributes.get("capacity_gb"))
+                if capacity is not None and capacity > 0:
+                    band["capacity_gb"] = float(capacity)
+            if product is not None:
+                product_id = str(product.get("tracked_product_id") or "").strip()
+                if product_id:
+                    band["tracked_product_id"] = product_id
+                canonical_key = str(product.get("canonical_key") or "").strip()
+                if canonical_key:
+                    band["tracked_product_name"] = canonical_key
+            candidate_bands.append(dict(band))
             candidates.append((int(band.get("benchmark_sample_size") or 0), band))
 
         for context in candidate_contexts:
             if isinstance(context, dict):
+                product = (
+                    context.get("tracked_product")
+                    if isinstance(context.get("tracked_product"), dict)
+                    else None
+                )
                 add_snapshot(
                     context.get("benchmark_snapshot")
                     if isinstance(context.get("benchmark_snapshot"), dict)
                     else None,
                     source="requirement_candidate_benchmark",
+                    product=product,
                 )
 
         mission_id = str(mission.get("mission_id") or "")
@@ -1433,22 +1776,27 @@ class MarketplaceScanner:
             if link is not None:
                 product_id = str(link.get("tracked_product_id") or "")
                 if product_id:
+                    product = self._price_service().get_tracked_product(product_id)
                     add_snapshot(
                         self._price_service().latest_benchmark_snapshot(product_id),
                         source="primary_tracked_product_benchmark",
+                        product=product,
                     )
 
         if not candidates:
             return None
         candidates.sort(key=lambda item: item[0], reverse=True)
-        return candidates[0][1]
+        selected = dict(candidates[0][1])
+        if candidate_bands:
+            selected["candidate_bands"] = candidate_bands
+        return selected
 
     @staticmethod
     def _snapshot_price_band(
         snapshot: dict[str, Any] | None,
         *,
         source: str,
-    ) -> dict[str, float | int | str] | None:
+    ) -> dict[str, Any] | None:
         if not isinstance(snapshot, dict):
             return None
         sample_size = int(snapshot.get("total_sample_size") or 0)
@@ -1458,12 +1806,29 @@ class MarketplaceScanner:
         used_median = parse_marketplace_price(snapshot.get("used_median"))
         if used_median is None or used_median <= 0:
             return None
-        band: dict[str, float | int | str] = {
+        band: dict[str, Any] = {
             "median": float(used_median),
             "used_median": float(used_median),
             "average_source": source,
             "benchmark_sample_size": sample_size,
+            "freshness_status": freshness,
         }
+        confidence = str(snapshot.get("confidence_label") or "").strip().lower()
+        if confidence:
+            band["benchmark_confidence_label"] = confidence
+        source_sample_sizes = snapshot.get("source_sample_sizes")
+        if isinstance(source_sample_sizes, dict):
+            source_counts: dict[str, int] = {}
+            for key, value in source_sample_sizes.items():
+                try:
+                    count = int(value or 0)
+                except (TypeError, ValueError):
+                    continue
+                if count > 0:
+                    source_counts[str(key)] = count
+            source_diversity = len(source_counts)
+            band["source_diversity"] = source_diversity
+            band["source_sample_sizes"] = source_counts
         fair_low = parse_marketplace_price(snapshot.get("fair_range_low"))
         fair_high = parse_marketplace_price(snapshot.get("fair_range_high"))
         if fair_low is not None and fair_low > 0:
@@ -1475,6 +1840,19 @@ class MarketplaceScanner:
         snapshot_id = str(snapshot.get("snapshot_id") or "").strip()
         if snapshot_id:
             band["benchmark_snapshot_id"] = snapshot_id
+        retail_anchor = snapshot.get("retail_anchor")
+        if isinstance(retail_anchor, dict):
+            for key in (
+                "retail_anchor_price",
+                "price",
+                "current_price",
+                "centre_com_price",
+                "amount",
+            ):
+                retail_anchor_price = parse_marketplace_price(retail_anchor.get(key))
+                if retail_anchor_price is not None and retail_anchor_price > 0:
+                    band["retail_anchor_price"] = float(retail_anchor_price)
+                    break
         return band
 
     def _price_service(self) -> MarketplacePriceIntelligenceService:
@@ -1694,9 +2072,7 @@ class MarketplaceScanner:
     def _is_value_resale_candidate(value_context: dict[str, Any]) -> bool:
         if value_context.get("state") != "scored":
             return False
-        variant_confidence = float(
-            value_context.get("variant_match_confidence") or 0.0
-        )
+        variant_confidence = float(value_context.get("variant_match_confidence") or 0.0)
         if variant_confidence < VALUE_RESALE_MIN_VARIANT_CONFIDENCE:
             return False
         value_score = value_context.get("value_score")
@@ -1908,7 +2284,9 @@ class MarketplaceScanner:
             if isinstance(product, dict):
                 return product, "value_resale_candidate"
 
-        if isinstance(candidate_resolution, dict) and candidate_resolution.get("matched"):
+        if isinstance(candidate_resolution, dict) and candidate_resolution.get(
+            "matched"
+        ):
             product = candidate_resolution.get("tracked_product")
             if isinstance(product, dict):
                 return product, "requirement_candidate"
@@ -1947,7 +2325,9 @@ class MarketplaceScanner:
         duplicate_hits = 0
         idle_rounds = 0
 
-        while len(cards_by_id) < card_target and idle_rounds < 3 and duplicate_hits < 80:
+        while (
+            len(cards_by_id) < card_target and idle_rounds < 3 and duplicate_hits < 80
+        ):
             self._raise_if_cancelled(cancel_requested)
             snapshot = await page.evaluate(
                 """
@@ -2154,7 +2534,9 @@ class MarketplaceScanner:
                 "listing_id": listing_id,
                 "listing_url": final_url,
                 "captured_at": captured_at,
-                "title": str(extracted.get("title") or "Facebook Marketplace listing").strip(),
+                "title": str(
+                    extracted.get("title") or "Facebook Marketplace listing"
+                ).strip(),
                 "price": str(extracted.get("price") or "").strip() or None,
                 "seller_name": str(extracted.get("seller") or "").strip() or None,
                 "location": str(extracted.get("location") or "").strip() or None,
@@ -2224,7 +2606,9 @@ class MarketplaceScanner:
         cancel_requested: Callable[[], bool] | None,
     ) -> None:
         if cancel_requested and cancel_requested():
-            raise MarketplaceScanCancelled("Marketplace scan cancelled by user request.")
+            raise MarketplaceScanCancelled(
+                "Marketplace scan cancelled by user request."
+            )
 
 
 class MarketplaceScanCancelled(RuntimeError):

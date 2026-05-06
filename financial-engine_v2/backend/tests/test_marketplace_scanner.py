@@ -7,7 +7,9 @@ from types import SimpleNamespace
 import app.services.marketplace_scanner as scanner
 import pytest
 from app.services.marketplace_mission_service import MarketplaceMissionService
-from app.services.marketplace_price_intelligence import MarketplacePriceIntelligenceService
+from app.services.marketplace_price_intelligence import (
+    MarketplacePriceIntelligenceService,
+)
 from app.services.marketplace_requirement_preparation import (
     RequirementMissionPreparationError,
 )
@@ -90,7 +92,9 @@ def test_build_marketplace_search_url_scopes_location_and_radius() -> None:
     assert "longitude=144.9631" in url
 
 
-def test_build_marketplace_search_url_anchors_victoria_scope_to_melbourne_slug() -> None:
+def test_build_marketplace_search_url_anchors_victoria_scope_to_melbourne_slug() -> (
+    None
+):
     url = scanner.build_marketplace_search_url(
         "RTX 3090",
         location_name="Victoria, Australia",
@@ -124,6 +128,8 @@ def test_snapshot_price_band_uses_only_current_supported_benchmarks() -> None:
             "snapshot_id": "bench_good",
             "total_sample_size": 12,
             "freshness_status": "fresh",
+            "confidence_label": "high",
+            "source_sample_sizes": {"facebook": 7, "ebay": 5},
             "used_median": 1700,
             "fair_range_low": 1450,
             "fair_range_high": 1750,
@@ -136,12 +142,28 @@ def test_snapshot_price_band_uses_only_current_supported_benchmarks() -> None:
         "used_median": 1700.0,
         "average_source": "primary_tracked_product_benchmark",
         "benchmark_sample_size": 12,
+        "freshness_status": "fresh",
+        "benchmark_confidence_label": "high",
+        "source_diversity": 2,
+        "source_sample_sizes": {"facebook": 7, "ebay": 5},
         "fair_low": 1450.0,
         "fair_range_low": 1450.0,
         "fair_high": 1750.0,
         "fair_range_high": 1750.0,
         "benchmark_snapshot_id": "bench_good",
     }
+    retail_band = scanner.MarketplaceScanner._snapshot_price_band(
+        {
+            "snapshot_id": "bench_retail",
+            "total_sample_size": 12,
+            "freshness_status": "fresh",
+            "used_median": 1700,
+            "retail_anchor": {"current_price": "$2,099"},
+        },
+        source="primary_tracked_product_benchmark",
+    )
+    assert retail_band is not None
+    assert retail_band["retail_anchor_price"] == 2099.0
     assert (
         scanner.MarketplaceScanner._snapshot_price_band(
             {
@@ -153,6 +175,89 @@ def test_snapshot_price_band_uses_only_current_supported_benchmarks() -> None:
         )
         is None
     )
+
+
+def test_benchmark_price_band_keeps_candidate_capacity_bands() -> None:
+    marketplace_scanner = scanner.MarketplaceScanner(SimpleNamespace())
+
+    band = marketplace_scanner._benchmark_price_band(
+        mission={},
+        candidate_contexts=[
+            {
+                "tracked_product": {
+                    "canonical_key": "ssd-crucial-p3-plus-1tb-gen4",
+                    "attributes": {"capacity_gb": 1000},
+                },
+                "benchmark_snapshot": {
+                    "snapshot_id": "bench_1tb",
+                    "total_sample_size": 8,
+                    "freshness_status": "fresh",
+                    "used_median": 140,
+                },
+            },
+            {
+                "tracked_product": {
+                    "canonical_key": "ssd-crucial-p3-plus-4tb-gen4",
+                    "attributes": {"capacity_gb": 4000},
+                },
+                "benchmark_snapshot": {
+                    "snapshot_id": "bench_4tb",
+                    "total_sample_size": 10,
+                    "freshness_status": "fresh",
+                    "used_median": 420,
+                },
+            },
+        ],
+    )
+
+    assert band is not None
+    assert band["benchmark_snapshot_id"] == "bench_4tb"
+    assert [
+        candidate_band["capacity_gb"] for candidate_band in band["candidate_bands"]
+    ] == [1000.0, 4000.0]
+
+
+def test_price_movement_metadata_tracks_drops() -> None:
+    movement = scanner._price_movement_metadata(
+        {
+            "price_value": 360,
+            "first_seen_at": "2026-05-01T00:00:00Z",
+            "last_seen_at": "2026-05-03T00:00:00Z",
+        },
+        300,
+    )
+
+    assert movement == {
+        "direction": "drop",
+        "amount": -60,
+        "percent": -16.7,
+        "previous_price": 360,
+        "current_price": 300,
+        "first_seen_at": "2026-05-01T00:00:00Z",
+        "last_seen_at": "2026-05-03T00:00:00Z",
+    }
+
+
+def test_alert_policy_blocks_candidate_when_discount_rule_fails() -> None:
+    decision = scanner._alert_policy_decision(
+        {
+            "scan_config": {
+                "aggressive_alerting": True,
+                "alert_min_discount_pct": 15,
+                "alert_require_benchmark_health": "medium",
+            }
+        },
+        {"decision_band": "candidate", "score": 82},
+        {
+            "deal_score": 62,
+            "delta_vs_used_median": {"percent": -5},
+            "benchmark_health": {"label": "high", "sample_size": 8},
+        },
+        None,
+    )
+
+    assert decision["allowed"] is False
+    assert any("discount below" in reason for reason in decision["blocked_reasons"])
 
 
 @pytest.mark.parametrize("scope", ["Australia", "Australia-wide", "Nationwide"])
@@ -353,7 +458,9 @@ def test_scanner_preflight_prepares_requirement_candidates_before_queries(
     async def fake_collect(self, **kwargs):
         return []
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -405,7 +512,9 @@ def test_scanner_rotates_australia_wide_scope_across_city_anchors(
     async def fake_collect(self, **kwargs):
         return []
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -427,8 +536,12 @@ def test_scanner_rotates_australia_wide_scope_across_city_anchors(
     assert any("/marketplace/melbourne/search?" in url for url in urls)
     assert any("/marketplace/sydney/search?" in url for url in urls)
     assert any("/marketplace/brisbane/search?" in url for url in urls)
-    assert any("latitude=-37.8136" in url and "longitude=144.9631" in url for url in urls)
-    assert any("latitude=-33.8688" in url and "longitude=151.2093" in url for url in urls)
+    assert any(
+        "latitude=-37.8136" in url and "longitude=144.9631" in url for url in urls
+    )
+    assert any(
+        "latitude=-33.8688" in url and "longitude=151.2093" in url for url in urls
+    )
 
 
 def test_scanner_fails_closed_when_requirement_preparation_fails(monkeypatch) -> None:
@@ -441,7 +554,9 @@ def test_scanner_fails_closed_when_requirement_preparation_fails(monkeypatch) ->
     }
 
     def fail_prepare(*args, **kwargs):
-        raise RequirementMissionPreparationError("mp-1", "no candidate products generated")
+        raise RequirementMissionPreparationError(
+            "mp-1", "no candidate products generated"
+        )
 
     monkeypatch.setattr(scanner, "prepare_requirement_driven_mission", fail_prepare)
     marketplace_scanner = scanner.MarketplaceScanner(
@@ -588,8 +703,12 @@ def test_requirement_scanner_reports_rejection_counters(
         inspected_urls.append(kwargs["listing_url"])
         return details[kwargs["listing_url"]]
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -706,8 +825,12 @@ def test_requirement_scanner_flags_under_market_resale_candidate(
             "listing_media": [],
         }
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -807,8 +930,12 @@ def test_scanner_preserves_card_price_when_detail_omits_price(
             "listing_media": [],
         }
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -828,6 +955,9 @@ def test_scanner_preserves_card_price_when_detail_omits_price(
     assert matches[0]["price"] == "AU$298"
     assert matches[0]["price_value"] == 298
     assert matches[0]["metadata"]["price_evidence"]["source"] == "search_card"
+    assert matches[0]["metadata"]["deal_metrics"]["state"] == "missing_benchmark"
+    assert matches[0]["metadata"]["deal_metrics"]["listing_price"] == 298
+    assert matches[0]["metadata"]["deal_metrics"]["capacity_gb"] == 2000
     assert (
         matches[0]["metadata"]["price_evidence"]["warning"]
         == "Detail page did not expose a price; preserved search-card price."
@@ -902,8 +1032,12 @@ def test_requirement_scanner_records_detail_inspection_failures(
             "listing_media": [],
         }
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -977,10 +1111,16 @@ def test_requirement_scanner_preserves_cancel_during_detail_inspection(
         ]
 
     async def fake_inspect(self, **kwargs):
-        raise scanner.MarketplaceScanCancelled("Marketplace scan cancelled by user request.")
+        raise scanner.MarketplaceScanCancelled(
+            "Marketplace scan cancelled by user request."
+        )
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -1118,8 +1258,12 @@ def test_requirement_scanner_reports_structured_detail_rejection_reasons(
     async def fake_inspect(self, **kwargs):
         return details[kwargs["listing_url"]]
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
 
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
@@ -1222,10 +1366,16 @@ def test_exact_product_scanner_bypasses_requirement_candidate_resolution(
         return detail
 
     def fail_resolve(self, *args, **kwargs):
-        raise AssertionError("exact-product missions must not resolve requirement candidates")
+        raise AssertionError(
+            "exact-product missions must not resolve requirement candidates"
+        )
 
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
-    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect
+    )
+    monkeypatch.setattr(
+        scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect
+    )
     monkeypatch.setattr(
         scanner.MarketplaceScanner,
         "_resolve_requirement_candidate",
@@ -1261,7 +1411,9 @@ def test_exact_product_scanner_bypasses_requirement_candidate_resolution(
     assert observations[0]["capture_mode"] == "scanner"
     assert observations[0]["price"] == 700
     assert observations[0]["provenance"]["mission_id"] == mission["mission_id"]
-    assert observations[0]["provenance"]["product_resolution"] == "primary_tracked_product"
+    assert (
+        observations[0]["provenance"]["product_resolution"] == "primary_tracked_product"
+    )
     assert snapshot is not None
     assert snapshot["total_sample_size"] == 1
 

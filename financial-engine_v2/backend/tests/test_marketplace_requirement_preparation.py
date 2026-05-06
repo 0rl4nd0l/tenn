@@ -124,7 +124,16 @@ def test_prepare_requirement_driven_mission_repairs_stale_exact_hunt_profile(
             mission["mission_id"]
         )
     }
-    assert "ssd-kingston-nv2-2tb-gen4" in candidate_keys
+    assert "ssd-kingston-nv2-4tb-gen4" in candidate_keys
+    assert "ssd-samsung-990-pro-4tb-gen4" in candidate_keys
+    assert any(
+        "4TB" in term
+        for term in prepared["deployment_args"]["candidate_search_terms"]
+    )
+    assert any(
+        "2TB" in term
+        for term in prepared["deployment_args"]["candidate_search_terms"]
+    )
 
 
 def test_prepare_motherboard_requirement_uses_bounded_asus_x570_candidate(

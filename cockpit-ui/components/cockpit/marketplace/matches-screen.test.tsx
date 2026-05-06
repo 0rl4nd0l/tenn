@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -69,6 +69,42 @@ describe('MarketplaceMatchesScreen', () => {
                 benchmark_freshness_status: 'fresh',
                 benchmark_sample_size: 6,
               },
+              deal_metrics: {
+                state: 'scored',
+                listing_price: 22500,
+                used_market_median: 25000,
+                retail_anchor_price: 31000,
+                delta_vs_used_median: { amount: -2500, percent: -10 },
+                delta_vs_retail_anchor: { amount: -8500, percent: -27.4 },
+                deal_score: 84,
+                deal_label: 'good_value',
+                benchmark_sample_size: 6,
+                comparable_group: {
+                  key: 'vehicle:toyota-hilux',
+                  label: 'Vehicle / Toyota Hilux',
+                  category: 'vehicle',
+                  basis: ['model'],
+                },
+                benchmark_health: {
+                  label: 'high',
+                  sample_size: 6,
+                  freshness_status: 'fresh',
+                  confidence_label: 'high',
+                  source_diversity: 2,
+                },
+                price_movement: {
+                  direction: 'drop',
+                  amount: -1000,
+                  percent: -4.3,
+                  previous_price: 23500,
+                  current_price: 22500,
+                },
+                alert_policy: {
+                  allowed: false,
+                  blocked_reasons: ['used-market discount is unknown'],
+                  rules: { min_discount_pct: 15 },
+                },
+              },
               price_comparison: {
                 listing_price: 22500,
                 used_market_median: 25000,
@@ -98,15 +134,94 @@ describe('MarketplaceMatchesScreen', () => {
     expect(screen.getByText(/preserved search-card price/i)).toBeInTheDocument()
     expect(screen.getByAltText(/listing photo for 2014 toyota hilux sr5 4x4/i)).toBeInTheDocument()
     expect(screen.getByText(/used-market value/i)).toBeInTheDocument()
-    expect(screen.getByText(/good value/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/good value/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/nvidia rtx 3090/i)).toBeInTheDocument()
     expect(screen.getByText(/matched candidate/i)).toBeInTheDocument()
     expect(screen.getByText(/candidate match/i)).toBeInTheDocument()
     expect(screen.getByText(/listing is below the used median/i)).toBeInTheDocument()
     expect(screen.getByText(/price comparison/i)).toBeInTheDocument()
     expect(screen.getByText(/marketplace avg/i)).toBeInTheDocument()
-    expect(screen.getByText(/-10%/i)).toBeInTheDocument()
+    expect(screen.getByText(/value 84 - good value/i)).toBeInTheDocument()
+    expect(screen.getByText(/group vehicle \/ toyota hilux/i)).toBeInTheDocument()
+    expect(screen.getByText(/bench high/i)).toBeInTheDocument()
+    expect(screen.getByText(/drop 4.3%/i)).toBeInTheDocument()
+    expect(screen.getByText(/no alert: used-market discount is unknown/i)).toBeInTheDocument()
+    expect(screen.getByText(/vs used -10%/i)).toBeInTheDocument()
+    expect(screen.getByText(/n=6/i)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('orders match cards by score across different items', async () => {
+    const makeMatch = (overrides: Record<string, unknown>) => ({
+      match_id: 'mp_match_default',
+      mission_id: 'mp_mission_default',
+      mission_name: 'Default mission',
+      listing_id: 'listing_default',
+      listing_url: 'https://www.facebook.com/marketplace/item/default/',
+      title: 'Default listing',
+      price: '$100',
+      location: 'Melbourne VIC',
+      captured_at: '2026-05-04T01:28:29Z',
+      score: 50,
+      decision_band: 'candidate',
+      reasons_for: ['Matched mission keyword'],
+      reasons_against: [],
+      confidence: 0.66,
+      raw_text_snapshot: 'Visible listing text',
+      listing_media: [],
+      status: 'new',
+      metadata: {},
+      user_feedback: null,
+      updated_at: '2026-05-04T01:28:29Z',
+      ...overrides,
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          makeMatch({
+            match_id: 'mp_match_low',
+            mission_id: 'mp_mission_furniture',
+            mission_name: 'Furniture',
+            listing_id: 'listing_low',
+            title: 'Office chair',
+            score: 63,
+          }),
+          makeMatch({
+            match_id: 'mp_match_high',
+            mission_id: 'mp_mission_gpu',
+            mission_name: 'GPU',
+            listing_id: 'listing_high',
+            title: 'RTX 4090 GPU',
+            score: 96,
+          }),
+          makeMatch({
+            match_id: 'mp_match_mid',
+            mission_id: 'mp_mission_vehicle',
+            mission_name: 'Vehicle',
+            listing_id: 'listing_mid',
+            title: 'Toyota Hilux',
+            score: 81,
+          }),
+        ],
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchesScreen apiKey="" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('RTX 4090 GPU')).toBeInTheDocument()
+    })
+    const cardTitles = screen
+      .getAllByTestId('marketplace-match-card')
+      .map((card) => within(card).getByRole('heading', { level: 3 }).textContent)
+    expect(cardTitles).toEqual(['RTX 4090 GPU', 'Toyota Hilux', 'Office chair'])
+    expect(screen.getByTestId('marketplace-match-grid')).toHaveClass('xl:grid-cols-3')
+
+    await userEvent.click(screen.getByLabelText(/select rtx 4090 gpu/i))
+    expect(screen.getByText(/1 selected/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^dismiss$/i })).toBeEnabled()
   })
 
   it('explains when a listing price exists but benchmark anchors are missing', async () => {

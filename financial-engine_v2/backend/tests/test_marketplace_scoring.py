@@ -74,7 +74,13 @@ def _ssd_mission() -> dict:
         "category_hint": "ssd",
         "hard_filters": {
             "include_keywords": ["2TB", "4TB", "NVMe", "M.2", "SSD"],
-            "exclude_keywords": ["SATA", "external drive", "portable SSD", "hard drive", "HDD"],
+            "exclude_keywords": [
+                "SATA",
+                "external drive",
+                "portable SSD",
+                "hard drive",
+                "HDD",
+            ],
             "location_names": ["Melbourne"],
             "price_max": 500,
         },
@@ -156,8 +162,14 @@ def test_prefilter_requirement_card_opens_on_strong_candidate_model_evidence() -
 
     assert result["prefilter_decision"] == "open"
     assert result["open_priority"] >= 70
-    assert any("Strong requirement candidate" in reason for reason in result["prefilter_reasons"])
-    assert any("Detailed requirement proof deferred" in reason for reason in result["prefilter_reasons"])
+    assert any(
+        "Strong requirement candidate" in reason
+        for reason in result["prefilter_reasons"]
+    )
+    assert any(
+        "Detailed requirement proof deferred" in reason
+        for reason in result["prefilter_reasons"]
+    )
 
 
 def test_prefilter_requirement_card_softens_weak_candidate_location() -> None:
@@ -172,7 +184,9 @@ def test_prefilter_requirement_card_softens_weak_candidate_location() -> None:
     )
 
     assert result["prefilter_decision"] == "open"
-    assert any("Location evidence is weak" in reason for reason in result["prefilter_reasons"])
+    assert any(
+        "Location evidence is weak" in reason for reason in result["prefilter_reasons"]
+    )
 
 
 def test_prefilter_requirement_card_keeps_obvious_junk_rejected() -> None:
@@ -272,7 +286,9 @@ def test_prefilter_marketplace_card_rejects_outside_location() -> None:
     assert result["prefilter_reasons"] == ["Rejected by location filter"]
 
 
-def test_prefilter_marketplace_card_allows_missing_location_when_scope_required() -> None:
+def test_prefilter_marketplace_card_allows_missing_location_when_scope_required() -> (
+    None
+):
     result = prefilter_marketplace_card(
         {
             "title": "Toyota Hilux dual cab",
@@ -286,7 +302,9 @@ def test_prefilter_marketplace_card_allows_missing_location_when_scope_required(
     assert result["prefilter_decision"] == "open"
 
 
-def test_prefilter_marketplace_card_allows_distance_only_location_when_scope_required() -> None:
+def test_prefilter_marketplace_card_allows_distance_only_location_when_scope_required() -> (
+    None
+):
     result = prefilter_marketplace_card(
         {
             "title": "Nvidia GPU",
@@ -323,7 +341,9 @@ def test_prefilter_marketplace_card_rejects_bc_when_scope_is_victoria_au() -> No
     assert result["prefilter_reasons"] == ["Rejected by location filter"]
 
 
-def test_prefilter_marketplace_card_rejects_foreign_signal_in_title_when_location_missing() -> None:
+def test_prefilter_marketplace_card_rejects_foreign_signal_in_title_when_location_missing() -> (
+    None
+):
     result = prefilter_marketplace_card(
         {
             "title": "3060ti GPU, $180, Walnut Creek, CA",
@@ -443,16 +463,16 @@ def test_classify_requirement_detail_outcome_location_failed() -> None:
         {
             "decision_band": "reject",
             "score": 0,
-            "reasons_against": [
-                "Listing location is outside the allowed mission area"
-            ],
+            "reasons_against": ["Listing location is outside the allowed mission area"],
         },
     )
 
     assert outcome["reason_code"] == "detail_location_failed"
 
 
-def test_classify_requirement_detail_outcome_weak_location_is_insufficient_evidence() -> None:
+def test_classify_requirement_detail_outcome_weak_location_is_insufficient_evidence() -> (
+    None
+):
     outcome = classify_requirement_detail_outcome(
         {
             "title": "NVIDIA RTX 3090 24GB",
@@ -465,9 +485,7 @@ def test_classify_requirement_detail_outcome_weak_location_is_insufficient_evide
         {
             "decision_band": "reject",
             "score": 0,
-            "reasons_against": [
-                "Listing location is outside the allowed mission area"
-            ],
+            "reasons_against": ["Listing location is outside the allowed mission area"],
         },
     )
 
@@ -721,6 +739,105 @@ def test_evaluate_marketplace_listing_penalizes_above_market_exact_ssd() -> None
     assert any("Poor deal" in reason for reason in result["reasons_against"])
 
 
+def test_evaluate_marketplace_listing_rejects_expensive_ssd_near_retail() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Samsung 990 Pro 2TB NVMe Gen4 SSD",
+            "price": "$300",
+            "location": "Melbourne",
+            "description": "Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD.",
+            "raw_text_lines": ["Samsung 990 Pro 2TB NVMe Gen4 M.2 SSD"],
+        },
+        _ssd_mission(),
+        observed_price_band={
+            "used_median": 170,
+            "fair_low": 140,
+            "fair_high": 210,
+            "benchmark_sample_size": 12,
+            "capacity_gb": 2000,
+            "retail_anchor_price": 260,
+        },
+    )
+
+    assert result["decision_band"] == "reject"
+    assert result["score"] < 70
+    assert any("Poor deal" in reason for reason in result["reasons_against"])
+    assert any("retail anchor" in reason for reason in result["reasons_against"])
+
+
+def test_evaluate_marketplace_listing_rewards_capacity_adjusted_ssd_value() -> None:
+    mission = {
+        **_ssd_mission(),
+        "hard_filters": {
+            **_ssd_mission()["hard_filters"],
+            "include_keywords": ["NVMe", "SSD"],
+        },
+    }
+    observed_price_band = {
+        "used_median": 220,
+        "fair_low": 180,
+        "fair_high": 260,
+        "candidate_bands": [
+            {
+                "used_median": 140,
+                "fair_low": 110,
+                "fair_high": 170,
+                "benchmark_sample_size": 8,
+                "capacity_gb": 1000,
+            },
+            {
+                "used_median": 420,
+                "fair_low": 340,
+                "fair_high": 500,
+                "benchmark_sample_size": 8,
+                "capacity_gb": 4000,
+            },
+        ],
+    }
+
+    high_capacity = evaluate_marketplace_listing(
+        {
+            "title": "Crucial P3 Plus 4TB NVMe SSD",
+            "price": "$300",
+            "location": "Melbourne",
+            "description": "Crucial P3 Plus 4TB Gen4 M.2 SSD.",
+            "raw_text_lines": ["Crucial P3 Plus 4TB Gen4 M.2 SSD"],
+        },
+        mission,
+        observed_price_band=observed_price_band,
+    )
+    low_capacity = evaluate_marketplace_listing(
+        {
+            "title": "Crucial P3 Plus 1TB NVMe SSD",
+            "price": "$300",
+            "location": "Melbourne",
+            "description": "Crucial P3 Plus 1TB Gen4 M.2 SSD.",
+            "raw_text_lines": ["Crucial P3 Plus 1TB Gen4 M.2 SSD"],
+        },
+        mission,
+        observed_price_band=observed_price_band,
+    )
+
+    assert high_capacity["decision_band"] == "strong_match"
+    assert low_capacity["decision_band"] == "reject"
+    assert high_capacity["score"] >= low_capacity["score"] + 25
+    assert high_capacity["deal_metrics"]["deal_label"] == "excellent_value"
+    assert high_capacity["deal_metrics"]["capacity_gb"] == 4000
+    assert high_capacity["deal_metrics"]["price_per_tb"] == 75
+    assert high_capacity["deal_metrics"]["capacity_value_delta_percent"] == 28.6
+    assert (
+        high_capacity["deal_metrics"]["comparable_group"]["key"]
+        == "ssd:nvme:gen4:4tb:p3-plus"
+    )
+    assert high_capacity["deal_metrics"]["benchmark_health"]["label"] == "medium"
+    assert low_capacity["deal_metrics"]["deal_label"] == "poor_value"
+    assert any(
+        "Capacity-adjusted SSD value" in reason
+        for reason in high_capacity["reasons_for"]
+    )
+    assert any("Poor SSD value" in reason for reason in low_capacity["reasons_against"])
+
+
 def test_evaluate_marketplace_listing_caps_ssd_when_cheaper_deal_seen() -> None:
     result = evaluate_marketplace_listing(
         {
@@ -791,7 +908,9 @@ def test_evaluate_marketplace_listing_allows_strong_motherboard_model_match() ->
     assert result["decision_band"] == "strong_match"
 
 
-def test_evaluate_marketplace_listing_caps_broad_motherboard_match_at_candidate() -> None:
+def test_evaluate_marketplace_listing_caps_broad_motherboard_match_at_candidate() -> (
+    None
+):
     result = evaluate_marketplace_listing(
         {
             "title": "ASUS X570 AM4 motherboard",
@@ -837,7 +956,7 @@ def test_evaluate_marketplace_listing_caps_motherboard_when_cheaper_deal_seen() 
             "raw_text_lines": ["ASUS Pro WS X570-ACE motherboard"],
         },
         _motherboard_mission(),
-        observed_price_band={"min": 220, "median": 260, "max": 350},
+        observed_price_band={"min": 220, "median": 330, "max": 350},
     )
 
     assert result["decision_band"] == "candidate"
@@ -927,20 +1046,26 @@ def test_feedback_note_penalty_no_notes():
 
 
 def test_feedback_note_penalty_no_overlap():
-    penalty, reasons = _feedback_note_penalty("rtx 3090 good condition", ["wrong brand", "too expensive"])
+    penalty, reasons = _feedback_note_penalty(
+        "rtx 3090 good condition", ["wrong brand", "too expensive"]
+    )
     assert penalty == 0
     assert reasons == []
 
 
 def test_feedback_note_penalty_single_token_note_matches():
     # A one-word note should fire when that word appears in the listing
-    penalty, reasons = _feedback_note_penalty("this item is broken parts only", ["broken"])
+    penalty, reasons = _feedback_note_penalty(
+        "this item is broken parts only", ["broken"]
+    )
     assert penalty > 0
     assert len(reasons) == 1
 
 
 def test_feedback_note_penalty_two_token_overlap():
-    penalty, reasons = _feedback_note_penalty("wrong brand definitely not the right model", ["wrong brand"])
+    penalty, reasons = _feedback_note_penalty(
+        "wrong brand definitely not the right model", ["wrong brand"]
+    )
     assert penalty > 0
     assert len(reasons) == 1
     assert "wrong" in reasons[0] or "brand" in reasons[0]
@@ -971,9 +1096,45 @@ def test_feedback_notes_lower_score_in_evaluate():
         "raw_text_lines": [],
     }
     score_without = evaluate_marketplace_listing(listing, mission_base)["score"]
-    mission_with_notes = {**mission_base, "_feedback_notes": ["wrong brand", "refurbished only"]}
+    mission_with_notes = {
+        **mission_base,
+        "_feedback_notes": ["wrong brand", "refurbished only"],
+    }
     score_with = evaluate_marketplace_listing(listing, mission_with_notes)["score"]
     assert score_with < score_without
+
+
+def test_feedback_learning_applies_targeted_price_signal():
+    mission_base = {
+        "category_hint": "ssd",
+        "hard_filters": {
+            "include_keywords": ["NVMe", "SSD"],
+            "location_names": ["Melbourne VIC"],
+        },
+        "soft_preferences": {},
+        "scan_config": {"candidate_threshold": 50},
+        "_feedback_notes": ["too expensive at this price", "low capacity"],
+    }
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Kingston NV2 1TB NVMe SSD",
+            "description": "Kingston NV2 1TB Gen4 NVMe SSD.",
+            "location": "Melbourne VIC",
+            "seller_name": "",
+            "price": "$190",
+            "raw_text_lines": ["Kingston NV2 1TB Gen4 NVMe SSD"],
+        },
+        mission_base,
+        observed_price_band={
+            "used_median": 180,
+            "fair_low": 135,
+            "fair_high": 210,
+            "benchmark_sample_size": 6,
+        },
+    )
+
+    assert any("Feedback learning" in reason for reason in result["reasons_against"])
+    assert result["deal_metrics"]["feedback_signals"][0]["code"] == "too_expensive"
 
 
 def test_not_interested_notes_appear_in_reasons_against():

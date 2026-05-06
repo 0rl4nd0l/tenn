@@ -64,8 +64,13 @@ def test_requirement_resolver_classifies_storage_hunt_as_requirement_driven() ->
     assert profile["mode"] == "requirement_driven"
     candidates = generate_requirement_candidate_specs(profile)
     candidate_keys = {candidate["canonical_key"] for candidate in candidates}
-    assert "ssd-kingston-nv2-2tb-gen4" in candidate_keys
-    assert "ssd-crucial-p3-plus-2tb-gen4" in candidate_keys
+    assert "ssd-kingston-nv2-4tb-gen4" in candidate_keys
+    assert "ssd-samsung-990-pro-4tb-gen4" in candidate_keys
+    assert any(candidate["attributes"]["capacity_gb"] == 4000 for candidate in candidates)
+    assert candidates[0]["attributes"]["capacity_gb"] >= 4000
+    terms = candidate_search_terms(candidates)
+    assert any("4TB" in term for term in terms)
+    assert any("2TB" in term for term in terms)
 
 
 def test_requirement_resolver_classifies_am4_cpu_trigger_as_requirement_driven() -> None:

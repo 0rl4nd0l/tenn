@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { ExternalLink, ImageOff, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { BellOff, CheckSquare, ExternalLink, ImageOff, RefreshCw, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 import Link from 'next/link'
 
 import {
   listMarketplaceMatches,
+  type MarketplaceAlertPolicy,
+  type MarketplaceDealMetrics,
   type MarketplaceMatch,
   type MarketplaceMatchFeedbackValue,
   type MarketplacePriceComparison,
@@ -42,6 +44,15 @@ const MATCH_STATUS_OPTIONS = [
   { value: 'won', label: 'Won' },
   { value: 'lost', label: 'Lost' },
 ] as const
+
+const MATCH_SORT_OPTIONS = [
+  { value: 'score', label: 'Best score' },
+  { value: 'value', label: 'Best value' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'cheapest', label: 'Cheapest' },
+] as const
+
+type MatchSortMode = (typeof MATCH_SORT_OPTIONS)[number]['value']
 
 function formatClock(value: string): string {
   try {
@@ -83,6 +94,19 @@ function formatDelta(value: number | null | undefined): string {
   return `${sign}${rounded}%`
 }
 
+function formatCapacity(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  if (value >= 1000) {
+    const tb = value / 1000
+    return `${Number.isInteger(tb) ? tb.toFixed(0) : tb.toFixed(1)}TB`
+  }
+  return `${Math.round(value)}GB`
+}
+
+function cleanLabel(value: string | null | undefined): string {
+  return String(value || '').replace(/_/g, ' ')
+}
+
 function benchmarkAnchorLabel(comparison: MarketplacePriceComparison | null | undefined): string {
   if (typeof comparison?.used_market_median === 'number') return formatCurrency(comparison.used_market_median)
   if (typeof comparison?.retail_anchor_price === 'number') return formatCurrency(comparison.retail_anchor_price)
@@ -114,6 +138,46 @@ function valueBadgeVariant(
   return 'secondary'
 }
 
+function dealMetricTone(metric: MarketplaceDealMetrics | null | undefined): string {
+  const score = Number(metric?.deal_score)
+  if (Number.isFinite(score)) {
+    if (score >= 70) return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+    if (score < 50) return 'border-destructive/35 bg-destructive/10 text-destructive'
+  }
+  const usedDelta = Number(metric?.delta_vs_used_median?.percent)
+  if (Number.isFinite(usedDelta)) {
+    if (usedDelta <= -5) return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+    if (usedDelta > 10) return 'border-destructive/35 bg-destructive/10 text-destructive'
+  }
+  return 'border-border/60 bg-background text-muted-foreground'
+}
+
+function usedDeltaTone(percent: number): string {
+  if (percent <= -5) return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+  if (percent > 10) return 'border-destructive/35 bg-destructive/10 text-destructive'
+  return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+}
+
+function retailDeltaTone(percent: number): string {
+  if (percent <= -15) return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+  if (percent >= 0) return 'border-destructive/35 bg-destructive/10 text-destructive'
+  return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+}
+
+function benchmarkHealthTone(label: string | null | undefined): string {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized === 'high') return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+  if (normalized === 'low') return 'border-destructive/35 bg-destructive/10 text-destructive'
+  if (normalized === 'medium') return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+  return 'border-border/60 bg-background text-muted-foreground'
+}
+
+function priceMovementTone(direction: string | null | undefined): string {
+  if (direction === 'drop') return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+  if (direction === 'increase') return 'border-destructive/35 bg-destructive/10 text-destructive'
+  return 'border-border/60 bg-background text-muted-foreground'
+}
+
 function listingMedia(match: MarketplaceMatch): string[] {
   const media = Array.isArray(match.listing_media) ? match.listing_media : []
   const urls = media
@@ -128,8 +192,158 @@ function listingMedia(match: MarketplaceMatch): string[] {
   return []
 }
 
-function ScoreGauge({ score }: { score: number }) {
-  const normalizedScore = Math.max(0, Math.min(100, score))
+function scoreValue(match: MarketplaceMatch): number {
+  const score = Number(match.score)
+  return Number.isFinite(score) ? score : -1
+}
+
+function valueScore(match: MarketplaceMatch): number {
+  const valueContextScore = Number(match.value_context?.value_score)
+  if (Number.isFinite(valueContextScore)) return valueContextScore
+  const dealScore = Number(match.deal_metrics?.deal_score)
+  if (Number.isFinite(dealScore)) return dealScore
+  return scoreValue(match)
+}
+
+function priceValue(match: MarketplaceMatch): number {
+  const explicitPrice = Number(match.price_value)
+  if (Number.isFinite(explicitPrice) && explicitPrice > 0) return explicitPrice
+  const comparisonPrice = Number(match.price_comparison?.listing_price)
+  if (Number.isFinite(comparisonPrice) && comparisonPrice > 0) return comparisonPrice
+  const dealPrice = Number(match.deal_metrics?.listing_price)
+  if (Number.isFinite(dealPrice) && dealPrice > 0) return dealPrice
+  return Number.POSITIVE_INFINITY
+}
+
+function alertPolicyForMatch(match: MarketplaceMatch): MarketplaceAlertPolicy | null {
+  if (match.deal_metrics?.alert_policy) return match.deal_metrics.alert_policy
+  const policy = match.metadata?.alert_policy
+  return policy && typeof policy === 'object' ? (policy as MarketplaceAlertPolicy) : null
+}
+
+function isAboveRetail(match: MarketplaceMatch): boolean {
+  const retailDelta =
+    match.deal_metrics?.delta_vs_retail_anchor?.percent ??
+    match.price_comparison?.delta_vs_retail_anchor?.percent
+  return typeof retailDelta === 'number' && Number.isFinite(retailDelta) && retailDelta >= 0
+}
+
+function hasWeakBenchmark(match: MarketplaceMatch): boolean {
+  const health = match.deal_metrics?.benchmark_health?.label
+  if (health) return String(health).toLowerCase() === 'low'
+  return comparisonNeedsBenchmarkSetup(match.price_comparison ?? null)
+}
+
+function timeValue(value: string): number {
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function sortMatches(items: MarketplaceMatch[], mode: MatchSortMode): MarketplaceMatch[] {
+  return [...items].sort((left, right) => {
+    if (mode === 'value') {
+      const valueCompare = valueScore(right) - valueScore(left)
+      if (valueCompare !== 0) return valueCompare
+    } else if (mode === 'newest') {
+      const timeCompare = timeValue(right.captured_at) - timeValue(left.captured_at)
+      if (timeCompare !== 0) return timeCompare
+    } else if (mode === 'cheapest') {
+      const leftPrice = priceValue(left)
+      const rightPrice = priceValue(right)
+      if (leftPrice !== rightPrice) return leftPrice - rightPrice
+    }
+    const scoreCompare = scoreValue(right) - scoreValue(left)
+    if (scoreCompare !== 0) return scoreCompare
+    return timeValue(right.captured_at) - timeValue(left.captured_at)
+  })
+}
+
+function DealMetricChips({
+  comparison,
+  dealMetrics,
+  valueContext,
+}: {
+  comparison: MarketplacePriceComparison | null | undefined
+  dealMetrics: MarketplaceDealMetrics | null | undefined
+  valueContext: MarketplaceMatch['value_context']
+}) {
+  const value = Number(valueContext?.value_score ?? dealMetrics?.deal_score)
+  const valueLabel = valueContext?.value_label || dealMetrics?.deal_label
+  const usedDelta =
+    dealMetrics?.delta_vs_used_median?.percent ??
+    comparison?.delta_vs_used_median?.percent
+  const retailDelta =
+    dealMetrics?.delta_vs_retail_anchor?.percent ??
+    comparison?.delta_vs_retail_anchor?.percent
+  const pricePerTb = dealMetrics?.price_per_tb
+  const capacity = dealMetrics?.capacity_gb
+  const sampleSize =
+    dealMetrics?.benchmark_sample_size ?? valueContext?.benchmark_sample_size
+  const comparableGroup = dealMetrics?.comparable_group
+  const benchmarkHealth = dealMetrics?.benchmark_health
+  const priceMovement = dealMetrics?.price_movement
+  const alertPolicy = dealMetrics?.alert_policy
+  const blockedAlerts = alertPolicy?.blocked_reasons ?? []
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {comparableGroup?.label && (
+        <span className="rounded border border-border/60 bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          Group {comparableGroup.label}
+        </span>
+      )}
+      {Number.isFinite(value) && (
+        <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${dealMetricTone(dealMetrics)}`}>
+          Value {Math.round(value)} {valueLabel ? `- ${cleanLabel(valueLabel)}` : ''}
+        </span>
+      )}
+      {benchmarkHealth?.label && (
+        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${benchmarkHealthTone(benchmarkHealth.label)}`}>
+          Bench {cleanLabel(benchmarkHealth.label)}
+        </span>
+      )}
+      {priceMovement?.direction && typeof priceMovement.percent === 'number' && (
+        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${priceMovementTone(priceMovement.direction)}`}>
+          {priceMovement.direction === 'drop' ? 'Drop' : 'Up'} {Math.round(Math.abs(priceMovement.percent) * 10) / 10}%
+        </span>
+      )}
+      {typeof usedDelta === 'number' && !Number.isNaN(usedDelta) && (
+        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${usedDeltaTone(usedDelta)}`}>
+          Vs used {formatDelta(usedDelta)}
+        </span>
+      )}
+      {typeof retailDelta === 'number' && !Number.isNaN(retailDelta) && (
+        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${retailDeltaTone(retailDelta)}`}>
+          Vs retail {formatDelta(retailDelta)}
+        </span>
+      )}
+      {typeof pricePerTb === 'number' && !Number.isNaN(pricePerTb) && (
+        <span className="rounded border border-border/60 bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          {formatCurrency(pricePerTb)}/TB
+        </span>
+      )}
+      {typeof capacity === 'number' && !Number.isNaN(capacity) && (
+        <span className="rounded border border-border/60 bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          {formatCapacity(capacity)}
+        </span>
+      )}
+      {typeof sampleSize === 'number' && !Number.isNaN(sampleSize) && sampleSize > 0 && (
+        <span className="rounded border border-border/60 bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          n={Math.round(sampleSize)}
+        </span>
+      )}
+      {blockedAlerts.length > 0 && (
+        <span className="rounded border border-amber-500/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-800 dark:text-amber-200">
+          No alert: {blockedAlerts[0]}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function ScoreGauge({ score, compact = false }: { score: number; compact?: boolean }) {
+  const safeScore = Number.isFinite(score) ? score : 0
+  const normalizedScore = Math.max(0, Math.min(100, safeScore))
   const radius = 40
   const circumference = Math.PI * radius
   const strokeDashoffset = circumference - (normalizedScore / 100) * circumference
@@ -139,7 +353,7 @@ function ScoreGauge({ score }: { score: number }) {
   else if (normalizedScore < 75) colorClass = 'text-amber-500'
 
   return (
-    <div className="relative w-32 h-16">
+    <div className={compact ? 'relative h-10 w-20' : 'relative h-16 w-32'}>
       <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
         <path
           d="M 10 50 A 40 40 0 0 1 90 50"
@@ -161,7 +375,9 @@ function ScoreGauge({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center justify-end translate-y-1.5">
-        <span className="text-2xl font-bold font-mono tracking-tighter">{normalizedScore}</span>
+        <span className={`${compact ? 'text-lg' : 'text-2xl'} font-bold font-mono tracking-tighter`}>
+          {normalizedScore}
+        </span>
       </div>
     </div>
   )
@@ -171,9 +387,12 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   const [matches, setMatches] = useState<MarketplaceMatch[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [bandFilter, setBandFilter] = useState('all')
+  const [sortMode, setSortMode] = useState<MatchSortMode>('score')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedbackSavingMatchId, setFeedbackSavingMatchId] = useState<string | null>(null)
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [selectedMatchIds, setSelectedMatchIds] = useState<Set<string>>(() => new Set())
   const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
 
   const load = useCallback(async () => {
@@ -185,6 +404,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
         decisionBand: bandFilter === 'all' ? undefined : bandFilter,
       })
       setMatches(items)
+      setSelectedMatchIds(new Set())
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load Marketplace matches')
     } finally {
@@ -237,9 +457,61 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
     }
   }
 
+  const visibleMatches = sortMatches(matches, sortMode)
+  const selectedMatches = visibleMatches.filter((match) => selectedMatchIds.has(match.match_id))
+  const aboveRetailMatches = visibleMatches.filter(isAboveRetail)
+  const weakBenchmarkMatches = visibleMatches.filter(hasWeakBenchmark)
+
+  function toggleMatchSelection(matchId: string) {
+    setSelectedMatchIds((current) => {
+      const next = new Set(current)
+      if (next.has(matchId)) {
+        next.delete(matchId)
+      } else {
+        next.add(matchId)
+      }
+      return next
+    })
+  }
+
+  async function bulkUpdateStatus(targets: MarketplaceMatch[], status: string) {
+    if (targets.length === 0) return
+    setError(null)
+    setBulkSaving(true)
+    try {
+      await Promise.all(targets.map((match) => updateMarketplaceMatch(apiKey, match.match_id, status)))
+      setSelectedMatchIds(new Set())
+      await load()
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Bulk match update failed')
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
+  async function bulkMarkNotInterested(targets: MarketplaceMatch[], note: string) {
+    if (targets.length === 0) return
+    setError(null)
+    setBulkSaving(true)
+    try {
+      await Promise.all(
+        targets.map((match) =>
+          updateMarketplaceMatchFeedback(apiKey, match.match_id, 'not_interested', note),
+        ),
+      )
+      const targetIds = new Set(targets.map((match) => match.match_id))
+      setMatches((current) => current.filter((match) => !targetIds.has(match.match_id)))
+      setSelectedMatchIds(new Set())
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Bulk feedback update failed')
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
   return (
     <div className="h-full overflow-auto">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+      <div className="mx-auto flex max-w-[1500px] flex-col gap-5 p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold">Marketplace Matches</h2>
@@ -284,11 +556,84 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Sort:</span>
+            <Select value={sortMode} onValueChange={(value) => setSortMode(value as MatchSortMode)}>
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MATCH_SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="text-xs">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
             {error}
+          </div>
+        )}
+
+        {(selectedMatches.length > 0 || aboveRetailMatches.length > 0 || weakBenchmarkMatches.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-muted/10 px-3 py-2">
+            <span className="mr-1 text-xs font-medium text-muted-foreground">
+              {selectedMatches.length} selected
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              disabled={bulkSaving || selectedMatches.length === 0}
+              onClick={() => void bulkUpdateStatus(selectedMatches, 'dismissed')}
+            >
+              <BellOff className="mr-1 h-3 w-3" />
+              Dismiss
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              disabled={bulkSaving || selectedMatches.length === 0}
+              onClick={() => void bulkMarkNotInterested(selectedMatches, 'Bulk hidden from matches tab')}
+            >
+              <ThumbsDown className="mr-1 h-3 w-3" />
+              Not interested
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              disabled={bulkSaving || aboveRetailMatches.length === 0}
+              onClick={() => void bulkUpdateStatus(aboveRetailMatches, 'dismissed')}
+            >
+              <BellOff className="mr-1 h-3 w-3" />
+              Hide above retail ({aboveRetailMatches.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              disabled={bulkSaving || weakBenchmarkMatches.length === 0}
+              onClick={() => void bulkUpdateStatus(weakBenchmarkMatches, 'dismissed')}
+            >
+              <CheckSquare className="mr-1 h-3 w-3" />
+              Hide weak benchmark ({weakBenchmarkMatches.length})
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-7 px-2 text-[11px]"
+              disabled={bulkSaving || selectedMatches.length === 0}
+              onClick={() => setSelectedMatchIds(new Set())}
+            >
+              <X className="mr-1 h-3 w-3" />
+              Clear
+            </Button>
           </div>
         )}
 
@@ -302,230 +647,270 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
             <p className="text-muted-foreground">No matches found for the current filters.</p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {matches.map((match) => {
+          <div data-testid="marketplace-match-grid" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {visibleMatches.map((match) => {
               const media = listingMedia(match)
               const firstMedia = media[0] ?? null
               const priceEvidence = priceEvidenceForMatch(match)
               const comparison = match.price_comparison ?? null
+              const baseDealMetrics = match.deal_metrics ?? null
+              const alertPolicy = alertPolicyForMatch(match)
+              const dealMetrics =
+                baseDealMetrics && alertPolicy && !baseDealMetrics.alert_policy
+                  ? { ...baseDealMetrics, alert_policy: alertPolicy }
+                  : baseDealMetrics
               const userFeedback = match.user_feedback?.feedback ?? null
+              const isSelected = selectedMatchIds.has(match.match_id)
               return (
-              <Card key={match.match_id} className="overflow-hidden transition-colors hover:bg-muted/5 border-border/50">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 bg-muted/10 px-5 py-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={decisionVariant(match.decision_band)}>
-                      {match.decision_band.replace('_', ' ')}
-                    </Badge>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {formatClock(match.captured_at)}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs">
-                      <Link href={`/marketplace/matches/${match.match_id}`}>
-                        Details
-                      </Link>
-                    </Button>
-                    {match.listing_url && (
-                      <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs text-primary">
-                        <a href={match.listing_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="mr-1 h-3 w-3" />
-                          View
-                        </a>
-                      </Button>
-                    )}
-                    <Select
-                      value={match.status}
-                      onValueChange={(val) => void handleStatus(match.match_id, val)}
-                    >
-                      <SelectTrigger className="h-7 w-[100px] text-xs font-medium">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MATCH_STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value} className="text-xs">
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant={
-                        pendingFeedback?.matchId === match.match_id && pendingFeedback.feedback === 'interested'
-                          ? 'default'
-                          : userFeedback === 'interested' ? 'default' : 'outline'
-                      }
-                      size="sm"
-                      disabled={feedbackSavingMatchId === match.match_id}
-                      onClick={() => handleFeedback(match.match_id, 'interested')}
-                      className="h-7 px-2 text-xs"
-                    >
-                      <ThumbsUp className="mr-1 h-3 w-3" />
-                      Interested
-                    </Button>
-                    <Button
-                      variant={
-                        pendingFeedback?.matchId === match.match_id && pendingFeedback.feedback === 'not_interested'
-                          ? 'secondary'
-                          : userFeedback === 'not_interested' ? 'secondary' : 'outline'
-                      }
-                      size="sm"
-                      disabled={feedbackSavingMatchId === match.match_id}
-                      onClick={() => handleFeedback(match.match_id, 'not_interested')}
-                      className="h-7 px-2 text-xs"
-                    >
-                      <ThumbsDown className="mr-1 h-3 w-3" />
-                      Not interested
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Inline note panel */}
-                {pendingFeedback?.matchId === match.match_id && (
-                  <div className="border-b border-border/50 bg-muted/10 px-5 py-3 flex flex-col gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      {pendingFeedback.feedback === 'not_interested'
-                        ? 'Why not? (optional — helps the system learn)'
-                        : 'What do you like about this? (optional)'}
-                    </p>
-                    <Textarea
-                      autoFocus
-                      rows={2}
-                      placeholder={
-                        pendingFeedback.feedback === 'not_interested'
-                          ? 'e.g. wrong brand, too old, price too high…'
-                          : 'e.g. great condition, good price for spec…'
-                      }
-                      value={pendingFeedback.note}
-                      onChange={(e) =>
-                        setPendingFeedback((p) => p ? { ...p, note: e.target.value } : p)
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void confirmFeedback()
-                        if (e.key === 'Escape') setPendingFeedback(null)
-                      }}
-                      className="text-xs resize-none"
-                    />
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" className="h-7 text-xs" onClick={() => void confirmFeedback()}>
-                        Confirm
+                <Card
+                  key={match.match_id}
+                  data-testid="marketplace-match-card"
+                  className="gap-0 overflow-hidden rounded-lg border-border/50 py-0 transition-colors hover:bg-muted/5"
+                >
+                  <div className="border-b border-border/50 bg-muted/10 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${match.title}`}
+                          checked={isSelected}
+                          onChange={() => toggleMatchSelection(match.match_id)}
+                          className="h-4 w-4 shrink-0 rounded border-border accent-primary"
+                        />
+                        <Badge variant={decisionVariant(match.decision_band)} className="h-5 text-[10px]">
+                          {match.decision_band.replace('_', ' ')}
+                        </Badge>
+                        <span className="truncate font-mono text-[10px] text-muted-foreground">
+                          {formatClock(match.captured_at)}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-[11px]">
+                          <Link href={`/marketplace/matches/${match.match_id}`}>
+                            Details
+                          </Link>
+                        </Button>
+                        {match.listing_url && (
+                          <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-[11px] text-primary">
+                            <a href={match.listing_url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="mr-1 h-3 w-3" />
+                              View
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Select
+                        value={match.status}
+                        onValueChange={(val) => void handleStatus(match.match_id, val)}
+                      >
+                        <SelectTrigger className="h-7 w-[92px] text-[11px] font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MATCH_STATUS_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="text-[11px]">
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant={
+                          pendingFeedback?.matchId === match.match_id && pendingFeedback.feedback === 'interested'
+                            ? 'default'
+                            : userFeedback === 'interested' ? 'default' : 'outline'
+                        }
+                        size="sm"
+                        disabled={feedbackSavingMatchId === match.match_id}
+                        onClick={() => handleFeedback(match.match_id, 'interested')}
+                        className="h-7 px-2 text-[11px]"
+                      >
+                        <ThumbsUp className="mr-1 h-3 w-3" />
+                        Interested
                       </Button>
                       <Button
+                        variant={
+                          pendingFeedback?.matchId === match.match_id && pendingFeedback.feedback === 'not_interested'
+                            ? 'secondary'
+                            : userFeedback === 'not_interested' ? 'secondary' : 'outline'
+                        }
                         size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        onClick={() => setPendingFeedback(null)}
+                        disabled={feedbackSavingMatchId === match.match_id}
+                        onClick={() => handleFeedback(match.match_id, 'not_interested')}
+                        className="h-7 px-2 text-[11px]"
                       >
-                        Cancel
+                        <ThumbsDown className="mr-1 h-3 w-3" />
+                        Not interested
                       </Button>
-                      <span className="text-xs text-muted-foreground">⌘↵ to confirm · Esc to cancel</span>
                     </div>
                   </div>
-                )}
 
-                {/* Existing note */}
-                {!pendingFeedback && match.user_feedback?.note && (
-                  <div className="border-b border-border/50 bg-muted/5 px-5 py-2">
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium">Your note:</span> {match.user_feedback.note}
-                    </p>
-                  </div>
-                )}
+                  {/* Inline note panel */}
+                  {pendingFeedback?.matchId === match.match_id && (
+                    <div className="flex flex-col gap-2 border-b border-border/50 bg-muted/10 px-3 py-2">
+                      <p className="text-xs text-muted-foreground">
+                        {pendingFeedback.feedback === 'not_interested'
+                          ? 'Why not? (optional — helps the system learn)'
+                          : 'What do you like about this? (optional)'}
+                      </p>
+                      <Textarea
+                        autoFocus
+                        rows={2}
+                        placeholder={
+                          pendingFeedback.feedback === 'not_interested'
+                            ? 'e.g. wrong brand, too old, price too high…'
+                            : 'e.g. great condition, good price for spec…'
+                        }
+                        value={pendingFeedback.note}
+                        onChange={(e) =>
+                          setPendingFeedback((p) => p ? { ...p, note: e.target.value } : p)
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void confirmFeedback()
+                          if (e.key === 'Escape') setPendingFeedback(null)
+                        }}
+                        className="text-xs resize-none"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" className="h-7 text-xs" onClick={() => void confirmFeedback()}>
+                          Confirm
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={() => setPendingFeedback(null)}
+                        >
+                          Cancel
+                        </Button>
+                        <span className="text-xs text-muted-foreground">Cmd+Enter to confirm; Esc to cancel</span>
+                      </div>
+                    </div>
+                  )}
 
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_300px]">
-                    {/* Left Column */}
-                    <div className="flex flex-col border-r border-border/50">
-                      <div className="space-y-1 p-5 pb-4">
-                        <h3 className="text-lg font-semibold leading-tight">{match.title}</h3>
-                        <div className="text-sm text-muted-foreground">
-                          Brand: <span className="font-medium text-foreground">{String(match.metadata?.brand || 'Unknown')}</span>
+                  {/* Existing note */}
+                  {!pendingFeedback && match.user_feedback?.note && (
+                    <div className="border-b border-border/50 bg-muted/5 px-3 py-2">
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">Your note:</span> {match.user_feedback.note}
+                      </p>
+                    </div>
+                  )}
+
+                  <CardContent className="flex flex-1 flex-col p-0">
+                    <div className="space-y-2 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{match.title}</h3>
+                          <div className="grid gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:grid-cols-2">
+                            <div className="min-w-0 truncate">
+                              Brand:{' '}
+                              <span className="font-medium text-foreground">
+                                {String(match.metadata?.brand || 'Unknown')}
+                              </span>
+                            </div>
+                            <div className="min-w-0 truncate">
+                              Location:{' '}
+                              <span className="font-medium text-foreground">
+                                {match.location || 'Unknown'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          Location: <span className="font-medium text-foreground">{match.location || 'Unknown'}</span>
+                        <div className="shrink-0 pt-1">
+                          <ScoreGauge score={match.score} compact />
                         </div>
                       </div>
-                      <div className="relative aspect-video w-full overflow-hidden border-t border-border/50 bg-muted/20 p-4">
-                        {firstMedia ? (
+                    </div>
+
+                    <div className="relative aspect-[16/9] w-full overflow-hidden border-y border-border/50 bg-muted/20 p-2">
+                      {firstMedia ? (
+                        <>
+                          {/* Marketplace captures can come from arbitrary external CDNs. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={firstMedia}
                             alt={`Listing photo for ${match.title}`}
-                            className="h-full w-full object-contain md:h-64"
+                            className="h-full w-full object-contain"
                           />
+                        </>
+                      ) : (
+                        <div className="flex h-full min-h-32 items-center justify-center gap-2 text-xs text-muted-foreground">
+                          <ImageOff className="h-4 w-4" />
+                          Listing photos unavailable
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 left-2 flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className="bg-background/85 text-[10px] backdrop-blur-sm">
+                          photos: {media.length}
+                        </Badge>
+                        <Badge variant="outline" className="bg-background/85 text-[10px] backdrop-blur-sm">
+                          {priceSourceLabel(priceEvidence)}
+                        </Badge>
+                      </div>
+                    </div>
+
+                  <div className="space-y-2 border-b border-border/50 bg-muted/5 p-3">
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="min-w-0">
+                        <span className="block text-muted-foreground">List price</span>
+                        <span className="block truncate text-base font-semibold text-primary">
+                          {match.price || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-muted-foreground">Benchmark</span>
+                        <span className="block truncate font-medium text-foreground">
+                          {benchmarkAnchorLabel(comparison)}
+                        </span>
+                      </div>
+                    </div>
+                    <DealMetricChips
+                      comparison={comparison}
+                      dealMetrics={dealMetrics}
+                      valueContext={match.value_context}
+                    />
+                    <div>
+                      <span className="mb-1.5 block text-[11px] font-medium text-muted-foreground">
+                        Features
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {match.reasons_for && match.reasons_for.length > 0 ? (
+                          match.reasons_for.slice(0, 3).map((reason, i) => (
+                            <Badge key={i} variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
+                              {reason}
+                            </Badge>
+                          ))
                         ) : (
-                          <div className="flex h-32 items-center justify-center gap-2 text-xs text-muted-foreground md:h-64">
-                            <ImageOff className="h-4 w-4" />
-                            Listing photos unavailable
-                          </div>
+                          <span className="text-xs text-muted-foreground">None listed</span>
                         )}
-                        <div className="absolute bottom-2 left-2 flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
-                            photos: {media.length}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
-                            {priceSourceLabel(priceEvidence)}
-                          </Badge>
-                        </div>
                       </div>
                     </div>
-
-                    {/* Right Column */}
-                    <div className="flex flex-col">
-                      <div className="space-y-3 border-b border-border/50 bg-muted/5 p-5">
-                        <div className="flex items-baseline justify-between text-sm">
-                          <span className="text-muted-foreground">List Price:</span>
-                          <span className="text-lg font-semibold text-primary">{match.price || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-baseline justify-between text-sm">
-                          <span className="text-muted-foreground">Benchmark:</span>
-                          <span className="font-medium text-foreground">
-                            {benchmarkAnchorLabel(comparison)}
-                          </span>
-                        </div>
-                        <div className="pt-1">
-                          <span className="mb-2 block text-xs font-medium text-muted-foreground">Features:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {match.reasons_for && match.reasons_for.length > 0 ? (
-                              match.reasons_for.slice(0, 4).map((reason, i) => (
-                                <Badge key={i} variant="secondary" className="h-5 px-1.5 text-xs font-normal">
-                                  {reason}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-xs text-muted-foreground">None listed</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Score Gauge */}
-                      <div className="flex grow flex-col items-center justify-center bg-background p-5">
-                        <ScoreGauge score={match.score} />
-                        <div className="mt-5 max-w-[200px] text-center text-xs text-muted-foreground">
-                          {match.value_context?.explanation || match.reasons_for?.[0] || 'Score based on fit and price.'}
-                        </div>
-                      </div>
-                    </div>
+                    <p className="line-clamp-2 text-[11px] text-muted-foreground">
+                      {match.value_context?.explanation || match.reasons_for?.[0] || 'Score based on fit and price.'}
+                    </p>
                   </div>
 
                   {/* Additional Context Sections */}
                   {(match.value_context || match.benchmark || comparison || priceEvidence?.warning) && (
-                    <div className="border-t border-border/50 bg-muted/5 p-4">
+                    <div className="space-y-2 bg-muted/5 p-3">
                       {priceEvidence?.warning && (
-                        <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
+                        <p className="text-[11px] text-amber-700 dark:text-amber-300">
                           {priceEvidence.warning}
                         </p>
                       )}
                       
                       {comparison && (
-                        <div className={`mb-3 rounded-md border p-3 text-xs ${comparisonToneClass(comparison)} bg-background`}>
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <div className={`rounded-md border bg-background p-2.5 text-[11px] ${comparisonToneClass(comparison)}`}>
+                          <div className="mb-2 flex flex-wrap items-center gap-1.5">
                             <span className="font-semibold">Price comparison</span>
-                            <Badge variant="outline" className="bg-background/70 text-xs">
+                            <Badge variant="outline" className="bg-background/70 text-[10px]">
                               {comparisonStatusLabel(comparison)}
                             </Badge>
                           </div>
-                          <div className="grid gap-1 sm:grid-cols-4">
+                          <div className="grid grid-cols-2 gap-1">
                             <div>
                               Listing:{' '}
                               <span className="font-mono font-semibold">
@@ -552,7 +937,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                             </div>
                           </div>
                           {comparisonHelpText(comparison) && (
-                            <p className="mt-2 text-xs text-muted-foreground">
+                            <p className="mt-2 text-[11px] text-muted-foreground">
                               {comparisonHelpText(comparison)}
                             </p>
                           )}
@@ -560,25 +945,25 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                       )}
 
                       {match.value_context && (
-                        <div className="mb-3 rounded-md border border-primary/20 bg-background p-3 text-xs shadow-sm">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <div className="rounded-md border border-primary/20 bg-background p-2.5 text-[11px] shadow-sm">
+                          <div className="mb-2 flex flex-wrap items-center gap-1.5">
                             <span className="font-medium">Used-market value</span>
                             <Badge
                               variant={valueBadgeVariant(match.value_context.value_label)}
-                              className="text-xs"
+                              className="text-[10px]"
                             >
                               {match.value_context.value_label}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-[10px]">
                               confidence: {match.value_context.value_confidence}
                             </Badge>
                             {typeof match.value_context.value_score === 'number' && (
-                              <Badge variant="outline" className="font-mono text-xs">
+                              <Badge variant="outline" className="font-mono text-[10px]">
                                 value: {match.value_context.value_score}
                               </Badge>
                             )}
                           </div>
-                          <div className="grid gap-1 sm:grid-cols-2">
+                          <div className="grid grid-cols-2 gap-1">
                             <div>
                               Product:{' '}
                               <span className="font-medium">
@@ -626,12 +1011,12 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                             )}
                           </div>
                           {match.value_context.price_movement_summary && (
-                            <p className="mt-2 text-xs text-muted-foreground">
+                            <p className="mt-2 text-[11px] text-muted-foreground">
                               {match.value_context.price_movement_summary}
                             </p>
                           )}
                           {match.value_context.warnings && match.value_context.warnings.length > 0 && (
-                            <p className="mt-2 text-xs text-destructive">
+                            <p className="mt-2 text-[11px] text-destructive">
                               {match.value_context.warnings.slice(0, 2).join(' ')}
                             </p>
                           )}
@@ -639,9 +1024,9 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                       )}
 
                       {match.benchmark && (
-                        <div className="rounded-md border border-border/60 bg-background p-3 text-xs shadow-sm">
+                        <div className="rounded-md border border-border/60 bg-background p-2.5 text-[11px] shadow-sm">
                           <div className="mb-1 font-medium">New retail benchmark ({match.benchmark.source})</div>
-                          <div className="grid gap-1 sm:grid-cols-2">
+                          <div className="grid grid-cols-2 gap-1">
                             <div>
                               Product: <span className="font-medium">{match.benchmark.matched_product || 'unmatched'}</span>
                             </div>
@@ -667,20 +1052,21 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                           </div>
                           {match.benchmark.review_status && (
                             <div className="mt-2">
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-[10px]">
                                 review: {match.benchmark.review_status}
                               </Badge>
                             </div>
                           )}
                           {match.benchmark.warning && (
-                            <p className="mt-2 text-xs text-destructive">{match.benchmark.warning}</p>
+                            <p className="mt-2 text-[11px] text-destructive">{match.benchmark.warning}</p>
                           )}
                         </div>
                       )}
                     </div>
                   )}
                 </CardContent>
-              </Card>              )
+                </Card>
+              )
             })}
           </div>
         )}

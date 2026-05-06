@@ -4480,6 +4480,7 @@ class MarketplaceMatchRecord(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     benchmark: dict[str, Any] | None = None
     value_context: dict[str, Any] | None = None
+    deal_metrics: dict[str, Any] | None = None
     price_comparison: dict[str, Any] | None = None
     user_feedback: dict[str, Any] | None = None
     updated_at: str
@@ -5180,8 +5181,15 @@ def _attach_marketplace_match_backend_payloads(
         if isinstance(feedback_by_match_id, dict)
         else service.state_store.get_marketplace_match_feedback(match_id)
     )
+    metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+    deal_metrics = (
+        metadata.get("deal_metrics")
+        if isinstance(metadata.get("deal_metrics"), dict)
+        else None
+    )
     return {
         **match,
+        "deal_metrics": deal_metrics,
         "price_comparison": price_service.build_match_price_comparison(
             match=match,
             value_context=match.get("value_context")

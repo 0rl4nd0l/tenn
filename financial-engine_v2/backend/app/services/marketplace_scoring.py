@@ -67,7 +67,9 @@ _GPU_MODEL_RE = re.compile(
     r"|\b(?:amd\s+|radeon\s+)?rx\s*[5679][0-9]{3}(?:\s*(?:xtx|xt))?\b",
     re.IGNORECASE,
 )
-_SSD_EVIDENCE_RE = re.compile(r"\b(ssd|nvme|m\.?\s*2|pcie|gen\s*[345])\b", re.IGNORECASE)
+_SSD_EVIDENCE_RE = re.compile(
+    r"\b(ssd|nvme|m\.?\s*2|pcie|gen\s*[345])\b", re.IGNORECASE
+)
 _SSD_WRONG_CATEGORY_RE = re.compile(
     r"\b(hdd|hhd|hard\s*drive|usb\s+storage|game\s+drive|time\s+capsule|"
     r"portable|external|enclosure|passport|t7(?:\s*shield)?)\b",
@@ -79,10 +81,14 @@ _SSD_MODEL_RE = re.compile(
     r"gammix\s*s70(?:\s*blade)?|s70\s*blade)\b",
     re.IGNORECASE,
 )
+_SSD_PCIE_GEN_RE = re.compile(
+    r"\b(?:pcie\s*)?gen\s*([345])\b|\bpcie\s*([345])(?:\.0)?\b", re.IGNORECASE
+)
 _RAM_MODEL_RE = re.compile(
     r"\b(vengeance|ripjaws|fury\s*beast|trident|dominator|ballistix)\b",
     re.IGNORECASE,
 )
+_RAM_GENERATION_RE = re.compile(r"\bddr\s*([345])\b", re.IGNORECASE)
 _MOTHERBOARD_EVIDENCE_RE = re.compile(
     r"\b(motherboard|mainboard|mobo|x570|am4|pro\s*ws|x570[-\s]*ace)\b",
     re.IGNORECASE,
@@ -113,6 +119,9 @@ _DEAL_RANKED_CATEGORIES = {"gpu", "ssd", "ram", "motherboard"}
 _GOOD_DEAL_DISCOUNT_PCT = 0.05
 _STRONG_DEAL_DISCOUNT_PCT = 0.15
 _ABOVE_MARKET_PREMIUM_PCT = 0.10
+_POOR_DEAL_PREMIUM_PCT = 0.25
+_VERY_POOR_DEAL_PREMIUM_PCT = 0.50
+_SSD_CAPACITY_VALUE_PCT = 0.12
 
 
 def _clean_text(value: Any) -> str:
@@ -177,7 +186,9 @@ def _location_matches_scope(card_location: str, location_names: list[str]) -> bo
         return True
 
     is_au_scope = _is_australia_scoped(location_names)
-    if is_au_scope and any(re.search(pattern, location) for pattern in _FOREIGN_LOCATION_PATTERNS):
+    if is_au_scope and any(
+        re.search(pattern, location) for pattern in _FOREIGN_LOCATION_PATTERNS
+    ):
         return False
 
     for name in location_names:
@@ -190,7 +201,9 @@ def _location_matches_scope(card_location: str, location_names: list[str]) -> bo
             if scope in target and re.search(pattern, location):
                 return True
 
-    if is_au_scope and re.search(r"\b(australia|au|vic|nsw|qld|sa|wa|tas|act|nt)\b", location):
+    if is_au_scope and re.search(
+        r"\b(australia|au|vic|nsw|qld|sa|wa|tas|act|nt)\b", location
+    ):
         return True
     return False
 
@@ -232,10 +245,9 @@ def _tracked_category(value: Any) -> str:
 
 def _requirement_category(mission: dict[str, Any]) -> str:
     profile = _requirement_profile(mission)
-    if isinstance(profile, dict):
+    if isinstance(profile, dict) and profile.get("category"):
         return _tracked_category(profile.get("category"))
     return _tracked_category(mission.get("category_hint"))
-
 
 
 def _candidate_identity_values(mission: dict[str, Any]) -> list[str]:
@@ -363,7 +375,9 @@ def _clear_location_conflict(
     card_location: str,
     location_names: list[str],
 ) -> bool:
-    if any(re.search(pattern, normalized_text) for pattern in _FOREIGN_LOCATION_PATTERNS):
+    if any(
+        re.search(pattern, normalized_text) for pattern in _FOREIGN_LOCATION_PATTERNS
+    ):
         return True
     location = _normalize(card_location)
     if not location or _DISTANCE_ONLY_LOCATION_RE.match(location):
@@ -374,7 +388,11 @@ def _clear_location_conflict(
     for name in location_names:
         mission_states.update(_location_states(name))
     location_states = _location_states(location)
-    return bool(mission_states and location_states and not mission_states.intersection(location_states))
+    return bool(
+        mission_states
+        and location_states
+        and not mission_states.intersection(location_states)
+    )
 
 
 def _obvious_requirement_junk_reason(
@@ -426,6 +444,141 @@ def _storage_capacity_gb(text: str) -> int | None:
     return int(value * 1000) if unit == "tb" else int(value)
 
 
+def _format_capacity_gb(value: int | float) -> str:
+    capacity = int(value)
+    if capacity >= 1000 and capacity % 1000 == 0:
+        return f"{capacity // 1000}TB"
+    return f"{capacity}GB"
+
+
+def _canonical_token(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+
+def _gpu_model_label(value: str) -> str:
+    tokens = re.findall(r"[a-z0-9]+", value.lower())
+    if not tokens:
+        return value.upper()
+    if tokens[0] in {"nvidia", "geforce", "amd", "radeon"}:
+        tokens = tokens[1:]
+    if tokens and tokens[0] in {"rtx", "gtx", "rx"}:
+        prefix = tokens[0].upper()
+        rest = " ".join(
+            token.upper() if token in {"ti", "super", "xt", "xtx"} else token
+            for token in tokens[1:]
+        )
+        return f"{prefix} {rest}".strip()
+    return " ".join(
+        token.upper() if token in {"ti", "super", "xt", "xtx"} else token
+        for token in tokens
+    )
+
+
+def _ssd_interface_label(normalized_text: str) -> str:
+    if re.search(r"\b(nvme|m\.?\s*2|pcie)\b", normalized_text):
+        return "NVMe"
+    if re.search(r"\bsata\b", normalized_text):
+        return "SATA"
+    return "SSD"
+
+
+def _ssd_generation_label(normalized_text: str) -> str | None:
+    match = _SSD_PCIE_GEN_RE.search(normalized_text)
+    if not match:
+        return None
+    generation = match.group(1) or match.group(2)
+    return f"Gen{generation}" if generation else None
+
+
+def _comparable_group(category: str, normalized_text: str) -> dict[str, Any] | None:
+    normalized_category = _tracked_category(category)
+    basis: list[str] = []
+    labels: list[str] = []
+
+    if normalized_category == "ssd":
+        labels.append("SSD")
+        interface = _ssd_interface_label(normalized_text)
+        if interface != "SSD":
+            basis.append("interface")
+            labels.append(interface)
+        generation = _ssd_generation_label(normalized_text)
+        if generation:
+            basis.append("generation")
+            labels.append(generation)
+        capacity = _storage_capacity_gb(normalized_text)
+        if capacity is not None:
+            basis.append("capacity")
+            labels.append(_format_capacity_gb(capacity))
+        model = _SSD_MODEL_RE.search(normalized_text)
+        if model:
+            basis.append("model")
+            labels.append(_clean_text(model.group(0)).upper())
+        if len(labels) == 1:
+            return None
+        label = " / ".join(labels)
+        return {
+            "key": "ssd:" + ":".join(_canonical_token(part) for part in labels[1:]),
+            "label": label,
+            "category": "ssd",
+            "basis": basis,
+        }
+
+    if normalized_category == "gpu":
+        model = _GPU_MODEL_RE.search(normalized_text)
+        if not model:
+            return None
+        model_label = _gpu_model_label(model.group(0))
+        labels = ["GPU", model_label]
+        basis.append("model")
+        vram = _explicit_gpu_vram_gb(normalized_text)
+        if vram is not None:
+            basis.append("vram")
+            labels.append(f"{vram}GB")
+        return {
+            "key": "gpu:" + ":".join(_canonical_token(part) for part in labels[1:]),
+            "label": " / ".join(labels),
+            "category": "gpu",
+            "basis": basis,
+        }
+
+    if normalized_category == "ram":
+        capacity = _storage_capacity_gb(normalized_text)
+        generation = _RAM_GENERATION_RE.search(normalized_text)
+        model = _RAM_MODEL_RE.search(normalized_text)
+        if capacity is None and generation is None and model is None:
+            return None
+        labels = ["RAM"]
+        if capacity is not None:
+            basis.append("capacity")
+            labels.append(_format_capacity_gb(capacity))
+        if generation is not None:
+            basis.append("generation")
+            labels.append(f"DDR{generation.group(1)}")
+        if model is not None:
+            basis.append("model")
+            labels.append(_clean_text(model.group(0)).title())
+        return {
+            "key": "ram:" + ":".join(_canonical_token(part) for part in labels[1:]),
+            "label": " / ".join(labels),
+            "category": "ram",
+            "basis": basis,
+        }
+
+    if normalized_category == "motherboard":
+        model = _MOTHERBOARD_MODEL_RE.search(normalized_text)
+        if not model:
+            return None
+        label = _clean_text(model.group(0)).upper().replace(" ", "-")
+        return {
+            "key": "motherboard:" + _canonical_token(label),
+            "label": f"Motherboard / {label}",
+            "category": "motherboard",
+            "basis": ["model"],
+        }
+
+    return None
+
+
 def _mission_storage_capacity_targets(mission: dict[str, Any]) -> set[int]:
     hard = mission.get("hard_filters") or {}
     targets: set[int] = set()
@@ -436,10 +589,15 @@ def _mission_storage_capacity_targets(mission: dict[str, Any]) -> set[int]:
         capacity = _storage_capacity_gb(term.lower())
         if capacity is not None:
             targets.add(capacity)
+    minimum_capacity = _minimum_requirement_value(mission, "capacity_gb")
+    if minimum_capacity is not None:
+        targets.add(int(minimum_capacity))
     return targets
 
 
-def _category_fit_rejection(normalized_text: str, mission: dict[str, Any]) -> str | None:
+def _category_fit_rejection(
+    normalized_text: str, mission: dict[str, Any]
+) -> str | None:
     category = _requirement_category(mission)
     if category != "ssd":
         if category == "motherboard":
@@ -447,16 +605,20 @@ def _category_fit_rejection(normalized_text: str, mission: dict[str, Any]) -> st
                 return "Listing appears outside the requested motherboard category"
             if not _MOTHERBOARD_EVIDENCE_RE.search(normalized_text):
                 return "Required motherboard/X570 evidence was not found"
-            if _MOTHERBOARD_MODEL_RE.search(normalized_text) and not _has_asus_pro_ws_x570_ace_evidence(
+            if _MOTHERBOARD_MODEL_RE.search(
                 normalized_text
-            ):
-                return "Listing X570 ACE model is not the requested ASUS Pro WS X570-ACE"
+            ) and not _has_asus_pro_ws_x570_ace_evidence(normalized_text):
+                return (
+                    "Listing X570 ACE model is not the requested ASUS Pro WS X570-ACE"
+                )
             hard = mission.get("hard_filters") or {}
             target_terms = " ".join(
                 _string_list(hard.get("include_keywords"))
                 + _string_list(hard.get("required_terms"))
             ).lower()
-            if "x570" in target_terms and re.search(r"\b(b550|x470|x670|b650|am5)\b", normalized_text):
+            if "x570" in target_terms and re.search(
+                r"\b(b550|x470|x670|b650|am5)\b", normalized_text
+            ):
                 return "Listing chipset/socket does not match target X570/AM4 board"
         return None
     if _SSD_WRONG_CATEGORY_RE.search(normalized_text):
@@ -465,16 +627,19 @@ def _category_fit_rejection(normalized_text: str, mission: dict[str, Any]) -> st
         return "Required SSD/NVMe evidence was not found"
     targets = _mission_storage_capacity_targets(mission)
     listing_capacity = _storage_capacity_gb(normalized_text)
-    if targets and listing_capacity is not None and listing_capacity not in targets:
-        target_label = ", ".join(
-            f"{target // 1000}TB" if target >= 1000 and target % 1000 == 0 else f"{target}GB"
-            for target in sorted(targets)
-        )
-        return f"Listing capacity does not match target capacity: {target_label}"
+    if targets and listing_capacity is not None:
+        minimum_target = min(targets)
+        if listing_capacity < minimum_target:
+            return (
+                "Listing capacity is below target capacity: "
+                f"at least {_format_capacity_gb(minimum_target)}"
+            )
     return None
 
 
-def _strong_category_identity_evidence(normalized_text: str, mission: dict[str, Any]) -> bool:
+def _strong_category_identity_evidence(
+    normalized_text: str, mission: dict[str, Any]
+) -> bool:
     category = _requirement_category(mission)
     if category == "ssd":
         return bool(_SSD_MODEL_RE.search(normalized_text)) or bool(
@@ -568,14 +733,23 @@ def classify_requirement_detail_outcome(
             evidence={"reasons_against": reasons_against, "location": location},
         )
 
-    if "price" in reasons_text or "allowed minimum" in reasons_text or "allowed maximum" in reasons_text:
+    if (
+        "price" in reasons_text
+        or "allowed minimum" in reasons_text
+        or "allowed maximum" in reasons_text
+    ):
         return _detail_reason(
             "detail_price_failed",
             "Detail page price failed the mission price constraints.",
-            evidence={"reasons_against": reasons_against, "price": listing.get("price")},
+            evidence={
+                "reasons_against": reasons_against,
+                "price": listing.get("price"),
+            },
         )
 
-    junk_reason = _obvious_requirement_junk_reason(normalized, price_value, classifier_mission)
+    junk_reason = _obvious_requirement_junk_reason(
+        normalized, price_value, classifier_mission
+    )
     if junk_reason == "placeholder price":
         return _detail_reason(
             "detail_price_failed",
@@ -655,7 +829,7 @@ def parse_marketplace_price(value: Any) -> float | None:
         return None
 
 
-def _band_price(value: dict[str, float] | None, *keys: str) -> float | None:
+def _band_price(value: dict[str, Any] | None, *keys: str) -> float | None:
     if not isinstance(value, dict):
         return None
     for key in keys:
@@ -671,8 +845,195 @@ def _band_price(value: dict[str, float] | None, *keys: str) -> float | None:
     return None
 
 
+def _band_capacity_gb(value: dict[str, Any] | None) -> int | None:
+    parsed = _band_price(value, "capacity_gb", "benchmark_capacity_gb")
+    return int(parsed) if parsed is not None else None
+
+
+def _candidate_price_bands(value: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(value, dict):
+        return []
+    bands = value.get("candidate_bands")
+    if not isinstance(bands, list):
+        return []
+    return [band for band in bands if isinstance(band, dict)]
+
+
+def _capacity_adjusted_price_band(
+    band: dict[str, Any],
+    *,
+    listing_capacity_gb: int,
+) -> dict[str, Any]:
+    benchmark_capacity_gb = _band_capacity_gb(band)
+    if benchmark_capacity_gb is None or benchmark_capacity_gb <= 0:
+        return dict(band)
+    scale = listing_capacity_gb / benchmark_capacity_gb
+    if scale <= 0 or scale > 8:
+        return dict(band)
+    adjusted = dict(band)
+    adjusted["capacity_gb"] = float(listing_capacity_gb)
+    adjusted["capacity_adjusted_from_gb"] = float(benchmark_capacity_gb)
+    adjusted["capacity_scale"] = round(scale, 4)
+    for key in (
+        "median",
+        "used_median",
+        "fair_low",
+        "fair_range_low",
+        "fair_high",
+        "fair_range_high",
+        "retail_anchor_price",
+    ):
+        value = _band_price(band, key)
+        if value is not None:
+            adjusted[key] = value * scale
+    return adjusted
+
+
+def _price_band_for_listing(
+    observed_price_band: dict[str, Any] | None,
+    *,
+    category: str,
+    normalized_text: str,
+) -> dict[str, Any] | None:
+    if not isinstance(observed_price_band, dict):
+        return None
+    if category != "ssd":
+        return observed_price_band
+    listing_capacity = _storage_capacity_gb(normalized_text)
+    if listing_capacity is None:
+        return observed_price_band
+
+    candidates = _candidate_price_bands(observed_price_band)
+    capacity_candidates = [
+        candidate
+        for candidate in candidates
+        if _band_capacity_gb(candidate) is not None
+    ]
+    selected: dict[str, Any] = observed_price_band
+    if capacity_candidates:
+        selected = min(
+            capacity_candidates,
+            key=lambda item: abs(
+                (_band_capacity_gb(item) or listing_capacity) - listing_capacity
+            ),
+        )
+    return _capacity_adjusted_price_band(
+        selected,
+        listing_capacity_gb=listing_capacity,
+    )
+
+
 def _format_pct(value: float) -> str:
     return f"{abs(value) * 100:.1f}%"
+
+
+def _price_delta_payload(
+    listing_price: float | None,
+    anchor_price: float | None,
+) -> dict[str, float | None]:
+    if listing_price is None or anchor_price is None or anchor_price <= 0:
+        return {"amount": None, "percent": None}
+    amount = listing_price - anchor_price
+    return {
+        "amount": round(amount, 2),
+        "percent": round((amount / anchor_price) * 100, 1),
+    }
+
+
+def _benchmark_health(price_band: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(price_band, dict):
+        return None
+    sample_size = int(_band_price(price_band, "benchmark_sample_size") or 0)
+    freshness = _clean_text(price_band.get("freshness_status")).lower() or "unknown"
+    confidence = _clean_text(price_band.get("benchmark_confidence_label")).lower()
+    source_diversity = int(_band_price(price_band, "source_diversity") or 0)
+    warnings: list[str] = []
+
+    confidence_rank = {"low": 0, "medium": 1, "high": 2}.get(confidence, 1)
+    if sample_size <= 0:
+        label = "unknown"
+        warnings.append("No benchmark sample size is available.")
+    elif sample_size < 3:
+        label = "low"
+        warnings.append("Benchmark has fewer than three observations.")
+    elif freshness in {"stale", "no_data"}:
+        label = "low"
+        warnings.append("Benchmark is stale or unavailable.")
+    else:
+        label = "high" if sample_size >= 8 and confidence_rank >= 2 else "medium"
+        if sample_size < 5 or (bool(confidence) and confidence_rank <= 0):
+            label = "low"
+
+    if freshness in {"aging", "low_data"} and label == "high":
+        label = "medium"
+    if source_diversity == 1 and sample_size >= 3:
+        if label == "high":
+            label = "medium"
+        warnings.append("Benchmark currently comes from one source.")
+    elif source_diversity == 0 and sample_size > 0:
+        warnings.append("Benchmark source diversity is unknown.")
+
+    return _clean_metric_payload(
+        {
+            "label": label,
+            "sample_size": sample_size,
+            "freshness_status": freshness,
+            "confidence_label": confidence or None,
+            "source_diversity": source_diversity if source_diversity > 0 else None,
+            "warnings": warnings,
+        }
+    )
+
+
+def _deal_label(score: float | None) -> str:
+    if score is None:
+        return "unscored"
+    if score >= 85:
+        return "excellent_value"
+    if score >= 70:
+        return "good_value"
+    if score >= 50:
+        return "fair_value"
+    return "poor_value"
+
+
+def _price_deal_score(
+    *,
+    listing_price: float | None,
+    used_median: float | None,
+    fair_low: float | None,
+    fair_high: float | None,
+    retail_anchor: float | None,
+    capacity_value_delta: float | None = None,
+) -> float | None:
+    if listing_price is None:
+        return None
+    score: float | None = None
+    if used_median is not None and used_median > 0:
+        discount_pct = (used_median - listing_price) / used_median
+        score = 55.0 + discount_pct * 120.0
+        if fair_low is not None and listing_price <= fair_low:
+            score = max(score, 86.0)
+        if fair_high is not None and listing_price > fair_high:
+            score = min(score, 48.0)
+    elif retail_anchor is not None and retail_anchor > 0:
+        retail_discount_pct = (retail_anchor - listing_price) / retail_anchor
+        score = 50.0 + retail_discount_pct * 80.0
+
+    if score is None:
+        return None
+    if capacity_value_delta is not None:
+        score += max(-30.0, min(18.0, capacity_value_delta * 60.0))
+    if retail_anchor is not None and retail_anchor > 0:
+        if listing_price >= retail_anchor:
+            score = min(score, 48.0)
+        elif listing_price > retail_anchor * 0.9:
+            score = min(score, 68.0)
+    return round(max(0.0, min(100.0, score)), 1)
+
+
+def _clean_metric_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in payload.items() if value is not None}
 
 
 def listing_material_hash(payload: dict[str, Any]) -> str:
@@ -689,7 +1050,9 @@ def listing_material_hash(payload: dict[str, Any]) -> str:
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
 
 
-def prefilter_marketplace_card(card: dict[str, Any], mission: dict[str, Any]) -> dict[str, Any]:
+def prefilter_marketplace_card(
+    card: dict[str, Any], mission: dict[str, Any]
+) -> dict[str, Any]:
     hard = mission.get("hard_filters") or {}
     soft = mission.get("soft_preferences") or {}
     requirement_driven = _is_requirement_driven_mission(mission)
@@ -785,7 +1148,9 @@ def prefilter_marketplace_card(card: dict[str, Any], mission: dict[str, Any]) ->
     include_hits = 0
     if strong_candidate_match:
         priority += 35
-        reasons.append(f"Strong requirement candidate matched: {strong_candidate_match}")
+        reasons.append(
+            f"Strong requirement candidate matched: {strong_candidate_match}"
+        )
     for term in _string_list(hard.get("include_keywords")):
         if term.lower() in normalized:
             include_hits += 1
@@ -826,8 +1191,136 @@ def prefilter_marketplace_card(card: dict[str, Any], mission: dict[str, Any]) ->
 
 
 _NOTE_STOPWORDS = frozenset(
-    {"to", "too", "the", "an", "a", "is", "it", "in", "on", "at", "and", "or", "not", "no", "for", "of", "with", "this", "that", "was", "be"}
+    {
+        "to",
+        "too",
+        "the",
+        "an",
+        "a",
+        "is",
+        "it",
+        "in",
+        "on",
+        "at",
+        "and",
+        "or",
+        "not",
+        "no",
+        "for",
+        "of",
+        "with",
+        "this",
+        "that",
+        "was",
+        "be",
+    }
 )
+_FEEDBACK_SIGNAL_PATTERNS: tuple[tuple[str, str, str], ...] = (
+    (
+        "too_expensive",
+        "price",
+        r"\b(expensive|overpriced|too\s+high|price\s+high|retail|not\s+cheap)\b",
+    ),
+    (
+        "wrong_model",
+        "fit",
+        r"\b(wrong\s+model|wrong\s+brand|not\s+the\s+right|different\s+model|mismatch)\b",
+    ),
+    (
+        "low_capacity",
+        "capacity",
+        r"\b(low\s+capacity|too\s+small|not\s+enough\s+(?:storage|capacity)|1tb)\b",
+    ),
+    (
+        "seller_risk",
+        "seller",
+        r"\b(scam|dodgy|seller|no\s+receipt|no\s+invoice|warranty|fake)\b",
+    ),
+    (
+        "bad_location",
+        "location",
+        r"\b(too\s+far|far\s+away|location|pickup|interstate|shipping)\b",
+    ),
+    (
+        "poor_condition",
+        "condition",
+        r"\b(broken|damaged|used\s+hard|scratched|faulty|parts|repair)\b",
+    ),
+    (
+        "missing_photos",
+        "evidence",
+        r"\b(no\s+photo|missing\s+photo|photos?|picture|image)\b",
+    ),
+)
+
+
+def _feedback_note_signals(notes: list[str]) -> list[dict[str, Any]]:
+    signals: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for note in notes:
+        normalized_note = _normalize(note)
+        if not normalized_note:
+            continue
+        for code, field, pattern in _FEEDBACK_SIGNAL_PATTERNS:
+            if code in seen or not re.search(pattern, normalized_note):
+                continue
+            seen.add(code)
+            signals.append(
+                {
+                    "code": code,
+                    "field": field,
+                    "label": code.replace("_", " "),
+                }
+            )
+    return signals
+
+
+def _feedback_signal_penalty(
+    signals: list[dict[str, Any]],
+    *,
+    category: str,
+    listing_capacity: int | None,
+    capacity_targets: set[int],
+    price_value: float | None,
+    median_price: float | None,
+    retail_anchor: float | None,
+    strong_identity: bool,
+) -> tuple[int, list[str]]:
+    total_penalty = 0
+    reasons: list[str] = []
+    signal_codes = {str(signal.get("code") or "") for signal in signals}
+
+    if "too_expensive" in signal_codes and price_value is not None:
+        price_risky = False
+        if median_price is not None and median_price > 0:
+            price_risky = price_value > median_price * (1 - _GOOD_DEAL_DISCOUNT_PCT)
+        if retail_anchor is not None and retail_anchor > 0:
+            price_risky = price_risky or price_value > retail_anchor * 0.9
+        if price_risky:
+            total_penalty += 8
+            reasons.append(
+                "Feedback learning: previous rejects often cited price too high"
+            )
+
+    if (
+        "low_capacity" in signal_codes
+        and category == "ssd"
+        and listing_capacity is not None
+        and capacity_targets
+        and listing_capacity <= min(capacity_targets)
+    ):
+        total_penalty += 6
+        reasons.append("Feedback learning: similar SSD rejects cited capacity")
+
+    if "wrong_model" in signal_codes and not strong_identity:
+        total_penalty += 6
+        reasons.append("Feedback learning: previous rejects often cited model mismatch")
+
+    if "seller_risk" in signal_codes:
+        total_penalty += 3
+        reasons.append("Feedback learning: previous rejects cited seller risk")
+
+    return min(total_penalty, 16), reasons
 
 
 def _feedback_note_penalty(
@@ -839,7 +1332,8 @@ def _feedback_note_penalty(
     reasons: list[str] = []
     for note in notes:
         note_tokens = {
-            t for t in _terms(_normalize(note))
+            t
+            for t in _terms(_normalize(note))
             if len(t) >= 3 and t not in _NOTE_STOPWORDS
         }
         if not note_tokens:
@@ -859,7 +1353,7 @@ def evaluate_marketplace_listing(
     listing: dict[str, Any],
     mission: dict[str, Any],
     *,
-    observed_price_band: dict[str, float] | None = None,
+    observed_price_band: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     hard = mission.get("hard_filters") or {}
     soft = mission.get("soft_preferences") or {}
@@ -872,7 +1366,9 @@ def evaluate_marketplace_listing(
     price_text = _clean_text(listing.get("price"))
     raw_text_lines = _string_list(listing.get("raw_text_lines"))
     price_value = parse_marketplace_price(price_text)
-    combined = "\n".join([title, description, location, seller_name, " ".join(raw_text_lines)])
+    combined = "\n".join(
+        [title, description, location, seller_name, " ".join(raw_text_lines)]
+    )
     normalized = _normalize(combined)
     tokens = _terms(normalized)
 
@@ -896,7 +1392,9 @@ def evaluate_marketplace_listing(
         if _term_matches_text(term, normalized):
             return reject(f"Forbidden term present: {term}")
 
-    if include_keywords and not any(term.lower() in normalized for term in include_keywords):
+    if include_keywords and not any(
+        term.lower() in normalized for term in include_keywords
+    ):
         return reject("Required include keywords were not found")
 
     for term in _string_list(hard.get("required_terms")):
@@ -912,7 +1410,9 @@ def evaluate_marketplace_listing(
             return reject("Listing price is above the allowed maximum")
 
     required_conditions = _string_list(hard.get("condition_required"))
-    if required_conditions and not any(term.lower() in normalized for term in required_conditions):
+    if required_conditions and not any(
+        term.lower() in normalized for term in required_conditions
+    ):
         return reject("Required condition terms were not found")
 
     category_rejection = _category_fit_rejection(normalized, mission)
@@ -959,11 +1459,73 @@ def evaluate_marketplace_listing(
         score += 5
         reasons_for.append("Preferred suburb matched")
 
+    category = _requirement_category(mission)
+    price_band = _price_band_for_listing(
+        observed_price_band,
+        category=category,
+        normalized_text=normalized,
+    )
+    median_price = _band_price(price_band, "used_median", "median")
+    fair_low = _band_price(price_band, "fair_low", "fair_range_low")
+    fair_high = _band_price(price_band, "fair_high", "fair_range_high")
+    retail_anchor = _band_price(price_band, "retail_anchor_price", "retail_anchor")
+    benchmark_sample_size = _band_price(price_band, "benchmark_sample_size")
+    listing_capacity = _storage_capacity_gb(normalized) if category == "ssd" else None
+    band_capacity = _band_capacity_gb(price_band) if category == "ssd" else None
+    comparable_group = _comparable_group(category, normalized)
+    benchmark_health = _benchmark_health(price_band)
+    capacity_targets = (
+        _mission_storage_capacity_targets(mission) if category == "ssd" else set()
+    )
+    ssd_capacity_value_delta: float | None = None
+    deal_metrics: dict[str, Any] = {}
+    if price_value is not None:
+        deal_metrics = _clean_metric_payload(
+            {
+                "state": "scored"
+                if median_price is not None or retail_anchor is not None
+                else "missing_benchmark",
+                "listing_price": round(price_value, 2),
+                "used_market_median": round(median_price, 2)
+                if median_price is not None
+                else None,
+                "fair_low": round(fair_low, 2) if fair_low is not None else None,
+                "fair_high": round(fair_high, 2) if fair_high is not None else None,
+                "retail_anchor_price": round(retail_anchor, 2)
+                if retail_anchor is not None
+                else None,
+                "delta_vs_used_median": _price_delta_payload(
+                    price_value,
+                    median_price,
+                ),
+                "delta_vs_retail_anchor": _price_delta_payload(
+                    price_value,
+                    retail_anchor,
+                ),
+                "benchmark_sample_size": int(benchmark_sample_size)
+                if benchmark_sample_size is not None
+                else None,
+                "average_source": price_band.get("average_source")
+                if isinstance(price_band, dict)
+                else None,
+                "benchmark_snapshot_id": price_band.get("benchmark_snapshot_id")
+                if isinstance(price_band, dict)
+                else None,
+                "benchmark_capacity_gb": band_capacity,
+                "capacity_gb": listing_capacity,
+                "comparable_group": comparable_group,
+                "benchmark_health": benchmark_health,
+            }
+        )
+    score_cap: int | None = None
+    if benchmark_health and benchmark_health.get("label") == "low":
+        score_cap = min(score_cap or 100, 84)
+        reasons_against.append(
+            "Benchmark health is low; strong deal ranking needs fresher or broader data"
+        )
+
     if price_value is not None:
         mission_cap = hard.get("price_max")
-        median_price = _band_price(observed_price_band, "used_median", "median")
-        fair_low = _band_price(observed_price_band, "fair_low", "fair_range_low")
-        fair_high = _band_price(observed_price_band, "fair_high", "fair_range_high")
         if median_price:
             discount_pct = (median_price - price_value) / median_price
             if fair_low is not None and price_value <= fair_low:
@@ -985,13 +1547,30 @@ def evaluate_marketplace_listing(
                 score += 4
                 reasons_for.append("Near the used-market average")
             elif fair_high is not None and price_value > fair_high:
-                score -= 34
                 premium_pct = (price_value - median_price) / median_price
+                penalty = 60 if premium_pct >= _VERY_POOR_DEAL_PREMIUM_PCT else 48
+                score -= penalty
+                score_cap = 44 if premium_pct >= _VERY_POOR_DEAL_PREMIUM_PCT else 56
                 reasons_against.append(
                     f"Poor deal: {_format_pct(premium_pct)} above the used-market average and above fair range"
                 )
+            elif price_value > median_price * (1 + _VERY_POOR_DEAL_PREMIUM_PCT):
+                score -= 60
+                score_cap = 44
+                premium_pct = (price_value - median_price) / median_price
+                reasons_against.append(
+                    f"Very poor deal: {_format_pct(premium_pct)} above the used-market average"
+                )
+            elif price_value > median_price * (1 + _POOR_DEAL_PREMIUM_PCT):
+                score -= 48
+                score_cap = 56
+                premium_pct = (price_value - median_price) / median_price
+                reasons_against.append(
+                    f"Poor deal: {_format_pct(premium_pct)} above the used-market average"
+                )
             elif price_value > median_price * (1 + _ABOVE_MARKET_PREMIUM_PCT):
-                score -= 24
+                score -= 34
+                score_cap = 64
                 premium_pct = (price_value - median_price) / median_price
                 reasons_against.append(
                     f"Above the used-market average by {_format_pct(premium_pct)}"
@@ -1011,7 +1590,82 @@ def evaluate_marketplace_listing(
                 score += 5
                 reasons_for.append("Within the mission price cap")
 
-    category = _requirement_category(mission)
+        if retail_anchor is not None and retail_anchor > 0:
+            retail_delta_pct = (price_value - retail_anchor) / retail_anchor
+            if retail_delta_pct >= _ABOVE_MARKET_PREMIUM_PCT:
+                score -= 42
+                score_cap = min(score_cap or 100, 48)
+                reasons_against.append(
+                    f"Poor deal: {_format_pct(retail_delta_pct)} above the retail anchor"
+                )
+            elif retail_delta_pct >= 0:
+                score -= 30
+                score_cap = min(score_cap or 100, 56)
+                reasons_against.append("At or above the retail anchor price")
+            elif retail_delta_pct > -0.10:
+                score -= 18
+                score_cap = min(score_cap or 100, 68)
+                reasons_against.append("Too close to retail price for a used listing")
+
+        if category == "ssd":
+            if listing_capacity is not None:
+                capacity_tb = max(listing_capacity / 1000, 0.1)
+                price_per_tb = price_value / capacity_tb
+                deal_metrics["price_per_tb"] = round(price_per_tb, 2)
+                if band_capacity is not None and median_price:
+                    benchmark_per_tb = median_price / max(band_capacity / 1000, 0.1)
+                    value_delta = (benchmark_per_tb - price_per_tb) / benchmark_per_tb
+                    ssd_capacity_value_delta = value_delta
+                    deal_metrics["benchmark_price_per_tb"] = round(benchmark_per_tb, 2)
+                    deal_metrics["capacity_value_delta_percent"] = round(
+                        value_delta * 100,
+                        1,
+                    )
+                    if value_delta >= _SSD_CAPACITY_VALUE_PCT:
+                        score += 18
+                        reasons_for.append(
+                            "Capacity-adjusted SSD value: "
+                            f"${price_per_tb:.0f}/TB beats the benchmark by {_format_pct(value_delta)}"
+                        )
+                    elif value_delta >= _GOOD_DEAL_DISCOUNT_PCT:
+                        score += 10
+                        reasons_for.append(
+                            f"SSD price per TB is {_format_pct(value_delta)} below benchmark"
+                        )
+                    elif value_delta <= -_POOR_DEAL_PREMIUM_PCT:
+                        score -= 36
+                        score_cap = min(score_cap or 100, 56)
+                        reasons_against.append(
+                            "Poor SSD value: "
+                            f"${price_per_tb:.0f}/TB is {_format_pct(abs(value_delta))} above benchmark"
+                        )
+
+                if capacity_targets:
+                    minimum_target = min(capacity_targets)
+                    if listing_capacity > minimum_target:
+                        capacity_bonus = min(
+                            12,
+                            int(((listing_capacity / minimum_target) - 1.0) * 8),
+                        )
+                        if capacity_bonus > 0:
+                            score += capacity_bonus
+                            reasons_for.append(
+                                "Higher-capacity SSD than the minimum target: "
+                                f"{_format_capacity_gb(listing_capacity)}"
+                            )
+
+        if deal_metrics:
+            deal_score = _price_deal_score(
+                listing_price=price_value,
+                used_median=median_price,
+                fair_low=fair_low,
+                fair_high=fair_high,
+                retail_anchor=retail_anchor,
+                capacity_value_delta=ssd_capacity_value_delta,
+            )
+            deal_metrics["deal_score"] = deal_score
+            deal_metrics["deal_label"] = _deal_label(deal_score)
+
     better_price_already_seen = False
     strong_price_not_good_enough = False
     if category in _DEAL_RANKED_CATEGORIES:
@@ -1021,9 +1675,9 @@ def evaluate_marketplace_listing(
                 "Strong match requires a captured price for deal ranking"
             )
         else:
-            median_price = _band_price(observed_price_band, "used_median", "median")
-            fair_low = _band_price(observed_price_band, "fair_low", "fair_range_low")
-            fair_high = _band_price(observed_price_band, "fair_high", "fair_range_high")
+            median_price = _band_price(price_band, "used_median", "median")
+            fair_low = _band_price(price_band, "fair_low", "fair_range_low")
+            fair_high = _band_price(price_band, "fair_high", "fair_range_high")
             if median_price:
                 good_discount_price = median_price * (1 - _GOOD_DEAL_DISCOUNT_PCT)
                 if price_value > good_discount_price and (
@@ -1035,8 +1689,12 @@ def evaluate_marketplace_listing(
                     )
                 if fair_high is not None and price_value > fair_high:
                     strong_price_not_good_enough = True
-            best_seen_price = _band_price(observed_price_band, "min", "best_seen")
-            if best_seen_price is not None and best_seen_price > 0 and price_value > best_seen_price:
+            best_seen_price = _band_price(price_band, "min", "best_seen")
+            if (
+                best_seen_price is not None
+                and best_seen_price > 0
+                and price_value > best_seen_price
+            ):
                 better_price_already_seen = True
                 reasons_against.append(
                     "Cheaper comparable listing already seen in this mission"
@@ -1064,14 +1722,32 @@ def evaluate_marketplace_listing(
         reasons_against.append("Mileage should be checked manually")
 
     feedback_notes = _string_list(mission.get("_feedback_notes"))
+    feedback_signals = _feedback_note_signals(feedback_notes)
     if feedback_notes:
         note_penalty, note_reasons = _feedback_note_penalty(normalized, feedback_notes)
         if note_penalty > 0:
             score -= note_penalty
             reasons_against.extend(note_reasons)
+        signal_penalty, signal_reasons = _feedback_signal_penalty(
+            feedback_signals,
+            category=category,
+            listing_capacity=listing_capacity,
+            capacity_targets=capacity_targets,
+            price_value=price_value,
+            median_price=median_price,
+            retail_anchor=retail_anchor,
+            strong_identity=_strong_category_identity_evidence(normalized, mission),
+        )
+        if signal_penalty > 0:
+            score -= signal_penalty
+            reasons_against.extend(signal_reasons)
+        if deal_metrics and feedback_signals:
+            deal_metrics["feedback_signals"] = feedback_signals[:5]
 
     candidate_threshold = int(scan_config.get("candidate_threshold") or 70)
     strong_threshold = int(scan_config.get("strong_match_threshold") or 85)
+    if score_cap is not None:
+        score = min(score, score_cap)
     score = max(0, min(100, score))
     confidence = max(0.2, min(0.95, confidence))
 
@@ -1082,7 +1758,9 @@ def evaluate_marketplace_listing(
     else:
         band = "reject"
 
-    if band == "strong_match" and not _strong_category_identity_evidence(normalized, mission):
+    if band == "strong_match" and not _strong_category_identity_evidence(
+        normalized, mission
+    ):
         band = "candidate"
         score = min(score, strong_threshold - 1)
         reasons_against.append(
@@ -1101,6 +1779,7 @@ def evaluate_marketplace_listing(
         "decision_band": band,
         "reasons_for": reasons_for or ["No hard-filter conflicts found"],
         "reasons_against": reasons_against,
+        "deal_metrics": deal_metrics or None,
         "confidence": round(confidence, 2),
     }
 

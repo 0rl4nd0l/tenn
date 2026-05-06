@@ -147,6 +147,7 @@ export interface MarketplaceMatch {
   metadata: Record<string, unknown>
   benchmark?: MarketplaceBenchmarkOverlay | null
   value_context?: MarketplaceValueContext | null
+  deal_metrics?: MarketplaceDealMetrics | null
   price_comparison?: MarketplacePriceComparison | null
   user_feedback?: MarketplaceMatchFeedback | null
   updated_at: string
@@ -185,6 +186,71 @@ export interface MarketplacePriceComparison {
     low_confidence?: boolean | null
     reason?: string | null
   } | null
+}
+
+export interface MarketplaceComparableGroup {
+  key?: string | null
+  label?: string | null
+  category?: string | null
+  basis?: string[]
+}
+
+export interface MarketplaceBenchmarkHealth {
+  label?: string | null
+  sample_size?: number | null
+  freshness_status?: string | null
+  confidence_label?: string | null
+  source_diversity?: number | null
+  warnings?: string[]
+}
+
+export interface MarketplaceFeedbackSignal {
+  code?: string | null
+  field?: string | null
+  label?: string | null
+}
+
+export interface MarketplacePriceMovement {
+  direction?: string | null
+  amount?: number | null
+  percent?: number | null
+  previous_price?: number | null
+  current_price?: number | null
+  first_seen_at?: string | null
+  last_seen_at?: string | null
+}
+
+export interface MarketplaceAlertPolicy {
+  allowed?: boolean | null
+  base_reasons?: string[]
+  blocked_reasons?: string[]
+  rules?: Record<string, unknown>
+}
+
+export interface MarketplaceDealMetrics {
+  state?: string | null
+  listing_price?: number | null
+  used_market_median?: number | null
+  fair_low?: number | null
+  fair_high?: number | null
+  retail_anchor_price?: number | null
+  delta_vs_used_median?: MarketplacePriceDelta | null
+  delta_vs_retail_anchor?: MarketplacePriceDelta | null
+  deal_score?: number | null
+  deal_label?: string | null
+  capacity_gb?: number | null
+  benchmark_capacity_gb?: number | null
+  price_per_tb?: number | null
+  benchmark_price_per_tb?: number | null
+  capacity_value_delta_percent?: number | null
+  benchmark_sample_size?: number | null
+  average_source?: string | null
+  benchmark_snapshot_id?: string | null
+  comparable_group?: MarketplaceComparableGroup | null
+  benchmark_health?: MarketplaceBenchmarkHealth | null
+  feedback_signals?: MarketplaceFeedbackSignal[]
+  price_movement?: MarketplacePriceMovement | null
+  alert_policy?: MarketplaceAlertPolicy | null
 }
 
 export type MarketplaceMatchFeedbackValue = 'interested' | 'not_interested'

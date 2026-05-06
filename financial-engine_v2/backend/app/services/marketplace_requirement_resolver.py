@@ -179,9 +179,19 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "brand": "Kingston",
         "model_family": "NV2",
         "variant": "2TB Gen4",
-        "attributes": {"brand": "Kingston", "model": "NV2", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "attributes": {"brand": "Kingston", "model": "NV2", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "entry"},
         "aliases": ["Kingston NV2 2TB", "NV2 2TB"],
         "availability_rank": 1,
+    },
+    {
+        "canonical_key": "ssd-kingston-nv2-4tb-gen4",
+        "category": "ssd",
+        "brand": "Kingston",
+        "model_family": "NV2",
+        "variant": "4TB Gen4",
+        "attributes": {"brand": "Kingston", "model": "NV2", "capacity_gb": 4000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "entry"},
+        "aliases": ["Kingston NV2 4TB", "NV2 4TB"],
+        "availability_rank": 2,
     },
     {
         "canonical_key": "ssd-crucial-p3-plus-2tb-gen4",
@@ -189,9 +199,19 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "brand": "Crucial",
         "model_family": "P3 Plus",
         "variant": "2TB Gen4",
-        "attributes": {"brand": "Crucial", "model": "P3 PLUS", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "attributes": {"brand": "Crucial", "model": "P3 PLUS", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "entry"},
         "aliases": ["Crucial P3 Plus 2TB", "P3 Plus 2TB"],
-        "availability_rank": 2,
+        "availability_rank": 3,
+    },
+    {
+        "canonical_key": "ssd-crucial-p3-plus-4tb-gen4",
+        "category": "ssd",
+        "brand": "Crucial",
+        "model_family": "P3 Plus",
+        "variant": "4TB Gen4",
+        "attributes": {"brand": "Crucial", "model": "P3 PLUS", "capacity_gb": 4000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "entry"},
+        "aliases": ["Crucial P3 Plus 4TB", "P3 Plus 4TB"],
+        "availability_rank": 4,
     },
     {
         "canonical_key": "ssd-samsung-990-pro-2tb-gen4",
@@ -199,9 +219,19 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "brand": "Samsung",
         "model_family": "990 PRO",
         "variant": "2TB Gen4",
-        "attributes": {"brand": "Samsung", "model": "990 PRO", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "attributes": {"brand": "Samsung", "model": "990 PRO", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "high"},
         "aliases": ["Samsung 990 Pro 2TB", "990 Pro 2TB"],
-        "availability_rank": 3,
+        "availability_rank": 5,
+    },
+    {
+        "canonical_key": "ssd-samsung-990-pro-4tb-gen4",
+        "category": "ssd",
+        "brand": "Samsung",
+        "model_family": "990 PRO",
+        "variant": "4TB Gen4",
+        "attributes": {"brand": "Samsung", "model": "990 PRO", "capacity_gb": 4000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "high"},
+        "aliases": ["Samsung 990 Pro 4TB", "990 Pro 4TB"],
+        "availability_rank": 6,
     },
     {
         "canonical_key": "ssd-wd-sn850x-2tb-gen4",
@@ -209,9 +239,19 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "brand": "WD",
         "model_family": "SN850X",
         "variant": "2TB Gen4",
-        "attributes": {"brand": "WD", "model": "SN850X", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "attributes": {"brand": "WD", "model": "SN850X", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "high"},
         "aliases": ["WD SN850X 2TB", "WD Black SN850X 2TB"],
-        "availability_rank": 4,
+        "availability_rank": 7,
+    },
+    {
+        "canonical_key": "ssd-wd-sn850x-4tb-gen4",
+        "category": "ssd",
+        "brand": "WD",
+        "model_family": "SN850X",
+        "variant": "4TB Gen4",
+        "attributes": {"brand": "WD", "model": "SN850X", "capacity_gb": 4000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "high"},
+        "aliases": ["WD SN850X 4TB", "WD Black SN850X 4TB"],
+        "availability_rank": 8,
     },
     {
         "canonical_key": "ssd-crucial-t500-2tb-gen4",
@@ -219,9 +259,19 @@ _SSD_CANDIDATES: list[dict[str, Any]] = [
         "brand": "Crucial",
         "model_family": "T500",
         "variant": "2TB Gen4",
-        "attributes": {"brand": "Crucial", "model": "T500", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe"},
+        "attributes": {"brand": "Crucial", "model": "T500", "capacity_gb": 2000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "high"},
         "aliases": ["Crucial T500 2TB", "T500 2TB"],
-        "availability_rank": 5,
+        "availability_rank": 9,
+    },
+    {
+        "canonical_key": "ssd-crucial-t500-4tb-gen4",
+        "category": "ssd",
+        "brand": "Crucial",
+        "model_family": "T500",
+        "variant": "4TB Gen4",
+        "attributes": {"brand": "Crucial", "model": "T500", "capacity_gb": 4000, "pcie_generation": 4, "interface": "NVMe", "performance_tier": "high"},
+        "aliases": ["Crucial T500 4TB", "T500 4TB"],
+        "availability_rank": 10,
     },
 ]
 
@@ -601,16 +651,25 @@ def generate_requirement_candidate_specs(
         fits, met, missing = _candidate_fits(candidate, profile)
         if not fits:
             continue
+        attrs = candidate.get("attributes") if isinstance(candidate.get("attributes"), dict) else {}
         score = 78.0
         score += max(0, 4 - int(candidate.get("availability_rank") or 4)) * 3
         if profile.get("intended_use") == "local_inference":
-            vendor = str(candidate.get("attributes", {}).get("vendor") or candidate.get("brand") or "").lower()
+            vendor = str(attrs.get("vendor") or candidate.get("brand") or "").lower()
             score += 8 if vendor == "nvidia" else -15
         if category == "gpu":
             min_vram = _constraint_value(profile, "vram_gb")
-            vram = candidate.get("attributes", {}).get("vram_gb")
+            vram = attrs.get("vram_gb")
             if isinstance(min_vram, int | float) and isinstance(vram, int | float):
                 score += min(8.0, max(0.0, float(vram) - float(min_vram)) * 0.5)
+        elif category == "ssd":
+            min_capacity = _constraint_value(profile, "capacity_gb")
+            capacity = attrs.get("capacity_gb")
+            if isinstance(min_capacity, int | float) and isinstance(capacity, int | float):
+                extra_tb = max(0.0, (float(capacity) - float(min_capacity)) / 1000.0)
+                score += min(12.0, extra_tb * 4.0)
+            tier = str(attrs.get("performance_tier") or "").lower()
+            score += {"high": 5.0, "mid": 2.0, "entry": 0.0}.get(tier, 0.0)
         fit_label = "strong_fit" if score >= 88 else "fit"
         scored.append(
             {
@@ -636,15 +695,13 @@ def generate_requirement_candidate_specs(
 def candidate_search_terms(candidates: list[dict[str, Any]], *, limit: int = 8) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
-    primary_batches = [
-        [
-            f"{candidate.get('model_family') or ''} {candidate.get('variant') or ''}",
-            candidate.get("model_family"),
-        ]
+    primary_phrases = [
+        f"{candidate.get('model_family') or ''} {candidate.get('variant') or ''}"
         for candidate in candidates
     ]
+    model_families = [candidate.get("model_family") for candidate in candidates]
     alias_batches = [candidate.get("aliases") or [] for candidate in candidates]
-    for terms in [*primary_batches, *alias_batches]:
+    for terms in [primary_phrases, model_families, *alias_batches]:
         for term in terms:
             cleaned = _clean(term)
             key = cleaned.lower()
