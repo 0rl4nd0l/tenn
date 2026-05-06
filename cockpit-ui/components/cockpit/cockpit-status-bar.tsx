@@ -198,7 +198,9 @@ export function CockpitStatusBar({
                   )}
                 />
                 <span>
-                  API: {apiOverrideAvailable ? (apiOverrideForced ? 'forced' : apiDefaultEnabled ? 'default' : 'set') : 'missing'}
+                  {apiOverrideAvailable
+                    ? (apiOverrideForced ? 'Connected (locked)' : apiDefaultEnabled ? 'Connected' : 'Available')
+                    : 'Needs setup'}
                 </span>
               </button>
             </Badge>

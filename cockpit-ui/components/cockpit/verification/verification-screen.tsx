@@ -1773,6 +1773,10 @@ export function VerificationScreen() {
           onStrictMethodChange={setStrictMethod}
         />
 
+        <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          Run or review evidence checks. Start with Guided Review or Verify, then use Runs and Real-Gold for deeper validation.
+        </div>
+
         <VerificationTabBar
           wrongQueueCount={wrongQueue?.count ?? 0}
           pendingCount={reviewSession?.summary?.pending ?? 0}

@@ -38,6 +38,7 @@ import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { MarketplaceAssistant } from './marketplace-assistant'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import {
@@ -550,6 +551,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [stoppingJobId, setStoppingJobId] = useState<string | null>(null)
   const [refreshingBenchmarks, setRefreshingBenchmarks] = useState(false)
   const [benchmarkSortMode, setBenchmarkSortMode] = useState<BenchmarkSortMode>('mission')
+  const [advancedToolsOpen, setAdvancedToolsOpen] = useState(true)
   const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
   const scanAllowed = browserHealthAllowsScan(browserHealth)
@@ -1075,6 +1077,25 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
           isIPhoneScale ? "grid-cols-1" : "lg:grid-cols-[1fr_380px]"
         )}>
           <div className="space-y-6">
+            <Collapsible
+              open={advancedToolsOpen}
+              onOpenChange={setAdvancedToolsOpen}
+              className="rounded-lg border border-border/60 bg-muted/5"
+            >
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold">Advanced mission tools</p>
+                  <p className="text-xs text-muted-foreground">
+                    Mission admin, cadence controls, benchmark sync/calibration, and scan operations.
+                  </p>
+                </div>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    {advancedToolsOpen ? 'Hide advanced tools' : 'Show advanced tools'}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="px-4 pb-4">
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -1565,6 +1586,8 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 )}
               </CardContent>
             </Card>
+              </CollapsibleContent>
+            </Collapsible>
 
             <Card>
               <CardHeader>
@@ -1673,7 +1696,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                   disabled={creating || !form.name || !form.brief || !form.locationNames.trim()}
                 >
                   {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Mission
+                  Save recurring search
                 </Button>
               </CardContent>
             </Card>
@@ -1919,7 +1942,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
               <div>
                 <CardTitle className="text-base">Listings & New Retail Benchmark Review</CardTitle>
                 <CardDescription>
-                  Captured listings stay down here for review after the mission controls and scan output.
+                  4) Review candidate matches. Use this area to inspect ranked listings and open match details.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">

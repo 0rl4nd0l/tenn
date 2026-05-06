@@ -351,7 +351,7 @@ export function HistoryScreen() {
             ) : jobs.length === 0 && !loading ? (
               <div className="text-center py-12 text-muted-foreground">
                 <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">No job history available. Start processing to see results here.</p>
+                <p className="text-sm">No jobs have run yet. Run an update or verification job to see results here.</p>
                 <Button variant="outline" size="sm" className="mt-4" onClick={handleRefresh}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Load History

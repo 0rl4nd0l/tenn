@@ -75,7 +75,11 @@ export function WatchlistScreen({ apiKey }: WatchlistScreenProps) {
         <Button onClick={() => setDialogOpen(true)}>Add ticker</Button>
       </div>
       <ul className="divide-y divide-border">
-        {items.map((item) => (
+        {items.length === 0 ? (
+          <li className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+            Track companies you want Tenn to monitor. Add a ticker to start your watchlist.
+          </li>
+        ) : items.map((item) => (
           <li
             key={item.ticker}
             className="flex items-center justify-between gap-3 py-2"

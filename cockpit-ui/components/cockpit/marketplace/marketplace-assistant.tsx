@@ -103,6 +103,21 @@ function DraftSummary({ draft }: { draft: MarketplaceMissionDraft }) {
         <div className="font-medium text-foreground">Preferred brands</div>
         <div className="text-muted-foreground break-words">{formatList(draft.softPreferences.preferredBrands)}</div>
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <div className="font-medium text-foreground">Cadence / recurrence</div>
+          <div className="text-muted-foreground">
+            Recurring schedule is configured after mission save.
+          </div>
+        </div>
+        <div>
+          <div className="font-medium text-foreground">Match criteria</div>
+          <div className="text-muted-foreground break-words">
+            {draft.searchConfig.broadeningEnabled ? 'Broad + strict variants' : 'Strict variants only'} · up to{' '}
+            {draft.searchConfig.maxQueriesPerRun} queries/run
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -322,7 +337,7 @@ export function MarketplaceAssistant({
           </Badge>
         </div>
         <CardDescription>
-          Talk to the active model, draft a mission, then explicitly create it or run it.
+          Describe what you want to buy, confirm the recurring mission, then run and review matches.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -349,6 +364,12 @@ export function MarketplaceAssistant({
 
         <div className="grid gap-4 xl:grid-cols-[1.35fr_0.95fr]">
           <div className="space-y-3">
+            <div className="space-y-1 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+              <div className="font-medium text-foreground">1) Describe intent</div>
+              <p className="text-muted-foreground">
+                Example: &ldquo;I&apos;m looking for a used gaming monitor under $300 near Melbourne. Prefer 144Hz or better, good condition, and recurring searches.&rdquo;
+              </p>
+            </div>
             <div className="overflow-hidden rounded-md border border-border/60 bg-muted/20">
               <ScrollArea className="h-[320px]">
                 <div className="space-y-3 p-4">
@@ -404,7 +425,7 @@ export function MarketplaceAssistant({
 
           <div className="space-y-4 rounded-lg border border-border/60 bg-muted/10 p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-medium">Draft Summary</div>
+              <div className="text-sm font-medium">2) Mission preview</div>
               <Badge variant={readyToCreate ? 'default' : 'outline'}>
                 {readyToCreate ? 'Ready to create' : 'Collecting details'}
               </Badge>
@@ -461,13 +482,14 @@ export function MarketplaceAssistant({
             </div>
             <Separator />
             <div className="space-y-2">
+              <div className="text-sm font-medium">3) Confirm actions</div>
               <Button
                 className="w-full"
                 onClick={() => void handleCreateMission(false)}
                 disabled={!readyToCreate || isCreating}
               >
                 {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Deploy Mission
+                Save recurring search
               </Button>
               <Button
                 className="w-full"
@@ -480,7 +502,7 @@ export function MarketplaceAssistant({
                 ) : (
                   <Play className="mr-2 h-4 w-4" />
                 )}
-                Deploy + Run Now
+                Save and run now
               </Button>
               {!canRunNow && (
                 <p className="text-xs text-muted-foreground">

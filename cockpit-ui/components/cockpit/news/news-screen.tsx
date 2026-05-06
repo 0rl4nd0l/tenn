@@ -297,7 +297,7 @@ export function NewsScreen() {
               <div className="text-center text-muted-foreground">
                 <Search className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Enter a search query to find news articles</p>
-                <p className="text-sm mt-1">Supports semantic search with relevance scoring</p>
+                <p className="text-sm mt-1">Search recent company or market news. Try a ticker like A2M or a topic like lithium pricing.</p>
               </div>
             </CardContent>
           </Card>

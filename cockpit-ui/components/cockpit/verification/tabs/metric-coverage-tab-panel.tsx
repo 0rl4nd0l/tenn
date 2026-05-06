@@ -169,24 +169,48 @@ export function MetricCoverageTabPanel({
         </div>
 
         {summary || packet ? (
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="space-y-1 rounded-lg border border-border/60 p-3 text-xs text-muted-foreground">
+          <div className="grid min-w-0 gap-3 lg:grid-cols-2">
+            <div className="min-w-0 space-y-1 rounded-lg border border-border/60 p-3 text-xs text-muted-foreground">
               <div className="font-medium text-foreground">Provenance</div>
-              {generatedAt ? <div>generated_at: <span className="font-mono">{generatedAt}</span></div> : null}
+              {generatedAt ? (
+                <div className="min-w-0">
+                  generated_at: <span className="font-mono break-all">{generatedAt}</span>
+                </div>
+              ) : null}
               {hasGitIdentity ? (
                 <>
-                  <div>git: <span className="font-mono">{gitHead || 'DATA_MISSING'} / {gitBranch || 'DATA_MISSING'}</span></div>
+                  <div className="min-w-0">
+                    git: <span className="font-mono break-all">{gitHead || 'DATA_MISSING'} / {gitBranch || 'DATA_MISSING'}</span>
+                  </div>
                   {gitDirty !== null ? (
-                    <div>working tree: <span className="font-mono">{gitDirty ? `dirty (${gitStatusSummary?.line_count ?? 0})` : 'clean'}</span></div>
+                    <div className="min-w-0">
+                      working tree:{' '}
+                      <span className="font-mono break-all">
+                        {gitDirty ? `dirty (${gitStatusSummary?.line_count ?? 0})` : 'clean'}
+                      </span>
+                    </div>
                   ) : null}
                 </>
               ) : (
-                <div>git: <span className="font-mono">DATA_MISSING{gitUnavailableReason ? `: ${gitUnavailableReason}` : ''}</span></div>
+                <div className="min-w-0">
+                  git:{' '}
+                  <span className="font-mono break-all">
+                    DATA_MISSING{gitUnavailableReason ? `: ${gitUnavailableReason}` : ''}
+                  </span>
+                </div>
               )}
-              {fixtureDir ? <div className="break-all">fixture_dir: <span className="font-mono">{fixtureDir}</span></div> : null}
-              {artifactPath ? <div className="break-all">artifact_path: <span className="font-mono">{artifactPath}</span></div> : null}
+              {fixtureDir ? (
+                <div className="min-w-0">
+                  fixture_dir: <span className="font-mono break-all">{fixtureDir}</span>
+                </div>
+              ) : null}
+              {artifactPath ? (
+                <div className="min-w-0">
+                  artifact_path: <span className="font-mono break-all">{artifactPath}</span>
+                </div>
+              ) : null}
             </div>
-            <div className="space-y-1 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <div className="min-w-0 space-y-1 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
               <div className="font-medium text-amber-900 dark:text-amber-100">Warnings</div>
               {reviewWarnings.map((warning) => (
                 <div key={warning}>{warning}</div>
@@ -273,7 +297,7 @@ export function MetricCoverageTabPanel({
         ) : null}
 
         {rows.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
               <Field>
                 <FieldLabel>Classification</FieldLabel>
@@ -346,8 +370,8 @@ export function MetricCoverageTabPanel({
               Showing {filteredRows.length} of {rows.length} metric expectation row(s).
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <Table className="min-w-[1180px] table-fixed">
+            <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-border/60 pb-2">
+              <Table className="min-w-[1100px] table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[70px]">Ticker</TableHead>

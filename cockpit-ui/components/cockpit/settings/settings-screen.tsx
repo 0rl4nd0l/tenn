@@ -234,6 +234,9 @@ export function SettingsScreen() {
           <p className="text-sm text-muted-foreground mt-1">
             Cockpit configuration, runtime capabilities, and saved UI preferences
           </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Settings are limited in this build; core runtime and Marketplace preferences are available below.
+          </p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant={backendOnline ? 'default' : 'critical'} className="text-xs font-mono">
               {backendOnline ? 'BACKEND RUNNING' : 'BACKEND DOWN'}
