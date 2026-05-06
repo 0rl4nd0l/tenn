@@ -1043,6 +1043,40 @@ def test_memory_source_is_context_not_claim_verified_financial_truth() -> None:
     assert sources[0]["claim_verified"] is False
 
 
+def test_attached_source_is_emitted_as_context_only_not_claim_verified() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "attached_source",
+                "details": {
+                    "title": "Attached commentary",
+                    "source_id": "market_commentary:abc123",
+                    "snippet": "Management discussed margin pressure.",
+                    "sources": {
+                        "rag_hits": [
+                            {
+                                "title": "Attached commentary",
+                                "source_id": "market_commentary:abc123",
+                                "score": 1.0,
+                                "doc_type": "attached_source",
+                                "evidence_labels": ["context_only"],
+                                "claim_verified": False,
+                                "text": "Management discussed margin pressure.",
+                            }
+                        ]
+                    },
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert "context_only" in sources[0]["evidence_labels"]
+    assert "financial_truth" not in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
+    assert sources[0]["claim_verified"] is False
+
+
 def test_web_source_defaults_to_external_context_only() -> None:
     sources = _build_ui_sources(
         [

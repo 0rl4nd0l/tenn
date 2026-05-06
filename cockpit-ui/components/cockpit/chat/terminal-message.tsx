@@ -67,6 +67,7 @@ type AnalystShell = {
   toolCount: number
   latestSourceDate: string | null
   evidenceKinds: string[]
+  sourceSummaryLabel: string | null
   keyFacts: string[]
   gaps: string[]
   sourceWarnings: string[]
@@ -288,6 +289,25 @@ function buildAnalystShell(
     trustLabel = 'Context sources only'
   }
 
+  let sourceSummaryLabel: string | null = null
+  if (hasEvidenceLabel('degraded_runtime')) {
+    sourceSummaryLabel = 'Runtime degraded'
+  } else if (groundingGuard || hasEvidenceLabel('missing_required_evidence') || gaps.length > 0) {
+    sourceSummaryLabel = 'Evidence incomplete'
+  } else if (claimVerifiedSourceCount > 0 || hasEvidenceLabel('claim_verified')) {
+    sourceSummaryLabel = 'Verified sources'
+  } else if (hasEvidenceLabel('financial_truth')) {
+    sourceSummaryLabel = 'Verified sources'
+  } else if (hasEvidenceLabel('local_personal_data')) {
+    sourceSummaryLabel = 'Local holdings'
+  } else if (hasEvidenceLabel('memory_context')) {
+    sourceSummaryLabel = 'Memory context'
+  } else if (hasEvidenceLabel('no_hit')) {
+    sourceSummaryLabel = 'No relevant source found'
+  } else if (sourceCount > 0) {
+    sourceSummaryLabel = 'Context sources'
+  }
+
   const nextActions: AnalystShell['nextActions'] = []
   if (sourceCount > 0) {
     nextActions.push({ label: 'Review evidence', enabled: true, onClick: openSources })
@@ -308,6 +328,7 @@ function buildAnalystShell(
     toolCount,
     latestSourceDate: analyst?.dataFreshness || latestPublishedDate(message),
     evidenceKinds: evidenceKindLabels(message),
+    sourceSummaryLabel,
     keyFacts: extractKeyFacts(message.content),
     gaps,
     sourceWarnings,
@@ -615,7 +636,7 @@ export function TerminalMessage({
               <Info className="h-3 w-3" />
               Evidence: {analystShell.evidenceKinds.length ? analystShell.evidenceKinds.join(' + ') : 'No visible sources'}
             </span>
-            {analystShell.sourceCount > 0 ? <span>Financial facts: source-backed when shown below</span> : null}
+            {analystShell.sourceSummaryLabel ? <span>{analystShell.sourceSummaryLabel}</span> : null}
           </div>
 
           {(analystShell.gaps.length > 0 || analystShell.sourceWarnings.length > 0) ? (

@@ -227,6 +227,10 @@ def _build_attached_source_bundle(
                                 "source_id": source_id,
                                 "score": 1.0,
                                 "doc_type": source_type,
+                                "source_type": "attached_source",
+                                "evidence_label": "context_only",
+                                "evidence_labels": ["context_only"],
+                                "claim_verified": False,
                                 "published_at": published_at,
                                 "text": "\n".join(segments),
                             }

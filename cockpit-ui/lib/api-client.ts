@@ -90,6 +90,12 @@ export type ChatSessionMessage = {
   role: 'user' | 'assistant' | 'system'
   content: string
   created_at: string
+  metadata?: Record<string, unknown>
+  sources?: Source[]
+  routing_metadata?: Record<string, unknown>
+  tool_traces?: Array<Record<string, unknown>>
+  action_preview?: unknown
+  chart?: unknown
 }
 
 export type ChatSessionMessagesResponse = {

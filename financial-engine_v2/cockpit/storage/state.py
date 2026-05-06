@@ -38,10 +38,17 @@ class StateStore:
                 thread_id text not null,
                 role text not null,
                 content text not null,
-                created_at text not null
+                created_at text not null,
+                metadata_json TEXT NOT NULL DEFAULT '{}'
             )
             """
         )
+        try:
+            cur.execute(
+                "ALTER TABLE chat_messages ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'"
+            )
+        except sqlite3.OperationalError:
+            pass  # column already exists
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id)"
         )
@@ -687,15 +694,48 @@ class StateStore:
             self.conn.commit()
             return created
 
+    @staticmethod
+    def _serialize_chat_metadata(metadata: dict[str, Any] | None) -> str:
+        if not isinstance(metadata, dict) or not metadata:
+            return "{}"
+        try:
+            return json.dumps(metadata, default=str)
+        except (TypeError, ValueError):
+            return "{}"
+
+    @staticmethod
+    def _deserialize_chat_metadata(value: Any) -> dict[str, Any]:
+        if not isinstance(value, str) or not value.strip():
+            return {}
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+
     def add_chat_message(
-        self, thread_id: str, role: str, content: str, created_at: str
+        self,
+        thread_id: str,
+        role: str,
+        content: str,
+        created_at: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         stamp = str(created_at or "").strip() or datetime.now(timezone.utc).isoformat()
         with self._lock:
             self._ensure_chat_session_unlocked(thread_id, stamp)
             self.conn.execute(
-                "insert into chat_messages(thread_id, role, content, created_at) values(?,?,?,?)",
-                (thread_id, role, content, stamp),
+                """
+                insert into chat_messages(thread_id, role, content, created_at, metadata_json)
+                values(?,?,?,?,?)
+                """,
+                (
+                    thread_id,
+                    role,
+                    content,
+                    stamp,
+                    self._serialize_chat_metadata(metadata),
+                ),
             )
             self.conn.commit()
 
@@ -704,6 +744,7 @@ class StateStore:
         thread_id: str,
         role: str,
         content: str,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         text = str(content or "").strip()
         if not text:
@@ -721,10 +762,20 @@ class StateStore:
             ).fetchone()
             if row is None:
                 return False
-            self.conn.execute(
-                "update chat_messages set content = ? where id = ?",
-                (text, row["id"]),
-            )
+            if metadata is None:
+                self.conn.execute(
+                    "update chat_messages set content = ? where id = ?",
+                    (text, row["id"]),
+                )
+            else:
+                self.conn.execute(
+                    "update chat_messages set content = ?, metadata_json = ? where id = ?",
+                    (
+                        text,
+                        self._serialize_chat_metadata(metadata),
+                        row["id"],
+                    ),
+                )
             self.conn.commit()
         return True
 
@@ -736,7 +787,7 @@ class StateStore:
         # the oldest 200 rows — useless for context when history is long.
         rows = self.conn.execute(
             """
-            select thread_id, role, content, created_at
+            select thread_id, role, content, created_at, metadata_json
             from chat_messages
             where thread_id = ?
             order by id desc
@@ -744,7 +795,12 @@ class StateStore:
             """,
             (thread_id, limit),
         ).fetchall()
-        return list(reversed([dict(r) for r in rows]))
+        messages = []
+        for row in reversed([dict(r) for r in rows]):
+            row["metadata"] = self._deserialize_chat_metadata(row.get("metadata_json"))
+            row.pop("metadata_json", None)
+            messages.append(row)
+        return messages
 
     def count_chat_messages(self, thread_id: str) -> int:
         row = self.conn.execute(
@@ -828,7 +884,7 @@ class StateStore:
         safe_limit = max(1, min(int(limit), 2000))
         rows = self.conn.execute(
             """
-            select id, thread_id, role, content, created_at
+            select id, thread_id, role, content, created_at, metadata_json
             from chat_messages
             where thread_id = ?
             order by id desc
@@ -836,7 +892,12 @@ class StateStore:
             """,
             (thread_id, safe_limit),
         ).fetchall()
-        return list(reversed([dict(r) for r in rows]))
+        messages = []
+        for row in reversed([dict(r) for r in rows]):
+            row["metadata"] = self._deserialize_chat_metadata(row.get("metadata_json"))
+            row.pop("metadata_json", None)
+            messages.append(row)
+        return messages
 
     def delete_chat_session(self, thread_id: str) -> int:
         with self._lock:

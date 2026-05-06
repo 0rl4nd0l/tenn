@@ -41,6 +41,62 @@ def test_get_chat_messages_with_ids_is_chronological(store: StateStore) -> None:
     assert int(rows[0]["id"]) < int(rows[1]["id"])
 
 
+def test_chat_message_metadata_round_trips_for_session_reload(store: StateStore) -> None:
+    metadata = {
+        "routing_metadata": {
+            "source_label_taxonomy_version": "source_label_semantics_v1",
+            "evidence_labels": ["claim_verified", "local_news_context"],
+            "source_label_counts": {"claim_verified": 1, "local_news_context": 1},
+            "claim_verified_source_count": 1,
+            "source_coverage_status": "claim_verified",
+        },
+        "sources": [
+            {
+                "title": "A2M recall article",
+                "evidence_labels": ["claim_verified", "local_news_context"],
+                "claim_verified": True,
+            }
+        ],
+    }
+    store.add_chat_message(
+        "session-labels",
+        "assistant",
+        "A2M answer.",
+        _now_iso(),
+        metadata=metadata,
+    )
+
+    rows = store.get_chat_messages_with_ids("session-labels", limit=20)
+
+    assert rows[0]["metadata"]["routing_metadata"]["source_coverage_status"] == "claim_verified"
+    assert rows[0]["metadata"]["sources"][0]["evidence_labels"] == [
+        "claim_verified",
+        "local_news_context",
+    ]
+
+
+def test_replace_latest_chat_message_updates_metadata(store: StateStore) -> None:
+    store.add_chat_message("session-labels", "assistant", "draft answer", _now_iso())
+
+    updated = store.replace_latest_chat_message(
+        "session-labels",
+        "assistant",
+        "delivered answer",
+        metadata={
+            "routing_metadata": {
+                "evidence_labels": ["context_only"],
+                "claim_verified_source_count": 0,
+                "source_coverage_status": "context_only",
+            }
+        },
+    )
+
+    rows = store.get_chat_messages_with_ids("session-labels", limit=20)
+    assert updated is True
+    assert rows[0]["content"] == "delivered answer"
+    assert rows[0]["metadata"]["routing_metadata"]["evidence_labels"] == ["context_only"]
+
+
 def test_delete_chat_session_removes_only_target(store: StateStore) -> None:
     store.add_chat_message("session-1", "user", "u1", _now_iso())
     store.add_chat_message("session-1", "assistant", "a1", _now_iso())

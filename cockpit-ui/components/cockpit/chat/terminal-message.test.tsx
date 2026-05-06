@@ -112,6 +112,7 @@ describe('TerminalMessage', () => {
     expect(screen.getByText('Entity: BHP')).toBeInTheDocument()
     expect(screen.getByText('Evidence-bound')).toBeInTheDocument()
     expect(screen.getByText(/Claim-supported/)).toBeInTheDocument()
+    expect(screen.getByText('Verified sources')).toBeInTheDocument()
     expect(screen.getByText('Sources: 1')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /review evidence/i }))
@@ -172,7 +173,40 @@ describe('TerminalMessage', () => {
     )
 
     expect(screen.getByText(/No-hit audit/)).toBeInTheDocument()
-    expect(screen.queryByText('Source-backed')).not.toBeInTheDocument()
+    expect(screen.getByText('No relevant source found')).toBeInTheDocument()
+    expect(screen.queryByText(/source-backed/i)).not.toBeInTheDocument()
+  })
+
+  it('calls context-only source evidence context sources, not source-backed financial facts', () => {
+    render(
+      <TerminalMessage
+        showSources={false}
+        message={buildAssistantMessage({
+          content: 'Attached source summary.',
+          metadata: {
+            source: 'local',
+            analyst: {
+              evidenceLabels: ['context_only'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'context_only',
+            },
+          },
+          sources: [
+            {
+              title: 'Attached commentary',
+              score: 1,
+              kind: 'context',
+              evidenceLabel: 'context_only',
+              evidenceLabels: ['context_only'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getByText('Context sources')).toBeInTheDocument()
+    expect(screen.queryByText(/Financial facts: source-backed/i)).not.toBeInTheDocument()
   })
 
   it('renders action proposals as confirmation-gated and does not auto-run', async () => {

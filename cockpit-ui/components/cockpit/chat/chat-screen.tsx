@@ -472,6 +472,17 @@ function buildCodexDeployMetadata(result: FeedbackCaptureResponse): NonNullable<
   }
 }
 
+function normalizeMessageSource(source: unknown): NonNullable<ChatMessageType['metadata']>['source'] {
+  const value = String(source || '').trim()
+  return value === 'local'
+    || value === 'api'
+    || value === 'anthropic'
+    || value === 'cockpit'
+    || value === 'orchestrator'
+    ? value
+    : 'unknown'
+}
+
 function normalizeStoreSource(source: unknown): 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown' {
   const value = String(source || '').trim()
   return value === 'local' || value === 'api' || value === 'anthropic' || value === 'cockpit'
@@ -479,21 +490,80 @@ function normalizeStoreSource(source: unknown): 'local' | 'api' | 'anthropic' | 
     : 'unknown'
 }
 
+function optionalNumber(value: unknown): number | undefined {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(numeric) ? numeric : undefined
+}
+
+function normalizeSessionSources(value: unknown): ChatMessageType['sources'] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+  return value
+    .filter((item): item is Record<string, unknown> => (
+      Boolean(item) && typeof item === 'object' && !Array.isArray(item)
+    ))
+    .map((source) => ({
+      title: String(source.title || 'Source'),
+      url: typeof source.url === 'string' ? source.url : undefined,
+      score: optionalNumber(source.score) ?? 0,
+      snippet: typeof source.snippet === 'string' ? source.snippet : undefined,
+      publishedAt: String(source.publishedAt || source.published_at || '').trim() || undefined,
+      documentId: String(source.documentId || source.document_id || '').trim() || undefined,
+      sourceId: String(source.sourceId || source.source_id || '').trim() || undefined,
+      docType: String(source.docType || source.doc_type || '').trim() || undefined,
+      path: typeof source.path === 'string' ? source.path : undefined,
+      kind: source.kind as NonNullable<ChatMessageType['sources']>[number]['kind'],
+      evidenceLabel: String(source.evidenceLabel || source.evidence_label || '').trim() || undefined,
+      evidenceLabels: stringArray(source.evidenceLabels || source.evidence_labels),
+      claimVerified: source.claimVerified === true || source.claim_verified === true,
+    }))
+}
+
 function toChatMessage(record: {
   id?: number
   role?: string
   content?: string
   created_at?: string
+  metadata?: Record<string, unknown>
+  sources?: unknown
+  routing_metadata?: Record<string, unknown>
+  tool_traces?: unknown
+  action_preview?: unknown
+  chart?: unknown
 }): ChatMessageType {
   const role = record.role === 'user' || record.role === 'assistant' || record.role === 'system'
     ? record.role
     : 'system'
   const parsed = new Date(record.created_at || '')
+  const rawMetadata = asRecord(record.metadata)
+  const routingMetadata = asRecord(record.routing_metadata || rawMetadata.routing_metadata)
+  const sources = normalizeSessionSources(record.sources || rawMetadata.sources)
+  const toolTraces = Array.isArray(record.tool_traces || rawMetadata.tool_traces)
+    ? (record.tool_traces || rawMetadata.tool_traces) as ChatMessageType['toolTraces']
+    : undefined
+  const actionPreview = normalizeActionPreviewPayload(record.action_preview || rawMetadata.action_preview)
+  const chart = (record.chart || rawMetadata.chart) as ChatMessageType['chart'] | undefined
+  const metadata = role === 'assistant' && (Object.keys(rawMetadata).length > 0 || Object.keys(routingMetadata).length > 0)
+    ? {
+        model: String(rawMetadata.model || '').trim() || undefined,
+        latencyMs: optionalNumber(rawMetadata.latency_ms),
+        costUsd: optionalNumber(rawMetadata.cost_usd),
+        source: normalizeMessageSource(rawMetadata.source),
+        routing: routingMetadata,
+        analyst: normalizeAnalystMetadata(routingMetadata),
+      }
+    : undefined
   return {
     id: typeof record.id === 'number' ? `srv-${record.id}` : generateId(),
     role,
     content: String(record.content || ''),
     timestamp: Number.isNaN(parsed.getTime()) ? new Date() : parsed,
+    metadata,
+    sources,
+    toolTraces,
+    actionPreview,
+    chart,
   }
 }
 

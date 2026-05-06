@@ -76,7 +76,13 @@ def test_keyword_chat_inlines_attached_source_context(tmp_path, monkeypatch) -> 
     prompt = controller.ollama_client.chat.call_args.args[0]
     assert "Attached source evidence provided by the user" in prompt
     assert "2018 Excavator" in prompt
-    assert any(item["type"] == "attached_source" for item in response.evidence)
+    attached_evidence = [
+        item for item in response.evidence if item["type"] == "attached_source"
+    ]
+    assert attached_evidence
+    hit = attached_evidence[0]["details"]["sources"]["rag_hits"][0]
+    assert hit["evidence_labels"] == ["context_only"]
+    assert hit["claim_verified"] is False
 
 
 def test_agent_loop_receives_attached_source_context(tmp_path, monkeypatch) -> None:
@@ -139,7 +145,13 @@ def test_agent_loop_receives_attached_source_context(tmp_path, monkeypatch) -> N
 
     assert "Attached source evidence provided by the user" in captured["message"]
     assert "Utility Trailer" in captured["message"]
-    assert any(item["type"] == "attached_source" for item in response.evidence)
+    attached_evidence = [
+        item for item in response.evidence if item["type"] == "attached_source"
+    ]
+    assert attached_evidence
+    hit = attached_evidence[0]["details"]["sources"]["rag_hits"][0]
+    assert hit["evidence_labels"] == ["context_only"]
+    assert hit["claim_verified"] is False
 
 
 def test_missing_attached_source_context_shortcircuits_before_llm(

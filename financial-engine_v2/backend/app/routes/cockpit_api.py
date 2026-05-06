@@ -1944,6 +1944,32 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         source_prefix="user_thesis_memory",
                     )
 
+        elif ev_type == "attached_source":
+            source_container = (
+                details.get("sources") if isinstance(details.get("sources"), dict) else {}
+            )
+            hits = _dict_rows(source_container.get("rag_hits"))
+            if not hits and details:
+                hits = [details]
+            for hit in hits:
+                _append_source_item(
+                    items,
+                    seen,
+                    {
+                        **hit,
+                        "title": hit.get("title") or details.get("title"),
+                        "source_id": hit.get("source_id") or details.get("source_id"),
+                        "snippet": hit.get("snippet") or details.get("snippet"),
+                        "doc_type": hit.get("doc_type") or details.get("source_type") or "attached_source",
+                        "source_type": "attached_source",
+                        "evidence_label": hit.get("evidence_label") or "context_only",
+                        "evidence_labels": hit.get("evidence_labels") or ["context_only"],
+                        "claim_verified": hit.get("claim_verified") is True,
+                    },
+                    default_title="Attached source",
+                    kind="context",
+                )
+
         elif ev_type == "news_search":
             for row in details.get("hits", []) if isinstance(details.get("hits"), list) else []:
                 if isinstance(row, dict):
@@ -2873,15 +2899,110 @@ def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dic
     return _json_safe_mapping(metadata)
 
 
+def _legacy_chat_record_metadata(role: str) -> dict[str, Any]:
+    if str(role or "").strip().lower() != "assistant":
+        return {}
+    routing_metadata = {
+        "source_label_taxonomy_version": SOURCE_LABEL_TAXONOMY_VERSION,
+        "source_label_counts": {},
+        "evidence_labels": ["unknown_unclassified"],
+        "claim_verified_source_count": 0,
+        "source_coverage_status": "unknown_unclassified",
+    }
+    return {
+        "routing_metadata": routing_metadata,
+        "sources": [],
+        "tool_traces": [],
+    }
+
+
+def _normalize_persisted_chat_metadata(value: Any, *, role: str) -> dict[str, Any]:
+    metadata = _json_safe_mapping(value)
+    if not metadata:
+        return _legacy_chat_record_metadata(role)
+    routing_metadata = _json_safe_mapping(metadata.get("routing_metadata"))
+    if routing_metadata:
+        routing_metadata.setdefault(
+            "source_label_taxonomy_version", SOURCE_LABEL_TAXONOMY_VERSION
+        )
+        routing_metadata.setdefault("source_label_counts", {})
+        routing_metadata.setdefault("claim_verified_source_count", 0)
+        if "evidence_labels" not in routing_metadata:
+            routing_metadata["evidence_labels"] = ["unknown_unclassified"]
+        if "source_coverage_status" not in routing_metadata:
+            routing_metadata["source_coverage_status"] = "unknown_unclassified"
+        metadata["routing_metadata"] = routing_metadata
+    elif str(role or "").strip().lower() == "assistant":
+        for key, value in _legacy_chat_record_metadata(role).items():
+            metadata.setdefault(key, value)
+    return _json_safe_mapping(metadata)
+
+
+def _build_persisted_chat_metadata(
+    response: Any,
+    *,
+    sources: list[dict[str, Any]],
+    routing_metadata: dict[str, Any],
+    chart: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    response_metadata = _json_safe_mapping(getattr(response, "routing_metadata", None) or {})
+    persisted = {
+        "model": response_metadata.get("model"),
+        "latency_ms": response_metadata.get("latency_ms"),
+        "cost_usd": response_metadata.get("cost_usd"),
+        "source": response_metadata.get("source"),
+        "provider_error": response_metadata.get("provider_error"),
+        "routing_metadata": routing_metadata,
+        "sources": sources,
+        "tool_traces": list(getattr(response, "tool_traces", None) or []),
+        "action_preview": getattr(response, "action_preview", None),
+        "chart": chart,
+    }
+    return _json_safe_mapping(
+        {key: value for key, value in persisted.items() if value not in (None, [], {})}
+    )
+
+
 def _finalize_delivered_chat_response(
     service: Any,
     *,
     session_id: str | None,
     response: Any,
+    metadata: dict[str, Any] | None = None,
 ) -> None:
     finalize = getattr(service, "finalize_chat_response_delivery", None)
     if callable(finalize):
         finalize(session_id=session_id, response=response)
+    if not metadata:
+        return
+    state_store = getattr(service, "state_store", None)
+    replace_latest = getattr(state_store, "replace_latest_chat_message", None)
+    if not callable(replace_latest):
+        return
+    resolver = getattr(service, "_resolve_thread_id", None)
+    thread_id = (
+        resolver(session_id)
+        if callable(resolver)
+        else (str(session_id or "").strip()[:128] or "global-main")
+    )
+    try:
+        replace_latest(
+            thread_id,
+            "assistant",
+            str(getattr(response, "text", "") or ""),
+            metadata=metadata,
+        )
+    except TypeError:
+        # Older fakes/tests may expose the pre-metadata StateStore signature.
+        try:
+            replace_latest(thread_id, "assistant", str(getattr(response, "text", "") or ""))
+        except Exception:
+            logger.exception("Failed to persist delivered assistant response")
+    except Exception:
+        logger.exception(
+            "Failed to persist delivered assistant metadata",
+            extra={"thread_id": thread_id},
+        )
 
 
 def _maybe_auto_flag_chat_response(
@@ -4568,6 +4689,12 @@ class CockpitChatMessageRecord(BaseModel):
     role: str
     content: str
     created_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    sources: list[dict[str, Any]] = Field(default_factory=list)
+    routing_metadata: dict[str, Any] = Field(default_factory=dict)
+    tool_traces: list[dict[str, Any]] = Field(default_factory=list)
+    action_preview: dict[str, Any] | None = None
+    chart: dict[str, Any] | None = None
 
 
 class CockpitChatSessionMessagesResponse(BaseModel):
@@ -8536,16 +8663,31 @@ def cockpit_get_chat_session_messages(
             status_code=500, detail=f"Failed to load chat session: {str(exc)}"
         ) from exc
 
-    items = [
-        CockpitChatMessageRecord(
-            id=int(row.get("id") or 0),
-            session_id=thread_id,
-            role=str(row.get("role") or "system"),
-            content=str(row.get("content") or ""),
-            created_at=str(row.get("created_at") or ""),
+    items: list[CockpitChatMessageRecord] = []
+    for row in rows:
+        role = str(row.get("role") or "system")
+        metadata = _normalize_persisted_chat_metadata(row.get("metadata"), role=role)
+        sources = _dict_rows(metadata.get("sources"))
+        routing_metadata = _json_safe_mapping(metadata.get("routing_metadata"))
+        items.append(
+            CockpitChatMessageRecord(
+                id=int(row.get("id") or 0),
+                session_id=thread_id,
+                role=role,
+                content=str(row.get("content") or ""),
+                created_at=str(row.get("created_at") or ""),
+                metadata=metadata,
+                sources=sources,
+                routing_metadata=routing_metadata,
+                tool_traces=_dict_rows(metadata.get("tool_traces")),
+                action_preview=(
+                    metadata.get("action_preview")
+                    if isinstance(metadata.get("action_preview"), dict)
+                    else None
+                ),
+                chart=metadata.get("chart") if isinstance(metadata.get("chart"), dict) else None,
+            )
         )
-        for row in rows
-    ]
     return CockpitChatSessionMessagesResponse(
         session_id=thread_id,
         message_count=len(items),
@@ -8612,10 +8754,17 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 ui_mode=payload.mode,
             )
             ui_metadata = _build_chat_ui_metadata(response, sources)
+            rendered_chart = _build_chart_from_chat_response(response)
             _finalize_delivered_chat_response(
                 service,
                 session_id=payload.session_id,
                 response=response,
+                metadata=_build_persisted_chat_metadata(
+                    response,
+                    sources=sources,
+                    routing_metadata=ui_metadata,
+                    chart=rendered_chart,
+                ),
             )
             auto_flag = _maybe_auto_flag_chat_response(
                 service,
@@ -8623,7 +8772,6 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 ticker=payload.ticker,
                 response=response,
             )
-            rendered_chart = _build_chart_from_chat_response(response)
             return {
                 "type": "done",
                 "data": {
@@ -8699,10 +8847,17 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     ui_mode=payload.mode,
                 )
                 ui_metadata = _build_chat_ui_metadata(response, sources)
+                rendered_chart = _build_chart_from_chat_response(response)
                 _finalize_delivered_chat_response(
                     service,
                     session_id=payload.session_id,
                     response=response,
+                    metadata=_build_persisted_chat_metadata(
+                        response,
+                        sources=sources,
+                        routing_metadata=ui_metadata,
+                        chart=rendered_chart,
+                    ),
                 )
                 auto_flag = _maybe_auto_flag_chat_response(
                     service,
@@ -8724,7 +8879,6 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         {"type": "action_preview", "data": response.action_preview}
                     )
 
-                rendered_chart = _build_chart_from_chat_response(response)
                 if rendered_chart:
                     await queue.put({"type": "chart", "data": rendered_chart})
 
