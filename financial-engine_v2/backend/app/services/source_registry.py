@@ -111,7 +111,7 @@ def _normalize_entry(entry: dict[str, Any]) -> dict[str, Any]:
     if half_life in (None, ""):
         half_life = DEFAULT_HALF_LIFE_DAYS[source_type]
 
-    return {
+    normalized = {
         "source_id": source_id,
         "source_type": source_type,
         "source_name": source_name,
@@ -121,6 +121,11 @@ def _normalize_entry(entry: dict[str, Any]) -> dict[str, Any]:
         "review_status": str(entry.get("review_status") or "pending").strip() or "pending",
         "ingested_at": str(entry.get("ingested_at") or utc_now_iso()),
     }
+    for optional_key in ("approved_at", "rejected_at", "published_at"):
+        value = str(entry.get(optional_key) or "").strip()
+        if value:
+            normalized[optional_key] = value
+    return normalized
 
 
 class SourceRegistry:

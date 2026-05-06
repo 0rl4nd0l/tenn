@@ -28,6 +28,7 @@ from app.services.facebook_marketplace_inspector import (
     inspect_facebook_marketplace_listing,
     is_facebook_marketplace_url,
 )
+from app.services.source_registry import SourceRegistry
 from app.services.youtube_transcript_fetcher import (
     MembersOnlyVideoError,
     TranscriptUnavailableError,
@@ -45,6 +46,11 @@ router = APIRouter(tags=["commentary"])
 _SOURCE_ID_RE = re.compile(r"^[a-zA-Z0-9_\-:]{1,192}$")
 STAGED_CHUNKS_DIR = Path("~/.tenn/memory/staged_chunks").expanduser()
 STAGED_CHUNKS_INDEX = STAGED_CHUNKS_DIR / "index.json"
+RECENT_COMMENTARY_SOURCE_TYPES = {
+    "youtube_transcript",
+    "podcast_transcript",
+    "market_commentary",
+}
 
 
 def _validate_source_id(source_id: str) -> str:
@@ -449,18 +455,63 @@ def _update_source_registry(
 ) -> None:
     """Best-effort registry metadata update."""
     try:
-        from app.services.source_registry import SourceRegistry
-
         registry = SourceRegistry()
         entry = registry.get(source_id)
         if entry:
             if status is not None:
                 entry["review_status"] = status
+                if status == "approved":
+                    entry["approved_at"] = _utc_now_iso()
             if credibility_weight is not None:
                 entry["credibility_weight"] = float(credibility_weight)
             registry.upsert(entry)
     except Exception:
         logger.warning("Failed to update registry metadata for %s", source_id)
+
+
+def _recent_commentary_items(
+    rows: list[dict[str, Any]],
+    *,
+    limit: int,
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source_id = str(row.get("source_id") or "").strip()
+        source_type = str(row.get("source_type") or "").strip().lower()
+        source_name = str(row.get("source_name") or "").strip()
+        review_status = str(row.get("review_status") or "").strip().lower()
+        if (
+            not source_id
+            or source_type not in RECENT_COMMENTARY_SOURCE_TYPES
+            or review_status != "approved"
+        ):
+            continue
+        approved_at = str(row.get("approved_at") or row.get("ingested_at") or "").strip()
+        item = {
+            "source_id": source_id,
+            "source_name": source_name or source_id,
+            "source_type": source_type,
+            "approved_at": approved_at,
+            "review_status": review_status,
+        }
+        ingested_at = str(row.get("ingested_at") or "").strip()
+        if ingested_at:
+            item["ingested_at"] = ingested_at
+        credibility_weight = row.get("credibility_weight")
+        if credibility_weight not in (None, ""):
+            item["credibility_weight"] = credibility_weight
+        items.append(item)
+
+    items.sort(
+        key=lambda item: (
+            str(item.get("approved_at") or ""),
+            str(item.get("source_id") or ""),
+        ),
+        reverse=True,
+    )
+    return items[:limit]
 
 
 def _youtube_channel_error_detail(
@@ -890,6 +941,21 @@ def _takeaway_enrichment(source_id: str, limit: int) -> dict[str, Any]:
         "outline": takeaway_payload.get("outline") or [],
         "takeaway_payload": takeaway_payload,
     }
+
+
+@router.get(
+    "/recent",
+    dependencies=[Depends(require_api_key)],
+)
+def get_recent_commentary_sources(
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict[str, Any]:
+    try:
+        rows = SourceRegistry().all()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"source registry unavailable: {exc}") from exc
+    items = _recent_commentary_items(rows, limit=limit)
+    return {"items": items, "count": len(items)}
 
 
 @router.post(
