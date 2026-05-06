@@ -41,7 +41,8 @@ financial-engine_v2/scripts/broad_test_results/
 # IDE / agent tool configs (not project-specific)
 .trae/
 .factory/
-.gemini/
+.gemini/*
+!.gemini/settings.json
 .roo/
 .agents/
 .augment/

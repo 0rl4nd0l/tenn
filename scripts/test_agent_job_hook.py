@@ -239,6 +239,55 @@ def test_claude_stop_and_session_end_outputs_are_valid_json(tmp_path: Path) -> N
         assert isinstance(payload, dict)
 
 
+def test_gemini_before_tool_no_active_task_card_allows_with_valid_json(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": ""},
+        platform="gemini",
+        event="BeforeTool",
+    )
+
+    assert completed.returncode == 0
+    assert payload == {"decision": "allow"}
+
+
+def test_gemini_before_tool_active_task_card_allows_without_report_artifact(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        platform="gemini",
+        event="BeforeTool",
+    )
+
+    assert completed.returncode == 0
+    assert payload == {
+        "decision": "allow",
+        "additionalContext": "Tenn agent-job contract passed: docs/agent_tasks/test-task.md",
+    }
+    assert not (repo / "reports" / "agent_jobs" / "hook-test-job" / "diff-check.json").exists()
+
+
+def test_gemini_before_tool_outside_diff_returns_blocking_json(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "outside.py").write_text("outside = 2\n", encoding="utf-8")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        platform="gemini",
+        event="BeforeTool",
+    )
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "src/outside.py" in str(payload["reason"])
+    assert "src/outside.py" in str(payload["additionalContext"])
+
+
 def test_active_task_marker_is_supported(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     marker = repo / ".tenn" / "active_agent_task"
@@ -304,3 +353,18 @@ def test_claude_stop_hook_no_longer_contains_plain_diff_output() -> None:
 
     assert any("scripts/agent_job_hook.py --platform claude --event Stop" in command for command in stop_commands)
     assert not any(command.strip() == "git diff --stat HEAD 2>/dev/null || true" for command in stop_commands)
+
+
+def test_gemini_before_tool_runs_task_card_hook() -> None:
+    settings = json.loads((REPO_ROOT / ".gemini" / "settings.json").read_text(encoding="utf-8"))
+    before_tool_commands = [
+        hook["command"]
+        for group in settings["hooks"]["BeforeTool"]
+        for hook in group["hooks"]
+        if hook.get("type") == "command"
+    ]
+
+    assert any(
+        "scripts/agent_job_hook.py --platform gemini --event BeforeTool" in command
+        for command in before_tool_commands
+    )

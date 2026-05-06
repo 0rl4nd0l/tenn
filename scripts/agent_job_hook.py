@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Codex/Claude hook wrapper for the Tenn dev-agent task-card contract."""
+"""Codex/Claude/Gemini hook wrapper for the Tenn dev-agent task-card contract."""
 
 from __future__ import annotations
 
@@ -193,7 +193,26 @@ def _summarize_failure(card: ActiveTaskCard, runs: list[ContractRun]) -> str:
     return f"Tenn agent-job contract blocked {card.display_path}: {reason}"
 
 
-def _blocking_payload(message: str) -> dict[str, str]:
+def _allow_payload(platform: str, message: str | None = None) -> dict[str, str]:
+    if platform == "gemini":
+        payload = {"decision": "allow"}
+        if message:
+            payload["additionalContext"] = message
+        return payload
+
+    if message:
+        return {"systemMessage": message}
+    return {}
+
+
+def _blocking_payload(message: str, *, platform: str = "codex") -> dict[str, str]:
+    if platform == "gemini":
+        return {
+            "decision": "block",
+            "reason": message,
+            "additionalContext": message,
+        }
+
     return {
         "decision": "block",
         "reason": message,
@@ -205,13 +224,18 @@ def build_hook_payload(
     *,
     repo_root: Path,
     env: Mapping[str, str] | None = None,
+    platform: str = "codex",
+    event: str = "Stop",
 ) -> dict[str, Any]:
     card = find_active_task_card(repo_root, env=env)
     if card is None:
-        return {}
+        return _allow_payload(platform)
 
     if not card.path.exists():
-        return _blocking_payload(f"Tenn agent-job contract blocked: task card not found: {card.display_path}")
+        return _blocking_payload(
+            f"Tenn agent-job contract blocked: task card not found: {card.display_path}",
+            platform=platform,
+        )
 
     validate = _run_contract(repo_root, "validate", ["validate", card.display_path])
     list_active = _run_registry(
@@ -224,26 +248,25 @@ def build_hook_payload(
         "check-overlap",
         ["check-overlap", card.display_path, "--repo-root", str(repo_root)],
     )
-    check_diff = _run_contract(
-        repo_root,
-        "check-diff",
-        ["check-diff", card.display_path, "--repo-root", str(repo_root)],
-    )
+    check_diff_args = ["check-diff", card.display_path, "--repo-root", str(repo_root)]
+    if platform == "gemini" and event == "BeforeTool":
+        check_diff_args.append("--no-write-report")
+    check_diff = _run_contract(repo_root, "check-diff", check_diff_args)
     runs = [validate, list_active, check_overlap, check_diff]
     passed = all(
         run.returncode == 0 and run.parsed is not None and run.parsed.get("ok", False)
         for run in runs
     )
     if not passed:
-        return _blocking_payload(_summarize_failure(card, runs))
+        return _blocking_payload(_summarize_failure(card, runs), platform=platform)
 
-    return {"systemMessage": f"Tenn agent-job contract passed: {card.display_path}"}
+    return _allow_payload(platform, f"Tenn agent-job contract passed: {card.display_path}")
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--platform", choices=("codex", "claude"), default="codex")
-    parser.add_argument("--event", choices=("Stop", "SessionEnd"), default="Stop")
+    parser.add_argument("--platform", choices=("codex", "claude", "gemini"), default="codex")
+    parser.add_argument("--event", choices=("Stop", "SessionEnd", "BeforeTool"), default="Stop")
     parser.add_argument("--repo-root", type=Path, help=argparse.SUPPRESS)
     return parser
 
@@ -253,9 +276,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         _read_hook_stdin()
         repo_root = _resolve_repo_root(args.repo_root)
-        payload = build_hook_payload(repo_root=repo_root)
+        payload = build_hook_payload(repo_root=repo_root, platform=args.platform, event=args.event)
     except Exception as exc:
-        payload = _blocking_payload(f"Tenn agent-job hook failed: {exc}")
+        payload = _blocking_payload(f"Tenn agent-job hook failed: {exc}", platform=args.platform)
 
     print(json.dumps(payload, sort_keys=True))
     return 0

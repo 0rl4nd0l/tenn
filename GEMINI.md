@@ -42,8 +42,12 @@ Tested: <how verified - test name, curl output, etc.>
 ```
 Never end a session with uncommitted state. Use `wip(<subsystem>): ...` if incomplete.
 
-### 2. Manual Hook Emulation
-Gemini does not have automatic hooks. You MUST manually:
+### 2. Hook Emulation and Task-Card Enforcement
+Gemini has repo-local `BeforeTool` hooks in `.gemini/settings.json`.
+- **Task cards**: Before `write_file`, `replace`, or `run_shell_command`, Gemini runs `python3 scripts/agent_job_hook.py --platform gemini --event BeforeTool`. With no active card it allows the tool call. With `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` set, it validates the card, checks active registry overlap, and checks that the current diff stays inside `allowed_files`.
+- **Final task-card check**: Before the final report for a task-card job, still run `python scripts/agent_job_contract.py check-diff <task_card>` and release the claim with `python scripts/agent_job_registry.py release <job_id>`.
+
+Gemini MUST manually:
 - **Lint**: Run `financial-engine_v2/.venv/bin/ruff check --fix <file>` after editing Python files.
 - **Test**: Run `financial-engine_v2/.venv/bin/pytest <relevant_test_path>` after changes.
 - **Permissions**: `chmod +x <file>` after creating shell scripts.
@@ -73,6 +77,7 @@ Gemini can access MCP tools via `run_shell_command`:
 ## Pre-Merge Checklist (Gemini)
 
 - [ ] SYSTEM_CONTRACT.md reviewed — no violations.
+- [ ] Task-card `check-diff` executed and registry claim released if this was a task-card job.
 - [ ] Manual `ruff --fix` executed on changed Python files.
 - [ ] Tests executed and passing.
 - [ ] Milestone commit created with `Working:` and `Tested:` fields.

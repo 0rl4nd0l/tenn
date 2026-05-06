@@ -6,6 +6,7 @@ All automation hooks active in this repo. Agents should read this before trigger
 - `.claude/settings.json` (Confirmed)
 - `.codex/config.toml` (Confirmed)
 - `.codex/hooks.json` (Confirmed)
+- `.gemini/settings.json` (Confirmed)
 - `.git/hooks/pre-commit` (Confirmed)
 - `.git/hooks/pre-push` (Confirmed)
 
@@ -42,7 +43,7 @@ Legacy hygiene hooks are non-blocking (`|| true`); they warn without interruptin
 
 **Task cards:** A task card is the explicit scope file for an implementation-capable agent job. It declares the `job_id`, `lane`, `owner`, `allowed_files`, `output_dir`, `mutation_mode`, timeout, approval flag, and `production_data_access: false`. The contract validator checks that metadata before work starts, and `check-diff` checks that the current git diff stays inside the card's `allowed_files`. The task card selected by `TENN_AGENT_TASK_CARD` or `.tenn/active_agent_task` is session-local; the registry claim created from that card is the shared visibility record.
 
-**Agent job registry:** `scripts/agent_job_registry.py` is the shared dev-agent source of truth for active Codex/Claude task-card claims. The registry root is resolved in this order:
+**Agent job registry:** `scripts/agent_job_registry.py` is the shared dev-agent source of truth for active Codex/Claude/Gemini task-card claims. The registry root is resolved in this order:
 
 1. `TENN_AGENT_REGISTRY_ROOT`
 2. `git config tenn.agentRegistryRoot`
@@ -69,9 +70,9 @@ python scripts/agent_job_registry.py release <job_id>
 - `release <job_id>` removes the active registry record and updates the status report to `released`; run it when the job is complete or abandoned.
 - The Stop hook still runs `check-overlap` and `check-diff` for the selected card. A manual `claim` is what makes the job visible to other agents before Stop.
 
-**Linked worktrees:** Linked worktrees from the same clone normally share one `git-common-dir`, so the default `<git-common-dir>/tenn-agent-registry` fallback gives Codex and Claude shared active-job visibility even when each agent is launched from a different linked worktree. The active record stores the physical `worktree`, `branch`, `git_common_dir`, and repo-relative `allowed_files`, so overlap checks compare the same logical paths across worktrees.
+**Linked worktrees:** Linked worktrees from the same clone normally share one `git-common-dir`, so the default `<git-common-dir>/tenn-agent-registry` fallback gives Codex, Claude, and Gemini shared active-job visibility even when each agent is launched from a different linked worktree. The active record stores the physical `worktree`, `branch`, `git_common_dir`, and repo-relative `allowed_files`, so overlap checks compare the same logical paths across worktrees.
 
-**Separate clones:** Separate clones do not share a `git-common-dir`. If Codex and Claude are launched from separate clones, set the same absolute shared registry root in each session or clone:
+**Separate clones:** Separate clones do not share a `git-common-dir`. If Codex, Claude, and Gemini are launched from separate clones, set the same absolute shared registry root in each session or clone:
 
 ```bash
 export TENN_AGENT_REGISTRY_ROOT=/path/to/shared/tenn-agent-registry
@@ -81,7 +82,7 @@ git config tenn.agentRegistryRoot /path/to/shared/tenn-agent-registry
 
 Without that shared env/config, each clone will use its own git-common-dir registry and active jobs from the other clone will not be visible. If git metadata is unavailable, the repo-local `.tenn/agent_jobs` fallback is only local to that checkout and `list-active` reports a fallback warning.
 
-**Codex launched from the Tenn web UI:** Any Tenn web UI launcher that spawns Codex must pass the same `TENN_AGENT_REGISTRY_ROOT` used by local Codex/Claude sessions, or launch from a clone/worktree whose `git config tenn.agentRegistryRoot` points at that root. Do not rely on the web process current directory for registry discovery; verify with `python scripts/agent_job_registry.py list-active` from the launched environment.
+**Codex launched from the Tenn web UI:** Any Tenn web UI launcher that spawns Codex must pass the same `TENN_AGENT_REGISTRY_ROOT` used by local Codex/Claude/Gemini sessions, or launch from a clone/worktree whose `git config tenn.agentRegistryRoot` points at that root. Do not rely on the web process current directory for registry discovery; verify with `python scripts/agent_job_registry.py list-active` from the launched environment.
 
 ### Agent Job Registry Troubleshooting
 
@@ -106,6 +107,19 @@ Repo-local Codex hooks are enabled with `codex_hooks = true`.
 |-------|---------|--------------|
 | `PreToolUse` / `Bash` | Before shell commands | Emits a graphify reminder via `systemMessage` when `graphify-out/graph.json` exists |
 | `Stop` | When Codex finishes a task | Runs `scripts/agent_job_hook.py` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
+
+---
+
+## Gemini Hooks (`.gemini/settings.json`)
+
+Repo-local Gemini hooks use Gemini-compatible JSON decisions (`allow` / `block`).
+
+| Event | Trigger | What It Does |
+|-------|---------|--------------|
+| `BeforeTool` / `read_file\|list_directory` | Before Gemini broad file reads | Emits a graphify reminder via `additionalContext` when `graphify-out/graph.json` exists |
+| `BeforeTool` / `write_file\|replace\|run_shell_command` | Before Gemini file mutations or shell commands | Runs `scripts/agent_job_hook.py --platform gemini --event BeforeTool` and enforces the Tenn task-card contract only when `TENN_AGENT_TASK_CARD` or worktree-local `.tenn/active_agent_task` is set |
+
+The Gemini task-card hook runs the same validator, shared registry visibility check, overlap check, and diff-scope check as the Codex/Claude Stop hook. Because this hook runs before mutating/shell tool calls, it passes `--no-write-report` to `check-diff`; this prevents repeated per-tool checks from creating their own `reports/agent_jobs/<job_id>/diff-check.json` dirty artifact. Task-card jobs should still run the normal final `python scripts/agent_job_contract.py check-diff <task_card>` before release/final report.
 
 ---
 
@@ -155,8 +169,8 @@ financial-engine_v2/.venv/bin/ruff check --fix autodev financial-engine_v2/backe
 |------|------|-------|
 | Session start context | `.claude/settings.json` | Claude Code only |
 | Sensitive path warning (PreToolUse) | `.claude/settings.json` | Claude Code only |
-| Graphify search reminder (PreToolUse) | `.claude/settings.json` / `.codex/hooks.json` | Claude Code + Codex |
-| Tenn task-card contract (Stop) | `.claude/settings.json` / `.codex/hooks.json` | Claude Code + Codex |
+| Graphify search reminder (PreToolUse/BeforeTool) | `.claude/settings.json` / `.codex/hooks.json` / `.gemini/settings.json` | Claude Code + Codex + Gemini |
+| Tenn task-card contract (Stop/BeforeTool) | `.claude/settings.json` / `.codex/hooks.json` / `.gemini/settings.json` | Claude Code + Codex + Gemini |
 | Auto ruff on Python writes | `.claude/settings.json` | Claude Code only |
 | Auto chmod on shell writes | `.claude/settings.json` | Claude Code only |
 | Auto pytest on backend edits | `.claude/settings.json` | Claude Code only |

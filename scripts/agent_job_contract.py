@@ -517,6 +517,7 @@ def _build_parser() -> argparse.ArgumentParser:
     check_diff = sub.add_parser("check-diff", help="verify git changes stay within task-card allowed_files")
     check_diff.add_argument("task_card", type=Path)
     check_diff.add_argument("--repo-root", type=Path, default=Path.cwd())
+    check_diff.add_argument("--no-write-report", action="store_true")
     return parser
 
 
@@ -534,7 +535,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if result.ok else 1
     if args.command == "check-diff":
         markdown = args.task_card.read_text(encoding="utf-8")
-        result = check_diff_for_task_card_markdown(markdown, repo_root=args.repo_root)
+        result = check_diff_for_task_card_markdown(
+            markdown,
+            repo_root=args.repo_root,
+            write_report=not args.no_write_report,
+        )
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
         return 0 if result.ok else 1
     return 2

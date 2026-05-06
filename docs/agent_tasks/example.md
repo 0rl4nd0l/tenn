@@ -9,6 +9,9 @@ allowed_files:
   - .codex/config.toml
   - .codex/hooks.json
   - .claude/settings.json
+  - .gemini/settings.json
+  - GEMINI.md
+  - scripts/agent_job_contract.py
   - scripts/agent_job_hook.py
   - scripts/test_agent_job_hook.py
   - docs/agent_tasks/example.md
