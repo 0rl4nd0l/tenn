@@ -23,6 +23,21 @@ function packet(): ConfirmedMetricCoveragePacket {
     status: 'ready_with_warnings',
     profile: 'confirmed_metric_coverage',
     generated_at: '2026-05-05T00:00:00Z',
+    head: 'adb76fac485e',
+    branch: 'preserve/dirty-work-20260430T065748Z',
+    git_available: true,
+    git_head: 'adb76fac485e0000000000000000000000000000',
+    git_head_short: 'adb76fac485e',
+    git_branch: 'preserve/dirty-work-20260430T065748Z',
+    git_dirty: false,
+    git_status_short_summary: {
+      line_count: 0,
+      entries: [],
+      truncated: false,
+    },
+    git_unavailable_reason: null,
+    fixture_dir: 'financial-engine_v2/backend/tests/eval_fixtures',
+    artifact_path: 'reports/extraction_eval/confirmed_metric_coverage_review_20260505T000000Z/review_packet.json',
     summary: {
       profile: 'confirmed_metric_coverage',
       fixture_count: 15,
@@ -46,6 +61,19 @@ function packet(): ConfirmedMetricCoveragePacket {
       generated_at: '2026-05-05T00:00:00Z',
       head: 'adb76fac485e',
       branch: 'preserve/dirty-work-20260430T065748Z',
+      git_available: true,
+      git_head: 'adb76fac485e0000000000000000000000000000',
+      git_head_short: 'adb76fac485e',
+      git_branch: 'preserve/dirty-work-20260430T065748Z',
+      git_dirty: false,
+      git_status_short_summary: {
+        line_count: 0,
+        entries: [],
+        truncated: false,
+      },
+      git_unavailable_reason: null,
+      fixture_dir: 'financial-engine_v2/backend/tests/eval_fixtures',
+      artifact_path: 'reports/extraction_eval/confirmed_metric_coverage_review_20260505T000000Z/review_packet.json',
       canonical_core_unchanged: true,
       expanded_required_unchanged: true,
       canonical_labels_mutated: false,
@@ -74,9 +102,17 @@ function packet(): ConfirmedMetricCoveragePacket {
         source_pdf_path: 'data/asx/docs/BHP/report.pdf',
         source_pdf_exists: true,
         source_pdf_status: 'present',
+        source_pdf_present: true,
         source_page: 44,
+        source_page_present: true,
         source_table: '43',
+        source_table_present: true,
         source_row: 'Revenue 60,817',
+        source_row_present: true,
+        precise_source_evidence: true,
+        broad_or_suspect_source_evidence: false,
+        human_review_required: false,
+        blocked_ambiguous: false,
         source_evidence_status: 'CONFIRMED_SOURCE_EVIDENCED',
         classification: 'CONFIRMED_SOURCE_EVIDENCED',
         schema_support: {
@@ -105,9 +141,17 @@ function packet(): ConfirmedMetricCoveragePacket {
         source_pdf_path: 'data/asx/docs/ANZ/report.pdf',
         source_pdf_exists: true,
         source_pdf_status: 'present',
+        source_pdf_present: true,
         source_page: 44,
+        source_page_present: true,
         source_table: null,
+        source_table_present: false,
         source_row: 'The Company share capital comprises 3,003,366,782 fully paid shares',
+        source_row_present: true,
+        precise_source_evidence: true,
+        broad_or_suspect_source_evidence: true,
+        human_review_required: true,
+        blocked_ambiguous: false,
         source_evidence_status: 'CANDIDATE_REVIEW_REQUIRED',
         classification: 'CANDIDATE_REVIEW_REQUIRED',
         schema_support: {
@@ -136,9 +180,17 @@ function packet(): ConfirmedMetricCoveragePacket {
         source_pdf_path: 'data/asx/docs/DXS/report.pdf',
         source_pdf_exists: true,
         source_pdf_status: 'present',
+        source_pdf_present: true,
         source_page: 13,
+        source_page_present: true,
         source_table: null,
+        source_table_present: false,
         source_row: null,
+        source_row_present: false,
+        precise_source_evidence: false,
+        broad_or_suspect_source_evidence: true,
+        human_review_required: true,
+        blocked_ambiguous: true,
         source_evidence_status: 'CONFIRMED_SOURCE_EVIDENCED',
         classification: 'AMBIGUOUS_OR_DERIVED',
         schema_support: {
@@ -176,16 +228,23 @@ describe('MetricCoverageTabPanel', () => {
     const { container } = renderPanel()
 
     expect(screen.getByText('Confirmed Metric Coverage Review')).toBeInTheDocument()
-    expect(screen.getByText(/This review does not run extraction/)).toBeInTheDocument()
+    expect(screen.getAllByText(/This review does not run extraction/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Candidate metrics require human source-evidence review/)).toBeInTheDocument()
-    expect(screen.getByText(/Canonical trust semantics are unchanged/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Canonical trust semantics are unchanged/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Candidate rows are not confirmed/)).toBeInTheDocument()
+    expect(screen.getByText(/git:/).parentElement).toHaveTextContent('adb76fac485e')
+    expect(screen.getByText(/artifact_path:/).parentElement).toHaveTextContent('review_packet.json')
     expect(screen.getByText('146')).toBeInTheDocument()
     expect(screen.getByText('73')).toBeInTheDocument()
     expect(screen.getByText('70')).toBeInTheDocument()
-    expect(screen.getByText(/review_packet\.json/)).toBeInTheDocument()
+    expect(screen.getAllByText(/review_packet\.json/).length).toBeGreaterThan(0)
     expect(screen.getByText('BHP_A_2021-06-30.json')).toBeInTheDocument()
     expect(screen.getByText('score_in_confirmed_metric_coverage')).toBeInTheDocument()
     expect(screen.getByText('Revenue 60,817')).toBeInTheDocument()
+    expect(screen.getAllByText('precise evidence')).toHaveLength(2)
+    expect(screen.getAllByText('broad/suspect')).toHaveLength(2)
+    expect(screen.getAllByText('human review')).toHaveLength(2)
+    expect(screen.getByText('blocked ambiguous')).toBeInTheDocument()
     expect(container.querySelectorAll('td.truncate')).toHaveLength(0)
     expect(screen.getByText('BHP_A_2021-06-30.json').closest('td')).toHaveClass('whitespace-normal')
     expect(screen.getAllByText('CONFIRMED_SOURCE_EVIDENCED')[0].closest('[data-slot="badge"]')).toHaveClass('whitespace-normal')
@@ -231,5 +290,28 @@ describe('MetricCoverageTabPanel', () => {
     expect(screen.getByText('not_generated')).toBeInTheDocument()
     expect(screen.getByText('backend unavailable')).toBeInTheDocument()
     expect(screen.getByText(/No confirmed metric coverage artifact has been generated yet/)).toBeInTheDocument()
+  })
+
+  it('renders explicit DATA_MISSING when git provenance is unavailable', () => {
+    const missingGitPacket = packet()
+    missingGitPacket.git_available = false
+    missingGitPacket.git_head = null
+    missingGitPacket.git_head_short = null
+    missingGitPacket.git_branch = null
+    missingGitPacket.git_dirty = null
+    missingGitPacket.git_unavailable_reason = 'not a git repository'
+    if (missingGitPacket.summary) {
+      missingGitPacket.summary.git_available = false
+      missingGitPacket.summary.git_head = null
+      missingGitPacket.summary.git_head_short = null
+      missingGitPacket.summary.git_branch = null
+      missingGitPacket.summary.git_dirty = null
+      missingGitPacket.summary.git_unavailable_reason = 'not a git repository'
+    }
+
+    renderPanel({ packet: missingGitPacket })
+
+    expect(screen.getByText('git DATA_MISSING')).toBeInTheDocument()
+    expect(screen.getByText(/DATA_MISSING: not a git repository/)).toBeInTheDocument()
   })
 })

@@ -131,9 +131,17 @@ export type ConfirmedMetricCoverageRow = {
   source_pdf_path?: string | null
   source_pdf_exists?: boolean | null
   source_pdf_status: 'present' | 'missing' | 'not_declared' | string
+  source_pdf_present?: boolean
   source_page?: number | null
+  source_page_present?: boolean
   source_table?: string | null
+  source_table_present?: boolean
   source_row?: string | null
+  source_row_present?: boolean
+  precise_source_evidence?: boolean
+  broad_or_suspect_source_evidence?: boolean
+  human_review_required?: boolean
+  blocked_ambiguous?: boolean
   source_evidence_status: string
   classification: MetricCoverageClassification | string
   schema_support: {
@@ -151,6 +159,21 @@ export type ConfirmedMetricCoverageRow = {
   reason?: string | null
 }
 
+export type GitStatusShortSummary = {
+  line_count: number
+  entries: string[]
+  truncated: boolean
+}
+
+export type AppRuntimeContext = {
+  cwd?: string | null
+  workspace_root?: string | null
+  project_root?: string | null
+  backend_root?: string | null
+  running_in_docker?: boolean | null
+  [key: string]: string | boolean | number | null | undefined
+}
+
 export type ConfirmedMetricCoverageSummary = {
   profile: string
   fixture_count: number
@@ -166,6 +189,16 @@ export type ConfirmedMetricCoverageSummary = {
   generated_at?: string | null
   head?: string | null
   branch?: string | null
+  git_available?: boolean | null
+  git_head?: string | null
+  git_head_short?: string | null
+  git_branch?: string | null
+  git_dirty?: boolean | null
+  git_status_short_summary?: GitStatusShortSummary | null
+  git_unavailable_reason?: string | null
+  fixture_dir?: string | null
+  artifact_path?: string | null
+  app_runtime_context?: AppRuntimeContext | null
   canonical_core_unchanged: boolean
   expanded_required_unchanged: boolean
   canonical_labels_mutated: boolean
@@ -183,7 +216,17 @@ export type ConfirmedMetricCoveragePacket = {
   generated_at?: string | null
   head?: string | null
   branch?: string | null
+  git_available?: boolean | null
+  git_head?: string | null
+  git_head_short?: string | null
+  git_branch?: string | null
+  git_dirty?: boolean | null
+  git_status_short_summary?: GitStatusShortSummary | null
+  git_unavailable_reason?: string | null
   fixtures_dir?: string | null
+  fixture_dir?: string | null
+  artifact_path?: string | null
+  app_runtime_context?: AppRuntimeContext | null
   summary: ConfirmedMetricCoverageSummary | null
   rows: ConfirmedMetricCoverageRow[]
   count?: number

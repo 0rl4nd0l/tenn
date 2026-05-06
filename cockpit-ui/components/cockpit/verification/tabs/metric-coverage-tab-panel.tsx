@@ -75,6 +75,13 @@ function matchesText(row: ConfirmedMetricCoverageRow, query: string): boolean {
   return haystack.includes(query.trim().toLowerCase())
 }
 
+function firstText(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value
+  }
+  return null
+}
+
 export function MetricCoverageTabPanel({
   packet,
   loading,
@@ -123,6 +130,22 @@ export function MetricCoverageTabPanel({
 
   const status = running ? 'running' : (packet?.status || 'not_generated')
   const artifacts = packet?.artifacts ?? null
+  const generatedAt = firstText(summary?.generated_at, packet?.generated_at)
+  const gitAvailable = summary?.git_available ?? packet?.git_available ?? null
+  const gitHead = firstText(summary?.git_head_short, packet?.git_head_short, summary?.head, packet?.head)
+  const gitBranch = firstText(summary?.git_branch, packet?.git_branch, summary?.branch, packet?.branch)
+  const gitDirty = summary?.git_dirty ?? packet?.git_dirty ?? null
+  const gitStatusSummary = summary?.git_status_short_summary ?? packet?.git_status_short_summary ?? null
+  const gitUnavailableReason = firstText(summary?.git_unavailable_reason, packet?.git_unavailable_reason)
+  const hasGitIdentity = gitAvailable !== false && Boolean(gitHead || gitBranch)
+  const fixtureDir = firstText(summary?.fixture_dir, packet?.fixture_dir, packet?.fixtures_dir)
+  const artifactPath = firstText(summary?.artifact_path, packet?.artifact_path, artifacts?.json_path)
+  const reviewWarnings = Array.from(new Set([
+    'This review does not run extraction.',
+    'Candidate rows are not confirmed.',
+    'Canonical trust semantics are unchanged.',
+    ...(packet?.warnings ?? []),
+  ]))
 
   return (
     <Card>
@@ -138,10 +161,39 @@ export function MetricCoverageTabPanel({
       <CardContent className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={statusVariant(status)}>{status}</Badge>
-          {summary?.generated_at ? <Badge variant="outline">generated {new Date(summary.generated_at).toLocaleString()}</Badge> : null}
-          {summary?.head ? <Badge variant="outline">head {summary.head}</Badge> : null}
+          {generatedAt ? <Badge variant="outline">generated {new Date(generatedAt).toLocaleString()}</Badge> : null}
+          {hasGitIdentity && gitHead ? <Badge variant="outline">head {gitHead}</Badge> : null}
+          {hasGitIdentity && gitBranch ? <Badge variant="outline">branch {gitBranch}</Badge> : null}
+          {!hasGitIdentity && (summary || packet) ? <Badge variant="critical">git DATA_MISSING</Badge> : null}
           {summary?.canonical_labels_mutated === false ? <Badge variant="outline">canonical labels unchanged</Badge> : null}
         </div>
+
+        {summary || packet ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="space-y-1 rounded-lg border border-border/60 p-3 text-xs text-muted-foreground">
+              <div className="font-medium text-foreground">Provenance</div>
+              {generatedAt ? <div>generated_at: <span className="font-mono">{generatedAt}</span></div> : null}
+              {hasGitIdentity ? (
+                <>
+                  <div>git: <span className="font-mono">{gitHead || 'DATA_MISSING'} / {gitBranch || 'DATA_MISSING'}</span></div>
+                  {gitDirty !== null ? (
+                    <div>working tree: <span className="font-mono">{gitDirty ? `dirty (${gitStatusSummary?.line_count ?? 0})` : 'clean'}</span></div>
+                  ) : null}
+                </>
+              ) : (
+                <div>git: <span className="font-mono">DATA_MISSING{gitUnavailableReason ? `: ${gitUnavailableReason}` : ''}</span></div>
+              )}
+              {fixtureDir ? <div className="break-all">fixture_dir: <span className="font-mono">{fixtureDir}</span></div> : null}
+              {artifactPath ? <div className="break-all">artifact_path: <span className="font-mono">{artifactPath}</span></div> : null}
+            </div>
+            <div className="space-y-1 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+              <div className="font-medium text-amber-900 dark:text-amber-100">Warnings</div>
+              {reviewWarnings.map((warning) => (
+                <div key={warning}>{warning}</div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={onRunReview} disabled={running}>
@@ -217,12 +269,6 @@ export function MetricCoverageTabPanel({
             {artifacts.artifact_dir ? <div className="break-all font-mono">dir: {artifacts.artifact_dir}</div> : null}
             {artifacts.json_path ? <div className="break-all font-mono">json: {artifacts.json_path}</div> : null}
             {artifacts.markdown_path ? <div className="break-all font-mono">md: {artifacts.markdown_path}</div> : null}
-          </div>
-        ) : null}
-
-        {packet?.warnings?.length ? (
-          <div className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-            {packet.warnings.join(' ')}
           </div>
         ) : null}
 
@@ -331,6 +377,14 @@ export function MetricCoverageTabPanel({
                         <div className="flex flex-wrap gap-1">
                           <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_pdf_status === 'present' ? 'outline' : 'critical'}>{row.source_pdf_status}</Badge>
                           <Badge className={WRAPPING_BADGE_CLASS} variant="outline">{row.source_evidence_status}</Badge>
+                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.precise_source_evidence ? 'default' : 'outline'}>{row.precise_source_evidence ? 'precise evidence' : 'evidence not precise'}</Badge>
+                          {row.broad_or_suspect_source_evidence ? <Badge className={WRAPPING_BADGE_CLASS} variant="secondary">broad/suspect</Badge> : null}
+                          {row.human_review_required ? <Badge className={WRAPPING_BADGE_CLASS} variant="secondary">human review</Badge> : null}
+                          {row.blocked_ambiguous ? <Badge className={WRAPPING_BADGE_CLASS} variant="critical">blocked ambiguous</Badge> : null}
+                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_pdf_present ? 'outline' : 'critical'}>{row.source_pdf_present ? 'pdf present' : 'pdf missing'}</Badge>
+                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_page_present ? 'outline' : 'critical'}>{row.source_page_present ? 'page present' : 'page missing'}</Badge>
+                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_row_present ? 'outline' : 'critical'}>{row.source_row_present ? 'row present' : 'row missing'}</Badge>
+                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_table_present ? 'outline' : 'secondary'}>{row.source_table_present ? 'table present' : 'table missing'}</Badge>
                           {row.source_page ? <Badge className={WRAPPING_BADGE_CLASS} variant="outline">p{row.source_page}</Badge> : null}
                           {row.source_table ? <Badge className={WRAPPING_BADGE_CLASS} variant="outline">table {row.source_table}</Badge> : null}
                         </div>

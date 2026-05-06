@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from app.core.config import PROJECT_ROOT
+from app.core.config import PROJECT_ROOT, is_running_in_docker
 from app.services.extraction_gold_eval_scorecard import (
     build_confirmed_metric_coverage_scorecard,
 )
@@ -60,11 +60,17 @@ def confirmed_metric_coverage_summary() -> dict[str, Any]:
             "errors": [],
             "warnings": ["No confirmed metric coverage review artifact exists yet."],
         }
+    provenance = _packet_provenance(packet)
     return {
         "status": packet.get("status", "ready"),
         "profile": packet.get("profile", PROFILE_NAME),
+        "generated_at": packet.get("generated_at"),
+        "head": packet.get("head"),
+        "branch": packet.get("branch"),
+        **provenance,
         "summary": packet.get("summary"),
         "artifacts": packet.get("artifacts"),
+        "artifact_path": packet.get("artifact_path"),
         "errors": packet.get("errors", []),
         "warnings": packet.get("warnings", []),
     }
@@ -85,12 +91,18 @@ def confirmed_metric_coverage_rows() -> dict[str, Any]:
             "warnings": ["No confirmed metric coverage review artifact exists yet."],
         }
     rows = packet.get("rows") if isinstance(packet.get("rows"), list) else []
+    provenance = _packet_provenance(packet)
     return {
         "status": packet.get("status", "ready"),
         "profile": packet.get("profile", PROFILE_NAME),
+        "generated_at": packet.get("generated_at"),
+        "head": packet.get("head"),
+        "branch": packet.get("branch"),
+        **provenance,
         "rows": rows,
         "count": len(rows),
         "artifacts": packet.get("artifacts"),
+        "artifact_path": packet.get("artifact_path"),
         "errors": packet.get("errors", []),
         "warnings": packet.get("warnings", []),
     }
@@ -123,22 +135,21 @@ def run_confirmed_metric_coverage_review(
     artifact_dir.mkdir(parents=True, exist_ok=False)
     json_path = artifact_dir / "review_packet.json"
     md_path = artifact_dir / "review_packet.md"
-    json_path.write_text(
-        json.dumps(packet, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
-    md_path.write_text(_render_markdown_packet(packet), encoding="utf-8")
-
     artifacts = {
         "artifact_dir": str(artifact_dir),
         "json_path": str(json_path),
         "markdown_path": str(md_path),
     }
     packet["artifacts"] = artifacts
+    packet["artifact_path"] = str(json_path)
+    summary = packet.get("summary")
+    if isinstance(summary, dict):
+        summary["artifact_path"] = str(json_path)
     json_path.write_text(
         json.dumps(packet, indent=2, sort_keys=True),
         encoding="utf-8",
     )
+    md_path.write_text(_render_markdown_packet(packet), encoding="utf-8")
     return packet
 
 
@@ -147,21 +158,26 @@ def _build_packet(
     fixtures_dir: Path,
 ) -> dict[str, Any]:
     generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    provenance = _build_provenance(generated_at, fixtures_dir)
     fixture_payloads = _load_fixture_payloads(fixtures_dir)
     rows = [
         _build_row(row, fixture_payloads)
         for row in scorecard.get("metric_expectations", [])
         if isinstance(row, Mapping)
     ]
-    summary = _build_summary(scorecard, rows, generated_at)
+    _apply_review_quality_flags(rows)
+    summary = _build_summary(scorecard, rows, provenance)
     warnings = _packet_warnings(scorecard, rows)
     return {
         "status": "ready_with_warnings" if warnings else "ready",
         "profile": PROFILE_NAME,
         "generated_at": generated_at,
-        "head": _git_head(),
-        "branch": _git_branch(),
+        "head": provenance["git_head_short"],
+        "branch": provenance["git_branch"],
+        **provenance,
         "fixtures_dir": str(fixtures_dir),
+        "fixture_dir": str(fixtures_dir),
+        "artifact_path": None,
         "summary": summary,
         "rows": rows,
         "artifacts": None,
@@ -170,9 +186,7 @@ def _build_packet(
         "scorecard": {
             "metric_family_summary": scorecard.get("metric_family_summary", {}),
             "source_status_counts": scorecard.get("source_status_counts", {}),
-            "canonical_trust_semantics": scorecard.get(
-                "canonical_trust_semantics", {}
-            ),
+            "canonical_trust_semantics": scorecard.get("canonical_trust_semantics", {}),
         },
         "copy": {
             "review_only": "This review does not run extraction.",
@@ -188,7 +202,7 @@ def _build_packet(
 def _build_summary(
     scorecard: Mapping[str, Any],
     rows: list[dict[str, Any]],
-    generated_at: str,
+    provenance: Mapping[str, Any],
 ) -> dict[str, Any]:
     classified = _count_by(rows, "classification")
     reviewed = _count_by(rows, "review_status")
@@ -212,9 +226,19 @@ def _build_summary(
         "missing_source_pdf_count": missing_pdf_count,
         "classification_counts": classified,
         "review_status_counts": reviewed,
-        "generated_at": generated_at,
-        "head": _git_head(),
-        "branch": _git_branch(),
+        "generated_at": provenance.get("generated_at"),
+        "head": provenance.get("git_head_short"),
+        "branch": provenance.get("git_branch"),
+        "git_available": provenance.get("git_available"),
+        "git_head": provenance.get("git_head"),
+        "git_head_short": provenance.get("git_head_short"),
+        "git_branch": provenance.get("git_branch"),
+        "git_dirty": provenance.get("git_dirty"),
+        "git_status_short_summary": provenance.get("git_status_short_summary"),
+        "git_unavailable_reason": provenance.get("git_unavailable_reason"),
+        "fixture_dir": provenance.get("fixture_dir"),
+        "artifact_path": provenance.get("artifact_path"),
+        "app_runtime_context": provenance.get("app_runtime_context"),
         "canonical_core_unchanged": bool(
             scorecard.get("canonical_trust_semantics", {}).get(
                 "canonical_core_unchanged"
@@ -233,12 +257,16 @@ def _build_row(
     expectation: Mapping[str, Any],
     fixture_payloads: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
-    document_id = str(expectation.get("document_id") or expectation.get("fixture_id") or "")
+    document_id = str(
+        expectation.get("document_id") or expectation.get("fixture_id") or ""
+    )
     fixture = str(expectation.get("fixture") or "")
     payload = fixture_payloads.get(fixture) or fixture_payloads.get(document_id) or {}
     metric = str(expectation.get("metric_name") or "")
     note = _metric_note(payload, metric)
-    source_pdf_path = _str_or_none(payload.get("pdf_path") or payload.get("source_file"))
+    source_pdf_path = _str_or_none(
+        payload.get("pdf_path") or payload.get("source_file")
+    )
     source_page = _extract_source_page(note)
     source_table = _extract_source_table(note)
     classification = _classification_for_support_status(
@@ -257,7 +285,8 @@ def _build_row(
         "canonical_field": _str_or_none(expectation.get("canonical_field")),
         "expectation_type": str(expectation.get("expectation_type") or ""),
         "expected_value": expectation.get("expected_value"),
-        "expected_null": str(expectation.get("expectation_type") or "") == "expected_null",
+        "expected_null": str(expectation.get("expectation_type") or "")
+        == "expected_null",
         "currency": _str_or_none(payload.get("currency")),
         "scale": _str_or_none(payload.get("scale")),
         "source_pdf_path": source_pdf_path,
@@ -284,6 +313,59 @@ def _build_row(
         "score": expectation.get("score"),
         "reason": expectation.get("reason"),
     }
+
+
+def _apply_review_quality_flags(rows: list[dict[str, Any]]) -> None:
+    source_counts: dict[tuple[Any, ...], int] = {}
+    for row in rows:
+        signature = _source_signature(row)
+        if signature is None:
+            continue
+        source_counts[signature] = source_counts.get(signature, 0) + 1
+
+    for row in rows:
+        source_pdf_present = row.get("source_pdf_status") == "present"
+        source_page_present = row.get("source_page") is not None
+        source_row_present = bool(row.get("source_row"))
+        source_table_present = bool(row.get("source_table"))
+        signature = _source_signature(row)
+        duplicate_source_reference = (
+            signature is not None and source_counts.get(signature, 0) > 1
+        )
+        precise_source_evidence = (
+            source_pdf_present
+            and source_page_present
+            and source_row_present
+            and not duplicate_source_reference
+        )
+        classification = str(row.get("classification") or "")
+        broad_or_suspect_source_evidence = (
+            not precise_source_evidence
+            or duplicate_source_reference
+            or classification in {CLASS_CANDIDATE, CLASS_AMBIGUOUS, CLASS_UNSUPPORTED}
+        )
+
+        row["source_pdf_present"] = source_pdf_present
+        row["source_page_present"] = source_page_present
+        row["source_row_present"] = source_row_present
+        row["source_table_present"] = source_table_present
+        row["precise_source_evidence"] = precise_source_evidence
+        row["broad_or_suspect_source_evidence"] = broad_or_suspect_source_evidence
+        row["human_review_required"] = (
+            classification in {CLASS_CANDIDATE, CLASS_AMBIGUOUS, CLASS_UNSUPPORTED}
+            or broad_or_suspect_source_evidence
+        )
+        row["blocked_ambiguous"] = classification == CLASS_AMBIGUOUS
+
+
+def _source_signature(row: Mapping[str, Any]) -> tuple[Any, ...] | None:
+    document_id = row.get("document_id")
+    page = row.get("source_page")
+    table = row.get("source_table")
+    source_row = row.get("source_row")
+    if not document_id or page is None or not source_row:
+        return None
+    return (document_id, page, table, source_row)
 
 
 def _load_fixture_payloads(fixtures_dir: Path) -> dict[str, Mapping[str, Any]]:
@@ -400,8 +482,12 @@ def _read_packet(path: Path) -> dict[str, Any]:
 
 
 def _render_markdown_packet(packet: Mapping[str, Any]) -> str:
-    summary = packet.get("summary") if isinstance(packet.get("summary"), Mapping) else {}
-    artifacts = packet.get("artifacts") if isinstance(packet.get("artifacts"), Mapping) else {}
+    summary = (
+        packet.get("summary") if isinstance(packet.get("summary"), Mapping) else {}
+    )
+    artifacts = (
+        packet.get("artifacts") if isinstance(packet.get("artifacts"), Mapping) else {}
+    )
     lines = [
         "# Confirmed Metric Coverage Review",
         "",
@@ -424,13 +510,23 @@ def _render_markdown_packet(packet: Mapping[str, Any]) -> str:
         "generated_at",
         "head",
         "branch",
+        "git_available",
+        "git_head",
+        "git_head_short",
+        "git_branch",
+        "git_dirty",
+        "git_unavailable_reason",
+        "fixture_dir",
+        "artifact_path",
     ):
         lines.append(f"- {key}: `{summary.get(key, packet.get(key, 'DATA_MISSING'))}`")
     lines.extend(["", "## Artifacts", ""])
     for key, value in artifacts.items():
         lines.append(f"- {key}: `{value}`")
     lines.extend(["", "## Rows", ""])
-    lines.append("| ticker | fixture | period | metric | classification | source | action |")
+    lines.append(
+        "| ticker | fixture | period | metric | classification | source | action |"
+    )
     lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     for row in packet.get("rows", []):
         if not isinstance(row, Mapping):
@@ -460,34 +556,141 @@ def _md_cell(value: Any) -> str:
     return str(value if value not in (None, "") else "-").replace("|", "\\|")
 
 
-def _str_or_none(value: Any) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
+def _packet_provenance(packet: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "git_available": packet.get("git_available"),
+        "git_head": packet.get("git_head"),
+        "git_head_short": packet.get("git_head_short"),
+        "git_branch": packet.get("git_branch"),
+        "git_dirty": packet.get("git_dirty"),
+        "git_status_short_summary": packet.get("git_status_short_summary"),
+        "git_unavailable_reason": packet.get("git_unavailable_reason"),
+        "fixture_dir": packet.get("fixture_dir") or packet.get("fixtures_dir"),
+        "artifact_path": packet.get("artifact_path"),
+        "app_runtime_context": packet.get("app_runtime_context"),
+    }
 
 
-def _git_head() -> str | None:
-    return _git_value("rev-parse", "--short=12", "HEAD")
+def _build_provenance(generated_at: str, fixtures_dir: Path) -> dict[str, Any]:
+    return {
+        "generated_at": generated_at,
+        "profile": PROFILE_NAME,
+        "fixture_dir": str(fixtures_dir),
+        "artifact_path": None,
+        **_git_provenance(WORKSPACE_ROOT),
+        "app_runtime_context": {
+            "cwd": str(Path.cwd()),
+            "workspace_root": str(WORKSPACE_ROOT),
+            "project_root": str(PROJECT_ROOT),
+            "backend_root": str(BACKEND_ROOT),
+            "running_in_docker": is_running_in_docker(),
+        },
+    }
 
 
-def _git_branch() -> str | None:
-    return _git_value("branch", "--show-current")
+def _git_provenance(workspace_root: Path = WORKSPACE_ROOT) -> dict[str, Any]:
+    git_dir_check = _git_command(workspace_root, "rev-parse", "--git-dir")
+    if git_dir_check["returncode"] != 0:
+        return _git_unavailable(
+            git_dir_check["reason"]
+            or _stderr_reason(git_dir_check["stderr"])
+            or f"git metadata unavailable from workspace_root={workspace_root}"
+        )
+
+    head = _git_command(workspace_root, "rev-parse", "HEAD")
+    head_short = _git_command(workspace_root, "rev-parse", "--short=12", "HEAD")
+    branch = _git_command(workspace_root, "branch", "--show-current")
+    status = _git_command(workspace_root, "status", "--short")
+
+    for result in (head, head_short, status):
+        if result["returncode"] != 0:
+            return _git_unavailable(
+                result["reason"]
+                or _stderr_reason(result["stderr"])
+                or f"git command failed in workspace_root={workspace_root}"
+            )
+
+    branch_value = branch["stdout"].strip() if branch["returncode"] == 0 else ""
+    if not branch_value:
+        branch_value = "DETACHED_HEAD"
+    status_lines = [line for line in status["stdout"].splitlines() if line.strip()]
+    return {
+        "git_available": True,
+        "git_head": head["stdout"].strip(),
+        "git_head_short": head_short["stdout"].strip(),
+        "git_branch": branch_value,
+        "git_dirty": bool(status_lines),
+        "git_status_short_summary": {
+            "line_count": len(status_lines),
+            "entries": status_lines[:20],
+            "truncated": len(status_lines) > 20,
+        },
+        "git_unavailable_reason": None,
+    }
 
 
-def _git_value(*args: str) -> str | None:
+def _git_unavailable(reason: str) -> dict[str, Any]:
+    return {
+        "git_available": False,
+        "git_head": None,
+        "git_head_short": None,
+        "git_branch": None,
+        "git_dirty": None,
+        "git_status_short_summary": {
+            "line_count": 0,
+            "entries": [],
+            "truncated": False,
+        },
+        "git_unavailable_reason": reason,
+    }
+
+
+def _git_command(workspace_root: Path, *args: str) -> dict[str, Any]:
     try:
         proc = subprocess.run(
             ["git", *args],
-            cwd=WORKSPACE_ROOT,
+            cwd=workspace_root,
             capture_output=True,
             text=True,
             timeout=3,
             check=False,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except FileNotFoundError:
+        return {
+            "returncode": 127,
+            "stdout": "",
+            "stderr": "",
+            "reason": "git executable not found",
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "returncode": 124,
+            "stdout": "",
+            "stderr": "",
+            "reason": f"git command timed out in workspace_root={workspace_root}",
+        }
+    except OSError as exc:
+        return {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "",
+            "reason": f"git command failed in workspace_root={workspace_root}: {exc}",
+        }
+    return {
+        "returncode": proc.returncode,
+        "stdout": proc.stdout,
+        "stderr": proc.stderr,
+        "reason": None,
+    }
+
+
+def _stderr_reason(stderr: str) -> str:
+    text = str(stderr or "").strip()
+    return text or "git command failed without stderr"
+
+
+def _str_or_none(value: Any) -> str | None:
+    if value is None:
         return None
-    if proc.returncode != 0:
-        return None
-    value = proc.stdout.strip()
-    return value or None
+    text = str(value).strip()
+    return text or None

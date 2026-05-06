@@ -8,9 +8,7 @@ from app.services import confirmed_metric_coverage_review as coverage_review
 
 def test_confirmed_metric_coverage_default_fixtures_follow_backend_module_root():
     expected = (
-        Path(coverage_review.__file__).resolve().parents[2]
-        / "tests"
-        / "eval_fixtures"
+        Path(coverage_review.__file__).resolve().parents[2] / "tests" / "eval_fixtures"
     )
 
     assert coverage_review.DEFAULT_COVERAGE_FIXTURES_DIR == expected
@@ -32,14 +30,10 @@ def test_confirmed_metric_coverage_summary_returns_profile_counts(
 ):
     client = _client(monkeypatch, tmp_path)
 
-    run_response = client.post(
-        "/api/extraction-eval/confirmed-metric-coverage/run"
-    )
+    run_response = client.post("/api/extraction-eval/confirmed-metric-coverage/run")
     assert run_response.status_code == 200
 
-    response = client.get(
-        "/api/extraction-eval/confirmed-metric-coverage/summary"
-    )
+    response = client.get("/api/extraction-eval/confirmed-metric-coverage/summary")
     assert response.status_code == 200
     payload = response.json()
     summary = payload["summary"]
@@ -53,6 +47,10 @@ def test_confirmed_metric_coverage_summary_returns_profile_counts(
     assert summary["ambiguous_count"] == 3
     assert summary["unsupported_count"] == 0
     assert summary["canonical_labels_mutated"] is False
+    assert "git_available" in summary
+    assert "git_unavailable_reason" in summary
+    assert payload["artifact_path"].endswith("review_packet.json")
+    assert summary["artifact_path"].endswith("review_packet.json")
 
 
 def test_confirmed_metric_coverage_rows_return_expected_fields(
@@ -60,9 +58,10 @@ def test_confirmed_metric_coverage_rows_return_expected_fields(
     tmp_path,
 ):
     client = _client(monkeypatch, tmp_path)
-    assert client.post(
-        "/api/extraction-eval/confirmed-metric-coverage/run"
-    ).status_code == 200
+    assert (
+        client.post("/api/extraction-eval/confirmed-metric-coverage/run").status_code
+        == 200
+    )
 
     response = client.get("/api/extraction-eval/confirmed-metric-coverage/rows")
     assert response.status_code == 200
@@ -83,6 +82,12 @@ def test_confirmed_metric_coverage_rows_return_expected_fields(
     assert row["source_page"] == 44
     assert row["source_table"] == "43"
     assert row["classification"] == "CONFIRMED_SOURCE_EVIDENCED"
+    assert row["source_pdf_present"] == (row["source_pdf_status"] == "present")
+    assert row["source_page_present"] is True
+    assert row["source_table_present"] is True
+    assert row["source_row_present"] is True
+    assert isinstance(row["precise_source_evidence"], bool)
+    assert row["blocked_ambiguous"] is False
     assert row["schema_support"]["schema_supported"] is True
     assert row["recommended_action"] == "score_in_confirmed_metric_coverage"
     assert row["production_metric_tier"] == "core"
@@ -103,9 +108,7 @@ def test_confirmed_metric_coverage_run_is_dry_run_only(
         extraction_must_not_run,
     )
 
-    response = client.post(
-        "/api/extraction-eval/confirmed-metric-coverage/run"
-    )
+    response = client.post("/api/extraction-eval/confirmed-metric-coverage/run")
     assert response.status_code == 200
     payload = response.json()
     assert payload["summary"]["total_expectations"] == 146
@@ -113,6 +116,65 @@ def test_confirmed_metric_coverage_run_is_dry_run_only(
     assert payload["artifacts"]["markdown_path"].endswith("review_packet.md")
     assert Path(payload["artifacts"]["json_path"]).exists()
     assert Path(payload["artifacts"]["markdown_path"]).exists()
+    assert payload["artifact_path"] == payload["artifacts"]["json_path"]
+
+
+def test_confirmed_metric_coverage_run_records_git_provenance(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+
+    monkeypatch.setattr(
+        coverage_review,
+        "_git_provenance",
+        lambda _workspace_root=coverage_review.WORKSPACE_ROOT: {
+            "git_available": True,
+            "git_head": "adb76fac485e0000000000000000000000000000",
+            "git_head_short": "adb76fac485e",
+            "git_branch": "test/provenance",
+            "git_dirty": False,
+            "git_status_short_summary": {
+                "line_count": 0,
+                "entries": [],
+                "truncated": False,
+            },
+            "git_unavailable_reason": None,
+        },
+    )
+
+    response = client.post("/api/extraction-eval/confirmed-metric-coverage/run")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["git_available"] is True
+    assert payload["git_head"] == "adb76fac485e0000000000000000000000000000"
+    assert payload["git_head_short"] == "adb76fac485e"
+    assert payload["git_branch"] == "test/provenance"
+    assert payload["git_dirty"] is False
+    assert payload["git_status_short_summary"]["line_count"] == 0
+    assert payload["git_unavailable_reason"] is None
+    assert payload["summary"]["git_head_short"] == "adb76fac485e"
+    assert payload["summary"]["git_branch"] == "test/provenance"
+    assert payload["summary"]["artifact_path"] == payload["artifact_path"]
+
+
+def test_git_provenance_explains_unavailable_metadata(tmp_path):
+    missing_git_root = tmp_path / "not-a-repo"
+    missing_git_root.mkdir()
+
+    provenance = coverage_review._git_provenance(missing_git_root)
+
+    assert provenance["git_available"] is False
+    assert provenance["git_head"] is None
+    assert provenance["git_branch"] is None
+    assert provenance["git_dirty"] is None
+    assert provenance["git_unavailable_reason"]
+    assert provenance["git_status_short_summary"] == {
+        "line_count": 0,
+        "entries": [],
+        "truncated": False,
+    }
 
 
 def test_confirmed_metric_coverage_missing_fixtures_returns_clean_error(
@@ -126,9 +188,7 @@ def test_confirmed_metric_coverage_missing_fixtures_returns_clean_error(
         tmp_path / "missing-fixtures",
     )
 
-    response = client.post(
-        "/api/extraction-eval/confirmed-metric-coverage/run"
-    )
+    response = client.post("/api/extraction-eval/confirmed-metric-coverage/run")
 
     assert response.status_code == 400
     assert "confirmed metric coverage fixtures not found" in response.json()["detail"]
@@ -140,9 +200,7 @@ def test_confirmed_metric_coverage_preserves_canonical_profile_semantics(
 ):
     client = _client(monkeypatch, tmp_path)
 
-    response = client.post(
-        "/api/extraction-eval/confirmed-metric-coverage/run"
-    )
+    response = client.post("/api/extraction-eval/confirmed-metric-coverage/run")
 
     assert response.status_code == 200
     payload = response.json()
