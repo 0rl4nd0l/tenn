@@ -1,0 +1,30 @@
+verification-source-page-viewer-import-valid-v1 no-mutation proof
+
+Backend smoke command used an isolated runtime database:
+PORT=8010 LOCAL_BACKEND_PROFILE=isolated DATABASE_URL=sqlite:////tmp/tenn-source-viewer-import-valid-smoke-2600286.db ENABLE_EXTRACTION=false ENABLE_QDRANT=false ENABLE_EMBEDDINGS=false financial-engine_v2/scripts/run_local_backend.sh
+
+Backend startup reported:
+embeddings=false qdrant=false extraction=false
+
+Backend capabilities probe reported:
+features.extraction.status=disabled
+features.embeddings.status=disabled
+features.rag.status=disabled
+dependencies.qdrant.enabled=false
+
+Port/runtime proof:
+ss -ltnp | rg ':8002' returned no matches.
+
+Smoke SQLite row counts:
+asx_periodic_financials=0
+documents=0
+
+Browser smoke forbidden request guard:
+forbiddenRequests=[]
+
+The real browser smoke only requested:
+/api/extraction-eval/confirmed-metric-coverage/summary
+/api/extraction-eval/confirmed-metric-coverage/rows
+
+The direct source route probe returned:
+HTTP 404 {"detail":"DATA_MISSING: source PDF not found"}

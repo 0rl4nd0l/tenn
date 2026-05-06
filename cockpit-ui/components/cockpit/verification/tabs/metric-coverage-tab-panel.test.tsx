@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { ConfirmedMetricCoveragePacket } from '../types'
 import { MetricCoverageTabPanel } from './metric-coverage-tab-panel'
@@ -16,6 +16,10 @@ beforeAll(() => {
   if (!HTMLElement.prototype.releasePointerCapture) {
     HTMLElement.prototype.releasePointerCapture = () => undefined
   }
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 function packet(): ConfirmedMetricCoveragePacket {
@@ -124,6 +128,10 @@ function packet(): ConfirmedMetricCoveragePacket {
         recommended_action: 'score_in_confirmed_metric_coverage',
         production_metric_tier: 'core',
         review_status: 'review_only_confirmed',
+        evaluation_status: 'correct',
+        actual_value: 60817000000,
+        score: 1,
+        reason: 'matched expected value',
       },
       {
         fixture_id: 'anz_20250331_h',
@@ -313,5 +321,114 @@ describe('MetricCoverageTabPanel', () => {
 
     expect(screen.getByText('git DATA_MISSING')).toBeInTheDocument()
     expect(screen.getByText(/DATA_MISSING: not a git repository/)).toBeInTheDocument()
+  })
+
+  it('opens a detail panel from a metric row with source fields and source evidence action', async () => {
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for BHP revenue/i }))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText(/Source evidence review is local draft state only/)).toBeInTheDocument()
+    expect(screen.getByText('Source PDF Path')).toBeInTheDocument()
+    expect(screen.getAllByText('data/asx/docs/BHP/report.pdf').length).toBeGreaterThan(0)
+    expect(screen.getByText('Actual Extracted Value')).toBeInTheDocument()
+    expect(screen.getAllByText('60,817,000,000').length).toBeGreaterThan(0)
+    expect(screen.getByText('Score')).toBeInTheDocument()
+    expect(screen.getByText('matched expected value')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open source page/i })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Copy source evidence/i })).toBeInTheDocument()
+  })
+
+  it('opens the backend source PDF route with a page hint', async () => {
+    const user = userEvent.setup()
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for BHP revenue/i }))
+    await user.click(screen.getByRole('button', { name: /Open source page/i }))
+
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/api/extraction-eval/confirmed-metric-coverage/source?'),
+      '_blank',
+      'noopener,noreferrer',
+    )
+    const openedUrl = String(openSpy.mock.calls[0]?.[0] || '')
+    expect(openedUrl).toContain('path=data%2Fasx%2Fdocs%2FBHP%2Freport.pdf')
+    expect(openedUrl).toContain('page=44')
+    expect(openedUrl.endsWith('#page=44')).toBe(true)
+  })
+
+  it('keeps source action disabled with DATA_MISSING when the PDF is unavailable', async () => {
+    const user = userEvent.setup()
+    const missingPdfPacket = packet()
+    missingPdfPacket.rows[0] = {
+      ...missingPdfPacket.rows[0],
+      source_pdf_exists: false,
+      source_pdf_status: 'missing',
+      source_pdf_present: false,
+    }
+    renderPanel({ packet: missingPdfPacket })
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for BHP revenue/i }))
+
+    expect(screen.getByText(/DATA_MISSING: source PDF is missing/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open source page/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Copy source evidence/i })).toBeInTheDocument()
+  })
+
+  it('renders traversal source paths safely without opening them', async () => {
+    const user = userEvent.setup()
+    const unsafePacket = packet()
+    unsafePacket.rows[0] = {
+      ...unsafePacket.rows[0],
+      source_pdf_path: '../secret.pdf',
+      source_pdf_status: 'present',
+      source_pdf_present: true,
+    }
+    renderPanel({ packet: unsafePacket })
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for BHP revenue/i }))
+
+    expect(screen.getByText(/DATA_MISSING: source PDF path is not eligible/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open source page/i })).toBeDisabled()
+  })
+
+  it('shows source page and row metadata in the detail panel', async () => {
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for ANZ shares_outstanding/i }))
+
+    expect(screen.getByText('Source Page')).toBeInTheDocument()
+    expect(screen.getAllByText('44').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('The Company share capital comprises 3,003,366,782 fully paid shares').length).toBeGreaterThan(0)
+  })
+
+  it('renders draft-only review decisions without canonical label mutation controls', async () => {
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for DXS net_debt/i }))
+    await user.click(screen.getByRole('combobox', { name: /Draft review decision/i }))
+    await user.click(screen.getByRole('option', { name: 'MARK_AMBIGUOUS_OR_DERIVED' }))
+
+    expect(screen.getByText(/Draft-only selection for analyst triage/)).toBeInTheDocument()
+    expect(screen.getByText(/Canonical labels remain unchanged/)).toHaveTextContent('MARK_AMBIGUOUS_OR_DERIVED')
+    expect(screen.getByText(/Review-only workflow/)).toBeInTheDocument()
+    expect(screen.queryByText(/apply canonical/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /submit|save|apply/i })).not.toBeInTheDocument()
+  })
+
+  it('does not render raw operator prompt text in the workflow', async () => {
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: /Open source evidence for BHP revenue/i }))
+
+    expect(screen.queryByText(/CODEX PROMPT/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/STRICT RULES/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/operator prompt/i)).not.toBeInTheDocument()
   })
 })

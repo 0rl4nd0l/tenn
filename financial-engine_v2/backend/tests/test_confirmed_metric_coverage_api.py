@@ -105,6 +105,167 @@ def test_confirmed_metric_coverage_rows_return_expected_fields(
     assert row["production_metric_tier"] == "core"
 
 
+def test_confirmed_metric_coverage_source_serves_allowlisted_pdf(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+    source_root = tmp_path / "financial-engine_v2" / "data" / "asx" / "docs"
+    source_pdf = source_root / "BHP" / "report.pdf"
+    source_pdf.parent.mkdir(parents=True)
+    source_pdf.write_bytes(b"%PDF-1.4\n% source review fixture\n")
+    monkeypatch.setattr(
+        coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    response = client.get(
+        "/api/extraction-eval/confirmed-metric-coverage/source",
+        params={"path": "data/asx/docs/BHP/report.pdf", "page": "44"},
+    )
+
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF-1.4")
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert "inline" in response.headers["content-disposition"]
+    assert response.headers["x-tenn-source-page"] == "44"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_confirmed_metric_coverage_source_rejects_traversal(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+    source_root = tmp_path / "source-root"
+    source_root.mkdir()
+    monkeypatch.setattr(
+        coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    response = client.get(
+        "/api/extraction-eval/confirmed-metric-coverage/source",
+        params={"path": "../secret.pdf"},
+    )
+
+    assert response.status_code == 400
+    assert "invalid source PDF path" in response.json()["detail"]
+
+
+def test_confirmed_metric_coverage_source_rejects_unsafe_path_forms(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+    source_root = tmp_path / "source-root"
+    source_root.mkdir()
+    monkeypatch.setattr(
+        coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    cases = [
+        ("https://example.com/report.pdf", "source PDF path must be a local path"),
+        ("data\\asx\\docs\\BHP\\report.pdf", "source PDF path must use POSIX separators"),
+        ("data/asx/docs/BHP/report.txt", "source path must reference a PDF file"),
+    ]
+    for source_path, expected_detail in cases:
+        response = client.get(
+            "/api/extraction-eval/confirmed-metric-coverage/source",
+            params={"path": source_path},
+        )
+
+        assert response.status_code == 400
+        assert expected_detail in response.json()["detail"]
+
+
+def test_confirmed_metric_coverage_source_rejects_outside_allowlist(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+    source_root = tmp_path / "source-root"
+    source_root.mkdir()
+    outside_pdf = tmp_path / "outside.pdf"
+    outside_pdf.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(
+        coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    response = client.get(
+        "/api/extraction-eval/confirmed-metric-coverage/source",
+        params={"path": str(outside_pdf)},
+    )
+
+    assert response.status_code == 403
+    assert "outside allowed source roots" in response.json()["detail"]
+
+
+def test_confirmed_metric_coverage_source_missing_file_is_data_missing(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+    source_root = tmp_path / "financial-engine_v2" / "data" / "asx" / "docs"
+    source_root.mkdir(parents=True)
+    monkeypatch.setattr(
+        coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    response = client.get(
+        "/api/extraction-eval/confirmed-metric-coverage/source",
+        params={"path": "data/asx/docs/BHP/missing.pdf"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "DATA_MISSING: source PDF not found"
+
+
+def test_confirmed_metric_coverage_source_is_read_only(
+    monkeypatch,
+    tmp_path,
+):
+    client = _client(monkeypatch, tmp_path)
+    source_root = tmp_path / "financial-engine_v2" / "data" / "asx" / "docs"
+    source_pdf = source_root / "BHP" / "report.pdf"
+    source_pdf.parent.mkdir(parents=True)
+    source_pdf.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(
+        coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    def extraction_must_not_run(*_args, **_kwargs):
+        raise AssertionError("source viewer must not run extraction")
+
+    def rag_must_not_run(*_args, **_kwargs):
+        raise AssertionError("source viewer must not query RAG/Qdrant")
+
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        extraction_must_not_run,
+    )
+    monkeypatch.setattr(main_app, "query_rag", rag_must_not_run)
+
+    response = client.get(
+        "/api/extraction-eval/confirmed-metric-coverage/source",
+        params={"path": "data/asx/docs/BHP/report.pdf"},
+    )
+
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF-1.4")
+
+
 def test_confirmed_metric_coverage_run_is_dry_run_only(
     monkeypatch,
     tmp_path,

@@ -10,13 +10,13 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import httpx
 from typing import Any, Callable, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 
@@ -1008,6 +1008,45 @@ def get_confirmed_metric_coverage_rows() -> dict[str, Any]:
         return confirmed_metric_coverage_review.confirmed_metric_coverage_rows()
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/extraction-eval/confirmed-metric-coverage/source",
+    dependencies=[Depends(require_api_key)],
+)
+def get_confirmed_metric_coverage_source(
+    source_path: str = Query(..., alias="path", min_length=1, max_length=4096),
+    page: int | None = Query(default=None, ge=1, le=10000),
+) -> FileResponse:
+    """Serve an allowlisted confirmed metric coverage source PDF for review."""
+
+    try:
+        resolved_path = (
+            confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path(
+                source_path
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail="source PDF unavailable") from exc
+
+    headers = {
+        "Content-Disposition": f"inline; filename*=UTF-8''{quote(resolved_path.name)}",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+    }
+    if page is not None:
+        headers["X-Tenn-Source-Page"] = str(page)
+    return FileResponse(
+        resolved_path,
+        media_type="application/pdf",
+        headers=headers,
+    )
 
 
 @app.post(

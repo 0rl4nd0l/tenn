@@ -12,8 +12,9 @@ import os
 import re
 import subprocess
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
+from urllib.parse import urlparse
 
 from app.core.config import PROJECT_ROOT, is_running_in_docker
 from app.services.extraction_gold_eval_scorecard import (
@@ -31,6 +32,14 @@ WORKSPACE_ROOT = Path(
 CONFIRMED_COVERAGE_REPORTS_DIR = WORKSPACE_ROOT / "reports" / "extraction_eval"
 PROFILE_NAME = "confirmed_metric_coverage"
 ARTIFACT_PREFIX = "confirmed_metric_coverage_review_"
+CONFIRMED_COVERAGE_SOURCE_ROOTS = (
+    PROJECT_ROOT / "data" / "asx" / "docs",
+    Path("/data/asx/docs"),
+)
+SOURCE_PATH_PREFIXES = (
+    PurePosixPath("data/asx/docs"),
+    PurePosixPath("financial-engine_v2/data/asx/docs"),
+)
 
 CLASS_CONFIRMED = "CONFIRMED_SOURCE_EVIDENCED"
 CLASS_CANDIDATE = "CANDIDATE_REVIEW_REQUIRED"
@@ -114,6 +123,40 @@ def confirmed_metric_coverage_rows() -> dict[str, Any]:
     }
 
 
+def resolve_confirmed_metric_coverage_source_path(source_path: str) -> Path:
+    """Resolve a metric-coverage source PDF path within the ASX docs allowlist."""
+
+    raw_path = str(source_path or "").strip()
+    if not raw_path:
+        raise ValueError("DATA_MISSING: source PDF path is required")
+    if "\x00" in raw_path:
+        raise ValueError("invalid source PDF path")
+    parsed = urlparse(raw_path)
+    if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment:
+        raise ValueError("source PDF path must be a local path")
+    if "\\" in raw_path:
+        raise ValueError("source PDF path must use POSIX separators")
+
+    request_path = Path(raw_path)
+    if request_path.suffix.lower() != ".pdf":
+        raise ValueError("source path must reference a PDF file")
+
+    roots = _confirmed_metric_coverage_source_roots()
+    candidates = _source_path_candidates(raw_path, roots)
+    first_allowed: Path | None = None
+    for candidate in candidates:
+        resolved = candidate.resolve(strict=False)
+        if not _is_within_any_source_root(resolved, roots):
+            continue
+        first_allowed = first_allowed or resolved
+        if resolved.exists() and resolved.is_file():
+            return resolved
+
+    if first_allowed is not None:
+        raise FileNotFoundError("DATA_MISSING: source PDF not found")
+    raise PermissionError("source PDF path is outside allowed source roots")
+
+
 def run_confirmed_metric_coverage_review(
     *,
     fixtures_dir: str | Path | None = None,
@@ -157,6 +200,55 @@ def run_confirmed_metric_coverage_review(
     )
     md_path.write_text(_render_markdown_packet(packet), encoding="utf-8")
     return packet
+
+
+def _confirmed_metric_coverage_source_roots() -> tuple[Path, ...]:
+    return tuple(
+        dict.fromkeys(root.resolve(strict=False) for root in CONFIRMED_COVERAGE_SOURCE_ROOTS)
+    )
+
+
+def _source_path_candidates(source_path: str, roots: tuple[Path, ...]) -> list[Path]:
+    request_path = Path(source_path)
+    if request_path.is_absolute():
+        return [request_path]
+
+    relative_path = _safe_posix_relative_path(source_path)
+    stripped_path = _strip_source_root_prefix(relative_path)
+    candidates = [
+        PROJECT_ROOT / relative_path.as_posix(),
+        WORKSPACE_ROOT / relative_path.as_posix(),
+    ]
+    candidates.extend(root / stripped_path.as_posix() for root in roots)
+    return list(dict.fromkeys(candidates))
+
+
+def _safe_posix_relative_path(source_path: str) -> PurePosixPath:
+    relative_path = PurePosixPath(source_path)
+    if relative_path.is_absolute() or any(
+        part in {"", ".", ".."} for part in relative_path.parts
+    ):
+        raise ValueError("invalid source PDF path")
+    return relative_path
+
+
+def _strip_source_root_prefix(relative_path: PurePosixPath) -> PurePosixPath:
+    for prefix in SOURCE_PATH_PREFIXES:
+        prefix_parts = prefix.parts
+        if relative_path.parts[: len(prefix_parts)] == prefix_parts:
+            remaining = relative_path.parts[len(prefix_parts) :]
+            return PurePosixPath(*remaining) if remaining else PurePosixPath("")
+    return relative_path
+
+
+def _is_within_any_source_root(path: Path, roots: tuple[Path, ...]) -> bool:
+    for root in roots:
+        try:
+            path.relative_to(root)
+            return True
+        except ValueError:
+            continue
+    return False
 
 
 def _build_packet(

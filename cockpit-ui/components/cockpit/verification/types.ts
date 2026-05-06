@@ -112,6 +112,14 @@ export type MetricCoverageClassification =
   | 'AMBIGUOUS_OR_DERIVED'
   | 'UNSUPPORTED'
 
+export type MetricCoverageReviewDecision =
+  | 'CONFIRM_SOURCE_EVIDENCE'
+  | 'REPAIR_SOURCE_MAPPING'
+  | 'REJECT_BAD_SOURCE_MAPPING'
+  | 'MARK_AMBIGUOUS_OR_DERIVED'
+  | 'KEEP_CANDIDATE_PENDING_REVIEW'
+  | 'DATA_MISSING'
+
 export type ConfirmedMetricCoverageRow = {
   fixture_id: string
   document_id: string
