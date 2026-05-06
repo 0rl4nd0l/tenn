@@ -9,6 +9,7 @@ import {
   GET as getMarketplaceMatchRoute,
   PATCH as patchMarketplaceMatchRoute,
 } from '@/app/api/cockpit/marketplace/matches/[matchId]/route'
+import { POST as postMarketplaceEbaySyncRoute } from '@/app/api/cockpit/marketplace/price-intelligence/tracked-products/[trackedProductId]/ebay-sync/route'
 import { GET as getMarketplaceTrackedProductsRoute } from '@/app/api/cockpit/marketplace/price-intelligence/tracked-products/route'
 
 describe('marketplace BFF routes', () => {
@@ -133,6 +134,46 @@ describe('marketplace BFF routes', () => {
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit
     expect((init.headers as Headers).get('X-API-Key')).toBe('test-key')
     expect(await response.json()).toEqual({ items: [] })
+  })
+
+  it('proxies tracked product eBay sync requests through the explicit backend path', async () => {
+    process.env.NEXT_PUBLIC_API_URL = 'http://backend.internal:8000'
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ observations_ingested: 2 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await postMarketplaceEbaySyncRoute(
+      new Request(
+        'http://localhost/api/cockpit/marketplace/price-intelligence/tracked-products/tp_1/ebay-sync',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'test-key',
+          },
+          body: JSON.stringify({ query: 'ASUS Pro WS X570-ACE' }),
+        },
+      ),
+      { params: Promise.resolve({ trackedProductId: 'tp_1' }) },
+    )
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.internal:8000/api/cockpit/marketplace/price-intelligence/tracked-products/tp_1/ebay-sync',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.any(Headers),
+        body: JSON.stringify({ query: 'ASUS Pro WS X570-ACE' }),
+        cache: 'no-store',
+      }),
+    )
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect((init.headers as Headers).get('X-API-Key')).toBe('test-key')
+    expect((init.headers as Headers).get('Content-Type')).toBe('application/json')
+    expect(await response.json()).toEqual({ observations_ingested: 2 })
   })
 
   it('proxies mission tracked-product link and unlink requests', async () => {
