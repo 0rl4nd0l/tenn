@@ -263,7 +263,10 @@ This contract applies to Codex, Claude Code, Gemini, and any other implementatio
 - Every implementation task must declare exactly one lane before work begins.
 - When a task card is provided, validate it before implementation with `python scripts/agent_job_contract.py validate <task_card>`.
 - Task cards must use `production_data_access: false`; dev-agent jobs must not request or use production data access.
+- Before claiming work, inspect active jobs with `python scripts/agent_job_registry.py list-active`; before implementation on a task-card job, claim it with `python scripts/agent_job_registry.py claim <task_card>` so Codex/Claude sessions can see the lane/file lock.
 - Before the final report for any task-card job, run `python scripts/agent_job_contract.py check-diff <task_card>` and resolve or report any blocked diff.
+- Release completed or abandoned claims with `python scripts/agent_job_registry.py release <job_id>`.
+- The shared registry root resolves by `TENN_AGENT_REGISTRY_ROOT`, then `git config tenn.agentRegistryRoot`, then `<git-common-dir>/tenn-agent-registry`, and only then repo-local `.tenn/agent_jobs` fallback with reduced visibility. Separate clones and Tenn web UI Codex launches must use the same env/config root to share active-job visibility.
 - Stop on unresolved HIGH collision risk. Do not implement while HIGH overlap risk remains unresolved.
 - Hook activation uses `TENN_AGENT_TASK_CARD=<path>` or `.tenn/active_agent_task` to identify the active task card. Exploratory sessions without either marker must not be blocked by the task-card hook.
 
