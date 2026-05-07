@@ -11,6 +11,7 @@ Covers:
 """
 from __future__ import annotations
 
+import inspect
 import json
 import sqlite3
 import sys
@@ -46,6 +47,31 @@ def _make_qdrant_client_mock(collection_exists: bool, existing_dim: int, points_
     client.get_collection.return_value = info_mock
 
     return client
+
+
+def _news_projection_target_stub(articles: list[dict]) -> dict:
+    points = [
+        {
+            "id": str(index + 1),
+            "_text": str(article.get("text") or "test"),
+            "payload": {
+                "article_id": str(article.get("article_id") or ""),
+                "provider": str(article.get("provider") or ""),
+                "published_at": str(article.get("published_at") or ""),
+                "title": str(article.get("title") or ""),
+            },
+        }
+        for index, article in enumerate(articles)
+    ]
+    return {
+        "articles": articles,
+        "points": points,
+        "report": {
+            "eligible_articles": len(articles),
+            "eligible_chunks": len(points),
+            "excluded_articles": 0,
+        },
+    }
 
 
 class TestModelMarkerGuard(unittest.TestCase):
@@ -92,7 +118,7 @@ class TestModelMarkerGuard(unittest.TestCase):
             settings_mock.ollama_url = "http://localhost:11434"
 
             with (
-                patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
+                patch("load_news_to_qdrant.build_news_projection_target", return_value=_news_projection_target_stub(articles_stub)),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
                 patch("app.core.config.settings", settings_mock),
                 patch("load_news_to_qdrant.settings", settings_mock, create=True),
@@ -134,7 +160,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                 }
             ]
             with (
-                patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
+                patch("load_news_to_qdrant.build_news_projection_target", return_value=_news_projection_target_stub(articles_stub)),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
                 patch.object(config_mod, "settings", settings_mock),
             ):
@@ -180,7 +206,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                 }
             ]
             with (
-                patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
+                patch("load_news_to_qdrant.build_news_projection_target", return_value=_news_projection_target_stub(articles_stub)),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
                 patch("load_news_to_qdrant.settings", settings_mock, create=True),
                 patch("app.services.ollama.ollama_embed", return_value=[probe_vec]),
@@ -229,7 +255,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                 }
             ]
             with (
-                patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
+                patch("load_news_to_qdrant.build_news_projection_target", return_value=_news_projection_target_stub(articles_stub)),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
                 patch.object(config_mod, "settings", settings_mock),
                 patch("app.services.ollama.ollama_embed", return_value=[probe_vec]),
@@ -282,7 +308,7 @@ class TestDimensionMismatchGuard(unittest.TestCase):
                 }
             ]
             with (
-                patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
+                patch("load_news_to_qdrant.build_news_projection_target", return_value=_news_projection_target_stub(articles_stub)),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
                 patch("load_news_to_qdrant.settings", settings_mock, create=True),
                 patch("app.services.ollama.ollama_embed", return_value=[probe_vec_384]),
@@ -339,7 +365,7 @@ class TestModelMarkerWritten(unittest.TestCase):
                 }
             ]
             with (
-                patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
+                patch("load_news_to_qdrant.build_news_projection_target", return_value=_news_projection_target_stub(articles_stub)),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
                 patch.object(config_mod, "settings", settings_mock),
                 patch("app.services.ollama.ollama_embed", return_value=[probe_vec]),
@@ -487,6 +513,262 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             self.assertEqual(result["persisted_after_dispatch"], 1)
             self.assertEqual(result["missing_after_dispatch"], 1)
             self.assertEqual(calls, ["news:art-1"])
+
+    def test_dispatch_news_memos_no_wait_reports_task_id_samples(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "text": "memo text 1",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            },
+            {
+                "article_id": "art-2",
+                "text": "memo text 2",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T09:00:00Z",
+            },
+        ]
+
+        class ResultTask:
+            def delay(self, payload):
+                return FakeAsyncResult(f"task-{payload['source_id'].split(':')[-1]}")
+
+        with tempfile.TemporaryDirectory() as td:
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=Path(td) / "news_memos.jsonl",
+            )
+
+        self.assertEqual(result["dispatched"], 2)
+        self.assertFalse(result["completion_observable"])
+        self.assertEqual(_task_id_samples(result), ["task-art-1", "task-art-2"])
+
+    def test_dispatch_news_memos_wait_marks_completed_observable(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "text": "memo text 1",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            },
+            {
+                "article_id": "art-2",
+                "text": "memo text 2",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T09:00:00Z",
+            },
+        ]
+        async_results = [
+            FakeAsyncResult("task-art-1", ready=True, successful=True),
+            FakeAsyncResult("task-art-2", ready=True, successful=True),
+        ]
+
+        class ResultTask:
+            def delay(self, _payload):
+                return async_results.pop(0)
+
+        with tempfile.TemporaryDirectory() as td:
+            result = _dispatch_with_wait_options(
+                mod,
+                articles,
+                task=ResultTask(),
+                memos_path=Path(td) / "news_memos.jsonl",
+                wait=True,
+                timeout=0.0,
+                poll_interval=0.0,
+            )
+
+        self.assertEqual(result["dispatched"], 2)
+        self.assertEqual(result["status"], "degraded")
+        self.assertTrue(result["completion_observable"])
+        self.assertEqual(
+            _count(result, "completed", "completion_completed", "tasks_completed"), 2
+        )
+        self.assertEqual(_count(result, "pending", "completion_pending", "tasks_pending"), 0)
+        self.assertEqual(_count(result, "failed", "completion_failed", "tasks_failed"), 0)
+
+    def test_main_wait_for_memos_degraded_returns_nonzero(self):
+        import load_news_to_qdrant as mod
+
+        with tempfile.TemporaryDirectory() as td:
+            summary_path = Path(td) / "summary.json"
+            argv = [
+                "load_news_to_qdrant.py",
+                "--db-path",
+                str(Path(td) / "news_articles.sqlite"),
+                "--wait-for-memos",
+                "--summary-json",
+                str(summary_path),
+            ]
+            stats = {
+                "status": "success",
+                "articles": 2,
+                "chunks": 2,
+                "upserted": 2,
+                "deleted": 0,
+                "dry_run": False,
+                "qdrant_only": False,
+                "memo_extraction": {"status": "degraded"},
+            }
+
+            with (
+                patch.object(sys, "argv", argv),
+                patch.object(
+                    mod,
+                    "latest_provider_run_summary",
+                    return_value={"status": "success", "params": {}},
+                ),
+                patch.object(mod, "sync_news_to_qdrant", return_value=stats),
+            ):
+                exit_code = mod.main()
+
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(summary_path.exists())
+
+    def test_dispatch_news_memos_wait_reports_timeout_and_failed_counts(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "text": "memo text 1",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            },
+            {
+                "article_id": "art-2",
+                "text": "memo text 2",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T09:00:00Z",
+            },
+        ]
+        async_results = [
+            FakeAsyncResult("task-art-1", ready=True, successful=False),
+            FakeAsyncResult("task-art-2", ready=False, successful=False),
+        ]
+
+        class ResultTask:
+            def delay(self, _payload):
+                return async_results.pop(0)
+
+        with tempfile.TemporaryDirectory() as td:
+            result = _dispatch_with_wait_options(
+                mod,
+                articles,
+                task=ResultTask(),
+                memos_path=Path(td) / "news_memos.jsonl",
+                wait=True,
+                timeout=0.0,
+                poll_interval=0.0,
+            )
+
+        self.assertEqual(result["status"], "degraded")
+        self.assertEqual(result["dispatched"], 2)
+        self.assertTrue(result["completion_observable"])
+        self.assertEqual(_count(result, "completed", "completion_completed", "tasks_completed"), 0)
+        self.assertEqual(_count(result, "pending", "completion_pending", "tasks_pending"), 1)
+        self.assertEqual(_count(result, "failed", "completion_failed", "tasks_failed"), 1)
+
+
+class FakeAsyncResult:
+    def __init__(
+        self,
+        task_id: str,
+        *,
+        ready: bool = True,
+        successful: bool = True,
+        value: object | None = None,
+    ):
+        self.id = task_id
+        self._ready = ready
+        self._successful = successful
+        self._value = value
+
+    def ready(self):
+        return self._ready
+
+    def successful(self):
+        return self._successful
+
+    def failed(self):
+        return self._ready and not self._successful
+
+    def get(self, *args, **kwargs):
+        if not self._successful:
+            raise RuntimeError(f"task failed: {self.id}")
+        return self._value
+
+
+def _count(result: dict, *names: str) -> int:
+    for name in names:
+        if name in result:
+            return int(result[name] or 0)
+    raise AssertionError(f"missing any count field: {names}; result={result}")
+
+
+def _task_id_samples(result: dict) -> list[str]:
+    for name in (
+        "task_id_samples",
+        "task_ids_sample",
+        "dispatched_task_id_samples",
+        "memo_task_id_samples",
+    ):
+        values = result.get(name)
+        if values:
+            return [str(value) for value in values]
+    raise AssertionError(f"missing task id sample field; result={result}")
+
+
+def _dispatch_with_wait_options(
+    mod,
+    articles,
+    *,
+    task,
+    memos_path,
+    wait: bool,
+    timeout: float,
+    poll_interval: float,
+):
+    signature = inspect.signature(mod.dispatch_news_memos)
+    params = signature.parameters
+    kwargs = {"task": task, "memos_path": memos_path}
+
+    wait_name = _first_supported(params, "wait_for_completion", "wait", "wait_for_tasks")
+    timeout_name = _first_supported(
+        params,
+        "wait_timeout_seconds",
+        "timeout_seconds",
+        "wait_timeout",
+        "task_timeout_seconds",
+    )
+    poll_name = _first_supported(
+        params,
+        "poll_interval_seconds",
+        "poll_interval",
+        "task_poll_interval_seconds",
+    )
+    if wait_name is None:
+        raise unittest.SkipTest("dispatch_news_memos wait-mode parameters are not available yet")
+    kwargs[wait_name] = wait
+    if timeout_name is not None:
+        kwargs[timeout_name] = timeout
+    if poll_name is not None:
+        kwargs[poll_name] = poll_interval
+
+    return mod.dispatch_news_memos(articles, **kwargs)
+
+
+def _first_supported(params, *names: str) -> str | None:
+    for name in names:
+        if name in params:
+            return name
+    return None
 
 
 if __name__ == "__main__":

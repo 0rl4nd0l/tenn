@@ -252,6 +252,7 @@ class NewsQdrantSafeRepairTests(unittest.TestCase):
                 articles: list[dict[str, Any]],
                 *,
                 memos_path: str | Path | None = None,
+                **_kwargs: Any,
             ) -> dict[str, Any]:
                 seen["articles"] = articles
                 seen["memos_path"] = memos_path

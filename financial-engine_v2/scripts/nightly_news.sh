@@ -53,6 +53,9 @@ SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.summary.json"
       --since-hours 36 \
       --refresh-sqlite-fallback \
       --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}" \
+      --wait-for-memos \
+      --memo-wait-timeout-seconds "${NEWS_MEMO_WAIT_TIMEOUT_SECONDS:-2700}" \
+      --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}" \
       --summary-json "${SUMMARY_FILE}"
     echo "[nightly_news] summary_json=${SUMMARY_FILE}"
   else

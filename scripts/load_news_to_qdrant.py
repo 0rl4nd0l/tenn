@@ -10,6 +10,7 @@ import json
 import logging
 import sqlite3
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional
@@ -129,6 +130,9 @@ def dispatch_news_memos(
     *,
     task: Any | None = None,
     memos_path: str | Path | None = None,
+    wait_for_completion: bool = False,
+    wait_timeout_seconds: float = 0.0,
+    poll_interval_seconds: float = 2.0,
 ) -> Dict[str, Any]:
     before = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
     dispatch_task = task
@@ -144,6 +148,8 @@ def dispatch_news_memos(
     dispatched = 0
     failed = 0
     failed_samples: list[dict[str, str]] = []
+    task_results: list[Any] = []
+    task_ids: list[str] = []
     if dispatch_task is not None:
         for art in articles:
             source_id = _source_id_for_article(art)
@@ -157,16 +163,39 @@ def dispatch_news_memos(
                 "published_at": str(art.get("published_at") or ""),
             }
             try:
-                dispatch_task.delay(memo_payload)
+                async_result = dispatch_task.delay(memo_payload)
                 dispatched += 1
+                if async_result is not None:
+                    task_results.append(async_result)
+                    task_id = _task_result_id(async_result)
+                    if task_id:
+                        task_ids.append(task_id)
             except Exception as exc:
                 failed += 1
                 if len(failed_samples) < 10:
                     failed_samples.append({"source_id": source_id, "error": str(exc)})
 
+    wait_diagnostics = _wait_for_news_memo_tasks(
+        task_results,
+        wait_for_completion=wait_for_completion,
+        timeout_seconds=wait_timeout_seconds,
+        poll_interval_seconds=poll_interval_seconds,
+    )
     after = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
+    unobserved_tasks = max(0, dispatched - wait_diagnostics["observed"])
     if import_error:
         status = "unavailable"
+    elif wait_for_completion and (
+        failed
+        or wait_diagnostics["failed"]
+        or wait_diagnostics["pending"]
+        or unobserved_tasks
+        or after["read_errors"]
+        or after["missing"]
+    ):
+        status = "degraded"
+    elif wait_for_completion and after["missing"] == 0:
+        status = "complete"
     elif failed:
         status = "degraded"
     elif after["missing"] == 0:
@@ -190,7 +219,105 @@ def dispatch_news_memos(
         "memos_file_exists": after["memos_file_exists"],
         "read_errors": after["read_errors"],
         "import_error": import_error,
-        "completion_observable": False,
+        "completion_observable": bool(wait_for_completion),
+        "task_ids_count": len(task_ids),
+        "task_ids_sample": task_ids[:10],
+        "tasks_observed": wait_diagnostics["observed"],
+        "tasks_completed": wait_diagnostics["completed"],
+        "tasks_failed": wait_diagnostics["failed"],
+        "tasks_pending": wait_diagnostics["pending"],
+        "tasks_unobserved": unobserved_tasks,
+        "task_failure_samples": wait_diagnostics["failure_samples"],
+        "wait_requested": bool(wait_for_completion),
+        "wait_timeout_seconds": wait_diagnostics["timeout_seconds"],
+        "wait_poll_interval_seconds": wait_diagnostics["poll_interval_seconds"],
+    }
+
+
+def _task_result_id(result: Any) -> str:
+    return str(
+        getattr(result, "id", None)
+        or getattr(result, "task_id", None)
+        or getattr(result, "uuid", None)
+        or ""
+    )
+
+
+def _task_result_ready(result: Any) -> bool:
+    ready = getattr(result, "ready", None)
+    if callable(ready):
+        return bool(ready())
+    state = str(
+        getattr(result, "state", None) or getattr(result, "status", "") or ""
+    ).upper()
+    return state in {"SUCCESS", "FAILURE", "REVOKED"}
+
+
+def _task_result_failed(result: Any) -> bool:
+    failed = getattr(result, "failed", None)
+    if callable(failed):
+        return bool(failed())
+    successful = getattr(result, "successful", None)
+    if callable(successful):
+        return not bool(successful())
+    state = str(
+        getattr(result, "state", None) or getattr(result, "status", "") or ""
+    ).upper()
+    return state in {"FAILURE", "REVOKED"}
+
+
+def _task_failure_error(result: Any) -> str:
+    result_value = getattr(result, "result", None)
+    if result_value:
+        return str(result_value)
+    info = getattr(result, "info", None)
+    return str(info or "")
+
+
+def _wait_for_news_memo_tasks(
+    task_results: List[Any],
+    *,
+    wait_for_completion: bool,
+    timeout_seconds: float,
+    poll_interval_seconds: float,
+) -> Dict[str, Any]:
+    timeout = max(0.0, float(timeout_seconds or 0.0))
+    poll_interval = max(0.1, float(poll_interval_seconds or 0.1))
+    if wait_for_completion and task_results:
+        deadline = time.monotonic() + timeout
+        while True:
+            if all(_task_result_ready(result) for result in task_results):
+                break
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(min(poll_interval, max(0.0, deadline - time.monotonic())))
+
+    completed = 0
+    failed = 0
+    pending = 0
+    failure_samples: list[dict[str, str]] = []
+    if wait_for_completion:
+        for result in task_results:
+            task_id = _task_result_id(result)
+            if not _task_result_ready(result):
+                pending += 1
+                continue
+            if _task_result_failed(result):
+                failed += 1
+                if len(failure_samples) < 10:
+                    failure_samples.append(
+                        {"task_id": task_id, "error": _task_failure_error(result)}
+                    )
+                continue
+            completed += 1
+    return {
+        "observed": len(task_results),
+        "completed": completed,
+        "failed": failed,
+        "pending": pending,
+        "failure_samples": failure_samples,
+        "timeout_seconds": timeout,
+        "poll_interval_seconds": poll_interval,
     }
 
 
@@ -833,6 +960,15 @@ def _memo_skipped(reason: str, articles: List[Dict[str, Any]]) -> Dict[str, Any]
         "dispatch_failed": 0,
         "missing_after_dispatch": diagnostics["missing"],
         "completion_observable": False,
+        "task_ids_count": 0,
+        "task_ids_sample": [],
+        "tasks_observed": 0,
+        "tasks_completed": 0,
+        "tasks_failed": 0,
+        "tasks_pending": 0,
+        "tasks_unobserved": 0,
+        "task_failure_samples": [],
+        "wait_requested": False,
     }
 
 
@@ -878,6 +1014,9 @@ def sync_news_to_qdrant(
     get_vector_config_fn: Callable[[Any, str], Dict[str, Any]] | None = None,
     memo_dispatch_fn: Callable[[List[Dict[str, Any]]], Dict[str, Any]] | None = None,
     memo_diagnostics_path: str | Path | None = None,
+    memo_wait_for_completion: bool = False,
+    memo_wait_timeout_seconds: float = 0.0,
+    memo_wait_poll_interval_seconds: float = 2.0,
     embed_model: str | None = None,
     ollama_url: str | None = None,
     write_model_marker: bool = True,
@@ -1127,8 +1266,8 @@ def sync_news_to_qdrant(
         stats["deleted"] = len(stale_ids)
 
     # Dispatch news memo extraction for each article (best-effort). Extraction
-    # completes asynchronously, so diagnostics report dispatch and current
-    # persisted coverage instead of pretending completion is observable here.
+    # remains asynchronous by default. Explicit wait mode observes bounded task
+    # completion without performing memo writes in the loader.
     if qdrant_only:
         memo_diagnostics = _memo_skipped("qdrant_only", articles)
     elif not dispatch_memos:
@@ -1140,6 +1279,9 @@ def sync_news_to_qdrant(
             memo_diagnostics = dispatch_news_memos(
                 articles,
                 memos_path=memo_diagnostics_path,
+                wait_for_completion=bool(memo_wait_for_completion),
+                wait_timeout_seconds=float(memo_wait_timeout_seconds),
+                poll_interval_seconds=float(memo_wait_poll_interval_seconds),
             )
     logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
@@ -1225,6 +1367,23 @@ def main() -> int:
         help="Disable asynchronous news memo extraction dispatch",
     )
     ap.add_argument(
+        "--wait-for-memos",
+        action="store_true",
+        help="Wait for dispatched news memo Celery tasks with a bounded timeout",
+    )
+    ap.add_argument(
+        "--memo-wait-timeout-seconds",
+        type=float,
+        default=120.0,
+        help="Maximum seconds to wait for memo task completion when --wait-for-memos is set",
+    )
+    ap.add_argument(
+        "--memo-wait-poll-interval-seconds",
+        type=float,
+        default=2.0,
+        help="Polling interval while waiting for memo task completion",
+    )
+    ap.add_argument(
         "--cleanup-stale",
         action="store_true",
         help="Delete Qdrant points outside the full eligible target set; never enabled by default",
@@ -1247,6 +1406,14 @@ def main() -> int:
         ap.error("--qdrant-only cannot be combined with --refresh-sqlite-fallback")
     if bool(args.cleanup_stale) and since is not None:
         ap.error("--cleanup-stale requires --since-hours 0 so the expected set is complete")
+    if bool(args.wait_for_memos) and bool(args.no_dispatch_memos):
+        ap.error("--wait-for-memos cannot be combined with --no-dispatch-memos")
+    if bool(args.wait_for_memos) and bool(args.qdrant_only):
+        ap.error("--wait-for-memos cannot be combined with --qdrant-only")
+    if float(args.memo_wait_timeout_seconds) < 0:
+        ap.error("--memo-wait-timeout-seconds must be >= 0")
+    if float(args.memo_wait_poll_interval_seconds) <= 0:
+        ap.error("--memo-wait-poll-interval-seconds must be > 0")
     dispatch_memos = not bool(args.no_dispatch_memos)
     if bool(args.qdrant_only):
         dispatch_memos = False
@@ -1270,6 +1437,9 @@ def main() -> int:
             qdrant_only=bool(args.qdrant_only),
             target_contract_report=bool(args.target_contract_report),
             memo_diagnostics_path=args.memo_diagnostics_path or None,
+            memo_wait_for_completion=bool(args.wait_for_memos),
+            memo_wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
+            memo_wait_poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
         )
         sync_status = "dry_run" if bool(args.dry_run) else "success"
         summary["qdrant_sync"] = {"status": sync_status, **stats}
@@ -1290,6 +1460,14 @@ def main() -> int:
         if args.summary_json:
             write_summary_json(args.summary_json, summary)
         print(json.dumps(summary, indent=2, sort_keys=True))
+        memo_status = str(summary.get("memo_extraction", {}).get("status") or "")
+        if bool(args.wait_for_memos) and memo_status not in {"complete", "empty"}:
+            logger.error(
+                "news memo extraction wait did not complete: status=%s diagnostics=%s",
+                memo_status,
+                summary.get("memo_extraction", {}),
+            )
+            return 2
         return 0
     except Exception as exc:
         if summary.get("qdrant_sync", {}).get("status") == "not_run":
