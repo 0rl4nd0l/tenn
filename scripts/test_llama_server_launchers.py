@@ -64,6 +64,32 @@ def test_run_llama_server_loads_host_override_file(tmp_path: Path) -> None:
     assert "--port 8123" in stdout
 
 
+def test_run_llama_server_uses_parallel_override(tmp_path: Path) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    chat_model = tmp_path / "chat-model.gguf"
+    extraction_model = tmp_path / "extract-model.gguf"
+    chat_model.write_text("chat", encoding="utf-8")
+    extraction_model.write_text("extract", encoding="utf-8")
+    _write_override_env(env_file, chat_model, extraction_model)
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_PARALLEL"] = "2"
+
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = completed.stdout
+    assert "[llama-server] PARALLEL=2" in stdout
+    assert "--parallel 2" in stdout
+
+
 def test_run_llama_server_refuses_during_gpu_exclusive_activity(
     tmp_path: Path,
 ) -> None:

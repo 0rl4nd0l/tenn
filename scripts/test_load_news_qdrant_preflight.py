@@ -507,11 +507,48 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             self.assertEqual(result["status"], "degraded")
             self.assertEqual(result["eligible"], 2)
             self.assertEqual(result["skipped"], 1)
-            self.assertEqual(result["dispatched"], 1)
+            self.assertEqual(result["dispatched"], 0)
             self.assertEqual(result["dispatch_failed"], 1)
             self.assertEqual(result["persisted_before_dispatch"], 1)
             self.assertEqual(result["persisted_after_dispatch"], 1)
             self.assertEqual(result["missing_after_dispatch"], 1)
+            self.assertEqual(result["already_persisted_skipped"], 1)
+            self.assertEqual(result["dispatch_candidates"], 1)
+            self.assertEqual(calls, [])
+
+    def test_dispatch_news_memos_force_dispatches_persisted_sources(self):
+        import load_news_to_qdrant as mod
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            memos_path.write_text(
+                json.dumps({"source_id": "news:art-1"}) + "\n",
+                encoding="utf-8",
+            )
+            articles = [
+                {
+                    "article_id": "art-1",
+                    "text": "already persisted",
+                    "provider": "newspaper4k",
+                    "published_at": "2026-05-04T08:00:00Z",
+                }
+            ]
+            calls: list[str] = []
+
+            class ResultTask:
+                def delay(self, payload):
+                    calls.append(payload["source_id"])
+
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=memos_path,
+                force_dispatch=True,
+            )
+
+            self.assertEqual(result["dispatched"], 1)
+            self.assertEqual(result["already_persisted_skipped"], 0)
+            self.assertTrue(result["force_dispatch"])
             self.assertEqual(calls, ["news:art-1"])
 
     def test_dispatch_news_memos_no_wait_reports_task_id_samples(self):
@@ -532,8 +569,11 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             },
         ]
 
+        payloads: list[dict] = []
+
         class ResultTask:
             def delay(self, payload):
+                payloads.append(dict(payload))
                 return FakeAsyncResult(f"task-{payload['source_id'].split(':')[-1]}")
 
         with tempfile.TemporaryDirectory() as td:
@@ -541,11 +581,14 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
                 articles,
                 task=ResultTask(),
                 memos_path=Path(td) / "news_memos.jsonl",
+                max_article_chars=7,
             )
 
         self.assertEqual(result["dispatched"], 2)
         self.assertFalse(result["completion_observable"])
         self.assertEqual(_task_id_samples(result), ["task-art-1", "task-art-2"])
+        self.assertEqual(result["max_article_chars"], 7)
+        self.assertEqual(payloads[0]["article_text"], "memo te")
 
     def test_dispatch_news_memos_wait_marks_completed_observable(self):
         import load_news_to_qdrant as mod
@@ -629,6 +672,43 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
                 exit_code = mod.main()
 
             self.assertEqual(exit_code, 2)
+            self.assertTrue(summary_path.exists())
+
+    def test_main_degraded_memos_without_wait_returns_success(self):
+        import load_news_to_qdrant as mod
+
+        with tempfile.TemporaryDirectory() as td:
+            summary_path = Path(td) / "summary.json"
+            argv = [
+                "load_news_to_qdrant.py",
+                "--db-path",
+                str(Path(td) / "news_articles.sqlite"),
+                "--summary-json",
+                str(summary_path),
+            ]
+            stats = {
+                "status": "success",
+                "articles": 2,
+                "chunks": 2,
+                "upserted": 2,
+                "deleted": 0,
+                "dry_run": False,
+                "qdrant_only": False,
+                "memo_extraction": {"status": "degraded"},
+            }
+
+            with (
+                patch.object(sys, "argv", argv),
+                patch.object(
+                    mod,
+                    "latest_provider_run_summary",
+                    return_value={"status": "success", "params": {}},
+                ),
+                patch.object(mod, "sync_news_to_qdrant", return_value=stats),
+            ):
+                exit_code = mod.main()
+
+            self.assertEqual(exit_code, 0)
             self.assertTrue(summary_path.exists())
 
     def test_dispatch_news_memos_wait_reports_timeout_and_failed_counts(self):

@@ -48,15 +48,27 @@ SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.summary.json"
     MEMO_DIAGNOSTICS_PATH="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory/news_memos.jsonl"
     
     # Sync articles to Qdrant, dispatch memo extraction, and refresh the
-    # canonical news.sqlite fallback used by Cockpit local news paths.
-    python3 "${TENN_ROOT}/scripts/load_news_to_qdrant.py" \
-      --since-hours 36 \
-      --refresh-sqlite-fallback \
-      --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}" \
-      --wait-for-memos \
-      --memo-wait-timeout-seconds "${NEWS_MEMO_WAIT_TIMEOUT_SECONDS:-2700}" \
-      --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}" \
+    # canonical news.sqlite fallback used by Cockpit local news paths. Memo
+    # extraction is background enrichment by default; set NEWS_WAIT_FOR_MEMOS=1
+    # for explicit bounded wait diagnostics.
+    SYNC_ARGS=(
+      --since-hours 36
+      --refresh-sqlite-fallback
+      --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
+      --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
       --summary-json "${SUMMARY_FILE}"
+    )
+    if [[ "${NEWS_FORCE_DISPATCH_MEMOS:-0}" == "1" ]]; then
+      SYNC_ARGS+=(--force-dispatch-memos)
+    fi
+    if [[ "${NEWS_WAIT_FOR_MEMOS:-0}" == "1" ]]; then
+      SYNC_ARGS+=(
+        --wait-for-memos
+        --memo-wait-timeout-seconds "${NEWS_MEMO_WAIT_TIMEOUT_SECONDS:-2700}"
+        --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}"
+      )
+    fi
+    python3 "${TENN_ROOT}/scripts/load_news_to_qdrant.py" "${SYNC_ARGS[@]}"
     echo "[nightly_news] summary_json=${SUMMARY_FILE}"
   else
     echo "[nightly_news] WARNING: Backend venv not found at ${BACKEND_VENV}, skipping Qdrant sync/extraction" >&2

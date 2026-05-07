@@ -12,10 +12,12 @@ def extract_news_memo_task(payload: dict[str, Any]) -> dict[str, Any]:
     llm_url = task_payload.pop("llm_url", None)
     llm_model = task_payload.pop("llm_model", None)
     memos_path = task_payload.pop("memos_path", None)
+    max_article_chars = task_payload.pop("max_article_chars", None)
 
     extractor = NewsMemoExtractor(
         llm_url=llm_url,
         llm_model=llm_model,
         memos_path=memos_path,
+        max_article_chars=max_article_chars,
     )
     return extractor.extract_and_store(**task_payload)

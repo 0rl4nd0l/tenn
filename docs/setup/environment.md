@@ -16,6 +16,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |
 | `LLAMA_SERVER_ROUTER_MODE` | `1` | Enable router mode for zero-downtime model switching (`~/.config/tenn/llama-server.env`). Set to `0` for single-model legacy mode. |
 | `LLAMA_SERVER_MODELS_DIR` | `/mnt/nvme/tenn/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). The launcher now fails instead of silently falling back to a repo-local models directory. |
+| `LLAMA_SERVER_PARALLEL` | `1` | llama.cpp request slots. Keep `1` on Tesla M40 unless a benchmark validates more; match with `TENN_LLM_GPU_WORKER_CONCURRENCY`. |
 | `LLAMA_SERVER_MMAP` | `1` | Set to `0` so `scripts/run_llama_server.sh` and `scripts/run_extraction_server.sh` pass `--no-mmap` when mmap-based load stalls on Tesla M40 (see `docs/ops/09_llama_server_m40_model_load_runbook.md`). |
 | `LLAMA_SERVER_CACHE_TYPE_K` | _(unset)_ | Optional KV-cache override passed to `llama-server` as `--cache-type-k`. Leave unset on Tesla M40 unless you have verified the target model/runtime supports the requested cache type. |
 | `LLAMA_SERVER_CACHE_TYPE_V` | _(unset)_ | Optional KV-cache override passed to `llama-server` as `--cache-type-v`. On Tesla M40, forcing quantized V cache can fail during model load when Flash Attention is unavailable. |
@@ -25,6 +26,9 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `REDIS_URL` | `redis://127.0.0.1:6379/0` | Canonical Redis connection. |
 | `CELERY_BROKER_URL` | `redis://127.0.0.1:6379/0` | Broker URL for Celery mode. |
 | `CELERY_RESULT_BACKEND` | `redis://127.0.0.1:6379/1` | Result backend for Celery mode. |
+| `TENN_LLM_GPU_WORKER_CONCURRENCY` | `1` | Compose GPU worker concurrency for the `llm_gpu` queue. Keep aligned with validated llama.cpp slots. |
+| `NEWS_MEMO_MAX_ARTICLE_CHARS` | `5000` | Maximum article characters sent to each news memo extraction task. |
+| `NEWS_WAIT_FOR_MEMOS` | `0` | Nightly news waits for memo tasks only when set to `1`; default keeps ingest success independent from background enrichment. |
 | `ENABLE_SESSION_MEMORY` | `true` | Enable OpenViking session memory for `/api/chat`. Set to `false` to disable. |
 | `COCKPIT_LLM_PROFILE` | `ops` | Cockpit high-level preset when `HYBRID_ROUTER_POLICY` is unset: `ops` (local-first when local + Anthropic are available), `advisor` (API-first when a key is present), or `balanced` (same mapping as `advisor`). Optional per-message override: prefix chat with `/advisor` or `/local`. |
 | `COCKPIT_TOOL_DEBUG` | _(unset)_ | In-chat lines after each agent reply for tool calls: default / `failures` shows only failed tools with a short hint; `1` / `all` / `full` logs every tool call and timing; `off` disables chat lines (failures still log at WARNING). |

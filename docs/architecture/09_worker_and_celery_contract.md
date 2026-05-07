@@ -47,8 +47,10 @@ This contract describes the backend Celery app that is smoke-tested in-repo and 
   - Long-context requests remain on `llm_gpu` and are marked deferred for serialized handling.
 - **Worker launch profiles**:
   - Current local launcher: `celery -A app.celery_app.celery worker --loglevel=INFO`
+  - Current compose profile: one general worker consumes `ingest,embed,score,llm_cpu`; one GPU worker consumes `llm_gpu`.
   - Optional CPU-only pool: `celery -A app.celery_app.celery worker --loglevel=INFO -Q ingest,embed,score,llm_cpu`
   - Optional GPU-only pool: `celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu`
+  - GPU worker concurrency is controlled by `TENN_LLM_GPU_WORKER_CONCURRENCY` in compose and must match the validated llama.cpp slot count.
 - **Broker/backend**: Redis. Broker URL and result backend are set via `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` (worker’s Celery app reads these from the environment; see below).
 
 ## Expected environment variables

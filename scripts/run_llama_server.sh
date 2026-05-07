@@ -194,6 +194,7 @@ echo "[llama-server] ROUTER_MODE=${ROUTER_MODE}"
 echo "[llama-server] PROFILE=${PROFILE}"
 echo "[llama-server] HOST=${HOST}"
 echo "[llama-server] PORT=${PORT}"
-cmd+=(--parallel 1)
+echo "[llama-server] PARALLEL=${LLAMA_SERVER_PARALLEL:-1}"
+cmd+=(--parallel "${LLAMA_SERVER_PARALLEL:-1}")
 
 exec "${cmd[@]}"

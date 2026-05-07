@@ -93,6 +93,26 @@ def test_extract_prompt_includes_current_date_anchor(tmp_memos_path: Path) -> No
     assert "historical context" in prompt.lower()
 
 
+def test_extract_prompt_honors_article_char_cap(tmp_memos_path: Path) -> None:
+    llm_fn = _make_llm_fn(GOOD_LLM_RESPONSE)
+    extractor = NewsMemoExtractor(
+        llm_fn=llm_fn,
+        memos_path=tmp_memos_path,
+        max_article_chars=12,
+    )
+
+    extractor.extract(
+        source_id="news-capped",
+        article_text="A" * 40,
+        provider="newspaper4k",
+        published_at="2026-03-30",
+    )
+
+    prompt = llm_fn.calls[0]["prompt"]  # type: ignore[attr-defined]
+    assert "A" * 12 in prompt
+    assert "A" * 13 not in prompt
+
+
 # ---------------------------------------------------------------------------
 # Test: normalize handles missing/empty fields gracefully
 # ---------------------------------------------------------------------------

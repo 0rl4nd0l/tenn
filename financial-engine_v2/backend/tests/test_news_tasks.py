@@ -8,12 +8,15 @@ def test_extract_news_memo_task_uses_news_memo_extractor(monkeypatch):
     extractor_calls: list[dict[str, str]] = []
 
     class StubExtractor:
-        def __init__(self, *, llm_url=None, llm_model=None, memos_path=None):
+        def __init__(
+            self, *, llm_url=None, llm_model=None, memos_path=None, max_article_chars=None
+        ):
             extractor_inits.append(
                 {
                     "llm_url": llm_url,
                     "llm_model": llm_model,
                     "memos_path": memos_path,
+                    "max_article_chars": max_article_chars,
                 }
             )
 
@@ -31,6 +34,7 @@ def test_extract_news_memo_task_uses_news_memo_extractor(monkeypatch):
         "llm_url": "http://127.0.0.1:8001",
         "llm_model": "qwen2.5-14b-instruct",
         "memos_path": "/tmp/news_memos.jsonl",
+        "max_article_chars": 5000,
     }
 
     result = news_tasks.extract_news_memo_task.run(payload)
@@ -40,6 +44,7 @@ def test_extract_news_memo_task_uses_news_memo_extractor(monkeypatch):
             "llm_url": "http://127.0.0.1:8001",
             "llm_model": "qwen2.5-14b-instruct",
             "memos_path": "/tmp/news_memos.jsonl",
+            "max_article_chars": 5000,
         }
     ]
     assert extractor_calls == [

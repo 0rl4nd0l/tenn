@@ -15,6 +15,7 @@ from app.services.source_registry import RESEARCH_MEMORY_ROOT
 DEFAULT_NEWS_MEMOS_PATH = RESEARCH_MEMORY_ROOT / "news_memos.jsonl"
 DEFAULT_LLAMACPP_URL = os.getenv("LLAMACPP_URL", "http://127.0.0.1:8001").rstrip("/")
 DEFAULT_LLAMACPP_MODEL = os.getenv("LLAMACPP_MODEL", "model.gguf").strip()
+DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,18 @@ VALID_IMPACT_MAGNITUDES = frozenset({"material", "moderate", "minor"})
 
 def _today_iso_utc() -> str:
     return datetime.now(timezone.utc).date().isoformat()
+
+
+def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
+    raw_value = value
+    if raw_value in (None, ""):
+        raw_value = os.getenv("NEWS_MEMO_MAX_ARTICLE_CHARS", "")
+    if raw_value in (None, ""):
+        return DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS
+    try:
+        return max(1, int(raw_value))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("NEWS_MEMO_MAX_ARTICLE_CHARS must be a positive integer") from exc
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -96,6 +109,7 @@ class NewsMemoExtractor:
         llm_url: str | None = None,
         llm_model: str | None = None,
         memos_path: str | Path | None = None,
+        max_article_chars: int | str | None = None,
     ) -> None:
         self.llm_fn = llm_fn or generate_json
         self.llm_url = str(llm_url or DEFAULT_LLAMACPP_URL).rstrip("/")
@@ -103,6 +117,7 @@ class NewsMemoExtractor:
         self.memos_path = (
             Path(memos_path or DEFAULT_NEWS_MEMOS_PATH).expanduser().resolve()
         )
+        self.max_article_chars = resolve_news_memo_max_article_chars(max_article_chars)
 
     def _call_llm(
         self,
@@ -149,7 +164,7 @@ class NewsMemoExtractor:
             '"tickers":[],"claims":[],"risks":[]}\n\n'
             f"Provider: {provider}\n"
             f"Published: {published_at or 'unknown'}\n\n"
-            f"{article_text[:12000]}"
+            f"{article_text[: self.max_article_chars]}"
         )
 
     def _normalize_memo(

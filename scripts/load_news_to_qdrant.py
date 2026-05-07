@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import json
 import logging
+import os
 import sqlite3
 import sys
 import time
@@ -35,10 +36,24 @@ logger = logging.getLogger(__name__)
 from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, DEFAULT_NEWS_CONTEXT_DB  # noqa: E402
 from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
 
+DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
+
 
 def _source_id_for_article(art: Dict[str, Any]) -> str:
     article_id = str(art.get("article_id") or "").strip()
     return f"news:{article_id}" if article_id else ""
+
+
+def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
+    raw_value = value
+    if raw_value in (None, ""):
+        raw_value = os.getenv("NEWS_MEMO_MAX_ARTICLE_CHARS", "")
+    if raw_value in (None, ""):
+        return DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS
+    try:
+        return max(1, int(raw_value))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("NEWS_MEMO_MAX_ARTICLE_CHARS must be a positive integer") from exc
 
 
 def _read_news_memo_source_ids(memos_path: str | Path | None = None) -> Dict[str, Any]:
@@ -133,8 +148,13 @@ def dispatch_news_memos(
     wait_for_completion: bool = False,
     wait_timeout_seconds: float = 0.0,
     poll_interval_seconds: float = 2.0,
+    force_dispatch: bool = False,
+    max_article_chars: int | str | None = None,
 ) -> Dict[str, Any]:
     before = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
+    memo_state = _read_news_memo_source_ids(memos_path)
+    persisted_ids = set(memo_state.get("source_ids") or set())
+    article_char_cap = resolve_news_memo_max_article_chars(max_article_chars)
     dispatch_task = task
     import_error = ""
     if dispatch_task is None:
@@ -150,17 +170,24 @@ def dispatch_news_memos(
     failed_samples: list[dict[str, str]] = []
     task_results: list[Any] = []
     task_ids: list[str] = []
+    already_persisted_skipped = 0
+    dispatch_candidates = 0
     if dispatch_task is not None:
         for art in articles:
             source_id = _source_id_for_article(art)
             text = str(art.get("text") or "")
             if not source_id or not text.strip():
                 continue
+            if not force_dispatch and source_id in persisted_ids:
+                already_persisted_skipped += 1
+                continue
+            dispatch_candidates += 1
             memo_payload = {
                 "source_id": source_id,
-                "article_text": text[:12000],
+                "article_text": text[:article_char_cap],
                 "provider": str(art.get("provider") or ""),
                 "published_at": str(art.get("published_at") or ""),
+                "max_article_chars": article_char_cap,
             }
             try:
                 async_result = dispatch_task.delay(memo_payload)
@@ -208,6 +235,10 @@ def dispatch_news_memos(
         "status": status,
         "eligible": before["eligible"],
         "skipped": before["skipped"],
+        "already_persisted_skipped": already_persisted_skipped,
+        "dispatch_candidates": dispatch_candidates,
+        "force_dispatch": bool(force_dispatch),
+        "max_article_chars": article_char_cap,
         "dispatched": dispatched,
         "dispatch_failed": failed,
         "dispatch_failed_samples": failed_samples,
@@ -1017,6 +1048,8 @@ def sync_news_to_qdrant(
     memo_wait_for_completion: bool = False,
     memo_wait_timeout_seconds: float = 0.0,
     memo_wait_poll_interval_seconds: float = 2.0,
+    memo_force_dispatch: bool = False,
+    memo_max_article_chars: int | str | None = None,
     embed_model: str | None = None,
     ollama_url: str | None = None,
     write_model_marker: bool = True,
@@ -1282,6 +1315,8 @@ def sync_news_to_qdrant(
                 wait_for_completion=bool(memo_wait_for_completion),
                 wait_timeout_seconds=float(memo_wait_timeout_seconds),
                 poll_interval_seconds=float(memo_wait_poll_interval_seconds),
+                force_dispatch=bool(memo_force_dispatch),
+                max_article_chars=memo_max_article_chars,
             )
     logger.info("news_chunks_sync memo diagnostics: %s", memo_diagnostics)
 
@@ -1367,6 +1402,20 @@ def main() -> int:
         help="Disable asynchronous news memo extraction dispatch",
     )
     ap.add_argument(
+        "--force-dispatch-memos",
+        action="store_true",
+        help="Dispatch memo extraction even for articles that already have persisted memos",
+    )
+    ap.add_argument(
+        "--memo-max-article-chars",
+        type=int,
+        default=None,
+        help=(
+            "Maximum article characters sent to each memo task "
+            "(default: NEWS_MEMO_MAX_ARTICLE_CHARS or 5000)"
+        ),
+    )
+    ap.add_argument(
         "--wait-for-memos",
         action="store_true",
         help="Wait for dispatched news memo Celery tasks with a bounded timeout",
@@ -1408,12 +1457,20 @@ def main() -> int:
         ap.error("--cleanup-stale requires --since-hours 0 so the expected set is complete")
     if bool(args.wait_for_memos) and bool(args.no_dispatch_memos):
         ap.error("--wait-for-memos cannot be combined with --no-dispatch-memos")
+    if bool(args.force_dispatch_memos) and bool(args.no_dispatch_memos):
+        ap.error("--force-dispatch-memos cannot be combined with --no-dispatch-memos")
     if bool(args.wait_for_memos) and bool(args.qdrant_only):
         ap.error("--wait-for-memos cannot be combined with --qdrant-only")
+    if bool(args.force_dispatch_memos) and bool(args.qdrant_only):
+        ap.error("--force-dispatch-memos cannot be combined with --qdrant-only")
     if float(args.memo_wait_timeout_seconds) < 0:
         ap.error("--memo-wait-timeout-seconds must be >= 0")
     if float(args.memo_wait_poll_interval_seconds) <= 0:
         ap.error("--memo-wait-poll-interval-seconds must be > 0")
+    try:
+        memo_max_article_chars = resolve_news_memo_max_article_chars(args.memo_max_article_chars)
+    except ValueError as exc:
+        ap.error(str(exc))
     dispatch_memos = not bool(args.no_dispatch_memos)
     if bool(args.qdrant_only):
         dispatch_memos = False
@@ -1440,6 +1497,8 @@ def main() -> int:
             memo_wait_for_completion=bool(args.wait_for_memos),
             memo_wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
             memo_wait_poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
+            memo_force_dispatch=bool(args.force_dispatch_memos),
+            memo_max_article_chars=memo_max_article_chars,
         )
         sync_status = "dry_run" if bool(args.dry_run) else "success"
         summary["qdrant_sync"] = {"status": sync_status, **stats}
