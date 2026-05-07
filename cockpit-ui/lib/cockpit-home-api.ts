@@ -39,13 +39,20 @@ type UpstreamRead =
       error: string;
     };
 
-interface CockpitHoldingRecord {
-  ticker?: unknown;
-  quantity?: unknown;
-  current_price?: unknown;
-  price_currency?: unknown;
-  price_as_of?: unknown;
-  market_value?: unknown;
+interface PortfolioPayload {
+  data_state?: unknown;
+  degraded?: unknown;
+  data_missing?: unknown;
+  as_of?: unknown;
+  source_label?: unknown;
+  total_value?: unknown;
+  currency?: unknown;
+  day_change?: unknown;
+  day_change_percent?: unknown;
+  coverage_percent?: unknown;
+  holdings_count?: unknown;
+  priced_holdings_count?: unknown;
+  day_change_priced_holdings_count?: unknown;
 }
 
 interface CommentaryRecentItem {
@@ -121,16 +128,16 @@ export async function buildCockpitHomeBffResponse(
   const headers = new Headers(options.headers);
   const commentaryLimit = Math.max(1, Math.min(options.commentaryLimit ?? DEFAULT_COMMENTARY_LIMIT, 20));
 
-  const [healthRead, marketSessionRead, holdingsRead, commentaryRead, attentionQueueRead] = await Promise.all([
+  const [healthRead, marketSessionRead, portfolioRead, commentaryRead, attentionQueueRead] = await Promise.all([
     readBackendJson(fetcher, backendUrl, '/api/health', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-session', headers),
-    readBackendJson(fetcher, backendUrl, '/api/cockpit/holdings', headers),
+    readBackendJson(fetcher, backendUrl, '/api/cockpit/home/portfolio', headers),
     readBackendJson(fetcher, backendUrl, `/api/commentary/recent?limit=${commentaryLimit}`, headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/attention-queue', headers),
   ]);
 
   const marketSession = buildMarketSessionContract(marketSessionRead, now, nowIso);
-  const portfolio = buildPortfolioContract(holdingsRead, nowIso);
+  const portfolio = buildPortfolioContract(portfolioRead, nowIso);
   const news = buildNewsContracts(commentaryRead, nowIso);
   const marketMovers = buildUnimplementedSourceItems('market_movers', nowIso) as CockpitHomeMarketMoverContract[];
   const attentionQueue = buildAttentionQueueContracts(attentionQueueRead, nowIso);
@@ -320,18 +327,21 @@ function buildPortfolioContract(read: UpstreamRead, nowIso: string): PortfolioAs
   if (!read.ok) {
     const missing = dataMissingSignal(
       'portfolio',
-      'HOLDINGS_ENDPOINT_UNAVAILABLE',
-      `Backend holdings endpoint unavailable: ${read.error}.`,
+      'PORTFOLIO_ENDPOINT_UNAVAILABLE',
+      `Backend Home portfolio endpoint unavailable: ${read.error}.`,
       'missing_required_evidence',
     );
     const contract: CockpitHomePortfolioContract = {
       ...deterministicState('DATA_MISSING', null, [missing]),
+      source_label: 'local_personal_data',
       total_value: null,
+      currency: null,
       day_change: null,
       day_change_percent: null,
       coverage_percent: null,
       holdings_count: 0,
       priced_holdings_count: 0,
+      day_change_priced_holdings_count: 0,
     };
     return {
       contract,
@@ -339,34 +349,37 @@ function buildPortfolioContract(read: UpstreamRead, nowIso: string): PortfolioAs
     };
   }
 
-  const holdings = readHoldingItems(read.payload);
-  const holdingsCount = holdings.length;
-  const pricedHoldings = holdings.filter((item) => numberOrNull(item.market_value) !== null);
-  const pricedHoldingsCount = pricedHoldings.length;
-  const coverage = holdingsCount === 0 ? 100 : Number(((pricedHoldingsCount / holdingsCount) * 100).toFixed(1));
-  const { totalValue, totalMissing } = totalPortfolioValue(pricedHoldings);
-  const priceAsOf = latestTimestamp(holdings.map((item) => stringOrNull(item.price_as_of))) ?? nowIso;
-  const missing = [
-    ...(totalMissing ? [totalMissing] : []),
-    ...(holdingsCount > 0
-      ? [
-          dataMissingSignal(
-            'portfolio',
-            'PORTFOLIO_DAY_CHANGE_UNAVAILABLE',
-            'Backend holdings endpoint does not provide deterministic portfolio day-change fields.',
-          ),
-        ]
-      : []),
-  ];
-  const dataState: CockpitHomeDataState = missing.length > 0 ? 'PARTIAL' : 'READY';
+  const payload = readPortfolioPayload(read.payload);
+  const backendMissing = readDataMissingSignals(payload.data_missing, 'portfolio');
+  const sourceLabel = normalizeSourceLabelOrNull(payload.source_label) ?? 'local_personal_data';
+  const backendState = dataStateOrNull(payload.data_state);
+  const missing = backendState
+    ? backendMissing
+    : [
+        dataMissingSignal(
+          'portfolio',
+          'PORTFOLIO_PAYLOAD_INCOMPLETE',
+          'Backend Home portfolio endpoint returned an incomplete deterministic portfolio payload.',
+          'local_personal_data',
+        ),
+        ...backendMissing,
+      ];
+  const dataState: CockpitHomeDataState =
+    backendState === 'READY' && missing.length > 0 ? 'PARTIAL' : backendState ?? 'DATA_MISSING';
+  const holdingsCount = integerOrZero(payload.holdings_count);
+  const pricedHoldingsCount = integerOrZero(payload.priced_holdings_count);
+  const dayChangePricedHoldingsCount = integerOrZero(payload.day_change_priced_holdings_count);
   const contract: CockpitHomePortfolioContract = {
-    ...deterministicState(dataState, priceAsOf, missing),
-    total_value: totalValue,
-    day_change: holdingsCount === 0 ? 0 : null,
-    day_change_percent: holdingsCount === 0 ? 0 : null,
-    coverage_percent: coverage,
+    ...deterministicState(dataState, stringOrNull(payload.as_of) ?? nowIso, missing),
+    source_label: sourceLabel,
+    total_value: numberOrNull(payload.total_value),
+    currency: normalizedCurrencyOrNull(payload.currency),
+    day_change: numberOrNull(payload.day_change),
+    day_change_percent: numberOrNull(payload.day_change_percent),
+    coverage_percent: numberOrNull(payload.coverage_percent),
     holdings_count: holdingsCount,
     priced_holdings_count: pricedHoldingsCount,
+    day_change_priced_holdings_count: dayChangePricedHoldingsCount,
   };
 
   return {
@@ -771,15 +784,11 @@ function missingEvidence() {
   };
 }
 
-function readHoldingItems(payload: unknown): CockpitHoldingRecord[] {
-  if (!payload || typeof payload !== 'object' || !('items' in payload)) {
-    return [];
+function readPortfolioPayload(payload: unknown): PortfolioPayload {
+  if (!payload || typeof payload !== 'object') {
+    return {};
   }
-  const items = (payload as { items?: unknown }).items;
-  if (!Array.isArray(items)) {
-    return [];
-  }
-  return items.filter((item): item is CockpitHoldingRecord => Boolean(item) && typeof item === 'object');
+  return payload as PortfolioPayload;
 }
 
 function readCommentaryItems(payload: unknown): CommentaryRecentItem[] {
@@ -814,47 +823,6 @@ function readMarketSession(payload: unknown): MarketSessionRecord {
   return payload as MarketSessionRecord;
 }
 
-function totalPortfolioValue(
-  pricedHoldings: CockpitHoldingRecord[],
-): { totalValue: number | null; totalMissing: CockpitHomeDataMissingSignal | null } {
-  if (pricedHoldings.length === 0) {
-    return { totalValue: 0, totalMissing: null };
-  }
-
-  const currencies = new Set(
-    pricedHoldings
-      .map((item) => requiredString(item.price_currency).toUpperCase())
-      .filter(Boolean),
-  );
-  if (currencies.size === 0) {
-    return {
-      totalValue: null,
-      totalMissing: dataMissingSignal(
-        'portfolio',
-        'PORTFOLIO_TOTAL_CURRENCY_MISSING',
-        'Priced holdings did not include a currency, so Cockpit Home did not aggregate a currency-less total value.',
-      ),
-    };
-  }
-  if (currencies.size > 1) {
-    return {
-      totalValue: null,
-      totalMissing: dataMissingSignal(
-        'portfolio',
-        'PORTFOLIO_TOTAL_CURRENCY_AMBIGUOUS',
-        'Priced holdings use multiple currencies, so Cockpit Home did not aggregate a currency-less total value.',
-      ),
-    };
-  }
-
-  return {
-    totalValue: Number(
-      pricedHoldings.reduce((total, item) => total + (numberOrNull(item.market_value) ?? 0), 0).toFixed(2),
-    ),
-    totalMissing: null,
-  };
-}
-
 function latestTimestamp(values: Array<string | null | undefined>): string | null {
   const timestamps = values
     .map((value) => {
@@ -881,9 +849,22 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function integerOrZero(value: unknown): number {
+  const parsed = numberOrNull(value);
+  if (parsed === null || parsed < 0) {
+    return 0;
+  }
+  return Math.trunc(parsed);
+}
+
 function stringOrNull(value: unknown): string | null {
   const raw = typeof value === 'string' ? value.trim() : '';
   return raw || null;
+}
+
+function normalizedCurrencyOrNull(value: unknown): string | null {
+  const raw = stringOrNull(value);
+  return raw ? raw.toUpperCase() : null;
 }
 
 function requiredString(value: unknown): string {

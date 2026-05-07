@@ -179,12 +179,15 @@ export interface CockpitHomeMarketSessionContract extends CockpitHomeDeterminist
 }
 
 export interface CockpitHomePortfolioContract extends CockpitHomeDeterministicState {
+  source_label: CockpitHomeBackendSourceLabel;
   total_value: number | null;
+  currency: string | null;
   day_change: number | null;
   day_change_percent: number | null;
   coverage_percent: number | null;
   holdings_count: number;
   priced_holdings_count: number;
+  day_change_priced_holdings_count: number;
 }
 
 export interface CockpitHomeMarketMoverContract extends CockpitHomeSourceBearingItem {

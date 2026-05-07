@@ -30,26 +30,34 @@ describe('Cockpit Home BFF route', () => {
       )
       .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
       .mockResolvedValueOnce(
-        jsonResponse({
-          items: [
-            {
-              ticker: 'BHP',
-              quantity: 10,
-              current_price: 100,
-              price_currency: 'AUD',
-              price_as_of: '2026-05-07T01:00:00Z',
-              market_value: 1000,
-            },
-            {
-              ticker: 'CBA',
-              quantity: 2,
-              current_price: null,
-              price_currency: null,
-              price_as_of: null,
-              market_value: null,
-            },
-          ],
-        }),
+        jsonResponse(
+          portfolioResponse({
+            data_state: 'PARTIAL',
+            data_missing: [
+              signal(
+                'portfolio',
+                'PORTFOLIO_PRICING_PARTIAL',
+                'Only 1/2 local holdings have deterministic current price and quantity fields.',
+                'local_personal_data',
+              ),
+              signal(
+                'portfolio',
+                'PORTFOLIO_DAY_CHANGE_PARTIAL',
+                'Only 1/2 local holdings include deterministic previous-close inputs for portfolio day-change.',
+                'local_personal_data',
+              ),
+            ],
+            as_of: '2026-05-07T01:00:00Z',
+            total_value: 1000,
+            currency: 'AUD',
+            day_change: 20,
+            day_change_percent: 2.04,
+            coverage_percent: 50,
+            holdings_count: 2,
+            priced_holdings_count: 1,
+            day_change_priced_holdings_count: 1,
+          }),
+        ),
       )
       .mockResolvedValueOnce(
         jsonResponse({
@@ -99,7 +107,7 @@ describe('Cockpit Home BFF route', () => {
 	    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
 	      'http://backend.internal:8000/api/health',
 	      'http://backend.internal:8000/api/cockpit/home/market-session',
-	      'http://backend.internal:8000/api/cockpit/holdings',
+	      'http://backend.internal:8000/api/cockpit/home/portfolio',
 	      'http://backend.internal:8000/api/commentary/recent?limit=5',
 	      'http://backend.internal:8000/api/cockpit/home/attention-queue',
 	    ]);
@@ -117,11 +125,14 @@ describe('Cockpit Home BFF route', () => {
     expect(payload.portfolio).toMatchObject({
       data_state: 'PARTIAL',
       total_value: 1000,
+      currency: 'AUD',
       holdings_count: 2,
       priced_holdings_count: 1,
+      day_change_priced_holdings_count: 1,
       coverage_percent: 50,
-      day_change: null,
-      day_change_percent: null,
+      day_change: 20,
+      day_change_percent: 2.04,
+      source_label: 'local_personal_data',
     });
     expect(payload.market_session).toMatchObject({
       data_state: 'READY',
@@ -161,7 +172,7 @@ describe('Cockpit Home BFF route', () => {
       },
     });
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).toContain(
-      'PORTFOLIO_DAY_CHANGE_UNAVAILABLE',
+      'PORTFOLIO_DAY_CHANGE_PARTIAL',
     );
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).not.toContain(
       'NO_MARKET_SESSION_ENDPOINT',
@@ -196,7 +207,7 @@ describe('Cockpit Home BFF route', () => {
     });
     expect(payload.data_missing.map((signal) => signal.code)).toEqual(
       expect.arrayContaining([
-        'HOLDINGS_ENDPOINT_UNAVAILABLE',
+        'PORTFOLIO_ENDPOINT_UNAVAILABLE',
         'COMMENTARY_RECENT_UNAVAILABLE',
         'MARKET_SESSION_ENDPOINT_UNAVAILABLE',
         'NO_ATTENTION_QUEUE_ENDPOINT',
@@ -210,12 +221,26 @@ describe('Cockpit Home BFF route', () => {
       .mockResolvedValueOnce(jsonResponse({ status: 'ok' }))
       .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
       .mockResolvedValueOnce(
-        jsonResponse({
-          items: [
-            { ticker: 'BHP', market_value: 1000, price_currency: 'AUD' },
-            { ticker: 'AAPL', market_value: 500, price_currency: 'USD' },
-          ],
-        }),
+        jsonResponse(
+          portfolioResponse({
+            data_state: 'PARTIAL',
+            data_missing: [
+              signal(
+                'portfolio',
+                'PORTFOLIO_TOTAL_CURRENCY_AMBIGUOUS',
+                'Priced local holdings use multiple currencies, so Cockpit Home did not aggregate a mixed-currency total value.',
+                'local_personal_data',
+              ),
+            ],
+            total_value: null,
+            currency: null,
+            day_change: null,
+            day_change_percent: null,
+            holdings_count: 2,
+            priced_holdings_count: 2,
+            day_change_priced_holdings_count: 2,
+          }),
+        ),
       )
       .mockResolvedValueOnce(jsonResponse({ items: [] }))
       .mockResolvedValueOnce(attentionQueueResponse([]));
@@ -233,12 +258,42 @@ describe('Cockpit Home BFF route', () => {
     );
   });
 
+  it('keeps empty local holdings as a valid ready portfolio state', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ status: 'ok' }))
+      .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
+      .mockResolvedValueOnce(jsonResponse(portfolioResponse()))
+      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(attentionQueueResponse([]));
+
+    const payload = await buildCockpitHomeBffResponse({
+      now: new Date('2026-05-07T02:00:00Z'),
+      backendUrl: 'http://backend.internal:8000',
+      fetcher,
+    });
+
+    expect(payload.portfolio).toMatchObject({
+      data_state: 'READY',
+      source_label: 'local_personal_data',
+      total_value: 0,
+      currency: null,
+      day_change: 0,
+      day_change_percent: 0,
+      coverage_percent: 100,
+      holdings_count: 0,
+      priced_holdings_count: 0,
+      day_change_priced_holdings_count: 0,
+    });
+    expect(payload.portfolio.data_missing).toEqual([]);
+  });
+
   it('marks commentary rows without source ids as DATA_MISSING and unresolvable', async () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ status: 'ok' }))
       .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
-      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(jsonResponse(portfolioResponse()))
       .mockResolvedValueOnce(
         jsonResponse({
           items: [
@@ -306,7 +361,7 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getByText('A$1,000.00')).toBeInTheDocument();
     expect(screen.getByText('Local personal holdings data only. This panel is not canonical financial truth.')).toBeInTheDocument();
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
-    expect(screen.getByText('PORTFOLIO_DAY_CHANGE_UNAVAILABLE')).toBeInTheDocument();
+    expect(screen.getByText('PORTFOLIO_DAY_CHANGE_PARTIAL')).toBeInTheDocument();
     expect(screen.getByText('CONTEXT ONLY')).toBeInTheDocument();
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });
@@ -456,6 +511,26 @@ function marketSessionResponse() {
   };
 }
 
+function portfolioResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    ok: true,
+    data_state: 'READY',
+    degraded: false,
+    data_missing: [],
+    as_of: '2026-05-07T01:00:00Z',
+    source_label: 'local_personal_data',
+    total_value: 0,
+    currency: null,
+    day_change: 0,
+    day_change_percent: 0,
+    coverage_percent: 100,
+    holdings_count: 0,
+    priced_holdings_count: 0,
+    day_change_priced_holdings_count: 0,
+    ...overrides,
+  };
+}
+
 function attentionQueueResponse(items: unknown[]) {
   return jsonResponse({
     ok: true,
@@ -476,8 +551,9 @@ function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): Cockpi
   );
   const portfolioPartial = signal(
     'portfolio',
-    'PORTFOLIO_DAY_CHANGE_UNAVAILABLE',
-    'Backend holdings endpoint does not provide deterministic portfolio day-change fields.',
+    'PORTFOLIO_DAY_CHANGE_PARTIAL',
+    'Only 1/2 local holdings include deterministic previous-close inputs for portfolio day-change.',
+    'local_personal_data',
   );
   const moversMissing = signal(
     'market_movers',
@@ -520,12 +596,15 @@ function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): Cockpi
       degraded: false,
       data_missing: [portfolioPartial],
       as_of: now,
+      source_label: 'local_personal_data',
       total_value: 1000,
+      currency: 'AUD',
       day_change: null,
       day_change_percent: null,
       coverage_percent: 50,
       holdings_count: 2,
       priced_holdings_count: 1,
+      day_change_priced_holdings_count: 1,
     },
     market_movers: [
       {

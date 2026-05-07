@@ -45,6 +45,7 @@ from app.services.cockpit_service import (
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
     build_market_session_snapshot,
+    build_portfolio_snapshot,
 )
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
@@ -363,9 +364,12 @@ class CockpitHoldingRecord(BaseModel):
     updated_at: str | None = None
     note: str | None = None
     current_price: float | None = None
+    previous_close: float | None = None
     price_currency: str | None = None
     price_as_of: str | None = None
     market_value: float | None = None
+    day_change: float | None = None
+    day_change_percent: float | None = None
     unrealized_pnl: float | None = None
     valuation_warning: str | None = None
 
@@ -414,6 +418,23 @@ class CockpitHomeAttentionQueueResponse(BaseModel):
     data_missing: list[CockpitHomeDataMissingSignalResponse] = Field(default_factory=list)
     as_of: str | None = None
     items: list[CockpitHomeAttentionQueueItemResponse] = Field(default_factory=list)
+
+
+class CockpitHomePortfolioResponse(BaseModel):
+    ok: bool = True
+    data_state: Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
+    degraded: bool
+    data_missing: list[CockpitHomeDataMissingSignalResponse] = Field(default_factory=list)
+    as_of: str | None = None
+    source_label: Literal["local_personal_data"] = "local_personal_data"
+    total_value: float | None = None
+    currency: str | None = None
+    day_change: float | None = None
+    day_change_percent: float | None = None
+    coverage_percent: float | None = None
+    holdings_count: int = 0
+    priced_holdings_count: int = 0
+    day_change_priced_holdings_count: int = 0
 
 
 class CockpitHoldingCreateRequest(BaseModel):
@@ -4612,6 +4633,18 @@ def _extract_latest_price_from_payload(payload: dict[str, Any]) -> tuple[float |
     return None, None
 
 
+def _extract_previous_close_from_payload(payload: dict[str, Any]) -> float | None:
+    current = payload.get("current") if isinstance(payload.get("current"), dict) else {}
+    raw_previous = current.get("previous_close")
+    try:
+        if raw_previous is None:
+            return None
+        previous_close = float(raw_previous)
+    except (TypeError, ValueError):
+        return None
+    return previous_close if previous_close > 0 else None
+
+
 def _fetch_live_price_snapshot_for_holding(
     ticker: str,
     market_exchange: str | None,
@@ -4656,6 +4689,7 @@ def _fetch_live_price_snapshot_for_holding(
             continue
         snapshot = {
             "current_price": price,
+            "previous_close": _extract_previous_close_from_payload(payload),
             "price_currency": payload.get("currency"),
             "price_as_of": price_as_of,
             "market_exchange": exchange_hint or payload.get("exchange") or exchange,
@@ -4704,16 +4738,19 @@ def _enrich_holdings_with_live_prices(rows: list[dict[str, Any]]) -> list[dict[s
         if live:
             item["market_exchange"] = live.get("market_exchange") or exchange
             item["current_price"] = live.get("current_price")
+            item["previous_close"] = live.get("previous_close")
             item["price_currency"] = live.get("price_currency")
             item["price_as_of"] = live.get("price_as_of")
         else:
             item["market_exchange"] = exchange
             item["current_price"] = None
+            item["previous_close"] = None
             item["price_currency"] = None
             item["price_as_of"] = None
 
         quantity = item.get("quantity")
         current_price = item.get("current_price")
+        previous_close = item.get("previous_close")
         avg_cost = item.get("avg_cost")
         cost_currency = str(item.get("cost_currency") or "").strip().upper() or None
         price_currency = str(item.get("price_currency") or "").strip().upper() or None
@@ -4729,10 +4766,27 @@ def _enrich_holdings_with_live_prices(rows: list[dict[str, Any]]) -> list[dict[s
             avg_cost_val = float(avg_cost) if avg_cost is not None else None
         except (TypeError, ValueError):
             avg_cost_val = None
+        try:
+            previous_close_val = float(previous_close) if previous_close is not None else None
+        except (TypeError, ValueError):
+            previous_close_val = None
 
         item["market_value"] = (
             qty_val * price_val if qty_val is not None and price_val is not None else None
         )
+        if (
+            qty_val is not None
+            and price_val is not None
+            and previous_close_val is not None
+            and previous_close_val > 0
+        ):
+            item["day_change"] = qty_val * (price_val - previous_close_val)
+            item["day_change_percent"] = (
+                (price_val - previous_close_val) / previous_close_val
+            ) * 100
+        else:
+            item["day_change"] = None
+            item["day_change_percent"] = None
         valuation_warning: str | None = None
         if qty_val is not None and price_val is not None and avg_cost_val is not None:
             if not cost_currency or not price_currency:
@@ -4909,6 +4963,48 @@ def cockpit_home_attention_queue(limit: int = 50) -> CockpitHomeAttentionQueueRe
             )
             for item in snapshot.items
         ],
+    )
+
+
+@router.get("/home/portfolio", response_model=CockpitHomePortfolioResponse)
+def cockpit_home_portfolio() -> CockpitHomePortfolioResponse:
+    try:
+        service = CockpitService.get_instance()
+        rows = service.state_store.list_holdings(include_archived=False)
+        enriched_rows = _enrich_holdings_with_live_prices([dict(row) for row in rows])
+        snapshot = build_portfolio_snapshot(enriched_rows)
+    except Exception as exc:
+        logger.exception("Failed to build Cockpit Home portfolio")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to build Home portfolio: {str(exc)}",
+        ) from exc
+
+    return CockpitHomePortfolioResponse(
+        ok=True,
+        data_state=snapshot.data_state,
+        degraded=snapshot.degraded,
+        data_missing=[
+            CockpitHomeDataMissingSignalResponse(
+                section=item.section,
+                code=item.code,
+                message=item.message,
+                source_id=item.source_id,
+                evidence_id=item.evidence_id,
+                source_label=item.source_label,
+            )
+            for item in snapshot.data_missing
+        ],
+        as_of=snapshot.as_of,
+        source_label="local_personal_data",
+        total_value=snapshot.total_value,
+        currency=snapshot.currency,
+        day_change=snapshot.day_change,
+        day_change_percent=snapshot.day_change_percent,
+        coverage_percent=snapshot.coverage_percent,
+        holdings_count=snapshot.holdings_count,
+        priced_holdings_count=snapshot.priced_holdings_count,
+        day_change_priced_holdings_count=snapshot.day_change_priced_holdings_count,
     )
 
 

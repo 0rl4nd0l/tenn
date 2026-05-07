@@ -13,6 +13,7 @@ ASX_TIMEZONE = "Australia/Melbourne"
 MarketSessionState = Literal["PRE_MARKET", "OPEN", "POST_MARKET", "DEGRADED"]
 AttentionQueueDataState = Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
 AttentionQueuePriority = Literal["high", "medium", "low"]
+PortfolioDataState = Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,33 @@ class AttentionQueueSnapshot:
     items: list[AttentionQueueItem]
 
 
+@dataclass(frozen=True)
+class PortfolioMissingSignal:
+    section: str
+    code: str
+    message: str
+    source_id: str | None = None
+    evidence_id: str | None = None
+    source_label: str | None = "local_personal_data"
+
+
+@dataclass(frozen=True)
+class PortfolioSnapshot:
+    data_state: PortfolioDataState
+    degraded: bool
+    data_missing: list[PortfolioMissingSignal]
+    as_of: str | None
+    source_label: str
+    total_value: float | None
+    currency: str | None
+    day_change: float | None
+    day_change_percent: float | None
+    coverage_percent: float | None
+    holdings_count: int
+    priced_holdings_count: int
+    day_change_priced_holdings_count: int
+
+
 def build_market_session_snapshot(now: datetime | None = None) -> MarketSessionSnapshot:
     """Return deterministic ASX session state from the backend-owned XASX calendar."""
     utc_now = _as_utc(now or datetime.now(timezone.utc))
@@ -90,6 +118,95 @@ def build_market_session_snapshot(now: datetime | None = None) -> MarketSessionS
         next_event_label="ASX open",
         next_event_at=_timestamp_to_iso(next_open),
         as_of=utc_now.isoformat(),
+    )
+
+
+def build_portfolio_snapshot(
+    holdings: list[dict[str, Any]],
+    *,
+    now: datetime | None = None,
+) -> PortfolioSnapshot:
+    """Aggregate cockpit-local holdings without FX conversion or inferred prices."""
+
+    rows = [dict(row) for row in holdings]
+    holdings_count = len(rows)
+    as_of = _latest_text_timestamp([_row_text(row, "price_as_of") for row in rows])
+    if as_of is None:
+        as_of = _as_utc(now or datetime.now(timezone.utc)).isoformat()
+
+    if holdings_count == 0:
+        return PortfolioSnapshot(
+            data_state="READY",
+            degraded=False,
+            data_missing=[],
+            as_of=as_of,
+            source_label="local_personal_data",
+            total_value=0.0,
+            currency=None,
+            day_change=0.0,
+            day_change_percent=0.0,
+            coverage_percent=100.0,
+            holdings_count=0,
+            priced_holdings_count=0,
+            day_change_priced_holdings_count=0,
+        )
+
+    missing: list[PortfolioMissingSignal] = []
+    priced_rows = [
+        row
+        for row in rows
+        if _row_float(row, "market_value") is not None
+    ]
+    priced_count = len(priced_rows)
+    coverage_percent = round((priced_count / holdings_count) * 100, 1)
+    if priced_count == 0:
+        missing.append(
+            PortfolioMissingSignal(
+                section="portfolio",
+                code="PORTFOLIO_TOTAL_PRICING_UNAVAILABLE",
+                message=(
+                    "No local holdings have deterministic current price and quantity fields, "
+                    "so Cockpit Home did not aggregate a portfolio total."
+                ),
+            )
+        )
+    elif priced_count < holdings_count:
+        missing.append(
+            PortfolioMissingSignal(
+                section="portfolio",
+                code="PORTFOLIO_PRICING_PARTIAL",
+                message=(
+                    f"Only {priced_count}/{holdings_count} local holdings have deterministic "
+                    "current price and quantity fields."
+                ),
+            )
+        )
+
+    total_value, currency, total_missing = _portfolio_total(priced_rows)
+    if total_missing is not None:
+        missing.append(total_missing)
+
+    day_change, day_change_percent, day_change_count, day_missing = _portfolio_day_change(
+        rows=rows,
+        total_currency=currency,
+    )
+    missing.extend(day_missing)
+
+    data_state: PortfolioDataState = "PARTIAL" if missing else "READY"
+    return PortfolioSnapshot(
+        data_state=data_state,
+        degraded=False,
+        data_missing=missing,
+        as_of=as_of,
+        source_label="local_personal_data",
+        total_value=total_value,
+        currency=currency,
+        day_change=day_change,
+        day_change_percent=day_change_percent,
+        coverage_percent=coverage_percent,
+        holdings_count=holdings_count,
+        priced_holdings_count=priced_count,
+        day_change_priced_holdings_count=day_change_count,
     )
 
 
@@ -140,6 +257,141 @@ def build_attention_queue_snapshot(
         as_of=as_of,
         items=items,
     )
+
+
+def _portfolio_total(
+    priced_rows: list[dict[str, Any]],
+) -> tuple[float | None, str | None, PortfolioMissingSignal | None]:
+    if not priced_rows:
+        return None, None, None
+
+    currencies: list[str] = []
+    for row in priced_rows:
+        currency = _row_text(row, "price_currency").upper()
+        if not currency:
+            return (
+                None,
+                None,
+                PortfolioMissingSignal(
+                    section="portfolio",
+                    code="PORTFOLIO_TOTAL_CURRENCY_MISSING",
+                    message=(
+                        "Priced local holdings did not all include a currency, "
+                        "so Cockpit Home did not aggregate a currency-less total value."
+                    ),
+                ),
+            )
+        currencies.append(currency)
+
+    unique_currencies = set(currencies)
+    if len(unique_currencies) > 1:
+        return (
+            None,
+            None,
+            PortfolioMissingSignal(
+                section="portfolio",
+                code="PORTFOLIO_TOTAL_CURRENCY_AMBIGUOUS",
+                message=(
+                    "Priced local holdings use multiple currencies, so Cockpit Home "
+                    "did not aggregate a mixed-currency total value."
+                ),
+            ),
+        )
+
+    total = sum(_row_float(row, "market_value") or 0.0 for row in priced_rows)
+    return _round_money(total), currencies[0], None
+
+
+def _portfolio_day_change(
+    *,
+    rows: list[dict[str, Any]],
+    total_currency: str | None,
+) -> tuple[float | None, float | None, int, list[PortfolioMissingSignal]]:
+    if not rows:
+        return 0.0, 0.0, 0, []
+
+    eligible: list[tuple[float, float, str]] = []
+    for row in rows:
+        quantity = _row_float(row, "quantity")
+        current_price = _row_float(row, "current_price")
+        previous_close = _row_float(row, "previous_close")
+        currency = _row_text(row, "price_currency").upper()
+        if (
+            quantity is None
+            or current_price is None
+            or previous_close is None
+            or previous_close <= 0
+            or not currency
+        ):
+            continue
+        eligible.append(
+            (
+                quantity * (current_price - previous_close),
+                quantity * previous_close,
+                currency,
+            )
+        )
+
+    if not eligible:
+        return (
+            None,
+            None,
+            0,
+            [
+                PortfolioMissingSignal(
+                    section="portfolio",
+                    code="PORTFOLIO_DAY_CHANGE_UNAVAILABLE",
+                    message=(
+                        "Local holdings do not include deterministic current price, "
+                        "previous close, quantity, and currency fields for portfolio day-change."
+                    ),
+                )
+            ],
+        )
+
+    currencies = {currency for _, _, currency in eligible}
+    if len(currencies) > 1 or total_currency is None or total_currency not in currencies:
+        return (
+            None,
+            None,
+            len(eligible),
+            [
+                PortfolioMissingSignal(
+                    section="portfolio",
+                    code="PORTFOLIO_DAY_CHANGE_CURRENCY_AMBIGUOUS",
+                    message=(
+                        "Day-change-capable local holdings do not share the same single "
+                        "currency as the portfolio total."
+                    ),
+                )
+            ],
+        )
+
+    missing: list[PortfolioMissingSignal] = []
+    if len(eligible) < len(rows):
+        missing.append(
+            PortfolioMissingSignal(
+                section="portfolio",
+                code="PORTFOLIO_DAY_CHANGE_PARTIAL",
+                message=(
+                    f"Only {len(eligible)}/{len(rows)} local holdings include deterministic "
+                    "previous-close inputs for portfolio day-change."
+                ),
+            )
+        )
+
+    day_change = sum(value for value, _, _ in eligible)
+    previous_total = sum(value for _, value, _ in eligible)
+    day_change_percent = (
+        round((day_change / previous_total) * 100, 2)
+        if previous_total > 0
+        else None
+    )
+    return _round_money(day_change), day_change_percent, len(eligible), missing
+
+
+def _round_money(value: float) -> float:
+    return float(f"{value:.2f}")
 
 
 def _as_utc(value: datetime) -> datetime:

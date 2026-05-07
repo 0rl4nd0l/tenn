@@ -529,8 +529,8 @@ function LiveWorkspace({
 function LivePortfolioPanel({ response }: { response: CockpitHomeBffResponse }) {
   const portfolio = response.portfolio;
   const state = portfolio.data_state;
-  const value = portfolio.total_value === null ? 'DATA_MISSING' : formatCurrency(portfolio.total_value);
-  const dayChange = portfolio.day_change === null ? 'DATA_MISSING' : formatSignedCurrency(portfolio.day_change);
+  const value = portfolio.total_value === null ? 'DATA_MISSING' : formatCurrency(portfolio.total_value, portfolio.currency);
+  const dayChange = portfolio.day_change === null ? 'DATA_MISSING' : formatSignedCurrency(portfolio.day_change, portfolio.currency);
   const dayChangePercent = portfolio.day_change_percent === null ? 'DATA_MISSING' : formatSignedPercent(portfolio.day_change_percent);
   const coverage = portfolio.coverage_percent === null ? 'DATA_MISSING' : `${portfolio.coverage_percent}%`;
 
@@ -558,7 +558,11 @@ function LivePortfolioPanel({ response }: { response: CockpitHomeBffResponse }) 
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <PortfolioMetric label="Day Change" value={dayChange} />
+          <PortfolioMetric
+            label="Day Change"
+            value={dayChange}
+            detail={`${portfolio.day_change_priced_holdings_count}/${portfolio.holdings_count} covered`}
+          />
           <PortfolioMetric label="Change %" value={dayChangePercent} />
           <PortfolioMetric label="Coverage" value={coverage} detail={`${portfolio.priced_holdings_count}/${portfolio.holdings_count} priced`} />
         </div>
@@ -952,22 +956,30 @@ function formatMelbourneTime(value: string | null | undefined): string {
   }).format(new Date(timestamp));
 }
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'AUD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+function formatCurrency(value: number, currency: string | null): string {
+  if (!currency) {
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  try {
+    return value.toLocaleString(undefined, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  } catch {
+    return `${currency} ${value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
 }
 
-function formatSignedCurrency(value: number): string {
-  const formatted = Math.abs(value).toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'AUD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+function formatSignedCurrency(value: number, currency: string | null): string {
+  const formatted = formatCurrency(Math.abs(value), currency);
   return `${value >= 0 ? '+' : '-'}${formatted}`;
 }
 
