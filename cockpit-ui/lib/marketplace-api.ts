@@ -135,6 +135,9 @@ export interface MarketplaceMatch {
   location?: string | null
   seller_name?: string | null
   captured_at: string
+  first_found_at?: string | null
+  last_seen_at?: string | null
+  first_found_source?: 'seen_listing' | 'captured_at_fallback' | null
   score: number
   decision_band: string
   reasons_for: string[]
@@ -593,12 +596,18 @@ export async function syncEbaySoldData(
 
 export async function listMarketplaceMatches(
   apiKey: string,
-  filters?: { missionId?: string; status?: string; decisionBand?: string },
+  filters?: {
+    missionId?: string
+    status?: string
+    decisionBand?: string
+    sort?: 'first_found_desc' | 'last_seen_desc'
+  },
 ): Promise<MarketplaceMatch[]> {
   const params = new URLSearchParams()
   if (filters?.missionId) params.set('mission_id', filters.missionId)
   if (filters?.status) params.set('status', filters.status)
   if (filters?.decisionBand) params.set('decision_band', filters.decisionBand)
+  if (filters?.sort) params.set('sort', filters.sort)
   const suffix = params.toString() ? `?${params.toString()}` : ''
   const response = await fetch(`/api/cockpit/marketplace/matches${suffix}`, {
     headers: buildHeaders(apiKey, null),

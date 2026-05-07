@@ -23,6 +23,7 @@ MISSION_TYPES = {
 MATCH_STATUSES = {"new", "reviewed", "dismissed", "contacted", "won", "lost"}
 ALERT_STATUSES = {"new", "acknowledged", "dismissed"}
 DECISION_BANDS = {"candidate", "strong_match", "reject"}
+MATCH_SORTS = {"first_found_desc", "last_seen_desc"}
 
 DEFAULT_HARD_FILTERS = {
     "include_keywords": [],
@@ -171,6 +172,17 @@ def _bool(value: Any) -> bool:
     if isinstance(value, (int, float)):
         return bool(value)
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _match_order_clause(sort: str | None) -> str:
+    if sort is None:
+        return "m.captured_at DESC"
+    normalized = _clean_text(sort)
+    if normalized == "first_found_desc":
+        return "seen.first_seen_at IS NULL ASC, seen.first_seen_at DESC, m.captured_at DESC"
+    if normalized == "last_seen_desc":
+        return "seen.last_seen_at IS NULL ASC, seen.last_seen_at DESC, m.captured_at DESC"
+    raise MarketplaceMissionError(f"invalid match sort: {sort}")
 
 
 def _meaningful_brief(brief: str) -> bool:
@@ -792,8 +804,10 @@ class MarketplaceMissionService:
         mission_id: str | None = None,
         status: str | None = None,
         decision_band: str | None = None,
+        sort: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
+        order_clause = _match_order_clause(sort)
         clauses: list[str] = []
         params: list[Any] = []
         if mission_id:
@@ -814,12 +828,21 @@ class MarketplaceMissionService:
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         rows = self._fetchall(
             f"""
-            SELECT m.*, mission.name AS mission_name, mission.category_hint AS mission_category_hint
+            SELECT m.*, mission.name AS mission_name, mission.category_hint AS mission_category_hint,
+                   seen.first_seen_at AS first_found_at,
+                   seen.last_seen_at AS last_seen_at,
+                   CASE
+                       WHEN seen.first_seen_at IS NOT NULL THEN 'seen_listing'
+                       ELSE NULL
+                   END AS first_found_source
             FROM marketplace_matches m
             LEFT JOIN marketplace_missions mission
                 ON mission.mission_id = m.mission_id
+            LEFT JOIN marketplace_seen_listings seen
+                ON seen.mission_id = m.mission_id
+               AND seen.listing_id = m.listing_id
             {where}
-            ORDER BY m.captured_at DESC
+            ORDER BY {order_clause}
             LIMIT ?
             """,
             (*params, limit),
@@ -829,10 +852,19 @@ class MarketplaceMissionService:
     def get_match(self, match_id: str) -> dict[str, Any] | None:
         row = self._fetchone(
             """
-            SELECT m.*, mission.name AS mission_name, mission.category_hint AS mission_category_hint
+            SELECT m.*, mission.name AS mission_name, mission.category_hint AS mission_category_hint,
+                   seen.first_seen_at AS first_found_at,
+                   seen.last_seen_at AS last_seen_at,
+                   CASE
+                       WHEN seen.first_seen_at IS NOT NULL THEN 'seen_listing'
+                       ELSE NULL
+                   END AS first_found_source
             FROM marketplace_matches m
             LEFT JOIN marketplace_missions mission
                 ON mission.mission_id = m.mission_id
+            LEFT JOIN marketplace_seen_listings seen
+                ON seen.mission_id = m.mission_id
+               AND seen.listing_id = m.listing_id
             WHERE m.match_id = ?
             LIMIT 1
             """,

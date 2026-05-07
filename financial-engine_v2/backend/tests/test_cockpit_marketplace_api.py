@@ -111,7 +111,11 @@ def test_marketplace_api_supports_missions_matches_and_alerts(tmp_path, monkeypa
         f"/api/cockpit/marketplace/matches/{match['match_id']}"
     )
     assert single_match_response.status_code == 200
-    assert single_match_response.json()["title"] == "2014 Toyota Hilux SR5 4x4"
+    single_match_payload = single_match_response.json()
+    assert single_match_payload["title"] == "2014 Toyota Hilux SR5 4x4"
+    assert single_match_payload["first_found_at"] is None
+    assert single_match_payload["last_seen_at"] is None
+    assert single_match_payload["first_found_source"] is None
 
     alert_response = client.get("/api/cockpit/marketplace/alerts")
     assert alert_response.status_code == 200
@@ -130,6 +134,109 @@ def test_marketplace_api_supports_missions_matches_and_alerts(tmp_path, monkeypa
     )
     assert update_alert_response.status_code == 200
     assert update_alert_response.json()["status"] == "acknowledged"
+
+
+def test_marketplace_api_exposes_match_recency_and_first_found_sort(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    mission_service = MarketplaceMissionService(fake_service.state_store)
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._ensure_marketplace_scan_scheduler",
+        lambda service: None,
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    mission = mission_service.create_mission(
+        {
+            "name": "GPU recency",
+            "brief": "Find used GPUs in Melbourne.",
+            "hard_filters": {"include_keywords": ["rtx"], "location_names": ["Melbourne"]},
+        }
+    )
+    older_found = mission_service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "api-older-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/api-older-found/",
+            "title": "Older first-found listing",
+            "price": "$1,000",
+            "captured_at": "2026-05-06T10:00:00Z",
+            "score": 80,
+            "decision_band": "candidate",
+            "reasons_for": ["Search match"],
+            "reasons_against": [],
+            "raw_text_snapshot": "Older first-found listing",
+        }
+    )
+    newer_found = mission_service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "api-newer-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/api-newer-found/",
+            "title": "Newer first-found listing",
+            "price": "$1,100",
+            "captured_at": "2026-05-02T10:00:00Z",
+            "score": 80,
+            "decision_band": "candidate",
+            "reasons_for": ["Search match"],
+            "reasons_against": [],
+            "raw_text_snapshot": "Newer first-found listing",
+        }
+    )
+    mission_service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "api-older-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/api-older-found/",
+            "first_seen_at": "2026-05-01T08:00:00Z",
+            "last_seen_at": "2026-05-03T08:00:00Z",
+            "raw_snapshot": {"title": "Older first-found listing"},
+            "match_id": older_found["match_id"],
+        },
+    )
+    mission_service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "api-newer-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/api-newer-found/",
+            "first_seen_at": "2026-05-04T08:00:00Z",
+            "last_seen_at": "2026-05-05T08:00:00Z",
+            "raw_snapshot": {"title": "Newer first-found listing"},
+            "match_id": newer_found["match_id"],
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    default_payload = client.get(
+        "/api/cockpit/marketplace/matches",
+        params={"mission_id": mission["mission_id"]},
+    ).json()
+    assert [item["match_id"] for item in default_payload["items"]] == [
+        older_found["match_id"],
+        newer_found["match_id"],
+    ]
+
+    sorted_payload = client.get(
+        "/api/cockpit/marketplace/matches",
+        params={"mission_id": mission["mission_id"], "sort": "first_found_desc"},
+    ).json()
+    assert [item["match_id"] for item in sorted_payload["items"]] == [
+        newer_found["match_id"],
+        older_found["match_id"],
+    ]
+    assert sorted_payload["items"][0]["first_found_at"] == "2026-05-04T08:00:00Z"
+    assert sorted_payload["items"][0]["last_seen_at"] == "2026-05-05T08:00:00Z"
+    assert sorted_payload["items"][0]["first_found_source"] == "seen_listing"
+
+    single_payload = client.get(
+        f"/api/cockpit/marketplace/matches/{older_found['match_id']}"
+    ).json()
+    assert single_payload["captured_at"] == "2026-05-06T10:00:00Z"
+    assert single_payload["first_found_at"] == "2026-05-01T08:00:00Z"
+    assert single_payload["first_found_source"] == "seen_listing"
 
 
 def test_marketplace_mission_delete_blocks_active_scan_then_deletes(tmp_path, monkeypatch) -> None:

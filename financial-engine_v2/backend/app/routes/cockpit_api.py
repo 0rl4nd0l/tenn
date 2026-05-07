@@ -5306,6 +5306,9 @@ class MarketplaceMatchRecord(BaseModel):
     location: str | None = None
     seller_name: str | None = None
     captured_at: str
+    first_found_at: str | None = None
+    last_seen_at: str | None = None
+    first_found_source: Literal["seen_listing", "captured_at_fallback"] | None = None
     score: int
     decision_band: str
     reasons_for: list[str] = Field(default_factory=list)
@@ -8195,6 +8198,7 @@ async def cockpit_list_marketplace_matches(
     mission_id: str | None = None,
     status: str | None = None,
     decision_band: str | None = None,
+    sort: Literal["first_found_desc", "last_seen_desc"] | None = None,
     limit: int = 100,
 ):
     try:
@@ -8207,6 +8211,7 @@ async def cockpit_list_marketplace_matches(
             mission_id=mission_id,
             status=status,
             decision_band=decision_band,
+            sort=sort,
             limit=limit,
         )
         enriched_items: list[dict[str, Any]] = []

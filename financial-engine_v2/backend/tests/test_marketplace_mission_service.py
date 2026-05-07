@@ -369,6 +369,194 @@ def test_marketplace_match_list_hides_dismissed_by_default(tmp_path: Path) -> No
     ] == [rejected["match_id"]]
 
 
+def test_marketplace_match_recency_comes_from_seen_listing(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceMissionService(store)
+    mission = service.create_mission(
+        {
+            "name": "GPU finder",
+            "brief": "Find a used RTX 4090 in Melbourne.",
+            "hard_filters": {"include_keywords": ["rtx 4090"], "location_names": ["Melbourne"]},
+        }
+    )
+
+    match = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "gpu-recency",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-recency/",
+            "title": "RTX 4090 listing",
+            "price": "$2,300",
+            "captured_at": "2026-05-03T09:00:00Z",
+            "score": 90,
+            "decision_band": "strong_match",
+            "reasons_for": ["Good price"],
+            "reasons_against": [],
+            "raw_text_snapshot": "RTX 4090 used listing",
+        }
+    )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "gpu-recency",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-recency/",
+            "title": "RTX 4090 listing",
+            "first_seen_at": "2026-05-01T08:00:00Z",
+            "last_seen_at": "2026-05-01T08:00:00Z",
+            "raw_snapshot": {"title": "RTX 4090 listing"},
+            "match_id": match["match_id"],
+        },
+    )
+
+    updated = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "gpu-recency",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-recency/",
+            "title": "RTX 4090 listing, refreshed",
+            "price": "$2,250",
+            "captured_at": "2026-05-04T10:00:00Z",
+            "score": 91,
+            "decision_band": "strong_match",
+            "reasons_for": ["Better price"],
+            "reasons_against": [],
+            "raw_text_snapshot": "RTX 4090 used listing refreshed",
+        }
+    )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "gpu-recency",
+            "listing_url": "https://www.facebook.com/marketplace/item/gpu-recency/",
+            "title": "RTX 4090 listing, refreshed",
+            "last_seen_at": "2026-05-05T11:00:00Z",
+            "raw_snapshot": {"title": "RTX 4090 listing, refreshed"},
+            "match_id": updated["match_id"],
+        },
+    )
+
+    loaded = service.get_match(match["match_id"])
+
+    assert loaded is not None
+    assert loaded["captured_at"] == "2026-05-04T10:00:00Z"
+    assert loaded["first_found_at"] == "2026-05-01T08:00:00Z"
+    assert loaded["last_seen_at"] == "2026-05-05T11:00:00Z"
+    assert loaded["first_found_source"] == "seen_listing"
+
+
+def test_marketplace_match_recency_sort_preserves_default_capture_order(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceMissionService(store)
+    mission = service.create_mission(
+        {
+            "name": "GPU finder",
+            "brief": "Find used GPUs in Melbourne.",
+            "hard_filters": {"include_keywords": ["rtx"], "location_names": ["Melbourne"]},
+        }
+    )
+
+    older_found = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "older-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/older-found/",
+            "title": "Older first-found listing",
+            "price": "$1,000",
+            "captured_at": "2026-05-06T10:00:00Z",
+            "score": 80,
+            "decision_band": "candidate",
+            "reasons_for": ["Search match"],
+            "reasons_against": [],
+            "raw_text_snapshot": "Older first-found listing",
+        }
+    )
+    newer_found = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "newer-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/newer-found/",
+            "title": "Newer first-found listing",
+            "price": "$1,100",
+            "captured_at": "2026-05-02T10:00:00Z",
+            "score": 80,
+            "decision_band": "candidate",
+            "reasons_for": ["Search match"],
+            "reasons_against": [],
+            "raw_text_snapshot": "Newer first-found listing",
+        }
+    )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "older-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/older-found/",
+            "first_seen_at": "2026-05-01T08:00:00Z",
+            "last_seen_at": "2026-05-03T08:00:00Z",
+            "raw_snapshot": {"title": "Older first-found listing"},
+            "match_id": older_found["match_id"],
+        },
+    )
+    service.upsert_seen_listing(
+        mission["mission_id"],
+        {
+            "listing_id": "newer-found",
+            "listing_url": "https://www.facebook.com/marketplace/item/newer-found/",
+            "first_seen_at": "2026-05-04T08:00:00Z",
+            "last_seen_at": "2026-05-05T08:00:00Z",
+            "raw_snapshot": {"title": "Newer first-found listing"},
+            "match_id": newer_found["match_id"],
+        },
+    )
+
+    assert [
+        item["match_id"]
+        for item in service.list_matches(mission_id=mission["mission_id"])
+    ] == [older_found["match_id"], newer_found["match_id"]]
+    assert [
+        item["match_id"]
+        for item in service.list_matches(mission_id=mission["mission_id"], sort="first_found_desc")
+    ] == [newer_found["match_id"], older_found["match_id"]]
+    assert [
+        item["match_id"]
+        for item in service.list_matches(mission_id=mission["mission_id"], sort="last_seen_desc")
+    ] == [newer_found["match_id"], older_found["match_id"]]
+
+
+def test_marketplace_match_recency_is_nullable_without_seen_listing(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceMissionService(store)
+    mission = service.create_mission(
+        {
+            "name": "Legacy match",
+            "brief": "Find used GPUs in Melbourne.",
+            "hard_filters": {"include_keywords": ["rtx"], "location_names": ["Melbourne"]},
+        }
+    )
+    match = service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "legacy-match",
+            "listing_url": "https://www.facebook.com/marketplace/item/legacy-match/",
+            "title": "Legacy listing",
+            "price": "$900",
+            "captured_at": "2026-05-06T10:00:00Z",
+            "score": 80,
+            "decision_band": "candidate",
+            "reasons_for": ["Search match"],
+            "reasons_against": [],
+            "raw_text_snapshot": "Legacy listing",
+        }
+    )
+
+    loaded = service.get_match(match["match_id"])
+
+    assert loaded is not None
+    assert loaded["captured_at"] == "2026-05-06T10:00:00Z"
+    assert loaded["first_found_at"] is None
+    assert loaded["last_seen_at"] is None
+    assert loaded["first_found_source"] is None
+
+
 def test_marketplace_mission_delete_cleans_related_records(tmp_path: Path) -> None:
     store = _state_store(tmp_path)
     service = MarketplaceMissionService(store)
