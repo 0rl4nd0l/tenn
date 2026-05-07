@@ -38,6 +38,18 @@ export interface NewsItem {
   source: string;
   trustLevel: TrustLevel;
   relevance: 'high' | 'medium' | 'low';
+  dataState?: CockpitHomeDataState;
+  degraded?: boolean;
+  dataMissing?: CockpitHomeDataMissingSignal[];
+  sourceId?: string | null;
+  sourceKind?: CockpitHomeSourceKind | null;
+  sourceLabel?: CockpitHomeBackendSourceLabel | null;
+  evidenceLabels?: CockpitHomeBackendSourceLabel[];
+  resolvable?: boolean;
+  resolver?: CockpitHomeEvidenceIdentity['resolver'];
+  sourceUrl?: string | null;
+  chatBlockedReason?: CockpitHomeChatHandoff['blocked_reason'];
+  isDemo?: boolean;
 }
 
 export interface ThemeCandidate {
@@ -48,6 +60,11 @@ export interface ThemeCandidate {
 }
 
 export interface CockpitHomeState {
+  dataState?: CockpitHomeDataState;
+  degraded?: boolean;
+  dataMissing?: CockpitHomeDataMissingSignal[];
+  asOf?: string | null;
+  isDemo?: boolean;
   session: MarketSessionState;
   melbourneTime: string;
   nextEvent: string;

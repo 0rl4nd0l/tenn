@@ -50,6 +50,13 @@ describe('Cockpit Home contract helpers', () => {
     expect(normalizeCockpitHomeSourceLabel(null)).toBe('unknown_unclassified');
   });
 
+  it('does not upgrade context, no-hit, missing, or degraded labels to verified trust', () => {
+    expect(cockpitHomeSourceLabelToTrustLevel('context_only')).toBe('CONTEXT-ONLY');
+    expect(cockpitHomeSourceLabelToTrustLevel('no_hit')).toBe('NO-HIT');
+    expect(cockpitHomeSourceLabelToTrustLevel('missing_required_evidence')).toBe('MISSING-EVIDENCE');
+    expect(cockpitHomeSourceLabelToTrustLevel('degraded_runtime')).toBe('DEGRADED-RUNTIME');
+  });
+
   it('keeps DATA_MISSING and degraded semantics explicit and deterministic', () => {
     expect(
       cockpitHomeHasDataMissing({

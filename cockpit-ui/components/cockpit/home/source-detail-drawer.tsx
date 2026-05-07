@@ -4,8 +4,9 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Button } from '@/components/ui/button';
 import { NewsItem } from '@/types/cockpit-home';
 import { EvidenceBadge } from './evidence-badge';
-import { ExternalLink, MessageSquare, ShieldCheck, Database, History, Share2 } from 'lucide-react';
+import { AlertCircle, Database, ExternalLink, MessageSquare, ShieldCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface SourceDetailDrawerProps {
   item: NewsItem | null;
@@ -17,6 +18,10 @@ interface SourceDetailDrawerProps {
 export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceDetailDrawerProps) {
   if (!item) return null;
 
+  const dataState = item.dataState ?? (item.isDemo ? 'DATA_MISSING' : 'READY');
+  const sourceLabels = item.evidenceLabels?.length ? item.evidenceLabels : [item.sourceLabel ?? null].filter(Boolean);
+  const canAnalyze = Boolean(item.resolvable && item.sourceId && !item.chatBlockedReason && !item.isDemo);
+
   return (
     <Drawer open={isOpen} onClose={onClose}>
       <DrawerContent className="bg-background border-t border-border max-h-[90vh]">
@@ -25,7 +30,7 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <span className="text-[12px] font-mono font-bold text-cyan-500 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded uppercase">
-                  {item.ticker}
+                  {item.ticker || 'NO_TICKER'}
                 </span>
                 <EvidenceBadge level={item.trustLevel} className="scale-110" />
               </div>
@@ -35,7 +40,7 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
               {item.headline}
             </DrawerTitle>
             <DrawerDescription className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground/70 mt-1">
-              Source: {item.source} • ID: {item.id}
+              Source: {item.source} | ID: {item.id}
             </DrawerDescription>
           </DrawerHeader>
 
@@ -45,73 +50,107 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
                 <section>
                   <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
                     <Database className="w-3 h-3" />
-                    Ingestion Metadata
+                    BFF Source Identity
                   </h5>
-                  <div className="grid grid-cols-2 gap-4 bg-card/40 p-4 rounded-lg border border-border/40">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">Entity Linking</span>
-                      <span className="text-[12px] font-mono text-green-500 font-bold">VERIFIED</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">Index State</span>
-                      <span className="text-[12px] font-mono text-cyan-500 font-bold">OPTIMIZED</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">Evidence State</span>
-                      <span className="text-[12px] font-mono text-foreground font-bold italic">EVIDENCE-READY</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">Materiality Score</span>
-                      <span className="text-[12px] font-mono text-amber-500 font-bold">HIGH (PENDING)</span>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-card/40 p-4 rounded-lg border border-border/40">
+                    <MetadataField label="Data State" value={dataState} emphasis={stateTone(dataState)} />
+                    <MetadataField label="Source Label" value={item.sourceLabel ?? 'unknown_unclassified'} />
+                    <MetadataField label="Source ID" value={item.sourceId || 'DATA_MISSING'} />
+                    <MetadataField label="Source Kind" value={item.sourceKind || 'DATA_MISSING'} />
+                    <MetadataField label="Resolver" value={item.resolver || 'none'} />
+                    <MetadataField label="Resolvable" value={item.resolvable ? 'true' : 'false'} />
                   </div>
                 </section>
 
                 <section>
                   <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
                     <ShieldCheck className="w-3 h-3" />
-                    Source Context
+                    Evidence Labels
                   </h5>
-                  <p className="text-[13px] font-sans text-muted-foreground leading-relaxed bg-accent/10 p-4 rounded-lg border-l-2 border-l-cyan-500/30">
-                    This source was discovered via the ASX real-time stream. It indicates a potential logistics acquisition in the European market. Initial entity linking confirms <strong>&quot;WTC&quot;</strong> as the primary subject. Ingestion completed at 10:31:04 AM.
-                  </p>
+                  <div className="flex flex-wrap gap-2 bg-accent/10 p-4 rounded-lg border border-border/40">
+                    {sourceLabels.length > 0 ? (
+                      sourceLabels.map((label) => (
+                        <span
+                          key={label}
+                          className="text-[10px] font-mono uppercase px-2 py-1 rounded border border-border bg-background/50 text-muted-foreground"
+                        >
+                          {label}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[11px] font-mono text-amber-500">DATA_MISSING</span>
+                    )}
+                  </div>
                 </section>
+
+                {(item.isDemo || item.dataMissing?.length || item.chatBlockedReason) && (
+                  <section>
+                    <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+                      <AlertCircle className="w-3 h-3" />
+                      Limits
+                    </h5>
+                    <div className="space-y-2 bg-amber-500/5 p-4 rounded-lg border border-amber-500/20">
+                      {item.isDemo && (
+                        <p className="text-[12px] font-sans text-amber-500">
+                          Demo fixture only. This item is not source-backed and cannot be attached as evidence.
+                        </p>
+                      )}
+                      {item.chatBlockedReason && (
+                        <p className="text-[12px] font-sans text-amber-500">
+                          Chat handoff blocked: {item.chatBlockedReason}.
+                        </p>
+                      )}
+                      {item.dataMissing?.map((signal) => (
+                        <div key={`${signal.section}:${signal.code}`} className="text-[11px] font-mono text-muted-foreground">
+                          <span className="text-amber-500">{signal.code}</span>: {signal.message}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
 
               <div className="space-y-6">
                 <section>
-                  <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                    <History className="w-3 h-3" />
-                    Related Events
+                  <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3">
+                    Source Access
                   </h5>
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-mono p-2 bg-card/30 rounded border border-border/20 hover:border-cyan-500/30 cursor-pointer">
-                      WTC Earnings Call (Prior)
-                    </div>
-                    <div className="text-[11px] font-mono p-2 bg-card/30 rounded border border-border/20 hover:border-cyan-500/30 cursor-pointer">
-                      Logistics M&A Trends Q1
-                    </div>
+                  <div className="text-[11px] font-sans text-muted-foreground leading-relaxed bg-card/30 rounded border border-border/30 p-3">
+                    Cockpit Home v1 only exposes resolver metadata already present in the BFF response. No source-detail resolver is called from this drawer.
                   </div>
                 </section>
-
-                <div className="flex flex-col gap-2 pt-4">
-                  <Button variant="outline" size="sm" className="w-full font-mono text-[11px] justify-between">
-                    OPEN ORIGINAL SOURCE
-                    <ExternalLink className="w-3 h-3" />
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full font-mono text-[11px] justify-between">
-                    SHARE CONTEXT
-                    <Share2 className="w-3 h-3" />
-                  </Button>
-                </div>
               </div>
             </div>
           </ScrollArea>
 
           <DrawerFooter className="border-t border-border/40 py-6 flex-row gap-4">
             <Button
-              className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-mono uppercase tracking-tighter"
-              onClick={() => onAnalyze(item)}
+              variant="outline"
+              size="sm"
+              className="font-mono text-[11px]"
+              disabled={!item.sourceUrl}
+              asChild={Boolean(item.sourceUrl)}
+            >
+              {item.sourceUrl ? (
+                <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                  OPEN ORIGINAL SOURCE
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </a>
+              ) : (
+                <span className="inline-flex items-center">
+                  ORIGINAL SOURCE DATA_MISSING
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </span>
+              )}
+            </Button>
+            <Button
+              className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-mono uppercase tracking-tighter disabled:opacity-50"
+              disabled={!canAnalyze}
+              onClick={() => {
+                if (canAnalyze) {
+                  onAnalyze(item);
+                }
+              }}
             >
               <MessageSquare className="w-4 h-4 mr-2" />
               Analyze with Tenn Assistant
@@ -124,4 +163,40 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
       </DrawerContent>
     </Drawer>
   );
+}
+
+function MetadataField({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: 'normal' | 'warning' | 'error';
+}) {
+  return (
+    <div className="flex flex-col gap-1 min-w-0">
+      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">{label}</span>
+      <span
+        className={cn(
+          'text-[12px] font-mono font-bold break-words',
+          emphasis === 'warning' && 'text-amber-500',
+          emphasis === 'error' && 'text-red-500',
+          (!emphasis || emphasis === 'normal') && 'text-foreground',
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function stateTone(state: string): 'normal' | 'warning' | 'error' {
+  if (state === 'DATA_MISSING') {
+    return 'error';
+  }
+  if (state === 'PARTIAL' || state === 'DEGRADED') {
+    return 'warning';
+  }
+  return 'normal';
 }

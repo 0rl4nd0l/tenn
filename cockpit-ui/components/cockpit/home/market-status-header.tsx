@@ -6,9 +6,15 @@ interface MarketStatusHeaderProps {
   session: MarketSessionState;
   melbourneTime: string;
   nextEvent: string;
+  systemStatus?: 'operational' | 'partial' | 'degraded' | 'data_missing';
 }
 
-export function MarketStatusHeader({ session, melbourneTime, nextEvent }: MarketStatusHeaderProps) {
+export function MarketStatusHeader({
+  session,
+  melbourneTime,
+  nextEvent,
+  systemStatus = 'operational',
+}: MarketStatusHeaderProps) {
   const getSessionConfig = (s: MarketSessionState) => {
     switch (s) {
       case 'OPEN':
@@ -26,6 +32,12 @@ export function MarketStatusHeader({ session, melbourneTime, nextEvent }: Market
 
   const config = getSessionConfig(session);
   const Icon = config.icon;
+  const statusConfig = {
+    operational: { label: 'OPERATIONAL', color: 'text-green-500', dot: 'bg-green-500' },
+    partial: { label: 'PARTIAL', color: 'text-amber-500', dot: 'bg-amber-500' },
+    degraded: { label: 'DEGRADED', color: 'text-red-500', dot: 'bg-red-500' },
+    data_missing: { label: 'DATA_MISSING', color: 'text-red-500', dot: 'bg-red-500' },
+  }[systemStatus];
 
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-background/50 backdrop-blur-sm border-b border-border sticky top-0 z-30">
@@ -56,9 +68,9 @@ export function MarketStatusHeader({ session, melbourneTime, nextEvent }: Market
       <div className="flex items-center gap-4">
         <div className="flex flex-col items-end">
           <span className="text-[10px] font-mono text-muted-foreground uppercase">System Status</span>
-          <span className="text-[11px] font-mono text-green-500 font-bold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            OPERATIONAL
+          <span className={cn("text-[11px] font-mono font-bold flex items-center gap-1.5", statusConfig.color)}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", statusConfig.dot)} />
+            {statusConfig.label}
           </span>
         </div>
       </div>

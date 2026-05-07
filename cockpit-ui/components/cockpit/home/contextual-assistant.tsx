@@ -15,9 +15,9 @@ interface ContextualAssistantProps {
 export function ContextualAssistant({ attachedItem, onClearContext }: ContextualAssistantProps) {
   const suggestedPrompts = attachedItem
     ? [
-        `Is this acquisition material for ${attachedItem.ticker}?`,
-        `Compare to prior ${attachedItem.ticker} deals.`,
-        "What are the market implications?",
+        `Assess this source for ${attachedItem.ticker || 'the selected ticker'}.`,
+        `Compare with prior ${attachedItem.ticker || 'ticker'} context.`,
+        "What evidence is available?",
         "Update my thesis note."
       ]
     : [
@@ -60,12 +60,15 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
                   </svg>
                 </button>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase">Attached Evidence</span>
+                  <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase">Attached Home Source</span>
                   <EvidenceBadge level={attachedItem.trustLevel} className="scale-90" />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-mono font-bold text-foreground">{attachedItem.ticker}</span>
                   <span className="text-[11px] font-sans text-muted-foreground truncate">{attachedItem.headline}</span>
+                </div>
+                <div className="text-[10px] font-mono text-muted-foreground break-all">
+                  {attachedItem.sourceId ? `source_id=${attachedItem.sourceId}` : 'source_id=DATA_MISSING'}
                 </div>
               </div>
             )}
@@ -77,7 +80,7 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
               <div className="space-y-4 flex-1">
                 <p className="text-[13px] font-sans text-muted-foreground leading-relaxed">
                   {attachedItem
-                    ? `I have attached the **${attachedItem.ticker}** announcement. How would you like me to analyze this source?`
+                    ? `I have attached the ${attachedItem.ticker || 'selected'} Home source context. How would you like me to analyze this source?`
                     : "I am monitoring the market session. You can ask me to summarize current movers, check your portfolio impact, or analyze specific news items."}
                 </p>
 
