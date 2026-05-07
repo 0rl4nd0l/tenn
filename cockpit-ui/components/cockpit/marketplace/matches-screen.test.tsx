@@ -4,6 +4,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MarketplaceMatchesScreen } from './matches-screen'
 
+function installPointerCaptureMock() {
+  const prototype = HTMLElement.prototype as unknown as Record<string, unknown>
+  if (typeof prototype.hasPointerCapture !== 'function') {
+    Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
+      configurable: true,
+      value: () => false,
+    })
+  }
+  if (typeof prototype.setPointerCapture !== 'function') {
+    Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', {
+      configurable: true,
+      value: () => {},
+    })
+  }
+  if (typeof prototype.releasePointerCapture !== 'function') {
+    Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', {
+      configurable: true,
+      value: () => {},
+    })
+  }
+}
+
 describe('MarketplaceMatchesScreen', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -24,6 +46,8 @@ describe('MarketplaceMatchesScreen', () => {
               price: '$22,500',
               location: 'Preston VIC',
               captured_at: '2026-04-18T10:00:00Z',
+              first_found_at: '2026-04-18T09:00:00Z',
+              last_seen_at: '2026-04-18T12:30:00Z',
               score: 89,
               decision_band: 'strong_match',
               reasons_for: ['Below local median'],
@@ -128,6 +152,11 @@ describe('MarketplaceMatchesScreen', () => {
       expect(screen.getByText('2014 Toyota Hilux SR5 4x4')).toBeInTheDocument()
     })
     expect(screen.getAllByText('$22,500').length).toBeGreaterThan(0)
+    const card = screen.getByTestId('marketplace-match-card')
+    expect(within(card).getByText('NEW')).toBeInTheDocument()
+    expect(within(card).getByText('RECENTLY SEEN')).toBeInTheDocument()
+    expect(within(card).getByText(/first found/i)).toBeInTheDocument()
+    expect(within(card).getByText(/last seen/i)).toBeInTheDocument()
     expect(screen.getByText(/below local median/i)).toBeInTheDocument()
     expect(screen.getByText(/photos: 2/i)).toBeInTheDocument()
     expect(screen.getByText(/source: search card/i)).toBeInTheDocument()
@@ -151,7 +180,7 @@ describe('MarketplaceMatchesScreen', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it('orders match cards by score across different items', async () => {
+  it('uses first-found recency for Newest and preserves score sorting', async () => {
     const makeMatch = (overrides: Record<string, unknown>) => ({
       match_id: 'mp_match_default',
       mission_id: 'mp_mission_default',
@@ -162,6 +191,8 @@ describe('MarketplaceMatchesScreen', () => {
       price: '$100',
       location: 'Melbourne VIC',
       captured_at: '2026-05-04T01:28:29Z',
+      first_found_at: '2026-05-04T01:28:29Z',
+      last_seen_at: '2026-05-04T01:28:29Z',
       score: 50,
       decision_band: 'candidate',
       reasons_for: ['Matched mission keyword'],
@@ -186,6 +217,8 @@ describe('MarketplaceMatchesScreen', () => {
             listing_id: 'listing_low',
             title: 'Office chair',
             score: 63,
+            first_found_at: '2026-05-06T09:00:00Z',
+            captured_at: '2026-05-06T09:05:00Z',
           }),
           makeMatch({
             match_id: 'mp_match_high',
@@ -194,6 +227,8 @@ describe('MarketplaceMatchesScreen', () => {
             listing_id: 'listing_high',
             title: 'RTX 4090 GPU',
             score: 96,
+            first_found_at: '2026-05-04T09:00:00Z',
+            captured_at: '2026-05-06T12:00:00Z',
           }),
           makeMatch({
             match_id: 'mp_match_mid',
@@ -202,6 +237,8 @@ describe('MarketplaceMatchesScreen', () => {
             listing_id: 'listing_mid',
             title: 'Toyota Hilux',
             score: 81,
+            first_found_at: '2026-05-05T09:00:00Z',
+            captured_at: '2026-05-05T09:05:00Z',
           }),
         ],
       }),
@@ -213,15 +250,95 @@ describe('MarketplaceMatchesScreen', () => {
     await waitFor(() => {
       expect(screen.getByText('RTX 4090 GPU')).toBeInTheDocument()
     })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/cockpit/marketplace/matches?sort=first_found_desc')
     const cardTitles = screen
       .getAllByTestId('marketplace-match-card')
       .map((card) => within(card).getByRole('heading', { level: 3 }).textContent)
-    expect(cardTitles).toEqual(['RTX 4090 GPU', 'Toyota Hilux', 'Office chair'])
+    expect(cardTitles).toEqual(['Office chair', 'Toyota Hilux', 'RTX 4090 GPU'])
     expect(screen.getByTestId('marketplace-match-grid')).toHaveClass('xl:grid-cols-3')
+
+    installPointerCaptureMock()
+    await userEvent.click(screen.getAllByRole('combobox')[2])
+    await userEvent.click(screen.getByRole('option', { name: /best score/i }))
+
+    await waitFor(() => {
+      const scoreSortedTitles = screen
+        .getAllByTestId('marketplace-match-card')
+        .map((card) => within(card).getByRole('heading', { level: 3 }).textContent)
+      expect(scoreSortedTitles).toEqual(['RTX 4090 GPU', 'Toyota Hilux', 'Office chair'])
+    })
 
     await userEvent.click(screen.getByLabelText(/select rtx 4090 gpu/i))
     expect(screen.getByText(/1 selected/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^dismiss$/i })).toBeEnabled()
+  })
+
+  it('filters New only to status-new or recently first-found matches', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-05-07T00:00:00Z'))
+    const makeMatch = (overrides: Record<string, unknown>) => ({
+      match_id: 'mp_match_default',
+      mission_id: 'mp_mission_default',
+      mission_name: 'Default mission',
+      listing_id: 'listing_default',
+      listing_url: 'https://www.facebook.com/marketplace/item/default/',
+      title: 'Default listing',
+      price: '$100',
+      location: 'Melbourne VIC',
+      captured_at: '2026-05-01T00:00:00Z',
+      first_found_at: '2026-05-01T00:00:00Z',
+      last_seen_at: '2026-05-01T00:00:00Z',
+      score: 50,
+      decision_band: 'candidate',
+      reasons_for: ['Matched mission keyword'],
+      reasons_against: [],
+      confidence: 0.66,
+      raw_text_snapshot: 'Visible listing text',
+      listing_media: [],
+      status: 'reviewed',
+      metadata: {},
+      user_feedback: null,
+      updated_at: '2026-05-01T00:00:00Z',
+      ...overrides,
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          makeMatch({
+            match_id: 'mp_match_recent_reviewed',
+            title: 'Recently first-found reviewed listing',
+            first_found_at: '2026-05-06T10:00:00Z',
+            last_seen_at: '2026-05-06T10:00:00Z',
+          }),
+          makeMatch({
+            match_id: 'mp_match_status_new',
+            title: 'Status-new older listing',
+            first_found_at: '2026-04-20T10:00:00Z',
+            last_seen_at: '2026-04-20T10:00:00Z',
+            status: 'new',
+          }),
+          makeMatch({
+            match_id: 'mp_match_old_reviewed',
+            title: 'Old reviewed listing',
+            first_found_at: '2026-04-01T10:00:00Z',
+            last_seen_at: '2026-04-01T10:00:00Z',
+          }),
+        ],
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchesScreen apiKey="" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Old reviewed listing')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByLabelText(/new only/i))
+
+    expect(screen.getByText('Recently first-found reviewed listing')).toBeInTheDocument()
+    expect(screen.getByText('Status-new older listing')).toBeInTheDocument()
+    expect(screen.queryByText('Old reviewed listing')).not.toBeInTheDocument()
   })
 
   it('explains when a listing price exists but benchmark anchors are missing', async () => {
@@ -489,5 +606,6 @@ describe('MarketplaceMatchesScreen', () => {
     })
     expect(screen.getByText(/listing photos unavailable/i)).toBeInTheDocument()
     expect(screen.getByText(/photos: 0/i)).toBeInTheDocument()
+    expect(screen.getByText(/first found \(capture\)/i)).toBeInTheDocument()
   })
 })

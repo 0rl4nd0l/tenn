@@ -25,6 +25,15 @@ import {
   comparisonStatusLabel,
 } from './price-comparison'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
+import {
+  compareByFirstFoundDesc,
+  firstFoundTimestamp,
+  formatMatchClock,
+  hasMaterialLastSeenUpdate,
+  isNewOpportunity,
+  lastSeenTimestamp,
+  shouldShowCapturedTimestamp,
+} from './match-recency'
 
 interface PendingFeedback {
   matchId: string
@@ -53,21 +62,6 @@ const MATCH_SORT_OPTIONS = [
 ] as const
 
 type MatchSortMode = (typeof MATCH_SORT_OPTIONS)[number]['value']
-
-function formatClock(value: string): string {
-  try {
-    return new Date(value).toLocaleString('en-AU', {
-      hour12: false,
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return value
-  }
-}
 
 function decisionVariant(
   decisionBand: string,
@@ -234,18 +228,13 @@ function hasWeakBenchmark(match: MarketplaceMatch): boolean {
   return comparisonNeedsBenchmarkSetup(match.price_comparison ?? null)
 }
 
-function timeValue(value: string): number {
-  const parsed = Date.parse(value)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
 function sortMatches(items: MarketplaceMatch[], mode: MatchSortMode): MarketplaceMatch[] {
   return [...items].sort((left, right) => {
     if (mode === 'value') {
       const valueCompare = valueScore(right) - valueScore(left)
       if (valueCompare !== 0) return valueCompare
     } else if (mode === 'newest') {
-      const timeCompare = timeValue(right.captured_at) - timeValue(left.captured_at)
+      const timeCompare = compareByFirstFoundDesc(left, right)
       if (timeCompare !== 0) return timeCompare
     } else if (mode === 'cheapest') {
       const leftPrice = priceValue(left)
@@ -254,7 +243,7 @@ function sortMatches(items: MarketplaceMatch[], mode: MatchSortMode): Marketplac
     }
     const scoreCompare = scoreValue(right) - scoreValue(left)
     if (scoreCompare !== 0) return scoreCompare
-    return timeValue(right.captured_at) - timeValue(left.captured_at)
+    return compareByFirstFoundDesc(left, right)
   })
 }
 
@@ -387,13 +376,15 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   const [matches, setMatches] = useState<MarketplaceMatch[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [bandFilter, setBandFilter] = useState('all')
-  const [sortMode, setSortMode] = useState<MatchSortMode>('score')
+  const [sortMode, setSortMode] = useState<MatchSortMode>('newest')
+  const [newOnly, setNewOnly] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedbackSavingMatchId, setFeedbackSavingMatchId] = useState<string | null>(null)
   const [bulkSaving, setBulkSaving] = useState(false)
   const [selectedMatchIds, setSelectedMatchIds] = useState<Set<string>>(() => new Set())
   const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
+  const serverSort = sortMode === 'newest' ? 'first_found_desc' : undefined
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -402,6 +393,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
       const items = await listMarketplaceMatches(apiKey, {
         status: statusFilter === 'all' ? undefined : statusFilter,
         decisionBand: bandFilter === 'all' ? undefined : bandFilter,
+        sort: serverSort,
       })
       setMatches(items)
       setSelectedMatchIds(new Set())
@@ -410,7 +402,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
     } finally {
       setLoading(false)
     }
-  }, [apiKey, statusFilter, bandFilter])
+  }, [apiKey, statusFilter, bandFilter, serverSort])
 
   useEffect(() => {
     void load()
@@ -457,7 +449,9 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
     }
   }
 
-  const visibleMatches = sortMatches(matches, sortMode)
+  const newOpportunityCount = matches.filter((match) => isNewOpportunity(match)).length
+  const filteredMatches = newOnly ? matches.filter((match) => isNewOpportunity(match)) : matches
+  const visibleMatches = sortMatches(filteredMatches, sortMode)
   const selectedMatches = visibleMatches.filter((match) => selectedMatchIds.has(match.match_id))
   const aboveRetailMatches = visibleMatches.filter(isAboveRetail)
   const weakBenchmarkMatches = visibleMatches.filter(hasWeakBenchmark)
@@ -571,6 +565,21 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
               </SelectContent>
             </Select>
           </div>
+          <label className="flex h-8 items-center gap-2 rounded-md border border-border/60 bg-background px-2 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={newOnly}
+              onChange={(event) => {
+                setNewOnly(event.target.checked)
+                setSelectedMatchIds(new Set())
+              }}
+              className="h-3.5 w-3.5 rounded border-border accent-primary"
+            />
+            New only
+            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+              {newOpportunityCount}
+            </span>
+          </label>
         </div>
 
         {error && (
@@ -646,6 +655,11 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
             <RefreshCw className="h-12 w-12 text-muted-foreground/30" />
             <p className="text-muted-foreground">No matches found for the current filters.</p>
           </div>
+        ) : visibleMatches.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
+            <RefreshCw className="h-12 w-12 text-muted-foreground/30" />
+            <p className="text-muted-foreground">No new matches found for the current filters.</p>
+          </div>
         ) : (
           <div data-testid="marketplace-match-grid" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {visibleMatches.map((match) => {
@@ -661,6 +675,9 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                   : baseDealMetrics
               const userFeedback = match.user_feedback?.feedback ?? null
               const isSelected = selectedMatchIds.has(match.match_id)
+              const firstFoundAt = firstFoundTimestamp(match)
+              const lastSeenAt = lastSeenTimestamp(match)
+              const showCapturedAt = shouldShowCapturedTimestamp(match)
               return (
                 <Card
                   key={match.match_id}
@@ -680,9 +697,19 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                         <Badge variant={decisionVariant(match.decision_band)} className="h-5 text-[10px]">
                           {match.decision_band.replace('_', ' ')}
                         </Badge>
-                        <span className="truncate font-mono text-[10px] text-muted-foreground">
-                          {formatClock(match.captured_at)}
-                        </span>
+                        {isNewOpportunity(match) && (
+                          <Badge className="h-5 border-transparent bg-emerald-600 text-[10px] text-white hover:bg-emerald-600">
+                            NEW
+                          </Badge>
+                        )}
+                        {hasMaterialLastSeenUpdate(match) && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 border-sky-500/35 bg-sky-500/10 text-[10px] text-sky-800 dark:text-sky-200"
+                          >
+                            RECENTLY SEEN
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-[11px]">
@@ -817,6 +844,28 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                                 {match.location || 'Unknown'}
                               </span>
                             </div>
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                            <span>
+                              {match.first_found_at ? 'First found' : 'First found (capture)'}{' '}
+                              <span className="font-mono text-foreground/80">
+                                {formatMatchClock(firstFoundAt)}
+                              </span>
+                            </span>
+                            <span>
+                              Last seen{' '}
+                              <span className="font-mono text-foreground/80">
+                                {formatMatchClock(lastSeenAt)}
+                              </span>
+                            </span>
+                            {showCapturedAt && (
+                              <span>
+                                Captured{' '}
+                                <span className="font-mono text-foreground/80">
+                                  {formatMatchClock(match.captured_at)}
+                                </span>
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="shrink-0 pt-1">

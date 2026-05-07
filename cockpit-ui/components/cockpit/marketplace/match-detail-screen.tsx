@@ -21,25 +21,18 @@ import {
   comparisonStatusLabel,
 } from './price-comparison'
 import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
+import {
+  firstFoundTimestamp,
+  formatMatchClock,
+  hasMaterialLastSeenUpdate,
+  isNewOpportunity,
+  lastSeenTimestamp,
+  shouldShowCapturedTimestamp,
+} from './match-recency'
 
 interface MarketplaceMatchDetailScreenProps {
   apiKey: string
   matchId: string
-}
-
-function formatClock(value: string): string {
-  try {
-    return new Date(value).toLocaleString('en-AU', {
-      hour12: false,
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return value
-  }
 }
 
 function decisionVariant(
@@ -119,6 +112,9 @@ export function MarketplaceMatchDetailScreen({
   const noteRef = useRef<HTMLTextAreaElement>(null)
   const media = match ? listingMedia(match) : []
   const priceEvidence = match ? priceEvidenceForMatch(match) : null
+  const firstFoundAt = match ? firstFoundTimestamp(match) : null
+  const lastSeenAt = match ? lastSeenTimestamp(match) : null
+  const showCapturedAt = match ? shouldShowCapturedTimestamp(match) : false
 
   const load = useCallback(async () => {
     if (!matchId) {
@@ -245,6 +241,8 @@ export function MarketplaceMatchDetailScreen({
                         rel="noopener noreferrer"
                         className="relative flex items-center justify-center overflow-hidden rounded-md border border-border/60 bg-muted/30 transition-colors hover:bg-muted/40"
                       >
+                        {/* Marketplace captures can come from arbitrary external CDNs. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={src}
                           alt={`Listing photo ${index + 1} for ${match.title}`}
@@ -272,11 +270,46 @@ export function MarketplaceMatchDetailScreen({
                     <Badge variant="outline" className="font-mono">
                       Score: {match.score}
                     </Badge>
+                    {isNewOpportunity(match) && (
+                      <Badge className="border-transparent bg-emerald-600 text-white hover:bg-emerald-600">
+                        NEW
+                      </Badge>
+                    )}
+                    {hasMaterialLastSeenUpdate(match) && (
+                      <Badge
+                        variant="outline"
+                        className="border-sky-500/35 bg-sky-500/10 text-sky-800 dark:text-sky-200"
+                      >
+                        RECENTLY SEEN
+                      </Badge>
+                    )}
                   </div>
                   <CardTitle className="pt-2 text-2xl font-bold">{match.title}</CardTitle>
                   <CardDescription className="font-mono text-xs">
-                    Match ID: {match.match_id} | Captured: {formatClock(match.captured_at)}
+                    Match ID: {match.match_id}
                   </CardDescription>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      {match.first_found_at ? 'First found' : 'First found (capture)'}{' '}
+                      <span className="font-mono text-foreground/80">
+                        {formatMatchClock(firstFoundAt)}
+                      </span>
+                    </span>
+                    <span>
+                      Last seen{' '}
+                      <span className="font-mono text-foreground/80">
+                        {formatMatchClock(lastSeenAt)}
+                      </span>
+                    </span>
+                    {showCapturedAt && (
+                      <span>
+                        Captured{' '}
+                        <span className="font-mono text-foreground/80">
+                          {formatMatchClock(match.captured_at)}
+                        </span>
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button

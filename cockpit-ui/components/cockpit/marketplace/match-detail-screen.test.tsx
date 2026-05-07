@@ -23,6 +23,8 @@ describe('MarketplaceMatchDetailScreen', () => {
           location: 'Preston VIC',
           seller_name: 'Example Seller',
           captured_at: '2026-04-18T10:00:00Z',
+          first_found_at: '2026-04-18T09:00:00Z',
+          last_seen_at: '2026-04-18T12:30:00Z',
           score: 89,
           decision_band: 'strong_match',
           reasons_for: ['Below local median'],
@@ -85,6 +87,10 @@ describe('MarketplaceMatchDetailScreen', () => {
     })
     expect(screen.getByText(/below local median/i)).toBeInTheDocument()
     expect(screen.getByText(/example seller/i)).toBeInTheDocument()
+    expect(screen.getByText('NEW')).toBeInTheDocument()
+    expect(screen.getByText('RECENTLY SEEN')).toBeInTheDocument()
+    expect(screen.getByText(/first found/i)).toBeInTheDocument()
+    expect(screen.getByText(/last seen/i)).toBeInTheDocument()
     expect(screen.getByText(/toyota hilux 4x4/i)).toBeInTheDocument()
     expect(screen.getByText(/price_drop/i)).toBeInTheDocument()
     expect(screen.getByText(/listing photos unavailable for this capture/i)).toBeInTheDocument()
