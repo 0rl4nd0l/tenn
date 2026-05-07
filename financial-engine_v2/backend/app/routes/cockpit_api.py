@@ -42,7 +42,10 @@ from app.services.cockpit_service import (
     VALID_CHAT_ROUTING_POLICY_PREFERENCES,
     normalize_chat_routing_policy_preference,
 )
-from app.services.cockpit_home import build_market_session_snapshot
+from app.services.cockpit_home import (
+    build_attention_queue_snapshot,
+    build_market_session_snapshot,
+)
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
     resolve_llm_runtime_config,
@@ -380,6 +383,37 @@ class CockpitHomeMarketSessionResponse(BaseModel):
     next_event_label: str
     next_event_at: str
     as_of: str
+
+
+class CockpitHomeDataMissingSignalResponse(BaseModel):
+    section: str
+    code: str
+    message: str
+    source_id: str | None = None
+    evidence_id: str | None = None
+    source_label: str | None = None
+
+
+class CockpitHomeAttentionQueueItemResponse(BaseModel):
+    id: str
+    title: str
+    reason: str
+    status: str
+    priority: Literal["high", "medium", "low"]
+    source_type: str
+    created_at: str | None = None
+    updated_at: str | None = None
+    source_id: str | None = None
+    target_route: str | None = None
+
+
+class CockpitHomeAttentionQueueResponse(BaseModel):
+    ok: bool = True
+    data_state: Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
+    degraded: bool
+    data_missing: list[CockpitHomeDataMissingSignalResponse] = Field(default_factory=list)
+    as_of: str | None = None
+    items: list[CockpitHomeAttentionQueueItemResponse] = Field(default_factory=list)
 
 
 class CockpitHoldingCreateRequest(BaseModel):
@@ -4829,6 +4863,52 @@ def cockpit_home_market_session() -> CockpitHomeMarketSessionResponse:
         next_event_label=snapshot.next_event_label,
         next_event_at=snapshot.next_event_at,
         as_of=snapshot.as_of,
+    )
+
+
+@router.get("/home/attention-queue", response_model=CockpitHomeAttentionQueueResponse)
+def cockpit_home_attention_queue(limit: int = 50) -> CockpitHomeAttentionQueueResponse:
+    try:
+        service = CockpitService.get_instance()
+        snapshot = build_attention_queue_snapshot(service.state_store, limit=limit)
+    except Exception as exc:
+        logger.exception("Failed to build Cockpit Home attention queue")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to build attention queue: {str(exc)}",
+        ) from exc
+
+    return CockpitHomeAttentionQueueResponse(
+        ok=True,
+        data_state=snapshot.data_state,
+        degraded=snapshot.degraded,
+        data_missing=[
+            CockpitHomeDataMissingSignalResponse(
+                section=item.section,
+                code=item.code,
+                message=item.message,
+                source_id=item.source_id,
+                evidence_id=item.evidence_id,
+                source_label=item.source_label,
+            )
+            for item in snapshot.data_missing
+        ],
+        as_of=snapshot.as_of,
+        items=[
+            CockpitHomeAttentionQueueItemResponse(
+                id=item.id,
+                title=item.title,
+                reason=item.reason,
+                status=item.status,
+                priority=item.priority,
+                source_type=item.source_type,
+                created_at=item.created_at,
+                updated_at=item.updated_at,
+                source_id=item.source_id,
+                target_route=item.target_route,
+            )
+            for item in snapshot.items
+        ],
     )
 
 

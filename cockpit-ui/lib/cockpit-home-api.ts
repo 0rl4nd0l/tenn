@@ -65,6 +65,27 @@ interface MarketSessionRecord {
   as_of?: unknown;
 }
 
+interface AttentionQueueRecord {
+  id?: unknown;
+  title?: unknown;
+  reason?: unknown;
+  status?: unknown;
+  priority?: unknown;
+  source_type?: unknown;
+  created_at?: unknown;
+  updated_at?: unknown;
+  source_id?: unknown;
+  target_route?: unknown;
+}
+
+interface AttentionQueuePayload {
+  data_state?: unknown;
+  degraded?: unknown;
+  data_missing?: unknown;
+  as_of?: unknown;
+  items?: unknown;
+}
+
 interface MarketSessionAssembly {
   contract: CockpitHomeMarketSessionContract;
   health: CockpitHomeDataHealthContract;
@@ -81,6 +102,13 @@ interface NewsAssembly {
   missing: CockpitHomeDataMissingSignal[];
 }
 
+interface AttentionQueueAssembly {
+  state: CockpitHomeDeterministicState;
+  items: CockpitHomeAttentionItemContract[];
+  health: CockpitHomeDataHealthContract;
+  missing: CockpitHomeDataMissingSignal[];
+}
+
 const DEFAULT_COMMENTARY_LIMIT = 5;
 
 export async function buildCockpitHomeBffResponse(
@@ -93,36 +121,31 @@ export async function buildCockpitHomeBffResponse(
   const headers = new Headers(options.headers);
   const commentaryLimit = Math.max(1, Math.min(options.commentaryLimit ?? DEFAULT_COMMENTARY_LIMIT, 20));
 
-  const [healthRead, marketSessionRead, holdingsRead, commentaryRead] = await Promise.all([
+  const [healthRead, marketSessionRead, holdingsRead, commentaryRead, attentionQueueRead] = await Promise.all([
     readBackendJson(fetcher, backendUrl, '/api/health', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-session', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/holdings', headers),
     readBackendJson(fetcher, backendUrl, `/api/commentary/recent?limit=${commentaryLimit}`, headers),
+    readBackendJson(fetcher, backendUrl, '/api/cockpit/home/attention-queue', headers),
   ]);
 
   const marketSession = buildMarketSessionContract(marketSessionRead, now, nowIso);
   const portfolio = buildPortfolioContract(holdingsRead, nowIso);
   const news = buildNewsContracts(commentaryRead, nowIso);
   const marketMovers = buildUnimplementedSourceItems('market_movers', nowIso) as CockpitHomeMarketMoverContract[];
-  const attentionQueue = buildUnimplementedSourceItems('attention_queue', nowIso) as CockpitHomeAttentionItemContract[];
+  const attentionQueue = buildAttentionQueueContracts(attentionQueueRead, nowIso);
   const narrative = buildMissingNarrative(nowIso);
   const dataHealth = [
     buildBackendHealthItem(healthRead, nowIso),
     marketSession.health,
     portfolio.health,
     news.health,
+    attentionQueue.health,
     missingHealthItem(
       'market_movers',
       'Market movers',
       'NO_MARKET_MOVERS_ENDPOINT',
       'No backend market-movers endpoint is available for Cockpit Home v1.',
-      nowIso,
-    ),
-    missingHealthItem(
-      'attention_queue',
-      'Attention queue',
-      'NO_ATTENTION_QUEUE_ENDPOINT',
-      'No backend attention-queue endpoint is available for Cockpit Home v1.',
       nowIso,
     ),
     missingHealthItem(
@@ -139,7 +162,7 @@ export async function buildCockpitHomeBffResponse(
     ...portfolio.contract.data_missing,
     ...news.missing,
     ...marketMovers.flatMap((item) => item.state.data_missing),
-    ...attentionQueue.flatMap((item) => item.state.data_missing),
+    ...attentionQueue.missing,
     ...narrative.data_missing,
   ];
   const sectionStates = [
@@ -147,7 +170,8 @@ export async function buildCockpitHomeBffResponse(
     portfolio.contract,
     ...news.items.map((item) => item.state),
     ...marketMovers.map((item) => item.state),
-    ...attentionQueue.map((item) => item.state),
+    attentionQueue.state,
+    ...attentionQueue.items.map((item) => item.state),
     ...dataHealth,
     narrative,
   ];
@@ -162,7 +186,8 @@ export async function buildCockpitHomeBffResponse(
     portfolio: portfolio.contract,
     market_movers: marketMovers,
     news: news.items,
-    attention_queue: attentionQueue,
+    attention_queue_state: attentionQueue.state,
+    attention_queue: attentionQueue.items,
     data_health: dataHealth,
     narrative,
   };
@@ -446,6 +471,121 @@ function buildNewsContracts(read: UpstreamRead, nowIso: string): NewsAssembly {
   };
 }
 
+function buildAttentionQueueContracts(read: UpstreamRead, nowIso: string): AttentionQueueAssembly {
+  if (!read.ok) {
+    const missing = dataMissingSignal(
+      'attention_queue',
+      'NO_ATTENTION_QUEUE_ENDPOINT',
+      `Backend attention-queue endpoint unavailable: ${read.error}.`,
+      'missing_required_evidence',
+    );
+    const state = deterministicState('DATA_MISSING', null, [missing]);
+    return {
+      state,
+      items: [],
+      missing: [missing],
+      health: dataHealthItem('attention_queue', 'Attention queue', state, 'DATA_MISSING'),
+    };
+  }
+
+  const payload = readAttentionQueuePayload(read.payload);
+  const rawItems = readAttentionQueueItems(payload.items);
+  const backendMissing = readDataMissingSignals(payload.data_missing, 'attention_queue');
+  const asOf = stringOrNull(payload.as_of) ?? nowIso;
+  const payloadState = dataStateOrNull(payload.data_state) ?? 'READY';
+
+  if (!payload || !Array.isArray(payload.items)) {
+    const missing = dataMissingSignal(
+      'attention_queue',
+      'ATTENTION_QUEUE_RESPONSE_INVALID',
+      'Backend attention-queue endpoint returned an incomplete Cockpit Home payload.',
+      'degraded_runtime',
+    );
+    const state = deterministicState('DATA_MISSING', null, [missing]);
+    return {
+      state,
+      items: [],
+      missing: [missing],
+      health: dataHealthItem('attention_queue', 'Attention queue', state, 'DATA_MISSING'),
+    };
+  }
+
+  const items = rawItems.map((row, index): CockpitHomeAttentionItemContract => {
+    const id = requiredString(row.id);
+    const title = requiredString(row.title);
+    const reason = requiredString(row.reason);
+    const status = requiredString(row.status) || 'queued';
+    const sourceType = requiredString(row.source_type) || 'operational';
+    const priority = attentionPriorityOrLow(row.priority);
+    const createdAt = stringOrNull(row.created_at);
+    const updatedAt = stringOrNull(row.updated_at) ?? createdAt;
+    const itemMissing =
+      id && title && reason
+        ? []
+        : [
+            dataMissingSignal(
+              'attention_queue',
+              'ATTENTION_QUEUE_ITEM_INVALID',
+              'Backend attention-queue item did not include deterministic id, title, and reason fields.',
+              'degraded_runtime',
+            ),
+          ];
+    const state = deterministicState(
+      itemMissing.length > 0 ? 'DATA_MISSING' : 'READY',
+      itemMissing.length > 0 ? null : updatedAt ?? asOf,
+      itemMissing,
+    );
+    const evidenceLabel: CockpitHomeBackendSourceLabel =
+      itemMissing.length > 0 ? 'degraded_runtime' : 'operational_trace';
+
+    return {
+      id: id || `home-attention-queue:invalid-${index}`,
+      section: 'attention_queue',
+      title: title || 'Attention item unavailable',
+      ticker: null,
+      observed_at: updatedAt ?? createdAt ?? asOf,
+      state,
+      evidence: {
+        source_id: null,
+        source_kind: null,
+        source_label: evidenceLabel,
+        evidence_labels: [evidenceLabel],
+        resolvable: false,
+        resolver: 'none',
+        evidence_id: id || null,
+        document_id: null,
+        chunk_id: null,
+        url: null,
+        title: title || null,
+        published_at: updatedAt ?? createdAt ?? null,
+      },
+      priority,
+      description: reason || 'Attention item is missing a deterministic reason.',
+      reason: reason || 'Attention item is missing a deterministic reason.',
+      status,
+      source_type: sourceType,
+      created_at: createdAt,
+      updated_at: updatedAt,
+      source_id: null,
+      target_route: null,
+    };
+  });
+  const itemMissing = items.flatMap((item) => item.state.data_missing);
+  const missing = [...backendMissing, ...itemMissing];
+  const state = deterministicState(
+    missing.length > 0 ? 'PARTIAL' : payloadState,
+    asOf,
+    missing,
+  );
+
+  return {
+    state,
+    items,
+    missing,
+    health: dataHealthItem('attention_queue', 'Attention queue', state, `${items.length} queued`),
+  };
+}
+
 function buildUnimplementedSourceItems(section: CockpitHomeSectionKey, nowIso: string) {
   const codeBySection: Partial<Record<CockpitHomeSectionKey, string>> = {
     market_movers: 'NO_MARKET_MOVERS_ENDPOINT',
@@ -653,6 +793,20 @@ function readCommentaryItems(payload: unknown): CommentaryRecentItem[] {
   return items.filter((item): item is CommentaryRecentItem => Boolean(item) && typeof item === 'object');
 }
 
+function readAttentionQueuePayload(payload: unknown): AttentionQueuePayload {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+  return payload as AttentionQueuePayload;
+}
+
+function readAttentionQueueItems(payload: unknown): AttentionQueueRecord[] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload.filter((item): item is AttentionQueueRecord => Boolean(item) && typeof item === 'object');
+}
+
 function readMarketSession(payload: unknown): MarketSessionRecord {
   if (!payload || typeof payload !== 'object') {
     return {};
@@ -742,6 +896,76 @@ function marketSessionStateOrNull(value: unknown): MarketSessionState | null {
     return raw;
   }
   return null;
+}
+
+function dataStateOrNull(value: unknown): CockpitHomeDataState | null {
+  const raw = requiredString(value);
+  if (raw === 'READY' || raw === 'PARTIAL' || raw === 'DEGRADED' || raw === 'DATA_MISSING') {
+    return raw;
+  }
+  return null;
+}
+
+function attentionPriorityOrLow(value: unknown): CockpitHomeAttentionItemContract['priority'] {
+  const raw = requiredString(value);
+  if (raw === 'high' || raw === 'medium' || raw === 'low') {
+    return raw;
+  }
+  return 'low';
+}
+
+function readDataMissingSignals(
+  value: unknown,
+  fallbackSection: CockpitHomeSectionKey,
+): CockpitHomeDataMissingSignal[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map((item) => ({
+      section: sectionKeyOrFallback(item.section, fallbackSection),
+      code: requiredString(item.code) || 'DATA_MISSING',
+      message: requiredString(item.message) || 'Backend reported missing Home data.',
+      source_id: stringOrNull(item.source_id),
+      evidence_id: stringOrNull(item.evidence_id),
+      source_label: normalizeSourceLabelOrNull(item.source_label),
+    }));
+}
+
+function sectionKeyOrFallback(value: unknown, fallback: CockpitHomeSectionKey): CockpitHomeSectionKey {
+  const raw = requiredString(value);
+  const valid = new Set<CockpitHomeSectionKey>([
+    'market_session',
+    'portfolio',
+    'market_movers',
+    'news',
+    'attention_queue',
+    'data_health',
+    'session_summary',
+    'theme_candidates',
+    'tomorrow_prep',
+  ]);
+  return valid.has(raw as CockpitHomeSectionKey) ? (raw as CockpitHomeSectionKey) : fallback;
+}
+
+function normalizeSourceLabelOrNull(value: unknown): CockpitHomeBackendSourceLabel | null {
+  const raw = requiredString(value) as CockpitHomeBackendSourceLabel;
+  const valid = new Set<CockpitHomeBackendSourceLabel>([
+    'claim_verified',
+    'context_only',
+    'no_hit',
+    'operational_trace',
+    'local_personal_data',
+    'memory_context',
+    'external_web_context',
+    'local_news_context',
+    'financial_truth',
+    'degraded_runtime',
+    'missing_required_evidence',
+    'unknown_unclassified',
+  ]);
+  return valid.has(raw) ? raw : null;
 }
 
 function formatMelbourneDate(now: Date): string {

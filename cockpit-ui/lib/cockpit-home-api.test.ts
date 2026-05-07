@@ -63,6 +63,29 @@ describe('Cockpit Home BFF route', () => {
             },
           ],
         }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          ok: true,
+          data_state: 'READY',
+          degraded: false,
+          data_missing: [],
+          as_of: '2026-05-07T01:15:00Z',
+          items: [
+            {
+              id: 'market_update_followup:fu-1',
+              title: 'BHP: review',
+              reason: 'notable price move',
+              status: 'queued',
+              priority: 'high',
+              source_type: 'market_update_followup',
+              created_at: '2026-05-07T01:15:00Z',
+              updated_at: '2026-05-07T01:15:00Z',
+              source_id: null,
+              target_route: null,
+            },
+          ],
+        }),
       );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -72,13 +95,14 @@ describe('Cockpit Home BFF route', () => {
       }),
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(4);
-    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
-      'http://backend.internal:8000/api/health',
-      'http://backend.internal:8000/api/cockpit/home/market-session',
-      'http://backend.internal:8000/api/cockpit/holdings',
-      'http://backend.internal:8000/api/commentary/recent?limit=5',
-    ]);
+	    expect(fetchMock).toHaveBeenCalledTimes(5);
+	    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+	      'http://backend.internal:8000/api/health',
+	      'http://backend.internal:8000/api/cockpit/home/market-session',
+	      'http://backend.internal:8000/api/cockpit/holdings',
+	      'http://backend.internal:8000/api/commentary/recent?limit=5',
+	      'http://backend.internal:8000/api/cockpit/home/attention-queue',
+	    ]);
     for (const call of fetchMock.mock.calls) {
       const init = call[1] as RequestInit;
       expect((init.headers as Headers).get('X-API-Key')).toBe('test-key');
@@ -121,12 +145,29 @@ describe('Cockpit Home BFF route', () => {
       },
     });
     expect(payload.market_movers[0].state.data_state).toBe('DATA_MISSING');
-    expect(payload.attention_queue[0].state.data_state).toBe('DATA_MISSING');
+    expect(payload.attention_queue_state.data_state).toBe('READY');
+    expect(payload.attention_queue[0]).toMatchObject({
+      id: 'market_update_followup:fu-1',
+      title: 'BHP: review',
+      priority: 'high',
+      status: 'queued',
+      source_type: 'market_update_followup',
+      evidence: {
+        source_id: null,
+        source_label: 'operational_trace',
+        evidence_labels: ['operational_trace'],
+        resolvable: false,
+        resolver: 'none',
+      },
+    });
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).toContain(
       'PORTFOLIO_DAY_CHANGE_UNAVAILABLE',
     );
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).not.toContain(
       'NO_MARKET_SESSION_ENDPOINT',
+    );
+    expect(payload.data_missing.map((signal: { code: string }) => signal.code)).not.toContain(
+      'NO_ATTENTION_QUEUE_ENDPOINT',
     );
   });
 
@@ -139,7 +180,7 @@ describe('Cockpit Home BFF route', () => {
       fetcher,
     });
 
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher).toHaveBeenCalledTimes(5);
     expect(payload.ok).toBe(true);
     expect(payload.generated_at).toBe('2026-05-07T02:00:00.000Z');
     expect(payload.data_state).toBe('DATA_MISSING');
@@ -158,6 +199,7 @@ describe('Cockpit Home BFF route', () => {
         'HOLDINGS_ENDPOINT_UNAVAILABLE',
         'COMMENTARY_RECENT_UNAVAILABLE',
         'MARKET_SESSION_ENDPOINT_UNAVAILABLE',
+        'NO_ATTENTION_QUEUE_ENDPOINT',
       ]),
     );
   });
@@ -175,7 +217,8 @@ describe('Cockpit Home BFF route', () => {
           ],
         }),
       )
-      .mockResolvedValueOnce(jsonResponse({ items: [] }));
+      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(attentionQueueResponse([]));
 
     const payload = await buildCockpitHomeBffResponse({
       now: new Date('2026-05-07T02:00:00Z'),
@@ -206,7 +249,8 @@ describe('Cockpit Home BFF route', () => {
             },
           ],
         }),
-      );
+      )
+      .mockResolvedValueOnce(attentionQueueResponse([]));
 
     const payload = await buildCockpitHomeBffResponse({
       now: new Date('2026-05-07T02:00:00Z'),
@@ -264,6 +308,67 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
     expect(screen.getByText('PORTFOLIO_DAY_CHANGE_UNAVAILABLE')).toBeInTheDocument();
     expect(screen.getByText('CONTEXT ONLY')).toBeInTheDocument();
+    expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
+  });
+
+  it('renders backend attention queue items without mock substitution', async () => {
+    const base = homeBffPayload();
+    const payload = homeBffPayload({
+      data_missing: base.data_missing.filter((signal) => signal.section !== 'attention_queue'),
+      attention_queue_state: {
+        data_state: 'READY',
+        degraded: false,
+        data_missing: [],
+        as_of: '2026-05-07T01:15:00Z',
+      },
+      attention_queue: [
+        {
+          id: 'market_update_followup:fu-1',
+          section: 'attention_queue',
+          title: 'BHP: review',
+          ticker: null,
+          observed_at: '2026-05-07T01:15:00Z',
+          state: {
+            data_state: 'READY',
+            degraded: false,
+            data_missing: [],
+            as_of: '2026-05-07T01:15:00Z',
+          },
+          evidence: {
+            source_id: null,
+            source_kind: null,
+            source_label: 'operational_trace',
+            evidence_labels: ['operational_trace'],
+            resolvable: false,
+            resolver: 'none',
+            evidence_id: 'market_update_followup:fu-1',
+            document_id: null,
+            chunk_id: null,
+            url: null,
+            title: 'BHP: review',
+            published_at: '2026-05-07T01:15:00Z',
+          },
+          priority: 'high',
+          description: 'notable price move',
+          reason: 'notable price move',
+          status: 'queued',
+          source_type: 'market_update_followup',
+          created_at: '2026-05-07T01:15:00Z',
+          updated_at: '2026-05-07T01:15:00Z',
+          source_id: null,
+          target_route: null,
+        },
+      ],
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+
+    render(createElement(CockpitHomePage));
+
+    expect(await screen.findByText('BHP: review')).toBeInTheDocument();
+    expect(screen.getByText('notable price move')).toBeInTheDocument();
+    expect(screen.getByText('queued')).toBeInTheDocument();
+    expect(screen.getByText('market_update_followup')).toBeInTheDocument();
+    expect(screen.queryByText('NO_ATTENTION_QUEUE_ENDPOINT')).not.toBeInTheDocument();
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });
 
@@ -349,6 +454,17 @@ function marketSessionResponse() {
     next_event_at: '2026-05-07T06:00:00+00:00',
     as_of: '2026-05-07T02:00:00+00:00',
   };
+}
+
+function attentionQueueResponse(items: unknown[]) {
+  return jsonResponse({
+    ok: true,
+    data_state: 'READY',
+    degraded: false,
+    data_missing: [],
+    as_of: '2026-05-07T02:00:00Z',
+    items,
+  });
 }
 
 function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): CockpitHomeBffResponse {
@@ -463,6 +579,12 @@ function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): Cockpi
         relevance: 'medium',
       },
     ],
+    attention_queue_state: {
+      data_state: 'DATA_MISSING',
+      degraded: true,
+      data_missing: [attentionMissing],
+      as_of: now,
+    },
     attention_queue: [
       {
         id: 'home-attention-queue:data-missing',
@@ -478,6 +600,13 @@ function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): Cockpi
         evidence: missingEvidence(),
         priority: 'low',
         description: 'No backend attention-queue data is available for Cockpit Home v1.',
+        reason: 'No backend attention-queue data is available for Cockpit Home v1.',
+        status: 'unavailable',
+        source_type: 'missing',
+        created_at: now,
+        updated_at: now,
+        source_id: null,
+        target_route: null,
       },
     ],
     data_health: [

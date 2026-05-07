@@ -462,12 +462,16 @@ function LiveWorkspace({
   const readyMovers = response.market_movers.filter(isRenderableMarketMover).map(mapMarketMover);
   const attentionItems = response.attention_queue
     .filter((item) => !cockpitHomeHasDataMissing(item.state))
-    .map((item) => ({
-      id: item.id,
-      label: item.title,
-      priority: item.priority,
-      description: item.description,
-    }));
+      .map((item) => ({
+        id: item.id,
+        label: item.title,
+        priority: item.priority,
+        description: item.description,
+        status: item.status,
+        source: item.source_type,
+        updatedAt: item.updated_at ?? item.created_at ?? null,
+      }));
+  const attentionState = sectionState('attention_queue', response);
 
   return (
     <div className="grid grid-cols-12 gap-6 max-w-[1600px] mx-auto">
@@ -507,8 +511,12 @@ function LiveWorkspace({
           ) : (
             <SectionStatePanel
               title="Attention Queue"
-              state={sectionState('attention_queue', response)}
-              message="No backend attention-queue data is available for Cockpit Home v1."
+              state={attentionState}
+              message={
+                attentionState === 'READY'
+                  ? 'No attention items are currently queued.'
+                  : 'No backend attention-queue data is available for Cockpit Home v1.'
+              }
               signals={sectionSignals('attention_queue', response)}
             />
           )}
@@ -877,7 +885,7 @@ function sectionState(section: string, response: CockpitHomeBffResponse): Cockpi
     return response.market_movers.some((item) => item.state.data_state !== 'DATA_MISSING') ? 'PARTIAL' : 'DATA_MISSING';
   }
   if (section === 'attention_queue') {
-    return response.attention_queue.some((item) => item.state.data_state !== 'DATA_MISSING') ? 'PARTIAL' : 'DATA_MISSING';
+    return response.attention_queue_state.data_state;
   }
   return 'DATA_MISSING';
 }
@@ -886,6 +894,7 @@ function sectionSignals(section: string, response: CockpitHomeBffResponse): Cock
   return uniqueDataMissingSignals([
     ...response.data_missing.filter((signal) => signal.section === section),
     ...(section === 'market_movers' ? response.market_movers.flatMap((item) => item.state.data_missing) : []),
+    ...(section === 'attention_queue' ? response.attention_queue_state.data_missing : []),
     ...(section === 'attention_queue' ? response.attention_queue.flatMap((item) => item.state.data_missing) : []),
     ...(section === 'news' ? response.news.flatMap((item) => item.state.data_missing) : []),
   ]);

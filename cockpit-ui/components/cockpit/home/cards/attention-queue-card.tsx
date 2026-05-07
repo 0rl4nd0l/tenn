@@ -36,6 +36,13 @@ export function AttentionQueueCard({ items }: AttentionQueueCardProps) {
                   <span className="text-[13px] font-sans font-semibold text-foreground leading-tight">
                     {item.label}
                   </span>
+                  {(item.status || item.source || item.updatedAt) && (
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase text-muted-foreground">
+                      {item.status && <span>{item.status}</span>}
+                      {item.source && <span>{item.source}</span>}
+                      {item.updatedAt && <span>{formatShortTimestamp(item.updatedAt)}</span>}
+                    </div>
+                  )}
                   <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">
                     {item.description}
                   </p>
@@ -47,4 +54,18 @@ export function AttentionQueueCard({ items }: AttentionQueueCardProps) {
       </CardContent>
     </Card>
   );
+}
+
+function formatShortTimestamp(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return value;
+  }
+  return new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Melbourne',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp));
 }

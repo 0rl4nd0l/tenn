@@ -81,6 +81,9 @@ export interface CockpitHomeState {
     label: string;
     priority: 'high' | 'medium' | 'low';
     description: string;
+    status?: string;
+    source?: string;
+    updatedAt?: string | null;
   }[];
   dataHealth: DataHealthItem[];
   // State-specific additions
@@ -202,6 +205,13 @@ export interface CockpitHomeNewsItemContract extends CockpitHomeSourceBearingIte
 export interface CockpitHomeAttentionItemContract extends CockpitHomeSourceBearingItem {
   priority: 'high' | 'medium' | 'low';
   description: string;
+  status: string;
+  source_type: string;
+  reason: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  source_id?: string | null;
+  target_route?: string | null;
 }
 
 export interface CockpitHomeDataHealthContract extends CockpitHomeDeterministicState {
@@ -222,11 +232,12 @@ export interface CockpitHomeBffResponse extends CockpitHomeDeterministicState {
   source_label_taxonomy_version: CockpitHomeSourceLabelTaxonomyVersion;
   market_session: CockpitHomeMarketSessionContract;
   portfolio: CockpitHomePortfolioContract;
-  market_movers: CockpitHomeMarketMoverContract[];
-  news: CockpitHomeNewsItemContract[];
-  attention_queue: CockpitHomeAttentionItemContract[];
-  data_health: CockpitHomeDataHealthContract[];
-  narrative: CockpitHomeNarrativeContract;
+	  market_movers: CockpitHomeMarketMoverContract[];
+	  news: CockpitHomeNewsItemContract[];
+	  attention_queue_state: CockpitHomeDeterministicState;
+	  attention_queue: CockpitHomeAttentionItemContract[];
+	  data_health: CockpitHomeDataHealthContract[];
+	  narrative: CockpitHomeNarrativeContract;
 }
 
 export interface CockpitHomeAttachedSource {

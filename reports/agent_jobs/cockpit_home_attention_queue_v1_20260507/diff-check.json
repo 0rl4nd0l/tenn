@@ -1,0 +1,84 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/home/cards/attention-queue-card.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/home/home-page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-home-api.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-home-api.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-home-contract.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/types/cockpit-home.ts",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/cockpit_home.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_home_attention_queue_v1_20260507.md",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_home_attention_queue.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_home_attention_queue_v1_20260507.md",
+        "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507/**",
+        "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507/INVESTIGATION.md",
+        "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507/README.md",
+        "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507/diff-check.json",
+        "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507/status.json",
+        "cockpit-ui/types/cockpit-home.ts",
+        "cockpit-ui/lib/cockpit-home-contract.ts",
+        "cockpit-ui/lib/cockpit-home-api.ts",
+        "cockpit-ui/lib/cockpit-home-api.test.ts",
+        "cockpit-ui/lib/cockpit-home-contract.test.ts",
+        "cockpit-ui/lib/mock/cockpit-home-fixtures.ts",
+        "cockpit-ui/app/api/cockpit/home/route.ts",
+        "cockpit-ui/components/cockpit/home/**",
+        "cockpit-ui/components/cockpit/home/home-page.tsx",
+        "cockpit-ui/components/cockpit/home/cards/attention-queue-card.tsx",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/app/services/cockpit_home.py",
+        "financial-engine_v2/backend/tests/test_cockpit_home_attention_queue.py"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_home_attention_queue_v1_20260507",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_home_attention_queue_v1_20260507",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

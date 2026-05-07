@@ -135,4 +135,30 @@ describe('Cockpit Home contract helpers', () => {
       blocked_reason: 'DATA_MISSING',
     });
   });
+
+  it('does not make operational attention queue items chat-attachable', () => {
+    const attentionItem = {
+      ...baseSourceItem,
+      id: 'market_update_followup:fu-1',
+      section: 'attention_queue',
+      title: 'BHP: review',
+      evidence: {
+        ...baseSourceItem.evidence,
+        source_id: null,
+        source_kind: null,
+        source_label: 'operational_trace',
+        evidence_labels: ['operational_trace'],
+        resolvable: false,
+        resolver: 'none',
+      },
+    } satisfies CockpitHomeSourceBearingItem;
+
+    expect(buildCockpitHomeChatHandoff(attentionItem)).toEqual({
+      route: '/full-chat',
+      chat_screen: 'ChatScreen',
+      ticker: 'BHP',
+      attached_sources: [],
+      blocked_reason: 'UNRESOLVABLE_SOURCE',
+    });
+  });
 });
