@@ -486,18 +486,18 @@ export function MetricCoverageTabPanel({
               Showing {filteredRows.length} of {rows.length} metric expectation row(s).
             </div>
 
-            <div className="rounded-lg border border-border/60 pb-2">
-              <Table className="min-w-[1500px] table-fixed">
+            <div className="rounded-lg border border-border/60 pb-2 overflow-x-auto">
+              <Table className="min-w-[900px] table-fixed w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">Ticker</TableHead>
-                    <TableHead className="w-[220px]">Document</TableHead>
-                    <TableHead className="w-[120px]">Period</TableHead>
-                    <TableHead className="w-[160px]">Metric</TableHead>
-                    <TableHead className="w-[140px]">Expected</TableHead>
-                    <TableHead className="w-[200px]">Classification</TableHead>
-                    <TableHead className="w-[300px]">Source evidence</TableHead>
-                    <TableHead className="w-[280px]">Recommendation</TableHead>
+                    <TableHead className="w-[60px]">Ticker</TableHead>
+                    <TableHead className="w-[140px]">Document</TableHead>
+                    <TableHead className="w-[100px]">Period</TableHead>
+                    <TableHead className="w-[180px]">Metric</TableHead>
+                    <TableHead className="w-[110px]">Expected</TableHead>
+                    <TableHead className="w-[130px]">Status</TableHead>
+                    <TableHead className="w-[140px]">Evidence</TableHead>
+                    <TableHead className="w-[40px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -519,38 +519,32 @@ export function MetricCoverageTabPanel({
                         }
                       }}
                     >
-                      <TableCell className="whitespace-normal align-top font-mono text-xs">{row.ticker || '-'}</TableCell>
-                      <TableCell className="whitespace-normal break-all align-top font-mono text-xs" title={row.document_id}>{row.fixture || row.document_id}</TableCell>
-                      <TableCell className="whitespace-normal align-top text-xs text-muted-foreground">
+                      <TableCell className="align-top font-mono text-xs truncate whitespace-nowrap" title={row.ticker ?? undefined}>{row.ticker || '-'}</TableCell>
+                      <TableCell className="align-top font-mono text-xs truncate whitespace-nowrap" title={(row.fixture || row.document_id) ?? undefined}>{row.fixture || row.document_id}</TableCell>
+                      <TableCell className="align-top text-xs text-muted-foreground truncate whitespace-nowrap" title={`${row.period.period_type || '-'} ${row.period.period_end || ''}`}>
                         {row.period.period_type || '-'} {row.period.period_end || ''}
                       </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top font-mono text-xs">{row.metric_name}</TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs">{formatExpected(row)}</TableCell>
-                      <TableCell className="whitespace-normal align-top">
-                        <Badge className={WRAPPING_BADGE_CLASS} variant={classificationVariant(row.classification)}>{row.classification}</Badge>
+                      <TableCell className="align-top font-mono text-xs truncate whitespace-nowrap" title={row.metric_name ?? undefined}>{row.metric_name}</TableCell>
+                      <TableCell className="align-top text-xs truncate whitespace-nowrap" title={formatExpected(row)}>{formatExpected(row)}</TableCell>
+                      <TableCell className="align-top">
+                        <Badge className="max-w-full truncate whitespace-nowrap text-[10px]" variant={classificationVariant(row.classification)} title={row.classification ?? undefined}>
+                          {row.classification}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs text-muted-foreground">
+                      <TableCell className="align-top text-xs text-muted-foreground">
                         <div className="flex flex-wrap gap-1">
-                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_pdf_status === 'present' ? 'outline' : 'critical'}>{row.source_pdf_status}</Badge>
-                          <Badge className={WRAPPING_BADGE_CLASS} variant="outline">{row.source_evidence_status}</Badge>
-                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.precise_source_evidence ? 'default' : 'outline'}>{row.precise_source_evidence ? 'precise evidence' : 'evidence not precise'}</Badge>
-                          {row.broad_or_suspect_source_evidence ? <Badge className={WRAPPING_BADGE_CLASS} variant="secondary">broad/suspect</Badge> : null}
-                          {row.human_review_required ? <Badge className={WRAPPING_BADGE_CLASS} variant="secondary">human review</Badge> : null}
-                          {row.blocked_ambiguous ? <Badge className={WRAPPING_BADGE_CLASS} variant="critical">blocked ambiguous</Badge> : null}
-                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_pdf_present ? 'outline' : 'critical'}>{row.source_pdf_present ? 'pdf present' : 'pdf missing'}</Badge>
-                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_page_present ? 'outline' : 'critical'}>{row.source_page_present ? 'page present' : 'page missing'}</Badge>
-                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_row_present ? 'outline' : 'critical'}>{row.source_row_present ? 'row present' : 'row missing'}</Badge>
-                          <Badge className={WRAPPING_BADGE_CLASS} variant={row.source_table_present ? 'outline' : 'secondary'}>{row.source_table_present ? 'table present' : 'table missing'}</Badge>
-                          {row.source_page ? <Badge className={WRAPPING_BADGE_CLASS} variant="outline">p{row.source_page}</Badge> : null}
-                          {row.source_table ? <Badge className={WRAPPING_BADGE_CLASS} variant="outline">table {row.source_table}</Badge> : null}
+                          {row.source_pdf_status === 'present' ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 uppercase font-medium">PDF</Badge>
+                          ) : (
+                            <Badge variant="critical" className="text-[9px] px-1 py-0 h-3.5 uppercase font-medium">NO PDF</Badge>
+                          )}
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 uppercase font-medium">{row.source_evidence_status}</Badge>
                         </div>
-                        {row.source_pdf_path ? <div className="mt-1 break-all font-mono" title={row.source_pdf_path}>{row.source_pdf_path}</div> : null}
-                        {row.source_row ? <div className="mt-1 whitespace-normal break-words" title={row.source_row}>{row.source_row}</div> : null}
                       </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs text-muted-foreground">
-                        <div className="break-words font-mono">{row.recommended_action}</div>
-                        <div className="break-words">{row.review_status} / {row.production_metric_tier}</div>
-                        {row.ambiguity_reason ? <div className="break-words">ambiguity: {row.ambiguity_reason}</div> : null}
+                      <TableCell className="align-top text-right pr-4">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <FileSearch className="h-4 w-4 text-muted-foreground" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

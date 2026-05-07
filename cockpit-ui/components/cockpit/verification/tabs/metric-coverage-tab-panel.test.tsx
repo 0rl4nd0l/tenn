@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -232,7 +232,7 @@ function renderPanel(props: Partial<ComponentProps<typeof MetricCoverageTabPanel
 }
 
 describe('MetricCoverageTabPanel', () => {
-  it('renders summary counts, review-only copy, rows, and artifacts', () => {
+  it('renders summary counts, review-only copy, rows, and artifacts', async () => {
     const { container } = renderPanel()
 
     expect(screen.getByText('Confirmed Metric Coverage Review')).toBeInTheDocument()
@@ -247,16 +247,18 @@ describe('MetricCoverageTabPanel', () => {
     expect(screen.getByText('70')).toBeInTheDocument()
     expect(screen.getAllByText(/review_packet\.json/).length).toBeGreaterThan(0)
     expect(screen.getByText('BHP_A_2021-06-30.json')).toBeInTheDocument()
-    expect(screen.getByText('score_in_confirmed_metric_coverage')).toBeInTheDocument()
+    
+    // Check that we have truncated cells now
+    expect(container.querySelectorAll('td.truncate')).not.toHaveLength(0)
+    expect(screen.getByText('BHP_A_2021-06-30.json').closest('td')).toHaveClass('truncate')
+
+    // Click row to open details and find the long fields
+    const rowElement = screen.getByText('BHP_A_2021-06-30.json').closest('tr')!
+    fireEvent.click(rowElement)
+
+    expect(await screen.findByText('score_in_confirmed_metric_coverage')).toBeInTheDocument()
     expect(screen.getByText('Revenue 60,817')).toBeInTheDocument()
-    expect(screen.getAllByText('precise evidence')).toHaveLength(2)
-    expect(screen.getAllByText('broad/suspect')).toHaveLength(2)
-    expect(screen.getAllByText('human review')).toHaveLength(2)
-    expect(screen.getByText('blocked ambiguous')).toBeInTheDocument()
-    expect(container.querySelectorAll('td.truncate')).toHaveLength(0)
-    expect(screen.getByText('BHP_A_2021-06-30.json').closest('td')).toHaveClass('whitespace-normal')
-    expect(screen.getAllByText('CONFIRMED_SOURCE_EVIDENCED')[0].closest('[data-slot="badge"]')).toHaveClass('whitespace-normal')
-    expect(screen.getByText('score_in_confirmed_metric_coverage').closest('td')).toHaveClass('whitespace-normal')
+    expect(screen.getByText('precise evidence')).toBeInTheDocument()
   })
 
   it('calls the run and export actions', async () => {
