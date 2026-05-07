@@ -1,6 +1,20 @@
 export type MarketSessionState = 'PRE_MARKET' | 'OPEN' | 'POST_MARKET' | 'DEGRADED';
 
-export type TrustLevel = 'CLAIM-VERIFIED' | 'CONTEXT-ONLY' | 'NO-HIT' | 'OPERATIONAL-TRACE' | 'DEGRADED-RUNTIME' | 'MISSING-EVIDENCE' | 'STALE' | 'EVIDENCE-READY';
+export type TrustLevel =
+  | 'CLAIM-VERIFIED'
+  | 'CONTEXT-ONLY'
+  | 'NO-HIT'
+  | 'OPERATIONAL-TRACE'
+  | 'LOCAL-PERSONAL-DATA'
+  | 'MEMORY-CONTEXT'
+  | 'EXTERNAL-WEB-CONTEXT'
+  | 'LOCAL-NEWS-CONTEXT'
+  | 'FINANCIAL-TRUTH'
+  | 'DEGRADED-RUNTIME'
+  | 'MISSING-EVIDENCE'
+  | 'UNKNOWN-UNCLASSIFIED'
+  | 'STALE'
+  | 'EVIDENCE-READY';
 
 export interface DataHealthItem {
   label: string;
@@ -61,4 +75,153 @@ export interface CockpitHomeState {
   sessionSummary?: string;
   themeCandidates?: ThemeCandidate[];
   tomorrowPrep?: string[];
+}
+
+export type CockpitHomeSourceLabelTaxonomyVersion = 'source_label_semantics_v1';
+
+export type CockpitHomeBackendSourceLabel =
+  | 'claim_verified'
+  | 'context_only'
+  | 'no_hit'
+  | 'operational_trace'
+  | 'local_personal_data'
+  | 'memory_context'
+  | 'external_web_context'
+  | 'local_news_context'
+  | 'financial_truth'
+  | 'degraded_runtime'
+  | 'missing_required_evidence'
+  | 'unknown_unclassified';
+
+export type CockpitHomeDataState = 'READY' | 'PARTIAL' | 'DEGRADED' | 'DATA_MISSING';
+
+export type CockpitHomeSectionKey =
+  | 'market_session'
+  | 'portfolio'
+  | 'market_movers'
+  | 'news'
+  | 'attention_queue'
+  | 'data_health'
+  | 'session_summary'
+  | 'theme_candidates'
+  | 'tomorrow_prep';
+
+export type CockpitHomeSourceKind = 'ephemeral' | 'concat' | 'primary';
+
+export interface CockpitHomeDataMissingSignal {
+  section: CockpitHomeSectionKey;
+  code: string;
+  message: string;
+  source_id?: string | null;
+  evidence_id?: string | null;
+  source_label?: CockpitHomeBackendSourceLabel | null;
+}
+
+export interface CockpitHomeDeterministicState {
+  data_state: CockpitHomeDataState;
+  degraded: boolean;
+  data_missing: CockpitHomeDataMissingSignal[];
+  as_of: string | null;
+}
+
+export interface CockpitHomeEvidenceIdentity {
+  source_id: string | null;
+  source_kind: CockpitHomeSourceKind | null;
+  source_label: CockpitHomeBackendSourceLabel;
+  evidence_labels: CockpitHomeBackendSourceLabel[];
+  resolvable: boolean;
+  resolver: 'cockpit_chat_attached_sources' | 'home_source_detail' | 'none';
+  evidence_id?: string | null;
+  document_id?: string | null;
+  chunk_id?: string | null;
+  url?: string | null;
+  title?: string | null;
+  published_at?: string | null;
+}
+
+export interface CockpitHomeSourceBearingItem {
+  id: string;
+  section: CockpitHomeSectionKey;
+  title: string;
+  ticker?: string | null;
+  observed_at?: string | null;
+  state: CockpitHomeDeterministicState;
+  evidence: CockpitHomeEvidenceIdentity;
+}
+
+export interface CockpitHomeMarketSessionContract extends CockpitHomeDeterministicState {
+  session: MarketSessionState;
+  exchange: 'ASX';
+  timezone: 'Australia/Melbourne';
+  session_date: string | null;
+  next_event_label: string | null;
+  next_event_at: string | null;
+}
+
+export interface CockpitHomePortfolioContract extends CockpitHomeDeterministicState {
+  total_value: number | null;
+  day_change: number | null;
+  day_change_percent: number | null;
+  coverage_percent: number | null;
+  holdings_count: number;
+  priced_holdings_count: number;
+}
+
+export interface CockpitHomeMarketMoverContract extends CockpitHomeSourceBearingItem {
+  ticker: string;
+  price: number | null;
+  change: number | null;
+  change_percent: number | null;
+  reason: string | null;
+}
+
+export interface CockpitHomeNewsItemContract extends CockpitHomeSourceBearingItem {
+  ticker: string | null;
+  headline: string;
+  source_name: string | null;
+  relevance: 'high' | 'medium' | 'low';
+}
+
+export interface CockpitHomeAttentionItemContract extends CockpitHomeSourceBearingItem {
+  priority: 'high' | 'medium' | 'low';
+  description: string;
+}
+
+export interface CockpitHomeDataHealthContract extends CockpitHomeDeterministicState {
+  section: CockpitHomeSectionKey;
+  label: string;
+  value: string | null;
+}
+
+export interface CockpitHomeNarrativeContract extends CockpitHomeDeterministicState {
+  session_summary: string | null;
+  theme_candidates: ThemeCandidate[];
+  tomorrow_prep: string[];
+}
+
+export interface CockpitHomeBffResponse extends CockpitHomeDeterministicState {
+  ok: boolean;
+  generated_at: string;
+  source_label_taxonomy_version: CockpitHomeSourceLabelTaxonomyVersion;
+  market_session: CockpitHomeMarketSessionContract;
+  portfolio: CockpitHomePortfolioContract;
+  market_movers: CockpitHomeMarketMoverContract[];
+  news: CockpitHomeNewsItemContract[];
+  attention_queue: CockpitHomeAttentionItemContract[];
+  data_health: CockpitHomeDataHealthContract[];
+  narrative: CockpitHomeNarrativeContract;
+}
+
+export interface CockpitHomeAttachedSource {
+  source_id: string;
+  source_kind: CockpitHomeSourceKind;
+}
+
+export interface CockpitHomeChatHandoff {
+  route: '/full-chat';
+  chat_screen: 'ChatScreen';
+  ticker?: string | null;
+  initial_prompt?: string;
+  attached_sources: CockpitHomeAttachedSource[];
+  blocked_reason?: 'DATA_MISSING' | 'DEGRADED' | 'UNRESOLVABLE_SOURCE';
 }

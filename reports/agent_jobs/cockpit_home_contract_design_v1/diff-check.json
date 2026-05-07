@@ -1,0 +1,28 @@
+{
+  "changed_files": [],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_home_contract_design_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_home_contract_design_v1.md",
+        "reports/agent_jobs/cockpit_home_contract_design_v1/**",
+        "cockpit-ui/types/cockpit-home.ts",
+        "cockpit-ui/lib/cockpit-home-contract.ts",
+        "cockpit-ui/lib/cockpit-home-contract.test.ts"
+      ],
+      "approval_required": true,
+      "job_id": "cockpit_home_contract_design_v1",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_home_contract_design_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
