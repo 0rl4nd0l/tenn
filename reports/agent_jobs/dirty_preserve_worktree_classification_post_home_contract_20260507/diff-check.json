@@ -1,0 +1,54 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/dirty_preserve_worktree_classification_post_home_contract_20260507.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/legacy_chat_envelope_merge_strategy_audit_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/marketplace_matches_workflow_audit_v1.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/legacy_chat_envelope_merge_strategy_audit_v1.md",
+    "docs/agent_tasks/marketplace_matches_workflow_audit_v1.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/legacy_chat_envelope_merge_strategy_audit_v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/marketplace_matches_workflow_audit_v1.md is outside allowed_files"
+    },
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/dirty_preserve_worktree_classification_post_home_contract_20260507/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/dirty_preserve_worktree_classification_post_home_contract_20260507.md",
+        "reports/agent_jobs/dirty_preserve_worktree_classification_post_home_contract_20260507/**"
+      ],
+      "approval_required": false,
+      "job_id": "dirty_preserve_worktree_classification_post_home_contract_20260507",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/dirty_preserve_worktree_classification_post_home_contract_20260507",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1200
+    },
+    "ok": true
+  }
+}
