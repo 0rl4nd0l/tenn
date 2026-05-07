@@ -36,6 +36,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
@@ -380,7 +381,7 @@ export function CockpitSidebar({
                       <SidebarMenuButton
                         isActive={sessionId === s.sessionId}
                         className={cn(
-                          "group/session pr-8 relative",
+                          "group/session",
                           sessionId === s.sessionId && "bg-sidebar-accent"
                         )}
                         onClick={() => setSessionId(s.sessionId)}
@@ -390,17 +391,16 @@ export function CockpitSidebar({
                         <span className="truncate flex-1">
                           {s.title || 'Untitled Chat'}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 absolute right-1 opacity-70 md:opacity-0 md:group-hover/session:opacity-100 md:group-focus-within/session:opacity-100 transition-opacity hover:text-destructive"
-                          onClick={(e) => handleDeleteSession(s.sessionId, e)}
-                          title="Delete chat session"
-                          aria-label="Delete chat session"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </SidebarMenuButton>
+                      <SidebarMenuAction
+                        showOnHover
+                        className="opacity-70 hover:text-destructive"
+                        onClick={(e) => handleDeleteSession(s.sessionId, e)}
+                        title="Delete chat session"
+                        aria-label={`Delete chat session: ${s.title || 'Untitled Chat'}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </SidebarMenuAction>
                     </SidebarMenuItem>
                   ))
                 )}
