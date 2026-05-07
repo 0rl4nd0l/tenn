@@ -8,10 +8,12 @@ import type {
   CockpitHomeDataMissingSignal,
   CockpitHomeDataState,
   CockpitHomeDeterministicState,
+  CockpitHomeMarketSessionContract,
   CockpitHomeMarketMoverContract,
   CockpitHomeNewsItemContract,
   CockpitHomePortfolioContract,
   CockpitHomeSectionKey,
+  MarketSessionState,
 } from '@/types/cockpit-home';
 
 export type CockpitHomeUpstreamFetch = (input: string, init: RequestInit) => Promise<Response>;
@@ -53,6 +55,21 @@ interface CommentaryRecentItem {
   approved_at?: unknown;
 }
 
+interface MarketSessionRecord {
+  session?: unknown;
+  exchange?: unknown;
+  timezone?: unknown;
+  session_date?: unknown;
+  next_event_label?: unknown;
+  next_event_at?: unknown;
+  as_of?: unknown;
+}
+
+interface MarketSessionAssembly {
+  contract: CockpitHomeMarketSessionContract;
+  health: CockpitHomeDataHealthContract;
+}
+
 interface PortfolioAssembly {
   contract: CockpitHomePortfolioContract;
   health: CockpitHomeDataHealthContract;
@@ -76,13 +93,14 @@ export async function buildCockpitHomeBffResponse(
   const headers = new Headers(options.headers);
   const commentaryLimit = Math.max(1, Math.min(options.commentaryLimit ?? DEFAULT_COMMENTARY_LIMIT, 20));
 
-  const [healthRead, holdingsRead, commentaryRead] = await Promise.all([
+  const [healthRead, marketSessionRead, holdingsRead, commentaryRead] = await Promise.all([
     readBackendJson(fetcher, backendUrl, '/api/health', headers),
+    readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-session', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/holdings', headers),
     readBackendJson(fetcher, backendUrl, `/api/commentary/recent?limit=${commentaryLimit}`, headers),
   ]);
 
-  const marketSession = buildMissingMarketSession(now);
+  const marketSession = buildMarketSessionContract(marketSessionRead, now, nowIso);
   const portfolio = buildPortfolioContract(holdingsRead, nowIso);
   const news = buildNewsContracts(commentaryRead, nowIso);
   const marketMovers = buildUnimplementedSourceItems('market_movers', nowIso) as CockpitHomeMarketMoverContract[];
@@ -90,15 +108,9 @@ export async function buildCockpitHomeBffResponse(
   const narrative = buildMissingNarrative(nowIso);
   const dataHealth = [
     buildBackendHealthItem(healthRead, nowIso),
+    marketSession.health,
     portfolio.health,
     news.health,
-    missingHealthItem(
-      'market_session',
-      'Market session',
-      'NO_MARKET_SESSION_ENDPOINT',
-      'No backend market-session endpoint is available for Cockpit Home v1.',
-      nowIso,
-    ),
     missingHealthItem(
       'market_movers',
       'Market movers',
@@ -123,7 +135,7 @@ export async function buildCockpitHomeBffResponse(
   ];
 
   const dataMissing = [
-    ...marketSession.data_missing,
+    ...marketSession.contract.data_missing,
     ...portfolio.contract.data_missing,
     ...news.missing,
     ...marketMovers.flatMap((item) => item.state.data_missing),
@@ -131,7 +143,7 @@ export async function buildCockpitHomeBffResponse(
     ...narrative.data_missing,
   ];
   const sectionStates = [
-    marketSession,
+    marketSession.contract,
     portfolio.contract,
     ...news.items.map((item) => item.state),
     ...marketMovers.map((item) => item.state),
@@ -146,7 +158,7 @@ export async function buildCockpitHomeBffResponse(
     generated_at: nowIso,
     source_label_taxonomy_version: COCKPIT_HOME_SOURCE_LABEL_TAXONOMY_VERSION,
     ...aggregate,
-    market_session: marketSession,
+    market_session: marketSession.contract,
     portfolio: portfolio.contract,
     market_movers: marketMovers,
     news: news.items,
@@ -203,22 +215,79 @@ async function readResponsePayload(response: Response): Promise<unknown> {
   }
 }
 
-function buildMissingMarketSession(now: Date) {
+function buildMarketSessionContract(read: UpstreamRead, now: Date, nowIso: string): MarketSessionAssembly {
   const sessionDate = formatMelbourneDate(now);
-  const missing = dataMissingSignal(
-    'market_session',
-    'NO_MARKET_SESSION_ENDPOINT',
-    'No backend market-session endpoint is available for Cockpit Home v1.',
-  );
+  if (!read.ok) {
+    const missing = dataMissingSignal(
+      'market_session',
+      'MARKET_SESSION_ENDPOINT_UNAVAILABLE',
+      `Backend market-session endpoint unavailable: ${read.error}.`,
+      'missing_required_evidence',
+    );
+    const contract: CockpitHomeMarketSessionContract = {
+      ...deterministicState('DATA_MISSING', null, [missing]),
+      session: 'DEGRADED',
+      exchange: 'ASX',
+      timezone: 'Australia/Melbourne',
+      session_date: sessionDate,
+      next_event_label: null,
+      next_event_at: null,
+    };
+    return {
+      contract,
+      health: dataHealthItem('market_session', 'Market session', contract, 'DATA_MISSING'),
+    };
+  }
 
+  const payload = readMarketSession(read.payload);
+  const session = marketSessionStateOrNull(payload.session);
+  const exchange = requiredString(payload.exchange);
+  const timezone = requiredString(payload.timezone);
+  const nextEventLabel = stringOrNull(payload.next_event_label);
+  const nextEventAt = stringOrNull(payload.next_event_at);
+  const asOf = stringOrNull(payload.as_of) ?? nowIso;
+  const responseSessionDate = stringOrNull(payload.session_date) ?? sessionDate;
+  const invalid =
+    !session ||
+    exchange !== 'ASX' ||
+    timezone !== 'Australia/Melbourne' ||
+    !nextEventLabel ||
+    !nextEventAt;
+
+  if (invalid) {
+    const missing = dataMissingSignal(
+      'market_session',
+      'MARKET_SESSION_RESPONSE_INVALID',
+      'Backend market-session endpoint returned an incomplete Cockpit Home payload.',
+      'degraded_runtime',
+    );
+    const contract: CockpitHomeMarketSessionContract = {
+      ...deterministicState('DATA_MISSING', null, [missing]),
+      session: 'DEGRADED',
+      exchange: 'ASX',
+      timezone: 'Australia/Melbourne',
+      session_date: responseSessionDate,
+      next_event_label: null,
+      next_event_at: null,
+    };
+    return {
+      contract,
+      health: dataHealthItem('market_session', 'Market session', contract, 'DATA_MISSING'),
+    };
+  }
+
+  const contract: CockpitHomeMarketSessionContract = {
+    ...deterministicState('READY', asOf, []),
+    session,
+    exchange: 'ASX',
+    timezone: 'Australia/Melbourne',
+    session_date: responseSessionDate,
+    next_event_label: nextEventLabel,
+    next_event_at: nextEventAt,
+  };
   return {
-    ...deterministicState('DATA_MISSING', null, [missing]),
-    session: 'DEGRADED' as const,
-    exchange: 'ASX' as const,
-    timezone: 'Australia/Melbourne' as const,
-    session_date: sessionDate,
-    next_event_label: null,
-    next_event_at: null,
+    contract,
+    health: dataHealthItem('market_session', 'Market session', contract, session),
   };
 }
 
@@ -584,6 +653,13 @@ function readCommentaryItems(payload: unknown): CommentaryRecentItem[] {
   return items.filter((item): item is CommentaryRecentItem => Boolean(item) && typeof item === 'object');
 }
 
+function readMarketSession(payload: unknown): MarketSessionRecord {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+  return payload as MarketSessionRecord;
+}
+
 function totalPortfolioValue(
   pricedHoldings: CockpitHoldingRecord[],
 ): { totalValue: number | null; totalMissing: CockpitHomeDataMissingSignal | null } {
@@ -658,6 +734,14 @@ function stringOrNull(value: unknown): string | null {
 
 function requiredString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function marketSessionStateOrNull(value: unknown): MarketSessionState | null {
+  const raw = requiredString(value);
+  if (raw === 'PRE_MARKET' || raw === 'OPEN' || raw === 'POST_MARKET' || raw === 'DEGRADED') {
+    return raw;
+  }
+  return null;
 }
 
 function formatMelbourneDate(now: Date): string {

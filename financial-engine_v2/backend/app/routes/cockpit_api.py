@@ -42,6 +42,7 @@ from app.services.cockpit_service import (
     VALID_CHAT_ROUTING_POLICY_PREFERENCES,
     normalize_chat_routing_policy_preference,
 )
+from app.services.cockpit_home import build_market_session_snapshot
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
     resolve_llm_runtime_config,
@@ -368,6 +369,17 @@ class CockpitHoldingRecord(BaseModel):
 
 class CockpitHoldingListResponse(BaseModel):
     items: list[CockpitHoldingRecord] = Field(default_factory=list)
+
+
+class CockpitHomeMarketSessionResponse(BaseModel):
+    ok: bool = True
+    exchange: Literal["ASX"] = "ASX"
+    timezone: Literal["Australia/Melbourne"] = "Australia/Melbourne"
+    session: Literal["PRE_MARKET", "OPEN", "POST_MARKET", "DEGRADED"]
+    session_date: str
+    next_event_label: str
+    next_event_at: str
+    as_of: str
 
 
 class CockpitHoldingCreateRequest(BaseModel):
@@ -4796,6 +4808,28 @@ def cockpit_remove_watchlist_item(ticker: str) -> CockpitWatchlistDeleteResponse
             detail=f"Watchlist item not found: {normalized}",
         )
     return CockpitWatchlistDeleteResponse(ok=True, removed=True, ticker=normalized)
+
+
+@router.get("/home/market-session", response_model=CockpitHomeMarketSessionResponse)
+def cockpit_home_market_session() -> CockpitHomeMarketSessionResponse:
+    try:
+        snapshot = build_market_session_snapshot()
+    except Exception as exc:
+        logger.exception("Failed to build Cockpit Home market session")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to build market session: {str(exc)}",
+        ) from exc
+    return CockpitHomeMarketSessionResponse(
+        ok=True,
+        exchange="ASX",
+        timezone="Australia/Melbourne",
+        session=snapshot.session,
+        session_date=snapshot.session_date,
+        next_event_label=snapshot.next_event_label,
+        next_event_at=snapshot.next_event_at,
+        as_of=snapshot.as_of,
+    )
 
 
 @router.get("/holdings", response_model=CockpitHoldingListResponse)

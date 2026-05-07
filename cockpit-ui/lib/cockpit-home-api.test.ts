@@ -28,6 +28,7 @@ describe('Cockpit Home BFF route', () => {
           status: 'ok',
         }),
       )
+      .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
       .mockResolvedValueOnce(
         jsonResponse({
           items: [
@@ -71,9 +72,10 @@ describe('Cockpit Home BFF route', () => {
       }),
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
       'http://backend.internal:8000/api/health',
+      'http://backend.internal:8000/api/cockpit/home/market-session',
       'http://backend.internal:8000/api/cockpit/holdings',
       'http://backend.internal:8000/api/commentary/recent?limit=5',
     ]);
@@ -98,10 +100,12 @@ describe('Cockpit Home BFF route', () => {
       day_change_percent: null,
     });
     expect(payload.market_session).toMatchObject({
-      data_state: 'DATA_MISSING',
-      session: 'DEGRADED',
+      data_state: 'READY',
+      session: 'OPEN',
       exchange: 'ASX',
       timezone: 'Australia/Melbourne',
+      next_event_label: 'ASX close',
+      next_event_at: '2026-05-07T06:00:00+00:00',
     });
     expect(payload.news[0]).toMatchObject({
       id: 'home-news:youtube_transcript:video-a:111',
@@ -119,6 +123,9 @@ describe('Cockpit Home BFF route', () => {
     expect(payload.market_movers[0].state.data_state).toBe('DATA_MISSING');
     expect(payload.attention_queue[0].state.data_state).toBe('DATA_MISSING');
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).toContain(
+      'PORTFOLIO_DAY_CHANGE_UNAVAILABLE',
+    );
+    expect(payload.data_missing.map((signal: { code: string }) => signal.code)).not.toContain(
       'NO_MARKET_SESSION_ENDPOINT',
     );
   });
@@ -132,7 +139,7 @@ describe('Cockpit Home BFF route', () => {
       fetcher,
     });
 
-    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(fetcher).toHaveBeenCalledTimes(4);
     expect(payload.ok).toBe(true);
     expect(payload.generated_at).toBe('2026-05-07T02:00:00.000Z');
     expect(payload.data_state).toBe('DATA_MISSING');
@@ -150,7 +157,7 @@ describe('Cockpit Home BFF route', () => {
       expect.arrayContaining([
         'HOLDINGS_ENDPOINT_UNAVAILABLE',
         'COMMENTARY_RECENT_UNAVAILABLE',
-        'NO_MARKET_SESSION_ENDPOINT',
+        'MARKET_SESSION_ENDPOINT_UNAVAILABLE',
       ]),
     );
   });
@@ -159,6 +166,7 @@ describe('Cockpit Home BFF route', () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ status: 'ok' }))
+      .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
       .mockResolvedValueOnce(
         jsonResponse({
           items: [
@@ -186,6 +194,7 @@ describe('Cockpit Home BFF route', () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ status: 'ok' }))
+      .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
       .mockResolvedValueOnce(jsonResponse({ items: [] }))
       .mockResolvedValueOnce(
         jsonResponse({
@@ -327,6 +336,19 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}): Response {
       ...init.headers,
     },
   });
+}
+
+function marketSessionResponse() {
+  return {
+    ok: true,
+    exchange: 'ASX',
+    timezone: 'Australia/Melbourne',
+    session: 'OPEN',
+    session_date: '2026-05-07',
+    next_event_label: 'ASX close',
+    next_event_at: '2026-05-07T06:00:00+00:00',
+    as_of: '2026-05-07T02:00:00+00:00',
+  };
 }
 
 function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): CockpitHomeBffResponse {
