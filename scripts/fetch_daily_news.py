@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import sys
 import tempfile
 from pathlib import Path
@@ -30,6 +31,17 @@ from news_pipeline.ingest import run_provider_daily  # noqa: E402
 from news_pipeline.reporting import write_run_reports  # noqa: E402
 
 
+def _raise_on_termination(signum: int, _frame: object) -> None:
+    raise SystemExit(f"received termination signal {signum}")
+
+
+def _install_termination_handlers() -> None:
+    for name in ("SIGTERM", "SIGHUP"):
+        signum = getattr(signal, name, None)
+        if signum is not None:
+            signal.signal(signum, _raise_on_termination)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Fetch daily ASX news from one or more providers.")
     ap.add_argument(
@@ -54,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     add_common_provider_args(ap)
     add_common_gdelt_args(ap)
     args = ap.parse_args(argv)
+    _install_termination_handlers()
 
     providers = parse_provider_list(args.providers)
     if not providers:

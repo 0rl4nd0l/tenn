@@ -1,4 +1,5 @@
 import importlib
+import datetime as dt
 import json
 import sys
 import tempfile
@@ -14,10 +15,74 @@ if str(SCRIPTS) not in sys.path:
 GDELT = importlib.import_module("news_pipeline.providers.gdelt")
 EODHD = importlib.import_module("news_pipeline.providers.eodhd")
 WORLDMONITOR = importlib.import_module("news_pipeline.providers.worldmonitor")
+NEWSPAPER4K = importlib.import_module("news_pipeline.providers.newspaper4k")
 CLI_COMMON = importlib.import_module("news_pipeline.cli_common")
 
 
 class ProviderTests(unittest.TestCase):
+    def test_newspaper4k_batches_source_rows_while_preserving_fetch_window_list(self):
+        class Source:
+            def __init__(self, url: str) -> None:
+                self.url = url
+
+        class Article:
+            def __init__(self, suffix: str) -> None:
+                self.article_url = f"https://example.com/{suffix}"
+                self.title = f"BHP update {suffix}"
+                self.body = f"ASX:BHP update body {suffix}"
+                self.source_name = "Example Finance"
+                self.language = "en"
+                self.published_at = dt.datetime(2026, 5, 7, 1, 0, tzinfo=dt.timezone.utc)
+                self.authors = []
+                self.keyword_hits = []
+                self.body_source = "mock"
+                self.body_lengths = {"body": len(self.body)}
+                self.source_url = "https://example.com/source"
+
+        class FakeCollector:
+            DEFAULT_FINANCE_URL_INCLUDE_TOKENS = []
+            DEFAULT_FINANCE_URL_EXCLUDE_TOKENS = []
+
+            @staticmethod
+            def parse_sources(_path: Path) -> list[Source]:
+                return [Source("https://example.com/source-1"), Source("https://example.com/source-2")]
+
+            @staticmethod
+            def parse_keywords(_path: object, _raw: str) -> list[str]:
+                return []
+
+            @staticmethod
+            def iso_utc(value: dt.datetime) -> str:
+                return value.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+            @staticmethod
+            def extract_from_source(source: Source, **_kwargs: object):
+                suffix = source.url.rsplit("-", 1)[-1]
+                return [Article(suffix)], {"source_articles_seen": 1, "download_errors": 0}
+
+        previous = NEWSPAPER4K._collector
+        NEWSPAPER4K._collector = FakeCollector
+        try:
+            provider = NEWSPAPER4K.Newspaper4kProvider(sources_file=Path("unused.txt"), sleep_seconds=0)
+            batches = list(
+                provider.fetch_window_batches(
+                    window_start_utc="2026-05-07T00:00:00Z",
+                    window_end_utc="2026-05-07T23:59:59Z",
+                    tickers=["BHP"],
+                )
+            )
+            self.assertEqual([len(batch) for batch in batches], [1, 1])
+
+            rows = provider.fetch_window(
+                window_start_utc="2026-05-07T00:00:00Z",
+                window_end_utc="2026-05-07T23:59:59Z",
+                tickers=["BHP"],
+            )
+            self.assertIsInstance(rows, list)
+            self.assertEqual(len(rows), 2)
+        finally:
+            NEWSPAPER4K._collector = previous
+
     def test_build_provider_auto_enables_live_when_captures_missing_and_api_key_present(self):
         with tempfile.TemporaryDirectory() as td:
             provider = CLI_COMMON.build_provider(

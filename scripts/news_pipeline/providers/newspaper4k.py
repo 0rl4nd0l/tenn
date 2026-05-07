@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime as dt
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, Iterable, List, Sequence
 
 from ..models import ArticleCandidate
 from ..utils import canonicalize_url, normalize_space, parse_datetime_utc, sha1_hex
@@ -100,12 +100,28 @@ class Newspaper4kProvider(ProviderClient):
         window_end_utc: str,
         tickers: Sequence[str],
     ) -> List[Dict[str, Any]]:
+        rows: List[Dict[str, Any]] = []
+        for batch in self.fetch_window_batches(
+            window_start_utc=window_start_utc,
+            window_end_utc=window_end_utc,
+            tickers=tickers,
+        ):
+            rows.extend(batch)
+        return rows
+
+    def fetch_window_batches(
+        self,
+        *,
+        window_start_utc: str,
+        window_end_utc: str,
+        tickers: Sequence[str],
+    ) -> Iterable[List[Dict[str, Any]]]:
         import time
 
         collector = _import_collector()
         sources = collector.parse_sources(self.sources_file)
         if not sources:
-            return []
+            return
 
         start_ts = parse_datetime_utc(window_start_utc)
         if start_ts:
@@ -119,7 +135,7 @@ class Newspaper4kProvider(ProviderClient):
         finance_include = list(collector.DEFAULT_FINANCE_URL_INCLUDE_TOKENS)
         finance_exclude = list(collector.DEFAULT_FINANCE_URL_EXCLUDE_TOKENS)
 
-        rows: List[Dict[str, Any]] = []
+        total_rows = 0
         for index, spec in enumerate(sources):
             try:
                 articles, stats = collector.extract_from_source(
@@ -143,25 +159,29 @@ class Newspaper4kProvider(ProviderClient):
                 print(f"[newspaper4k] source {spec.url} error: {exc}", flush=True)
                 continue
 
+            source_rows: List[Dict[str, Any]] = []
             kept = 0
             for article in articles:
-                rows.append({
-                    "url": article.article_url,
-                    "title": article.title,
-                    "body": article.body,
-                    "source_name": article.source_name,
-                    "language": article.language or "en",
-                    "published_at": (
-                        collector.iso_utc(article.published_at) if article.published_at else ""
-                    ),
-                    "authors": article.authors,
-                    "keyword_hits": article.keyword_hits,
-                    "body_source": article.body_source,
-                    "body_lengths": article.body_lengths,
-                    "source_url": article.source_url,
-                })
+                source_rows.append(
+                    {
+                        "url": article.article_url,
+                        "title": article.title,
+                        "body": article.body,
+                        "source_name": article.source_name,
+                        "language": article.language or "en",
+                        "published_at": (
+                            collector.iso_utc(article.published_at) if article.published_at else ""
+                        ),
+                        "authors": article.authors,
+                        "keyword_hits": article.keyword_hits,
+                        "body_source": article.body_source,
+                        "body_lengths": article.body_lengths,
+                        "source_url": article.source_url,
+                    }
+                )
                 kept += 1
-                if len(rows) >= self.max_total_articles:
+                total_rows += 1
+                if total_rows >= self.max_total_articles:
                     break
 
             print(
@@ -169,12 +189,12 @@ class Newspaper4kProvider(ProviderClient):
                 f"kept={kept} errors={stats.get('download_errors', 0)}",
                 flush=True,
             )
-            if len(rows) >= self.max_total_articles:
+            if source_rows:
+                yield source_rows
+            if total_rows >= self.max_total_articles:
                 break
             if index < len(sources) - 1 and self.sleep_seconds > 0:
                 time.sleep(self.sleep_seconds)
-
-        return rows
 
     def parse_item(self, item: Dict[str, Any], fetched_at_utc: str) -> ParseResult:
         title = normalize_space(item.get("title"))

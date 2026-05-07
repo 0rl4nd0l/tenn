@@ -66,66 +66,56 @@ def _window_status_from_stats(stats: Dict[str, int]) -> str:
     return "completed"
 
 
-def _process_provider_window(
+def _counter_values(stats: Dict[str, Any]) -> Dict[str, int]:
+    return {key: int(stats.get(key, 0)) for key in RUN_COUNTER_KEYS}
+
+
+def _merge_stats(total: Dict[str, Any], delta: Dict[str, Any]) -> None:
+    for key in RUN_COUNTER_KEYS:
+        total[key] = int(total.get(key, 0)) + int(delta.get(key, 0))
+    if delta.get("last_error"):
+        total["last_error"] = delta.get("last_error")
+
+
+def _record_window_progress(
+    *,
+    store: NewsArticleStore,
+    run_id: str,
+    provider_name: str,
+    window_start_utc: str,
+    window_end_utc: str,
+    status: str,
+    stats: Dict[str, Any],
+) -> None:
+    counter_kw = _counter_values(stats)
+    store.record_window(
+        run_id=run_id,
+        provider=provider_name,
+        window_start_utc=window_start_utc,
+        window_end_utc=window_end_utc,
+        status=status,
+        fetched=counter_kw["fetched"],
+        inserted=counter_kw["inserted"],
+        deduped=counter_kw["deduped"],
+        rejected=counter_kw["rejected"],
+        errors=counter_kw["errors"],
+    )
+
+
+def _process_provider_items(
     *,
     store: NewsArticleStore,
     linker: EntityLinker,
     provider: ProviderClient,
     run_id: str,
     lane: str,
-    window_start_utc: str,
-    window_end_utc: str,
-    tickers: Sequence[str],
+    rows: Sequence[Dict[str, Any]],
     failures: FailureBucketTracker,
 ) -> Dict[str, Any]:
-    """Process one provider time window. Status 'completed' means no fetch/parse exceptions;
-    empty windows are recorded as provider_empty_response in failures but do not set status to partial_failed."""
     stats: Dict[str, Any] = {"fetched": 0, "inserted": 0, "deduped": 0, "rejected": 0, "errors": 0}
-    try:
-        print(f"[progress] Fetching articles from {provider.name}...", flush=True)
-        rows = provider.fetch_window(
-            window_start_utc=window_start_utc,
-            window_end_utc=window_end_utc,
-            tickers=tickers,
-        )
-    except Exception as exc:
-        stats["errors"] += 1
-        err_msg = str(exc)
-        stats["last_error"] = err_msg
-        provider_diag = getattr(provider, "last_fetch_diagnostics", None)
-        failure_payload: Dict[str, Any] = {
-            "provider": provider.name,
-            "window_start_utc": window_start_utc,
-            "window_end_utc": window_end_utc,
-            "error": err_msg,
-        }
-        if isinstance(provider_diag, dict) and provider_diag:
-            failure_payload["provider_diagnostics"] = provider_diag
-        failures.add(
-            "provider_fetch_error",
-            failure_payload,
-        )
-        return stats
-
-    if not rows:
-        provider_diag = getattr(provider, "last_fetch_diagnostics", None)
-        empty_payload: Dict[str, Any] = {
-            "provider": provider.name,
-            "window_start_utc": window_start_utc,
-            "window_end_utc": window_end_utc,
-        }
-        if isinstance(provider_diag, dict) and provider_diag:
-            empty_payload["provider_diagnostics"] = provider_diag
-        failures.add(
-            "provider_empty_response",
-            empty_payload,
-        )
-        print(f"[ingest] {provider.name} window {window_start_utc}..{window_end_utc} items=0 (empty)", flush=True)
-        return stats
-
-    print(f"[ingest] {provider.name} window {window_start_utc}..{window_end_utc} items={len(rows)}", flush=True)
     fetched_at = now_utc_iso()
     progress_interval = 50
+    row_count = len(rows)
     for i, item in enumerate(rows):
         stats["fetched"] += 1
         try:
@@ -240,9 +230,143 @@ def _process_provider_window(
                 )
 
         if (i + 1) % progress_interval == 0:
-            msg = f"[progress] {provider.name} ticker_index={i + 1}/{len(rows)} inserted={stats['inserted']} deduped={stats['deduped']}"
+            msg = f"[progress] {provider.name} ticker_index={i + 1}/{row_count} inserted={stats['inserted']} deduped={stats['deduped']}"
             print(msg, flush=True)
 
+    return stats
+
+
+def _process_provider_window(
+    *,
+    store: NewsArticleStore,
+    linker: EntityLinker,
+    provider: ProviderClient,
+    run_id: str,
+    lane: str,
+    window_start_utc: str,
+    window_end_utc: str,
+    tickers: Sequence[str],
+    failures: FailureBucketTracker,
+) -> Dict[str, Any]:
+    """Process one provider time window. Status 'completed' means no fetch/parse exceptions;
+    empty windows are recorded as provider_empty_response in failures but do not set status to partial_failed."""
+    stats: Dict[str, Any] = {"fetched": 0, "inserted": 0, "deduped": 0, "rejected": 0, "errors": 0}
+    rows_seen = False
+    try:
+        print(f"[progress] Fetching articles from {provider.name}...", flush=True)
+        batches = provider.fetch_window_batches(
+            window_start_utc=window_start_utc,
+            window_end_utc=window_end_utc,
+            tickers=tickers,
+        )
+        for rows in batches:
+            if not rows:
+                continue
+            rows_seen = True
+            print(f"[ingest] {provider.name} window {window_start_utc}..{window_end_utc} items={len(rows)}", flush=True)
+            batch_stats = _process_provider_items(
+                store=store,
+                linker=linker,
+                provider=provider,
+                run_id=run_id,
+                lane=lane,
+                rows=rows,
+                failures=failures,
+            )
+            _merge_stats(stats, batch_stats)
+            counter_kw = _counter_values(batch_stats)
+            if any(counter_kw.values()):
+                store.increment_run_counters(
+                    run_id,
+                    fetched=counter_kw["fetched"],
+                    inserted=counter_kw["inserted"],
+                    deduped=counter_kw["deduped"],
+                    rejected=counter_kw["rejected"],
+                    errors=counter_kw["errors"],
+                )
+                _record_window_progress(
+                    store=store,
+                    run_id=run_id,
+                    provider_name=provider.name,
+                    window_start_utc=window_start_utc,
+                    window_end_utc=window_end_utc,
+                    status="running",
+                    stats=stats,
+                )
+    except Exception as exc:
+        stats["errors"] += 1
+        err_msg = str(exc)
+        stats["last_error"] = err_msg
+        provider_diag = getattr(provider, "last_fetch_diagnostics", None)
+        failure_payload: Dict[str, Any] = {
+            "provider": provider.name,
+            "window_start_utc": window_start_utc,
+            "window_end_utc": window_end_utc,
+            "error": err_msg,
+        }
+        if isinstance(provider_diag, dict) and provider_diag:
+            failure_payload["provider_diagnostics"] = provider_diag
+        failures.add(
+            "provider_fetch_error",
+            failure_payload,
+        )
+        store.increment_run_counters(run_id, errors=1)
+        _record_window_progress(
+            store=store,
+            run_id=run_id,
+            provider_name=provider.name,
+            window_start_utc=window_start_utc,
+            window_end_utc=window_end_utc,
+            status=_window_status_from_stats(stats),
+            stats=stats,
+        )
+        return stats
+    except BaseException:
+        _record_window_progress(
+            store=store,
+            run_id=run_id,
+            provider_name=provider.name,
+            window_start_utc=window_start_utc,
+            window_end_utc=window_end_utc,
+            status="failed",
+            stats=stats,
+        )
+        raise
+
+    if not rows_seen:
+        provider_diag = getattr(provider, "last_fetch_diagnostics", None)
+        empty_payload: Dict[str, Any] = {
+            "provider": provider.name,
+            "window_start_utc": window_start_utc,
+            "window_end_utc": window_end_utc,
+        }
+        if isinstance(provider_diag, dict) and provider_diag:
+            empty_payload["provider_diagnostics"] = provider_diag
+        failures.add(
+            "provider_empty_response",
+            empty_payload,
+        )
+        print(f"[ingest] {provider.name} window {window_start_utc}..{window_end_utc} items=0 (empty)", flush=True)
+        _record_window_progress(
+            store=store,
+            run_id=run_id,
+            provider_name=provider.name,
+            window_start_utc=window_start_utc,
+            window_end_utc=window_end_utc,
+            status=_window_status_from_stats(stats),
+            stats=stats,
+        )
+        return stats
+
+    _record_window_progress(
+        store=store,
+        run_id=run_id,
+        provider_name=provider.name,
+        window_start_utc=window_start_utc,
+        window_end_utc=window_end_utc,
+        status=_window_status_from_stats(stats),
+        stats=stats,
+    )
     print(f"[progress] {provider.name} done fetched={stats['fetched']} inserted={stats['inserted']} deduped={stats['deduped']} rejected={stats['rejected']} errors={stats['errors']}", flush=True)
     return stats
 
@@ -292,27 +416,6 @@ def run_provider_backfill(
                 failures=failures,
             )
             run_errors += int(stats.get("errors", 0))
-            counter_kw = {k: int(stats.get(k, 0)) for k in RUN_COUNTER_KEYS}
-            store.increment_run_counters(
-                rid,
-                fetched=counter_kw["fetched"],
-                inserted=counter_kw["inserted"],
-                deduped=counter_kw["deduped"],
-                rejected=counter_kw["rejected"],
-                errors=counter_kw["errors"],
-            )
-            store.record_window(
-                run_id=rid,
-                provider=provider.name,
-                window_start_utc=window_start_utc,
-                window_end_utc=window_end_utc,
-                status=_window_status_from_stats(stats),
-                fetched=counter_kw["fetched"],
-                inserted=counter_kw["inserted"],
-                deduped=counter_kw["deduped"],
-                rejected=counter_kw["rejected"],
-                errors=counter_kw["errors"],
-            )
             f, i, d, r, e = (
                 stats.get("fetched", 0),
                 stats.get("inserted", 0),
@@ -370,27 +473,6 @@ def run_provider_daily(
             failures=failures,
         )
         run_errors += int(stats.get("errors", 0))
-        counter_kw = {k: int(stats.get(k, 0)) for k in RUN_COUNTER_KEYS}
-        store.increment_run_counters(
-            rid,
-            fetched=counter_kw["fetched"],
-            inserted=counter_kw["inserted"],
-            deduped=counter_kw["deduped"],
-            rejected=counter_kw["rejected"],
-            errors=counter_kw["errors"],
-        )
-        store.record_window(
-            run_id=rid,
-            provider=provider.name,
-            window_start_utc=window_start_utc,
-            window_end_utc=window_end_utc,
-            status=_window_status_from_stats(stats),
-            fetched=counter_kw["fetched"],
-            inserted=counter_kw["inserted"],
-            deduped=counter_kw["deduped"],
-            rejected=counter_kw["rejected"],
-            errors=counter_kw["errors"],
-        )
     except BaseException:
         store.finish_provider_run(rid, "failed")
         raise
@@ -436,27 +518,6 @@ def run_provider_probe(
             failures=failures,
         )
         run_errors += int(stats.get("errors", 0))
-        counter_kw = {k: int(stats.get(k, 0)) for k in RUN_COUNTER_KEYS}
-        store.increment_run_counters(
-            rid,
-            fetched=counter_kw["fetched"],
-            inserted=counter_kw["inserted"],
-            deduped=counter_kw["deduped"],
-            rejected=counter_kw["rejected"],
-            errors=counter_kw["errors"],
-        )
-        store.record_window(
-            run_id=rid,
-            provider=provider.name,
-            window_start_utc=window_start_utc,
-            window_end_utc=window_end_utc,
-            status=_window_status_from_stats(stats),
-            fetched=counter_kw["fetched"],
-            inserted=counter_kw["inserted"],
-            deduped=counter_kw["deduped"],
-            rejected=counter_kw["rejected"],
-            errors=counter_kw["errors"],
-        )
     except BaseException:
         store.finish_provider_run(rid, "failed")
         raise
