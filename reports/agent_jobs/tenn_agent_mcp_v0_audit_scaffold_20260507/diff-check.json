@@ -1,0 +1,71 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/tenn_agent_mcp_v0_audit_scaffold_20260507.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "tests/tools/tenn_agent_mcp/test_server.py",
+      "status": "A"
+    },
+    {
+      "path": "tools/tenn_agent_mcp/README.md",
+      "status": "A"
+    },
+    {
+      "path": "tools/tenn_agent_mcp/__init__.py",
+      "status": "A"
+    },
+    {
+      "path": "tools/tenn_agent_mcp/__main__.py",
+      "status": "A"
+    },
+    {
+      "path": "tools/tenn_agent_mcp/server.py",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/tenn_agent_mcp_v0_audit_scaffold_20260507.md",
+        "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/README.md",
+        "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/status.json",
+        "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/validation.json",
+        "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507/diff-check.json",
+        "tools/tenn_agent_mcp/README.md",
+        "tools/tenn_agent_mcp/__init__.py",
+        "tools/tenn_agent_mcp/__main__.py",
+        "tools/tenn_agent_mcp/server.py",
+        "tests/tools/tenn_agent_mcp/test_server.py"
+      ],
+      "approval_required": false,
+      "job_id": "tenn_agent_mcp_v0_audit_scaffold_20260507",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/tenn_agent_mcp_v0_audit_scaffold_20260507",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
