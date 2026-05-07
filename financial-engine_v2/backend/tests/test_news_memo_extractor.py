@@ -9,7 +9,13 @@ from typing import Any
 
 import pytest
 
-from app.services.news_memo_extractor import NewsMemoExtractor, _normalize_list, _normalize_sentiment, _normalize_impact_magnitude, load_news_memos
+from app.services.news_memo_extractor import (
+    NewsMemoExtractor,
+    _normalize_impact_magnitude,
+    _normalize_list,
+    _normalize_sentiment,
+    load_news_memos,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +63,7 @@ def test_extract_valid_schema(tmp_memos_path: Path) -> None:
         article_text="Company XYZ announced a major acquisition today...",
         provider="newspaper4k",
         published_at="2026-03-30",
+        candidate_tickers=["XYZ", "ABC"],
     )
 
     # Required top-level keys present
@@ -111,6 +118,82 @@ def test_extract_prompt_honors_article_char_cap(tmp_memos_path: Path) -> None:
     prompt = llm_fn.calls[0]["prompt"]  # type: ignore[attr-defined]
     assert "A" * 12 in prompt
     assert "A" * 13 not in prompt
+
+
+def test_extract_prompt_cleans_html_and_lists_candidate_tickers(
+    tmp_memos_path: Path,
+) -> None:
+    llm_fn = _make_llm_fn(GOOD_LLM_RESPONSE)
+    extractor = NewsMemoExtractor(llm_fn=llm_fn, memos_path=tmp_memos_path)
+
+    extractor.extract(
+        source_id="news-html",
+        article_text=(
+            "<p>Company update for NYSE:XYZ.</p>"
+            "<script>alert('ignore me')</script>"
+        ),
+        provider="newspaper4k",
+        published_at="2026-03-30",
+    )
+
+    prompt = llm_fn.calls[0]["prompt"]  # type: ignore[attr-defined]
+    assert "<p>" not in prompt
+    assert "<script>" not in prompt
+    assert "ignore me" not in prompt
+    assert "CANDIDATE_TICKERS: XYZ" in prompt
+    assert "arrays of plain strings, not objects" in prompt
+
+
+def test_normalize_drops_dictlike_items_and_outside_candidate_tickers(
+    tmp_memos_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    raw_response = {
+        "key_events": [
+            {"date": "2026-03-30", "description": "dict should not persist"},
+            "{'date': '2026-03-30', 'description': 'stringified dict'}",
+            "Plain supported event",
+        ],
+        "sentiment": "bullish",
+        "impact_magnitude": "moderate",
+        "tickers": ["XYZ", "M&G PLC", "ASX:ABC"],
+        "claims": ["Grounded claim"],
+        "risks": [],
+    }
+    extractor = NewsMemoExtractor(
+        llm_fn=_make_llm_fn(raw_response),
+        memos_path=tmp_memos_path,
+    )
+
+    with caplog.at_level(logging.WARNING, logger="app.services.news_memo_extractor"):
+        memo = extractor.extract(
+            source_id="news-strict",
+            article_text="Company XYZ update.",
+            provider="newspaper4k",
+            candidate_tickers=["XYZ"],
+        )
+
+    assert memo["key_events"] == ["Plain supported event"]
+    assert memo["tickers"] == ["XYZ"]
+    assert memo["claims"] == ["Grounded claim"]
+    assert any("dropped non-scalar list item" in r.message for r in caplog.records)
+    assert any("dropped dictlike string item" in r.message for r in caplog.records)
+    assert any("outside candidate allowlist" in r.message for r in caplog.records)
+
+
+def test_empty_candidate_list_drops_freeform_tickers(tmp_memos_path: Path) -> None:
+    llm_fn = _make_llm_fn({**GOOD_LLM_RESPONSE, "tickers": ["M&G PLC"]})
+    extractor = NewsMemoExtractor(llm_fn=llm_fn, memos_path=tmp_memos_path)
+
+    memo = extractor.extract(
+        source_id="news-no-ticker",
+        article_text="M&G reported net inflows.",
+        provider="newspaper4k",
+        candidate_tickers=[],
+    )
+
+    assert memo["tickers"] == []
 
 
 # ---------------------------------------------------------------------------

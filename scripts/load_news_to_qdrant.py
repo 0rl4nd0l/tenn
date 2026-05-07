@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -37,11 +38,61 @@ from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, DEFAULT_NEWS_CONT
 from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
 
 DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
+EXCHANGE_TICKER_PATTERN = re.compile(
+    r"\b(?:ASX|NYSE|NASDAQ|TSX|TSXV|TSE|LSE|AIM|OTCMKTS|OTC)\s*:\s*"
+    r"([A-Z][A-Z0-9.\-]{0,12})\b",
+    re.IGNORECASE,
+)
 
 
 def _source_id_for_article(art: Dict[str, Any]) -> str:
     article_id = str(art.get("article_id") or "").strip()
     return f"news:{article_id}" if article_id else ""
+
+
+def _normalize_memo_ticker_candidate(value: Any) -> str:
+    raw = str(value or "").strip().upper()
+    if ":" in raw:
+        raw = raw.split(":", 1)[1]
+    raw = re.sub(r"[^A-Z0-9.\-]", "", raw)
+    return raw[:16]
+
+
+def _memo_exchange_ticker_candidates(text: str) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for match in EXCHANGE_TICKER_PATTERN.finditer(str(text or "")):
+        candidate = _normalize_memo_ticker_candidate(match.group(1))
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        candidates.append(candidate)
+    return candidates
+
+
+def _memo_candidate_tickers_for_article(art: Mapping[str, Any]) -> list[str]:
+    text = str(art.get("text") or "")
+    exchange_candidates = _memo_exchange_ticker_candidates(text)
+    if exchange_candidates:
+        return exchange_candidates
+
+    raw_candidates: list[Any] = []
+    primary = art.get("primary_ticker")
+    if primary:
+        raw_candidates.append(primary)
+    tickers = art.get("tickers")
+    if isinstance(tickers, list):
+        raw_candidates.extend(tickers)
+
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_candidates:
+        candidate = _normalize_memo_ticker_candidate(raw)
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        candidates.append(candidate)
+    return candidates
 
 
 def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
@@ -187,6 +238,7 @@ def dispatch_news_memos(
                 "article_text": text[:article_char_cap],
                 "provider": str(art.get("provider") or ""),
                 "published_at": str(art.get("published_at") or ""),
+                "candidate_tickers": _memo_candidate_tickers_for_article(art),
                 "max_article_chars": article_char_cap,
             }
             try:

@@ -127,6 +127,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                     db_path="/dev/null",
                     qdrant_url="http://localhost:6333",
                     collection="news_chunks",
+                    dispatch_memos=False,
                 )
         finally:
             mod.NEWS_CHUNKS_MODEL_FILE = original_file
@@ -169,6 +170,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                         db_path="/dev/null",
                         qdrant_url="http://localhost:6333",
                         collection="news_chunks",
+                        dispatch_memos=False,
                     )
             self.assertIn("embedding model mismatch", str(ctx.exception))
             self.assertIn("nomic-embed-text", str(ctx.exception))
@@ -217,6 +219,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                     db_path="/dev/null",
                     qdrant_url="http://localhost:6333",
                     collection="news_chunks",
+                    dispatch_memos=False,
                 )
             # If no RuntimeError was raised, the preflight check correctly passed
             self.assertIn("articles", stats)
@@ -267,6 +270,7 @@ class TestModelMarkerGuard(unittest.TestCase):
                     db_path="/dev/null",
                     qdrant_url="http://localhost:6333",
                     collection="news_chunks",
+                    dispatch_memos=False,
                 )
             self.assertEqual(stats["articles"], 1)
         finally:
@@ -318,6 +322,7 @@ class TestDimensionMismatchGuard(unittest.TestCase):
                         db_path="/dev/null",
                         qdrant_url="http://localhost:6333",
                         collection="news_chunks",
+                        dispatch_memos=False,
                     )
 
             self.assertIn("dimension mismatch", str(ctx.exception))
@@ -376,6 +381,7 @@ class TestModelMarkerWritten(unittest.TestCase):
                     db_path="/dev/null",
                     qdrant_url="http://localhost:6333",
                     collection="news_chunks",
+                    dispatch_memos=False,
                 )
 
             self.assertTrue(written_content, "marker file write_text was not called")
@@ -557,7 +563,7 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         articles = [
             {
                 "article_id": "art-1",
-                "text": "memo text 1",
+                "text": "memo text 1 NYSE:ABC",
                 "provider": "newspaper4k",
                 "published_at": "2026-05-04T08:00:00Z",
             },
@@ -589,6 +595,8 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         self.assertEqual(_task_id_samples(result), ["task-art-1", "task-art-2"])
         self.assertEqual(result["max_article_chars"], 7)
         self.assertEqual(payloads[0]["article_text"], "memo te")
+        self.assertEqual(payloads[0]["candidate_tickers"], ["ABC"])
+        self.assertEqual(payloads[1]["candidate_tickers"], [])
 
     def test_dispatch_news_memos_wait_marks_completed_observable(self):
         import load_news_to_qdrant as mod

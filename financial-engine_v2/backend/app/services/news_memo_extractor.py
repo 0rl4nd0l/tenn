@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import inspect
+import html
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -21,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 VALID_SENTIMENTS = frozenset({"bullish", "bearish", "neutral", "mixed"})
 VALID_IMPACT_MAGNITUDES = frozenset({"material", "moderate", "minor"})
+EXCHANGE_TICKER_PATTERN = re.compile(
+    r"\b(?:ASX|NYSE|NASDAQ|TSX|TSXV|TSE|LSE|AIM|OTCMKTS|OTC)\s*:\s*"
+    r"([A-Z][A-Z0-9.\-]{0,12})\b",
+    re.IGNORECASE,
+)
 
 
 def _today_iso_utc() -> str:
@@ -37,6 +44,53 @@ def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
         return max(1, int(raw_value))
     except (TypeError, ValueError) as exc:
         raise ValueError("NEWS_MEMO_MAX_ARTICLE_CHARS must be a positive integer") from exc
+
+
+def _clean_article_text_for_prompt(text: str) -> str:
+    cleaned = html.unescape(str(text or ""))
+    cleaned = re.sub(
+        r"<script\b[^>]*>.*?</script>|<style\b[^>]*>.*?</style>",
+        " ",
+        cleaned,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    cleaned = re.sub(r"<[^>]+>", " ", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def _normalize_ticker_candidate(value: Any) -> str:
+    raw = str(value or "").strip().upper()
+    if ":" in raw:
+        raw = raw.split(":", 1)[1]
+    raw = re.sub(r"[^A-Z0-9.\-]", "", raw)
+    return raw[:16]
+
+
+def _exchange_ticker_candidates(text: str) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for match in EXCHANGE_TICKER_PATTERN.finditer(str(text or "")):
+        candidate = _normalize_ticker_candidate(match.group(1))
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        candidates.append(candidate)
+    return candidates
+
+
+def _normalize_candidate_tickers(value: Any) -> list[str]:
+    if value in (None, ""):
+        return []
+    items = value if isinstance(value, list) else [value]
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        candidate = _normalize_ticker_candidate(item)
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        normalized.append(candidate)
+    return normalized
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -80,8 +134,25 @@ def _normalize_list(
     normalized: list[str] = []
     seen: set[str] = set()
     for item in items:
+        if isinstance(item, (dict, list, tuple, set)):
+            logger.warning(
+                "news_memo_extractor: dropped non-scalar list item for field %r "
+                "(type=%s, value=%r)",
+                field_name or "<unknown>",
+                type(item).__name__,
+                item,
+            )
+            continue
         text = str(item or "").strip()
         if not text:
+            continue
+        if text.startswith("{") or text.startswith("["):
+            logger.warning(
+                "news_memo_extractor: dropped dictlike string item for field %r "
+                "(value=%r)",
+                field_name or "<unknown>",
+                text,
+            )
             continue
         candidate = text.upper() if uppercase else text
         if candidate in seen:
@@ -153,18 +224,35 @@ class NewsMemoExtractor:
         article_text: str,
         provider: str,
         published_at: str | None,
+        candidate_tickers: list[str] | None = None,
     ) -> str:
         today_iso = _today_iso_utc()
+        cleaned_article = _clean_article_text_for_prompt(article_text)[
+            : self.max_article_chars
+        ]
+        candidates = _normalize_candidate_tickers(
+            candidate_tickers
+            if candidate_tickers is not None
+            else _exchange_ticker_candidates(cleaned_article)
+        )
+        candidate_text = ", ".join(candidates) if candidates else "NONE"
         return (
-            "You are a financial news analyst. Extract structured data from the following news article.\n"
+            "You are a financial news memo extractor. Extract only information directly supported by the article text.\n"
             f"Today's date is {today_iso}. Treat the published date and any dates in the article as historical context.\n"
-            "Return only valid JSON with this schema:\n"
+            "Return only valid JSON with this exact schema:\n"
             '{"key_events":[],"sentiment":"bullish|bearish|neutral|mixed",'
             '"impact_magnitude":"material|moderate|minor",'
-            '"tickers":[],"claims":[],"risks":[]}\n\n'
+            '"tickers":[],"claims":[],"risks":[]}\n'
+            "Rules:\n"
+            "- key_events, claims, and risks must be arrays of plain strings, not objects.\n"
+            "- tickers must be chosen only from CANDIDATE_TICKERS. If CANDIDATE_TICKERS is NONE, return [].\n"
+            "- Do not output company names, index names, or inferred symbols as tickers.\n"
+            "- Claims and risks must be short and grounded in the article text; omit weak or generic claims.\n"
+            "- Prefer neutral sentiment unless the article gives clear price, earnings, guidance, deal, recall, downgrade, or risk evidence.\n\n"
             f"Provider: {provider}\n"
-            f"Published: {published_at or 'unknown'}\n\n"
-            f"{article_text[: self.max_article_chars]}"
+            f"Published: {published_at or 'unknown'}\n"
+            f"CANDIDATE_TICKERS: {candidate_text}\n\n"
+            f"ARTICLE:\n{cleaned_article}"
         )
 
     def _normalize_memo(
@@ -174,12 +262,34 @@ class NewsMemoExtractor:
         source_id: str,
         provider: str,
         published_at: str | None,
+        candidate_tickers: list[str] | None = None,
     ) -> dict[str, Any]:
         payload = dict(raw_memo or {})
         key_events = _normalize_list(payload.get("key_events"), field_name="key_events")
-        tickers = _normalize_list(
+        raw_tickers = _normalize_list(
             payload.get("tickers"), uppercase=True, field_name="tickers"
         )
+        allowed_tickers = (
+            set(_normalize_candidate_tickers(candidate_tickers))
+            if candidate_tickers is not None
+            else None
+        )
+        tickers: list[str] = []
+        for ticker in raw_tickers:
+            normalized = _normalize_ticker_candidate(ticker)
+            if not normalized:
+                continue
+            if allowed_tickers is not None and normalized not in allowed_tickers:
+                logger.warning(
+                    "news_memo_extractor: dropped ticker outside candidate allowlist "
+                    "for source_id=%r ticker=%r candidates=%r",
+                    str(source_id or "").strip(),
+                    ticker,
+                    sorted(allowed_tickers),
+                )
+                continue
+            if normalized not in tickers:
+                tickers.append(normalized)
         claims = _normalize_list(payload.get("claims"), field_name="claims")
         risks = _normalize_list(payload.get("risks"), field_name="risks")
         sentiment = _normalize_sentiment(payload.get("sentiment"))
@@ -211,12 +321,19 @@ class NewsMemoExtractor:
         article_text: str,
         provider: str,
         published_at: str | None = None,
+        candidate_tickers: list[str] | None = None,
     ) -> dict[str, Any]:
+        resolved_candidate_tickers = (
+            _normalize_candidate_tickers(candidate_tickers)
+            if candidate_tickers is not None
+            else _exchange_ticker_candidates(_clean_article_text_for_prompt(article_text))
+        )
         raw_memo = self._call_llm(
             prompt=self._prompt(
                 article_text=article_text,
                 provider=provider,
                 published_at=published_at,
+                candidate_tickers=resolved_candidate_tickers,
             ),
             provider=provider,
             published_at=published_at,
@@ -226,6 +343,7 @@ class NewsMemoExtractor:
             source_id=source_id,
             provider=provider,
             published_at=published_at,
+            candidate_tickers=resolved_candidate_tickers,
         )
 
     def upsert(self, memo: dict[str, Any]) -> dict[str, Any]:
@@ -254,6 +372,7 @@ class NewsMemoExtractor:
         article_text: str,
         provider: str,
         published_at: str | None = None,
+        candidate_tickers: list[str] | None = None,
         route_signals: bool = True,
         company_memory_store=None,
         market_memory_store=None,
@@ -263,6 +382,7 @@ class NewsMemoExtractor:
             article_text=article_text,
             provider=provider,
             published_at=published_at,
+            candidate_tickers=candidate_tickers,
         )
         stored = self.upsert(memo)
         result = dict(stored)
@@ -298,6 +418,7 @@ class NewsMemoExtractor:
         article_text: str,
         provider: str,
         published_at: str | None = None,
+        candidate_tickers: list[str] | None = None,
         company_memory_store=None,
         market_memory_store=None,
     ) -> dict[str, Any]:
@@ -311,6 +432,7 @@ class NewsMemoExtractor:
             article_text=article_text,
             provider=provider,
             published_at=published_at,
+            candidate_tickers=candidate_tickers,
             route_signals=False,
         )
         signals = signals_from_news_memo(memo)

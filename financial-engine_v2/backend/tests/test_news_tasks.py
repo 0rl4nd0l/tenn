@@ -35,6 +35,7 @@ def test_extract_news_memo_task_uses_news_memo_extractor(monkeypatch):
         "llm_model": "qwen2.5-14b-instruct",
         "memos_path": "/tmp/news_memos.jsonl",
         "max_article_chars": 5000,
+        "candidate_tickers": ["BHP"],
     }
 
     result = news_tasks.extract_news_memo_task.run(payload)
@@ -53,6 +54,7 @@ def test_extract_news_memo_task_uses_news_memo_extractor(monkeypatch):
             "article_text": "BHP announces record iron ore production.",
             "provider": "newspaper4k",
             "published_at": "2026-03-30T10:00:00Z",
+            "candidate_tickers": ["BHP"],
         }
     ]
     assert result == {"ok": True, "source_id": "news:12345"}
