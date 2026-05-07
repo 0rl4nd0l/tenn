@@ -486,18 +486,18 @@ export function MetricCoverageTabPanel({
               Showing {filteredRows.length} of {rows.length} metric expectation row(s).
             </div>
 
-            <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-border/60 pb-2">
-              <Table className="min-w-[1100px] table-fixed">
+            <div className="rounded-lg border border-border/60 pb-2">
+              <Table className="min-w-[1500px] table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[70px]">Ticker</TableHead>
-                    <TableHead className="w-[190px]">Document</TableHead>
+                    <TableHead className="w-[80px]">Ticker</TableHead>
+                    <TableHead className="w-[220px]">Document</TableHead>
                     <TableHead className="w-[120px]">Period</TableHead>
-                    <TableHead className="w-[145px]">Metric</TableHead>
-                    <TableHead className="w-[135px]">Expected</TableHead>
-                    <TableHead className="w-[190px]">Classification</TableHead>
-                    <TableHead className="w-[270px]">Source evidence</TableHead>
-                    <TableHead className="w-[260px]">Recommendation</TableHead>
+                    <TableHead className="w-[160px]">Metric</TableHead>
+                    <TableHead className="w-[140px]">Expected</TableHead>
+                    <TableHead className="w-[200px]">Classification</TableHead>
+                    <TableHead className="w-[300px]">Source evidence</TableHead>
+                    <TableHead className="w-[280px]">Recommendation</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
