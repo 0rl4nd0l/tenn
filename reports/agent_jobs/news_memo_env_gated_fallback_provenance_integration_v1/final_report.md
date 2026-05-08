@@ -148,3 +148,54 @@ At report-write time, expected uncommitted/ignored artifacts are the integration
 ## Save Recommendation
 
 Commit the integration artifacts on `codex/news-memo-env-gated-fallback-provenance-integration-v1`, then merge or cherry-pick that branch into `preserve/dirty-work-20260430T065748Z` once the dirty shared preserve worktree is cleared or a user-approved preserve-branch handoff is available.
+
+## Preserve Runtime Validation Addendum
+
+Status: merged into preserve runtime branch and validated with a partial baseline on 2026-05-08.
+This addendum supersedes the clean-branch save recommendation above.
+
+- Preserve branch: `preserve/dirty-work-20260430T065748Z`
+- Preserve worktree: `/mnt/sdb2/home/l4nd0/tenn`
+- Preserve HEAD after fast-forward merge: `3dda92a4de06`
+- Source commit requested by user: `ebae61336f9a`
+- Integrated implementation commit on preserve history: `a3f393330f5eed37259963ff83b61b2359bd08a8`
+- Integration artifact commit on preserve history: `3dda92a4de06146f8edcc1a293ff95e6b44e77ef`
+- Registry status after merge: `python3 scripts/agent_job_registry.py list-active` passed with `active_jobs: []`.
+
+Preserve merge details:
+
+- `git merge-base --is-ancestor HEAD codex/news-memo-env-gated-fallback-provenance-integration-v1` passed before merge, confirming a fast-forward was available from preserve HEAD `13fd78de7ccb`.
+- The preserve worktree had byte-identical untracked drafts for `docs/agent_tasks/news_memo_env_gated_fallback_provenance_v1.md` and `docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md`; those duplicate untracked files were removed before merge so the tracked versions from the integration branch could be installed.
+- `git merge --ff-only codex/news-memo-env-gated-fallback-provenance-integration-v1` passed, updating preserve from `13fd78d` to `3dda92a`.
+
+Focused preserve validation:
+
+- `financial-engine_v2/.venv/bin/python -m ruff check scripts/backfill_missing_news_memos.py scripts/load_news_to_qdrant.py scripts/test_backfill_missing_news_memos.py scripts/test_load_news_qdrant_preflight.py financial-engine_v2/backend/app/services/news_memo_extractor.py financial-engine_v2/backend/app/tasks/news_tasks.py financial-engine_v2/backend/tests/test_news_memo_extractor.py financial-engine_v2/backend/tests/test_news_tasks.py` -> `All checks passed!`
+- `PYTHONPYCACHEPREFIX=/tmp/tenn_pycache_preserve_news_memo financial-engine_v2/.venv/bin/python -m py_compile scripts/backfill_missing_news_memos.py scripts/load_news_to_qdrant.py financial-engine_v2/backend/app/services/news_memo_extractor.py financial-engine_v2/backend/app/tasks/news_tasks.py` -> passed.
+- `financial-engine_v2/.venv/bin/pytest scripts/test_backfill_missing_news_memos.py scripts/test_load_news_qdrant_preflight.py financial-engine_v2/backend/tests/test_news_memo_extractor.py financial-engine_v2/backend/tests/test_news_tasks.py -q` -> `48 passed in 3.97s`.
+- `financial-engine_v2/.venv/bin/python scripts/backfill_missing_news_memos.py --help` -> passed; help includes `--json-error-fallback-model` and `--json-error-fallback-limit`.
+- `bash -n financial-engine_v2/scripts/nightly_news.sh` -> passed.
+- `git diff --check` -> passed before report addendum edits.
+
+Preserve baseline validation:
+
+- `financial-engine_v2/.venv/bin/python -m ruff check autodev financial-engine_v2/backend scripts` -> `All checks passed!`
+- `financial-engine_v2/.venv/bin/pytest autodev/tests -q` -> `89 passed in 1.62s`.
+- `financial-engine_v2/.venv/bin/pytest scripts -q` -> `1 failed, 727 passed, 3 skipped, 1 warning in 59.90s`.
+- Scripts failure: `scripts/test_probe_news_provider_coverage.py::ProbeProviderCoverageTests::test_probe_from_eodhd_capture` expected `articles_returned == 1` for BHP but observed `0`. This test file was not changed by the news memo merge.
+- `financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests -q` -> `16 failed, 1503 passed, 1 deselected, 12 warnings in 101.11s`.
+- Backend failures were outside the news memo merge diff. They covered existing architecture invariant/cursor-rule violations, memo extractor signal-routing tests, RAG payload guardrail tests, and streaming subprocess tests that call `_run_action_subprocess_streaming()` without the current `job_id` keyword-only argument.
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md` -> failed on unrelated dirty task-card drafts outside this job's `allowed_files`. The generated `diff-check.json` artifact records the failure.
+
+Preserve worktree status after validation:
+
+- Remaining dirty files outside this task: `docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md`, `docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md`, `docs/agent_tasks/metric_extraction_current_state_audit_v1.md`, `docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md`, `docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md`, and `docs/agent_tasks/repo_hygiene_classification_audit_20260508.md`.
+- This validation addendum updates only the report artifact and records the generated preserve `diff-check.json`; unrelated dirty task-card drafts were not staged or modified by this addendum.
+
+DATA_MISSING / deliberately not run:
+
+- Full live system validation commands from `docs/validation_baseline.md` were not run after the pytest baseline failed.
+- Live GPU fallback was not run.
+- Production news backfill was not run.
+- Qdrant/news database mutation was not run.
+- Frontend behavior was not changed or validated for this task.
