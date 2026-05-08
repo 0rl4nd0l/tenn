@@ -26,6 +26,7 @@ from load_news_to_qdrant import (  # noqa: E402
 from news_pipeline.utils import now_utc_iso  # noqa: E402
 
 DEFAULT_MEMO_DISPATCH_BATCH_SIZE = 25
+JSON_PARSE_FAILURE_MARKER = "No valid JSON found"
 
 
 def _eligible_for_memo(article: dict[str, Any]) -> bool:
@@ -74,6 +75,21 @@ def _sum_int(results: list[dict[str, Any]], key: str) -> int:
     return sum(int(result.get(key) or 0) for result in results)
 
 
+def _missing_articles(
+    articles: list[dict[str, Any]],
+    *,
+    memos_path: str | Path | None,
+) -> list[dict[str, Any]]:
+    memo_state = _read_news_memo_source_ids(memos_path)
+    persisted_ids = set(memo_state.get("source_ids") or set())
+    return [
+        article
+        for article in articles
+        if _eligible_for_memo(article)
+        and _source_id_for_article(article) not in persisted_ids
+    ]
+
+
 def _can_continue_after_observed_task_failure(result: dict[str, Any]) -> bool:
     """Continue bounded batches only when failures are fully observed per task."""
     if result.get("status") in {"complete", "empty"}:
@@ -89,6 +105,37 @@ def _can_continue_after_observed_task_failure(result: dict[str, Any]) -> bool:
     return int(result.get("tasks_failed") or 0) > 0
 
 
+def _task_failure_is_json_parse_error(sample: Any) -> bool:
+    if not isinstance(sample, dict):
+        return False
+    return JSON_PARSE_FAILURE_MARKER in str(sample.get("error") or "")
+
+
+def _result_is_recoverable_json_parse_failure(result: dict[str, Any]) -> bool:
+    failed = int(result.get("tasks_failed") or 0)
+    if failed <= 0:
+        return False
+    if not _can_continue_after_observed_task_failure(result):
+        return False
+    samples = list(result.get("task_failure_samples") or [])
+    if len(samples) != failed:
+        return False
+    return all(_task_failure_is_json_parse_error(sample) for sample in samples)
+
+
+def _recoverable_json_parse_failure_count(result: dict[str, Any]) -> int:
+    batch_results = list(result.get("batch_results") or [result])
+    failed = 0
+    for batch_result in batch_results:
+        batch_failed = int(batch_result.get("tasks_failed") or 0)
+        if batch_failed <= 0:
+            continue
+        if not _result_is_recoverable_json_parse_failure(batch_result):
+            return 0
+        failed += batch_failed
+    return failed
+
+
 def _dispatch_selected_articles(
     selected_articles: list[dict[str, Any]],
     *,
@@ -99,6 +146,7 @@ def _dispatch_selected_articles(
     force_dispatch: bool,
     max_article_chars: int,
     dispatch_batch_size: int,
+    llm_model: str | None = None,
 ) -> dict[str, Any]:
     if not selected_articles:
         return dispatch_news_memos(
@@ -109,6 +157,7 @@ def _dispatch_selected_articles(
             poll_interval_seconds=poll_interval_seconds,
             force_dispatch=force_dispatch,
             max_article_chars=max_article_chars,
+            llm_model=llm_model,
         )
 
     if not wait_for_completion or dispatch_batch_size <= 0:
@@ -120,6 +169,7 @@ def _dispatch_selected_articles(
             poll_interval_seconds=poll_interval_seconds,
             force_dispatch=force_dispatch,
             max_article_chars=max_article_chars,
+            llm_model=llm_model,
         )
 
     batch_results: list[dict[str, Any]] = []
@@ -133,6 +183,7 @@ def _dispatch_selected_articles(
             poll_interval_seconds=poll_interval_seconds,
             force_dispatch=force_dispatch,
             max_article_chars=max_article_chars,
+            llm_model=llm_model,
         )
         batch_results.append(result)
         if not _can_continue_after_observed_task_failure(result):
@@ -195,6 +246,7 @@ def _dispatch_selected_articles(
         "wait_poll_interval_seconds": poll_interval_seconds,
         "force_dispatch": force_dispatch,
         "max_article_chars": max_article_chars,
+        "llm_model": str(llm_model or ""),
         "memos_path": str(batch_results[-1].get("memos_path") or "")
         if batch_results
         else "",
@@ -203,6 +255,68 @@ def _dispatch_selected_articles(
         else False,
         "read_errors": _sum_int(batch_results, "read_errors"),
         "batch_results": batch_results,
+    }
+
+
+def _dispatch_json_error_fallback(
+    selected_articles: list[dict[str, Any]],
+    *,
+    primary_result: dict[str, Any],
+    memos_path: str | Path | None,
+    fallback_model: str,
+    fallback_limit: int,
+    wait_timeout_seconds: float,
+    poll_interval_seconds: float,
+    max_article_chars: int,
+) -> dict[str, Any]:
+    model = str(fallback_model or "").strip()
+    if not model:
+        return {"enabled": False, "status": "disabled", "reason": "model_not_set"}
+
+    recoverable_failures = _recoverable_json_parse_failure_count(primary_result)
+    if recoverable_failures <= 0:
+        return {
+            "enabled": True,
+            "status": "skipped",
+            "reason": "primary_failure_not_recoverable_json_parse",
+            "model": model,
+        }
+
+    retry_articles = _missing_articles(selected_articles, memos_path=memos_path)
+    retry_source_ids = [_source_id_for_article(article) for article in retry_articles]
+    if fallback_limit > 0:
+        retry_articles = retry_articles[:fallback_limit]
+        retry_source_ids = retry_source_ids[:fallback_limit]
+
+    if not retry_articles:
+        return {
+            "enabled": True,
+            "status": "empty",
+            "reason": "no_missing_articles",
+            "model": model,
+            "recoverable_failures": recoverable_failures,
+        }
+
+    result = _dispatch_selected_articles(
+        retry_articles,
+        memos_path=memos_path,
+        wait_for_completion=True,
+        wait_timeout_seconds=wait_timeout_seconds,
+        poll_interval_seconds=poll_interval_seconds,
+        force_dispatch=False,
+        max_article_chars=max_article_chars,
+        dispatch_batch_size=1,
+        llm_model=model,
+    )
+    return {
+        "enabled": True,
+        "status": result.get("status") or "unknown",
+        "reason": "attempted",
+        "model": model,
+        "recoverable_failures": recoverable_failures,
+        "selected": len(retry_articles),
+        "source_ids": retry_source_ids,
+        "result": result,
     }
 
 
@@ -268,6 +382,23 @@ def main(argv: list[str] | None = None) -> int:
             "--wait-for-memos is set; 0 disables batching"
         ),
     )
+    parser.add_argument(
+        "--json-error-fallback-model",
+        default="",
+        help=(
+            "Optional model for retrying fully observed JSON parse failures "
+            "after the bounded primary pass"
+        ),
+    )
+    parser.add_argument(
+        "--json-error-fallback-limit",
+        type=int,
+        default=3,
+        help=(
+            "Maximum missing articles to retry with --json-error-fallback-model; "
+            "0 means no limit"
+        ),
+    )
     parser.add_argument("--summary-json", default="")
     args = parser.parse_args(argv)
 
@@ -275,6 +406,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--limit must be >= 0")
     if int(args.dispatch_batch_size) < 0:
         parser.error("--dispatch-batch-size must be >= 0")
+    if int(args.json_error_fallback_limit) < 0:
+        parser.error("--json-error-fallback-limit must be >= 0")
     if float(args.memo_wait_timeout_seconds) < 0:
         parser.error("--memo-wait-timeout-seconds must be >= 0")
     if float(args.memo_wait_poll_interval_seconds) <= 0:
@@ -307,6 +440,16 @@ def main(argv: list[str] | None = None) -> int:
         max_article_chars=memo_max_article_chars,
         dispatch_batch_size=int(args.dispatch_batch_size),
     )
+    fallback_result = _dispatch_json_error_fallback(
+        selected_articles,
+        primary_result=memo_result,
+        memos_path=memos_path,
+        fallback_model=str(args.json_error_fallback_model or ""),
+        fallback_limit=int(args.json_error_fallback_limit),
+        wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
+        poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
+        max_article_chars=memo_max_article_chars,
+    )
     coverage_after = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
     summary = {
         "generated_at_utc": now_utc_iso(),
@@ -315,12 +458,15 @@ def main(argv: list[str] | None = None) -> int:
         "coverage_before": coverage_before,
         "selection": selection,
         "memo_extraction": memo_result,
+        "json_error_fallback": fallback_result,
         "coverage_after": coverage_after,
     }
     if args.summary_json:
         write_summary_json(args.summary_json, summary)
     print(json.dumps(summary, indent=2, sort_keys=True))
-    if bool(args.wait_for_memos) and memo_result.get("status") not in {"complete", "empty"}:
+    memo_complete = memo_result.get("status") in {"complete", "empty"}
+    coverage_complete = coverage_after.get("status") in {"complete", "empty"}
+    if bool(args.wait_for_memos) and not (memo_complete or coverage_complete):
         return 2
     return 0
 

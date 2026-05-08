@@ -588,6 +588,7 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
                 task=ResultTask(),
                 memos_path=Path(td) / "news_memos.jsonl",
                 max_article_chars=7,
+                llm_model="model:qwen3.5-35b-a3b-apex",
             )
 
         self.assertEqual(result["dispatched"], 2)
@@ -595,6 +596,7 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         self.assertEqual(_task_id_samples(result), ["task-art-1", "task-art-2"])
         self.assertEqual(result["max_article_chars"], 7)
         self.assertEqual(payloads[0]["article_text"], "memo te")
+        self.assertEqual(payloads[0]["llm_model"], "model:qwen3.5-35b-a3b-apex")
         self.assertEqual(payloads[0]["candidate_tickers"], ["ABC"])
         self.assertEqual(payloads[1]["candidate_tickers"], [])
 

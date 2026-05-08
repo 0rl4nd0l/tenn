@@ -203,6 +203,8 @@ class NewsMemoExtractor:
             "operation": "news_memo",
             "provider": provider,
             "published_at": str(published_at or "").strip(),
+            "llm_url": self.llm_url,
+            "llm_model": self.llm_model,
         }
         try:
             signature = inspect.signature(self.llm_fn)

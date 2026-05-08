@@ -309,6 +309,96 @@ def test_backfill_wait_batches_stop_on_unobserved_failure(tmp_path: Path) -> Non
     assert summary["memo_extraction"]["tasks_unobserved"] == 1
 
 
+def test_backfill_json_error_fallback_retries_missing_with_model(
+    tmp_path: Path,
+) -> None:
+    memos_path = tmp_path / "news_memos.jsonl"
+    memos_path.write_text(
+        json.dumps({"source_id": "news:art-2"}) + "\n",
+        encoding="utf-8",
+    )
+    selected_articles = [
+        {"article_id": "art-3", "text": "bad json article"},
+        {"article_id": "art-2", "text": "already recovered"},
+    ]
+    batch_article_ids: list[list[str]] = []
+    seen_kwargs: dict[str, object] = {}
+
+    def fake_dispatch(articles, **kwargs):
+        batch_article_ids.append([article["article_id"] for article in articles])
+        seen_kwargs.update(kwargs)
+        return {
+            "status": "complete",
+            "eligible": len(articles),
+            "dispatched": len(articles),
+            "dispatch_candidates": len(articles),
+            "persisted_after_dispatch": len(articles),
+            "missing_after_dispatch": 0,
+            "tasks_observed": len(articles),
+            "tasks_completed": len(articles),
+            "tasks_failed": 0,
+            "completion_observable": True,
+        }
+
+    primary_result = {
+        "status": "degraded",
+        "completion_observable": True,
+        "dispatch_failed": 0,
+        "tasks_pending": 0,
+        "tasks_unobserved": 0,
+        "tasks_failed": 1,
+        "task_failure_samples": [
+            {"task_id": "task-art-3", "error": "No valid JSON found in response"}
+        ],
+    }
+    with patch.object(backfill, "dispatch_news_memos", side_effect=fake_dispatch):
+        result = backfill._dispatch_json_error_fallback(
+            selected_articles,
+            primary_result=primary_result,
+            memos_path=memos_path,
+            fallback_model="model:qwen3.5-35b-a3b-apex",
+            fallback_limit=3,
+            wait_timeout_seconds=120,
+            poll_interval_seconds=5,
+            max_article_chars=2500,
+        )
+
+    assert result["status"] == "complete"
+    assert result["selected"] == 1
+    assert result["source_ids"] == ["news:art-3"]
+    assert batch_article_ids == [["art-3"]]
+    assert seen_kwargs["llm_model"] == "model:qwen3.5-35b-a3b-apex"
+    assert seen_kwargs["wait_for_completion"] is True
+
+
+def test_backfill_json_error_fallback_skips_non_json_failures() -> None:
+    primary_result = {
+        "status": "degraded",
+        "completion_observable": True,
+        "dispatch_failed": 0,
+        "tasks_pending": 0,
+        "tasks_unobserved": 0,
+        "tasks_failed": 1,
+        "task_failure_samples": [{"task_id": "task-art-3", "error": "timeout"}],
+    }
+
+    with patch.object(backfill, "dispatch_news_memos") as dispatch:
+        result = backfill._dispatch_json_error_fallback(
+            [{"article_id": "art-3", "text": "timeout article"}],
+            primary_result=primary_result,
+            memos_path=None,
+            fallback_model="model:qwen3.5-35b-a3b-apex",
+            fallback_limit=3,
+            wait_timeout_seconds=120,
+            poll_interval_seconds=5,
+            max_article_chars=2500,
+        )
+
+    assert result["status"] == "skipped"
+    assert result["reason"] == "primary_failure_not_recoverable_json_parse"
+    dispatch.assert_not_called()
+
+
 def test_backfill_no_wait_does_not_batch(tmp_path: Path) -> None:
     db_path = tmp_path / "news_articles.sqlite"
     memos_path = tmp_path / "news_memos.jsonl"

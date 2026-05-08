@@ -120,6 +120,35 @@ def test_extract_prompt_honors_article_char_cap(tmp_memos_path: Path) -> None:
     assert "A" * 13 not in prompt
 
 
+def test_extract_routes_configured_llm_runtime_in_metadata(
+    tmp_memos_path: Path,
+) -> None:
+    calls: list[dict[str, Any]] = []
+
+    def llm_fn(*, prompt: str, metadata: dict[str, Any]) -> dict[str, Any]:
+        calls.append({"prompt": prompt, "metadata": metadata})
+        return GOOD_LLM_RESPONSE
+
+    extractor = NewsMemoExtractor(
+        llm_fn=llm_fn,
+        llm_url="http://127.0.0.1:8001",
+        llm_model="model:qwen3.5-35b-a3b-apex",
+        memos_path=tmp_memos_path,
+    )
+
+    extractor.extract(
+        source_id="news-model",
+        article_text="Company XYZ announced a major acquisition today.",
+        provider="newspaper4k",
+        published_at="2026-03-30",
+    )
+
+    metadata = calls[0]["metadata"]
+    assert metadata["component"] == "news_memo_extractor"
+    assert metadata["llm_url"] == "http://127.0.0.1:8001"
+    assert metadata["llm_model"] == "model:qwen3.5-35b-a3b-apex"
+
+
 def test_extract_prompt_cleans_html_and_lists_candidate_tickers(
     tmp_memos_path: Path,
 ) -> None:

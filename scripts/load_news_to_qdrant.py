@@ -201,6 +201,7 @@ def dispatch_news_memos(
     poll_interval_seconds: float = 2.0,
     force_dispatch: bool = False,
     max_article_chars: int | str | None = None,
+    llm_model: str | None = None,
 ) -> Dict[str, Any]:
     before = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
     memo_state = _read_news_memo_source_ids(memos_path)
@@ -241,6 +242,8 @@ def dispatch_news_memos(
                 "candidate_tickers": _memo_candidate_tickers_for_article(art),
                 "max_article_chars": article_char_cap,
             }
+            if llm_model:
+                memo_payload["llm_model"] = str(llm_model).strip()
             try:
                 async_result = dispatch_task.delay(memo_payload)
                 dispatched += 1
