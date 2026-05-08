@@ -131,3 +131,90 @@ def test_backfill_wait_degraded_returns_nonzero(tmp_path: Path) -> None:
         )
 
     assert exit_code == 2
+
+
+def test_backfill_wait_batches_unlimited_selection(tmp_path: Path) -> None:
+    db_path = tmp_path / "news_articles.sqlite"
+    memos_path = tmp_path / "news_memos.jsonl"
+    summary_path = tmp_path / "summary.json"
+    _create_articles_db(db_path)
+    batch_article_ids: list[list[str]] = []
+
+    def fake_dispatch(articles, **kwargs):
+        batch_article_ids.append([article["article_id"] for article in articles])
+        return {
+            "status": "complete",
+            "eligible": len(articles),
+            "dispatched": len(articles),
+            "dispatch_candidates": len(articles),
+            "persisted_after_dispatch": len(articles),
+            "missing_after_dispatch": 0,
+            "tasks_observed": len(articles),
+            "tasks_completed": len(articles),
+            "completion_observable": True,
+            "wait_requested": kwargs["wait_for_completion"],
+        }
+
+    with patch.object(backfill, "dispatch_news_memos", side_effect=fake_dispatch):
+        exit_code = backfill.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--since-hours",
+                "0",
+                "--limit",
+                "0",
+                "--wait-for-memos",
+                "--dispatch-batch-size",
+                "2",
+                "--memo-diagnostics-path",
+                str(memos_path),
+                "--summary-json",
+                str(summary_path),
+            ]
+        )
+
+    assert exit_code == 0
+    assert batch_article_ids == [["art-3", "art-2"], ["art-1"]]
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["selection"]["selected"] == 3
+    assert summary["memo_extraction"]["batched"] is True
+    assert summary["memo_extraction"]["batch_size"] == 2
+    assert summary["memo_extraction"]["batches_attempted"] == 2
+    assert summary["memo_extraction"]["dispatched"] == 3
+    assert summary["memo_extraction"]["tasks_completed"] == 3
+
+
+def test_backfill_no_wait_does_not_batch(tmp_path: Path) -> None:
+    db_path = tmp_path / "news_articles.sqlite"
+    memos_path = tmp_path / "news_memos.jsonl"
+    _create_articles_db(db_path)
+    batch_article_ids: list[list[str]] = []
+
+    def fake_dispatch(articles, **kwargs):
+        batch_article_ids.append([article["article_id"] for article in articles])
+        return {
+            "status": "pending",
+            "eligible": len(articles),
+            "dispatched": len(articles),
+            "wait_requested": kwargs["wait_for_completion"],
+        }
+
+    with patch.object(backfill, "dispatch_news_memos", side_effect=fake_dispatch):
+        exit_code = backfill.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--since-hours",
+                "0",
+                "--limit",
+                "0",
+                "--dispatch-batch-size",
+                "1",
+                "--memo-diagnostics-path",
+                str(memos_path),
+            ]
+        )
+
+    assert exit_code == 0
+    assert batch_article_ids == [["art-3", "art-2", "art-1"]]
