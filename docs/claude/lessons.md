@@ -1085,3 +1085,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The table inherited nowrap table-cell styling and added explicit `truncate` classes to the document, source path, and source row fields. Badge styling also defaulted to nowrap/overflow-hidden, so long classification/source labels could be clipped.
 **Fix:** The metric coverage table now uses fixed review-oriented column widths with normal wrapping, breakable identifiers/paths, and wrapping badges for long classification/source labels.
 **Rule:** Verification/review tables are audit surfaces. They should preserve readable evidence and action text by wrapping within stable columns; use horizontal scroll only for table width, not as a reason to hide row-level evidence.
+
+---
+
+## L097 — Backfill scripts must bound queues before unlimited live runs
+
+**Date:** 2026-05-08
+**Subsystem:** `scripts/backfill_missing_news_memos.py`
+**Symptom:** A live news memo backfill using `--limit 0 --wait-for-memos` queued the full remaining memo backlog at once, contradicting the intended software fix to dispatch bounded waves.
+**Root cause:** The live run was started before the CLI enforced batch dispatch for unlimited selections, so `limit=0` still meant "select everything and enqueue everything" even in wait mode.
+**Fix:** The backfill CLI now dispatches bounded batches by default when waiting, preserves explicit unbatched mode only with `--dispatch-batch-size 0`, and continues later batches only after fully observed article-level task failures while stopping on unobserved/pending infrastructure failures.
+**Rule:** Never run an unlimited live backfill until the CLI itself enforces the concurrency/queue constraint. Operator intent is not enough; the script contract must make the safe path the default and keep degraded failures explicit.

@@ -74,6 +74,21 @@ def _sum_int(results: list[dict[str, Any]], key: str) -> int:
     return sum(int(result.get(key) or 0) for result in results)
 
 
+def _can_continue_after_observed_task_failure(result: dict[str, Any]) -> bool:
+    """Continue bounded batches only when failures are fully observed per task."""
+    if result.get("status") in {"complete", "empty"}:
+        return True
+    if not bool(result.get("completion_observable")):
+        return False
+    if int(result.get("dispatch_failed") or 0) > 0:
+        return False
+    if int(result.get("tasks_pending") or 0) > 0:
+        return False
+    if int(result.get("tasks_unobserved") or 0) > 0:
+        return False
+    return int(result.get("tasks_failed") or 0) > 0
+
+
 def _dispatch_selected_articles(
     selected_articles: list[dict[str, Any]],
     *,
@@ -120,7 +135,7 @@ def _dispatch_selected_articles(
             max_article_chars=max_article_chars,
         )
         batch_results.append(result)
-        if result.get("status") not in {"complete", "empty"}:
+        if not _can_continue_after_observed_task_failure(result):
             break
 
     completed_all = len(batch_results) * dispatch_batch_size >= len(selected_articles)
@@ -135,6 +150,12 @@ def _dispatch_selected_articles(
         "batches_attempted": len(batch_results),
         "batches_total": (len(selected_articles) + dispatch_batch_size - 1)
         // dispatch_batch_size,
+        "batches_continued_after_observed_failures": sum(
+            1
+            for result in batch_results[:-1]
+            if result.get("status") not in {"complete", "empty"}
+            and _can_continue_after_observed_task_failure(result)
+        ),
         "eligible": _sum_int(batch_results, "eligible"),
         "skipped": _sum_int(batch_results, "skipped"),
         "dispatched": _sum_int(batch_results, "dispatched"),
