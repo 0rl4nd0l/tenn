@@ -6,7 +6,7 @@ Preserved exactly the requested Evaluation-preservation artifacts: the classific
 ## Branch / starting HEAD
 - Branch: `preserve/dirty-work-20260430T065748Z`
 - Starting HEAD: `47d72fcf5a0db132debb5fe490964acfd6be5a78`
-- Final HEAD: `d2ab35c53b8cf4024f98289f8063621853f7e6ab`
+- Final HEAD: `d9a29af9d79fcb2f0b35f7f2f8a6d84a3e4c1f2b1`
 
 ## Active registry status
 - Active jobs at invocation: none
@@ -43,7 +43,7 @@ Yes. Report paths are ignored and were added with `git add -f`.
 - `git status --short --untracked-files=all` before commit showed pre-existing dirty/untracked items outside scope.
 
 ## Commit SHA if successful
-- `d2ab35c53b8cf4024f98289f8063621853f7e6ab`
+- `d9a29af9d79fcb2f0b35f7f2f8a6d84a3e4c1f2b1`
 
 ## Remaining dirty files after commit
 - `M docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md`
