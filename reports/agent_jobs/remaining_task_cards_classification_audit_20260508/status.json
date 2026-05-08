@@ -1,0 +1,90 @@
+{
+  "job_id": "remaining_task_cards_classification_audit_20260508",
+  "mode": "audit_only",
+  "primary_lane": "Evaluation",
+  "started_head": "47d72fcf5a0db132debb5fe490964acfd6be5a78",
+  "final_head": "47d72fcf5a0db132debb5fe490964acfd6be5a78",
+  "scoped_files": [
+    "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+    "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "classified_files": [
+    "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+    "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "preserve_later": [
+    "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md"
+  ],
+  "archive_delete_later": [],
+  "revert_later_candidates": [
+    "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md"
+  ],
+  "leave_until_related_job_finishes": [
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "requires_user_approval": [],
+  "matching_report_dirs": {
+    "cockpit_runtime_worktree_visibility_audit_20260507": "reports/agent_jobs/cockpit_runtime_worktree_visibility_audit_20260507 (exists, ignored)",
+    "cockpit_home_news_snapshot_v1_20260508": "reports/agent_jobs/cockpit_home_news_snapshot_v1_20260508 (exists, ignored)",
+    "metric_extraction_current_state_audit_v1": "reports/agent_jobs/metric_extraction_current_state_audit_v1 (exists, ignored)",
+    "metric_extraction_runtime_contract_reconciliation_v1": "reports/agent_jobs/metric_extraction_runtime_contract_reconciliation_v1 (exists, ignored)",
+    "reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508": "reports/agent_jobs/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508 (exists, ignored)"
+  },
+  "matching_branches_or_worktrees": {
+    "cockpit_runtime_worktree_visibility_audit_20260507": {
+      "branches": [],
+      "worktrees": [
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508",
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508"
+      ]
+    },
+    "cockpit_home_news_snapshot_v1_20260508": {
+      "branches": [
+        "codex/cockpit-home-news-snapshot-v1-20260508",
+        "integrate/cockpit-home-news-snapshot-v1-20260508"
+      ],
+      "worktrees": [
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508",
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508"
+      ]
+    },
+    "metric_extraction_current_state_audit_v1": {
+      "branches": [],
+      "worktrees": [
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508",
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508"
+      ]
+    },
+    "metric_extraction_runtime_contract_reconciliation_v1": {
+      "branches": [],
+      "worktrees": [
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508",
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508"
+      ]
+    },
+    "reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508": {
+      "branches": [
+        "codex/cockpit-home-news-snapshot-v1-20260508",
+        "integrate/cockpit-home-news-snapshot-v1-20260508"
+      ],
+      "worktrees": [
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508",
+        "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508"
+      ]
+    }
+  },
+  "active_registry_jobs": [],
+  "cleanup_safe_now": false,
+  "commit_safe_now": false,
+  "project_memory_save_recommendation": "SAVE_RECOMMENDED",
+  "collision_risk": "LOW",
+  "data_missing": []
+}

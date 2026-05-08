@@ -1,0 +1,46 @@
+{
+  "job_id": "evaluation_task_cards_preservation_20260508",
+  "mode": "safe_extension",
+  "primary_lane": "Evaluation",
+  "started_head": "47d72fcf5a0db132debb5fe490964acfd6be5a78",
+  "final_head": null,
+  "preserved_files": [
+    "docs/agent_tasks/evaluation_task_cards_preservation_20260508.md",
+    "docs/agent_tasks/remaining_task_cards_classification_audit_20260508.md",
+    "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+    "reports/agent_jobs/remaining_task_cards_classification_audit_20260508/README.md",
+    "reports/agent_jobs/remaining_task_cards_classification_audit_20260508/status.json",
+    "reports/agent_jobs/remaining_task_cards_classification_audit_20260508/task_card_matrix.md",
+    "reports/agent_jobs/remaining_task_cards_classification_audit_20260508/lane_separated_preservation_plan.md",
+    "reports/agent_jobs/remaining_task_cards_classification_audit_20260508/do_not_touch_yet.md",
+    "reports/agent_jobs/evaluation_task_cards_preservation_20260508/README.md",
+    "reports/agent_jobs/evaluation_task_cards_preservation_20260508/status.json"
+  ],
+  "explicitly_not_staged": [
+    "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+    "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "docs/agent_tasks/preserve_baseline_failure_classification_20260508.md",
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "commit": null,
+  "cleanup_performed": false,
+  "source_code_touched": false,
+  "validation": [
+    "date -Iseconds",
+    "pwd",
+    "git rev-parse --show-toplevel",
+    "git rev-parse --abbrev-ref HEAD",
+    "git rev-parse HEAD",
+    "git rev-parse --short=12 HEAD",
+    "git status --short --untracked-files=all",
+    "python3 scripts/agent_job_registry.py list-active || true",
+    "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/evaluation_task_cards_preservation_20260508.md || true",
+    "python3 scripts/agent_job_contract.py validate docs/agent_tasks/evaluation_task_cards_preservation_20260508.md || true",
+    "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/evaluation_task_cards_preservation_20260508.md || true",
+    "git check-ignore -v reports/agent_jobs/remaining_task_cards_classification_audit_20260508/status.json || true"
+  ],
+  "remaining_dirty_files": [],
+  "collision_risk": "LOW",
+  "data_missing": []
+}
