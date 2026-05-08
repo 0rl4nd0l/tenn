@@ -1,0 +1,84 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/repo_hygiene_classification_audit_20260508.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/repo_hygiene_preservation_checkpoint_20260508.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+    "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/metric_extraction_current_state_audit_v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/repo_hygiene_preservation_checkpoint_20260508/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/repo_hygiene_preservation_checkpoint_20260508.md",
+        "docs/agent_tasks/repo_hygiene_classification_audit_20260508.md",
+        "reports/agent_jobs/repo_hygiene_classification_audit_20260508/**",
+        "reports/agent_jobs/repo_hygiene_preservation_checkpoint_20260508/**"
+      ],
+      "approval_required": false,
+      "job_id": "repo_hygiene_preservation_checkpoint_20260508",
+      "lane": "Memory",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/repo_hygiene_preservation_checkpoint_20260508",
+      "owner": "Claude",
+      "production_data_access": false,
+      "timeout_seconds": 1200
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "job_id": "repo_hygiene_preservation_checkpoint_20260508",
+  "mode": "safe_extension",
+  "primary_lane": "Memory",
+  "supporting_lane": "Evaluation",
+  "started_head": "d2e648063287e95192a0d4e1fab15526d2736d6e",
+  "final_head": null,
+  "preserved_files": [
+    "docs/agent_tasks/repo_hygiene_preservation_checkpoint_20260508.md",
+    "docs/agent_tasks/repo_hygiene_classification_audit_20260508.md",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508/README.md",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508/status.json",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508/main_untracked_classification.md",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508/dirty_worktrees.md",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508/prunable_detached_worktrees.md",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508/cleanup_plan.md",
+    "reports/agent_jobs/repo_hygiene_preservation_checkpoint_20260508/README.md",
+    "reports/agent_jobs/repo_hygiene_preservation_checkpoint_20260508/status.json"
+  ],
+  "explicitly_not_staged": [
+    "docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+    "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "commit": null,
+  "cleanup_performed": false,
+  "source_code_touched": false,
+  "validation": [
+    "date -Iseconds",
+    "git rev-parse --short=12 HEAD",
+    "git status --short --untracked-files=all",
+    "python3 scripts/agent_job_registry.py list-active",
+    "python3 scripts/agent_job_contract.py validate docs/agent_tasks/repo_hygiene_preservation_checkpoint_20260508.md",
+    "python3 scripts/agent_job_contract.py check-overlap docs/agent_tasks/repo_hygiene_preservation_checkpoint_20260508.md",
+    "test -f docs/agent_tasks/repo_hygiene_classification_audit_20260508.md",
+    "test -f reports/agent_jobs/repo_hygiene_classification_audit_20260508/README.md",
+    "test -f reports/agent_jobs/repo_hygiene_classification_audit_20260508/status.json",
+    "test -f reports/agent_jobs/repo_hygiene_classification_audit_20260508/main_untracked_classification.md",
+    "test -f reports/agent_jobs/repo_hygiene_classification_audit_20260508/dirty_worktrees.md",
+    "test -f reports/agent_jobs/repo_hygiene_classification_audit_20260508/prunable_detached_worktrees.md",
+    "test -f reports/agent_jobs/repo_hygiene_classification_audit_20260508/cleanup_plan.md"
+  ],
+  "remaining_dirty_files": [
+    "M docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md",
+    "?? docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+    "?? docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+    "?? docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+    "?? docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "collision_risk": "LOW",
+  "data_missing": []
+}

@@ -1,0 +1,169 @@
+{
+  "job_id": "repo_hygiene_classification_audit_20260508",
+  "mode": "audit_only",
+  "primary_lane": "Evaluation",
+  "started_branch": "preserve/dirty-work-20260430T065748Z",
+  "started_head": "13fd78de7ccbacc4b04e15b8d8dcfc52e26932cb",
+  "main_worktree_untracked_count": 5,
+  "main_worktree_tracked_modified_count": 1,
+  "total_worktrees": 62,
+  "prunable_worktrees": [
+    {
+      "path": "/home/l4nd0/CLAUDEMAESTRO1",
+      "branch": "CLAUDEMAESTRO1",
+      "path_exists": false,
+      "branch_exists": true,
+      "head_in_preserve": true,
+      "gitdir_missing": true
+    },
+    {
+      "path": "/home/l4nd0/Maestro1",
+      "branch": "Maestro1",
+      "path_exists": false,
+      "branch_exists": true,
+      "head_in_preserve": false,
+      "gitdir_missing": true
+    },
+    {
+      "path": "/tmp/tenn-api-billing-notice",
+      "branch": null,
+      "path_exists": false,
+      "branch_exists": false,
+      "head_in_preserve": true,
+      "gitdir_missing": true
+    }
+  ],
+  "detached_worktrees": [
+    {
+      "path": "/tmp/tenn-baseline-944fd43",
+      "head": "944fd43",
+      "path_exists": true,
+      "head_in_preserve": true,
+      "dirty": false,
+      "branch_available": false
+    },
+    {
+      "path": "/tmp/tenn-metric-coverage-provenance",
+      "head": "2643426",
+      "path_exists": true,
+      "head_in_preserve": false,
+      "dirty": false,
+      "branch_available": false
+    },
+    {
+      "path": "/tmp/tenn-api-billing-notice",
+      "head": "b85e896",
+      "path_exists": false,
+      "head_in_preserve": true,
+      "dirty": false,
+      "branch_available": false
+    }
+  ],
+  "dirty_worktrees": [
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn",
+      "branch": "preserve/dirty-work-20260430T065748Z",
+      "tracked_modified": ["docs/agent_tasks/cockpit_runtime_worktree_visibility_audit_20260507.md"],
+      "untracked": [
+        "docs/agent_tasks/cockpit_home_news_snapshot_v1_20260508.md",
+        "docs/agent_tasks/metric_extraction_current_state_audit_v1.md",
+        "docs/agent_tasks/metric_extraction_runtime_contract_reconciliation_v1.md",
+        "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md",
+        "docs/agent_tasks/repo_hygiene_classification_audit_20260508.md"
+      ]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-ab-isolation-20260421",
+      "branch": "audit/ab-isolation-real-gold-cap-timeout",
+      "untracked": ["scripts/run_docling_determinism_audit.py"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-auth-design-before-chatgpt-20260507",
+      "branch": "audit/tenn-agent-mcp-auth-design-before-chatgpt-20260507",
+      "untracked": ["docs/agent_tasks/tenn_agent_mcp_auth_design_before_chatgpt_20260507.md"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-connector-dry-run-plan-20260507",
+      "branch": "audit/tenn-agent-mcp-connector-dry-run-plan-20260507",
+      "untracked": ["docs/agent_tasks/tenn_agent_mcp_connector_dry_run_plan_20260507.md"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-http-adapter-v0-20260507",
+      "branch": "safe/tenn-agent-mcp-http-adapter-v0-20260507",
+      "untracked": ["docs/agent_tasks/tenn_agent_mcp_http_local_smoke_readiness_20260507.md"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-smoke-20260507",
+      "branch": "audit/tenn-agent-mcp-oauth-local-smoke-20260507",
+      "untracked": ["docs/agent_tasks/tenn_agent_mcp_oauth_local_smoke_20260507.md"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-audit-v1",
+      "branch": "audit/cockpit-home-backend-bff-contract-v1",
+      "untracked": ["docs/agent_tasks/cockpit_home_backend_bff_contract_audit_v1.md"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1",
+      "branch": "safe/cockpit-home-live-wiring-v1",
+      "tracked_modified": ["cockpit-ui/next-env.d.ts"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421",
+      "branch": "audit/eval-instrumentation-bounded-20260421",
+      "tracked_modified": [
+        "financial-engine_v2/backend/app/main.py",
+        "financial-engine_v2/backend/app/services/docling_extract.py",
+        "financial-engine_v2/backend/app/services/method_isolated_extraction.py",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_docling_extract.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+        "scripts/run_real_extraction_eval.py",
+        "scripts/test_run_real_extraction_eval.py"
+      ]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-shared-router-strict-eval-gate-v1",
+      "branch": "codex/shared-router-strict-eval-acceptance-gate-v1",
+      "untracked": ["docs/agent_tasks/shared_router_canonical_core_rerun_v1.md"]
+    },
+    {
+      "path": "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate",
+      "branch": "codex/source-label-998d68e-clean-integration-20260506",
+      "untracked": ["docs/agent_tasks/source_label_998d68e_clean_integration_20260506.md"]
+    }
+  ],
+  "active_registry_jobs": [
+    {
+      "job_id": "shared_router_canonical_core_rerun_v1",
+      "lane": "Evaluation",
+      "branch": "codex/shared-router-strict-eval-acceptance-gate-v1",
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-shared-router-strict-eval-gate-v1",
+      "state": "active",
+      "mutation_mode": "audit_only"
+    }
+  ],
+  "preserve_later": [
+    "/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421",
+    "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1",
+    "/mnt/sdb2/home/l4nd0/tenn-ab-isolation-20260421",
+    "docs/agent_tasks/repo_hygiene_classification_audit_20260508.md",
+    "reports/agent_jobs/repo_hygiene_classification_audit_20260508"
+  ],
+  "archive_or_delete_later": [
+    "/home/l4nd0/CLAUDEMAESTRO1",
+    "/home/l4nd0/Maestro1",
+    "/tmp/tenn-api-billing-notice",
+    "/tmp/tenn-metric-coverage-provenance"
+  ],
+  "needs_user_approval": [
+    "Prune dangling/prunable worktrees",
+    "Delete/archive detached worktrees without branch heads"
+  ],
+  "cleanup_safe_now": false,
+  "collision_risk": "LOW",
+  "project_memory_save_recommendation": "SAVE_RECOMMENDED",
+  "data_missing": [
+    "docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md is not present on disk at audit time; recoverable from history commit 3dda92a and branch codex/news-memo-env-gated-fallback-provenance-integration-v1.",
+    "docs/agent_tasks/news_memo_env_gated_fallback_provenance_v1.md is not present on disk at audit time; recoverable from history commit a3f3933/ebae613 and branch codex/news-memo-env-gated-fallback-provenance-v1."
+  ]
+}
