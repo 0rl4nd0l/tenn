@@ -1,0 +1,38 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/news_memo_qdrant_dirty_diff_classification_v1_20260508.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/news_memo_qdrant_dirty_diff_classification_v1_20260508.md",
+        "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/**",
+        "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/README.md",
+        "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/diff-check.json",
+        "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/status.json"
+      ],
+      "approval_required": false,
+      "job_id": "news_memo_qdrant_dirty_diff_classification_v1_20260508",
+      "lane": "Provenance",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

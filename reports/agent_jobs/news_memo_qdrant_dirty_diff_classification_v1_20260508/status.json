@@ -1,0 +1,31 @@
+{
+  "active_record": ".git/tenn-agent-registry/active/news_memo_qdrant_dirty_diff_classification_v1_20260508.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/news_memo_qdrant_dirty_diff_classification_v1_20260508.md",
+    "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/**",
+    "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/README.md",
+    "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/diff-check.json",
+    "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508/status.json"
+  ],
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "claimed_at": "2026-05-08T07:20:59.694727Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-08T07:20:59.694727Z",
+  "job_id": "news_memo_qdrant_dirty_diff_classification_v1_20260508",
+  "lane": "Provenance",
+  "last_seen_at": "2026-05-08T07:26:44.141483Z",
+  "output_dir": "reports/agent_jobs/news_memo_qdrant_dirty_diff_classification_v1_20260508",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-08T07:26:44.141483Z",
+  "repo_root": "/mnt/sdb2/home/l4nd0/tenn",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:1238586:news_memo_qdrant_dirty_diff_classification_v1_20260508",
+  "started_at": "2026-05-08T07:20:59.694727Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/news_memo_qdrant_dirty_diff_classification_v1_20260508.md",
+  "updated_at": "2026-05-08T07:26:44.141483Z",
+  "worktree": "/mnt/sdb2/home/l4nd0/tenn"
+}
