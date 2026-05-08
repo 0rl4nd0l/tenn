@@ -1,0 +1,60 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/final_report.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_env_gated_fallback_provenance_v1/final_report.md",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md",
+        "docs/agent_tasks/news_memo_env_gated_fallback_provenance_v1.md",
+        "scripts/backfill_missing_news_memos.py",
+        "scripts/load_news_to_qdrant.py",
+        "scripts/test_backfill_missing_news_memos.py",
+        "scripts/test_load_news_qdrant_preflight.py",
+        "financial-engine_v2/backend/app/services/news_memo_extractor.py",
+        "financial-engine_v2/backend/app/tasks/news_tasks.py",
+        "financial-engine_v2/backend/tests/test_news_memo_extractor.py",
+        "financial-engine_v2/backend/tests/test_news_tasks.py",
+        "financial-engine_v2/scripts/nightly_news.sh",
+        "reports/agent_jobs/news_memo_env_gated_fallback_provenance_v1/final_report.md",
+        "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/final_report.md",
+        "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/status.json",
+        "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "news_memo_env_gated_fallback_provenance_integration_v1",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/news_memo_env_gated_fallback_provenance_integration_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
