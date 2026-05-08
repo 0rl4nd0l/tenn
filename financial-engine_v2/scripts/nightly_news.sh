@@ -23,6 +23,7 @@ mkdir -p "${LOG_DIR}"
 STAMP="$(date +%F_%H%M%S)"
 LOG_FILE="${LOG_DIR}/nightly_news_${STAMP}.log"
 SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.summary.json"
+MEMO_BACKFILL_SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.memo_backfill.summary.json"
 
 {
   echo "[nightly_news] started_at=$(date -Iseconds)"
@@ -58,18 +59,52 @@ SUMMARY_FILE="${LOG_DIR}/nightly_news_${STAMP}.summary.json"
       --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
       --summary-json "${SUMMARY_FILE}"
     )
-    if [[ "${NEWS_FORCE_DISPATCH_MEMOS:-0}" == "1" ]]; then
-      SYNC_ARGS+=(--force-dispatch-memos)
-    fi
+    WAIT_FOR_MEMOS=false
+    USE_BOUNDED_MEMO_BACKFILL=false
+    JSON_ERROR_FALLBACK_MODEL="${NEWS_JSON_ERROR_FALLBACK_MODEL:-}"
     if [[ "${NEWS_WAIT_FOR_MEMOS:-0}" == "1" ]]; then
-      SYNC_ARGS+=(
-        --wait-for-memos
-        --memo-wait-timeout-seconds "${NEWS_MEMO_WAIT_TIMEOUT_SECONDS:-2700}"
-        --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}"
-      )
+      WAIT_FOR_MEMOS=true
+      if [[ -n "${JSON_ERROR_FALLBACK_MODEL}" ]]; then
+        # Keep wait-mode fallback bounded and observable through the dedicated
+        # backfill runner; the loader still performs Qdrant and SQLite sync.
+        USE_BOUNDED_MEMO_BACKFILL=true
+        SYNC_ARGS+=(--no-dispatch-memos)
+      else
+        SYNC_ARGS+=(
+          --wait-for-memos
+          --memo-wait-timeout-seconds "${NEWS_MEMO_WAIT_TIMEOUT_SECONDS:-2700}"
+          --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}"
+        )
+      fi
+    elif [[ -n "${JSON_ERROR_FALLBACK_MODEL}" ]]; then
+      echo "[nightly_news] NEWS_JSON_ERROR_FALLBACK_MODEL ignored because NEWS_WAIT_FOR_MEMOS is not 1" >&2
+    fi
+    if [[ "${NEWS_FORCE_DISPATCH_MEMOS:-0}" == "1" && "${USE_BOUNDED_MEMO_BACKFILL}" != "true" ]]; then
+      SYNC_ARGS+=(--force-dispatch-memos)
     fi
     python3 "${TENN_ROOT}/scripts/load_news_to_qdrant.py" "${SYNC_ARGS[@]}"
     echo "[nightly_news] summary_json=${SUMMARY_FILE}"
+    if [[ "${USE_BOUNDED_MEMO_BACKFILL}" == "true" ]]; then
+      echo "[nightly_news] phase=memo_backfill started_at=$(date -Iseconds)"
+      BACKFILL_ARGS=(
+        --since-hours 36
+        --limit 0
+        --wait-for-memos
+        --dispatch-batch-size "${NEWS_MEMO_DISPATCH_BATCH_SIZE:-25}"
+        --memo-wait-timeout-seconds "${NEWS_MEMO_WAIT_TIMEOUT_SECONDS:-2700}"
+        --memo-wait-poll-interval-seconds "${NEWS_MEMO_WAIT_POLL_INTERVAL_SECONDS:-10}"
+        --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
+        --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
+        --json-error-fallback-model "${JSON_ERROR_FALLBACK_MODEL}"
+        --json-error-fallback-limit "${NEWS_JSON_ERROR_FALLBACK_LIMIT:-3}"
+        --summary-json "${MEMO_BACKFILL_SUMMARY_FILE}"
+      )
+      if [[ "${NEWS_FORCE_DISPATCH_MEMOS:-0}" == "1" ]]; then
+        BACKFILL_ARGS+=(--force)
+      fi
+      python3 "${TENN_ROOT}/scripts/backfill_missing_news_memos.py" "${BACKFILL_ARGS[@]}"
+      echo "[nightly_news] memo_backfill_summary_json=${MEMO_BACKFILL_SUMMARY_FILE}"
+    fi
   else
     echo "[nightly_news] WARNING: Backend venv not found at ${BACKEND_VENV}, skipping Qdrant sync/extraction" >&2
   fi

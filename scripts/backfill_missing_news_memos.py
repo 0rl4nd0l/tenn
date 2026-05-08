@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ from news_pipeline.utils import now_utc_iso  # noqa: E402
 
 DEFAULT_MEMO_DISPATCH_BATCH_SIZE = 25
 JSON_PARSE_FAILURE_MARKER = "No valid JSON found"
+NEWS_JSON_ERROR_FALLBACK_MODEL_ENV = "NEWS_JSON_ERROR_FALLBACK_MODEL"
 
 
 def _eligible_for_memo(article: dict[str, Any]) -> bool:
@@ -134,6 +136,78 @@ def _recoverable_json_parse_failure_count(result: dict[str, Any]) -> int:
             return 0
         failed += batch_failed
     return failed
+
+
+def _memo_result_primary_model(result: dict[str, Any]) -> str:
+    model = str(result.get("llm_model") or "").strip()
+    return model or "worker_default"
+
+
+def _fallback_base_result(
+    *,
+    enabled: bool,
+    status: str,
+    reason: str,
+    primary_model: str,
+    fallback_model: str = "",
+) -> dict[str, Any]:
+    return {
+        "enabled": bool(enabled),
+        "status": str(status or "unknown"),
+        "reason": str(reason or ""),
+        "primary_model": str(primary_model or ""),
+        "fallback_model": str(fallback_model or "").strip(),
+        "fallback_attempted": False,
+        "fallback_completed": 0,
+        "fallback_failures": 0,
+        "fallback_reason": str(reason or ""),
+    }
+
+
+def _fallback_task_failures(result: dict[str, Any]) -> int:
+    return (
+        int(result.get("dispatch_failed") or 0)
+        + int(result.get("tasks_failed") or 0)
+        + int(result.get("tasks_pending") or 0)
+        + int(result.get("tasks_unobserved") or 0)
+    )
+
+
+def _json_error_fallback_model_runtime_preflight(model: str) -> dict[str, Any]:
+    requested = str(model or "").strip()
+    if not requested:
+        return {"status": "disabled", "reason": "model_not_set"}
+    try:
+        from app.services.llamacpp_runtime import (  # noqa: PLC0415
+            _resolve_model_id,
+            build_llm_headers,
+            resolve_extraction_runtime_config,
+            verify_llm_models,
+        )
+
+        base_url, resolved_requested = resolve_extraction_runtime_config(
+            model=requested
+        )
+        models_payload = verify_llm_models(
+            base_url,
+            headers=build_llm_headers(base_url=base_url),
+            timeout=5.0,
+        )
+        resolved_model = _resolve_model_id(models_payload, resolved_requested)
+    except Exception as exc:
+        return {
+            "status": "unavailable",
+            "reason": "model_probe_failed",
+            "requested_model": requested,
+            "error": str(exc),
+        }
+    return {
+        "status": "available",
+        "reason": "model_catalog_match",
+        "requested_model": requested,
+        "resolved_model": resolved_model,
+        "base_url": base_url,
+    }
 
 
 def _dispatch_selected_articles(
@@ -268,19 +342,29 @@ def _dispatch_json_error_fallback(
     wait_timeout_seconds: float,
     poll_interval_seconds: float,
     max_article_chars: int,
+    preflight_fn: Any | None = None,
 ) -> dict[str, Any]:
     model = str(fallback_model or "").strip()
+    primary_model = _memo_result_primary_model(primary_result)
     if not model:
-        return {"enabled": False, "status": "disabled", "reason": "model_not_set"}
+        return _fallback_base_result(
+            enabled=False,
+            status="disabled",
+            reason="model_not_set",
+            primary_model=primary_model,
+        )
 
     recoverable_failures = _recoverable_json_parse_failure_count(primary_result)
     if recoverable_failures <= 0:
-        return {
-            "enabled": True,
-            "status": "skipped",
-            "reason": "primary_failure_not_recoverable_json_parse",
-            "model": model,
-        }
+        result = _fallback_base_result(
+            enabled=True,
+            status="skipped",
+            reason="primary_failure_not_recoverable_json_parse",
+            primary_model=primary_model,
+            fallback_model=model,
+        )
+        result["recoverable_failures"] = 0
+        return result
 
     retry_articles = _missing_articles(selected_articles, memos_path=memos_path)
     retry_source_ids = [_source_id_for_article(article) for article in retry_articles]
@@ -289,13 +373,32 @@ def _dispatch_json_error_fallback(
         retry_source_ids = retry_source_ids[:fallback_limit]
 
     if not retry_articles:
-        return {
-            "enabled": True,
-            "status": "empty",
-            "reason": "no_missing_articles",
-            "model": model,
-            "recoverable_failures": recoverable_failures,
-        }
+        result = _fallback_base_result(
+            enabled=True,
+            status="empty",
+            reason="no_missing_articles",
+            primary_model=primary_model,
+            fallback_model=model,
+        )
+        result["recoverable_failures"] = recoverable_failures
+        return result
+
+    probe = (
+        preflight_fn(model)
+        if preflight_fn is not None
+        else _json_error_fallback_model_runtime_preflight(model)
+    )
+    if str(probe.get("status") or "") != "available":
+        result = _fallback_base_result(
+            enabled=True,
+            status="skipped",
+            reason="fallback_model_preflight_failed",
+            primary_model=primary_model,
+            fallback_model=model,
+        )
+        result["recoverable_failures"] = recoverable_failures
+        result["runtime_preflight"] = probe
+        return result
 
     result = _dispatch_selected_articles(
         retry_articles,
@@ -308,12 +411,19 @@ def _dispatch_json_error_fallback(
         dispatch_batch_size=1,
         llm_model=model,
     )
+    fallback_failures = _fallback_task_failures(result)
     return {
         "enabled": True,
         "status": result.get("status") or "unknown",
         "reason": "attempted",
-        "model": model,
+        "primary_model": primary_model,
+        "fallback_model": model,
+        "fallback_attempted": True,
+        "fallback_completed": int(result.get("tasks_completed") or 0),
+        "fallback_failures": fallback_failures,
+        "fallback_reason": "llama_cpp_json_parse_error",
         "recoverable_failures": recoverable_failures,
+        "runtime_preflight": probe,
         "selected": len(retry_articles),
         "source_ids": retry_source_ids,
         "result": result,
@@ -387,7 +497,8 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help=(
             "Optional model for retrying fully observed JSON parse failures "
-            "after the bounded primary pass"
+            "after the bounded primary pass. When omitted, "
+            f"{NEWS_JSON_ERROR_FALLBACK_MODEL_ENV} is honored only with --wait-for-memos."
         ),
     )
     parser.add_argument(
@@ -418,6 +529,14 @@ def main(argv: list[str] | None = None) -> int:
         )
     except ValueError as exc:
         parser.error(str(exc))
+    fallback_model = str(args.json_error_fallback_model or "").strip()
+    fallback_model_source = "cli" if fallback_model else ""
+    env_fallback_model = os.getenv(NEWS_JSON_ERROR_FALLBACK_MODEL_ENV, "").strip()
+    if fallback_model and not bool(args.wait_for_memos):
+        parser.error("--json-error-fallback-model requires --wait-for-memos")
+    if not fallback_model and bool(args.wait_for_memos) and env_fallback_model:
+        fallback_model = env_fallback_model
+        fallback_model_source = "env"
 
     since = int(args.since_hours) if int(args.since_hours) > 0 else None
     memos_path = args.memo_diagnostics_path or None
@@ -444,7 +563,7 @@ def main(argv: list[str] | None = None) -> int:
         selected_articles,
         primary_result=memo_result,
         memos_path=memos_path,
-        fallback_model=str(args.json_error_fallback_model or ""),
+        fallback_model=fallback_model,
         fallback_limit=int(args.json_error_fallback_limit),
         wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
         poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
@@ -459,6 +578,14 @@ def main(argv: list[str] | None = None) -> int:
         "selection": selection,
         "memo_extraction": memo_result,
         "json_error_fallback": fallback_result,
+        "json_error_fallback_config": {
+            "env_var": NEWS_JSON_ERROR_FALLBACK_MODEL_ENV,
+            "env_model_set": bool(env_fallback_model),
+            "model_source": fallback_model_source or "disabled",
+            "enabled_by_wait": bool(args.wait_for_memos),
+            "fallback_model": fallback_model,
+            "fallback_limit": int(args.json_error_fallback_limit),
+        },
         "coverage_after": coverage_after,
     }
     if args.summary_json:

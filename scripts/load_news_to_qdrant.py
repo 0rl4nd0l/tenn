@@ -294,6 +294,8 @@ def dispatch_news_memos(
         "dispatch_candidates": dispatch_candidates,
         "force_dispatch": bool(force_dispatch),
         "max_article_chars": article_char_cap,
+        "llm_model": str(llm_model or "").strip(),
+        "llm_model_source": "payload" if str(llm_model or "").strip() else "worker_default",
         "dispatched": dispatched,
         "dispatch_failed": failed,
         "dispatch_failed_samples": failed_samples,

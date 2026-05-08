@@ -314,6 +314,12 @@ class NewsMemoExtractor:
             "claims": claims,
             "risks": risks,
             "published_at": str(published_at or "").strip(),
+            "extraction_provenance": {
+                "component": "news_memo_extractor",
+                "llm_model": self.llm_model,
+                "llm_url": self.llm_url,
+                "max_article_chars": self.max_article_chars,
+            },
         }
 
     def extract(

@@ -361,9 +361,19 @@ def test_backfill_json_error_fallback_retries_missing_with_model(
             wait_timeout_seconds=120,
             poll_interval_seconds=5,
             max_article_chars=2500,
+            preflight_fn=lambda _model: {
+                "status": "available",
+                "resolved_model": "model:qwen3.5-35b-a3b-apex",
+            },
         )
 
     assert result["status"] == "complete"
+    assert result["primary_model"] == "worker_default"
+    assert result["fallback_model"] == "model:qwen3.5-35b-a3b-apex"
+    assert result["fallback_attempted"] is True
+    assert result["fallback_completed"] == 1
+    assert result["fallback_failures"] == 0
+    assert result["fallback_reason"] == "llama_cpp_json_parse_error"
     assert result["selected"] == 1
     assert result["source_ids"] == ["news:art-3"]
     assert batch_article_ids == [["art-3"]]
@@ -392,11 +402,217 @@ def test_backfill_json_error_fallback_skips_non_json_failures() -> None:
             wait_timeout_seconds=120,
             poll_interval_seconds=5,
             max_article_chars=2500,
+            preflight_fn=lambda _model: {
+                "status": "available",
+                "resolved_model": "model:qwen3.5-35b-a3b-apex",
+            },
         )
 
     assert result["status"] == "skipped"
     assert result["reason"] == "primary_failure_not_recoverable_json_parse"
+    assert result["fallback_attempted"] is False
     dispatch.assert_not_called()
+
+
+def test_backfill_json_error_fallback_skips_when_model_preflight_fails() -> None:
+    primary_result = {
+        "status": "degraded",
+        "completion_observable": True,
+        "dispatch_failed": 0,
+        "tasks_pending": 0,
+        "tasks_unobserved": 0,
+        "tasks_failed": 1,
+        "task_failure_samples": [
+            {"task_id": "task-art-3", "error": "No valid JSON found in response"}
+        ],
+    }
+
+    with patch.object(backfill, "dispatch_news_memos") as dispatch:
+        result = backfill._dispatch_json_error_fallback(
+            [{"article_id": "art-3", "text": "bad json article"}],
+            primary_result=primary_result,
+            memos_path=None,
+            fallback_model="model:qwen3.5-35b-a3b-apex",
+            fallback_limit=3,
+            wait_timeout_seconds=120,
+            poll_interval_seconds=5,
+            max_article_chars=2500,
+            preflight_fn=lambda _model: {
+                "status": "unavailable",
+                "error": "catalog missing model",
+            },
+        )
+
+    assert result["status"] == "skipped"
+    assert result["reason"] == "fallback_model_preflight_failed"
+    assert result["fallback_attempted"] is False
+    assert result["runtime_preflight"]["status"] == "unavailable"
+    dispatch.assert_not_called()
+
+
+def test_backfill_env_json_error_fallback_requires_wait(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    db_path = tmp_path / "news_articles.sqlite"
+    memos_path = tmp_path / "news_memos.jsonl"
+    summary_path = tmp_path / "summary.json"
+    _create_articles_db(db_path)
+    monkeypatch.setenv(
+        "NEWS_JSON_ERROR_FALLBACK_MODEL",
+        "model:qwen3.5-35b-a3b-apex",
+    )
+    calls = 0
+
+    def fake_dispatch(articles, **kwargs):
+        nonlocal calls
+        calls += 1
+        return {
+            "status": "pending",
+            "eligible": len(articles),
+            "dispatched": len(articles),
+            "missing_after_dispatch": len(articles),
+            "llm_model": str(kwargs.get("llm_model") or ""),
+        }
+
+    with patch.object(backfill, "dispatch_news_memos", side_effect=fake_dispatch):
+        exit_code = backfill.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--since-hours",
+                "0",
+                "--memo-diagnostics-path",
+                str(memos_path),
+                "--summary-json",
+                str(summary_path),
+            ]
+        )
+
+    assert exit_code == 0
+    assert calls == 1
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["json_error_fallback"]["enabled"] is False
+    assert summary["json_error_fallback"]["reason"] == "model_not_set"
+    assert summary["json_error_fallback_config"]["env_model_set"] is True
+    assert summary["json_error_fallback_config"]["model_source"] == "disabled"
+    assert summary["json_error_fallback_config"]["enabled_by_wait"] is False
+
+
+def test_backfill_cli_json_error_fallback_requires_wait(tmp_path: Path) -> None:
+    db_path = tmp_path / "news_articles.sqlite"
+    _create_articles_db(db_path)
+
+    try:
+        backfill.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--since-hours",
+                "0",
+                "--json-error-fallback-model",
+                "model:qwen3.5-35b-a3b-apex",
+            ]
+        )
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("expected parser error for fallback without wait")
+
+
+def test_backfill_env_json_error_fallback_success_completes_coverage(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    db_path = tmp_path / "news_articles.sqlite"
+    memos_path = tmp_path / "news_memos.jsonl"
+    summary_path = tmp_path / "summary.json"
+    _create_articles_db(db_path)
+    memos_path.write_text(
+        json.dumps({"source_id": "news:art-1"}) + "\n"
+        + json.dumps({"source_id": "news:art-2"}) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(
+        "NEWS_JSON_ERROR_FALLBACK_MODEL",
+        "model:qwen3.5-35b-a3b-apex",
+    )
+    dispatch_models: list[str] = []
+
+    def fake_dispatch(articles, **kwargs):
+        dispatch_models.append(str(kwargs.get("llm_model") or ""))
+        source_ids = [f"news:{article['article_id']}" for article in articles]
+        if kwargs.get("llm_model"):
+            rows = [json.dumps({"source_id": source_id}) for source_id in source_ids]
+            with memos_path.open("a", encoding="utf-8") as handle:
+                handle.write("\n".join(rows) + "\n")
+            return {
+                "status": "complete",
+                "eligible": len(articles),
+                "dispatched": len(articles),
+                "dispatch_candidates": len(articles),
+                "persisted_after_dispatch": len(articles),
+                "missing_after_dispatch": 0,
+                "tasks_observed": len(articles),
+                "tasks_completed": len(articles),
+                "tasks_failed": 0,
+                "tasks_pending": 0,
+                "tasks_unobserved": 0,
+                "completion_observable": True,
+                "llm_model": str(kwargs.get("llm_model") or ""),
+            }
+        return {
+            "status": "degraded",
+            "eligible": len(articles),
+            "dispatched": len(articles),
+            "dispatch_candidates": len(articles),
+            "missing_after_dispatch": len(articles),
+            "tasks_observed": len(articles),
+            "tasks_completed": 0,
+            "tasks_failed": len(articles),
+            "tasks_pending": 0,
+            "tasks_unobserved": 0,
+            "task_failure_samples": [
+                {"task_id": "task-art-3", "error": "No valid JSON found in response"}
+            ],
+            "completion_observable": True,
+            "llm_model": "",
+        }
+
+    with (
+        patch.object(backfill, "dispatch_news_memos", side_effect=fake_dispatch),
+        patch.object(
+            backfill,
+            "_json_error_fallback_model_runtime_preflight",
+            return_value={
+                "status": "available",
+                "resolved_model": "model:qwen3.5-35b-a3b-apex",
+            },
+        ),
+    ):
+        exit_code = backfill.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--since-hours",
+                "0",
+                "--wait-for-memos",
+                "--memo-diagnostics-path",
+                str(memos_path),
+                "--summary-json",
+                str(summary_path),
+            ]
+        )
+
+    assert exit_code == 0
+    assert dispatch_models == ["", "model:qwen3.5-35b-a3b-apex"]
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["coverage_after"]["status"] == "complete"
+    assert summary["coverage_after"]["missing"] == 0
+    assert summary["json_error_fallback_config"]["model_source"] == "env"
+    assert summary["json_error_fallback"]["fallback_attempted"] is True
+    assert summary["json_error_fallback"]["fallback_completed"] == 1
+    assert summary["json_error_fallback"]["fallback_failures"] == 0
 
 
 def test_backfill_no_wait_does_not_batch(tmp_path: Path) -> None:

@@ -78,6 +78,9 @@ def test_extract_valid_schema(tmp_memos_path: Path) -> None:
     assert memo["tickers"] == ["XYZ", "ABC"]
     assert memo["claims"] == ["Acquisition expected to close Q3 2026"]
     assert memo["risks"] == ["Regulatory approval uncertain", "Integration risk"]
+    assert memo["extraction_provenance"]["component"] == "news_memo_extractor"
+    assert memo["extraction_provenance"]["llm_model"]
+    assert memo["extraction_provenance"]["max_article_chars"] == 5000
 
     # LLM was called exactly once
     assert len(llm_fn.calls) == 1  # type: ignore[attr-defined]
@@ -310,6 +313,31 @@ def test_upsert_idempotent(tmp_memos_path: Path) -> None:
     source_ids = [r["source_id"] for r in rows]
     assert "news-100" in source_ids
     assert "news-200" in source_ids
+
+
+def test_upsert_preserves_extraction_provenance(tmp_memos_path: Path) -> None:
+    extractor = NewsMemoExtractor(
+        llm_fn=_make_llm_fn(GOOD_LLM_RESPONSE),
+        llm_model="model:qwen3.5-35b-a3b-apex",
+        memos_path=tmp_memos_path,
+        max_article_chars=2500,
+    )
+
+    stored = extractor.extract_and_store(
+        source_id="news-provenance",
+        article_text="NYSE:XYZ announced a transaction.",
+        provider="newspaper4k",
+        candidate_tickers=["XYZ"],
+        route_signals=False,
+    )
+
+    rows = load_news_memos(tmp_memos_path)
+    assert rows == [stored]
+    provenance = rows[0]["extraction_provenance"]
+    assert provenance["component"] == "news_memo_extractor"
+    assert provenance["llm_model"] == "model:qwen3.5-35b-a3b-apex"
+    assert provenance["llm_url"]
+    assert provenance["max_article_chars"] == 2500
 
 
 # ---------------------------------------------------------------------------
