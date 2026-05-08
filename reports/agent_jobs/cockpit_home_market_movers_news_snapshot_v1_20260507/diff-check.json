@@ -1,0 +1,57 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_home_market_movers_news_snapshot_v1_20260507.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/news_pipeline_dirty_file_classification_v1_20260507.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/news_pipeline_dirty_file_classification_v1_20260507.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/news_pipeline_dirty_file_classification_v1_20260507.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_home_market_movers_news_snapshot_v1_20260507.md",
+        "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507/**",
+        "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507/INVESTIGATION.md",
+        "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507/README.md",
+        "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507/diff-check.json",
+        "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507/status.json",
+        "cockpit-ui/types/cockpit-home.ts",
+        "cockpit-ui/lib/cockpit-home-contract.ts",
+        "cockpit-ui/lib/cockpit-home-api.ts",
+        "cockpit-ui/lib/cockpit-home-api.test.ts",
+        "cockpit-ui/lib/cockpit-home-contract.test.ts",
+        "cockpit-ui/lib/mock/cockpit-home-fixtures.ts",
+        "cockpit-ui/app/api/cockpit/home/route.ts",
+        "cockpit-ui/components/cockpit/home/**",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/app/services/cockpit_home.py",
+        "financial-engine_v2/backend/tests/test_cockpit_home_market_movers.py"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_home_market_movers_news_snapshot_v1_20260507",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_home_market_movers_news_snapshot_v1_20260507",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

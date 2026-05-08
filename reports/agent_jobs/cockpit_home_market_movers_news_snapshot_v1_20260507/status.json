@@ -1,0 +1,38 @@
+{
+  "job_id": "cockpit_home_market_movers_news_snapshot_v1_20260507",
+  "lane": "Reporting",
+  "owner": "Codex",
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "worktree": "/mnt/sdb2/home/l4nd0/tenn",
+  "execution_mode": "AUDIT MODE",
+  "decision": "audit_only",
+  "implementation_performed": false,
+  "blocked": true,
+  "blockers": [
+    {
+      "code": "TASK_CARD_CLAIM_FAILED",
+      "message": "Agent registry refused the claim because docs/agent_tasks/news_pipeline_dirty_file_classification_v1_20260507.md is dirty outside current task card allowed_files."
+    }
+  ],
+  "source_findings": {
+    "market_movers": {
+      "current_product_state": "NO_MARKET_MOVERS_ENDPOINT / DATA_MISSING",
+      "safe_to_wire_now": false,
+      "candidate_source": "cockpit-local market_update_reports",
+      "source_label_if_later_wired": "operational_trace"
+    },
+    "news_snapshot": {
+      "current_product_state": "Home BFF uses recent commentary as the news section",
+      "safe_to_wire_now": false,
+      "candidate_source": "reports/qual_context/news_articles.sqlite and reports/qual_context/news.sqlite",
+      "source_label_if_later_wired": "local_news_context"
+    }
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "list_active": "passed_empty",
+    "claim": "failed",
+    "check_diff": "failed_due_unrelated_dirty_file",
+    "tests_run": []
+  }
+}
