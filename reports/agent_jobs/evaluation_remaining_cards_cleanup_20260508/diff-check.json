@@ -1,0 +1,56 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/preserve_baseline_failure_classification_20260508.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+        "docs/agent_tasks/preserve_baseline_failure_classification_20260508.md",
+        "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md",
+        "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/**",
+        "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/README.md",
+        "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/status.json",
+        "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "evaluation_remaining_cards_cleanup_20260508",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/evaluation_remaining_cards_cleanup_20260508",
+      "owner": "Claude",
+      "production_data_access": false,
+      "timeout_seconds": 1500
+    },
+    "ok": true
+  }
+}

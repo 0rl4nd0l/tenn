@@ -1,0 +1,95 @@
+{
+  "job_id": "evaluation_remaining_cards_cleanup_20260508",
+  "mode": "safe_extension",
+  "primary_lane": "Evaluation",
+  "started_head": "b8ef025c4c95991f99423f57d5d32630bbf27bf5",
+  "final_head": "DATA_MISSING_SELF_REFERENTIAL_COMMIT_SHA_REPORTED_IN_FINAL_RESPONSE",
+  "classified_files": [
+    {
+      "path": "docs/agent_tasks/preserve_baseline_failure_classification_20260508.md",
+      "classification": "preserve_now",
+      "primary_lane": "Evaluation",
+      "supporting_lanes": [
+        "Architecture",
+        "Query Orchestration",
+        "Provenance",
+        "Memory",
+        "Reporting"
+      ],
+      "matching_report_bundle": true,
+      "branch_or_worktree_evidence": false,
+      "records_blocker_or_completed_job": "completed_audit_classification",
+      "should_commit_now": true
+    },
+    {
+      "path": "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md",
+      "classification": "preserve_now",
+      "primary_lane": "Evaluation",
+      "supporting_lanes": [
+        "Reporting",
+        "Repo hygiene"
+      ],
+      "matching_report_bundle": true,
+      "branch_or_worktree_evidence": false,
+      "records_blocker_or_completed_job": "blocker_coordination_record",
+      "should_commit_now": true
+    }
+  ],
+  "preserved_files": [
+    "docs/agent_tasks/preserve_baseline_failure_classification_20260508.md",
+    "docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md"
+  ],
+  "explicitly_not_staged": [],
+  "held_for_later": [],
+  "commit": "DATA_MISSING_SELF_REFERENTIAL_COMMIT_SHA_REPORTED_IN_FINAL_RESPONSE",
+  "cleanup_performed": true,
+  "source_code_touched": false,
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/preserve_baseline_failure_classification_20260508.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/reconcile_cockpit_home_news_snapshot_add_path_blocker_20260508.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "result": "initial_fail_report_glob_not_matched_by_check_diff"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "result": "pass_after_explicit_report_paths_added"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/evaluation_remaining_cards_cleanup_20260508.md",
+      "result": "pass_after_explicit_report_paths_added"
+    },
+    {
+      "command": "git commit -m \"docs(evaluation): preserve remaining hygiene task-card state\"",
+      "result": "pass_initial_commit_1285cfc3aba70e6416cc8ce2620da1ee9942481f"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release evaluation_remaining_cards_cleanup_20260508",
+      "result": "pass"
+    }
+  ],
+  "remaining_dirty_files": [],
+  "worktree_clean_after": true,
+  "collision_risk": "LOW",
+  "data_missing": [
+    "A commit cannot embed its own final SHA inside tracked report content; final SHA is reported in the agent final response."
+  ]
+}
