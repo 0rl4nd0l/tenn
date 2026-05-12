@@ -87,7 +87,7 @@ interface ConfigState {
 
 const DEFAULTS: ConfigState = {
   llm: {
-    model: 'model:qwen3.5-35b-a3b-apex',
+    model: 'model:qwen2.5-14b-instruct',
     endpoint: 'http://localhost:8001',
     routingPolicy: 'local-first',
     apiKeyConfigured: false,

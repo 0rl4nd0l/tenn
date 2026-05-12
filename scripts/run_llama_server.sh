@@ -75,6 +75,12 @@ API_KEY="${LLAMA_SERVER_API_KEY:-${LLM_API_KEY:-local-openai-key}}"
 PROFILE="${LLAMA_SERVER_PROFILE:-balanced}"
 HOST="${LLAMA_SERVER_HOST:-127.0.0.1}"
 PORT="${LLAMA_SERVER_PORT:-8001}"
+if [[ -n "${LLAMA_SERVER_CUDA_VISIBLE_DEVICES:-}" ]]; then
+  export CUDA_VISIBLE_DEVICES="${LLAMA_SERVER_CUDA_VISIBLE_DEVICES}"
+fi
+if [[ "${LLAMA_SERVER_DISABLE_CUDA_GRAPHS:-0}" == "1" ]]; then
+  export GGML_CUDA_DISABLE_GRAPHS=1
+fi
 
 if [[ ! -x "${BIN_PATH}" ]]; then
   echo "llama-server binary not found at ${BIN_PATH}" >&2
@@ -195,6 +201,12 @@ echo "[llama-server] PROFILE=${PROFILE}"
 echo "[llama-server] HOST=${HOST}"
 echo "[llama-server] PORT=${PORT}"
 echo "[llama-server] PARALLEL=${LLAMA_SERVER_PARALLEL:-1}"
+if [[ -n "${LLAMA_SERVER_CUDA_VISIBLE_DEVICES:-}" ]]; then
+  echo "[llama-server] CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
+fi
+if [[ "${LLAMA_SERVER_DISABLE_CUDA_GRAPHS:-0}" == "1" ]]; then
+  echo "[llama-server] GGML_CUDA_DISABLE_GRAPHS=${GGML_CUDA_DISABLE_GRAPHS}"
+fi
 cmd+=(--parallel "${LLAMA_SERVER_PARALLEL:-1}")
 
 exec "${cmd[@]}"

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CockpitPreferences } from './cockpit-types'
 
-const DEFAULT_CHAT_MODEL = 'model:qwen3.5-35b-a3b-apex'
+const DEFAULT_CHAT_MODEL = 'model:qwen2.5-14b-instruct'
 const LEGACY_DEFAULT_CHAT_MODEL = 'model:qwen3.5-35b-a3b'
 const DEFAULT_PREFERENCES: CockpitPreferences = {
   webSearchEnabled: true,
