@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CockpitPreferences } from './cockpit-types'
 
-const DEFAULT_CHAT_MODEL = 'model:qwen2.5-14b-instruct'
+const DEFAULT_CHAT_MODEL = 'model:qwen3.5-35b-a3b-apex'
 const LEGACY_DEFAULT_CHAT_MODEL = 'model:qwen3.5-35b-a3b'
+const REGRESSED_DEFAULT_CHAT_MODEL = 'model:qwen2.5-14b-instruct'
 const DEFAULT_PREFERENCES: CockpitPreferences = {
   webSearchEnabled: true,
   ragEnabled: true,
@@ -102,7 +103,8 @@ export const useCockpitStore = create<CockpitState>()(
         const nextState = {
           ...state,
           chatModel:
-            state.chatModel === LEGACY_DEFAULT_CHAT_MODEL
+            state.chatModel === LEGACY_DEFAULT_CHAT_MODEL ||
+            state.chatModel === REGRESSED_DEFAULT_CHAT_MODEL
               ? DEFAULT_CHAT_MODEL
               : state.chatModel,
           preferences: {

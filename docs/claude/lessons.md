@@ -1096,3 +1096,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The live run was started before the CLI enforced batch dispatch for unlimited selections, so `limit=0` still meant "select everything and enqueue everything" even in wait mode.
 **Fix:** The backfill CLI now dispatches bounded batches by default when waiting, preserves explicit unbatched mode only with `--dispatch-batch-size 0`, and continues later batches only after fully observed article-level task failures while stopping on unobserved/pending infrastructure failures.
 **Rule:** Never run an unlimited live backfill until the CLI itself enforces the concurrency/queue constraint. Operator intent is not enough; the script contract must make the safe path the default and keep degraded failures explicit.
+
+---
+
+## L098 — Do not downgrade local model quality before proving the runtime fault
+
+**Date:** 2026-05-12
+**Subsystem:** `scripts/run_llama_server.sh`, Cockpit LLM defaults
+**Symptom:** A Cockpit GPU startup failure was initially mitigated by switching defaults from the intended qwen3.5 APEX model to qwen2.5, which made the assistant worse without first proving that model quality was the root cause.
+**Root cause:** The investigation treated CUDA instability and router startup failure as a model-selection problem before checking the launcher/service environment. The actual router regression was a missing `LD_LIBRARY_PATH` for llama.cpp shared libraries under systemd, while APEX load failure remained a separate CUDA/model-load issue.
+**Fix:** Restore APEX as the configured default and fix the launcher so it exports the llama.cpp binary directory into `LD_LIBRARY_PATH` before probing or executing `llama-server`.
+**Rule:** For local LLM regressions, prove the runtime/service fault first. Do not lower the configured model tier as a "fix" unless the user explicitly accepts that tradeoff or evidence proves the selected model cannot be made operational.

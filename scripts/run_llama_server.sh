@@ -59,6 +59,12 @@ if [[ ! -x "${BIN_PATH}" ]]; then
     BIN_PATH="${BIN_PATH_FALLBACK}"
   fi
 fi
+BIN_DIR="$(cd "$(dirname "${BIN_PATH}")" && pwd)"
+if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+  export LD_LIBRARY_PATH="${BIN_DIR}:${LD_LIBRARY_PATH}"
+else
+  export LD_LIBRARY_PATH="${BIN_DIR}"
+fi
 
 # Only kill llama-server processes bound to OUR port.
 PORT="${LLAMA_SERVER_PORT:-8001}"

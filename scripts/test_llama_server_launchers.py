@@ -90,6 +90,90 @@ def test_run_llama_server_uses_parallel_override(tmp_path: Path) -> None:
     assert "--parallel 2" in stdout
 
 
+def test_run_llama_server_preserves_cuda_mask_and_default_mmap(
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    chat_model = tmp_path / "chat-model.gguf"
+    extraction_model = tmp_path / "extract-model.gguf"
+    chat_model.write_text("chat", encoding="utf-8")
+    extraction_model.write_text("extract", encoding="utf-8")
+    _write_override_env(env_file, chat_model, extraction_model)
+    with env_file.open("a", encoding="utf-8") as handle:
+        handle.write("LLAMA_SERVER_CUDA_VISIBLE_DEVICES=0\n")
+
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=_base_env(tmp_path, env_file),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = completed.stdout
+    assert "[llama-server] CUDA_VISIBLE_DEVICES=0" in stdout
+    assert "--no-mmap" not in stdout
+
+
+def test_run_llama_server_sets_ld_library_path_before_router_probe(
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / ".config" / "tenn"
+    config_dir.mkdir(parents=True)
+    env_file = config_dir / "llama-server.env"
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    bin_dir = tmp_path / "llama-bin"
+    bin_dir.mkdir()
+    fake_bin = bin_dir / "llama-server"
+    fake_bin.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "${1:-}" == "--help" ]]; then',
+                '  case ":${LD_LIBRARY_PATH:-}:" in',
+                f'    *":{bin_dir}:"*) echo "--models-dir PATH"; exit 0 ;;',
+                "    *) exit 127 ;;",
+                "  esac",
+                "fi",
+                'printf "%s\\n" "$*"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    fake_bin.chmod(0o755)
+    env_file.write_text(
+        "\n".join(
+            [
+                f"LLAMA_SERVER_MODELS_DIR={models_dir}",
+                "LLAMA_SERVER_ROUTER_MODE=1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    env = _base_env(tmp_path, env_file)
+    env["LLAMA_SERVER_BIN"] = str(fake_bin)
+    env["LLAMA_SERVER_PORT"] = "8125"
+
+    completed = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "run_llama_server.sh")],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    stdout = completed.stdout
+    assert "[llama-server] ROUTER_MODE=enabled" in stdout
+    assert f"--models-dir {models_dir}" in stdout
+
+
 def test_run_llama_server_refuses_during_gpu_exclusive_activity(
     tmp_path: Path,
 ) -> None:
