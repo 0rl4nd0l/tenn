@@ -128,9 +128,6 @@ esac
 
 cmd=(
   "${BIN_PATH}"
-  --ctx-size "${LLAMA_SERVER_CTX_SIZE:-${default_ctx_size}}"
-  --batch-size "${LLAMA_SERVER_BATCH_SIZE:-${default_batch_size}}"
-  --ubatch-size "${LLAMA_SERVER_UBATCH_SIZE:-${default_ubatch_size}}"
   --main-gpu "${LLAMA_SERVER_MAIN_GPU:-0}"
   --threads "${LLAMA_SERVER_THREADS:-4}"
   --host "${HOST}"
@@ -177,7 +174,12 @@ fi
 
 if [[ "${ROUTER_MODE}" != "1" ]]; then
   # Single-model fallback (set LLAMA_SERVER_ROUTER_MODE=0 to use).
-  cmd+=(--n-gpu-layers "${LLAMA_SERVER_N_GPU_LAYERS:-999}")
+  cmd+=(
+    --ctx-size "${LLAMA_SERVER_CTX_SIZE:-${default_ctx_size}}"
+    --batch-size "${LLAMA_SERVER_BATCH_SIZE:-${default_batch_size}}"
+    --ubatch-size "${LLAMA_SERVER_UBATCH_SIZE:-${default_ubatch_size}}"
+    --n-gpu-layers "${LLAMA_SERVER_N_GPU_LAYERS:-999}"
+  )
   if [[ -n "${HF_MODEL}" ]]; then
     cmd+=(--hf "${HF_MODEL}")
   else

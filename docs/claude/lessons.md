@@ -1107,3 +1107,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The investigation treated CUDA instability and router startup failure as a model-selection problem before checking the launcher/service environment. The actual router regression was a missing `LD_LIBRARY_PATH` for llama.cpp shared libraries under systemd, while APEX load failure remained a separate CUDA/model-load issue.
 **Fix:** Restore APEX as the configured default and fix the launcher so it exports the llama.cpp binary directory into `LD_LIBRARY_PATH` before probing or executing `llama-server`.
 **Rule:** For local LLM regressions, prove the runtime/service fault first. Do not lower the configured model tier as a "fix" unless the user explicitly accepts that tradeoff or evidence proves the selected model cannot be made operational.
+
+---
+
+## L099 — Router-mode launcher defaults must not override per-model presets
+
+**Date:** 2026-05-13
+**Subsystem:** `scripts/run_llama_server.sh`, llama.cpp router presets
+**Symptom:** Cockpit reported llama.cpp 500s for longer local prompts even after the APEX preset was edited, because the spawned router child still inherited parent `ctx-size`, `batch-size`, and `ubatch-size` values.
+**Root cause:** llama.cpp router mode merges the parent server base preset into child model presets with high precedence, so launcher-level sizing flags silently overrode the host preset values intended to stabilize the M40 runtime.
+**Fix:** In router mode, omit launcher-level `ctx-size`, `batch-size`, `ubatch-size`, and `n-gpu-layers`; keep those defaults only for single-model fallback so each router preset owns its own sizing/offload contract.
+**Rule:** When using llama.cpp router presets, keep model-specific runtime sizing and offload settings in the preset file. Parent router CLI arguments are not harmless defaults; they can become higher-precedence child settings.

@@ -172,6 +172,9 @@ def test_run_llama_server_sets_ld_library_path_before_router_probe(
     stdout = completed.stdout
     assert "[llama-server] ROUTER_MODE=enabled" in stdout
     assert f"--models-dir {models_dir}" in stdout
+    assert "--ctx-size" not in stdout
+    assert "--batch-size" not in stdout
+    assert "--ubatch-size" not in stdout
     assert "--n-gpu-layers" not in stdout
 
 
