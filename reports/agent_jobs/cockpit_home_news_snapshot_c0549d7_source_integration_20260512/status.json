@@ -1,0 +1,31 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_home_news_snapshot_c0549d7_source_integration_20260512.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_home_news_snapshot_c0549d7_source_integration_20260512.md",
+    "cockpit-ui/components/cockpit/home/home-page.tsx",
+    "cockpit-ui/lib/cockpit-home-api.ts",
+    "cockpit-ui/lib/cockpit-home-api.test.ts",
+    "reports/agent_jobs/cockpit_home_news_snapshot_c0549d7_source_integration_20260512/**"
+  ],
+  "branch": "codex/cockpit-home-news-snapshot-c0549d7-source-integration-20260512",
+  "claimed_at": "2026-05-12T12:36:21.383125Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-12T12:36:21.383125Z",
+  "job_id": "cockpit_home_news_snapshot_c0549d7_source_integration_20260512",
+  "lane": "Reporting",
+  "last_seen_at": "2026-05-12T12:36:52.834510Z",
+  "output_dir": "reports/agent_jobs/cockpit_home_news_snapshot_c0549d7_source_integration_20260512",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-12T12:36:52.834510Z",
+  "repo_root": "/mnt/hdd-data/home/l4nd0/tenn-cockpit-home-news-snapshot-c0549d7-source-integration",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:281131:cockpit_home_news_snapshot_c0549d7_source_integration_20260512",
+  "started_at": "2026-05-12T12:36:21.383125Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_home_news_snapshot_c0549d7_source_integration_20260512.md",
+  "updated_at": "2026-05-12T12:36:52.834510Z",
+  "worktree": "/mnt/hdd-data/home/l4nd0/tenn-cockpit-home-news-snapshot-c0549d7-source-integration"
+}

@@ -155,7 +155,28 @@ describe('Cockpit Home BFF route', () => {
         resolver: 'cockpit_chat_attached_sources',
       },
     });
-    expect(payload.market_movers[0].state.data_state).toBe('DATA_MISSING');
+    expect(payload.market_movers[0]).toMatchObject({
+      id: 'home-market-movers:market_update_followup:fu-1',
+      title: 'BHP: review',
+      ticker: 'BHP',
+      state: {
+        data_state: 'PARTIAL',
+      },
+      evidence: {
+        source_id: null,
+        source_label: 'operational_trace',
+        evidence_labels: ['operational_trace'],
+        resolvable: false,
+        resolver: 'none',
+      },
+      price: null,
+      change: null,
+      change_percent: null,
+      reason: 'notable price move',
+    });
+    expect(payload.market_movers[0].state.data_missing.map((signal: { code: string }) => signal.code)).toContain(
+      'MARKET_MOVER_PRICE_FIELDS_MISSING',
+    );
     expect(payload.attention_queue_state.data_state).toBe('READY');
     expect(payload.attention_queue[0]).toMatchObject({
       id: 'market_update_followup:fu-1',
@@ -173,6 +194,9 @@ describe('Cockpit Home BFF route', () => {
     });
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).toContain(
       'PORTFOLIO_DAY_CHANGE_PARTIAL',
+    );
+    expect(payload.data_missing.map((signal: { code: string }) => signal.code)).toContain(
+      'MARKET_MOVER_PRICE_FIELDS_MISSING',
     );
     expect(payload.data_missing.map((signal: { code: string }) => signal.code)).not.toContain(
       'NO_MARKET_SESSION_ENDPOINT',
@@ -368,8 +392,50 @@ describe('CockpitHomePage live BFF wiring', () => {
 
   it('renders backend attention queue items without mock substitution', async () => {
     const base = homeBffPayload();
+    const moverPriceMissing = signal(
+      'market_movers',
+      'MARKET_MOVER_PRICE_FIELDS_MISSING',
+      'Market update follow-up did not include deterministic price, change, and change-percent fields.',
+      'operational_trace',
+    );
     const payload = homeBffPayload({
-      data_missing: base.data_missing.filter((signal) => signal.section !== 'attention_queue'),
+      data_missing: [
+        ...base.data_missing.filter((signal) => signal.section !== 'attention_queue' && signal.section !== 'market_movers'),
+        moverPriceMissing,
+      ],
+      market_movers: [
+        {
+          id: 'home-market-movers:market_update_followup:fu-1',
+          section: 'market_movers',
+          title: 'BHP: review',
+          ticker: 'BHP',
+          observed_at: '2026-05-07T01:15:00Z',
+          state: {
+            data_state: 'PARTIAL',
+            degraded: false,
+            data_missing: [moverPriceMissing],
+            as_of: '2026-05-07T01:15:00Z',
+          },
+          evidence: {
+            source_id: null,
+            source_kind: null,
+            source_label: 'operational_trace',
+            evidence_labels: ['operational_trace'],
+            resolvable: false,
+            resolver: 'none',
+            evidence_id: 'market_update_followup:fu-1',
+            document_id: null,
+            chunk_id: null,
+            url: null,
+            title: 'BHP: review',
+            published_at: '2026-05-07T01:15:00Z',
+          },
+          price: null,
+          change: null,
+          change_percent: null,
+          reason: 'notable price move',
+        },
+      ],
       attention_queue_state: {
         data_state: 'READY',
         degraded: false,
@@ -419,8 +485,10 @@ describe('CockpitHomePage live BFF wiring', () => {
 
     render(createElement(CockpitHomePage));
 
-    expect(await screen.findByText('BHP: review')).toBeInTheDocument();
-    expect(screen.getByText('notable price move')).toBeInTheDocument();
+    expect(await screen.findByText('Market Update Signals')).toBeInTheDocument();
+    expect(screen.getAllByText('BHP: review').length).toBeGreaterThan(0);
+    expect(screen.getByText('MARKET_MOVER_PRICE_FIELDS_MISSING')).toBeInTheDocument();
+    expect(screen.getAllByText('notable price move').length).toBeGreaterThan(0);
     expect(screen.getByText('queued')).toBeInTheDocument();
     expect(screen.getByText('market_update_followup')).toBeInTheDocument();
     expect(screen.queryByText('NO_ATTENTION_QUEUE_ENDPOINT')).not.toBeInTheDocument();

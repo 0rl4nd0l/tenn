@@ -460,6 +460,7 @@ function LiveWorkspace({
   onSelectItem: (item: NewsItem) => void;
 }) {
   const readyMovers = response.market_movers.filter(isRenderableMarketMover).map(mapMarketMover);
+  const partialMovers = response.market_movers.filter(isPartialMarketMoverSignal);
   const attentionItems = response.attention_queue
     .filter((item) => !cockpitHomeHasDataMissing(item.state))
       .map((item) => ({
@@ -478,6 +479,8 @@ function LiveWorkspace({
       <div className="col-span-12 lg:col-span-4 min-h-[300px]">
         {readyMovers.length > 0 ? (
           <MarketPulseCard movers={readyMovers} />
+        ) : partialMovers.length > 0 ? (
+          <MarketMoverSignalsPanel movers={partialMovers} />
         ) : (
           <SectionStatePanel
             title="Market Pulse"
@@ -523,6 +526,46 @@ function LiveWorkspace({
         </div>
       </div>
     </div>
+  );
+}
+
+function MarketMoverSignalsPanel({ movers }: { movers: CockpitHomeMarketMoverContract[] }) {
+  return (
+    <Card className="terminal-panel h-full">
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 border-b border-border/40">
+        <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+          Market Update Signals
+        </CardTitle>
+        <span className="text-[10px] font-mono uppercase text-amber-500">PARTIAL</span>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="divide-y divide-border/40">
+          {movers.map((mover) => (
+            <div key={mover.id} className="p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono font-bold text-cyan-500 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded uppercase">
+                      {mover.ticker || 'NO_TICKER'}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground truncate">
+                      {formatMelbourneTime(mover.observed_at ?? mover.state.as_of)}
+                    </span>
+                  </div>
+                  <h4 className="mt-2 text-[13px] font-sans font-medium leading-snug">{mover.title}</h4>
+                </div>
+                <EvidenceBadge level={cockpitHomeSourceLabelToTrustLevel(mover.evidence.source_label)} />
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{mover.reason}</p>
+              <StateSignalList
+                signals={mover.state.data_missing}
+                fallback="Market update signal is missing numeric market-mover fields."
+              />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -844,6 +887,10 @@ function isRenderableMarketMover(item: CockpitHomeMarketMoverContract): boolean 
     item.change !== null &&
     item.change_percent !== null
   );
+}
+
+function isPartialMarketMoverSignal(item: CockpitHomeMarketMoverContract): boolean {
+  return item.evidence.source_label === 'operational_trace' && item.state.data_state === 'PARTIAL';
 }
 
 function mapDataHealthItem(item: {

@@ -1,0 +1,46 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/home/home-page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-home-api.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-home-api.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_home_news_snapshot_c0549d7_source_integration_20260512.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_home_news_snapshot_c0549d7_source_integration_20260512/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_home_news_snapshot_c0549d7_source_integration_20260512.md",
+        "cockpit-ui/components/cockpit/home/home-page.tsx",
+        "cockpit-ui/lib/cockpit-home-api.ts",
+        "cockpit-ui/lib/cockpit-home-api.test.ts",
+        "reports/agent_jobs/cockpit_home_news_snapshot_c0549d7_source_integration_20260512/**"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_home_news_snapshot_c0549d7_source_integration_20260512",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_home_news_snapshot_c0549d7_source_integration_20260512",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 2400
+    },
+    "ok": true
+  }
+}
