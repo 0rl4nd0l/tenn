@@ -442,6 +442,46 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });
 
+  it('loads source detail for resolvable Home commentary sources', async () => {
+    const payload = homeBffPayload();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(payload))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          ok: true,
+          source_id: 'youtube_transcript:source-a',
+          source_status: 'staged',
+          source_name: 'BHP operating update',
+          published_at: '2026-05-07T02:00:00Z',
+          chunk_count: 3,
+          memo_status: 'ready',
+          takeaway_source: 'chunks',
+          takeaways: [{ text: 'BHP management highlighted iron ore cost discipline.' }],
+          model: 'deterministic:commentary-staged-chunks',
+          prompt_version: 'takeaways-v1-deterministic',
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    render(createElement(CockpitHomePage));
+
+    await user.click(await screen.findByText('BHP operating update'));
+
+    expect(await screen.findByText('BHP management highlighted iron ore cost discipline.')).toBeInTheDocument();
+    expect(screen.getByText('Source Status')).toBeInTheDocument();
+    expect(screen.getByText('staged')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/cockpit/commentary/takeaways',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ source_id: 'youtube_transcript:source-a', limit: 3 }),
+        cache: 'no-store',
+      }),
+    );
+  });
+
   it('renders backend attention queue items without mock substitution', async () => {
     const base = homeBffPayload();
     const moverPriceMissing = signal(

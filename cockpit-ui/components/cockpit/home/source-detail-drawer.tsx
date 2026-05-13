@@ -1,10 +1,11 @@
 'use client'
 
+import { useEffect, useState } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { NewsItem } from '@/types/cockpit-home';
 import { EvidenceBadge } from './evidence-badge';
-import { AlertCircle, Database, ExternalLink, MessageSquare, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Database, ExternalLink, Loader2, MessageSquare, ShieldCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +16,73 @@ interface SourceDetailDrawerProps {
   onAnalyze: (item: NewsItem) => void;
 }
 
+type SourceDetailState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; payload: SourceDetailPayload }
+  | { status: 'error'; message: string };
+
+interface SourceDetailPayload {
+  ok?: boolean;
+  source_id?: string;
+  source_status?: string;
+  source_name?: string;
+  published_at?: string;
+  chunk_count?: number;
+  memo_status?: string;
+  takeaway_source?: string;
+  takeaways?: SourceTakeaway[];
+  model?: string;
+  prompt_version?: string;
+}
+
+interface SourceTakeaway {
+  text?: string;
+}
+
 export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceDetailDrawerProps) {
+  const [sourceDetail, setSourceDetail] = useState<SourceDetailState>({ status: 'idle' });
+
+  useEffect(() => {
+    if (!isOpen || !item?.sourceId || !item.resolvable || item.isDemo) {
+      setSourceDetail({ status: 'idle' });
+      return;
+    }
+
+    const sourceId = item.sourceId;
+    const controller = new AbortController();
+    setSourceDetail({ status: 'loading' });
+
+    async function loadSourceDetail() {
+      try {
+        const response = await fetch('/api/cockpit/commentary/takeaways', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source_id: sourceId, limit: 3 }),
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = (await response.json()) as SourceDetailPayload;
+        setSourceDetail({ status: 'ready', payload });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setSourceDetail({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Source detail request failed',
+        });
+      }
+    }
+
+    void loadSourceDetail();
+
+    return () => controller.abort();
+  }, [isOpen, item?.isDemo, item?.resolvable, item?.sourceId]);
+
   if (!item) return null;
 
   const dataState = item.dataState ?? (item.isDemo ? 'DATA_MISSING' : 'READY');
@@ -115,9 +182,7 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
                   <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3">
                     Source Access
                   </h5>
-                  <div className="text-[11px] font-sans text-muted-foreground leading-relaxed bg-card/30 rounded border border-border/30 p-3">
-                    Cockpit Home v1 only exposes resolver metadata already present in the BFF response. No source-detail resolver is called from this drawer.
-                  </div>
+                  <SourceAccessPanel state={sourceDetail} sourceId={item.sourceId} />
                 </section>
               </div>
             </div>
@@ -162,6 +227,75 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function SourceAccessPanel({
+  state,
+  sourceId,
+}: {
+  state: SourceDetailState;
+  sourceId?: string | null;
+}) {
+  if (!sourceId) {
+    return (
+      <div className="text-[11px] font-sans text-muted-foreground leading-relaxed bg-card/30 rounded border border-border/30 p-3">
+        Source detail DATA_MISSING: this Home item did not include a backend source_id.
+      </div>
+    );
+  }
+
+  if (state.status === 'loading') {
+    return (
+      <div className="flex items-center gap-2 text-[11px] font-sans text-muted-foreground bg-card/30 rounded border border-border/30 p-3">
+        <Loader2 className="w-3 h-3 animate-spin text-cyan-500" />
+        Loading source detail.
+      </div>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div className="text-[11px] font-sans text-amber-500 leading-relaxed bg-amber-500/5 rounded border border-amber-500/20 p-3">
+        Source detail DATA_MISSING: {state.message}.
+      </div>
+    );
+  }
+
+  if (state.status !== 'ready') {
+    return (
+      <div className="text-[11px] font-sans text-muted-foreground leading-relaxed bg-card/30 rounded border border-border/30 p-3">
+        Source detail is available for backend-resolvable Home commentary sources.
+      </div>
+    );
+  }
+
+  const payload = state.payload;
+  const takeaways = (payload.takeaways ?? []).filter((takeaway) => takeaway.text);
+
+  return (
+    <div className="space-y-3 bg-card/30 rounded border border-border/30 p-3">
+      <div className="grid grid-cols-2 gap-3">
+        <MetadataField label="Source Status" value={payload.source_status || 'DATA_MISSING'} />
+        <MetadataField label="Chunks" value={typeof payload.chunk_count === 'number' ? String(payload.chunk_count) : 'DATA_MISSING'} />
+        <MetadataField label="Memo" value={payload.memo_status || 'DATA_MISSING'} />
+        <MetadataField label="Takeaways" value={payload.takeaway_source || 'DATA_MISSING'} />
+      </div>
+
+      {takeaways.length > 0 ? (
+        <div className="space-y-2">
+          {takeaways.map((takeaway, index) => (
+            <div key={`${payload.source_id ?? sourceId}:takeaway:${index}`} className="text-[11px] font-sans text-muted-foreground leading-relaxed border-t border-border/30 pt-2">
+              {takeaway.text}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-[11px] font-sans text-amber-500 border-t border-border/30 pt-2">
+          Source detail returned no takeaways.
+        </div>
+      )}
+    </div>
   );
 }
 
