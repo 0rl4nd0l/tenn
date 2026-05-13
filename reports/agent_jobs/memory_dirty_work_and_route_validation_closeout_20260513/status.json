@@ -1,0 +1,40 @@
+{
+  "job_id": "memory_dirty_work_and_route_validation_closeout_20260513",
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "start_head": "48a20fac6c502ca1c58ee216306c2d7ed6eaddd4",
+  "end_head": "e38da634385162b02a480a8d42d51269f527cda7",
+  "mode": "audit_first_safe_extension",
+  "collision_risk": "LOW after current-turn classification; Memory dirty files were already clean and preserved",
+  "chorus_used": false,
+  "registry_claim": "acquired",
+  "registry_release": "released",
+  "memory_files_classified": 3,
+  "memory_commit_created": false,
+  "memory_commit": "48a20fac6c502ca1c58ee216306c2d7ed6eaddd4",
+  "route_validation_commit_created": true,
+  "route_validation_commit": "e38da634385162b02a480a8d42d51269f527cda7",
+  "mutating_routes_probed": 0,
+  "tests_run": [
+    "pnpm -C cockpit-ui exec playwright test tests/memory.spec.ts --reporter=line",
+    "git diff --check",
+    "git diff --cached --check",
+    "python3 -m json.tool reports/agent_jobs/cockpit_route_validation_pass_v1_20260513/status.json >/dev/null",
+    "python3 -m json.tool reports/agent_jobs/cockpit_route_validation_pass_v1_20260513/diff-check.json >/dev/null",
+    "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/memory_dirty_work_and_route_validation_closeout_20260513.md"
+  ],
+  "tests_passed": [
+    "Playwright memory spec: 9 passed",
+    "git diff --check passed",
+    "git diff --cached --check passed",
+    "route status/diff-check JSON validation passed",
+    "closeout check-diff failed only on report-glob limitation for reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/**"
+  ],
+  "tests_failed": [],
+  "remaining_blockers": [],
+  "next_safe_steps": [
+    "Run stable read-only route smoke body-shape probes for Cockpit GET endpoints.",
+    "Fix Holdings, Marketplace Mission, and Settings UI test drift in separate Reporting implementation tasks.",
+    "Design explicit chat/news provenance smoke validation before probing live POST routes.",
+    "Run a separate Evaluation/Financial Truth audit for extraction runtime 8001/8002 ambiguity."
+  ]
+}

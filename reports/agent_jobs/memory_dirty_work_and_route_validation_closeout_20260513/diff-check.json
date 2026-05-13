@@ -1,0 +1,65 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/memory_dirty_work_and_route_validation_closeout_20260513.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/memory_dirty_file_classification.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [
+    "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/README.md",
+    "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/memory_dirty_file_classification.md",
+    "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/status.json"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/memory_dirty_file_classification.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/status.json is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/memory_dirty_work_and_route_validation_closeout_20260513.md",
+        "cockpit-ui/app/memory/page.tsx",
+        "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
+        "cockpit-ui/tests/memory.spec.ts",
+        "docs/agent_tasks/cockpit_route_validation_pass_v1_20260513.md",
+        "reports/agent_jobs/cockpit_route_validation_pass_v1_20260513/**",
+        "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513/**"
+      ],
+      "approval_required": false,
+      "job_id": "memory_dirty_work_and_route_validation_closeout_20260513",
+      "lane": "Memory",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/memory_dirty_work_and_route_validation_closeout_20260513",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
