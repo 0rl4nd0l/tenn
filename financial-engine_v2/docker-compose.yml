@@ -45,6 +45,7 @@ services:
       TENN_GIT_DIRTY: ${TENN_GIT_DIRTY:-}
       TENN_GIT_STATUS_LINE_COUNT: ${TENN_GIT_STATUS_LINE_COUNT:-}
       TENN_BUILD_TIME: ${TENN_BUILD_TIME:-}
+      OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -75,6 +76,7 @@ services:
     env_file: [.env.docker]
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
       - 8.8.8.8
@@ -97,6 +99,7 @@ services:
     env_file: [.env.docker]
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
       - 8.8.8.8

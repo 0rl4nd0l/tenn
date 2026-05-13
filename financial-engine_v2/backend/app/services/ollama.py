@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from typing import Any
 
@@ -14,6 +15,18 @@ def _normalize_url(base: str) -> str:
     return normalized.rstrip("/")
 
 
+def _ollama_embed_options() -> dict[str, Any] | None:
+    raw_num_gpu = str(os.getenv("OLLAMA_EMBED_NUM_GPU") or "").strip()
+    if not raw_num_gpu:
+        return None
+    try:
+        return {"num_gpu": int(raw_num_gpu)}
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Invalid OLLAMA_EMBED_NUM_GPU={raw_num_gpu!r}; expected an integer."
+        ) from exc
+
+
 def ollama_embed(
     ollama_url: str,
     model: str,
@@ -25,15 +38,22 @@ def ollama_embed(
         return []
 
     base_url = _normalize_url(ollama_url)
+    options = _ollama_embed_options()
+    embed_payload: dict[str, Any] = {"model": model, "input": texts}
+    if options:
+        embed_payload["options"] = options
 
     def _do_embed(http_client: httpx.Client) -> list[list[float]]:
-        response = http_client.post(f"{base_url}/api/embed", json={"model": model, "input": texts})
+        response = http_client.post(f"{base_url}/api/embed", json=embed_payload)
         if response.status_code == 404:
             vectors: list[list[float]] = []
             for text in texts:
+                legacy_payload: dict[str, Any] = {"model": model, "prompt": text}
+                if options:
+                    legacy_payload["options"] = options
                 legacy = http_client.post(
                     f"{base_url}/api/embeddings",
-                    json={"model": model, "prompt": text},
+                    json=legacy_payload,
                 )
                 legacy.raise_for_status()
                 data = legacy.json()
