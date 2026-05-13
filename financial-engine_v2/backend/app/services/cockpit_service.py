@@ -939,8 +939,40 @@ def _resolve_config_path(config_path_value: str, repo_root: Path) -> Path:
     return candidates[0]
 
 
+def _directory_writable_or_creatable(path: Path) -> bool:
+    """Return whether a directory path can be used without creating it."""
+    candidate = path.expanduser()
+    if candidate.exists():
+        return candidate.is_dir() and os.access(candidate, os.W_OK | os.X_OK)
+
+    parent = candidate.parent
+    while not parent.exists() and parent != parent.parent:
+        parent = parent.parent
+    return parent.is_dir() and os.access(parent, os.W_OK | os.X_OK)
+
+
+def _relative_reports_suffix(path: Path) -> Path:
+    if path.is_absolute():
+        return Path()
+    if path.parts and path.parts[0] == "reports":
+        return Path(*path.parts[1:]) if len(path.parts) > 1 else Path()
+    return path
+
+
+def _relative_exports_suffix(path: Path) -> Path:
+    if path.is_absolute():
+        return Path("analysis")
+    if path.parts and path.parts[0] == "reports":
+        return Path(*path.parts[1:]) if len(path.parts) > 1 else Path()
+    return path
+
+
 def _normalize_cockpit_artifact_dirs(
-    cfg: dict[str, Any], *, data_root: str | Path | None = None
+    cfg: dict[str, Any],
+    *,
+    data_root: str | Path | None = None,
+    writable_fallback_root: str | Path | None = None,
+    path_is_usable: Callable[[Path], bool] = _directory_writable_or_creatable,
 ) -> None:
     reports_cfg = cfg.setdefault("reports", {})
     exports_cfg = cfg.setdefault("exports", {})
@@ -968,11 +1000,22 @@ def _normalize_cockpit_artifact_dirs(
     if exports_path.is_absolute():
         resolved_exports_dir = exports_path.resolve()
     else:
-        if exports_path.parts and exports_path.parts[0] == "reports":
-            exports_suffix = Path(*exports_path.parts[1:])
-        else:
-            exports_suffix = exports_path
+        exports_suffix = _relative_exports_suffix(exports_path)
         resolved_exports_dir = (resolved_reports_dir / exports_suffix).resolve()
+
+    if writable_fallback_root is not None and (
+        not path_is_usable(resolved_reports_dir)
+        or not path_is_usable(resolved_exports_dir)
+    ):
+        fallback_reports_root = (
+            Path(str(writable_fallback_root)).expanduser().resolve() / "reports"
+        )
+        resolved_reports_dir = (
+            fallback_reports_root / _relative_reports_suffix(reports_path)
+        ).resolve()
+        resolved_exports_dir = (
+            fallback_reports_root / _relative_exports_suffix(exports_path)
+        ).resolve()
 
     reports_cfg["dir"] = str(resolved_reports_dir)
     exports_cfg["dir"] = str(resolved_exports_dir)
@@ -1024,7 +1067,7 @@ class CockpitService:
                 repo_root=repo_root,
             ),
         )
-        _normalize_cockpit_artifact_dirs(cfg)
+        _normalize_cockpit_artifact_dirs(cfg, writable_fallback_root=repo_root)
 
         db_cfg = cfg.get("db") if isinstance(cfg.get("db"), dict) else {}
         db_url = _normalize_database_url(

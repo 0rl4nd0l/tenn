@@ -39,6 +39,25 @@ def test_normalize_cockpit_artifact_dirs_preserves_absolute_paths() -> None:
     assert cfg["exports"]["dir"] == "/mnt/runtime/reports/analysis"
 
 
+def test_normalize_cockpit_artifact_dirs_falls_back_when_data_root_is_unusable(
+    tmp_path,
+) -> None:
+    cfg = {
+        "reports": {"dir": "reports"},
+        "exports": {"dir": "reports/analysis"},
+    }
+
+    _normalize_cockpit_artifact_dirs(
+        cfg,
+        data_root="/mnt/nvme/tenn/runtime-data",
+        writable_fallback_root=tmp_path,
+        path_is_usable=lambda path: str(path).startswith(str(tmp_path)),
+    )
+
+    assert cfg["reports"]["dir"] == str(tmp_path / "reports")
+    assert cfg["exports"]["dir"] == str(tmp_path / "reports" / "analysis")
+
+
 def _prime_service(service: CockpitService) -> None:
     service._feedback_lock = threading.Lock()  # type: ignore[attr-defined]
     service._recent_turn_diagnostics = {}  # type: ignore[attr-defined]
