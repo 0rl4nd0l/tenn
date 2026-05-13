@@ -548,6 +548,38 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });
 
+  it('renders live backend narrative summary and tomorrow prep', async () => {
+    const payload = homeBffPayload({
+      narrative: {
+        data_state: 'READY',
+        degraded: false,
+        data_missing: [],
+        as_of: '2026-05-07T02:00:00Z',
+        session_summary: 'Backend session summary says defensives led while miners lagged.',
+        theme_candidates: [
+          {
+            label: 'Defensive rotation',
+            sentiment: 'positive',
+            evidenceCount: 2,
+            description: 'Healthcare and staples commentary carried the strongest source-backed signal.',
+          },
+        ],
+        tomorrow_prep: ['Check BHP opening liquidity.', 'Review portfolio exposure before ASX open.'],
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+
+    render(createElement(CockpitHomePage));
+
+    expect(await screen.findByText('Session Summary')).toBeInTheDocument();
+    expect(screen.getByText('Backend session summary says defensives led while miners lagged.')).toBeInTheDocument();
+    expect(screen.getByText('Tomorrow Prep')).toBeInTheDocument();
+    expect(screen.getByText('Check BHP opening liquidity.')).toBeInTheDocument();
+    expect(screen.getByText('Review portfolio exposure before ASX open.')).toBeInTheDocument();
+    expect(screen.getByText('Defensive rotation')).toBeInTheDocument();
+    expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
+  });
+
   it('renders backend DATA_MISSING state visibly instead of substituting mock news', async () => {
     const payload = homeBffPayload({
       data_state: 'DATA_MISSING',

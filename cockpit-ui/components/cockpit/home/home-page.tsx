@@ -462,6 +462,7 @@ function LiveWorkspace({
 }) {
   const readyMovers = response.market_movers.filter(isRenderableMarketMover).map(mapMarketMover);
   const partialMovers = response.market_movers.filter(isPartialMarketMoverSignal);
+  const sessionSummary = response.narrative.session_summary?.trim() ?? '';
   const attentionItems = response.attention_queue
     .filter((item) => !cockpitHomeHasDataMissing(item.state))
       .map((item) => ({
@@ -495,6 +496,12 @@ function LiveWorkspace({
       <div className="col-span-12 lg:col-span-8 min-h-[300px]">
         <LivePortfolioPanel response={response} />
       </div>
+
+      {sessionSummary && (
+        <div className="col-span-12 min-h-[220px]">
+          <SessionSummaryCard summary={sessionSummary} tomorrowPrep={response.narrative.tomorrow_prep} />
+        </div>
+      )}
 
       <div className="col-span-12 lg:col-span-8">
         <LiveNewsPanel
