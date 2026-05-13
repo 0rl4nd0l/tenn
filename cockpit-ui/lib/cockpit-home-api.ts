@@ -93,6 +93,41 @@ interface AttentionQueuePayload {
   items?: unknown;
 }
 
+interface MarketMoverRecord {
+  id?: unknown;
+  title?: unknown;
+  ticker?: unknown;
+  reason?: unknown;
+  observed_at?: unknown;
+  price?: unknown;
+  change?: unknown;
+  change_percent?: unknown;
+  data_state?: unknown;
+  degraded?: unknown;
+  data_missing?: unknown;
+  as_of?: unknown;
+  source_label?: unknown;
+  evidence_id?: unknown;
+}
+
+interface MarketMoversPayload {
+  data_state?: unknown;
+  degraded?: unknown;
+  data_missing?: unknown;
+  as_of?: unknown;
+  items?: unknown;
+}
+
+interface NarrativePayload {
+  data_state?: unknown;
+  degraded?: unknown;
+  data_missing?: unknown;
+  as_of?: unknown;
+  session_summary?: unknown;
+  theme_candidates?: unknown;
+  tomorrow_prep?: unknown;
+}
+
 interface MarketSessionAssembly {
   contract: CockpitHomeMarketSessionContract;
   health: CockpitHomeDataHealthContract;
@@ -122,6 +157,11 @@ interface MarketMoversAssembly {
   missing: CockpitHomeDataMissingSignal[];
 }
 
+interface NarrativeAssembly {
+  contract: CockpitHomeBffResponse['narrative'];
+  health: CockpitHomeDataHealthContract;
+}
+
 const DEFAULT_COMMENTARY_LIMIT = 5;
 
 export async function buildCockpitHomeBffResponse(
@@ -134,20 +174,30 @@ export async function buildCockpitHomeBffResponse(
   const headers = new Headers(options.headers);
   const commentaryLimit = Math.max(1, Math.min(options.commentaryLimit ?? DEFAULT_COMMENTARY_LIMIT, 20));
 
-  const [healthRead, marketSessionRead, portfolioRead, commentaryRead, attentionQueueRead] = await Promise.all([
+  const [
+    healthRead,
+    marketSessionRead,
+    portfolioRead,
+    commentaryRead,
+    attentionQueueRead,
+    marketMoversRead,
+    narrativeRead,
+  ] = await Promise.all([
     readBackendJson(fetcher, backendUrl, '/api/health', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-session', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/portfolio', headers),
     readBackendJson(fetcher, backendUrl, `/api/commentary/recent?limit=${commentaryLimit}`, headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/attention-queue', headers),
+    readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-movers', headers),
+    readBackendJson(fetcher, backendUrl, '/api/cockpit/home/narrative', headers),
   ]);
 
   const marketSession = buildMarketSessionContract(marketSessionRead, now, nowIso);
   const portfolio = buildPortfolioContract(portfolioRead, nowIso);
   const news = buildNewsContracts(commentaryRead, nowIso);
   const attentionQueue = buildAttentionQueueContracts(attentionQueueRead, nowIso);
-  const marketMovers = buildMarketMoverContracts(attentionQueue, nowIso);
-  const narrative = buildMissingNarrative(nowIso);
+  const marketMovers = buildMarketMoverContracts(marketMoversRead, nowIso);
+  const narrative = buildNarrativeContract(narrativeRead, nowIso);
   const dataHealth = [
     buildBackendHealthItem(healthRead, nowIso),
     marketSession.health,
@@ -155,13 +205,7 @@ export async function buildCockpitHomeBffResponse(
     news.health,
     attentionQueue.health,
     marketMovers.health,
-    missingHealthItem(
-      'session_summary',
-      'Home narrative',
-      'NO_HOME_NARRATIVE_ENDPOINT',
-      'No backend Home narrative endpoint is available for Cockpit Home v1.',
-      nowIso,
-    ),
+    narrative.health,
   ];
 
   const dataMissing = [
@@ -170,7 +214,7 @@ export async function buildCockpitHomeBffResponse(
     ...news.missing,
     ...marketMovers.missing,
     ...attentionQueue.missing,
-    ...narrative.data_missing,
+    ...narrative.contract.data_missing,
   ];
   const sectionStates = [
     marketSession.contract,
@@ -180,7 +224,7 @@ export async function buildCockpitHomeBffResponse(
     attentionQueue.state,
     ...attentionQueue.items.map((item) => item.state),
     ...dataHealth,
-    narrative,
+    narrative.contract,
   ];
   const aggregate = aggregateState(sectionStates, dataMissing);
 
@@ -196,7 +240,7 @@ export async function buildCockpitHomeBffResponse(
     attention_queue_state: attentionQueue.state,
     attention_queue: attentionQueue.items,
     data_health: dataHealth,
-    narrative,
+    narrative: narrative.contract,
   };
 }
 
@@ -484,77 +528,64 @@ function buildNewsContracts(read: UpstreamRead, nowIso: string): NewsAssembly {
   };
 }
 
-function buildMarketMoverContracts(
-  attentionQueue: AttentionQueueAssembly,
-  nowIso: string,
-): MarketMoversAssembly {
-  const signals = attentionQueue.items.filter((item) => item.source_type === 'market_update_followup');
-
-  if (signals.length === 0) {
-    const items = buildUnimplementedSourceItems('market_movers', nowIso) as CockpitHomeMarketMoverContract[];
+function buildMarketMoverContracts(read: UpstreamRead, nowIso: string): MarketMoversAssembly {
+  if (!read.ok) {
+    const missing = dataMissingSignal(
+      'market_movers',
+      'MARKET_MOVERS_ENDPOINT_UNAVAILABLE',
+      `Backend market-movers endpoint unavailable: ${read.error}.`,
+      'missing_required_evidence',
+    );
+    const state = deterministicState('DATA_MISSING', null, [missing]);
     return {
-      items,
-      missing: items.flatMap((item) => item.state.data_missing),
-      health: missingHealthItem(
-        'market_movers',
-        'Market movers',
-        'NO_MARKET_MOVERS_ENDPOINT',
-        'No backend market-movers endpoint is available for Cockpit Home v1.',
-        nowIso,
-      ),
+      items: [],
+      missing: [missing],
+      health: dataHealthItem('market_movers', 'Market movers', state, 'DATA_MISSING'),
     };
   }
 
-  const items = signals.slice(0, 5).map((item): CockpitHomeMarketMoverContract => {
-    const ticker = tickerFromMarketUpdateTitle(item.title);
-    const missing = [
-      dataMissingSignal(
-        'market_movers',
-        'MARKET_MOVER_PRICE_FIELDS_MISSING',
-        'Market update follow-up did not include deterministic price, change, and change-percent fields.',
-        'operational_trace',
-      ),
-      ...(!ticker
-        ? [
-            dataMissingSignal(
-              'market_movers',
-              'MARKET_MOVER_TICKER_MISSING',
-              'Market update follow-up title did not include a deterministic ticker prefix.',
-              'operational_trace',
-            ),
-          ]
-        : []),
-    ];
-    const state = deterministicState(ticker ? 'PARTIAL' : 'DATA_MISSING', item.observed_at ?? nowIso, missing);
-
+  const payload = readMarketMoversPayload(read.payload);
+  const rows = readMarketMoverItems(payload.items);
+  const backendMissing = readDataMissingSignals(payload.data_missing, 'market_movers');
+  const payloadState = dataStateOrNull(payload.data_state) ?? (rows.length > 0 ? 'PARTIAL' : 'DATA_MISSING');
+  const asOf = stringOrNull(payload.as_of) ?? nowIso;
+  const items = rows.map((row, index): CockpitHomeMarketMoverContract => {
+    const title = requiredString(row.title) || 'Market mover signal';
+    const ticker = requiredString(row.ticker);
+    const sourceLabel = normalizeSourceLabelOrNull(row.source_label) ?? 'operational_trace';
+    const missing = readDataMissingSignals(row.data_missing, 'market_movers');
+    const dataState = dataStateOrNull(row.data_state) ?? (missing.length > 0 ? 'PARTIAL' : 'READY');
+    const itemAsOf = stringOrNull(row.as_of) ?? stringOrNull(row.observed_at) ?? asOf;
+    const evidenceId = stringOrNull(row.evidence_id);
     return {
-      id: `home-market-movers:${item.id}`,
+      id: requiredString(row.id) || `home-market-movers:${index}`,
       section: 'market_movers',
-      title: item.title,
+      title,
       ticker,
-      observed_at: item.observed_at ?? state.as_of,
-      state,
+      observed_at: stringOrNull(row.observed_at) ?? itemAsOf,
+      state: deterministicState(dataState, itemAsOf, missing),
       evidence: {
         source_id: null,
         source_kind: null,
-        source_label: 'operational_trace',
-        evidence_labels: ['operational_trace'],
+        source_label: sourceLabel,
+        evidence_labels: [sourceLabel],
         resolvable: false,
         resolver: 'none',
-        evidence_id: item.id,
+        evidence_id: evidenceId,
         document_id: null,
         chunk_id: null,
         url: null,
-        title: item.title,
-        published_at: item.observed_at ?? state.as_of,
+        title,
+        published_at: stringOrNull(row.observed_at) ?? itemAsOf,
       },
-      price: null,
-      change: null,
-      change_percent: null,
-      reason: item.reason,
+      price: numberOrNull(row.price),
+      change: numberOrNull(row.change),
+      change_percent: numberOrNull(row.change_percent),
+      reason: stringOrNull(row.reason),
     };
   });
-  const missing = items.flatMap((item) => item.state.data_missing);
+  const missing = [...backendMissing, ...items.flatMap((item) => item.state.data_missing)];
+  const state = deterministicState(payloadState, latestTimestamp(items.map((item) => item.observed_at)) ?? asOf, missing);
 
   return {
     items,
@@ -562,8 +593,8 @@ function buildMarketMoverContracts(
     health: dataHealthItem(
       'market_movers',
       'Market movers',
-      deterministicState('PARTIAL', latestTimestamp(items.map((item) => item.observed_at ?? null)) ?? nowIso, missing),
-      `${items.length} update signal${items.length === 1 ? '' : 's'}`,
+      state,
+      items.length > 0 ? `${items.length} update signal${items.length === 1 ? '' : 's'}` : 'DATA_MISSING',
     ),
   };
 }
@@ -683,75 +714,43 @@ function buildAttentionQueueContracts(read: UpstreamRead, nowIso: string): Atten
   };
 }
 
-function buildUnimplementedSourceItems(section: CockpitHomeSectionKey, nowIso: string) {
-  const codeBySection: Partial<Record<CockpitHomeSectionKey, string>> = {
-    market_movers: 'NO_MARKET_MOVERS_ENDPOINT',
-    attention_queue: 'NO_ATTENTION_QUEUE_ENDPOINT',
-  };
-  const messageBySection: Partial<Record<CockpitHomeSectionKey, string>> = {
-    market_movers: 'No backend market-movers endpoint is available for Cockpit Home v1.',
-    attention_queue: 'No backend attention-queue endpoint is available for Cockpit Home v1.',
-  };
-  const code = codeBySection[section] ?? 'SECTION_NOT_IMPLEMENTED';
-  const message = messageBySection[section] ?? 'This Cockpit Home section is not implemented in v1.';
-  const state = deterministicState('DATA_MISSING', nowIso, [dataMissingSignal(section, code, message)]);
-
-  if (section === 'market_movers') {
-    return [
-      {
-        id: 'home-market-movers:data-missing',
-        section,
-        title: 'Market movers unavailable',
-        ticker: '',
-        observed_at: nowIso,
-        state,
-        evidence: missingEvidence(),
-        price: null,
-        change: null,
-        change_percent: null,
-        reason: null,
-      },
-    ];
+function buildNarrativeContract(read: UpstreamRead, nowIso: string): NarrativeAssembly {
+  if (!read.ok) {
+    const missing = dataMissingSignal(
+      'session_summary',
+      'HOME_NARRATIVE_ENDPOINT_UNAVAILABLE',
+      `Backend Home narrative endpoint unavailable: ${read.error}.`,
+      'missing_required_evidence',
+    );
+    const contract = {
+      ...deterministicState('DATA_MISSING', null, [missing]),
+      session_summary: null,
+      theme_candidates: [],
+      tomorrow_prep: [],
+    };
+    return {
+      contract,
+      health: dataHealthItem('session_summary', 'Home narrative', contract, 'DATA_MISSING'),
+    };
   }
 
-  return [
-    {
-      id: 'home-attention-queue:data-missing',
-      section,
-      title: 'Attention queue unavailable',
-      observed_at: nowIso,
-      state,
-      evidence: missingEvidence(),
-      priority: 'low' as const,
-      description: message,
-    },
-  ];
-}
-
-function buildMissingNarrative(nowIso: string) {
-  const missing = [
-    dataMissingSignal(
-      'session_summary',
-      'NO_SESSION_SUMMARY_ENDPOINT',
-      'No backend session-summary endpoint is available for Cockpit Home v1.',
-    ),
-    dataMissingSignal(
-      'theme_candidates',
-      'NO_THEME_CANDIDATES_ENDPOINT',
-      'No backend theme-candidates endpoint is available for Cockpit Home v1.',
-    ),
-    dataMissingSignal(
-      'tomorrow_prep',
-      'NO_TOMORROW_PREP_ENDPOINT',
-      'No backend tomorrow-prep endpoint is available for Cockpit Home v1.',
-    ),
-  ];
-
+  const payload = readNarrativePayload(read.payload);
+  const missing = readDataMissingSignals(payload.data_missing, 'session_summary');
+  const dataState = dataStateOrNull(payload.data_state) ?? (missing.length > 0 ? 'DATA_MISSING' : 'READY');
+  const contract = {
+    ...deterministicState(dataState, stringOrNull(payload.as_of) ?? nowIso, missing),
+    session_summary: stringOrNull(payload.session_summary),
+    theme_candidates: readThemeCandidates(payload.theme_candidates),
+    tomorrow_prep: readStringList(payload.tomorrow_prep),
+  };
   return {
-    ...deterministicState('DATA_MISSING', nowIso, missing),
-    session_summary: null,
-    theme_candidates: [],
-    tomorrow_prep: [],
+    contract,
+    health: dataHealthItem(
+      'session_summary',
+      'Home narrative',
+      contract,
+      contract.session_summary ? 'READY' : dataState,
+    ),
   };
 }
 
@@ -773,21 +772,6 @@ function buildBackendHealthItem(read: UpstreamRead, nowIso: string): CockpitHome
     'data_health',
     'Backend liveness',
     deterministicState('DATA_MISSING', null, [missing]),
-    'DATA_MISSING',
-  );
-}
-
-function missingHealthItem(
-  section: CockpitHomeSectionKey,
-  label: string,
-  code: string,
-  message: string,
-  nowIso: string,
-): CockpitHomeDataHealthContract {
-  return dataHealthItem(
-    section,
-    label,
-    deterministicState('DATA_MISSING', nowIso, [dataMissingSignal(section, code, message)]),
     'DATA_MISSING',
   );
 }
@@ -851,23 +835,6 @@ function dataMissingSignal(
   };
 }
 
-function missingEvidence() {
-  return {
-    source_id: null,
-    source_kind: null,
-    source_label: 'missing_required_evidence' as const,
-    evidence_labels: ['missing_required_evidence' as const],
-    resolvable: false,
-    resolver: 'none' as const,
-    evidence_id: null,
-    document_id: null,
-    chunk_id: null,
-    url: null,
-    title: null,
-    published_at: null,
-  };
-}
-
 function readPortfolioPayload(payload: unknown): PortfolioPayload {
   if (!payload || typeof payload !== 'object') {
     return {};
@@ -898,6 +865,52 @@ function readAttentionQueueItems(payload: unknown): AttentionQueueRecord[] {
     return [];
   }
   return payload.filter((item): item is AttentionQueueRecord => Boolean(item) && typeof item === 'object');
+}
+
+function readMarketMoversPayload(payload: unknown): MarketMoversPayload {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+  return payload as MarketMoversPayload;
+}
+
+function readMarketMoverItems(payload: unknown): MarketMoverRecord[] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload.filter((item): item is MarketMoverRecord => Boolean(item) && typeof item === 'object');
+}
+
+function readNarrativePayload(payload: unknown): NarrativePayload {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+  return payload as NarrativePayload;
+}
+
+function readThemeCandidates(payload: unknown): CockpitHomeBffResponse['narrative']['theme_candidates'] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload.filter((item): item is CockpitHomeBffResponse['narrative']['theme_candidates'][number] => {
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+    const candidate = item as Record<string, unknown>;
+    return (
+      typeof candidate.label === 'string' &&
+      (candidate.sentiment === 'positive' || candidate.sentiment === 'negative' || candidate.sentiment === 'neutral') &&
+      typeof candidate.evidenceCount === 'number' &&
+      typeof candidate.description === 'string'
+    );
+  });
+}
+
+function readStringList(payload: unknown): string[] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload.map((item) => String(item || '').trim()).filter(Boolean);
 }
 
 function readMarketSession(payload: unknown): MarketSessionRecord {
@@ -977,12 +990,6 @@ function attentionPriorityOrLow(value: unknown): CockpitHomeAttentionItemContrac
     return raw;
   }
   return 'low';
-}
-
-function tickerFromMarketUpdateTitle(value: unknown): string {
-  const raw = requiredString(value);
-  const match = /^([A-Z][A-Z0-9]{1,5})(?=:)/.exec(raw);
-  return match ? match[1] : '';
 }
 
 function readDataMissingSignals(

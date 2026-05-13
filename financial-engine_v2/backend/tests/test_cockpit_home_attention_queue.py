@@ -7,7 +7,11 @@ from fastapi.testclient import TestClient
 
 from app.routes import cockpit_api
 from app.routes.cockpit_api import router
-from app.services.cockpit_home import build_attention_queue_snapshot
+from app.services.cockpit_home import (
+    build_attention_queue_snapshot,
+    build_home_narrative_snapshot,
+    build_market_movers_snapshot,
+)
 
 
 class FakeStateStore:
@@ -142,3 +146,101 @@ def test_attention_queue_endpoint_returns_backend_owned_operational_queue(monkey
             }
         ],
     }
+
+
+def test_market_movers_snapshot_uses_backend_owned_operational_signals() -> None:
+    store = FakeStateStore(
+        [
+            {
+                "followup_id": "fu-1",
+                "report_id": "report-1",
+                "ticker": "BHP",
+                "action_type": "review",
+                "priority_score": 0.82,
+                "reason": {"reasons": ["notable price move"]},
+                "status": "queued",
+                "created_at": "2026-05-07T01:15:00+00:00",
+            }
+        ]
+    )
+
+    snapshot = build_market_movers_snapshot(store)
+
+    assert snapshot.data_state == "PARTIAL"
+    assert len(snapshot.items) == 1
+    item = snapshot.items[0]
+    assert item.id == "home-market-movers:market_update_followup:fu-1"
+    assert item.ticker == "BHP"
+    assert item.price is None
+    assert item.change is None
+    assert item.change_percent is None
+    assert item.source_label == "operational_trace"
+    assert [signal.code for signal in item.data_missing] == [
+        "MARKET_MOVER_PRICE_FIELDS_MISSING"
+    ]
+
+
+def test_market_movers_endpoint_returns_operational_trace_payload(monkeypatch) -> None:
+    store = FakeStateStore(
+        [
+            {
+                "followup_id": "fu-1",
+                "report_id": "report-1",
+                "ticker": "BHP",
+                "action_type": "review",
+                "priority_score": 0.82,
+                "reason": {"reasons": ["notable price move"]},
+                "status": "queued",
+                "created_at": "2026-05-07T01:15:00+00:00",
+            }
+        ]
+    )
+
+    class FakeService:
+        state_store = store
+
+    monkeypatch.setattr(
+        cockpit_api.CockpitService,
+        "get_instance",
+        staticmethod(lambda: FakeService()),
+    )
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+
+    response = TestClient(app).get("/api/cockpit/home/market-movers")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data_state"] == "PARTIAL"
+    assert payload["items"][0]["id"] == "home-market-movers:market_update_followup:fu-1"
+    assert payload["items"][0]["ticker"] == "BHP"
+    assert payload["items"][0]["source_label"] == "operational_trace"
+    assert payload["items"][0]["price"] is None
+    assert payload["items"][0]["data_missing"][0]["code"] == "MARKET_MOVER_PRICE_FIELDS_MISSING"
+
+
+def test_home_narrative_endpoint_returns_explicit_missing_state() -> None:
+    snapshot = build_home_narrative_snapshot(
+        now=datetime(2026, 5, 7, 2, 0, tzinfo=timezone.utc),
+    )
+
+    assert snapshot.data_state == "DATA_MISSING"
+    assert snapshot.session_summary is None
+    assert snapshot.theme_candidates == []
+    assert snapshot.tomorrow_prep == []
+    assert {signal.code for signal in snapshot.data_missing} == {
+        "NO_SESSION_SUMMARY_ENDPOINT",
+        "NO_THEME_CANDIDATES_ENDPOINT",
+        "NO_TOMORROW_PREP_ENDPOINT",
+    }
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    response = TestClient(app).get("/api/cockpit/home/narrative")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data_state"] == "DATA_MISSING"
+    assert payload["session_summary"] is None
+    assert payload["theme_candidates"] == []
+    assert payload["tomorrow_prep"] == []

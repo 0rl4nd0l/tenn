@@ -94,7 +94,49 @@ describe('Cockpit Home BFF route', () => {
             },
           ],
         }),
-      );
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          ok: true,
+          data_state: 'PARTIAL',
+          degraded: false,
+          data_missing: [
+            signal(
+              'market_movers',
+              'MARKET_MOVER_PRICE_FIELDS_MISSING',
+              'Market update follow-up did not include deterministic price, change, and change-percent fields.',
+              'operational_trace',
+            ),
+          ],
+          as_of: '2026-05-07T01:15:00Z',
+          items: [
+            {
+              id: 'home-market-movers:market_update_followup:fu-1',
+              title: 'BHP: review',
+              ticker: 'BHP',
+              reason: 'notable price move',
+              observed_at: '2026-05-07T01:15:00Z',
+              price: null,
+              change: null,
+              change_percent: null,
+              data_state: 'PARTIAL',
+              degraded: false,
+              data_missing: [
+                signal(
+                  'market_movers',
+                  'MARKET_MOVER_PRICE_FIELDS_MISSING',
+                  'Market update follow-up did not include deterministic price, change, and change-percent fields.',
+                  'operational_trace',
+                ),
+              ],
+              as_of: '2026-05-07T01:15:00Z',
+              source_label: 'operational_trace',
+              evidence_id: 'market_update_followup:fu-1',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse(narrativeMissingResponse()));
     vi.stubGlobal('fetch', fetchMock);
 
     const response = await getCockpitHomeRoute(
@@ -103,13 +145,15 @@ describe('Cockpit Home BFF route', () => {
       }),
     );
 
-	    expect(fetchMock).toHaveBeenCalledTimes(5);
+	    expect(fetchMock).toHaveBeenCalledTimes(7);
 	    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
 	      'http://backend.internal:8000/api/health',
 	      'http://backend.internal:8000/api/cockpit/home/market-session',
 	      'http://backend.internal:8000/api/cockpit/home/portfolio',
 	      'http://backend.internal:8000/api/commentary/recent?limit=5',
 	      'http://backend.internal:8000/api/cockpit/home/attention-queue',
+	      'http://backend.internal:8000/api/cockpit/home/market-movers',
+	      'http://backend.internal:8000/api/cockpit/home/narrative',
 	    ]);
     for (const call of fetchMock.mock.calls) {
       const init = call[1] as RequestInit;
@@ -215,26 +259,22 @@ describe('Cockpit Home BFF route', () => {
       fetcher,
     });
 
-    expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(fetcher).toHaveBeenCalledTimes(7);
     expect(payload.ok).toBe(true);
     expect(payload.generated_at).toBe('2026-05-07T02:00:00.000Z');
     expect(payload.data_state).toBe('DATA_MISSING');
     expect(payload.degraded).toBe(true);
     expect(payload.portfolio.total_value).toBeNull();
     expect(payload.news).toEqual([]);
-    expect(payload.market_movers[0].evidence).toMatchObject({
-      source_id: null,
-      source_kind: null,
-      source_label: 'missing_required_evidence',
-      resolvable: false,
-      resolver: 'none',
-    });
+    expect(payload.market_movers).toEqual([]);
     expect(payload.data_missing.map((signal) => signal.code)).toEqual(
       expect.arrayContaining([
         'PORTFOLIO_ENDPOINT_UNAVAILABLE',
         'COMMENTARY_RECENT_UNAVAILABLE',
         'MARKET_SESSION_ENDPOINT_UNAVAILABLE',
         'NO_ATTENTION_QUEUE_ENDPOINT',
+        'MARKET_MOVERS_ENDPOINT_UNAVAILABLE',
+        'HOME_NARRATIVE_ENDPOINT_UNAVAILABLE',
       ]),
     );
   });
@@ -267,7 +307,9 @@ describe('Cockpit Home BFF route', () => {
         ),
       )
       .mockResolvedValueOnce(jsonResponse({ items: [] }))
-      .mockResolvedValueOnce(attentionQueueResponse([]));
+      .mockResolvedValueOnce(attentionQueueResponse([]))
+      .mockResolvedValueOnce(jsonResponse(marketMoversEmptyResponse()))
+      .mockResolvedValueOnce(jsonResponse(narrativeMissingResponse()));
 
     const payload = await buildCockpitHomeBffResponse({
       now: new Date('2026-05-07T02:00:00Z'),
@@ -289,7 +331,9 @@ describe('Cockpit Home BFF route', () => {
       .mockResolvedValueOnce(jsonResponse(marketSessionResponse()))
       .mockResolvedValueOnce(jsonResponse(portfolioResponse()))
       .mockResolvedValueOnce(jsonResponse({ items: [] }))
-      .mockResolvedValueOnce(attentionQueueResponse([]));
+      .mockResolvedValueOnce(attentionQueueResponse([]))
+      .mockResolvedValueOnce(jsonResponse(marketMoversEmptyResponse()))
+      .mockResolvedValueOnce(jsonResponse(narrativeMissingResponse()));
 
     const payload = await buildCockpitHomeBffResponse({
       now: new Date('2026-05-07T02:00:00Z'),
@@ -329,7 +373,9 @@ describe('Cockpit Home BFF route', () => {
           ],
         }),
       )
-      .mockResolvedValueOnce(attentionQueueResponse([]));
+      .mockResolvedValueOnce(attentionQueueResponse([]))
+      .mockResolvedValueOnce(jsonResponse(marketMoversEmptyResponse()))
+      .mockResolvedValueOnce(jsonResponse(narrativeMissingResponse()));
 
     const payload = await buildCockpitHomeBffResponse({
       now: new Date('2026-05-07T02:00:00Z'),
@@ -615,6 +661,53 @@ function attentionQueueResponse(items: unknown[]) {
     as_of: '2026-05-07T02:00:00Z',
     items,
   });
+}
+
+function marketMoversEmptyResponse() {
+  return {
+    ok: true,
+    data_state: 'DATA_MISSING',
+    degraded: true,
+    data_missing: [
+      signal(
+        'market_movers',
+        'NO_MARKET_UPDATE_SIGNALS',
+        'No queued market-update follow-up signals are available for Cockpit Home.',
+        'no_hit',
+      ),
+    ],
+    as_of: '2026-05-07T02:00:00Z',
+    items: [],
+  };
+}
+
+function narrativeMissingResponse() {
+  return {
+    ok: true,
+    data_state: 'DATA_MISSING',
+    degraded: true,
+    data_missing: [
+      signal(
+        'session_summary',
+        'NO_SESSION_SUMMARY_ENDPOINT',
+        'No backend session-summary producer is available for Cockpit Home v1.',
+      ),
+      signal(
+        'theme_candidates',
+        'NO_THEME_CANDIDATES_ENDPOINT',
+        'No backend theme-candidates producer is available for Cockpit Home v1.',
+      ),
+      signal(
+        'tomorrow_prep',
+        'NO_TOMORROW_PREP_ENDPOINT',
+        'No backend tomorrow-prep producer is available for Cockpit Home v1.',
+      ),
+    ],
+    as_of: '2026-05-07T02:00:00Z',
+    session_summary: null,
+    theme_candidates: [],
+    tomorrow_prep: [],
+  };
 }
 
 function homeBffPayload(overrides: Partial<CockpitHomeBffResponse> = {}): CockpitHomeBffResponse {

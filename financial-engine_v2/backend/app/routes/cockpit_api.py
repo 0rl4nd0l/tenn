@@ -44,7 +44,9 @@ from app.services.cockpit_service import (
 )
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
+    build_home_narrative_snapshot,
     build_market_session_snapshot,
+    build_market_movers_snapshot,
     build_portfolio_snapshot,
 )
 from app.services.cockpit_prompt_lab import (
@@ -440,6 +442,43 @@ class CockpitHomePortfolioResponse(BaseModel):
     holdings_count: int = 0
     priced_holdings_count: int = 0
     day_change_priced_holdings_count: int = 0
+
+
+class CockpitHomeMarketMoverItemResponse(BaseModel):
+    id: str
+    title: str
+    ticker: str
+    reason: str | None = None
+    observed_at: str | None = None
+    price: float | None = None
+    change: float | None = None
+    change_percent: float | None = None
+    data_state: Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
+    degraded: bool
+    data_missing: list[CockpitHomeDataMissingSignalResponse] = Field(default_factory=list)
+    as_of: str | None = None
+    source_label: Literal["operational_trace"] = "operational_trace"
+    evidence_id: str | None = None
+
+
+class CockpitHomeMarketMoversResponse(BaseModel):
+    ok: bool = True
+    data_state: Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
+    degraded: bool
+    data_missing: list[CockpitHomeDataMissingSignalResponse] = Field(default_factory=list)
+    as_of: str | None = None
+    items: list[CockpitHomeMarketMoverItemResponse] = Field(default_factory=list)
+
+
+class CockpitHomeNarrativeResponse(BaseModel):
+    ok: bool = True
+    data_state: Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
+    degraded: bool
+    data_missing: list[CockpitHomeDataMissingSignalResponse] = Field(default_factory=list)
+    as_of: str | None = None
+    session_summary: str | None = None
+    theme_candidates: list[dict[str, Any]] = Field(default_factory=list)
+    tomorrow_prep: list[str] = Field(default_factory=list)
 
 
 class CockpitHoldingCreateRequest(BaseModel):
@@ -4968,6 +5007,91 @@ def cockpit_home_attention_queue(limit: int = 50) -> CockpitHomeAttentionQueueRe
             )
             for item in snapshot.items
         ],
+    )
+
+
+@router.get("/home/market-movers", response_model=CockpitHomeMarketMoversResponse)
+def cockpit_home_market_movers(limit: int = 5) -> CockpitHomeMarketMoversResponse:
+    try:
+        service = CockpitService.get_instance()
+        snapshot = build_market_movers_snapshot(service.state_store, limit=limit)
+    except Exception as exc:
+        logger.exception("Failed to build Cockpit Home market movers")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to build market movers: {str(exc)}",
+        ) from exc
+
+    return CockpitHomeMarketMoversResponse(
+        ok=True,
+        data_state=snapshot.data_state,
+        degraded=snapshot.degraded,
+        data_missing=[
+            CockpitHomeDataMissingSignalResponse(
+                section=item.section,
+                code=item.code,
+                message=item.message,
+                source_id=item.source_id,
+                evidence_id=item.evidence_id,
+                source_label=item.source_label,
+            )
+            for item in snapshot.data_missing
+        ],
+        as_of=snapshot.as_of,
+        items=[
+            CockpitHomeMarketMoverItemResponse(
+                id=item.id,
+                title=item.title,
+                ticker=item.ticker,
+                reason=item.reason,
+                observed_at=item.observed_at,
+                price=item.price,
+                change=item.change,
+                change_percent=item.change_percent,
+                data_state=item.data_state,
+                degraded=item.degraded,
+                data_missing=[
+                    CockpitHomeDataMissingSignalResponse(
+                        section=signal.section,
+                        code=signal.code,
+                        message=signal.message,
+                        source_id=signal.source_id,
+                        evidence_id=signal.evidence_id,
+                        source_label=signal.source_label,
+                    )
+                    for signal in item.data_missing
+                ],
+                as_of=item.as_of,
+                source_label=item.source_label,
+                evidence_id=item.evidence_id,
+            )
+            for item in snapshot.items
+        ],
+    )
+
+
+@router.get("/home/narrative", response_model=CockpitHomeNarrativeResponse)
+def cockpit_home_narrative() -> CockpitHomeNarrativeResponse:
+    snapshot = build_home_narrative_snapshot()
+    return CockpitHomeNarrativeResponse(
+        ok=True,
+        data_state=snapshot.data_state,
+        degraded=snapshot.degraded,
+        data_missing=[
+            CockpitHomeDataMissingSignalResponse(
+                section=item.section,
+                code=item.code,
+                message=item.message,
+                source_id=item.source_id,
+                evidence_id=item.evidence_id,
+                source_label=item.source_label,
+            )
+            for item in snapshot.data_missing
+        ],
+        as_of=snapshot.as_of,
+        session_summary=snapshot.session_summary,
+        theme_candidates=snapshot.theme_candidates,
+        tomorrow_prep=snapshot.tomorrow_prep,
     )
 
 

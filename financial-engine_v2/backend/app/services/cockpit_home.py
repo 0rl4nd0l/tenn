@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import re
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
@@ -14,6 +15,7 @@ MarketSessionState = Literal["PRE_MARKET", "OPEN", "POST_MARKET", "DEGRADED"]
 AttentionQueueDataState = Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
 AttentionQueuePriority = Literal["high", "medium", "low"]
 PortfolioDataState = Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
+HomeDataState = Literal["READY", "PARTIAL", "DEGRADED", "DATA_MISSING"]
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,44 @@ class AttentionQueueSnapshot:
     data_missing: list[AttentionQueueMissingSignal]
     as_of: str | None
     items: list[AttentionQueueItem]
+
+
+@dataclass(frozen=True)
+class HomeMarketMoverItem:
+    id: str
+    title: str
+    ticker: str
+    reason: str | None
+    observed_at: str | None
+    price: float | None
+    change: float | None
+    change_percent: float | None
+    data_state: HomeDataState
+    degraded: bool
+    data_missing: list[AttentionQueueMissingSignal]
+    as_of: str | None
+    source_label: str
+    evidence_id: str | None
+
+
+@dataclass(frozen=True)
+class HomeMarketMoversSnapshot:
+    data_state: HomeDataState
+    degraded: bool
+    data_missing: list[AttentionQueueMissingSignal]
+    as_of: str | None
+    items: list[HomeMarketMoverItem]
+
+
+@dataclass(frozen=True)
+class HomeNarrativeSnapshot:
+    data_state: HomeDataState
+    degraded: bool
+    data_missing: list[AttentionQueueMissingSignal]
+    as_of: str | None
+    session_summary: str | None
+    theme_candidates: list[dict[str, Any]]
+    tomorrow_prep: list[str]
 
 
 @dataclass(frozen=True)
@@ -256,6 +296,81 @@ def build_attention_queue_snapshot(
         data_missing=missing,
         as_of=as_of,
         items=items,
+    )
+
+
+def build_market_movers_snapshot(
+    state_store: Any,
+    *,
+    limit: int = 5,
+    now: datetime | None = None,
+) -> HomeMarketMoversSnapshot:
+    """Return Home market update signals from backend-owned operational state."""
+
+    max_items = max(1, min(int(limit or 5), 20))
+    attention = build_attention_queue_snapshot(state_store, limit=max_items, now=now)
+    signals = [item for item in attention.items if item.source_type == "market_update_followup"]
+    if not signals:
+        as_of = attention.as_of or _as_utc(now or datetime.now(timezone.utc)).isoformat()
+        missing = [
+            AttentionQueueMissingSignal(
+                section="market_movers",
+                code="NO_MARKET_UPDATE_SIGNALS",
+                message="No queued market-update follow-up signals are available for Cockpit Home.",
+                source_label="no_hit",
+            )
+        ]
+        return HomeMarketMoversSnapshot(
+            data_state="DATA_MISSING",
+            degraded=True,
+            data_missing=missing,
+            as_of=as_of,
+            items=[],
+        )
+
+    items = [_attention_item_to_market_mover(item) for item in signals[:max_items]]
+    missing = [signal for item in items for signal in item.data_missing]
+    return HomeMarketMoversSnapshot(
+        data_state="PARTIAL" if missing else "READY",
+        degraded=False,
+        data_missing=missing,
+        as_of=_latest_text_timestamp([item.observed_at for item in items]) or attention.as_of,
+        items=items,
+    )
+
+
+def build_home_narrative_snapshot(
+    *,
+    now: datetime | None = None,
+) -> HomeNarrativeSnapshot:
+    """Expose explicit backend-owned missing narrative state for Home v1."""
+
+    as_of = _as_utc(now or datetime.now(timezone.utc)).isoformat()
+    missing = [
+        AttentionQueueMissingSignal(
+            section="session_summary",
+            code="NO_SESSION_SUMMARY_ENDPOINT",
+            message="No backend session-summary producer is available for Cockpit Home v1.",
+        ),
+        AttentionQueueMissingSignal(
+            section="theme_candidates",
+            code="NO_THEME_CANDIDATES_ENDPOINT",
+            message="No backend theme-candidates producer is available for Cockpit Home v1.",
+        ),
+        AttentionQueueMissingSignal(
+            section="tomorrow_prep",
+            code="NO_TOMORROW_PREP_ENDPOINT",
+            message="No backend tomorrow-prep producer is available for Cockpit Home v1.",
+        ),
+    ]
+    return HomeNarrativeSnapshot(
+        data_state="DATA_MISSING",
+        degraded=True,
+        data_missing=missing,
+        as_of=as_of,
+        session_summary=None,
+        theme_candidates=[],
+        tomorrow_prep=[],
     )
 
 
@@ -458,6 +573,49 @@ def _attention_reason(*, action_type: str, reason: dict[str, Any]) -> str:
     return f"Queued market-update follow-up action: {action_type}."
 
 
+def _attention_item_to_market_mover(item: AttentionQueueItem) -> HomeMarketMoverItem:
+    ticker = _ticker_from_attention_title(item.title)
+    missing = [
+        AttentionQueueMissingSignal(
+            section="market_movers",
+            code="MARKET_MOVER_PRICE_FIELDS_MISSING",
+            message=(
+                "Market update follow-up did not include deterministic price, "
+                "change, and change-percent fields."
+            ),
+            evidence_id=item.id,
+            source_label="operational_trace",
+        )
+    ]
+    if not ticker:
+        missing.append(
+            AttentionQueueMissingSignal(
+                section="market_movers",
+                code="MARKET_MOVER_TICKER_MISSING",
+                message="Market update follow-up title did not include a deterministic ticker prefix.",
+                evidence_id=item.id,
+                source_label="operational_trace",
+            )
+        )
+
+    return HomeMarketMoverItem(
+        id=f"home-market-movers:{item.id}",
+        title=item.title,
+        ticker=ticker,
+        reason=item.reason,
+        observed_at=item.updated_at or item.created_at,
+        price=None,
+        change=None,
+        change_percent=None,
+        data_state="PARTIAL" if ticker else "DATA_MISSING",
+        degraded=False,
+        data_missing=missing,
+        as_of=item.updated_at or item.created_at,
+        source_label="operational_trace",
+        evidence_id=item.id,
+    )
+
+
 def _attention_target_route(action_type: str) -> str | None:
     """Map queued operational follow-ups to read-only Cockpit destinations."""
 
@@ -467,6 +625,11 @@ def _attention_target_route(action_type: str) -> str | None:
     if normalized in {"review", "research_queue"}:
         return "/news"
     return None
+
+
+def _ticker_from_attention_title(value: str) -> str:
+    match = re.match(r"^([A-Z][A-Z0-9]{1,5})(?=:)", value.strip())
+    return match.group(1) if match else ""
 
 
 def _priority_from_score(value: float | None) -> AttentionQueuePriority:
