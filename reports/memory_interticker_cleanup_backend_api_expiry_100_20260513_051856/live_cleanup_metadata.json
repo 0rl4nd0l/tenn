@@ -1,0 +1,37 @@
+{
+  "generated_at_utc": "2026-05-13T05:18:56+00:00",
+  "approval_id": "approved_by_user_20260513_backend_api_pilot_100_20260513_051856",
+  "max_rows": 100,
+  "db_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+  "backup_db_path": "/mnt/hdd-data/home/l4nd0/tenn_runtime_backups/memory_interticker_cleanup_backend_api_expiry_100_20260513_051856/company_memory.sqlite.pre_backend_api_expiry_100",
+  "backup_method": "raw_file_copy",
+  "backup_sha256": "72a33bb11ee537ddbd6e7ed3c03d279c57f8fe2dba61f677e574972e150d6e1b",
+  "source_manifest": "reports/memory_interticker_contamination_manifest_20260513_043646/csv/approval_required_status_expire_candidates.csv",
+  "source_report": "reports/memory_interticker_contamination_manifest_20260513_043646",
+  "mutation_path": "POST /api/context/memory/company/expire",
+  "direct_status_only_transaction_attempted": true,
+  "direct_status_only_transaction_blocker": "local shell cannot write root-owned company_memory.sqlite; sudo requires password",
+  "api_semantics": "backend expiry API sets status=expired and updates closed_at/last_seen_at for each target row",
+  "pre_status_counts": {
+    "active": 2083,
+    "expired": 250
+  },
+  "post_status_counts": {
+    "active": 1983,
+    "expired": 350
+  },
+  "pre_duplicate_stats": {
+    "active_duplicate_cluster_count": 94,
+    "active_duplicate_row_count": 1615
+  },
+  "post_duplicate_stats": {
+    "active_duplicate_cluster_count": 94,
+    "active_duplicate_row_count": 1515
+  },
+  "rows_requested": 100,
+  "rows_expired": 100,
+  "target_rows_still_active": 0,
+  "non_target_memory_entry_core_diffs": 0,
+  "skipped_before_selection": 32,
+  "live_db_mutated": true
+}
