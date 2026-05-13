@@ -1,0 +1,125 @@
+{
+  "job_id": "cockpit_upgrade_integration_readiness_20260509",
+  "mode": "audit_only",
+  "primary_lane": "Reporting",
+  "main_branch": "preserve/dirty-work-20260430T065748Z",
+  "main_head": "dabbc456e42f737d12e6a1d979e6189e0936e865",
+  "main_worktree_clean": false,
+  "runtime_8081_live": true,
+  "runtime_cwd": "/mnt/hdd-data/home/l4nd0/tenn/cockpit-ui",
+  "runtime_branch": "preserve/dirty-work-20260430T065748Z",
+  "runtime_head": "dabbc456e42f737d12e6a1d979e6189e0936e865",
+  "active_registry_jobs": [],
+  "candidate_branches": [
+    {
+      "branch": "codex/cockpit-shell-sidebar-nested-button-fix-v1",
+      "head": "b573e0d231d83d394e3915afa3be1d594ea6313c",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-shell-sidebar-nested-button-fix-v1",
+      "value_category": "stale/obsolete",
+      "recommendation": "archive/ignore"
+    },
+    {
+      "branch": "safe/cockpit-home-live-wiring-v1",
+      "head": "bae8b8fea5b3df720492d966d88f4b5914f0059c",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1",
+      "value_category": "stale/obsolete",
+      "recommendation": "archive/ignore"
+    },
+    {
+      "branch": "integrate/cockpit-home-live-wiring-and-sidebar-fix",
+      "head": "3d49c9d2197e4135cb688da31c5938f75e48ae43",
+      "exists": true,
+      "merged_into_head": true,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-integration-final",
+      "value_category": "P1 shell/home live-wiring",
+      "recommendation": "already_integrated"
+    },
+    {
+      "branch": "codex/cockpit-home-news-snapshot-v1-20260508",
+      "head": "c0549d754cb501254873b34c66d9aec7d12b95d8",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508",
+      "value_category": "home-news snapshot",
+      "recommendation": "integrate_first"
+    },
+    {
+      "branch": "integrate/cockpit-home-news-snapshot-v1-20260508",
+      "head": "c0549d754cb501254873b34c66d9aec7d12b95d8",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508",
+      "value_category": "home-news snapshot",
+      "recommendation": "integrate_first_equivalent"
+    },
+    {
+      "branch": "safe/marketplace-match-recency-ui-v1",
+      "head": "9b4c0b761bb87dbf0782def7f007958bd83ce997",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-ui-v1",
+      "value_category": "marketplace recency",
+      "recommendation": "already_integrated"
+    },
+    {
+      "branch": "safe/marketplace-match-recency-contract-v1",
+      "head": "a8062e65baa3ee8bc2236c1c67c24db3c3194162",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-contract-v1",
+      "value_category": "marketplace recency",
+      "recommendation": "already_integrated"
+    },
+    {
+      "branch": "safe/marketplace-scanner-instrumentation-v1",
+      "head": "17ca8e377fc224c95e0d5a7dfd9c412e7315a496",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-scanner-instrumentation-v1",
+      "value_category": "marketplace recency",
+      "recommendation": "integrate_later"
+    },
+    {
+      "branch": "codex/source-label-998d68e-clean-integration-20260506",
+      "head": "4f9736ce7d683db6d1786a215b0f6efc286f90e9",
+      "exists": true,
+      "merged_into_head": true,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate",
+      "value_category": "source-label/provenance UI",
+      "recommendation": "already_integrated"
+    },
+    {
+      "branch": "codex/source-label-998d68e-clean-integration-retry-20260506",
+      "head": "52f2b7558d796e90267e14599a916c2eb4a94ebc",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate-retry",
+      "value_category": "source-label/provenance UI",
+      "recommendation": "audit_deeper"
+    },
+    {
+      "branch": "integrate/preserve-chat-envelope-source-label-20260506",
+      "head": "77ce4600c42b699c02f223a69a84827566cec7a5",
+      "exists": true,
+      "merged_into_head": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-preserve-chat-source-label-integrate",
+      "value_category": "legacy chat compatibility",
+      "recommendation": "audit_deeper"
+    }
+  ],
+  "recommended_first_integration": "c0549d754cb501254873b34c66d9aec7d12b95d8",
+  "implementation_handoff_created": true,
+  "source_code_touched": false,
+  "runtime_or_data_touched": false,
+  "collision_risk": "MEDIUM",
+  "project_memory_save_recommendation": "SAVE_RECOMMENDED",
+  "data_missing": [
+    "lsof returned no rows for :8081 even though ss, ps, /proc, and curl confirmed the Next listener",
+    "Main worktree is not clean because unrelated dirty files exist outside this audit task card: scripts/run_llama_server.sh, docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md, and docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+    "check-diff is blocked by out-of-scope dirty files and therefore cannot prove this audit is the only dirty state in the shared worktree"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "changed_files": [
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+    "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+    "scripts/run_llama_server.sh"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_llama_server.sh is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+        "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_v1.md",
+        "financial-engine_v2/backend/tests/test_memo_extractors_signal_routing.py",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_v1/final_report.md",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_v1/status.json",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_v1/diff-check.json",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/final_report.md",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/status.json",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "news_memo_signal_routing_candidate_fixture_integration_v1",
+      "lane": "Memory",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

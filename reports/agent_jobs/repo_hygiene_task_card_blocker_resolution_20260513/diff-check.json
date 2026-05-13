@@ -1,0 +1,315 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/preserve_dirty_state_classification_20260512.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/repo_hygiene_task_card_blocker_resolution_20260513.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/system_task_frontend_wiring_status_audit_v1_20260513.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/candidate_branch_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/recommended_integration_handoff.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/runtime_visibility.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/diff_risk_assessment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/dirty_file_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/preservation_options.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/final_report.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/preserve_dirty_state_classification_20260512/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/preserve_dirty_state_classification_20260512/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/task_card_classification.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/frontend_wiring_map.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/risk_register.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/task_status_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/validation_matrix.md",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [
+    "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/README.md",
+    "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/candidate_branch_matrix.md",
+    "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/diff-check.json",
+    "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/recommended_integration_handoff.md",
+    "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/runtime_visibility.md",
+    "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/status.json",
+    "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/README.md",
+    "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/diff-check.json",
+    "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/diff_risk_assessment.md",
+    "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/dirty_file_matrix.md",
+    "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/preservation_options.md",
+    "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/status.json",
+    "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/diff-check.json",
+    "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/final_report.md",
+    "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/status.json",
+    "reports/agent_jobs/preserve_dirty_state_classification_20260512/README.md",
+    "reports/agent_jobs/preserve_dirty_state_classification_20260512/diff-check.json",
+    "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/README.md",
+    "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/diff-check.json",
+    "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/status.json",
+    "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/task_card_classification.md",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/README.md",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/diff-check.json",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/frontend_wiring_map.md",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/risk_register.md",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/status.json",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/task_status_matrix.md",
+    "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/validation_matrix.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/candidate_branch_matrix.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/diff-check.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/recommended_integration_handoff.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/runtime_visibility.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/status.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/diff-check.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/diff_risk_assessment.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/dirty_file_matrix.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/preservation_options.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/status.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/diff-check.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/final_report.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/status.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/preserve_dirty_state_classification_20260512/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/preserve_dirty_state_classification_20260512/diff-check.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/diff-check.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/status.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/task_card_classification.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/README.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/diff-check.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/frontend_wiring_map.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/risk_register.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/status.json is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/task_status_matrix.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/validation_matrix.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/repo_hygiene_task_card_blocker_resolution_20260513.md",
+        "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+        "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+        "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+        "docs/agent_tasks/preserve_dirty_state_classification_20260512.md",
+        "docs/agent_tasks/system_task_frontend_wiring_status_audit_v1_20260513.md",
+        "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513/**",
+        "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/**",
+        "reports/agent_jobs/eval_instrumentation_dirty_worktree_audit_20260509/**",
+        "reports/agent_jobs/news_memo_signal_routing_candidate_fixture_integration_v1/**",
+        "reports/agent_jobs/preserve_dirty_state_classification_20260512/**",
+        "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/**"
+      ],
+      "approval_required": false,
+      "job_id": "repo_hygiene_task_card_blocker_resolution_20260513",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/repo_hygiene_task_card_blocker_resolution_20260513",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "job_id": "news_memo_signal_routing_candidate_fixture_integration_v1",
+  "status": "blocked",
+  "blocked_reason": "Task-card registry claim failed because dirty files outside allowed_files are present in the shared worktree.",
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "head": "dabbc456e42f",
+  "source_commit": "0e5e7df9d155",
+  "source_commit_subject": "milestone(memory): update news memo signal-routing ticker fixture",
+  "source_commit_touches_production_code": false,
+  "dirty_test_overlap": false,
+  "unrelated_dirty_files_left_untouched": [
+    "scripts/run_llama_server.sh",
+    "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+    "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md"
+  ],
+  "validation": {
+    "list_active": "pass",
+    "task_card_validate": "pass_after_allow_unapproved_safe_extension_metadata",
+    "source_commit_inspection": "pass",
+    "claim": "fail_dirty_files_outside_allowed_files",
+    "cherry_pick": "not_run_blocked",
+    "pytest_signal_routing": "not_run_blocked",
+    "pytest_focused_news_memo": "not_run_blocked",
+    "ruff": "not_run_blocked",
+    "git_diff_check": "pass",
+    "task_card_check_diff": "fail_dirty_files_outside_allowed_files"
+  },
+  "data_missing": [
+    "No preserve test validation after integration because integration was blocked before cherry-pick.",
+    "No integration commit hash because no integration commit was made."
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "job_id": "eval_instrumentation_dirty_worktree_audit_20260509",
+  "mode": "audit_only",
+  "primary_lane": "Evaluation",
+  "main_branch": "preserve/dirty-work-20260430T065748Z",
+  "main_head": "dabbc456e42f737d12e6a1d979e6189e0936e865",
+  "dirty_worktree_path": "/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421",
+  "dirty_worktree_branch": "audit/eval-instrumentation-bounded-20260421",
+  "dirty_worktree_head": "49a5d34a49b105bdba28ac5ed42649d57b4f4976",
+  "dirty_files": [
+    "financial-engine_v2/backend/app/main.py",
+    "financial-engine_v2/backend/app/services/docling_extract.py",
+    "financial-engine_v2/backend/app/services/method_isolated_extraction.py",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_docling_extract.py",
+    "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+    "scripts/run_real_extraction_eval.py",
+    "scripts/test_run_real_extraction_eval.py"
+  ],
+  "highest_risk_files": [
+    "financial-engine_v2/backend/app/main.py",
+    "financial-engine_v2/backend/app/services/docling_extract.py"
+  ],
+  "preserve_now_candidates": [
+    "financial-engine_v2/backend/app/main.py",
+    "financial-engine_v2/backend/app/services/docling_extract.py",
+    "financial-engine_v2/backend/app/services/method_isolated_extraction.py",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_docling_extract.py",
+    "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+    "scripts/run_real_extraction_eval.py",
+    "scripts/test_run_real_extraction_eval.py"
+  ],
+  "likely_stale_candidates": [],
+  "recommended_next_action": "create a safe integration task card",
+  "cleanup_safe_now": false,
+  "source_code_touched": false,
+  "runtime_or_data_touched": false,
+  "collision_risk": "MEDIUM",
+  "project_memory_save_recommendation": "SAVE_RECOMMENDED",
+  "data_missing": []
+}

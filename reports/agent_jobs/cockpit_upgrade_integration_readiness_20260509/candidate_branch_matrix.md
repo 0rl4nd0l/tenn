@@ -1,0 +1,32 @@
+# Candidate Branch Matrix
+
+Current comparison base: `HEAD=dabbc456e42f737d12e6a1d979e6189e0936e865` on `preserve/dirty-work-20260430T065748Z`.
+
+| Candidate | Exists | Worktree | Merged Into HEAD | Changed Surfaces From `HEAD..<branch>` | Conflict Risk | Value Category | Recommendation |
+|---|---:|---|---:|---|---|---|---|
+| `codex/cockpit-shell-sidebar-nested-button-fix-v1` (`b573e0d231d`) | yes | `/mnt/sdb2/home/l4nd0/tenn-cockpit-shell-sidebar-nested-button-fix-v1` | no | 16 source files including `cockpit-ui/components/cockpit/home/*`, marketplace UI, verification tab, `cockpit-ui/lib/cockpit-home-api.ts`, `financial-engine_v2/backend/app/routes/cockpit_api.py`; many old docs/report deletions in full diff | high: merge-tree reported changed-in-both and added-in-both | stale/obsolete | `archive/ignore`: current preserve already has sidebar fix commit `5e7f762` in `cockpit-sidebar.tsx` history |
+| `safe/cockpit-home-live-wiring-v1` (`bae8b8fea5b`) | yes | `/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1` | no | 18 source files including sidebar, home, marketplace, verification, `cockpit_api.py`; broad old docs/report deletions | high: merge-tree reported changed-in-both and added-in-both | stale/obsolete | `archive/ignore`: integrated successor exists |
+| `integrate/cockpit-home-live-wiring-and-sidebar-fix` (`3d49c9d2197`) | yes | `/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-integration-final` | yes | `HEAD..<branch>` still shows old reverse drift because branch is an ancestor, not pending | low for ancestry, obsolete for integration | P1 shell/home live-wiring | `already_integrated` |
+| `codex/cockpit-home-news-snapshot-v1-20260508` (`c0549d754cb`) | yes | `/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508` | no | commit itself changes `cockpit-ui/components/cockpit/home/home-page.tsx`, `cockpit-ui/lib/cockpit-home-api.ts`, `cockpit-ui/lib/cockpit-home-api.test.ts`, plus its task/report artifacts | medium: merge-tree conflict seen in same task-card path; source scope is narrow but overlaps active home files | home-news snapshot | `integrate_first` as a source-only/manual application task, not a blind branch merge |
+| `integrate/cockpit-home-news-snapshot-v1-20260508` (`c0549d754cb`) | yes | `/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508` | no | same commit and surfaces as `codex/cockpit-home-news-snapshot-v1-20260508` | medium | home-news snapshot | same target; use one branch/commit only |
+| `safe/marketplace-match-recency-ui-v1` (`9b4c0b761bb`) | yes | `/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-ui-v1` | no | commit itself adds `match-recency.ts` and changes marketplace match UI/tests; current preserve already has `match-recency.ts` and related tests | medium/high by ancestry; current feature visible | marketplace recency | `already_integrated` by later preserve commits `86de58e` and `ac46454`; audit deeper only if behavior regression exists |
+| `safe/marketplace-match-recency-contract-v1` (`a8062e65baa`) | yes | `/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-contract-v1` | no | broad stale comparison; original value is backend contract for first/last seen recency | medium/high by ancestry; current code includes `last_seen_at`, `sort=last_seen_desc`, and recency helpers | marketplace recency | `already_integrated` by later preserve commits `86de58e` and `ac46454`; do not merge old branch |
+| `safe/marketplace-scanner-instrumentation-v1` (`17ca8e377fc`) | yes | `/mnt/sdb2/home/l4nd0/tenn-marketplace-scanner-instrumentation-v1` | no | actual commit changes `financial-engine_v2/backend/app/services/marketplace_scanner.py` and backend tests, not Cockpit UI | medium/high because it is backend scanner behavior outside primary Reporting UI target | marketplace recency / scanner instrumentation | `integrate_later` under a dedicated Marketplace/Reporting or backend task card |
+| `codex/source-label-998d68e-clean-integration-20260506` (`4f9736ce7d`) | yes | `/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate` | yes | ancestor branch; `HEAD..<branch>` is reverse drift | low for ancestry, obsolete | source-label/provenance UI | `already_integrated` |
+| `codex/source-label-998d68e-clean-integration-retry-20260506` (`52f2b7558d`) | yes | `/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate-retry` | no | actual commit changes `cockpit_api.py`, backend test, source-label reports | medium/high: touches backend contested route and provenance labels | source-label/provenance UI | `audit_deeper`; current preserve already has source-label taxonomy and DATA_MISSING/degraded semantics in `cockpit_api.py`, `tenn_chat.py`, and Cockpit UI |
+| `integrate/preserve-chat-envelope-source-label-20260506` (`77ce4600c42`) | yes | `/mnt/sdb2/home/l4nd0/tenn-preserve-chat-source-label-integrate` | no | actual branch touches `financial-engine_v2/backend/app/routes/chat.py`, `cockpit_api.py`, `tenn_chat.py`, plus broad stale UI/docs reverse drift | high: Query Orchestration/backend contested surfaces | legacy chat compatibility / source-label | `audit_deeper` under Query Orchestration; not a Reporting-first integration |
+
+## Evidence Notes
+
+- `git branch --sort=-committerdate` confirms all named candidates exist locally.
+- `git worktree list --porcelain` confirms each named Cockpit candidate has a separate worktree path.
+- `git merge-base --is-ancestor <branch> HEAD` confirms only `integrate/cockpit-home-live-wiring-and-sidebar-fix` and `codex/source-label-998d68e-clean-integration-20260506` are ancestors of current preserve HEAD among the named candidates.
+- Runtime source search confirms current preserve includes:
+  - home news contracts and `LiveNewsPanel` in `cockpit-ui/lib/cockpit-home-api.ts` and `cockpit-ui/components/cockpit/home/home-page.tsx`;
+  - sidebar fix history in `cockpit-ui/components/cockpit/cockpit-sidebar.tsx` via commit `5e7f762`;
+  - marketplace recency helpers and tests through `match-recency.ts`, `last_seen_at`, and `sort?: 'first_found_desc' | 'last_seen_desc'`;
+  - source label taxonomy and DATA_MISSING/degraded source semantics in `cockpit_api.py`, `tenn_chat.py`, `cockpit-home-contract.ts`, and Cockpit Home UI.
+
+## Recommendation Summary
+
+Integrate only `c0549d754cb501254873b34c66d9aec7d12b95d8` next, and do it as a bounded source-only/manual application task. Do not merge the whole branch blindly because its task/report artifacts conflict with current preserve hygiene artifacts.

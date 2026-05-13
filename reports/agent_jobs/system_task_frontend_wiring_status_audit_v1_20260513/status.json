@@ -1,0 +1,28 @@
+{
+  "job_id": "system_task_frontend_wiring_status_audit_v1_20260513",
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "head": "5295d5cbd7fcaec626d8a99dd006c4663a682372",
+  "mode": "audit_only",
+  "collision_risk": "MEDIUM",
+  "active_jobs_count_or_DATA_MISSING": 0,
+  "dirty_files_count": 5,
+  "frontend_routes_count": 19,
+  "backend_routes_count": 162,
+  "bff_routes_count": 52,
+  "live_wired_routes_count": 45,
+  "mock_or_static_routes_count": 4,
+  "missing_backend_routes_count": 0,
+  "validation_run_count": 20,
+  "blockers": [
+    "registry check-overlap failed because four pre-existing untracked task cards are outside this task card's allowlist",
+    "registry claim failed for the same dirty task-card state",
+    "task-card check-diff failed for the same four disallowed untracked task cards",
+    "broad implementation or mutating UI validation is unsafe until dirty task-card state is resolved"
+  ],
+  "next_safe_steps": [
+    "classify and resolve the four pre-existing untracked task cards",
+    "rerun registry list-active, check-overlap, claim, and task-card check-diff",
+    "then run selected non-mutating Cockpit frontend and backend route tests",
+    "only after that choose scoped implementation tasks"
+  ]
+}

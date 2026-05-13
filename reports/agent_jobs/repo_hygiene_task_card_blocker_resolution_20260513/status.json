@@ -1,0 +1,34 @@
+{
+  "job_id": "repo_hygiene_task_card_blocker_resolution_20260513",
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "head": "5295d5cbd7fcaec626d8a99dd006c4663a682372",
+  "mode": "safe_extension",
+  "collision_risk": "MEDIUM",
+  "chorus_used": true,
+  "task_cards_classified": 5,
+  "task_cards_preserved": 5,
+  "task_cards_left_unresolved": 0,
+  "reports_preserved": 5,
+  "commit_created": true,
+  "commit": null,
+  "check_diff": "failed",
+  "git_diff_check": "passed",
+  "registry_claim": "acquired",
+  "registry_release": "released",
+  "remaining_blockers": [],
+  "next_safe_steps": [
+    "Use the preserved system audit report to choose the next scoped Cockpit route validation or implementation task.",
+    "Handle the Memory-lane news memo fixture integration under a separate valid task card if still desired."
+  ],
+  "post_commit_validation": {
+    "registry_list_active": "passed_active_jobs_empty_after_release",
+    "system_audit_check_overlap": "passed_after_hygiene_claim_release",
+    "system_audit_check_diff": "passed",
+    "status_json_valid": "passed"
+  },
+  "notes": [
+    "The approved metadata correction added allow_unapproved_safe_extension=true to the hygiene task card.",
+    "check-diff validates the task card but fails for the hygiene preservation staged set because scripts/agent_job_contract.py exact-matches allowed_files and does not expand reports/agent_jobs/.../** directory globs; every rejected report file is under an allowed report directory.",
+    "The final commit hash is reported in the Codex final response because a commit cannot embed its own final hash in a tracked file before it exists."
+  ]
+}

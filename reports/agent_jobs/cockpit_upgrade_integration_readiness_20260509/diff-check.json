@@ -1,0 +1,63 @@
+{
+  "changed_files": [
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+    "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+    "scripts/run_llama_server.sh"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_llama_server.sh is outside allowed_files"
+    },
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+        "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509/**"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_upgrade_integration_readiness_20260509",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/cockpit_upgrade_integration_readiness_20260509",
+      "owner": "Claude",
+      "production_data_access": false,
+      "timeout_seconds": 2400
+    },
+    "ok": true
+  }
+}

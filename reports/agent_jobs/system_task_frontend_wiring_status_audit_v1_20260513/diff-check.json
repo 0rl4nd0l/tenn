@@ -1,0 +1,25 @@
+{
+  "changed_files": [],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/system_task_frontend_wiring_status_audit_v1_20260513.md",
+        "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513/**"
+      ],
+      "approval_required": false,
+      "job_id": "system_task_frontend_wiring_status_audit_v1_20260513",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/system_task_frontend_wiring_status_audit_v1_20260513",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

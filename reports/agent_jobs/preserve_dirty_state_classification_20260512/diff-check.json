@@ -1,0 +1,63 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/preserve_dirty_state_classification_20260512.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md",
+    "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md",
+    "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_upgrade_integration_readiness_20260509.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md is outside allowed_files"
+    },
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/preserve_dirty_state_classification_20260512/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/preserve_dirty_state_classification_20260512.md",
+        "reports/agent_jobs/preserve_dirty_state_classification_20260512/**"
+      ],
+      "approval_required": false,
+      "job_id": "preserve_dirty_state_classification_20260512",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/preserve_dirty_state_classification_20260512",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 2400
+    },
+    "ok": true
+  }
+}
