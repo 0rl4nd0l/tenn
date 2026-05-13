@@ -1,0 +1,29 @@
+{
+  "generated_at_utc": "2026-05-13T04:36:46+00:00",
+  "db_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+  "db_sha256": "72a33bb11ee537ddbd6e7ed3c03d279c57f8fe2dba61f677e574972e150d6e1b",
+  "status_counts": {
+    "expired": 250,
+    "active": 2083
+  },
+  "total_rows": 2333,
+  "active_rows": 2083,
+  "expired_rows": 250,
+  "distinct_companies_total": 146,
+  "active_duplicate_cluster_count": 94,
+  "active_duplicate_row_count": 1615,
+  "approval_required_status_expire_candidate_count": 963,
+  "new_or_unclassified_active_duplicate_row_count": 652,
+  "prior_expire_candidate_rows_total": 1212,
+  "prior_expire_candidate_rows_still_active": 963,
+  "prior_approved_rows_already_expired": 249,
+  "prior_active_candidates_outside_active_duplicate_clusters": 0,
+  "no_live_db_mutation": true,
+  "cleanup_execution_status": "blocked_without_operator_approval_backup_and_max_row_count",
+  "files": {
+    "active_duplicate_clusters": "csv/active_duplicate_clusters.csv",
+    "active_duplicate_rows_manifest": "csv/active_duplicate_rows_manifest.csv",
+    "approval_required_status_expire_candidates": "csv/approval_required_status_expire_candidates.csv",
+    "manual_review_rows": "csv/manual_review_rows.csv"
+  }
+}
