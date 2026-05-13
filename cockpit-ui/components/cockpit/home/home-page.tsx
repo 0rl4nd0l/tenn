@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { MarketStatusHeader } from './market-status-header';
 import { DataHealthStrip } from './data-health-strip';
@@ -30,7 +31,7 @@ import {
   NewsItem,
 } from '@/types/cockpit-home';
 import { cn } from '@/lib/utils';
-import { AlertCircle, Loader2, ShieldAlert, ShieldCheck, Wallet } from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, Newspaper, ShieldAlert, ShieldCheck, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type HomeLoadState =
@@ -471,6 +472,7 @@ function LiveWorkspace({
         status: item.status,
         source: item.source_type,
         updatedAt: item.updated_at ?? item.created_at ?? null,
+        targetRoute: item.target_route,
       }));
   const attentionState = sectionState('attention_queue', response);
 
@@ -584,9 +586,19 @@ function LivePortfolioPanel({ response }: { response: CockpitHomeBffResponse }) 
           <Wallet className="w-3.5 h-3.5" />
           My Portfolio Impact
         </CardTitle>
-        <div className="flex items-center gap-1.5 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-          <ShieldCheck className="w-3 h-3 text-cyan-400" />
-          <span className="text-[10px] font-mono text-cyan-400 font-bold">LOCAL PERSONAL DATA</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+            <ShieldCheck className="w-3 h-3 text-cyan-400" />
+            <span className="text-[10px] font-mono text-cyan-400 font-bold">LOCAL PERSONAL DATA</span>
+          </div>
+          <Link
+            href="/holdings"
+            className="h-7 w-7 inline-flex items-center justify-center rounded border border-border/60 bg-accent/30 text-muted-foreground hover:text-cyan-400 hover:border-cyan-500/40 transition-colors"
+            aria-label="Open portfolio holdings"
+            title="Open portfolio holdings"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-4">
@@ -644,10 +656,21 @@ function LiveNewsPanel({
   return (
     <Card className="terminal-panel h-full flex flex-col">
       <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 shrink-0 border-b border-border/40">
-        <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+        <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <Newspaper className="w-3.5 h-3.5" />
           News & Announcements
         </CardTitle>
-        <span className={cn("text-[10px] font-mono uppercase", stateTextColor(dataState))}>{dataState}</span>
+        <div className="flex items-center gap-2">
+          <span className={cn("text-[10px] font-mono uppercase", stateTextColor(dataState))}>{dataState}</span>
+          <Link
+            href="/news"
+            className="h-7 w-7 inline-flex items-center justify-center rounded border border-border/60 bg-accent/30 text-muted-foreground hover:text-cyan-400 hover:border-cyan-500/40 transition-colors"
+            aria-label="Open news workspace"
+            title="Open news workspace"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </CardHeader>
       <CardContent className="p-0 flex-1 min-h-0">
         {news.length === 0 ? (

@@ -13,19 +13,23 @@ interface ContextualAssistantProps {
 }
 
 export function ContextualAssistant({ attachedItem, onClearContext }: ContextualAssistantProps) {
-  const suggestedPrompts = attachedItem
+  const suggestedPrompts = (attachedItem
     ? [
-        `Assess this source for ${attachedItem.ticker || 'the selected ticker'}.`,
-        `Compare with prior ${attachedItem.ticker || 'ticker'} context.`,
-        "What evidence is available?",
-        "Update my thesis note."
+        { label: `Assess this source for ${attachedItem.ticker || 'the selected ticker'}.`, enabled: true },
+        { label: `Compare with prior ${attachedItem.ticker || 'ticker'} context.`, enabled: true },
+        { label: "What evidence is available?", enabled: true },
+        { label: "Update my thesis note.", enabled: false }
       ]
     : [
-        "Summarize today's session.",
-        "Show my top portfolio risks.",
-        "Check morning announcements.",
-        "Prepare tomorrow's watchlist."
-      ];
+        { label: "Summarize today's session.", enabled: true },
+        { label: "Show my top portfolio risks.", enabled: true },
+        { label: "Check morning announcements.", enabled: true },
+        { label: "Prepare tomorrow's watchlist.", enabled: true }
+      ]);
+  const defaultPrompt = attachedItem
+    ? `Assess this source for ${attachedItem.ticker || 'the selected ticker'}.`
+    : "Summarize today's session.";
+  const defaultChatHref = buildChatHandoffHref(defaultPrompt, attachedItem);
 
   return (
     <Card className="terminal-panel h-full flex flex-col bg-card/20 border-l border-border/50">
@@ -88,13 +92,26 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
                   <span className="text-[10px] font-mono uppercase text-muted-foreground/60 tracking-wider">Suggested Queries</span>
                   <div className="flex flex-col gap-1.5">
                     {suggestedPrompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        className="text-left text-[11px] font-sans text-foreground bg-accent/30 hover:bg-accent/50 px-3 py-2 rounded border border-border/40 transition-colors flex items-center justify-between group"
-                      >
-                        {prompt}
-                        <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500" />
-                      </button>
+                      prompt.enabled ? (
+                        <Link
+                          key={prompt.label}
+                          href={buildChatHandoffHref(prompt.label, attachedItem)}
+                          className="text-left text-[11px] font-sans text-foreground bg-accent/30 hover:bg-accent/50 px-3 py-2 rounded border border-border/40 transition-colors flex items-center justify-between group"
+                          aria-label={`Open full chat with prompt: ${prompt.label}`}
+                        >
+                          {prompt.label}
+                          <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500" />
+                        </Link>
+                      ) : (
+                        <div
+                          key={prompt.label}
+                          className="text-left text-[11px] font-sans text-muted-foreground bg-accent/10 px-3 py-2 rounded border border-border/30 flex items-center justify-between"
+                          aria-disabled="true"
+                        >
+                          <span>{prompt.label}</span>
+                          <span className="text-[9px] font-mono uppercase text-amber-500">full chat approval</span>
+                        </div>
+                      )
                     ))}
                   </div>
                 </div>
@@ -104,29 +121,42 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
         </ScrollArea>
 
         <div className="p-4 border-t border-border/40 bg-background/30 space-y-3 shrink-0">
-          <div className="relative">
-            <textarea
-              placeholder="Ask Tenn about the market..."
-              className="w-full bg-card/50 border border-border/60 rounded-lg p-3 pr-10 text-[13px] font-sans min-h-[80px] focus:outline-none focus:border-cyan-500/50 resize-none placeholder:text-muted-foreground/50"
-            />
+          <Link
+            href={defaultChatHref}
+            className="relative block rounded-lg border border-border/60 bg-card/50 p-3 pr-12 min-h-[80px] hover:border-cyan-500/50 transition-colors"
+            aria-label="Open full chat with Home context"
+          >
+            <div className="text-[13px] font-sans min-h-[54px] text-foreground/90">
+              {defaultPrompt}
+            </div>
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
-              <Paperclip className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" />
-              <div className="w-7 h-7 bg-cyan-600 rounded flex items-center justify-center cursor-pointer hover:bg-cyan-500 transition-colors">
+              <Paperclip className="w-4 h-4 text-muted-foreground" />
+              <div className="w-7 h-7 bg-cyan-600 rounded flex items-center justify-center">
                 <Send className="w-3.5 h-3.5 text-white" />
               </div>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center justify-between px-1">
             <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1.5 uppercase">
               <Sparkles className="w-3 h-3 text-cyan-500" />
-              Evidence-Bound Synthesis
+              Opens Full Chat Draft
             </span>
             <span className="text-[10px] font-mono text-muted-foreground/40 italic uppercase">
-              Shift + Enter for new line
+              No Home-side execution
             </span>
           </div>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function buildChatHandoffHref(prompt: string, attachedItem: NewsItem | null): string {
+  const params = new URLSearchParams({ prompt });
+  if (attachedItem?.sourceId && attachedItem.sourceKind && attachedItem.resolvable && !attachedItem.chatBlockedReason) {
+    params.set('source_id', attachedItem.sourceId);
+    params.set('source_kind', attachedItem.sourceKind);
+    params.set('source_title', attachedItem.headline);
+  }
+  return `/full-chat?${params.toString()}`;
 }

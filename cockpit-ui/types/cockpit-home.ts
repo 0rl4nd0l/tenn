@@ -84,6 +84,7 @@ export interface CockpitHomeState {
     status?: string;
     source?: string;
     updatedAt?: string | null;
+    targetRoute?: string | null;
   }[];
   dataHealth: DataHealthItem[];
   // State-specific additions

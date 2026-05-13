@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, type ChangeEvent, type DragEvent } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,7 @@ import {
 } from '@/lib/api-client'
 import { deleteChatSession, loadChatSession, saveChatSession } from '@/lib/chat-session-store'
 import { useAttachedSources } from '@/lib/hooks/use-attached-sources'
+import type { AttachedSourceKind } from '@/lib/hooks/use-attached-sources'
 import {
   MARKETPLACE_CAPTURE_CHANNEL,
   isMarketplaceCaptureRelayResponse,
@@ -568,6 +570,7 @@ function toChatMessage(record: {
 }
 
 export function ChatScreen() {
+  const searchParams = useSearchParams()
   const attached = useAttachedSources()
   const [hasHydrated, setHasHydrated] = useState(false)
   const [messages, setMessages] = useState<ChatMessageType[]>([])
@@ -589,8 +592,10 @@ export function ChatScreen() {
   const [isDropActive, setIsDropActive] = useState(false)
   const [codexDeployStates, setCodexDeployStates] = useState<Record<string, CodexDeployState>>({})
   const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_API_KEY ?? '')
+  const [draftMessage, setDraftMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragDepthRef = useRef(0)
+  const homeHandoffAppliedRef = useRef<string | null>(null)
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const activeRequestStartedAtRef = useRef<number | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
@@ -633,6 +638,28 @@ export function ChatScreen() {
     setHasHydrated(true)
     setApiKey(localStorage.getItem('cockpit.apiKey') ?? process.env.NEXT_PUBLIC_API_KEY ?? '')
   }, [])
+
+  useEffect(() => {
+    if (!hasHydrated) return
+    const handoffKey = searchParams.toString()
+    if (!handoffKey || homeHandoffAppliedRef.current === handoffKey) return
+    homeHandoffAppliedRef.current = handoffKey
+
+    const prompt = searchParams.get('prompt')?.trim()
+    if (prompt) {
+      setDraftMessage((current) => current.trim() ? current : prompt)
+    }
+
+    const sourceId = searchParams.get('source_id')?.trim()
+    const sourceKind = parseAttachedSourceKind(searchParams.get('source_kind'))
+    if (sourceId && sourceKind) {
+      attached.attach({
+        sourceId,
+        sourceKind,
+        title: searchParams.get('source_title')?.trim() || sourceId,
+      })
+    }
+  }, [attached, hasHydrated, searchParams])
 
   // Load session messages from backend so chat history follows session_id across devices.
   useEffect(() => {
@@ -2434,8 +2461,17 @@ export function ChatScreen() {
       <TerminalInput
         onSend={handleSend}
         disabled={isStreaming}
+        value={draftMessage}
+        onValueChange={setDraftMessage}
         onClear={handleClearMessages}
       />
     </div>
   )
+}
+
+function parseAttachedSourceKind(value: string | null): AttachedSourceKind | null {
+  if (value === 'ephemeral' || value === 'concat' || value === 'primary') {
+    return value
+  }
+  return null
 }

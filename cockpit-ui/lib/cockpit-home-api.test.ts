@@ -387,6 +387,12 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
     expect(screen.getByText('PORTFOLIO_DAY_CHANGE_PARTIAL')).toBeInTheDocument();
     expect(screen.getByText('CONTEXT ONLY')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open portfolio holdings')).toHaveAttribute('href', '/holdings');
+    expect(screen.getByLabelText('Open news workspace')).toHaveAttribute('href', '/news');
+    expect(screen.getByLabelText('Open full chat with Home context')).toHaveAttribute(
+      'href',
+      "/full-chat?prompt=Summarize+today%27s+session.",
+    );
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });
 
@@ -477,7 +483,7 @@ describe('CockpitHomePage live BFF wiring', () => {
           created_at: '2026-05-07T01:15:00Z',
           updated_at: '2026-05-07T01:15:00Z',
           source_id: null,
-          target_route: null,
+          target_route: '/news',
         },
       ],
     });
@@ -491,6 +497,7 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getAllByText('notable price move').length).toBeGreaterThan(0);
     expect(screen.getByText('queued')).toBeInTheDocument();
     expect(screen.getByText('market_update_followup')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open attention item: BHP: review')).toHaveAttribute('href', '/news');
     expect(screen.queryByText('NO_ATTENTION_QUEUE_ENDPOINT')).not.toBeInTheDocument();
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });
