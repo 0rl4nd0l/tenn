@@ -159,7 +159,7 @@ export function PromptLabPanel() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+    <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)_300px]">
       <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">

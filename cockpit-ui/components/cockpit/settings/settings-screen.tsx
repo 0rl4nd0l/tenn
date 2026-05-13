@@ -228,7 +228,8 @@ export function SettingsScreen() {
   return (
     <ScrollArea className="h-full">
       <div className={cn(
-        "max-w-4xl mx-auto",
+        "mx-auto transition-all duration-300",
+        activeTab === 'prompt-lab' ? "max-w-7xl" : "max-w-4xl",
         isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
       )}>
         {/* Header */}
