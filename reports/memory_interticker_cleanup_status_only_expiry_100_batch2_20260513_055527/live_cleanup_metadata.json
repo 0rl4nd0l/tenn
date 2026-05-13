@@ -1,0 +1,38 @@
+{
+  "generated_at_utc": "2026-05-13T05:55:27+00:00",
+  "approval_id": "approved_by_user_20260513_status_only_batch2_100_20260513_055527",
+  "batch": 2,
+  "max_rows": 100,
+  "db_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+  "container_db_path": "/data/reports/research_memory/company_memory.sqlite",
+  "backup_db_path": "/mnt/hdd-data/home/l4nd0/tenn_runtime_backups/memory_interticker_cleanup_status_only_expiry_100_batch2_20260513_055527/company_memory.sqlite.pre_status_only_expiry_100_batch2",
+  "backup_method": "raw_file_copy_with_sidecars_if_present",
+  "backup_sha256": "a851967d440d66a6370a4ec1144bd088740c63674633c3e7faf67217a20543b2",
+  "source_manifest": "reports/memory_interticker_contamination_manifest_20260513_043646/csv/approval_required_status_expire_candidates.csv",
+  "source_report": "reports/memory_interticker_contamination_manifest_20260513_043646",
+  "mutation_path": "docker exec fe_worker python sqlite transaction",
+  "api_status": "unavailable; fe_backend exited before batch2 and failed restart due Ollama embedding startup validation 500",
+  "mutation_semantics": "status_only_expiry plus change_log and active_count recompute; last_seen_at and closed_at preserved",
+  "pre_status_counts": {
+    "active": 1983,
+    "expired": 350
+  },
+  "post_status_counts": {
+    "active": 1883,
+    "expired": 450
+  },
+  "pre_duplicate_stats": {
+    "active_duplicate_cluster_count": 94,
+    "active_duplicate_row_count": 1515
+  },
+  "post_duplicate_stats": {
+    "active_duplicate_cluster_count": 94,
+    "active_duplicate_row_count": 1415
+  },
+  "rows_requested": 100,
+  "rows_expired": 100,
+  "target_rows_still_active": 0,
+  "target_expire_change_log_rows": 100,
+  "non_target_memory_entry_core_diffs": 0,
+  "live_db_mutated": true
+}
