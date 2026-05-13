@@ -292,7 +292,7 @@ describe('MarketplaceMissionScreen', () => {
     const createMissionCard = screen.getByText(/create new mission/i).closest('[data-slot="card"]')
     expect(createMissionCard).toBeTruthy()
     await userEvent.click(
-      within(createMissionCard as HTMLElement).getByRole('button', { name: /^create mission$/i }),
+      within(createMissionCard as HTMLElement).getByRole('button', { name: /^save recurring search$/i }),
     )
 
     await waitFor(() => {

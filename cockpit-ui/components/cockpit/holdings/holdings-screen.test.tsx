@@ -53,7 +53,7 @@ describe('HoldingsScreen', () => {
     await waitFor(() => expect(screen.getByText('BHP')).toBeInTheDocument())
     expect(screen.getByText('CBA')).toBeInTheDocument()
     expect(screen.getByText('Positions')).toBeInTheDocument()
-    expect(screen.getByText('Cost Basis Known')).toBeInTheDocument()
+    expect(screen.getByText(/Cost basis known: 2/i)).toBeInTheDocument()
     expect(screen.getByText(/2 shown/)).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Amount mode' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Bar mode' })).toBeInTheDocument()

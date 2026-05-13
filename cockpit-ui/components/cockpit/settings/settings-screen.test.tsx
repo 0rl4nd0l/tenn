@@ -66,7 +66,7 @@ describe('SettingsScreen', () => {
     const { container } = render(<SettingsScreen />)
 
     await waitFor(() => {
-      expect(screen.getByText(/marketplace preferences/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/marketplace preferences/i).length).toBeGreaterThan(0)
     })
 
     const row = screen.getByText(/home location \/ suburb/i).closest('div')
