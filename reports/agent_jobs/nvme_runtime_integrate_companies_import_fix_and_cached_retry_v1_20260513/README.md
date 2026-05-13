@@ -110,6 +110,28 @@ Rollback actions:
 - Killed compose PIDs `3810304` and `3810332`.
 - No containers remained running under this compose project after the abort.
 
+Continuation retry after user requested `continue`:
+
+- Re-claimed the same task card after confirming active registry was empty and overlap check was clean.
+- Ran `docker compose images`; no compose images were registered for the project.
+- Ran `docker compose config --services`; services are `postgres`, `qdrant`, `redis`, `worker`, `backend`, `fe_beat`, and `gpu_worker`.
+- Ran `docker compose up -d --no-build` to force cached/no-build behavior.
+- Result: failed without building because `financial-engine_v2-gpu_worker:latest` is missing.
+- Compose created stopped containers and the project network before failing:
+  - `fe_backend`
+  - `fe_beat`
+  - `fe_postgres`
+  - `fe_qdrant`
+  - `fe_redis`
+  - `fe_worker`
+  - `financial-engine_v2_default`
+- Rollback: ran `docker compose down` without `-v` to remove only the created containers/network.
+- Post-rollback `docker compose ps -a`: no services.
+- Post-rollback network check: `financial-engine_v2_default` absent.
+- Post-rollback volume evidence remained present:
+  - `financial-engine_v2_fe_pgdata`
+  - `financial-engine_v2_fe_qdrant`
+
 Cockpit `:8081`: not started after the backend hard stop. Dependencies were present (`node_modules_present`), but the task requires stopping and reporting when cached backend startup requires a build.
 
 `:8001` remained healthy.
