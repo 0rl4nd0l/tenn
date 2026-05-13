@@ -215,6 +215,54 @@ test.describe('memory tab browser UX', () => {
     await expect(page.getByRole('button', { name: 'Expire' })).toBeVisible()
   })
 
+  test('opens the strategy section from the thesis deep link', async ({ page }) => {
+    await mockWorkspaceMemoryRoutes(page)
+
+    await page.route(/\/api\/cockpit\/memory\/index(?:\?.*)?$/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ticker: null,
+          summary: {
+            company_memory_entry_count: 0,
+            company_memory_change_count: 0,
+            market_memory_item_count: 0,
+            user_thesis_entry_count: 0,
+            user_thesis_proposal_count: 1,
+            company_memory_ticker_count: 0,
+            user_thesis_ticker_count: 1,
+          },
+          company_memory: { entries: [], change_log: [] },
+          market_memory: { sector_items: [], macro_items: [] },
+          user_thesis_memory: {
+            entries: [],
+            proposals: [
+              {
+                proposal_id: 'prop-deep-link',
+                ticker: 'BHP',
+                proposal_type: 'add_evidence',
+                statement: 'Review staged thesis evidence from audit.',
+                status: 'pending',
+                signal: 'HOLD',
+                created_at: '2026-04-22T01:02:03Z',
+              },
+            ],
+          },
+          errors: [],
+        }),
+      })
+    })
+
+    await page.goto('/memory?tab=thesis')
+
+    await expect(page.getByRole('tab', { name: 'Strategy' })).toHaveAttribute('data-state', 'active')
+    await expect(page.getByRole('button').filter({ hasText: 'Review staged thesis evidence from audit.' })).toBeVisible()
+
+    await page.getByRole('tab', { name: 'Company' }).click()
+    await expect(page).toHaveURL(/\/memory$/)
+  })
+
   test('shows ticker-scoped Financial Truth entries as browseable read-only context', async ({ page }) => {
     await mockWorkspaceMemoryRoutes(page)
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 
 import { CockpitLayout } from '@/components/cockpit/cockpit-layout'
 import { MemoryScreen } from '@/components/cockpit/memory/memory-screen'
@@ -14,7 +14,9 @@ export default function MemoryPage() {
 
   return (
     <CockpitLayout title="Memory">
-      <MemoryScreen apiKey={apiKey} />
+      <Suspense fallback={null}>
+        <MemoryScreen apiKey={apiKey} />
+      </Suspense>
     </CockpitLayout>
   )
 }

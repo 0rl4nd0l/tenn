@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -110,6 +111,14 @@ const BROWSER_SECTIONS: MemorySection[] = [
   'session',
   'operational',
 ]
+
+function parseMemorySection(raw: string | null): MemorySection {
+  const normalized = (raw ?? '').trim().toLowerCase()
+  if (normalized === 'thesis') return 'strategy'
+  return BROWSER_SECTIONS.includes(normalized as MemorySection)
+    ? (normalized as MemorySection)
+    : 'company'
+}
 
 interface BrowserGroup {
   key: string
@@ -765,9 +774,11 @@ function buildRows(
 }
 
 export function MemoryScreen({ apiKey }: MemoryScreenProps) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { activeTicker, setActiveTicker } = useCockpitStore()
   const [tickerInput, setTickerInput] = useState(activeTicker)
-  const [activeSection, setActiveSection] = useState<MemorySection>('company')
+  const [activeSection, setActiveSection] = useState<MemorySection>(() => parseMemorySection(searchParams.get('tab')))
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -792,6 +803,25 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
   }, [activeTicker, tickerInput])
 
   const query = search.trim().toLowerCase()
+
+  const updateActiveSection = useCallback((value: string) => {
+    const nextSection = parseMemorySection(value)
+    setActiveSection(nextSection)
+
+    const params = new URLSearchParams(searchParams.toString())
+    if (nextSection === 'company') {
+      params.delete('tab')
+    } else {
+      params.set('tab', nextSection)
+    }
+    const queryString = params.toString()
+    window.history.replaceState(null, '', queryString ? `${pathname}?${queryString}` : pathname)
+  }, [pathname, searchParams])
+
+  useEffect(() => {
+    const nextSection = parseMemorySection(searchParams.get('tab'))
+    setActiveSection((current) => (current === nextSection ? current : nextSection))
+  }, [searchParams])
 
   const rowsBySection = useMemo(() => {
     const grouped: Record<MemorySection, MemoryRow[]> = {
@@ -1388,7 +1418,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
             <CardDescription>File-browser style memory navigation by level, then type, then entry.</CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col">
-            <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as MemorySection)} className="flex min-h-0 flex-1 flex-col gap-3">
+            <Tabs value={activeSection} onValueChange={updateActiveSection} className="flex min-h-0 flex-1 flex-col gap-3">
               <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-4 xl:grid-cols-7">
                 <TabsTrigger value="company">Company</TabsTrigger>
                 <TabsTrigger value="sector">Sector</TabsTrigger>
@@ -1434,7 +1464,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
                                           key={row.key}
                                           type="button"
                                           onClick={() => {
-                                            setActiveSection(section)
+                                            updateActiveSection(section)
                                             setSelectedRowKey(row.key)
                                           }}
                                           className={`w-full rounded-md border p-2 text-left transition-colors ${
@@ -1568,7 +1598,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
                 type="button"
                 onClick={() => {
                   if (level.section) {
-                    setActiveSection(level.section)
+                    updateActiveSection(level.section)
                   }
                 }}
                 disabled={!level.section}
