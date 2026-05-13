@@ -1,0 +1,33 @@
+{
+  "job_id": "cockpit_route_validation_pass_v1_20260513",
+  "branch": "preserve/dirty-work-20260430T065748Z",
+  "head": "8beb6bf11f10a401b8a5fbde0be0d54cedc22641",
+  "mode": "safe_extension_validation_only",
+  "collision_risk": "HIGH for commit closeout due unrelated dirty source files; MEDIUM for report-only writes",
+  "chorus_used": false,
+  "registry_claim": "acquired",
+  "registry_release": "released",
+  "surfaces_validated": 16,
+  "safe_get_probes_run": 42,
+  "test_commands_run": 2,
+  "mutating_routes_probed": 0,
+  "routes_passing": 9,
+  "routes_data_missing": 3,
+  "routes_blocked_or_deferred": 4,
+  "commit_created": false,
+  "commit": null,
+  "remaining_blockers": [
+    "Unrelated modified application/test files appeared after preflight: cockpit-ui/app/memory/page.tsx, cockpit-ui/components/cockpit/memory/memory-screen.tsx, and cockpit-ui/tests/memory.spec.ts.",
+    "Commit closeout is blocked until unrelated dirty source files are coordinated, because check-diff cannot prove this task's diff is isolated while those files remain modified.",
+    "check-diff also rejected reports/agent_jobs/cockpit_route_validation_pass_v1_20260513/** despite the task card allowlist, matching the known report-glob limitation; this was not the only failure.",
+    "One broader focused Vitest command failed 3/66 assertions in Holdings, Marketplace Mission, and Settings screen tests.",
+    "Chat POST, News RAG POST, thesis audit POST, extraction eval POST/background jobs, memory writes, model load, restart, action execute, and marketplace scan/sync/calibration routes were intentionally not probed.",
+    "Extraction runtime 8001/8002 ambiguity remains a separate Evaluation/Financial Truth follow-up."
+  ],
+  "next_safe_steps": [
+    "Coordinate or preserve the unrelated Memory page/UI/test dirty files, then rerun git status, registry overlap, check-diff, JSON validation, and staged allowlist checks.",
+    "Commit only the task card and report artifacts once the worktree is clean except for this task's allowed paths.",
+    "Run a no-code route smoke follow-up with stable status-code/body-shape capture for read-only GET endpoints.",
+    "Open separate implementation tasks for Holdings, Marketplace Mission, and Settings test drift if confirmed current."
+  ]
+}
