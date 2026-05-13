@@ -67,7 +67,28 @@ def test_attention_queue_snapshot_maps_queued_market_update_followup() -> None:
     assert item.source_type == "market_update_followup"
     assert item.created_at == "2026-05-07T01:15:00+00:00"
     assert item.source_id is None
-    assert item.target_route is None
+    assert item.target_route == "/news"
+
+
+def test_attention_queue_snapshot_maps_watchlist_followup_to_read_only_route() -> None:
+    store = FakeStateStore(
+        [
+            {
+                "followup_id": "fu-watch",
+                "report_id": "report-1",
+                "ticker": "CBA",
+                "action_type": "watchlist_add_proposal",
+                "priority_score": 0.5,
+                "reason": {"note": "review watchlist proposal"},
+                "status": "queued",
+                "created_at": "2026-05-07T01:30:00+00:00",
+            }
+        ]
+    )
+
+    snapshot = build_attention_queue_snapshot(store)
+
+    assert snapshot.items[0].target_route == "/watchlist"
 
 
 def test_attention_queue_endpoint_returns_backend_owned_operational_queue(monkeypatch) -> None:
@@ -117,7 +138,7 @@ def test_attention_queue_endpoint_returns_backend_owned_operational_queue(monkey
                 "created_at": "2026-05-07T01:30:00+00:00",
                 "updated_at": "2026-05-07T01:30:00+00:00",
                 "source_id": None,
-                "target_route": None,
+                "target_route": "/watchlist",
             }
         ],
     }

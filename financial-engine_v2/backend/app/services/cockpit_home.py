@@ -429,7 +429,7 @@ def _market_update_followup_to_attention_item(row: Any) -> AttentionQueueItem | 
         created_at=created_at,
         updated_at=created_at,
         source_id=None,
-        target_route=None,
+        target_route=_attention_target_route(action_type),
     )
 
 
@@ -456,6 +456,17 @@ def _attention_reason(*, action_type: str, reason: dict[str, Any]) -> str:
         return f"Queued from market update with score {score}."
 
     return f"Queued market-update follow-up action: {action_type}."
+
+
+def _attention_target_route(action_type: str) -> str | None:
+    """Map queued operational follow-ups to read-only Cockpit destinations."""
+
+    normalized = action_type.strip().lower()
+    if normalized == "watchlist_add_proposal" or normalized.startswith("watchlist_"):
+        return "/watchlist"
+    if normalized in {"review", "research_queue"}:
+        return "/news"
+    return None
 
 
 def _priority_from_score(value: float | None) -> AttentionQueuePriority:
