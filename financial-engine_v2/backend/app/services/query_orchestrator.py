@@ -339,6 +339,7 @@ class OrchestratedQueryResult:
     missing_categories_after_recovery: tuple[str, ...] = ()
     missing_data_recovery: dict[str, Any] = field(default_factory=dict)
     sufficient_for_analysis: bool = True
+    is_speculative: bool = False
 
 
 class _NullProvider:
@@ -1044,7 +1045,7 @@ def _is_sufficient_for_company_analysis(
     *,
     evidence: dict[str, dict[str, Any]],
     missing_categories: list[str],
-) -> bool:
+) -> tuple[bool, bool]:
     financial_truth = evidence.get("financial_truth") or {}
     has_financials = bool(
         (financial_truth.get("latest_financial_snapshot") or {})
@@ -1055,19 +1056,36 @@ def _is_sufficient_for_company_analysis(
         has_announcement_context
     )
     has_market_context = bool((evidence.get("market_memory") or {}).get("items") or [])
-    if not has_financials:
-        return False
+
+    is_speculative = False
+    if not has_financials and has_announcements:
+        is_speculative = True
+
+    if not has_financials and not is_speculative:
+        return False, False
+
     if not (
         has_company_context
         or has_announcement_context
         or has_announcements
         or has_market_context
     ):
-        return False
+        return False, False
+
     blocker_set = set(missing_categories)
+    # If we are in speculative mode, "financials" is a permitted blocker
+    # because we intend to estimate them from raw text.
+    if is_speculative:
+        permitted_speculative_blockers = {"financials"}
+        effective_blockers = blocker_set - permitted_speculative_blockers
+        if effective_blockers & _CRITICAL_COMPANY_ANALYSIS_BLOCKERS:
+            return False, True
+        return True, True
+
     if blocker_set & _CRITICAL_COMPANY_ANALYSIS_BLOCKERS:
-        return False
-    return True
+        return False, False
+
+    return True, False
 
 
 def _is_sector_analysis_request(
@@ -1082,11 +1100,11 @@ def _is_sufficient_for_sector_analysis(
     *,
     evidence: dict[str, dict[str, Any]],
     missing_categories: list[str],
-) -> bool:
+) -> tuple[bool, bool]:
     has_market_context = bool((evidence.get("market_memory") or {}).get("items") or [])
     if not has_market_context:
-        return False
-    return "market_context" not in set(missing_categories)
+        return False, False
+    return "market_context" not in set(missing_categories), False
 
 
 def _confirmed_evidence_categories(
@@ -1181,6 +1199,12 @@ def build_answer_input(
     lines.append(
         "Use financial truth for explicit numbers, company memory for business meaning, and market memory only when it adds relevant external context."
     )
+    if answer.get("is_speculative"):
+        lines.append(
+            "Speculative mode active: structured financial metrics are missing. "
+            "You MUST estimate the company's financial status by reading raw document excerpts "
+            "and explicitly flag your findings as estimated."
+        )
     recovery = (
         dict(answer.get("missing_data_recovery") or {})
         if isinstance(answer.get("missing_data_recovery"), dict)
@@ -1660,13 +1684,14 @@ class QueryOrchestrator:
             )
 
         sufficient_for_analysis = True
+        is_speculative = False
         if company_analysis_request:
-            sufficient_for_analysis = _is_sufficient_for_company_analysis(
+            sufficient_for_analysis, is_speculative = _is_sufficient_for_company_analysis(
                 evidence=evidence,
                 missing_categories=missing_after,
             )
         elif sector_analysis_request:
-            sufficient_for_analysis = _is_sufficient_for_sector_analysis(
+            sufficient_for_analysis, is_speculative = _is_sufficient_for_sector_analysis(
                 evidence=evidence,
                 missing_categories=missing_after,
             )
@@ -1676,6 +1701,7 @@ class QueryOrchestrator:
         answer["missing_categories_after_recovery"] = list(missing_after)
         answer["missing_data_recovery"] = recovery_summary
         answer["sufficient_for_analysis"] = sufficient_for_analysis
+        answer["is_speculative"] = is_speculative
         if recovery_summary.get("attempted") and not sufficient_for_analysis:
             answer.setdefault("notes", []).append(
                 "insufficient evidence after bounded recovery pass; abstain with explicit blockers"
@@ -1684,6 +1710,11 @@ class QueryOrchestrator:
             answer.setdefault("notes", []).append(
                 "insufficient sector evidence; abstain with explicit market-context blocker"
             )
+        if is_speculative:
+            answer.setdefault("notes", []).append(
+                "speculative fallback active: structured financials missing; estimating from raw documents"
+            )
+
         answer_input = build_answer_input(
             query,
             intent,
@@ -1718,6 +1749,7 @@ class QueryOrchestrator:
             missing_categories_after_recovery=tuple(missing_after),
             missing_data_recovery=recovery_summary,
             sufficient_for_analysis=sufficient_for_analysis,
+            is_speculative=is_speculative,
         )
 
 

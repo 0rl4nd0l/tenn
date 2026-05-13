@@ -1515,6 +1515,21 @@ class AgentLoop:
                 " This is a factual lookup — respond with facts only. "
                 "Do not add unsolicited interpretation or market commentary."
             )
+
+        is_speculative = any(
+            ev.get("type") == "orchestrator" and (ev.get("result") or {}).get("is_speculative")
+            for ev in evidence
+        )
+        if is_speculative:
+            system_prompt += (
+                "\n\nCRITICAL: Structured financial data is missing. "
+                "You must read the provided raw documents to estimate the company's status. "
+                "You MUST begin your response with a prominent disclaimer: "
+                "'**⚠️ SPECULATIVE ASSESSMENT: Missing structured financial data. "
+                "Analysis is estimated from raw documents.**' "
+                "Do not state exact metrics as confirmed facts; use cautious language (e.g., 'appears to be', 'estimated at')."
+            )
+
         history_lines = []
         for msg in (conversation_history or [])[-4:]:
             role = str(msg.get("role", "user"))

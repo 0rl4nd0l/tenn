@@ -6270,6 +6270,9 @@ class ChatController:
             "sufficient_for_analysis": bool(
                 getattr(orchestration_result, "sufficient_for_analysis", True)
             ),
+            "is_speculative": bool(
+                getattr(orchestration_result, "is_speculative", False)
+            ),
         }
         orchestrator_result = {
             "intent": orchestration_result.intent,
@@ -6281,6 +6284,9 @@ class ChatController:
             ),
             "sufficient_for_analysis": bool(
                 getattr(orchestration_result, "sufficient_for_analysis", True)
+            ),
+            "is_speculative": bool(
+                getattr(orchestration_result, "is_speculative", False)
             ),
         }
         if _is_evidence_envelope(evidence_envelope):
