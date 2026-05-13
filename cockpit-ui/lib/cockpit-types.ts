@@ -566,6 +566,57 @@ export interface ChatResponse {
   session_id?: string
 }
 
+export interface PromptLabRoute {
+  route_id: string
+  label: string
+  kind: string
+  description: string
+  editable: boolean
+  supports_dry_run: boolean
+  warning?: string | null
+}
+
+export interface PromptLabBlock {
+  block_id: string
+  label: string
+  kind: string
+  content: string
+  locked: boolean
+  source: string
+  warning?: string | null
+}
+
+export interface PromptLabMessage {
+  role: string
+  content: string
+}
+
+export interface PromptLabRoutesResponse {
+  routes: PromptLabRoute[]
+}
+
+export interface PromptLabPreviewRequest {
+  route_id: string
+  message?: string
+  ticker?: string | null
+  mode?: string
+  draft_override?: string | null
+}
+
+export interface PromptLabPreviewResponse {
+  route: PromptLabRoute
+  blocks: PromptLabBlock[]
+  messages: PromptLabMessage[]
+  estimated_tokens: number
+  warnings: string[]
+}
+
+export interface PromptLabDryRunResponse {
+  preview: PromptLabPreviewResponse
+  text: string
+  routing_metadata: Record<string, unknown>
+}
+
 export interface SystemStatus {
   status: string
   services?: ServiceHealth[]

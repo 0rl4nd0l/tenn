@@ -9,11 +9,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft, Store } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft, Store, FileCode2 } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
 import type { ModelGroup } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
+import { PromptLabPanel } from './prompt-lab-panel'
 
 interface ConfigSectionProps {
   title: string
@@ -127,6 +129,7 @@ export function SettingsScreen() {
   const [error, setError] = useState<string | null>(null)
   const [switching, setSwitching] = useState(false)
   const [switchResult, setSwitchResult] = useState<{ ok: boolean; message: string } | null>(null)
+  const [activeTab, setActiveTab] = useState<'runtime' | 'prompt-lab'>('runtime')
 
   useEffect(() => {
     async function fetchConfig() {
@@ -235,7 +238,7 @@ export function SettingsScreen() {
             Cockpit configuration, runtime capabilities, and saved UI preferences
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            Settings are limited in this build; core runtime and Marketplace preferences are available below.
+            Settings are limited in this build; core runtime and Marketplace defaults are available below.
           </p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant={backendOnline ? 'default' : 'critical'} className="text-xs font-mono">
@@ -247,6 +250,19 @@ export function SettingsScreen() {
           </div>
         </div>
 
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+          <TabsList>
+            <TabsTrigger value="runtime">
+              <Cpu className="h-4 w-4" />
+              Runtime
+            </TabsTrigger>
+            <TabsTrigger value="prompt-lab">
+              <FileCode2 className="h-4 w-4" />
+              Prompt Lab
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="runtime" className="space-y-6">
         {/* LLM Configuration */}
         <ConfigSection title="LLM Configuration" icon={<Cpu className="h-5 w-5 text-primary" />}>
           <div className={cn(
@@ -487,6 +503,12 @@ export function SettingsScreen() {
             <Badge variant="outline">Deep Research</Badge>
           </div>
         </ConfigSection>
+          </TabsContent>
+
+          <TabsContent value="prompt-lab">
+            {activeTab === 'prompt-lab' ? <PromptLabPanel /> : null}
+          </TabsContent>
+        </Tabs>
       </div>
     </ScrollArea>
   )

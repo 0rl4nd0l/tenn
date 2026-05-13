@@ -20,6 +20,10 @@ import type {
   IntelPulseResponse,
   IntelPulseMatrixResponse,
   ModelLoadResponse,
+  PromptLabDryRunResponse,
+  PromptLabPreviewRequest,
+  PromptLabPreviewResponse,
+  PromptLabRoutesResponse,
   ResponseFeedbackReasonCode,
   ResponseFeedbackResponse,
   Source,
@@ -822,6 +826,28 @@ export async function loadCockpitModel(modelId?: string): Promise<ModelLoadRespo
       model_id: modelId ?? null,
     }),
   }, 360_000)
+}
+
+export async function getPromptLabRoutes(): Promise<PromptLabRoutesResponse> {
+  return apiFetch<PromptLabRoutesResponse>('/api/cockpit/prompts/routes')
+}
+
+export async function previewPromptLabRoute(
+  payload: PromptLabPreviewRequest,
+): Promise<PromptLabPreviewResponse> {
+  return apiFetch<PromptLabPreviewResponse>('/api/cockpit/prompts/preview', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function dryRunPromptLabRoute(
+  payload: PromptLabPreviewRequest,
+): Promise<PromptLabDryRunResponse> {
+  return apiFetch<PromptLabDryRunResponse>('/api/cockpit/prompts/dry-run', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, 180_000)
 }
 
 /** System config – GET /api/cockpit/config */

@@ -47,6 +47,11 @@ from app.services.cockpit_home import (
     build_market_session_snapshot,
     build_portfolio_snapshot,
 )
+from app.services.cockpit_prompt_lab import (
+    build_prompt_preview,
+    dry_run_prompt_preview,
+    prompt_route_inventory,
+)
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
     resolve_llm_runtime_config,
@@ -5348,6 +5353,57 @@ class CockpitPreferencesPatchRequest(BaseModel):
     chat_routing_policy_override: str | None = None
 
 
+class CockpitPromptBlock(BaseModel):
+    block_id: str
+    label: str
+    kind: str
+    content: str
+    locked: bool
+    source: str
+    warning: str | None = None
+
+
+class CockpitPromptRouteRecord(BaseModel):
+    route_id: str
+    label: str
+    kind: str
+    description: str
+    editable: bool
+    supports_dry_run: bool
+    warning: str | None = None
+
+
+class CockpitPromptRoutesResponse(BaseModel):
+    routes: list[CockpitPromptRouteRecord]
+
+
+class CockpitPromptMessage(BaseModel):
+    role: str
+    content: str
+
+
+class CockpitPromptPreviewRequest(BaseModel):
+    route_id: str
+    message: str = ""
+    ticker: str | None = None
+    mode: str = "analysis"
+    draft_override: str | None = None
+
+
+class CockpitPromptPreviewResponse(BaseModel):
+    route: CockpitPromptRouteRecord
+    blocks: list[CockpitPromptBlock]
+    messages: list[CockpitPromptMessage]
+    estimated_tokens: int = 0
+    warnings: list[str] = Field(default_factory=list)
+
+
+class CockpitPromptDryRunResponse(BaseModel):
+    preview: CockpitPromptPreviewResponse
+    text: str
+    routing_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class CockpitRouteAliasPreferenceRecord(BaseModel):
     preference_id: str
     created_at: str
@@ -9075,6 +9131,72 @@ def cockpit_patch_preferences(
         ) from exc
 
     return cockpit_get_preferences()
+
+
+@router.get("/prompts/routes", response_model=CockpitPromptRoutesResponse)
+def cockpit_prompt_routes() -> CockpitPromptRoutesResponse:
+    return CockpitPromptRoutesResponse(
+        routes=[CockpitPromptRouteRecord(**item) for item in prompt_route_inventory()]
+    )
+
+
+@router.post("/prompts/preview", response_model=CockpitPromptPreviewResponse)
+async def cockpit_prompt_preview(
+    payload: CockpitPromptPreviewRequest,
+) -> CockpitPromptPreviewResponse:
+    try:
+        service = CockpitService.get_instance()
+        preview = await asyncio.to_thread(
+            build_prompt_preview,
+            service,
+            route_id=payload.route_id,
+            message=payload.message,
+            ticker=payload.ticker,
+            mode=payload.mode,
+            draft_override=payload.draft_override,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Cockpit prompt preview failed")
+        raise HTTPException(
+            status_code=500, detail=f"Prompt preview failed: {str(exc)}"
+        ) from exc
+    return CockpitPromptPreviewResponse(**preview)
+
+
+@router.post("/prompts/dry-run", response_model=CockpitPromptDryRunResponse)
+async def cockpit_prompt_dry_run(
+    payload: CockpitPromptPreviewRequest,
+) -> CockpitPromptDryRunResponse:
+    try:
+        service = CockpitService.get_instance()
+        preview = await asyncio.to_thread(
+            build_prompt_preview,
+            service,
+            route_id=payload.route_id,
+            message=payload.message,
+            ticker=payload.ticker,
+            mode=payload.mode,
+            draft_override=payload.draft_override,
+        )
+        result = await asyncio.to_thread(dry_run_prompt_preview, service, preview)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Cockpit prompt dry-run failed")
+        raise HTTPException(
+            status_code=500, detail=f"Prompt dry-run failed: {str(exc)}"
+        ) from exc
+    return CockpitPromptDryRunResponse(
+        preview=CockpitPromptPreviewResponse(**preview),
+        text=str(result.get("text") or ""),
+        routing_metadata=(
+            result.get("routing_metadata")
+            if isinstance(result.get("routing_metadata"), dict)
+            else {}
+        ),
+    )
 
 
 @router.get(
