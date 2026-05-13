@@ -1,0 +1,47 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md",
+    "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/dev_storage_fast_worktree_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/dev_storage_fast_worktree_v1.md",
+        "reports/agent_jobs/dev_storage_fast_worktree_v1/**"
+      ],
+      "approval_required": false,
+      "job_id": "dev_storage_fast_worktree_v1",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/dev_storage_fast_worktree_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
