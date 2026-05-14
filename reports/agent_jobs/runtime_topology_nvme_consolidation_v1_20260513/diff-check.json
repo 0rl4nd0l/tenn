@@ -1,0 +1,68 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md",
+    "docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md",
+    "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md",
+    "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md is outside allowed_files"
+    },
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/runtime_topology_nvme_consolidation_v1_20260513/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/runtime_topology_nvme_consolidation_v1_20260513.md",
+        "reports/agent_jobs/runtime_topology_nvme_consolidation_v1_20260513/"
+      ],
+      "approval_required": false,
+      "job_id": "runtime_topology_nvme_consolidation_v1_20260513",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/runtime_topology_nvme_consolidation_v1_20260513",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

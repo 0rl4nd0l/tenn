@@ -275,6 +275,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 | 1d113788 | news-pipeline | Resync Qdrant news_chunks with relevance-ordered primary tickers |
 | (this session) | storage-migration | Runtime data + GGUF models moved to NVMe, inactive root Ollama models archived to HDD, storage/docs/config surfaces aligned, docs-heavy validation no longer reproduced the earlier severe IO pressure. |
 | (this session) | extraction-hardening | Added synthetic extraction-eval scaffold (`financial-engine_v2/backend/app/services/extraction_eval.py`), fixtures under `backend/tests/fixtures/extraction_eval/`, contract/taxonomy docs, and unit tests in `test_extraction_eval_harness.py` with deterministic scoring semantics. |
+| (this session) | analysis-fallback | Implemented Speculative Analysis Fallback: allows estimation from raw docs when structured financials are missing, enforced via mandatory UI/LLM disclaimers. |
  
 ---
 
