@@ -273,6 +273,12 @@ class AgentLoop:
                     tool_calls_made=iteration,
                 )
 
+### 5.2 Speculative Analysis Fallback
+For `company_analysis` requests where structured financials are missing but raw documents are available, the orchestrator triggers **Speculative Mode**.
+- **Orchestration**: `sufficient_for_analysis` remains `True` but `is_speculative` is set to `True`.
+- **Enforcement**: The synthesis prompt must include a mandatory disclaimer: `**⚠️ SPECULATIVE ASSESSMENT: Missing structured financial data. Analysis is estimated from raw documents.**`.
+- **Expectation**: The LLM must use cautious language and anchor findings to available text excerpts without fabricating deterministic metrics.
+
             elif parsed.type in ("tool_call", "tool_calls"):
                 results = self.execute_tools(parsed)
                 # Feed results back as assistant + tool messages
