@@ -14,6 +14,7 @@ const DEFAULT_PREFERENCES: CockpitPreferences = {
   marketplaceHomeLocation: '',
   marketplacePreferCloudRouting: false,
   chatRoutingPolicyOverride: 'config_default',
+  chatRuntimeTarget: 'local',
   iphoneScale: false,
 }
 
@@ -29,7 +30,7 @@ interface CockpitState {
   chatModel: string
   chatCompletionActive: boolean
   apiDefaultEnabled: boolean
-  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown'
+  activeSource: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'unknown'
   preferences: CockpitPreferences
   sessionStats: {
     totalCostUsd: number
@@ -45,7 +46,7 @@ interface CockpitState {
   setChatModel: (model: string) => void
   setChatCompletionActive: (active: boolean) => void
   setApiDefaultEnabled: (enabled: boolean) => void
-  setActiveSource: (source: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown') => void
+  setActiveSource: (source: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'unknown') => void
   updatePreferences: (prefs: Partial<CockpitPreferences>) => void
   addCost: (cost: number) => void
   setLatency: (latency: number) => void

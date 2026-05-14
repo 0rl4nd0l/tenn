@@ -36,7 +36,7 @@ export interface ChatMessage {
     model?: string
     latencyMs?: number
     costUsd?: number
-    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator' | 'unknown'
+    source?: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator' | 'unknown'
     routing?: Record<string, unknown>
     analyst?: AnalystChatMetadata
     codexDeploy?: {
@@ -155,6 +155,8 @@ export interface ServiceHealth {
   details?: Record<string, unknown>
 }
 
+export type ChatRuntimeTarget = 'local' | 'rented_gpu' | 'auto'
+
 export interface CockpitPreferences {
   webSearchEnabled: boolean
   ragEnabled: boolean
@@ -164,6 +166,7 @@ export interface CockpitPreferences {
   marketplaceHomeLocation: string
   marketplacePreferCloudRouting: boolean
   chatRoutingPolicyOverride: 'config_default' | 'local_preferred' | 'local_only' | 'api_preferred' | 'api_only'
+  chatRuntimeTarget: ChatRuntimeTarget
   iphoneScale: boolean
 }
 
@@ -556,7 +559,7 @@ export interface ChatResponse {
     model?: string
     latency_ms?: number
 	    cost_usd?: number
-	    source?: 'local' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator' | 'unknown'
+	    source?: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'orchestrator' | 'unknown'
 	    provider_error?: ChatProviderError | null
 	    chart?: RenderedChart
 	    sources?: Source[]
@@ -665,6 +668,7 @@ export interface ModelLoadResponse {
   runtime_url?: string | null
   already_loaded?: boolean
   message: string
+  runtime_target?: ChatRuntimeTarget
 }
 
 export interface RagResult {
@@ -682,17 +686,20 @@ export interface ModelInfo {
   size_gb: number
   quantization: string | null
   available: boolean
+  runtime_target?: ChatRuntimeTarget
 }
 
 export interface ModelGroup {
   location: string
   label: string
   models: ModelInfo[]
+  runtime_target?: ChatRuntimeTarget
 }
 
 export interface AvailableModelsResponse {
   groups: ModelGroup[]
   active_model: string | null
+  runtime_targets?: Array<Record<string, unknown>>
 }
 
 // SSE Event Types

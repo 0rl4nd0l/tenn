@@ -477,6 +477,7 @@ function buildCodexDeployMetadata(result: FeedbackCaptureResponse): NonNullable<
 function normalizeMessageSource(source: unknown): NonNullable<ChatMessageType['metadata']>['source'] {
   const value = String(source || '').trim()
   return value === 'local'
+    || value === 'rented_gpu'
     || value === 'api'
     || value === 'anthropic'
     || value === 'cockpit'
@@ -485,9 +486,13 @@ function normalizeMessageSource(source: unknown): NonNullable<ChatMessageType['m
     : 'unknown'
 }
 
-function normalizeStoreSource(source: unknown): 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown' {
+function normalizeStoreSource(source: unknown): 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'unknown' {
   const value = String(source || '').trim()
-  return value === 'local' || value === 'api' || value === 'anthropic' || value === 'cockpit'
+  return value === 'local'
+    || value === 'rented_gpu'
+    || value === 'api'
+    || value === 'anthropic'
+    || value === 'cockpit'
     ? value
     : 'unknown'
 }
@@ -1381,6 +1386,7 @@ export function ChatScreen() {
           rag: preferences.ragEnabled,
         dbDiagnostics: preferences.dbDiagnosticsEnabled,
         attachedSources: attached.serialize(),
+        runtimeTarget: preferences.chatRuntimeTarget,
       })
 
         const latencyMs = resolveResponseLatencyMs(response.content.latency_ms, requestStartedAt)
@@ -1448,6 +1454,7 @@ export function ChatScreen() {
         rag: preferences.ragEnabled,
         dbDiagnostics: preferences.dbDiagnosticsEnabled,
         attachedSources: attached.serialize(),
+        runtimeTarget: preferences.chatRuntimeTarget,
         onMessage: (event) => {
           switch (event.type) {
             case 'chunk':

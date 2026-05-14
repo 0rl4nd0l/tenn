@@ -3,6 +3,7 @@ import type {
   AvailableModelsResponse,
   ClaimVerificationResponse,
   ChatResponse,
+  ChatRuntimeTarget,
   ContextDocument,
   ExtractionMethod,
   ExtractionReviewDecisionResponse,
@@ -118,12 +119,14 @@ export type CockpitPreferences = {
   api_default_enabled: boolean
   marketplace_prefer_cloud_routing: boolean
   chat_routing_policy_override: 'config_default' | 'local_preferred' | 'local_only' | 'api_preferred' | 'api_only'
+  chat_runtime_target: ChatRuntimeTarget
 }
 
 export type CockpitPreferencesPatch = {
   api_default_enabled?: boolean
   marketplace_prefer_cloud_routing?: boolean
   chat_routing_policy_override?: 'config_default' | 'local_preferred' | 'local_only' | 'api_preferred' | 'api_only'
+  chat_runtime_target?: ChatRuntimeTarget
 }
 
 type AttachedChatSource = {
@@ -676,6 +679,7 @@ export async function sendChatMessage(params: {
   rag?: boolean
   dbDiagnostics?: boolean
   attachedSources?: AttachedChatSource[]
+  runtimeTarget?: ChatRuntimeTarget
 }): Promise<ChatResponse> {
   const raw = await apiFetch<any>("/api/cockpit/chat", {
     method: "POST",
@@ -689,6 +693,7 @@ export async function sendChatMessage(params: {
       rag: params.rag,
       db_diagnostics: params.dbDiagnostics,
       attached_sources: params.attachedSources,
+      runtime_target: params.runtimeTarget,
       stream: false,
     }),
   })
@@ -760,6 +765,7 @@ export async function streamChat(params: {
   rag?: boolean
   dbDiagnostics?: boolean
   attachedSources?: AttachedChatSource[]
+  runtimeTarget?: ChatRuntimeTarget
   onMessage: (event: { type: string; data: any }) => void
   onError: (err: any) => void
   onEnd: () => void
@@ -781,6 +787,7 @@ export async function streamChat(params: {
       rag: params.rag,
       db_diagnostics: params.dbDiagnostics,
       attached_sources: params.attachedSources,
+      runtime_target: params.runtimeTarget,
       stream: true,
     }),
   })
@@ -819,11 +826,12 @@ export async function fetchAvailableModels(): Promise<AvailableModelsResponse> {
   return apiFetch<AvailableModelsResponse>("/api/cockpit/models")
 }
 
-export async function loadCockpitModel(modelId?: string): Promise<ModelLoadResponse> {
+export async function loadCockpitModel(modelId?: string, runtimeTarget?: ChatRuntimeTarget): Promise<ModelLoadResponse> {
   return apiFetch<ModelLoadResponse>("/api/cockpit/models/load", {
     method: "POST",
     body: JSON.stringify({
       model_id: modelId ?? null,
+      runtime_target: runtimeTarget,
     }),
   }, 360_000)
 }

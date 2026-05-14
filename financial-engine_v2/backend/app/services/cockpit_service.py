@@ -81,8 +81,19 @@ _ANTHROPIC_BILLING_ERROR_RE = re.compile(
 CHAT_ROUTING_POLICY_OVERRIDE_KEY = "chat_routing_policy_override"
 CHAT_ROUTING_POLICY_CONFIG_DEFAULT = "config_default"
 API_DEFAULT_ENABLED_KEY = "api_default_enabled"
+CHAT_RUNTIME_TARGET_KEY = "chat_runtime_target"
+CHAT_RUNTIME_TARGET_LOCAL = "local"
+CHAT_RUNTIME_TARGET_RENTED_GPU = "rented_gpu"
+CHAT_RUNTIME_TARGET_AUTO = "auto"
 VALID_CHAT_ROUTING_POLICY_PREFERENCES = frozenset(
     {CHAT_ROUTING_POLICY_CONFIG_DEFAULT, *VALID_HYBRID_ROUTER_POLICIES}
+)
+VALID_CHAT_RUNTIME_TARGETS = frozenset(
+    {
+        CHAT_RUNTIME_TARGET_LOCAL,
+        CHAT_RUNTIME_TARGET_RENTED_GPU,
+        CHAT_RUNTIME_TARGET_AUTO,
+    }
 )
 
 
@@ -91,6 +102,23 @@ def normalize_chat_routing_policy_preference(raw: Any) -> str | None:
     if not value:
         return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
     if value in VALID_CHAT_ROUTING_POLICY_PREFERENCES:
+        return value
+    return None
+
+
+def normalize_chat_runtime_target(raw: Any) -> str | None:
+    value = str(raw or CHAT_RUNTIME_TARGET_LOCAL).strip().lower()
+    if not value:
+        return CHAT_RUNTIME_TARGET_LOCAL
+    aliases = {
+        "rented": CHAT_RUNTIME_TARGET_RENTED_GPU,
+        "vast": CHAT_RUNTIME_TARGET_RENTED_GPU,
+        "vastai": CHAT_RUNTIME_TARGET_RENTED_GPU,
+        "remote": CHAT_RUNTIME_TARGET_RENTED_GPU,
+        "gpu": CHAT_RUNTIME_TARGET_RENTED_GPU,
+    }
+    value = aliases.get(value, value)
+    if value in VALID_CHAT_RUNTIME_TARGETS:
         return value
     return None
 
@@ -1345,6 +1373,103 @@ class CockpitService:
         normalized = normalize_chat_routing_policy_preference(raw)
         return normalized or CHAT_ROUTING_POLICY_CONFIG_DEFAULT
 
+    def chat_runtime_target_preference(self) -> str:
+        store = getattr(self, "state_store", None)
+        if store is None or not hasattr(store, "get_preference"):
+            return CHAT_RUNTIME_TARGET_LOCAL
+        try:
+            raw = store.get_preference(
+                CHAT_RUNTIME_TARGET_KEY,
+                CHAT_RUNTIME_TARGET_LOCAL,
+            )
+        except Exception:
+            return CHAT_RUNTIME_TARGET_LOCAL
+        normalized = normalize_chat_runtime_target(raw)
+        return normalized or CHAT_RUNTIME_TARGET_LOCAL
+
+    @staticmethod
+    def rented_gpu_llamacpp_url() -> str:
+        for key in (
+            "TENN_RENTED_GPU_LLAMACPP_URL",
+            "RENTED_GPU_LLAMACPP_URL",
+            "VASTAI_LLAMACPP_URL",
+        ):
+            value = str(os.getenv(key) or "").strip()
+            if value:
+                return value.rstrip("/")
+        return ""
+
+    @staticmethod
+    def rented_gpu_llamacpp_api_key() -> str:
+        for key in (
+            "TENN_RENTED_GPU_LLAMACPP_API_KEY",
+            "RENTED_GPU_LLAMACPP_API_KEY",
+            "VASTAI_LLAMACPP_API_KEY",
+            "LLM_API_KEY",
+            "LLAMA_SERVER_API_KEY",
+            "LLAMACPP_API_KEY",
+        ):
+            value = str(os.getenv(key) or "").strip()
+            if value:
+                return value
+        return ""
+
+    def _rented_gpu_llm_client(self, requested_model: str | None = None) -> LlamaCppClient:
+        base_url = self.rented_gpu_llamacpp_url()
+        if not base_url:
+            raise RuntimeError(
+                "Rented GPU runtime is not configured. Set "
+                "TENN_RENTED_GPU_LLAMACPP_URL to a llama.cpp OpenAI-compatible "
+                "endpoint, for example http://127.0.0.1:18001 after SSH tunneling."
+            )
+        model = str(requested_model or "").strip() or str(
+            getattr(self.llm_client, "model", "") or ""
+        ).strip()
+        if not model:
+            model = "default"
+        return LlamaCppClient(
+            base_url=base_url,
+            model=model,
+            api_key=self.rented_gpu_llamacpp_api_key(),
+        )
+
+    def _resolve_chat_runtime_target(
+        self,
+        requested_target: str | None,
+        *,
+        message: str,
+        ui_mode: str | None,
+        attached_sources: list[dict[str, Any]] | None,
+    ) -> tuple[str, str]:
+        normalized = (
+            normalize_chat_runtime_target(requested_target)
+            if requested_target is not None
+            else self.chat_runtime_target_preference()
+        )
+        if normalized is None:
+            raise RuntimeError(
+                "Invalid chat runtime target. Expected one of: "
+                f"{', '.join(sorted(VALID_CHAT_RUNTIME_TARGETS))}"
+            )
+        if normalized == CHAT_RUNTIME_TARGET_AUTO:
+            configured = bool(self.rented_gpu_llamacpp_url())
+            heavy_context = (
+                len(str(message or "")) >= 3000
+                or bool(attached_sources)
+                or str(ui_mode or "").strip().lower() == "strategy"
+            )
+            if configured and heavy_context:
+                return CHAT_RUNTIME_TARGET_RENTED_GPU, "auto_heavy_context"
+            return CHAT_RUNTIME_TARGET_LOCAL, (
+                "auto_rented_gpu_not_configured" if not configured else "auto_light_context"
+            )
+        if normalized == CHAT_RUNTIME_TARGET_RENTED_GPU and not self.rented_gpu_llamacpp_url():
+            raise RuntimeError(
+                "Rented GPU runtime is not configured. Set "
+                "TENN_RENTED_GPU_LLAMACPP_URL before selecting rented_gpu."
+            )
+        return normalized, "operator_selected"
+
     def api_default_enabled(self) -> bool:
         store = getattr(self, "state_store", None)
         if store is None or not hasattr(store, "get_preference"):
@@ -1382,12 +1507,18 @@ class CockpitService:
             cockpit_llm["hybrid_router_policy"] = preference
         return cockpit_llm
 
-    def _build_chat_controller(self, thread_id: str) -> ChatController:
-        if thread_id == "global-main":
+    def _build_chat_controller(
+        self,
+        thread_id: str,
+        *,
+        llm_client: LlamaCppClient | None = None,
+    ) -> ChatController:
+        selected_llm_client = llm_client or self.llm_client
+        if thread_id == "global-main" and llm_client is None:
             self._refresh_global_chat_controller_if_needed()
             return self.chat_controller
         return ChatController(
-            ollama_client=self.llm_client,
+            ollama_client=selected_llm_client,
             tool_router=self.tool_router,
             action_registry=self.action_registry,
             llm_timeout_seconds=self.llm_timeout_seconds,
@@ -2736,10 +2867,21 @@ class CockpitService:
         db_diagnostics: bool | None = None,
         ui_mode: str | None = None,
         attached_sources: list[dict[str, Any]] | None = None,
+        runtime_target: str | None = None,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
         requested_model = str(model or "").strip()
-        llm_client = getattr(self, "llm_client", None)
+        resolved_runtime_target, runtime_reason = self._resolve_chat_runtime_target(
+            runtime_target,
+            message=message,
+            ui_mode=ui_mode,
+            attached_sources=attached_sources,
+        )
+        llm_client = (
+            self._rented_gpu_llm_client(requested_model)
+            if resolved_runtime_target == CHAT_RUNTIME_TARGET_RENTED_GPU
+            else getattr(self, "llm_client", None)
+        )
         current_model = str(getattr(llm_client, "model", "") or "").strip()
 
         status_events: list[dict[str, Any]] = []
@@ -2777,16 +2919,32 @@ class CockpitService:
             )
             return continuity_response
 
-        controller = self._build_chat_controller(thread_id)
+        controller = self._build_chat_controller(
+            thread_id,
+            llm_client=llm_client
+            if resolved_runtime_target == CHAT_RUNTIME_TARGET_RENTED_GPU
+            else None,
+        )
         self._seed_recent_youtube_video_options(thread_id, controller)
         controller_message = continuity_rewritten_message or message
-        controller_message, api_default_applied = self._apply_api_default_routing(
-            controller_message
-        )
+        if resolved_runtime_target == CHAT_RUNTIME_TARGET_RENTED_GPU:
+            api_default_applied = False
+        else:
+            controller_message, api_default_applied = self._apply_api_default_routing(
+                controller_message
+            )
         if api_default_applied:
             _capture_status("API default active - local LLM routing disabled")
 
         forced_backend, _effective_message = parse_backend_prefix(controller_message)
+        if (
+            resolved_runtime_target == CHAT_RUNTIME_TARGET_RENTED_GPU
+            and forced_backend is None
+            and not str(controller_message or "").strip().startswith("/")
+        ):
+            controller_message = f"/local {str(controller_message or '').strip()}".strip()
+            forced_backend = "local"
+            _capture_status("Rented GPU runtime selected - routing chat through remote llama.cpp")
         route_preview: dict[str, Any] | None = None
         hybrid_router = getattr(controller, "_hybrid_router", None)
         if hybrid_router is not None and hasattr(hybrid_router, "preview_route"):
@@ -2912,7 +3070,6 @@ class CockpitService:
                     and value is not None
                 }
             )
-        llm_client = getattr(self, "llm_client", None)
         current_model = str(getattr(llm_client, "model", "") or "").strip()
         source = str(meta.get("source") or "").strip()
         if (
@@ -2931,6 +3088,23 @@ class CockpitService:
                 if getattr(response, "prompt", None) or requested_model
                 else "cockpit"
             )
+        if resolved_runtime_target == CHAT_RUNTIME_TARGET_RENTED_GPU:
+            meta["runtime_target"] = CHAT_RUNTIME_TARGET_RENTED_GPU
+            meta["runtime_target_requested"] = normalize_chat_runtime_target(
+                runtime_target
+            ) or self.chat_runtime_target_preference()
+            meta["runtime_routing_reason"] = runtime_reason
+            if meta.get("source") == "local":
+                meta["source"] = CHAT_RUNTIME_TARGET_RENTED_GPU
+        else:
+            meta.setdefault("runtime_target", resolved_runtime_target)
+            meta.setdefault(
+                "runtime_target_requested",
+                normalize_chat_runtime_target(runtime_target)
+                if runtime_target is not None
+                else self.chat_runtime_target_preference(),
+            )
+            meta.setdefault("runtime_routing_reason", runtime_reason)
         if int(meta.get("latency_ms") or 0) <= 0:
             meta["latency_ms"] = max(1, elapsed_ms)
         meta.setdefault("cost_usd", 0.0)
@@ -2961,6 +3135,9 @@ class CockpitService:
                     if db_diagnostics is not None
                     else False,
                     "ui_mode": ui_mode,
+                    "runtime_target": resolved_runtime_target,
+                    "runtime_target_requested": runtime_target,
+                    "runtime_routing_reason": runtime_reason,
                 },
                 "status_events": status_events,
                 "thinking_events": thinking_events,

@@ -36,10 +36,13 @@ from app.models.documents import Document
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.cockpit_service import (
     API_DEFAULT_ENABLED_KEY,
+    CHAT_RUNTIME_TARGET_KEY,
     CHAT_ROUTING_POLICY_CONFIG_DEFAULT,
     CHAT_ROUTING_POLICY_OVERRIDE_KEY,
     CockpitService,
+    VALID_CHAT_RUNTIME_TARGETS,
     VALID_CHAT_ROUTING_POLICY_PREFERENCES,
+    normalize_chat_runtime_target,
     normalize_chat_routing_policy_preference,
 )
 from app.services.cockpit_home import (
@@ -262,6 +265,9 @@ class CockpitConfigResponse(BaseModel):
     routing_policy: str | None = None
     routing_policy_override: str = CHAT_ROUTING_POLICY_CONFIG_DEFAULT
     routing_policy_source: str = "config"
+    runtime_target: str = "local"
+    runtime_target_source: str = "operator_preference"
+    rented_gpu: dict[str, Any] = Field(default_factory=dict)
     backend_url: str | None = None
     profile: str | None = None
     features: dict[str, bool] = Field(default_factory=dict)
@@ -277,12 +283,14 @@ class ModelInfo(BaseModel):
     quantization: str | None = None
     available: bool = True
     manual_fallback: bool = False
+    runtime_target: str = "local"
 
 
 class ModelGroup(BaseModel):
     location: str
     label: str
     models: list[ModelInfo] = Field(default_factory=list)
+    runtime_target: str = "local"
 
 
 def _pick_preferred_loaded_model_id(server_models: dict[str, dict[str, Any]]) -> str | None:
@@ -334,11 +342,13 @@ def _hoist_manual_fallback_model_groups(groups: list[ModelGroup]) -> list[ModelG
 class AvailableModelsResponse(BaseModel):
     groups: list[ModelGroup] = Field(default_factory=list)
     active_model: str | None = None
+    runtime_targets: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ModelLoadRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
     model_id: str | None = None
+    runtime_target: str | None = None
 
 
 class ModelLoadResponse(BaseModel):
@@ -348,6 +358,7 @@ class ModelLoadResponse(BaseModel):
     runtime_url: str | None = None
     already_loaded: bool = False
     message: str
+    runtime_target: str = "local"
 
 
 class QueueStatusResponse(BaseModel):
@@ -4019,6 +4030,9 @@ def cockpit_config() -> CockpitConfigResponse:
     routing_policy_override = _routing_policy_override_from_state_db(
         str(memory_cfg.get("state_db") or "").strip()
     )
+    runtime_target = _runtime_target_override_from_state_db(
+        str(memory_cfg.get("state_db") or "").strip()
+    )
     effective_routing_policy = str(
         cockpit_llm.get("hybrid_router_policy") or ""
     ).strip()
@@ -4080,6 +4094,9 @@ def cockpit_config() -> CockpitConfigResponse:
         routing_policy=effective_routing_policy or None,
         routing_policy_override=routing_policy_override,
         routing_policy_source=routing_policy_source,
+        runtime_target=runtime_target,
+        runtime_target_source="operator_preference",
+        rented_gpu=_rented_gpu_runtime_snapshot(),
         backend_url=str(backend_cfg.get("api_base_url") or "").strip() or None,
         profile=(
             str(
@@ -4305,11 +4322,15 @@ def _fetch_runtime_models(base_url: str | None = None) -> dict[str, dict[str, An
     if not llamacpp_url:
         return {}
     headers: dict[str, str] = {}
-    api_key = (
-        str(os.getenv("LLM_API_KEY") or "").strip()
-        or str(os.getenv("LLAMA_SERVER_API_KEY") or "").strip()
-        or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
-    )
+    rented_url = CockpitService.rented_gpu_llamacpp_url()
+    if base_url and rented_url and llamacpp_url == rented_url.rstrip("/"):
+        api_key = CockpitService.rented_gpu_llamacpp_api_key()
+    else:
+        api_key = (
+            str(os.getenv("LLM_API_KEY") or "").strip()
+            or str(os.getenv("LLAMA_SERVER_API_KEY") or "").strip()
+            or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
+        )
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     try:
@@ -4333,6 +4354,77 @@ def _fetch_runtime_models(base_url: str | None = None) -> dict[str, dict[str, An
             "path_stem": Path(model_path).stem if model_path else "",
         }
     return result
+
+
+def _rented_gpu_runtime_url() -> str:
+    return CockpitService.rented_gpu_llamacpp_url()
+
+
+def _rented_gpu_runtime_api_key() -> str:
+    return CockpitService.rented_gpu_llamacpp_api_key()
+
+
+def _rented_gpu_runtime_snapshot() -> dict[str, Any]:
+    endpoint = _rented_gpu_runtime_url()
+    snapshot: dict[str, Any] = {
+        "configured": bool(endpoint),
+        "healthy": False,
+        "endpoint": endpoint or None,
+        "models": [],
+        "error": None,
+    }
+    if not endpoint:
+        snapshot["error"] = "TENN_RENTED_GPU_LLAMACPP_URL is not set"
+        return snapshot
+
+    headers: dict[str, str] = {}
+    api_key = _rented_gpu_runtime_api_key()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    try:
+        response = httpx.get(f"{endpoint.rstrip('/')}/v1/models", headers=headers, timeout=2.0)
+        response.raise_for_status()
+        payload = response.json() if response.content else {}
+        model_ids = [
+            str(row.get("id") or "").strip()
+            for row in payload.get("data", [])
+            if isinstance(row, dict) and str(row.get("id") or "").strip()
+        ]
+        snapshot["healthy"] = True
+        snapshot["models"] = model_ids
+        snapshot["error"] = None
+    except Exception as exc:
+        snapshot["error"] = str(exc)
+    return snapshot
+
+
+def _runtime_targets_snapshot() -> list[dict[str, Any]]:
+    rented = _rented_gpu_runtime_snapshot()
+    return [
+        {
+            "id": "local",
+            "label": "Local workstation GPU",
+            "configured": True,
+            "healthy": bool(_fetch_llama_server_models()),
+            "endpoint": str(settings.llamacpp_url or "").strip() or None,
+        },
+        {
+            "id": "rented_gpu",
+            "label": "Rented GPU",
+            "configured": bool(rented.get("configured")),
+            "healthy": bool(rented.get("healthy")),
+            "endpoint": rented.get("endpoint"),
+            "models": rented.get("models") or [],
+            "error": rented.get("error"),
+        },
+        {
+            "id": "auto",
+            "label": "Auto",
+            "configured": True,
+            "healthy": True,
+            "endpoint": None,
+        },
+    ]
 
 
 def _normalize_model_identifier(value: str | None) -> str:
@@ -4454,10 +4546,40 @@ def cockpit_available_models() -> AvailableModelsResponse:
         groups = merged_groups
 
     groups = _hoist_manual_fallback_model_groups(groups)
+    runtime_targets = _runtime_targets_snapshot()
+    rented_snapshot = next(
+        (item for item in runtime_targets if item.get("id") == "rented_gpu"),
+        {},
+    )
+    rented_models = [
+        str(model_id or "").strip()
+        for model_id in (rented_snapshot.get("models") or [])
+        if str(model_id or "").strip()
+    ]
+    if rented_models:
+        groups.append(
+            ModelGroup(
+                location="rented_gpu",
+                label="Rented GPU",
+                runtime_target="rented_gpu",
+                models=[
+                    ModelInfo(
+                        id=model_id,
+                        filename=model_id,
+                        size_gb=0.0,
+                        quantization=None,
+                        available=True,
+                        runtime_target="rented_gpu",
+                    )
+                    for model_id in rented_models
+                ],
+            )
+        )
 
     return AvailableModelsResponse(
         groups=groups,
         active_model=active_model,
+        runtime_targets=runtime_targets,
     )
 
 
@@ -4465,7 +4587,19 @@ def cockpit_available_models() -> AvailableModelsResponse:
 def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
     from cockpit.integrations.llamacpp_manager import load_model_api
 
-    runtime_url, default_model = resolve_llm_runtime_config(model=payload.model_id)
+    runtime_target = normalize_chat_runtime_target(payload.runtime_target) or "local"
+    if runtime_target == "auto":
+        runtime_target = "local"
+    if runtime_target == "rented_gpu":
+        runtime_url = _rented_gpu_runtime_url()
+        default_model = None
+        if not runtime_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Rented GPU runtime is not configured. Set TENN_RENTED_GPU_LLAMACPP_URL.",
+            )
+    else:
+        runtime_url, default_model = resolve_llm_runtime_config(model=payload.model_id)
     requested_model = str(payload.model_id or default_model or "").strip()
     if not requested_model:
         raise HTTPException(status_code=400, detail="model_id is required")
@@ -4486,6 +4620,22 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
             },
         )
 
+    if (
+        runtime_target == "rented_gpu"
+        and resolved_model in runtime_models
+        and not str(runtime_models[resolved_model].get("model_path") or "").strip()
+        and str(runtime_models[resolved_model].get("status") or "").strip() == "unknown"
+    ):
+        return ModelLoadResponse(
+            ok=True,
+            requested_model=requested_model,
+            resolved_model=resolved_model,
+            runtime_url=runtime_url,
+            already_loaded=True,
+            message=f"Remote runtime exposes '{resolved_model}'. No load step required.",
+            runtime_target=runtime_target,
+        )
+
     if any(
         info.get("status") == "loaded"
         and (
@@ -4503,6 +4653,7 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
             runtime_url=runtime_url,
             already_loaded=True,
             message=f"Model '{resolved_model}' is already loaded.",
+            runtime_target=runtime_target,
         )
 
     parsed = urlparse(runtime_url)
@@ -4514,12 +4665,15 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
             detail=f"Configured extraction runtime URL is invalid: {runtime_url}",
         )
 
-    api_key = (
-        str(os.getenv("LLM_API_KEY") or "").strip()
-        or str(os.getenv("LLAMA_SERVER_API_KEY") or "").strip()
-        or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
-        or "local-openai-key"
-    )
+    if runtime_target == "rented_gpu":
+        api_key = _rented_gpu_runtime_api_key() or "local-openai-key"
+    else:
+        api_key = (
+            str(os.getenv("LLM_API_KEY") or "").strip()
+            or str(os.getenv("LLAMA_SERVER_API_KEY") or "").strip()
+            or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
+            or "local-openai-key"
+        )
 
     status_messages: list[str] = []
     ok = load_model_api(
@@ -4550,6 +4704,7 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
         runtime_url=runtime_url,
         already_loaded=False,
         message=status_messages[-1] if status_messages else f"Model '{resolved_model}' loaded.",
+        runtime_target=runtime_target,
     )
 
 
@@ -5415,6 +5570,7 @@ class CockpitChatRequest(BaseModel):
     rag: bool | None = None
     db_diagnostics: bool | None = None
     attached_sources: list[AttachedSource] = Field(default_factory=list)
+    runtime_target: str | None = None
 
 
 class CockpitChatSessionSummary(BaseModel):
@@ -5469,12 +5625,14 @@ class CockpitPreferencesResponse(BaseModel):
     api_default_enabled: bool = False
     marketplace_prefer_cloud_routing: bool = False
     chat_routing_policy_override: str = CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    chat_runtime_target: str = "local"
 
 
 class CockpitPreferencesPatchRequest(BaseModel):
     api_default_enabled: bool | None = None
     marketplace_prefer_cloud_routing: bool | None = None
     chat_routing_policy_override: str | None = None
+    chat_runtime_target: str | None = None
 
 
 class CockpitPromptBlock(BaseModel):
@@ -9173,6 +9331,30 @@ def _routing_policy_override_from_state_db(state_db: str | None) -> str:
     )
 
 
+def _runtime_target_override_from_state_db(state_db: str | None) -> str:
+    db_path = str(state_db or "").strip()
+    if not db_path:
+        return "local"
+    candidate = Path(db_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = (PROJECT_ROOT / candidate).resolve()
+    if not candidate.exists():
+        return "local"
+    try:
+        conn = sqlite3.connect(str(candidate))
+        try:
+            row = conn.execute(
+                "SELECT value FROM preferences WHERE key = ?",
+                (CHAT_RUNTIME_TARGET_KEY,),
+            ).fetchone()
+        finally:
+            conn.close()
+    except Exception:
+        return "local"
+    raw_value = row[0] if row else "local"
+    return normalize_chat_runtime_target(raw_value) or "local"
+
+
 @router.get("/preferences", response_model=CockpitPreferencesResponse)
 def cockpit_get_preferences() -> CockpitPreferencesResponse:
     try:
@@ -9197,6 +9379,15 @@ def cockpit_get_preferences() -> CockpitPreferencesResponse:
             )
             or CHAT_ROUTING_POLICY_CONFIG_DEFAULT
         )
+        chat_runtime_target = (
+            normalize_chat_runtime_target(
+                service.state_store.get_preference(
+                    CHAT_RUNTIME_TARGET_KEY,
+                    "local",
+                )
+            )
+            or "local"
+        )
     except Exception as exc:
         logger.exception("Failed to load cockpit preferences")
         raise HTTPException(
@@ -9207,6 +9398,7 @@ def cockpit_get_preferences() -> CockpitPreferencesResponse:
         api_default_enabled=api_default_enabled,
         marketplace_prefer_cloud_routing=marketplace_prefer_cloud_routing,
         chat_routing_policy_override=chat_routing_policy_override,
+        chat_runtime_target=chat_runtime_target,
     )
 
 
@@ -9242,6 +9434,23 @@ def cockpit_patch_preferences(
             service.state_store.set_preference(
                 CHAT_ROUTING_POLICY_OVERRIDE_KEY,
                 normalized_policy,
+            )
+        if payload.chat_runtime_target is not None:
+            normalized_runtime_target = normalize_chat_runtime_target(
+                payload.chat_runtime_target
+            )
+            if normalized_runtime_target is None:
+                allowed = ", ".join(sorted(VALID_CHAT_RUNTIME_TARGETS))
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Invalid chat_runtime_target. "
+                        f"Expected one of: {allowed}"
+                    ),
+                )
+            service.state_store.set_preference(
+                CHAT_RUNTIME_TARGET_KEY,
+                normalized_runtime_target,
             )
         refresh = getattr(service, "_refresh_global_chat_controller_if_needed", None)
         if callable(refresh):
@@ -9615,6 +9824,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 db_diagnostics=payload.db_diagnostics,
                 ui_mode=payload.mode,
                 attached_sources=attached_sources,
+                runtime_target=payload.runtime_target,
             )
             sources = _enforce_visible_source_contract(
                 payload.message,
@@ -9663,6 +9873,9 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "chart": rendered_chart,
                     "sources": sources,
                     "routing_metadata": ui_metadata,
+                    "runtime_target": response.routing_metadata.get("runtime_target")
+                    if response.routing_metadata
+                    else None,
                     "auto_flag": _serialize_flag_handoff(auto_flag),
                 },
             }
@@ -9708,6 +9921,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     db_diagnostics=payload.db_diagnostics,
                     ui_mode=payload.mode,
                     attached_sources=attached_sources,
+                    runtime_target=payload.runtime_target,
                 )
                 sources = _enforce_visible_source_contract(
                     payload.message,
@@ -9765,6 +9979,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                             "chart": rendered_chart,
                             "sources": sources,
                             "routing_metadata": ui_metadata,
+                            "runtime_target": meta.get("runtime_target"),
                             "auto_flag": _serialize_flag_handoff(auto_flag),
                         },
                     }

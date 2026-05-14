@@ -74,6 +74,7 @@ describe('CockpitSidebar chat sessions', () => {
         marketplaceHomeLocation: '',
         marketplacePreferCloudRouting: false,
         chatRoutingPolicyOverride: 'config_default',
+        chatRuntimeTarget: 'local',
         iphoneScale: false,
       },
       sessionStats: {

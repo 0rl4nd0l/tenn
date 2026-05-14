@@ -12,6 +12,7 @@ import {
   patchCockpitPreferences,
 } from '@/lib/api-client'
 import type { ServiceHealth } from '@/lib/cockpit-types'
+import type { ChatRuntimeTarget } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { installBrowserDebugCollector } from '@/lib/browser-debug'
 import { Separator } from '@/components/ui/separator'
@@ -42,6 +43,14 @@ function normalizeChatRoutingPolicyOverride(value: unknown): ChatRoutingPolicyOv
     return text
   }
   return 'config_default'
+}
+
+function normalizeChatRuntimeTarget(value: unknown): ChatRuntimeTarget {
+  const text = String(value || '').trim()
+  if (text === 'rented_gpu' || text === 'auto') {
+    return text
+  }
+  return 'local'
 }
 
 export function CockpitLayout({ children, title }: CockpitLayoutProps) {
@@ -102,11 +111,13 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         updatePreferences({
           marketplacePreferCloudRouting: Boolean(remote.marketplace_prefer_cloud_routing),
           chatRoutingPolicyOverride: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
+          chatRuntimeTarget: normalizeChatRuntimeTarget(remote.chat_runtime_target),
         })
         syncedPreferencesRef.current = JSON.stringify({
           api_default_enabled: Boolean(remote.api_default_enabled),
           marketplace_prefer_cloud_routing: Boolean(remote.marketplace_prefer_cloud_routing),
           chat_routing_policy_override: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
+          chat_runtime_target: normalizeChatRuntimeTarget(remote.chat_runtime_target),
         })
       } catch {
         // Keep local defaults when backend preferences are unavailable.
@@ -127,6 +138,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
       api_default_enabled: Boolean(apiDefaultEnabled),
       marketplace_prefer_cloud_routing: Boolean(preferences.marketplacePreferCloudRouting),
       chat_routing_policy_override: preferences.chatRoutingPolicyOverride,
+      chat_runtime_target: preferences.chatRuntimeTarget,
     })
     if (snapshot === syncedPreferencesRef.current) return
     let cancelled = false
@@ -136,6 +148,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
           api_default_enabled: Boolean(apiDefaultEnabled),
           marketplace_prefer_cloud_routing: Boolean(preferences.marketplacePreferCloudRouting),
           chat_routing_policy_override: preferences.chatRoutingPolicyOverride,
+          chat_runtime_target: preferences.chatRuntimeTarget,
         })
         if (!cancelled) {
           syncedPreferencesRef.current = snapshot
@@ -147,7 +160,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
     return () => {
       cancelled = true
     }
-  }, [apiDefaultEnabled, preferences.chatRoutingPolicyOverride, preferences.marketplacePreferCloudRouting, preferencesHydrated])
+  }, [apiDefaultEnabled, preferences.chatRoutingPolicyOverride, preferences.chatRuntimeTarget, preferences.marketplacePreferCloudRouting, preferencesHydrated])
 
   useEffect(() => {
     if (!preferencesHydrated) return
@@ -161,6 +174,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
           api_default_enabled: Boolean(remote.api_default_enabled),
           marketplace_prefer_cloud_routing: Boolean(remote.marketplace_prefer_cloud_routing),
           chat_routing_policy_override: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
+          chat_runtime_target: normalizeChatRuntimeTarget(remote.chat_runtime_target),
         })
         if (remoteSnapshot === syncedPreferencesRef.current) return
 
@@ -170,6 +184,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         updatePreferences({
           marketplacePreferCloudRouting: Boolean(remote.marketplace_prefer_cloud_routing),
           chatRoutingPolicyOverride: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
+          chatRuntimeTarget: normalizeChatRuntimeTarget(remote.chat_runtime_target),
         })
       } catch {
         // Keep local state when backend preference refresh fails.

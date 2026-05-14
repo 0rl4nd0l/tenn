@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft, Store, FileCode2 } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
-import type { ModelGroup } from '@/lib/cockpit-types'
+import type { ChatRuntimeTarget, ModelGroup } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
 import { PromptLabPanel } from './prompt-lab-panel'
 
@@ -67,6 +67,11 @@ interface ConfigState {
     model: string
     endpoint: string
     routingPolicy: string
+    runtimeTarget: ChatRuntimeTarget
+    rentedGpuConfigured: boolean
+    rentedGpuHealthy: boolean
+    rentedGpuEndpoint: string
+    rentedGpuError: string
     apiKeyConfigured: boolean
     maxTokens: number
     temperature: number
@@ -92,6 +97,11 @@ const DEFAULTS: ConfigState = {
     model: 'model:qwen3.5-35b-a3b-apex',
     endpoint: 'http://localhost:8001',
     routingPolicy: 'local-first',
+    runtimeTarget: 'local',
+    rentedGpuConfigured: false,
+    rentedGpuHealthy: false,
+    rentedGpuEndpoint: '',
+    rentedGpuError: '',
     apiKeyConfigured: false,
     maxTokens: 4096,
     temperature: 0.7,
@@ -119,6 +129,12 @@ const ROUTING_POLICY_OPTIONS = [
   { value: 'api_preferred', label: 'API preferred' },
   { value: 'api_only', label: 'API only' },
 ] as const
+
+const RUNTIME_TARGET_OPTIONS: Array<{ value: ChatRuntimeTarget; label: string; description: string }> = [
+  { value: 'local', label: 'Local', description: 'Use this workstation runtime.' },
+  { value: 'rented_gpu', label: 'Rented GPU', description: 'Use the configured remote llama.cpp endpoint.' },
+  { value: 'auto', label: 'Auto', description: 'Use rented GPU for heavier strategy/context turns when configured.' },
+]
 
 export function SettingsScreen() {
   const { chatModel, setChatModel, preferences, updatePreferences } = useCockpitStore()
@@ -161,6 +177,17 @@ export function SettingsScreen() {
               model: status.llm_model || status.model || prev.llm.model,
               endpoint: status.llm_endpoint || prev.llm.endpoint,
               routingPolicy: status.routing_policy || prev.llm.routingPolicy,
+              runtimeTarget: (status.runtime_target || prev.llm.runtimeTarget) as ChatRuntimeTarget,
+              rentedGpuConfigured:
+                typeof status.rented_gpu?.configured === 'boolean'
+                  ? status.rented_gpu.configured
+                  : prev.llm.rentedGpuConfigured,
+              rentedGpuHealthy:
+                typeof status.rented_gpu?.healthy === 'boolean'
+                  ? status.rented_gpu.healthy
+                  : prev.llm.rentedGpuHealthy,
+              rentedGpuEndpoint: status.rented_gpu?.endpoint || prev.llm.rentedGpuEndpoint,
+              rentedGpuError: status.rented_gpu?.error || '',
               apiKeyConfigured:
                 typeof status.anthropic_key_configured === 'boolean'
                   ? status.anthropic_key_configured
@@ -277,6 +304,14 @@ export function SettingsScreen() {
             )}>
               <Select value={chatModel} onValueChange={(value) => {
                 setChatModel(value)
+                const selectedRuntime = modelGroups
+                  .flatMap((group) => group.models.map((model) => (
+                    model.id === value ? (model.runtime_target || group.runtime_target) : null
+                  )))
+                  .find(Boolean)
+                if (selectedRuntime === 'rented_gpu') {
+                  updatePreferences({ chatRuntimeTarget: 'rented_gpu' })
+                }
                 setSwitchResult(null)
               }}>
                 <SelectTrigger className={cn(
@@ -326,7 +361,7 @@ export function SettingsScreen() {
                   setSwitching(true)
                   setSwitchResult(null)
                   try {
-                    const result = await loadCockpitModel(chatModel)
+                    const result = await loadCockpitModel(chatModel, preferences.chatRuntimeTarget)
                     setSwitchResult({ ok: result.ok, message: result.message })
                   } catch (err: unknown) {
                     setSwitchResult({
@@ -358,6 +393,69 @@ export function SettingsScreen() {
           )}
           <Separator />
           <ConfigRow label="Endpoint" value={config.llm.endpoint} mono />
+          <Separator />
+          <ConfigRow
+            label="Chat Runtime Target"
+            value={preferences.chatRuntimeTarget}
+            mono
+          />
+          <Separator />
+          <div className={cn(
+            "flex items-start justify-between py-2 gap-4",
+            isIPhoneScale && "flex-col items-start"
+          )}>
+            <div className="space-y-1">
+              <span className="text-sm text-muted-foreground">Runtime Toggle</span>
+              <p className="text-xs text-muted-foreground">
+                Select local for default operation, rented GPU for advanced remote runs, or auto for heavier strategy/context turns.
+              </p>
+            </div>
+            <Select
+              value={preferences.chatRuntimeTarget}
+              onValueChange={(value) => {
+                updatePreferences({
+                  chatRuntimeTarget: value as ChatRuntimeTarget,
+                })
+                setSwitchResult(null)
+              }}
+            >
+              <SelectTrigger className={cn(
+                "h-8 text-sm font-mono",
+                isIPhoneScale ? "w-full" : "w-[220px]"
+              )}
+              aria-label="Chat runtime target">
+                <SelectValue placeholder="Local" />
+              </SelectTrigger>
+              <SelectContent>
+                {RUNTIME_TARGET_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {RUNTIME_TARGET_OPTIONS.find((option) => option.value === preferences.chatRuntimeTarget)?.description}
+          </div>
+          <Separator />
+          <ConfigRow
+            label="Rented GPU Endpoint"
+            value={config.llm.rentedGpuEndpoint || 'not configured'}
+            mono
+          />
+          <Separator />
+          <ConfigRow
+            label="Rented GPU Health"
+            value={
+              config.llm.rentedGpuHealthy
+                ? 'healthy'
+                : config.llm.rentedGpuConfigured
+                  ? `unhealthy${config.llm.rentedGpuError ? `: ${config.llm.rentedGpuError}` : ''}`
+                  : 'not configured'
+            }
+            mono
+          />
           <Separator />
           <ConfigRow label="Effective Routing Policy" value={config.llm.routingPolicy} mono />
           <Separator />

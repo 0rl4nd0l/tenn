@@ -80,7 +80,7 @@ export interface MarketplaceAssistantPayload {
   readyToCreate: boolean
   suggestedAction: MarketplaceAssistantSuggestedAction
   rawAnswer: string
-  source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+  source?: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit'
   model?: string
 }
 
@@ -88,13 +88,13 @@ interface MarketplaceAssistantApiRawResponse {
   content?: {
     answer?: string
     model?: string
-    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+    source?: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit'
   }
   type?: string
   data?: {
     text?: string
     model?: string
-    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+    source?: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit'
   }
 }
 
@@ -105,7 +105,7 @@ interface SendMarketplaceAssistantTurnParams {
   homeLocation: string
   messages: MarketplaceAssistantTranscriptMessage[]
   model: string
-  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown'
+  activeSource: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'unknown'
   apiDefaultEnabled: boolean
   marketplacePreferCloudRouting: boolean
   webSearchEnabled: boolean
@@ -410,7 +410,7 @@ function buildHeaders(apiKey: string): HeadersInit {
 
 function normalizeChatAnswer(raw: MarketplaceAssistantApiRawResponse): {
   answer: string
-  source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+  source?: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit'
   model?: string
 } {
   if (
@@ -476,7 +476,7 @@ function parseAssistantPayload(answer: string): {
 }
 
 function buildRoutePrefix(
-  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown',
+  activeSource: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'unknown',
   model: string,
   apiDefaultEnabled = false,
   marketplacePreferCloudRouting = false,
@@ -934,7 +934,7 @@ export async function sendMarketplaceAssistantTurn(
 }
 
 export function resolveMarketplaceAssistantRoutePrefix(
-  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown',
+  activeSource: 'local' | 'rented_gpu' | 'api' | 'anthropic' | 'cockpit' | 'unknown',
   model: string,
   apiDefaultEnabled = false,
   marketplacePreferCloudRouting = false,
