@@ -71,6 +71,8 @@
 }
 
 @theme inline {
+  --font-fira-sans: 'Fira Sans', 'Segoe UI', sans-serif;
+  --font-fira-code: 'Fira Code', 'SFMono-Regular', monospace;
   --font-sans: var(--font-fira-sans), 'Fira Sans', 'Segoe UI', sans-serif;
   --font-mono: var(--font-fira-code), 'Fira Code', 'SFMono-Regular', monospace;
   --color-background: var(--background);

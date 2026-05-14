@@ -1,25 +1,10 @@
 import type { Metadata, Viewport } from 'next'
-import { Fira_Code, Fira_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/components/query-provider'
 import { OfflineIndicator } from '@/components/cockpit/offline-indicator'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
-
-const firaSans = Fira_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-fira-sans',
-  display: 'swap',
-})
-
-const firaCode = Fira_Code({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-fira-code',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'Financial Cockpit',
@@ -55,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${firaSans.variable} ${firaCode.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <QueryProvider>
             {children}
