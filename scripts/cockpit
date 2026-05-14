@@ -173,6 +173,9 @@ cockpit_kill_root() {
     "${REPO_ROOT}/cockpit-ui.*pnpm start --port"
     "next start --port ${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}"
     "next start --port ${COCKPIT_WEB_PORT:-8081}"
+    "${REPO_ROOT}/cockpit-ui.*pnpm dev --port"
+    "next dev --port ${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}"
+    "next dev --hostname .* --port ${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}"
   )
   local pat
   for pat in "${patterns[@]}"; do
@@ -459,6 +462,8 @@ stop_llama_systemd_units() {
     llama-cpp-qwen25.service
     llama-cpp.service
     llama-server.service
+    tenn-llama-nvme-router.service
+    tenn-cockpit-nvme.service
   )
   local unit
   for unit in "${units[@]}"; do
@@ -659,6 +664,7 @@ launch_cockpit_web() {
 }
 
 launch_cockpit_new() {
+  local cockpit_ui_start_mode="${COCKPIT_UI_START_MODE:-production}"
   if ! command -v node >/dev/null 2>&1; then
     echo "ERROR: node is not installed or not in PATH" >&2
     exit 1
@@ -678,11 +684,23 @@ launch_cockpit_new() {
     (cd "${cockpit_ui_dir}" && pnpm install)
   fi
 
-  echo "Building Cockpit UI..."
-  (cd "${cockpit_ui_dir}" && pnpm build)
   ensure_ui_port_available "${port}"
-  echo "Cockpit UI (Next.js) → http://localhost:${port}"
-  (cd "${cockpit_ui_dir}" && pnpm start --port "${port}")
+  case "${cockpit_ui_start_mode}" in
+    production|prod)
+      echo "Building Cockpit UI..."
+      (cd "${cockpit_ui_dir}" && pnpm build)
+      echo "Cockpit UI (Next.js) → http://localhost:${port}"
+      (cd "${cockpit_ui_dir}" && pnpm start --port "${port}")
+      ;;
+    development|dev)
+      echo "Starting Cockpit UI in dev mode on http://localhost:${port}"
+      (cd "${cockpit_ui_dir}" && pnpm dev --hostname 0.0.0.0 --port "${port}")
+      ;;
+    *)
+      echo "ERROR: unknown COCKPIT_UI_START_MODE=${cockpit_ui_start_mode}" >&2
+      exit 1
+      ;;
+  esac
 }
 
 case "${cmd}" in

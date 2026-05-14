@@ -127,6 +127,83 @@ set_env_key() {
   fi
 }
 
+env_file_value() {
+  local key="$1"
+  local file="$2"
+  grep -E "^${key}=" "${file}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true
+}
+
+compose_images_available_for_services() {
+  local -a services=("$@")
+  local -a service_list=()
+  local -a image_list=()
+  local service image
+  local i
+  local found=0
+
+  mapfile -t service_list < <("${COMPOSE[@]}" config --services)
+  mapfile -t image_list < <("${COMPOSE[@]}" config --images)
+
+  if [[ "${#service_list[@]}" -ne "${#image_list[@]}" ]]; then
+    # As a safe fallback when compose output changes shape, require every listed image.
+    while IFS= read -r image; do
+      [[ -z "${image}" ]] && continue
+      if ! docker image inspect "${image}" >/dev/null 2>&1; then
+        return 1
+      fi
+    done < <("${COMPOSE[@]}" config --images)
+    return 0
+  fi
+
+  if [[ "${#services[@]}" -eq 0 ]]; then
+    services=("${service_list[@]}")
+  fi
+
+  for service in "${services[@]}"; do
+    found=0
+    for i in "${!service_list[@]}"; do
+      if [[ "${service_list[i]}" == "${service}" ]]; then
+        image="${image_list[i]}"
+        found=1
+        break
+      fi
+    done
+    if [[ "${found}" -eq 0 ]]; then
+      continue
+    fi
+    if ! docker image inspect "${image}" >/dev/null 2>&1; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+compose_up_detached() {
+  local -a services=("$@")
+  local -a build_args=()
+  local mode="${COMPOSE_BUILD_MODE:-auto}"
+  case "${mode}" in
+    auto|"")
+      if compose_images_available_for_services "${services[@]}"; then
+        build_args=(--no-build)
+      else
+        build_args=(--build)
+      fi
+      ;;
+    never|no-build|false)
+      build_args=(--no-build)
+      ;;
+    always|build|true)
+      build_args=(--build)
+      ;;
+    *)
+      build_args=(--build)
+      ;;
+  esac
+
+  "${COMPOSE[@]}" up -d "${build_args[@]}" "${services[@]}"
+}
+
 export_git_provenance_env() {
   if ! command -v git >/dev/null 2>&1; then
     echo "WARN: git missing on host; backend git provenance env not exported" >&2
@@ -227,6 +304,24 @@ fi
 if [[ -n "${MARKETPLACE_BROWSER_XDG_RUNTIME_DIR_ON_STARTUP:-}" ]]; then
   echo "🔧 Setting ${COMPOSE_ENV_PATH}: MARKETPLACE_BROWSER_XDG_RUNTIME_DIR=${MARKETPLACE_BROWSER_XDG_RUNTIME_DIR_ON_STARTUP}"
   set_env_key "MARKETPLACE_BROWSER_XDG_RUNTIME_DIR" "${MARKETPLACE_BROWSER_XDG_RUNTIME_DIR_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
+fi
+
+current_database_url="$(grep -E '^DATABASE_URL=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+if [[ -z "${current_database_url}" || "${current_database_url}" == sqlite* ]]; then
+  postgres_user="${POSTGRES_USER:-$(env_file_value POSTGRES_USER "${COMPOSE_ENV_PATH}")}"
+  postgres_password="${POSTGRES_PASSWORD:-$(env_file_value POSTGRES_PASSWORD "${COMPOSE_ENV_PATH}")}"
+  postgres_db="${POSTGRES_DB:-$(env_file_value POSTGRES_DB "${COMPOSE_ENV_PATH}")}"
+  [[ -z "${postgres_user}" ]] && postgres_user="fe"
+  [[ -z "${postgres_password}" ]] && postgres_password="fe"
+  [[ -z "${postgres_db}" ]] && postgres_db="fe"
+  database_url="postgresql+psycopg://${postgres_user}:${postgres_password}@127.0.0.1:5432/${postgres_db}"
+  echo "🔧 Setting ${COMPOSE_ENV_PATH}: DATABASE_URL=${database_url}"
+  set_env_key "DATABASE_URL" "${database_url}" "${COMPOSE_ENV_PATH}"
+  current_database_url="${database_url}"
+fi
+
+if [[ -n "${current_database_url}" ]]; then
+  export DATABASE_URL="${current_database_url}"
 fi
 if [[ -n "${MARKETPLACE_BROWSER_EXECUTABLE_PATH_ON_STARTUP:-}" ]]; then
   echo "🔧 Setting ${COMPOSE_ENV_PATH}: MARKETPLACE_BROWSER_EXECUTABLE_PATH=${MARKETPLACE_BROWSER_EXECUTABLE_PATH_ON_STARTUP}"
@@ -347,9 +442,9 @@ fi
 
 echo "starting full stack infra via docker compose..."
 if [[ "${#infra_services[@]}" -gt 0 ]]; then
-  "${COMPOSE[@]}" up -d --build "${infra_services[@]}"
+  compose_up_detached "${infra_services[@]}"
 else
-  "${COMPOSE[@]}" up -d --build
+  compose_up_detached
 fi
 
 # Re-probe llamacpp immediately before starting backend.
@@ -411,7 +506,7 @@ else
 fi
 
 echo "starting backend via docker compose..."
-"${COMPOSE[@]}" up -d --build "${backend_services[@]}"
+compose_up_detached "${backend_services[@]}"
 
 echo "waiting for backend health..."
 deadline=$(( $(date +%s) + ${BACKEND_START_TIMEOUT:-60} ))
