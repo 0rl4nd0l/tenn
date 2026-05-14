@@ -1,0 +1,32 @@
+---
+job_id: nvme_full_dirty_work_closeout_v1_20260514
+lane: Evaluation
+owner: Codex
+mutation_mode: safe_extension
+approval_required: true
+approval_id: USER_APPROVED_NVME_FULL_DIRTY_WORK_CLOSEOUT_20260514_GPT
+production_data_access: false
+timeout_seconds: 3600
+output_dir: reports/agent_jobs/nvme_full_dirty_work_closeout_v1_20260514
+allowed_files:
+  - docs/agent_tasks/nvme_full_dirty_work_closeout_v1_20260514.md
+  - cockpit-ui/app/globals.css
+  - cockpit-ui/app/layout.tsx
+  - docs/agent_tasks/memory_interticker_cleanup_post_verification_v1_20260514.md
+  - docs/agent_tasks/nvme_post_runtime_repo_hygiene_classification_v1_20260514.md
+  - docs/agent_tasks/nvme_runtime_build_missing_compose_images_v1_20260513.md
+  - docs/agent_tasks/nvme_runtime_taskcard_dirt_closeout_and_gpu_worker_build_v1_20260513.md
+  - docs/agent_tasks/repo_hygiene_untracked_blockers_unblock_reporting_v1_20260514.md
+  - docs/agent_tasks/reporting_ui_and_taskcard_dirt_closeout_v1_20260514.md
+  - docs/agent_tasks/runtime_topology_nvme_backend_cockpit_cached_start_v1_20260513.md
+  - vastai
+  - reports/agent_jobs/repo_hygiene_untracked_blockers_unblock_reporting_v1_20260514/README.md
+  - reports/agent_jobs/repo_hygiene_untracked_blockers_unblock_reporting_v1_20260514/status.json
+  - reports/agent_jobs/repo_hygiene_untracked_blockers_unblock_reporting_v1_20260514/diff-check.json
+  - reports/agent_jobs/reporting_ui_and_taskcard_dirt_closeout_v1_20260514/README.md
+  - reports/agent_jobs/reporting_ui_and_taskcard_dirt_closeout_v1_20260514/status.json
+  - reports/agent_jobs/reporting_ui_and_taskcard_dirt_closeout_v1_20260514/diff-check.json
+  - reports/agent_jobs/nvme_full_dirty_work_closeout_v1_20260514/README.md
+  - reports/agent_jobs/nvme_full_dirty_work_closeout_v1_20260514/status.json
+  - reports/agent_jobs/nvme_full_dirty_work_closeout_v1_20260514/diff-check.json
+---
