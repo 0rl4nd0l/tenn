@@ -1,0 +1,46 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md",
+        "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/README.md",
+        "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/status.json",
+        "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515/diff-check.json"
+      ],
+      "approval_id": "USER_APPROVED_NEWS_SYNC_FALLBACK_LIVE_ARTIFACT_REPAIR_20260515_GPT",
+      "approval_required": true,
+      "job_id": "news_downstream_sync_fallback_live_artifact_repair_v1_20260515",
+      "lane": "Query Orchestration",
+      "live_data_maintenance": true,
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/news_downstream_sync_fallback_live_artifact_repair_v1_20260515",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
