@@ -1,0 +1,30 @@
+{
+  "job_id": "process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515",
+  "verdict": "pass",
+  "worktree": "/home/l4nd0/tenn-fast-dev-storage-v1",
+  "branch": "fast/dev-storage-v1-20260513-170304",
+  "starting_head": "aa8754146749",
+  "source_commit": "5037f385c037",
+  "source_subject": "milestone(evaluation): align process_document rag guardrail fixtures",
+  "interpreter": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python",
+  "validation": {
+    "backend_import_ok": "pass",
+    "test_rag_payload_guardrails": "11 passed",
+    "test_pipeline_stages": "23 passed",
+    "test_models_import_contract": "3 passed",
+    "ruff_test_rag_payload_guardrails": "pass",
+    "git_diff_check": "pass",
+    "git_diff_cached_check": "pass",
+    "check_diff": "pass"
+  },
+  "production_behavior_impact": "none; test-only fixture update plus task/report artifacts",
+  "registry_release": "pass",
+  "list_active_after_release": [],
+  "final_git_status_before_commit": [
+    "A  docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md",
+    "M  financial-engine_v2/backend/tests/test_rag_payload_guardrails.py",
+    "A  reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/README.md",
+    "A  reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/diff-check.json",
+    "A  reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/status.json"
+  ]
+}

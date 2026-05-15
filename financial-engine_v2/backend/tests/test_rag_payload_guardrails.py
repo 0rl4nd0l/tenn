@@ -246,9 +246,11 @@ def test_delete_points_for_document_filters_by_document_id():
     assert selector.filter.must[0].match.value == document_id
 
 
-def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
+def test_process_document_deletes_existing_points_before_upsert(monkeypatch, tmp_path):
     call_order: list[tuple] = []
     doc_id = uuid.uuid4()
+    pdf_file = tmp_path / "valid.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
 
     class DummyDoc:
         document_id = doc_id
@@ -256,8 +258,9 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
         doc_class = "announcement"
         doc_subtype = "periodic"
         title = "Valid doc"
-        pdf_path = "/tmp/valid.pdf"
+        pdf_path = str(pdf_file)
         source_url = "https://example.com/doc.pdf"
+        pdf_sha256 = "sha-valid"
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -283,10 +286,27 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
             pass
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
+    from app.services import extraction_run_observability
+    from app.services import method_isolated_extraction
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok",
+            payload={"metrics": {}, "confidence_metrics": 0.9},
+            sections=[{"text": "Narrative section", "page": 1}],
+            error=None,
+        ),
+    )
     monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
+    monkeypatch.setattr(pipeline, "_upsert_financial_rows", lambda *_args, **_kwargs: 0)
     monkeypatch.setattr(
         pipeline,
         "delete_points_for_document",
@@ -301,19 +321,26 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", True, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_qdrant", True, raising=False)
     monkeypatch.setattr(pipeline.settings, "qdrant_collection", "asx_docs", raising=False)
-    monkeypatch.setattr(pipeline.settings, "enable_extraction", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
 
     result = pipeline.process_document(str(doc_id))
 
     expected_document_id = str(doc_id).lower()
+    assert result["extraction_status"] == "ok"
     assert result["written_points"] == 2
     assert call_order[0] == ("delete", "asx_docs", expected_document_id)
-    assert call_order[1][0] == "upsert"
+    assert call_order[1] == (
+        "upsert",
+        "asx_docs",
+        [f"{expected_document_id}:0", f"{expected_document_id}:1"],
+    )
 
 
-def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
+def test_process_document_skips_invalid_chunk_payloads(monkeypatch, tmp_path):
     captured_points: list[dict] = []
     doc_id = uuid.uuid4()
+    pdf_file = tmp_path / "invalid.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
 
     class DummyDoc:
         document_id = doc_id
@@ -321,8 +348,9 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
         doc_class = "announcement"
         doc_subtype = "periodic"
         title = "Invalid ticker doc"
-        pdf_path = "/tmp/invalid.pdf"
+        pdf_path = str(pdf_file)
         source_url = "https://example.com/doc.pdf"
+        pdf_sha256 = "sha-invalid"
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -348,10 +376,27 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
             pass
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
+    from app.services import extraction_run_observability
+    from app.services import method_isolated_extraction
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok",
+            payload={"metrics": {}, "confidence_metrics": 0.9},
+            sections=[{"text": "Narrative section", "page": 1}],
+            error=None,
+        ),
+    )
     monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
+    monkeypatch.setattr(pipeline, "_upsert_financial_rows", lambda *_args, **_kwargs: 0)
     monkeypatch.setattr(
         pipeline,
         "upsert_points",
@@ -359,19 +404,21 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
     )
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", True, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_qdrant", True, raising=False)
-    monkeypatch.setattr(pipeline.settings, "enable_extraction", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
 
     result = pipeline.process_document(str(doc_id))
 
-    assert result["extraction_status"] == "skipped"
+    assert result["extraction_status"] == "ok"
     assert result["skipped_invalid_vectors"] == 2
     assert result["invalid_payloads"] == 2
     assert captured_points == []
 
 
-def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypatch):
+def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypatch, tmp_path):
     doc_id = uuid.uuid4()
     upsert_calls: list[tuple[object, object, dict]] = []
+    pdf_file = tmp_path / "low_confidence.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
 
     class DummyDoc:
         document_id = doc_id
@@ -379,8 +426,9 @@ def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypat
         doc_class = "announcement"
         doc_subtype = "periodic"
         title = "Low confidence periodic"
-        pdf_path = "/tmp/low_confidence.pdf"
+        pdf_path = str(pdf_file)
         source_url = "https://example.com/low_confidence.pdf"
+        pdf_sha256 = "sha-low-confidence"
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -444,9 +492,15 @@ def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypat
     }
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    from app.services import extraction_run_observability
+    from app.services import method_isolated_extraction
+
     monkeypatch.setattr(
-        pipeline,
-        "run_multipass_extraction",
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
         lambda *args, **kwargs: SimpleNamespace(
             status="ok_low_confidence",
             payload=structured_payload,
@@ -458,7 +512,7 @@ def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypat
     monkeypatch.setattr(
         pipeline,
         "_upsert_financial_rows",
-        lambda db, doc, structured: upsert_calls.append((db, doc, structured)),
+        lambda db, doc, structured: upsert_calls.append((db, doc, structured)) or 1,
     )
     monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)

@@ -1,0 +1,50 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_rag_payload_guardrails.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/diff-check.json",
+      "status": "AM"
+    },
+    {
+      "path": "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md",
+        "financial-engine_v2/backend/tests/test_rag_payload_guardrails.py",
+        "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/README.md",
+        "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/status.json",
+        "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515/diff-check.json"
+      ],
+      "approval_id": "USER_APPROVED_PROCESS_DOCUMENT_GUARDRAILS_FIXTURE_FIX_INTEGRATE_NVME_20260515_GPT",
+      "approval_required": true,
+      "job_id": "process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
