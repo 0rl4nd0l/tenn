@@ -19,10 +19,66 @@ set -euo pipefail
 AUTHORISED_PORTS="8001 8002"
 VRAM_TOTAL_MB=24576       # Tesla M40 24GB
 VRAM_CRITICAL_FREE_MB=256  # 256MB minimum (single-instance router mode, KV cache uses remaining VRAM)
+GPU_GUARD_NVIDIA_SMI_TIMEOUT_SECONDS="${GPU_GUARD_NVIDIA_SMI_TIMEOUT_SECONDS:-5}"
+
+case "${GPU_GUARD_NVIDIA_SMI_TIMEOUT_SECONDS}" in
+  ''|*[!0-9]*)
+    GPU_GUARD_NVIDIA_SMI_TIMEOUT_SECONDS=5
+    ;;
+esac
+
+_NVIDIA_COMPUTE_APPS_CACHE=""
+_NVIDIA_COMPUTE_APPS_QUERY_FAILED=0
+_NVIDIA_MEMORY_QUERY_FAILED=0
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+_reset_nvidia_smi_state() {
+  _NVIDIA_COMPUTE_APPS_CACHE=""
+  _NVIDIA_COMPUTE_APPS_QUERY_FAILED=0
+  _NVIDIA_MEMORY_QUERY_FAILED=0
+}
+
+_nvidia_smi_query() {
+  local -a args=("$@")
+  local output
+  local rc=0
+
+  if command -v timeout >/dev/null 2>&1; then
+    output=$(timeout "${GPU_GUARD_NVIDIA_SMI_TIMEOUT_SECONDS}s" nvidia-smi "${args[@]}" 2>/dev/null) || rc=$?
+  else
+    echo "WARN: timeout command unavailable; running nvidia-smi without timeout guard." >&2
+    output=$(nvidia-smi "${args[@]}" 2>/dev/null) || rc=$?
+  fi
+
+  if (( rc != 0 )); then
+    if (( rc == 124 )); then
+      echo "WARN: nvidia-smi query timed out after ${GPU_GUARD_NVIDIA_SMI_TIMEOUT_SECONDS}s: nvidia-smi ${args[*]}" >&2
+    else
+      echo "WARN: nvidia-smi query failed (exit ${rc}): nvidia-smi ${args[*]}" >&2
+    fi
+    return "${rc}"
+  fi
+
+  printf '%s\n' "${output}"
+}
+
+_load_compute_apps_cache() {
+  local output
+  if [[ -n "${_NVIDIA_COMPUTE_APPS_CACHE}" ]]; then
+    return 0
+  fi
+
+  if ! output=$(_nvidia_smi_query --query-compute-apps=pid,used_memory --format=csv,noheader,nounits); then
+    _NVIDIA_COMPUTE_APPS_QUERY_FAILED=1
+    return 1
+  fi
+
+  _NVIDIA_COMPUTE_APPS_CACHE="${output}"
+  return 0
+}
 
 _is_authorised_port() {
   local port="$1"
@@ -98,22 +154,32 @@ _is_router_child_process() {
 _gpu_memory_used_mb() {
   # nounits should return digits only; strip defensively for set -u + arithmetic.
   local line
-  line=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 || true)
+  if ! line=$(_nvidia_smi_query --query-gpu=memory.used --format=csv,noheader,nounits | head -1); then
+    _NVIDIA_MEMORY_QUERY_FAILED=1
+    return 1
+  fi
   line=$(echo "${line}" | tr -cd '0-9')
   echo "${line:-0}"
 }
 
 _gpu_memory_free_mb() {
   local used
-  used=$(_gpu_memory_used_mb)
+  if ! used=$(_gpu_memory_used_mb); then
+    echo "${VRAM_TOTAL_MB}"
+    return 0
+  fi
   echo $(( VRAM_TOTAL_MB - used ))
 }
 
 _process_vram_mb() {
   local pid="$1"
+  if ! _load_compute_apps_cache; then
+    echo 0
+    return 0
+  fi
+
   local vram
-  vram=$(nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits 2>/dev/null \
-    | awk -F', ' -v pid="${pid}" '$1 == pid {print $2; exit}')
+  vram=$(awk -F', ' -v pid="${pid}" '$1 == pid {print $2; exit}' <<< "${_NVIDIA_COMPUTE_APPS_CACHE}")
   echo "${vram:-0}"
 }
 
@@ -123,6 +189,7 @@ _process_vram_mb() {
 
 survey() {
   # Returns tab-separated lines: PID\tPORT\tMODEL\tVRAM_MB\tSTATUS
+  _reset_nvidia_smi_state
   local pids
   pids=$(pgrep -f "llama-server" 2>/dev/null | grep -v "$$" || true)
   [[ -z "${pids}" ]] && return
@@ -155,9 +222,13 @@ survey() {
 do_report() {
   local data
   data=$(survey)
+  local nvidia_unavailable=$((_NVIDIA_COMPUTE_APPS_QUERY_FAILED + _NVIDIA_MEMORY_QUERY_FAILED))
 
   if [[ -z "${data}" ]]; then
     echo "No llama-server processes found."
+    if (( nvidia_unavailable > 0 )); then
+      echo "WARN: nvidia-smi unavailable or timed out during guard scan."
+    fi
     return
   fi
 
@@ -185,20 +256,32 @@ do_report() {
   echo "VRAM: ${used_mb}/${VRAM_TOTAL_MB} MB used (${free_mb} MB free)"
 
   if (( free_mb < VRAM_CRITICAL_FREE_MB )); then
-    echo "STATUS: CRITICAL — free VRAM below ${VRAM_CRITICAL_FREE_MB}MB threshold"
+    if (( nvidia_unavailable == 0 )); then
+      echo "STATUS: CRITICAL — free VRAM below ${VRAM_CRITICAL_FREE_MB}MB threshold"
+    else
+      echo "STATUS: CRITICAL SKIPPED — nvidia-smi query unavailable"
+    fi
   elif [[ "${has_rogue}" == "true" ]]; then
     echo "STATUS: ROGUES DETECTED — run with --kill-rogues to clean up"
   else
     echo "STATUS: CLEAN"
+  fi
+
+  if (( nvidia_unavailable > 0 )); then
+    echo "WARN: nvidia-smi is unavailable; GPU metrics may be incomplete."
   fi
 }
 
 do_check() {
   local data
   data=$(survey)
+  local nvidia_unavailable=$((_NVIDIA_COMPUTE_APPS_QUERY_FAILED + _NVIDIA_MEMORY_QUERY_FAILED))
   local has_rogue=false
   local free_mb
   free_mb=$(_gpu_memory_free_mb)
+  if (( nvidia_unavailable > 0 )); then
+    echo "WARN: nvidia-smi unavailable or timed out; VRAM check is conservative."
+  fi
 
   if [[ -n "${data}" ]]; then
     while IFS=$'\t' read -r pid port model vram status; do
@@ -209,7 +292,7 @@ do_check() {
     done <<< "${data}"
   fi
 
-  if (( free_mb < VRAM_CRITICAL_FREE_MB )); then
+  if (( nvidia_unavailable == 0 && free_mb < VRAM_CRITICAL_FREE_MB )); then
     exit 2  # VRAM critical
   elif [[ "${has_rogue}" == "true" ]]; then
     exit 1  # rogues detected
@@ -221,6 +304,10 @@ do_check() {
 do_kill_rogues() {
   local data
   data=$(survey)
+  if (( _NVIDIA_COMPUTE_APPS_QUERY_FAILED != 0 )); then
+    echo "WARN: nvidia-smi unavailable; skipping --kill-rogues to avoid unsafe process termination."
+    return
+  fi
   local killed=0
 
   if [[ -z "${data}" ]]; then
