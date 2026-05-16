@@ -1,17 +1,32 @@
 {
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515.md",
+    "scripts/load_news_to_qdrant.py",
+    "financial-engine_v2/backend/tests/test_load_news_to_qdrant.py",
+    "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/README.md",
+    "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/status.json",
+    "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/diff-check.json"
+  ],
+  "branch": "fast/dev-storage-v1-20260513-170304",
+  "claimed_at": "2026-05-16T13:58:04.633698Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-16T13:58:04.633698Z",
   "job_id": "news_loader_ollama_url_hardening_integrate_nvme_v1_20260515",
   "lane": "Query Orchestration",
+  "last_seen_at": "2026-05-16T13:58:15.331178Z",
+  "output_dir": "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515",
   "owner": "Codex",
-  "status": "validation_passed",
-  "source_commit": "a1802c757b54",
-  "runtime_mutation": false,
-  "db_qdrant_mutation": false,
-  "validations": {
-    "pytest": "5 passed in 3.60s",
-    "ruff": "All checks passed",
-    "py_compile": "passed",
-    "git_diff_check": "passed",
-    "git_diff_cached_check": "passed"
-  },
-  "quarantined_preexisting_file": "/tmp/tenn-quarantine/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/runtime_topology_nvme_active_sanity_v1_20260515.md"
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-16T13:58:15.331178Z",
+  "repo_root": "/home/l4nd0/tenn-fast-dev-storage-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:65437:news_loader_ollama_url_hardening_integrate_nvme_v1_20260515",
+  "started_at": "2026-05-16T13:58:04.633698Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515.md",
+  "updated_at": "2026-05-16T13:58:15.331178Z",
+  "worktree": "/home/l4nd0/tenn-fast-dev-storage-v1"
 }
