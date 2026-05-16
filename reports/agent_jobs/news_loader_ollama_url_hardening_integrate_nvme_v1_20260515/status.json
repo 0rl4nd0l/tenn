@@ -1,0 +1,17 @@
+{
+  "job_id": "news_loader_ollama_url_hardening_integrate_nvme_v1_20260515",
+  "lane": "Query Orchestration",
+  "owner": "Codex",
+  "status": "validation_passed",
+  "source_commit": "a1802c757b54",
+  "runtime_mutation": false,
+  "db_qdrant_mutation": false,
+  "validations": {
+    "pytest": "5 passed in 3.60s",
+    "ruff": "All checks passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "passed"
+  },
+  "quarantined_preexisting_file": "/tmp/tenn-quarantine/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/runtime_topology_nvme_active_sanity_v1_20260515.md"
+}
