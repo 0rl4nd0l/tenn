@@ -1,0 +1,44 @@
+{
+  "fallback_root": {
+    "checked": true,
+    "fallback_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/backend/reports/research_memory",
+    "issues": [],
+    "ok": true,
+    "require_no_sqlite": true,
+    "sqlite_files": []
+  },
+  "issues": [],
+  "market_memory": {
+    "active_distinct_linked_ticker_count": 19,
+    "active_distinct_linked_tickers": [
+      "360",
+      "BHP",
+      "BTE",
+      "COH",
+      "CSL",
+      "EDV",
+      "EZZ",
+      "GOLD",
+      "HWK",
+      "IAG",
+      "NAB",
+      "NHF",
+      "PRM",
+      "QBE",
+      "REG",
+      "SHEL",
+      "SUN",
+      "WBC",
+      "XOM"
+    ],
+    "active_sector_row_count": 83,
+    "forbidden_tokens": [
+      "BE"
+    ],
+    "identity_map_path": "financial-engine_v2/config/ticker_identity_map.json",
+    "issues": [],
+    "market_memory_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+    "ok": true
+  },
+  "ok": true
+}
