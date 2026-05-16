@@ -1,26 +1,35 @@
 {
-  "base_head": "ccbe47905b0f",
-  "branch": "safe/memory-integrity-audit-guard-v1-20260516",
-  "files_added": [
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/memory_integrity_audit_guard_v1_20260516.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/memory_integrity_audit_guard_v1_20260516.md",
     "scripts/audit_memory_integrity.py",
-    "scripts/test_audit_memory_integrity.py"
+    "scripts/test_audit_memory_integrity.py",
+    "scripts/validate_system.sh",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/**",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/README.md",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/status.json",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/diff-check.json",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/live_audit.json"
   ],
+  "branch": "safe/memory-integrity-validation-company-v1-20260516",
+  "claimed_at": "2026-05-16T05:56:37.438433Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-16T05:56:37.438433Z",
   "job_id": "memory_integrity_audit_guard_v1_20260516",
   "lane": "Memory",
-  "live_audit": {
-    "active_distinct_linked_ticker_count": 19,
-    "fallback_sqlite_count": 0,
-    "issue_count": 0,
-    "ok": true
-  },
-  "live_data_mutation": false,
-  "status": "completed_pending_registry_release",
-  "validation": {
-    "backend_health": "ok",
-    "live_read_only_audit": "passed",
-    "pytest_scripts_test_audit_memory_integrity": "passed",
-    "registry_claim": "passed",
-    "ruff_check_new_files": "passed",
-    "task_card_validate": "passed"
-  }
+  "last_seen_at": "2026-05-16T05:58:30.166274Z",
+  "output_dir": "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-16T05:58:30.166274Z",
+  "repo_root": "/home/l4nd0/tenn-memory-integrity-validation-company-v1-20260516",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:922291:memory_integrity_audit_guard_v1_20260516",
+  "started_at": "2026-05-16T05:56:37.438433Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/memory_integrity_audit_guard_v1_20260516.md",
+  "updated_at": "2026-05-16T05:58:30.166274Z",
+  "worktree": "/home/l4nd0/tenn-memory-integrity-validation-company-v1-20260516"
 }
