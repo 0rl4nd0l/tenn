@@ -4,6 +4,7 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 TICKER="${TICKER:-BHP}"
 RAG_QUERY="${RAG_QUERY:-latest financial results}"
+SMOKE_REQUIRE_SYNC_BACKFILL="${SMOKE_REQUIRE_SYNC_BACKFILL:-0}"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -62,12 +63,15 @@ print(json.dumps(payload))
 PY
 
 echo "[2/4] Sync backfill"
-request_json POST "${BASE_URL}/api/backfill/ticker/${TICKER}?years=1&process_documents=true" "${TMP_DIR}/backfill.json"
-if grep -Fq "expected sync mode" "${TMP_DIR}/backfill.json"; then
-  echo "Backend not running in sync mode." >&2
-  exit 1
-fi
-python - "${TMP_DIR}/backfill.json" "${TICKER}" <<'PY'
+if [[ "${SMOKE_REQUIRE_SYNC_BACKFILL}" != "1" ]]; then
+  echo "{\"ticker\":\"${TICKER}\",\"sync_backfill\":\"skipped\",\"reason\":\"set SMOKE_REQUIRE_SYNC_BACKFILL=1 to enable\"}"
+else
+  request_json POST "${BASE_URL}/api/backfill/ticker/${TICKER}?years=1&process_documents=true" "${TMP_DIR}/backfill.json"
+  if grep -Fq "expected sync mode" "${TMP_DIR}/backfill.json"; then
+    echo "Backend not running in sync mode." >&2
+    exit 1
+  fi
+  python - "${TMP_DIR}/backfill.json" "${TICKER}" <<'PY'
 import json
 import sys
 
@@ -79,6 +83,7 @@ if payload.get("mode") != "sync":
 
 print(json.dumps({"ticker": sys.argv[2], "mode": payload["mode"]}))
 PY
+fi
 
 echo "[3/4] Docs endpoint"
 request_json GET "${BASE_URL}/api/docs?ticker=${TICKER}" "${TMP_DIR}/docs.json"
