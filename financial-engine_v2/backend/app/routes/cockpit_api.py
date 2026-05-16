@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from io import BytesIO
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -610,6 +610,7 @@ _CSV_TRADE_PRICE_COLUMNS = (
 )
 _CSV_TRADE_AMOUNT_COLUMNS = ("amount", "total_value", "notional", "gross_value")
 _HOLDINGS_PRICE_CACHE_TTL_SECONDS = 90.0
+_HOME_PORTFOLIO_PRICE_ENRICHMENT_TIMEOUT_SECONDS = 3.0
 _HOLDINGS_PRICE_CACHE_LOCK = threading.Lock()
 _HOLDINGS_PRICE_CACHE: dict[tuple[str, str | None], tuple[float, dict[str, Any] | None]] = {}
 _HOLDINGS_PRICE_EXCHANGE_FALLBACKS = ("ASX", "NASDAQ", "NYSE")
@@ -4900,7 +4901,11 @@ def _fetch_live_price_snapshot_for_holding(
     return snapshot
 
 
-def _enrich_holdings_with_live_prices(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _enrich_holdings_with_live_prices(
+    rows: list[dict[str, Any]],
+    *,
+    timeout_seconds: float | None = None,
+) -> list[dict[str, Any]]:
     keys: list[tuple[str, str | None]] = []
     seen: set[tuple[str, str | None]] = set()
     for row in rows:
@@ -4915,18 +4920,41 @@ def _enrich_holdings_with_live_prices(rows: list[dict[str, Any]]) -> list[dict[s
 
     live_by_key: dict[tuple[str, str | None], dict[str, Any] | None] = {}
     if keys:
-        with ThreadPoolExecutor(max_workers=max(1, min(8, len(keys)))) as pool:
+        pool = ThreadPoolExecutor(max_workers=max(1, min(8, len(keys))))
+        try:
             future_map = {
                 pool.submit(_fetch_live_price_snapshot_for_holding, ticker, exchange): (ticker, exchange)
                 for ticker, exchange in keys
             }
-            for future in as_completed(future_map):
+            if timeout_seconds is None:
+                completed_futures = as_completed(future_map)
+                pending_count = 0
+                wait_for_shutdown = True
+            else:
+                done, pending = wait(future_map, timeout=max(timeout_seconds, 0.0))
+                for future in pending:
+                    future.cancel()
+                completed_futures = done
+                pending_count = len(pending)
+                wait_for_shutdown = False
+
+            if pending_count:
+                logger.info(
+                    "Live price enrichment timed out for %s/%s holdings after %.3fs",
+                    pending_count,
+                    len(keys),
+                    timeout_seconds,
+                )
+
+            for future in completed_futures:
                 key = future_map[future]
                 try:
                     live_by_key[key] = future.result()
                 except Exception as exc:
                     logger.debug("Live price enrichment failed for %s: %s", key[0], exc)
                     live_by_key[key] = None
+        finally:
+            pool.shutdown(wait=wait_for_shutdown, cancel_futures=not wait_for_shutdown)
 
     enriched: list[dict[str, Any]] = []
     for row in rows:
@@ -5255,7 +5283,10 @@ def cockpit_home_portfolio() -> CockpitHomePortfolioResponse:
     try:
         service = CockpitService.get_instance()
         rows = service.state_store.list_holdings(include_archived=False)
-        enriched_rows = _enrich_holdings_with_live_prices([dict(row) for row in rows])
+        enriched_rows = _enrich_holdings_with_live_prices(
+            [dict(row) for row in rows],
+            timeout_seconds=_HOME_PORTFOLIO_PRICE_ENRICHMENT_TIMEOUT_SECONDS,
+        )
         snapshot = build_portfolio_snapshot(enriched_rows)
     except Exception as exc:
         logger.exception("Failed to build Cockpit Home portfolio")

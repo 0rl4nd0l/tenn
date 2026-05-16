@@ -163,6 +163,7 @@ interface NarrativeAssembly {
 }
 
 const DEFAULT_COMMENTARY_LIMIT = 5;
+export const HOME_PORTFOLIO_UPSTREAM_TIMEOUT_MS = 3_000;
 
 export async function buildCockpitHomeBffResponse(
   options: BuildCockpitHomeBffResponseOptions = {},
@@ -185,7 +186,13 @@ export async function buildCockpitHomeBffResponse(
   ] = await Promise.all([
     readBackendJson(fetcher, backendUrl, '/api/health', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-session', headers),
-    readBackendJson(fetcher, backendUrl, '/api/cockpit/home/portfolio', headers),
+    readBackendJsonWithTimeout(
+      fetcher,
+      backendUrl,
+      '/api/cockpit/home/portfolio',
+      headers,
+      HOME_PORTFOLIO_UPSTREAM_TIMEOUT_MS,
+    ),
     readBackendJson(fetcher, backendUrl, `/api/commentary/recent?limit=${commentaryLimit}`, headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/attention-queue', headers),
     readBackendJson(fetcher, backendUrl, '/api/cockpit/home/market-movers', headers),
@@ -244,16 +251,51 @@ export async function buildCockpitHomeBffResponse(
   };
 }
 
+async function readBackendJsonWithTimeout(
+  fetcher: CockpitHomeUpstreamFetch,
+  backendUrl: string,
+  path: string,
+  headers: Headers,
+  timeoutMs: number,
+): Promise<UpstreamRead> {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutRead = new Promise<UpstreamRead>((resolve) => {
+    timeoutId = setTimeout(() => {
+      controller?.abort();
+      resolve({
+        ok: false,
+        status: null,
+        payload: null,
+        error: `Backend ${path} timed out after ${timeoutMs}ms`,
+      });
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([
+      readBackendJson(fetcher, backendUrl, path, headers, controller?.signal),
+      timeoutRead,
+    ]);
+  } finally {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 async function readBackendJson(
   fetcher: CockpitHomeUpstreamFetch,
   backendUrl: string,
   path: string,
   headers: Headers,
+  signal?: AbortSignal,
 ): Promise<UpstreamRead> {
   try {
     const response = await fetcher(`${backendUrl}${path}`, {
       headers: new Headers(headers),
       cache: 'no-store',
+      signal,
     });
     const payload = await readResponsePayload(response);
     if (!response.ok) {

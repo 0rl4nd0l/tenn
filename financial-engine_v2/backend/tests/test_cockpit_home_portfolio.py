@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 
 from fastapi import FastAPI
@@ -145,6 +146,7 @@ def test_portfolio_snapshot_exposes_partial_day_change_with_coverage() -> None:
 
 def test_home_portfolio_endpoint_returns_local_personal_snapshot(monkeypatch) -> None:
     store = FakeStateStore([{"ticker": "BHP", "quantity": 10}])
+    enrichment_timeout: float | None = None
 
     class FakeService:
         state_store = store
@@ -157,7 +159,16 @@ def test_home_portfolio_endpoint_returns_local_personal_snapshot(monkeypatch) ->
     monkeypatch.setattr(
         cockpit_api,
         "_enrich_holdings_with_live_prices",
-        lambda rows: [
+        lambda rows, *, timeout_seconds=None: _capture_home_enrichment(
+            rows,
+            timeout_seconds,
+        ),
+    )
+
+    def _capture_home_enrichment(rows, timeout_seconds=None):
+        nonlocal enrichment_timeout
+        enrichment_timeout = timeout_seconds
+        return [
             {
                 **rows[0],
                 "current_price": 100,
@@ -166,8 +177,8 @@ def test_home_portfolio_endpoint_returns_local_personal_snapshot(monkeypatch) ->
                 "price_as_of": "2026-05-07T01:00:00+00:00",
                 "market_value": 1000,
             }
-        ],
-    )
+        ]
+
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")
 
@@ -191,6 +202,7 @@ def test_home_portfolio_endpoint_returns_local_personal_snapshot(monkeypatch) ->
         "day_change_priced_holdings_count": 1,
     }
     assert store.calls == [{"include_archived": False}]
+    assert enrichment_timeout == cockpit_api._HOME_PORTFOLIO_PRICE_ENRICHMENT_TIMEOUT_SECONDS
 
 
 def test_holdings_enrichment_preserves_previous_close_for_day_change(monkeypatch) -> None:
@@ -215,3 +227,42 @@ def test_holdings_enrichment_preserves_previous_close_for_day_change(monkeypatch
     assert rows[0]["market_value"] == 5000
     assert rows[0]["day_change"] == 200
     assert round(rows[0]["day_change_percent"], 2) == 4.17
+
+
+def test_home_portfolio_enrichment_budget_returns_unpriced_rows(monkeypatch) -> None:
+    def slow_price_snapshot(ticker, market_exchange):
+        time.sleep(0.2)
+        return {
+            "current_price": 50,
+            "previous_close": 48,
+            "price_currency": "AUD",
+            "price_as_of": "2026-05-07T01:00:00+00:00",
+            "market_exchange": market_exchange or "ASX",
+        }
+
+    monkeypatch.setattr(
+        cockpit_api,
+        "_fetch_live_price_snapshot_for_holding",
+        slow_price_snapshot,
+    )
+
+    started_at = time.monotonic()
+    rows = cockpit_api._enrich_holdings_with_live_prices(
+        [
+            {"ticker": "BHP", "quantity": 100, "market_exchange": "ASX"},
+            {"ticker": "CBA", "quantity": 50, "market_exchange": "ASX"},
+        ],
+        timeout_seconds=0.001,
+    )
+    elapsed = time.monotonic() - started_at
+
+    assert elapsed < 0.15
+    assert [row["current_price"] for row in rows] == [None, None]
+    assert [row["market_value"] for row in rows] == [None, None]
+    snapshot = build_portfolio_snapshot(rows, now=datetime(2026, 5, 7, 2, 0, tzinfo=timezone.utc))
+    assert snapshot.data_state == "PARTIAL"
+    assert snapshot.total_value is None
+    assert {item.code for item in snapshot.data_missing} == {
+        "PORTFOLIO_TOTAL_PRICING_UNAVAILABLE",
+        "PORTFOLIO_DAY_CHANGE_UNAVAILABLE",
+    }

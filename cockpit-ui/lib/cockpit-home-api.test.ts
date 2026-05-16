@@ -6,7 +6,10 @@ import userEvent from '@testing-library/user-event';
 
 import { GET as getCockpitHomeRoute } from '@/app/api/cockpit/home/route';
 import { CockpitHomePage } from '@/components/cockpit/home/home-page';
-import { buildCockpitHomeBffResponse } from './cockpit-home-api';
+import {
+  HOME_PORTFOLIO_UPSTREAM_TIMEOUT_MS,
+  buildCockpitHomeBffResponse,
+} from './cockpit-home-api';
 import type {
   CockpitHomeBffResponse,
   CockpitHomeDataMissingSignal,
@@ -15,6 +18,7 @@ import type {
 describe('Cockpit Home BFF route', () => {
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_API_URL;
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -250,6 +254,72 @@ describe('Cockpit Home BFF route', () => {
     );
   });
 
+  it('does not block /api/cockpit/home on a slow portfolio upstream', async () => {
+    vi.useFakeTimers();
+    process.env.NEXT_PUBLIC_API_URL = 'http://backend.internal:8000';
+    const slowPortfolioDelayMs = HOME_PORTFOLIO_UPSTREAM_TIMEOUT_MS + 9_000;
+    const upstreamTimings: TimedHomeUpstreamCall[] = [];
+    const fetchMock = timedHomeFetcher(
+      [
+        timedUpstream('/api/health', 1, { status: 'ok' }),
+        timedUpstream('/api/cockpit/home/market-session', 2, marketSessionResponse()),
+        timedUpstream('/api/cockpit/home/portfolio', slowPortfolioDelayMs, portfolioResponse()),
+        timedUpstream('/api/commentary/recent?limit=5', 3, { items: [] }),
+        timedUpstream('/api/cockpit/home/attention-queue', 2, {
+          ok: true,
+          data_state: 'READY',
+          degraded: false,
+          data_missing: [],
+          as_of: '2026-05-07T02:00:00Z',
+          items: [],
+        }),
+        timedUpstream('/api/cockpit/home/market-movers', 2, marketMoversEmptyResponse()),
+        timedUpstream('/api/cockpit/home/narrative', 2, narrativeMissingResponse()),
+      ],
+      upstreamTimings,
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const responsePromise = getCockpitHomeRoute(new NextRequest('http://localhost/api/cockpit/home'));
+
+    await vi.advanceTimersByTimeAsync(HOME_PORTFOLIO_UPSTREAM_TIMEOUT_MS);
+    const response = await responsePromise;
+    const payload = (await response.json()) as CockpitHomeBffResponse;
+
+    expect(response.status).toBe(200);
+    expectHomeBffBodyShape(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(upstreamTimings.map((timing) => timing.path)).not.toContain('/api/cockpit/home/portfolio');
+    expect(payload.data_state).toBe('PARTIAL');
+    expect(payload.portfolio).toMatchObject({
+      data_state: 'DATA_MISSING',
+      degraded: true,
+      source_label: 'local_personal_data',
+      total_value: null,
+      currency: null,
+      day_change: null,
+      day_change_percent: null,
+      coverage_percent: null,
+      holdings_count: 0,
+      priced_holdings_count: 0,
+      day_change_priced_holdings_count: 0,
+    });
+    expect(payload.portfolio.data_missing).toEqual([
+      expect.objectContaining({
+        section: 'portfolio',
+        code: 'PORTFOLIO_ENDPOINT_UNAVAILABLE',
+        message: expect.stringContaining(`timed out after ${HOME_PORTFOLIO_UPSTREAM_TIMEOUT_MS}ms`),
+        source_label: 'missing_required_evidence',
+      }),
+    ]);
+    expect(payload.data_missing.map((signal) => signal.code)).toContain('PORTFOLIO_ENDPOINT_UNAVAILABLE');
+    expect(payload.data_health.find((item) => item.section === 'portfolio')).toMatchObject({
+      data_state: 'DATA_MISSING',
+      degraded: true,
+      value: 'DATA_MISSING',
+    });
+  });
+
   it('returns DATA_MISSING without fabricating source-backed evidence when upstreams fail', async () => {
     const fetcher = vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED'));
 
@@ -403,6 +473,7 @@ describe('Cockpit Home BFF route', () => {
 
 describe('CockpitHomePage live BFF wiring', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -689,6 +760,90 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}): Response {
       ...init.headers,
     },
   });
+}
+
+interface TimedHomeUpstream {
+  path: string;
+  delayMs: number;
+  payload: unknown;
+}
+
+interface TimedHomeUpstreamCall {
+  path: string;
+  section: string;
+  durationMs: number;
+}
+
+function timedUpstream(path: string, delayMs: number, payload: unknown): TimedHomeUpstream {
+  return {
+    path,
+    delayMs,
+    payload,
+  };
+}
+
+function timedHomeFetcher(upstreams: TimedHomeUpstream[], calls: TimedHomeUpstreamCall[]) {
+  const upstreamByPath = new Map(upstreams.map((upstream) => [upstream.path, upstream]));
+  return vi.fn((input: string) => {
+    const url = new URL(input);
+    const path = `${url.pathname}${url.search}`;
+    const upstream = upstreamByPath.get(path);
+    if (!upstream) {
+      return Promise.reject(new Error(`Unexpected Home upstream: ${path}`));
+    }
+    return new Promise<Response>((resolve) => {
+      setTimeout(() => {
+        calls.push({
+          path,
+          section: homeSectionForPath(path),
+          durationMs: upstream.delayMs,
+        });
+        resolve(jsonResponse(upstream.payload));
+      }, upstream.delayMs);
+    });
+  });
+}
+
+function homeSectionForPath(path: string): string {
+  if (path === '/api/health') return 'data_health';
+  if (path === '/api/cockpit/home/market-session') return 'market_session';
+  if (path === '/api/cockpit/home/portfolio') return 'portfolio';
+  if (path === '/api/commentary/recent?limit=5') return 'news';
+  if (path === '/api/cockpit/home/attention-queue') return 'attention_queue';
+  if (path === '/api/cockpit/home/market-movers') return 'market_movers';
+  if (path === '/api/cockpit/home/narrative') return 'session_summary';
+  return 'unknown';
+}
+
+function expectHomeBffBodyShape(payload: CockpitHomeBffResponse): void {
+  expect(payload).toMatchObject({
+    ok: true,
+    source_label_taxonomy_version: 'source_label_semantics_v1',
+  });
+  expect(typeof payload.generated_at).toBe('string');
+  expect(['READY', 'PARTIAL', 'DEGRADED', 'DATA_MISSING']).toContain(payload.data_state);
+  expect(Array.isArray(payload.data_missing)).toBe(true);
+  expect(payload.market_session.exchange).toBe('ASX');
+  expect(payload.market_session.timezone).toBe('Australia/Melbourne');
+  expect(payload.portfolio.source_label).toBe('local_personal_data');
+  expect(Array.isArray(payload.market_movers)).toBe(true);
+  expect(Array.isArray(payload.news)).toBe(true);
+  expect(Array.isArray(payload.attention_queue)).toBe(true);
+  expect(Array.isArray(payload.data_health)).toBe(true);
+  expect(payload.narrative).toMatchObject({
+    session_summary: null,
+    theme_candidates: [],
+    tomorrow_prep: [],
+  });
+  expect(payload.data_health.map((item) => item.section)).toEqual([
+    'data_health',
+    'market_session',
+    'portfolio',
+    'news',
+    'attention_queue',
+    'market_movers',
+    'session_summary',
+  ]);
 }
 
 function marketSessionResponse() {
