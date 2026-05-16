@@ -1,0 +1,77 @@
+{
+  "job_id": "m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516",
+  "status": "completed_runtime_still_fails_released",
+  "classification": "M40_CUDA_LLAMA_RUNTIME_STILL_FAILS",
+  "branch": "fast/dev-storage-v1-20260513-170304",
+  "head": "2b2197e0def9",
+  "worktree": "/home/l4nd0/tenn-fast-dev-storage-v1",
+  "lane": "Query Orchestration",
+  "execution_mode": "safe_extension",
+  "registry_released": true,
+  "build": {
+    "source": "/mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp",
+    "source_commit": "c5a778891ba0",
+    "build_dir": "/tmp/tenn-m40-llamacpp-no-vmm-build-20260516",
+    "binary": "/tmp/tenn-m40-llamacpp-no-vmm-build-20260516/bin/llama-server",
+    "compiler": "gcc/g++ 10.5.0",
+    "nvcc": "11.5.119",
+    "cmake_cuda_architectures": "52",
+    "ggml_cuda_no_vmm": true,
+    "ggml_cuda_graphs": false,
+    "ggml_cuda_fa": false,
+    "build_result": "succeeded_after_retry_with_gcc10"
+  },
+  "runtime_probe": {
+    "port": 18011,
+    "model": "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+    "alias": "model:qwen2.5-14b-no-vmm-control",
+    "result": "failed_before_health",
+    "cuda_error": "all CUDA-capable devices are busy or unavailable",
+    "failure_function": "ggml_backend_cuda_device_get_memory / cudaMemGetInfo",
+    "kernel_xids": [
+      "Xid 32 for no-VMM llama-server PID 296411",
+      "Xid 69 for earlier llama-server CUDA attempts"
+    ]
+  },
+  "gpu_state_after": {
+    "gt_1030_mib_used": 1,
+    "tesla_m40_mib_used": 0,
+    "tesla_m40_util_percent": 0,
+    "tesla_m40_temperature_c": 28,
+    "nvidia_smi_hung": false,
+    "non_llama_cuda_smoke_after_failure": "CUDA_SMOKE_OK"
+  },
+  "runtime_state_after": {
+    "llamacpp_8001": "down",
+    "probe_18011": "stopped",
+    "cpu_control_18012": "stopped",
+    "virtual_gpu_18001": "not_touched",
+    "cockpit_health": "degraded_llamacpp_down"
+  },
+  "root_cause_assessment": {
+    "gpu_dead": false,
+    "model_file_primary_failure": false,
+    "apex_only_failure": false,
+    "likely_failure_surface": "llama.cpp CUDA backend interaction with Tesla M40/driver stack"
+  },
+  "files_changed": [
+    "docs/agent_tasks/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516.md",
+    "reports/agent_jobs/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516/README.md",
+    "reports/agent_jobs/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516/status.json",
+    "reports/agent_jobs/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516/diff-check.json",
+    "reports/agent_jobs/m40_llamacpp_runtime_restore_v1_20260516/README.md"
+  ],
+  "files_intentionally_not_touched": [
+    "source code",
+    "runtime configuration",
+    "model aliases",
+    "model files",
+    "Postgres",
+    "SQLite",
+    "Qdrant",
+    "Tenn memory/product memory",
+    "news stores",
+    ":18001 virtual/rented GPU path"
+  ],
+  "recommended_next_safe_step": "Do not rely on local M40 llama.cpp CUDA. Either explicitly restore a degraded CPU router on :8001, intentionally wire and validate the virtual/rented GPU path, or run a separate one-variant-at-a-time older llama.cpp/driver-reset recovery task."
+}

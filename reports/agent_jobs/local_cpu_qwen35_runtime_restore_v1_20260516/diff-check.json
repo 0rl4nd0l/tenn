@@ -1,0 +1,84 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/status.json",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/apex_m40_gpu_vs_model_differential_probe_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/apex_m40_runtime_recovery_or_degrade_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/apex_m40_runtime_stability_audit_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/local_cpu_qwen35_runtime_restore_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/m40_llamacpp_runtime_restore_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/m40_no_mmap_isolated_control_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/m40_non_llama_cuda_smoke_v1_20260516.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/virtual_gpu_runtime_restore_v1_20260516.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/local_cpu_qwen35_runtime_restore_v1_20260516/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/local_cpu_qwen35_runtime_restore_v1_20260516.md",
+        "reports/agent_jobs/local_cpu_qwen35_runtime_restore_v1_20260516/",
+        "docs/agent_tasks/apex_m40_gpu_vs_model_differential_probe_v1_20260516.md",
+        "docs/agent_tasks/apex_m40_runtime_recovery_or_degrade_v1_20260516.md",
+        "docs/agent_tasks/apex_m40_runtime_stability_audit_v1_20260516.md",
+        "docs/agent_tasks/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516.md",
+        "docs/agent_tasks/m40_llamacpp_runtime_restore_v1_20260516.md",
+        "docs/agent_tasks/m40_no_mmap_isolated_control_v1_20260516.md",
+        "docs/agent_tasks/m40_non_llama_cuda_smoke_v1_20260516.md",
+        "docs/agent_tasks/virtual_gpu_runtime_restore_v1_20260516.md",
+        "reports/agent_jobs/apex_m40_gpu_vs_model_differential_probe_v1_20260516/",
+        "reports/agent_jobs/apex_m40_runtime_recovery_or_degrade_v1_20260516/",
+        "reports/agent_jobs/apex_m40_runtime_stability_audit_v1_20260516/",
+        "reports/agent_jobs/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516/",
+        "reports/agent_jobs/m40_llamacpp_runtime_restore_v1_20260516/",
+        "reports/agent_jobs/m40_no_mmap_isolated_control_v1_20260516/",
+        "reports/agent_jobs/m40_non_llama_cuda_smoke_v1_20260516/",
+        "reports/agent_jobs/virtual_gpu_runtime_restore_v1_20260516/",
+        "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/status.json"
+      ],
+      "approval_required": false,
+      "job_id": "local_cpu_qwen35_runtime_restore_v1_20260516",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/local_cpu_qwen35_runtime_restore_v1_20260516",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
