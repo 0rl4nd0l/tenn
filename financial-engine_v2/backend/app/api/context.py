@@ -320,6 +320,7 @@ def _load_company_memory(
     *,
     entries_limit: int,
     change_log_limit: int,
+    entry_status: str | None = "active",
 ) -> tuple[dict[str, Any], str | None]:
     try:
         from app.services.company_memory import (
@@ -349,11 +350,12 @@ def _load_company_memory(
 
     try:
         store = CompanyMemoryStore(path)
-        entries = store.list_entries(ticker)
+        entries = store.list_entries(ticker, status=entry_status)
         change_log = store.list_change_log(ticker)
         return {
             "status": "ok",
             "path": str(path),
+            "entry_status": entry_status or "all",
             "entries": entries[:entries_limit],
             "change_log": change_log[:change_log_limit],
             "entries_total": len(entries),

@@ -1,0 +1,32 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/memory_company_context_active_only_read_guard_v1_20260517.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/memory_company_context_active_only_read_guard_v1_20260517.md",
+    "financial-engine_v2/backend/app/api/context.py",
+    "financial-engine_v2/backend/tests/test_context_endpoints.py",
+    "reports/agent_jobs/memory_company_context_active_only_read_guard_v1_20260517/**",
+    "reports/agent_jobs/memory_company_context_active_only_read_guard_v1_20260517/status.json",
+    "reports/agent_jobs/memory_company_context_active_only_read_guard_v1_20260517/validation.json",
+    "reports/agent_jobs/memory_company_context_active_only_read_guard_v1_20260517/diff-check.json"
+  ],
+  "branch": "safe/memory-live-context-root-resolution-nvme-v1-20260516",
+  "claimed_at": "2026-05-16T14:07:17.530817Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-16T14:07:17.530817Z",
+  "job_id": "memory_company_context_active_only_read_guard_v1_20260517",
+  "lane": "Memory",
+  "last_seen_at": "2026-05-16T14:07:17.530817Z",
+  "output_dir": "reports/agent_jobs/memory_company_context_active_only_read_guard_v1_20260517",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-memory-live-context-root-resolution-nvme-v1-20260516",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:99705:memory_company_context_active_only_read_guard_v1_20260517",
+  "started_at": "2026-05-16T14:07:17.530817Z",
+  "status": "active",
+  "task_card": "docs/agent_tasks/memory_company_context_active_only_read_guard_v1_20260517.md",
+  "updated_at": "2026-05-16T14:07:17.530817Z",
+  "worktree": "/home/l4nd0/tenn-memory-live-context-root-resolution-nvme-v1-20260516"
+}

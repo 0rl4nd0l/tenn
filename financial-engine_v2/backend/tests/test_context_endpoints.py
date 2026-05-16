@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 import app.core.config as config
 
 from app.api.context import (
+    _load_company_memory,
     _load_market_memory,
     CompanyMemoryAddRequest,
     CompanyMemoryExpireRequest,
@@ -510,6 +511,81 @@ class TestGetCompanyDump:
 
 
 class TestGetMemoryContext:
+    def test_load_company_memory_defaults_to_active_entries(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        from app.services.company_memory import CompanyMemoryStore
+
+        store_path = tmp_path / "company_memory.sqlite"
+        store = CompanyMemoryStore(store_path)
+        expired = store.add_manual_entry(
+            "BHP",
+            signal_type="risk",
+            statement="Expired off-target historical row.",
+        )
+        store.expire_entry("BHP", expired["entry"]["entry_id"], reason="test")
+        store.add_manual_entry(
+            "BHP",
+            signal_type="observed_fact",
+            statement="BHP active operating context.",
+        )
+        monkeypatch.setattr(
+            "app.services.company_memory.DEFAULT_COMPANY_MEMORY_PATH",
+            store_path,
+        )
+
+        result, err = _load_company_memory(
+            "BHP",
+            entries_limit=10,
+            change_log_limit=10,
+        )
+
+        assert err is None
+        assert result["entry_status"] == "active"
+        assert result["entries_total"] == 1
+        assert [entry["statement"] for entry in result["entries"]] == [
+            "BHP active operating context."
+        ]
+        assert result["change_log_total"] == 3
+
+    def test_load_company_memory_can_include_all_entries_when_requested(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        from app.services.company_memory import CompanyMemoryStore
+
+        store_path = tmp_path / "company_memory.sqlite"
+        store = CompanyMemoryStore(store_path)
+        expired = store.add_manual_entry(
+            "BHP",
+            signal_type="risk",
+            statement="Expired historical row.",
+        )
+        store.expire_entry("BHP", expired["entry"]["entry_id"], reason="test")
+        store.add_manual_entry(
+            "BHP",
+            signal_type="observed_fact",
+            statement="Active row.",
+        )
+        monkeypatch.setattr(
+            "app.services.company_memory.DEFAULT_COMPANY_MEMORY_PATH",
+            store_path,
+        )
+
+        result, err = _load_company_memory(
+            "BHP",
+            entries_limit=10,
+            change_log_limit=10,
+            entry_status=None,
+        )
+
+        assert err is None
+        assert result["entry_status"] == "all"
+        assert result["entries_total"] == 2
+
     def test_memory_context_loads_company_and_market_memory(self):
         with (
             patch(
