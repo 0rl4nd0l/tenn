@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/memory_validation_gate_isolation_v1_20260516.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/status.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/test_validate_memory_integrity_script.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/test_validate_system_routing_smoke.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/validate_memory_integrity.sh",
+      "status": "A"
+    },
+    {
+      "path": "scripts/validate_system.sh",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/memory_validation_gate_isolation_v1_20260516.md",
+        "scripts/validate_system.sh",
+        "scripts/validate_memory_integrity.sh",
+        "scripts/test_validate_system_routing_smoke.py",
+        "scripts/test_validate_memory_integrity_script.py",
+        "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/**",
+        "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/README.md",
+        "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/status.json",
+        "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "memory_validation_gate_isolation_v1_20260516",
+      "lane": "Memory",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/memory_validation_gate_isolation_v1_20260516",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
