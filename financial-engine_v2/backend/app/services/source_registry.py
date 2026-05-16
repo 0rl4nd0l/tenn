@@ -8,18 +8,34 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from app.core.config import settings
+from app.core.config import PROJECT_ROOT, settings
 from app.services.source_weighting import DEFAULT_HALF_LIFE_DAYS, DEFAULT_SOURCE_WEIGHTS
 
 
-def _default_research_memory_root() -> Path:
-    backend_root = Path(__file__).resolve().parents[2]
-    candidates = [
-        Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
-        / "reports"
-        / "research_memory",
-        backend_root / "reports" / "research_memory",
-    ]
+_RESEARCH_MEMORY_ROOT_ENV = "TENN_RESEARCH_MEMORY_ROOT"
+_RESEARCH_MEMORY_STORE_NAMES = {
+    "company_memory.sqlite",
+    "market_memory.sqlite",
+    "user_thesis_memory.sqlite",
+    "source_registry.jsonl",
+}
+
+
+def _contains_existing_research_memory_store(candidate: Path) -> bool:
+    return any((candidate / name).exists() for name in _RESEARCH_MEMORY_STORE_NAMES)
+
+
+def _configured_research_memory_root() -> Path | None:
+    raw = str(os.getenv(_RESEARCH_MEMORY_ROOT_ENV) or "").strip()
+    if not raw:
+        return None
+    return Path(raw).expanduser().resolve()
+
+
+def _select_research_memory_root(candidates: list[Path]) -> Path:
+    for candidate in candidates:
+        if _contains_existing_research_memory_store(candidate):
+            return candidate
     for candidate in candidates:
         try:
             candidate.mkdir(parents=True, exist_ok=True)
@@ -28,6 +44,27 @@ def _default_research_memory_root() -> Path:
         except OSError:
             continue
     return candidates[0]
+
+
+def _default_research_memory_root() -> Path:
+    backend_root = Path(__file__).resolve().parents[2]
+    data_root_candidate = (
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
+        / "reports"
+        / "research_memory"
+    )
+    project_data_candidate = PROJECT_ROOT / "data" / "reports" / "research_memory"
+    legacy_backend_candidate = backend_root / "reports" / "research_memory"
+    candidates = [
+        _configured_research_memory_root(),
+        data_root_candidate,
+        project_data_candidate,
+        legacy_backend_candidate,
+    ]
+    deduped_candidates = list(
+        dict.fromkeys(candidate for candidate in candidates if candidate is not None)
+    )
+    return _select_research_memory_root(deduped_candidates)
 
 
 RESEARCH_MEMORY_ROOT = _default_research_memory_root()

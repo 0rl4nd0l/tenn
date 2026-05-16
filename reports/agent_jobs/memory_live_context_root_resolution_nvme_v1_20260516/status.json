@@ -1,0 +1,42 @@
+{
+  "base_branch": "fast/dev-storage-v1-20260513-170304",
+  "branch": "safe/memory-live-context-root-resolution-nvme-v1-20260516",
+  "captured_at_epoch": 1778924338.6235905,
+  "execution_mode": "safe_extension",
+  "files_changed": [
+    "financial-engine_v2/backend/app/services/source_registry.py",
+    "financial-engine_v2/backend/tests/test_source_registry_root.py",
+    "docs/agent_tasks/memory_live_context_root_resolution_nvme_v1_20260516.md",
+    "reports/agent_jobs/memory_live_context_root_resolution_nvme_v1_20260516/README.md",
+    "reports/agent_jobs/memory_live_context_root_resolution_nvme_v1_20260516/status.json",
+    "reports/agent_jobs/memory_live_context_root_resolution_nvme_v1_20260516/validation.json",
+    "reports/agent_jobs/memory_live_context_root_resolution_nvme_v1_20260516/diff-check.json"
+  ],
+  "job_id": "memory_live_context_root_resolution_nvme_v1_20260516",
+  "lane": "Memory",
+  "next_safe_step": "After the active runtime job clears, integrate this branch into fast/dev-storage-v1-20260513-170304, set TENN_RESEARCH_MEMORY_ROOT to the cleaned store path in host-local env, restart backend, and rerun Anthropic smoke.",
+  "ok": true,
+  "registry_release_ok": true,
+  "registry_status": "released",
+  "remaining_blockers": [
+    "Patch is not integrated into fast/dev-storage-v1-20260513-170304 yet.",
+    "Live backend process has not been restarted with TENN_RESEARCH_MEMORY_ROOT.",
+    "Active m40_cuda_failure_remediation_v1_20260516 job owns the live NVMe worktree/runtime area, so this task did not restart backend."
+  ],
+  "root_override_probe": {
+    "env": "TENN_RESEARCH_MEMORY_ROOT",
+    "result": "source_registry and default company/market memory paths resolved to cleaned store",
+    "value": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory"
+  },
+  "status": "patch_ready_live_deploy_pending",
+  "validation": {
+    "diff_check": "passed",
+    "live_endpoint_pre_deploy": "still empty; backend not restarted and branch not integrated",
+    "pytest_source_registry_root": "3 passed",
+    "registry_claim": "passed",
+    "registry_release": "passed",
+    "ruff_touched_files": "passed",
+    "task_card_validate": "passed"
+  },
+  "worktree": "/home/l4nd0/tenn-memory-live-context-root-resolution-nvme-v1-20260516"
+}
