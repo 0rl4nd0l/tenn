@@ -1,4 +1,23 @@
 {
+  "company_memory": {
+    "active_entry_count": 40,
+    "active_non_manual_entry_count": 37,
+    "checked": true,
+    "company_memory_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+    "duplicate_statement_cluster_count": 0,
+    "invalid_company_id_count": 0,
+    "issues": [],
+    "manual_review_active_entry_ids": [
+      283,
+      310,
+      1129
+    ],
+    "manual_review_csv": "reports/memory_interticker_contamination_manifest_20260513_043646/csv/manual_review_rows.csv",
+    "manual_review_entry_id_count": 250,
+    "ok": true,
+    "source_fanout_cluster_count": 0,
+    "source_fanout_threshold": 10
+  },
   "fallback_root": {
     "checked": true,
     "fallback_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/backend/reports/research_memory",

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 import sqlite3
@@ -11,6 +12,7 @@ from typing import Any
 
 
 TICKER_RE = re.compile(r"^[A-Z0-9]{1,10}$")
+COMPANY_MEMORY_ID_RE = re.compile(r"^[A-Z0-9]{1,6}$")
 
 
 def _read_json(path: Path) -> Any:
@@ -132,6 +134,139 @@ def _audit_fallback_root(
     }
 
 
+def _read_manual_review_entry_ids(path: Path | None) -> set[int]:
+    if path is None:
+        return set()
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = csv.DictReader(handle)
+        entry_ids: set[int] = set()
+        for row in rows:
+            raw = (row.get("row_id") or row.get("entry_id") or "").strip()
+            if not raw:
+                continue
+            try:
+                entry_ids.add(int(raw))
+            except ValueError:
+                continue
+    return entry_ids
+
+
+def _audit_company_memory(
+    *,
+    company_memory_path: Path,
+    manual_review_csv: Path | None,
+    source_fanout_threshold: int,
+    immutable: bool,
+) -> dict[str, Any]:
+    if source_fanout_threshold < 2:
+        raise ValueError("company source fanout threshold must be at least 2")
+
+    manual_review_entry_ids = _read_manual_review_entry_ids(manual_review_csv)
+    with sqlite3.connect(_sqlite_uri(company_memory_path, immutable=immutable), uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT entry_id, company_id, type, normalized_statement, source, source_id
+            FROM memory_entries
+            WHERE status = 'active'
+            ORDER BY entry_id
+            """
+        ).fetchall()
+
+    active_rows = [dict(row) for row in rows]
+    active_entry_count = len(active_rows)
+    active_non_manual_rows = [
+        row for row in active_rows if int(row["entry_id"]) not in manual_review_entry_ids
+    ]
+    manual_active_entry_ids = [
+        int(row["entry_id"])
+        for row in active_rows
+        if int(row["entry_id"]) in manual_review_entry_ids
+    ]
+
+    invalid_company_ids = [
+        {"entry_id": int(row["entry_id"]), "company_id": row["company_id"]}
+        for row in active_rows
+        if not COMPANY_MEMORY_ID_RE.fullmatch(str(row["company_id"] or "").strip().upper())
+    ]
+
+    duplicate_groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    source_groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for row in active_non_manual_rows:
+        duplicate_groups.setdefault(
+            (str(row["normalized_statement"] or ""), str(row["source_id"] or "")),
+            [],
+        ).append(row)
+        source_groups.setdefault(
+            (str(row["source"] or ""), str(row["source_id"] or "")),
+            [],
+        ).append(row)
+
+    duplicate_statement_clusters = []
+    for (normalized_statement, source_id), grouped_rows in duplicate_groups.items():
+        companies = sorted({str(row["company_id"]) for row in grouped_rows})
+        if len(companies) <= 1:
+            continue
+        duplicate_statement_clusters.append(
+            {
+                "normalized_statement": normalized_statement,
+                "source_id": source_id,
+                "company_ids": companies,
+                "entry_ids": sorted(int(row["entry_id"]) for row in grouped_rows),
+            }
+        )
+
+    source_fanout_clusters = []
+    for (source, source_id), grouped_rows in source_groups.items():
+        companies = sorted({str(row["company_id"]) for row in grouped_rows})
+        if len(companies) <= source_fanout_threshold:
+            continue
+        source_fanout_clusters.append(
+            {
+                "source": source,
+                "source_id": source_id,
+                "company_ids": companies,
+                "company_count": len(companies),
+                "entry_ids": sorted(int(row["entry_id"]) for row in grouped_rows),
+            }
+        )
+
+    issues: list[dict[str, Any]] = []
+    if invalid_company_ids:
+        issues.append({"type": "invalid_company_memory_id", "rows": invalid_company_ids})
+    if duplicate_statement_clusters:
+        issues.append(
+            {
+                "type": "company_duplicate_statement_fanout",
+                "clusters": duplicate_statement_clusters,
+            }
+        )
+    if source_fanout_clusters:
+        issues.append(
+            {
+                "type": "company_source_fanout",
+                "threshold": source_fanout_threshold,
+                "clusters": source_fanout_clusters,
+            }
+        )
+
+    return {
+        "checked": True,
+        "company_memory_path": str(company_memory_path),
+        "manual_review_csv": str(manual_review_csv) if manual_review_csv else None,
+        "manual_review_entry_id_count": len(manual_review_entry_ids),
+        "manual_review_active_entry_ids": manual_active_entry_ids,
+        "active_entry_count": active_entry_count,
+        "active_non_manual_entry_count": len(active_non_manual_rows),
+        "source_fanout_threshold": source_fanout_threshold,
+        "duplicate_statement_cluster_count": len(duplicate_statement_clusters),
+        "source_fanout_cluster_count": len(source_fanout_clusters),
+        "invalid_company_id_count": len(invalid_company_ids),
+        "issues": issues,
+        "ok": not issues,
+    }
+
+
 def run_audit(args: argparse.Namespace) -> dict[str, Any]:
     market = _audit_market_memory(
         market_memory_path=args.market_memory,
@@ -143,13 +278,28 @@ def run_audit(args: argparse.Namespace) -> dict[str, Any]:
         fallback_root=args.fallback_root,
         require_no_sqlite=args.require_no_fallback_sqlite,
     )
+    if args.company_memory is None:
+        company = {
+            "checked": False,
+            "issues": [],
+            "ok": True,
+        }
+    else:
+        company = _audit_company_memory(
+            company_memory_path=args.company_memory,
+            manual_review_csv=args.company_manual_review_csv,
+            source_fanout_threshold=args.company_source_fanout_threshold,
+            immutable=not args.no_immutable,
+        )
     issues = []
     issues.extend({"scope": "market_memory", **issue} for issue in market["issues"])
     issues.extend({"scope": "fallback_root", **issue} for issue in fallback["issues"])
+    issues.extend({"scope": "company_memory", **issue} for issue in company["issues"])
     return {
         "ok": not issues,
         "issues": issues,
         "market_memory": market,
+        "company_memory": company,
         "fallback_root": fallback,
     }
 
@@ -160,6 +310,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--market-memory", type=Path, required=True)
     parser.add_argument("--identity-map", type=Path, required=True)
+    parser.add_argument("--company-memory", type=Path)
+    parser.add_argument("--company-manual-review-csv", type=Path)
+    parser.add_argument(
+        "--company-source-fanout-threshold",
+        type=int,
+        default=10,
+        help="Fail when one active company-memory source spans more than this many non-manual companies.",
+    )
     parser.add_argument("--fallback-root", type=Path)
     parser.add_argument(
         "--forbidden-token",
