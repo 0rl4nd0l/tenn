@@ -1,0 +1,178 @@
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "generated_at": "2026-05-17T18:45:29+1000",
+  "source_data_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+  "source_reports_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+  "target_data_root": "/mnt/nvme/tenn/financial-engine_v2/data",
+  "target_reports_root": "/mnt/nvme/tenn/financial-engine_v2/reports",
+  "inventory_snapshot": [
+    "4.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/inbox",
+    "4.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/rejected",
+    "8.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/candidates",
+    "8.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/contexts",
+    "12K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/approved",
+    "24K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/extracted_text",
+    "24K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/processed",
+    "88K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library",
+    "132K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/analysis",
+    "152K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/raw",
+    "300K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/db_recovery",
+    "952K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/importance",
+    "3.3M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/ops",
+    "8.2M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/cockpit",
+    "17M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/bundles",
+    "17M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/extraction_review",
+    "22M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/cockpit",
+    "26M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory",
+    "35M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+    "51M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real",
+    "202M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/marketplace_captures",
+    "204M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs",
+    "205M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark",
+    "252M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports",
+    "603M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex",
+    "603M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs",
+    "152G\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx",
+    "152G\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+    "153G\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data"
+  ],
+  "disk": [
+    "Filesystem     Type  Size  Used Avail Use% Mounted on",
+    "/dev/nvme0n1p1 ext4  458G  367G   68G  85% /",
+    "/dev/sdc2      ext4  916G  523G  347G  61% /mnt/hdd-data"
+  ],
+  "source_sizes": {
+    "reports": "786M"
+  },
+  "target_sizes": {
+    "data": "27M",
+    "reports": "786M"
+  },
+  "top_level_classification": [
+    {
+      "name": "asx",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx",
+      "size": "152G",
+      "size_bytes": 161872852062,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "benchmark",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark",
+      "size": "205M",
+      "size_bytes": 213718234,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "cockpit",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/cockpit",
+      "size": "22M",
+      "size_bytes": 22347776,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "db_recovery",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/db_recovery",
+      "size": "300K",
+      "size_bytes": 296568,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "extraction_gold_real",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real",
+      "size": "51M",
+      "size_bytes": 53155449,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "marketindex",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex",
+      "size": "603M",
+      "size_bytes": 630363097,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "ops",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/ops",
+      "size": "3.3M",
+      "size_bytes": 3366912,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "raw",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/raw",
+      "size": "152K",
+      "size_bytes": 149401,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "reports",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports",
+      "size": "252M",
+      "size_bytes": 256698013,
+      "classification": "UNKNOWN_REQUIRES_REVIEW",
+      "rationale": "needs explicit assessment",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "resource_library",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library",
+      "size": "88K",
+      "size_bytes": 60088,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "asx/importance",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/importance",
+      "size": "952K",
+      "size_bytes": 569284,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small metadata subset required at runtime; excluded from large asx/docs",
+      "contains_copy_candidate": true
+    }
+  ],
+  "large_doc_bind_list": [
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+      "size": "152G",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+      "size": "35M",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs",
+      "size": "204M",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs",
+      "size": "603M",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    }
+  ]
+}

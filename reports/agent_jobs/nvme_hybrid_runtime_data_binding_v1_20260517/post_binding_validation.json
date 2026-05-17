@@ -1,0 +1,55 @@
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:46:35+1000",
+  "validation_steps": [
+    {
+      "command": "grep -R \"ENGINE_ROOT\\|/data\\|./data\\|/reports\\|./reports\\|fe_pgdata\\|fe_qdrant\" -n scripts/start_config.env financial-engine_v2/docker-compose.yml",
+      "status": "passed",
+      "notes": "start_config and compose contain explicit ENGINE_ROOT and /data, /reports, and volume settings with preserved fe_pgdata/fe_qdrant references."
+    },
+    {
+      "command": "du -sh /mnt/nvme/tenn/financial-engine_v2/data",
+      "status": "passed",
+      "value": "27M"
+    },
+    {
+      "command": "du -sh /mnt/nvme/tenn/financial-engine_v2/reports",
+      "status": "passed",
+      "value": "786M"
+    },
+    {
+      "command": "find /mnt/nvme/tenn/financial-engine_v2/data -maxdepth 3 -type f | head -50",
+      "status": "passed",
+      "value": "runtime-critical files present from copied dataset"
+    },
+    {
+      "command": "find /mnt/nvme/tenn/financial-engine_v2/data -maxdepth 4 -type l -ls",
+      "status": "passed",
+      "value": "no symlinks present under copied /mnt/nvme data tree"
+    },
+    {
+      "command": "docker volume inspect financial-engine_v2_fe_pgdata financial-engine_v2_fe_qdrant",
+      "status": "passed",
+      "value": "both named volumes exist and are mounted at /mnt/nvme/docker/volumes/financial-engine_v2_fe_pgdata/_data and /mnt/nvme/docker/volumes/financial-engine_v2_fe_qdrant/_data"
+    }
+  ],
+  "checks": {
+    "backend_data_mount_points": {
+      "backend_volume_at_data": true,
+      "backend_data_source": "/mnt/nvme/tenn/financial-engine_v2/data",
+      "backend_reports_source": "/mnt/nvme/tenn/financial-engine_v2/reports"
+    },
+    "large_docs_accessible": {
+      "asx_docs": true,
+      "extraction_gold_real_pdfs": true,
+      "benchmark_pdfs": true,
+      "marketindex_pdfs": true,
+      "binding_mode": "bind_mount_ro"
+    },
+    "sparse_worktree_avoidance": true,
+    "empty_volume_risk": false,
+    "service_restart_performed": false,
+    "symlink_dependency": false
+  },
+  "summary": "Data bindings are updated to NVMe for runtime dataset and reports; large document/PDF trees remain HDD-bound as read-only mounts. Named DB/Qdrant volumes are unchanged."
+}

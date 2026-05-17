@@ -1,0 +1,41 @@
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:46:00+1000",
+  "method": "BIND_MOUNTS",
+  "reason": "Safer than symlinks for Docker/subpath access guarantees on this platform; no assumptions about symlink resolution behavior.",
+  "selected": true,
+  "fallback_considered": "symlink",
+  "fallback_reasons_rejected": [
+    "Symlink traversal consistency under bind-mounted app container was uncertain without container-level validation.",
+    "Explicit bind mounts provide deterministic read-only guarantees for large storage folders."
+  ],
+  "bound_paths": [
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+      "container_target": "/data/asx/docs",
+      "access": "ro"
+    },
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+      "container_target": "/data/extraction_gold_real/pdfs",
+      "access": "ro"
+    },
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs",
+      "container_target": "/data/benchmark/pdfs",
+      "access": "ro"
+    },
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs",
+      "container_target": "/data/marketindex/pdfs",
+      "access": "ro"
+    }
+  ],
+  "applied_to_services": ["backend", "worker", "gpu_worker", "fe_beat"],
+  "safety": {
+    "destructive": false,
+    "mutated_db_or_store": false,
+    "full_153g_copy_avoided": true,
+    "write_access_on_hdd_bindings": false
+  }
+}

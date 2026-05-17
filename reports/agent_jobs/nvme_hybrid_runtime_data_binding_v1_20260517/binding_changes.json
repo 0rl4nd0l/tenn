@@ -1,0 +1,58 @@
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:46:20+1000",
+  "changes": [
+    {
+      "file": "scripts/start_config.env",
+      "type": "path-update",
+      "path": "ENGINE_ROOT",
+      "before": "/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2",
+      "after": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+      "note": "Align launcher root with this clean baseline worktree."
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "backend",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added /mnt/nvme/tenn/financial-engine_v2/reports at /reports",
+        "added HDD read-only binds for asx/docs and PDF trees",
+        "repointed workspace/reports and workspace-reports to /mnt/nvme/tenn/financial-engine_v2/reports",
+        "replaced relative workspace mount with absolute workspace path"
+      ]
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "worker",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added HDD read-only binds for asx/docs and PDF trees"
+      ]
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "gpu_worker",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added HDD read-only binds for asx/docs and PDF trees"
+      ]
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "fe_beat",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added HDD read-only binds for asx/docs and PDF trees"
+      ]
+    }
+  ],
+  "volumes_preserved": {
+    "postgres": "financial-engine_v2_fe_pgdata",
+    "qdrant": "financial-engine_v2_fe_qdrant"
+  },
+  "empty_volume_risk": "No compose volume rename performed; existing named volumes unchanged."
+}

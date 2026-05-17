@@ -50,15 +50,20 @@ services:
       - 1.1.1.1
       - 8.8.8.8
     volumes:
-      - ..:/workspace:ro
-      - ../reports:/workspace/reports
+      - /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1:/workspace:ro
       - ./backend:/app
       - ./shared:/app/shared
       - ./cockpit:/app/cockpit
       - ./config:/config
-      - ./data:/data
+      - /mnt/nvme/tenn/financial-engine_v2/data:/data
+      - /mnt/nvme/tenn/financial-engine_v2/reports:/reports
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+      - /mnt/nvme/tenn/financial-engine_v2/reports:/workspace/reports
       - ./scripts:/scripts
-      - ../reports:/workspace-reports
+      - /mnt/nvme/tenn/financial-engine_v2/reports:/workspace-reports
       - ${TENN_MODELS_NVME_DIR:-/mnt/nvme/tenn/models}:/models/nvme:ro
       - ${TENN_LLMFIT_MODELS_DIR:-/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models}:/models/ssd:ro
       - ${TENN_COLD_MODELS_DIR:-/mnt/hdd-cold/tenn/models}:/models/hdd:ro
@@ -84,7 +89,11 @@ services:
     volumes:
       - ./backend:/app
       - ./shared:/app/shared
-      - ./data:/data
+      - /mnt/nvme/tenn/financial-engine_v2/data:/data
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }
@@ -107,7 +116,11 @@ services:
     volumes:
       - ./backend:/app
       - ./shared:/app/shared
-      - ./data:/data
+      - /mnt/nvme/tenn/financial-engine_v2/data:/data
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }
@@ -127,7 +140,11 @@ services:
     volumes:
       - ./backend:/app_backend
       - ./worker:/app_worker
-      - ./data:/data
+      - /mnt/nvme/tenn/financial-engine_v2/data:/data
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+      - /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }

@@ -1,0 +1,30 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/nvme_hybrid_runtime_data_binding_v1_20260517.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md",
+    "reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517",
+    "scripts/start_config.env",
+    "financial-engine_v2/docker-compose.yml"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-17T08:45:24.888571Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-17T08:45:24.888571Z",
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-17T08:46:20.263592Z",
+  "output_dir": "reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-17T08:46:20.263592Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:368665:nvme_hybrid_runtime_data_binding_v1_20260517",
+  "started_at": "2026-05-17T08:45:24.888571Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md",
+  "updated_at": "2026-05-17T08:46:20.263592Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

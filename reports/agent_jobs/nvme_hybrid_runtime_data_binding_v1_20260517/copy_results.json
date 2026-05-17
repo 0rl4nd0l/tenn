@@ -1,0 +1,117 @@
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:45:34+1000",
+  "data_copy": {
+    "source_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+    "target_root": "/mnt/nvme/tenn/financial-engine_v2/data",
+    "candidates": [
+      {
+        "relative_path": "ops",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/ops",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/ops",
+        "exists": true,
+        "size": "3.3M",
+        "size_bytes": 3366912,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "cockpit",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/cockpit",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/cockpit",
+        "exists": true,
+        "size": "22M",
+        "size_bytes": 22347776,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "raw",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/raw",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/raw",
+        "exists": true,
+        "size": "152K",
+        "size_bytes": 149401,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "db_recovery",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/db_recovery",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/db_recovery",
+        "exists": true,
+        "size": "300K",
+        "size_bytes": 296568,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "asx/importance",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/importance",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/asx/importance",
+        "exists": true,
+        "size": "952K",
+        "size_bytes": 569284,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "resource_library",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/resource_library",
+        "exists": true,
+        "size": "88K",
+        "size_bytes": 60088,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "reports",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/reports",
+        "exists": true,
+        "size": "252M",
+        "size_bytes": 256698013,
+        "copied": false,
+        "skipped": false,
+        "return_code": 23,
+        "status": "copy_failed",
+        "error": "rsync: [generator] failed to set times on \"/mnt/nvme/tenn/financial-engine_v2/data/reports/.\": Operation not permitted (1)\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/analysis\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/cockpit\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [sender] send_files failed to open \"/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/router_metrics_snapshot.json\": Permission denied (13)\n\nrsync: [sender] send_files failed to open \"/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/tmpc6h17mhb.tmp\": Permission denied (13)\nrsync: [receiver] mkstemp \"/mnt/nvme/tenn/financial-engine_v2/data/reports/.runtime_embedding_model.txt.VMdwdU\" failed: Permission denied (13)\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/extraction_review\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/marketplace_captures\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/research_memory\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1338) [sender=3.2.7]"
+      }
+    ]
+  },
+  "reports_copy": {
+    "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+    "target": "/mnt/nvme/tenn/financial-engine_v2/reports",
+    "attempted": true,
+    "return_code": 0,
+    "stdout_tail": [
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=17/1219)",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=15/1219)",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=8/1219) ",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=6/1219)",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1219)"
+    ],
+    "stderr_tail": [],
+    "status": "copied",
+    "error": null
+  }
+}
