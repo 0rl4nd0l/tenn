@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 import sqlite3
 import sys
 import tempfile
@@ -478,13 +479,13 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             articles = [
                 {
                     "article_id": "art-1",
-                    "text": "already persisted",
+                    "text": "already persisted ASX:AAA shares",
                     "provider": "newspaper4k",
                     "published_at": "2026-05-04T08:00:00Z",
                 },
                 {
                     "article_id": "art-2",
-                    "text": "dispatch will fail",
+                    "text": "dispatch will fail ASX:BBB shares",
                     "provider": "newspaper4k",
                     "published_at": "2026-05-04T09:00:00Z",
                 },
@@ -534,7 +535,7 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             articles = [
                 {
                     "article_id": "art-1",
-                    "text": "already persisted",
+                    "text": "already persisted ASX:AAA shares",
                     "provider": "newspaper4k",
                     "published_at": "2026-05-04T08:00:00Z",
                 }
@@ -569,7 +570,7 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
             },
             {
                 "article_id": "art-2",
-                "text": "memo text 2",
+                "text": "memo text 2 about market shares",
                 "provider": "newspaper4k",
                 "published_at": "2026-05-04T09:00:00Z",
             },
@@ -588,6 +589,7 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
                 task=ResultTask(),
                 memos_path=Path(td) / "news_memos.jsonl",
                 max_article_chars=7,
+                llm_url="http://127.0.0.1:18001",
                 llm_model="model:qwen3.5-35b-a3b-apex",
             )
 
@@ -595,12 +597,253 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         self.assertFalse(result["completion_observable"])
         self.assertEqual(_task_id_samples(result), ["task-art-1", "task-art-2"])
         self.assertEqual(result["max_article_chars"], 7)
+        self.assertEqual(result["llm_url"], "http://127.0.0.1:18001")
+        self.assertEqual(result["llm_url_source"], "payload")
         self.assertEqual(result["llm_model"], "model:qwen3.5-35b-a3b-apex")
         self.assertEqual(result["llm_model_source"], "payload")
         self.assertEqual(payloads[0]["article_text"], "memo te")
+        self.assertEqual(payloads[0]["llm_url"], "http://127.0.0.1:18001")
         self.assertEqual(payloads[0]["llm_model"], "model:qwen3.5-35b-a3b-apex")
         self.assertEqual(payloads[0]["candidate_tickers"], ["ABC"])
         self.assertEqual(payloads[1]["candidate_tickers"], [])
+
+    def test_dispatch_news_memos_payload_paths_are_absolute(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "text": "memo text 1 NYSE:ABC",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+        payloads: list[dict] = []
+
+        class ResultTask:
+            def delay(self, payload):
+                payloads.append(dict(payload))
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            memos_path = Path("reports/research_memory/news_memos.jsonl")
+            skips_path = Path("reports/research_memory/news_memo_skips.jsonl")
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                result = mod.dispatch_news_memos(
+                    articles,
+                    task=ResultTask(),
+                    memos_path=memos_path,
+                    memo_skips_path=skips_path,
+                )
+            finally:
+                os.chdir(previous_cwd)
+
+            self.assertEqual(result["dispatched"], 1)
+            self.assertEqual(
+                payloads[0]["memos_path"],
+                str((root / memos_path).resolve()),
+            )
+            self.assertEqual(
+                payloads[0]["memo_skips_path"],
+                str((root / skips_path).resolve()),
+            )
+
+    def test_dispatch_news_memos_skips_terminal_skip_ledger_rows(self):
+        import load_news_to_qdrant as mod
+
+        with tempfile.TemporaryDirectory() as td:
+            memos_path = Path(td) / "news_memos.jsonl"
+            skips_path = Path(td) / "news_memo_skips.jsonl"
+            skips_path.write_text(
+                json.dumps(
+                    {
+                        "source_id": "news:art-1",
+                        "status": "skipped",
+                        "skip_reason": "no_actionable_memo_content",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            articles = [
+                {
+                    "article_id": "art-1",
+                    "text": "ASX:AAA shares and market update.",
+                    "provider": "newspaper4k",
+                    "published_at": "2026-05-04T08:00:00Z",
+                }
+            ]
+
+            class ResultTask:
+                def delay(self, _payload):
+                    raise AssertionError("terminal skip should not be dispatched")
+
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=memos_path,
+            )
+
+            self.assertEqual(result["status"], "complete")
+            self.assertEqual(result["eligible"], 1)
+            self.assertEqual(result["dispatched"], 0)
+            self.assertEqual(result["already_persisted_skipped"], 1)
+            self.assertEqual(result["terminal_skipped_before_dispatch"], 1)
+            self.assertEqual(result["terminal_skipped_after_dispatch"], 1)
+            self.assertEqual(result["missing_after_dispatch"], 0)
+            self.assertEqual(result["memo_skips_path"], str(skips_path.resolve()))
+
+    def test_dispatch_news_memos_skips_non_market_articles(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "sport-1",
+                "title": "Forward kicks late goal in finals upset",
+                "text": "The club won after a late goal and the coach praised the team.",
+                "primary_ticker": "PPT",
+                "tickers": ["PPT"],
+                "provider": "smh.com.au",
+                "published_at": "2026-05-04T08:00:00Z",
+            },
+            {
+                "article_id": "sport-2",
+                "title": "Tassie stadium cost makes AFL clubs nervy",
+                "text": (
+                    "AFL clubs are nervous about a stadium project as companies "
+                    "face markets and dollar pressure."
+                ),
+                "primary_ticker": "SHV",
+                "tickers": ["PPT", "SHV"],
+                "provider": "smh.com.au",
+                "published_at": "2026-05-04T08:30:00Z",
+            },
+            {
+                "article_id": "policy-1",
+                "title": "Neo-Nazi group White Australia banned for promoting hate",
+                "text": (
+                    "The Home Affairs Minister listed the organisation under "
+                    "the Criminal Code after national security advice."
+                ),
+                "provider": "smh.com.au",
+                "published_at": "2026-05-04T08:35:00Z",
+            },
+            {
+                "article_id": "policy-2",
+                "title": "45,000 laughing emojis: Labor's big budget versus the internet",
+                "text": (
+                    "The federal budget sparked internet reaction and political "
+                    "debate without direct business impact."
+                ),
+                "provider": "smh.com.au",
+                "published_at": "2026-05-04T08:40:00Z",
+            },
+            {
+                "article_id": "fund-1",
+                "title": "Jim Chalmers confirms two new Future Fund board members",
+                "text": (
+                    "The Future Fund board appointments were announced for "
+                    "Australian people and long-term returns."
+                ),
+                "primary_ticker": "SHV",
+                "tickers": ["SHV"],
+                "provider": "smh.com.au",
+                "published_at": "2026-05-04T08:45:00Z",
+            },
+            {
+                "article_id": "market-1",
+                "title": "Bond yields pressure equity markets",
+                "text": "Bond yields and inflation expectations pressured equity markets.",
+                "provider": "afr.com",
+                "published_at": "2026-05-04T09:00:00Z",
+            },
+            {
+                "article_id": "business-1",
+                "title": "IFM attacks Atlas Arteria for failure to disclose road sale plan",
+                "text": (
+                    "IFM claims shareholders were not told about a road sale plan "
+                    "after an infrastructure stake review."
+                ),
+                "provider": "afr.com",
+                "published_at": "2026-05-04T10:00:00Z",
+            },
+            {
+                "article_id": "business-2",
+                "title": "Federal Court finds Telstra Super breached dispute requirements",
+                "text": "The superannuation trustee faces regulator scrutiny after the court finding.",
+                "provider": "afr.com",
+                "published_at": "2026-05-04T11:00:00Z",
+            },
+        ]
+        payloads: list[dict] = []
+
+        class ResultTask:
+            def delay(self, payload):
+                payloads.append(dict(payload))
+
+        with tempfile.TemporaryDirectory() as td:
+            result = mod.dispatch_news_memos(
+                articles,
+                task=ResultTask(),
+                memos_path=Path(td) / "news_memos.jsonl",
+            )
+
+        self.assertEqual(result["eligible"], 3)
+        self.assertEqual(result["skipped"], 5)
+        self.assertEqual(result["dispatched"], 3)
+        self.assertEqual(payloads[0]["source_id"], "news:market-1")
+        self.assertEqual(payloads[0]["candidate_tickers"], [])
+        self.assertEqual(payloads[1]["source_id"], "news:business-1")
+        self.assertEqual(payloads[2]["source_id"], "news:business-2")
+
+    def test_memo_candidate_tickers_prefer_structured_links_and_filter_noise(self):
+        import load_news_to_qdrant as mod
+
+        article = {
+            "primary_ticker": "BHP",
+            "tickers": ["AUD", "I-MED", "4DMEDICAL", "NXR.UN", "LTR PHARMA"],
+            "text": "BHP signs a new contract. Noise says ASX:AUD too.",
+        }
+
+        self.assertEqual(
+            mod._memo_candidate_tickers_for_article(article),
+            ["BHP"],
+        )
+        self.assertEqual(
+            mod._memo_candidate_tickers_for_article(
+                {"text": "Valid symbol NYSE:ABC but currency ASX:AUD is not enough."}
+            ),
+            ["ABC"],
+        )
+        self.assertEqual(
+            mod._memo_candidate_tickers_for_article(
+                {
+                    "primary_ticker": "PPT",
+                    "tickers": ["PPT"],
+                    "title": "2 Overlooked Oil Stocks to Buy Now Before They Soar",
+                    "text": (
+                        "Occidental Petroleum (NYSE: OXY) and Ardmore Shipping "
+                        "(NYSE: ASC) reported earnings and dividend updates."
+                    ),
+                }
+            ),
+            ["OXY", "ASC"],
+        )
+        self.assertEqual(
+            mod._memo_candidate_tickers_for_article(
+                {
+                    "primary_ticker": "HPC",
+                    "tickers": ["HPC"],
+                    "text": (
+                        "HPC was mentioned in unrelated context. "
+                        "The Calmer Co International (ASX:CCO) posted record sales."
+                    ),
+                }
+            ),
+            ["CCO"],
+        )
 
     def test_dispatch_news_memos_wait_marks_completed_observable(self):
         import load_news_to_qdrant as mod
@@ -608,13 +851,13 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         articles = [
             {
                 "article_id": "art-1",
-                "text": "memo text 1",
+                "text": "memo text 1 about stock markets",
                 "provider": "newspaper4k",
                 "published_at": "2026-05-04T08:00:00Z",
             },
             {
                 "article_id": "art-2",
-                "text": "memo text 2",
+                "text": "memo text 2 about stock markets",
                 "provider": "newspaper4k",
                 "published_at": "2026-05-04T09:00:00Z",
             },
@@ -647,6 +890,59 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         )
         self.assertEqual(_count(result, "pending", "completion_pending", "tasks_pending"), 0)
         self.assertEqual(_count(result, "failed", "completion_failed", "tasks_failed"), 0)
+
+    def test_dispatch_news_memos_wait_accounts_for_completed_skips(self):
+        import load_news_to_qdrant as mod
+
+        articles = [
+            {
+                "article_id": "art-1",
+                "text": "memo text 1 about stock markets",
+                "provider": "newspaper4k",
+                "published_at": "2026-05-04T08:00:00Z",
+            }
+        ]
+        async_results = [
+            FakeAsyncResult(
+                "task-art-1",
+                ready=True,
+                successful=True,
+                value={
+                    "status": "skipped",
+                    "source_id": "news:art-1",
+                    "skip_reason": "no_actionable_memo_content",
+                },
+            )
+        ]
+
+        class ResultTask:
+            def delay(self, _payload):
+                return async_results.pop(0)
+
+        with tempfile.TemporaryDirectory() as td:
+            result = _dispatch_with_wait_options(
+                mod,
+                articles,
+                task=ResultTask(),
+                memos_path=Path(td) / "news_memos.jsonl",
+                wait=True,
+                timeout=0.0,
+                poll_interval=0.0,
+            )
+
+        self.assertEqual(result["status"], "complete_with_skips")
+        self.assertEqual(result["tasks_completed"], 1)
+        self.assertEqual(result["tasks_completed_skipped"], 1)
+        self.assertEqual(
+            result["task_skipped_samples"],
+            [
+                {
+                    "task_id": "task-art-1",
+                    "source_id": "news:art-1",
+                    "reason": "no_actionable_memo_content",
+                }
+            ],
+        )
 
     def test_main_wait_for_memos_degraded_returns_nonzero(self):
         import load_news_to_qdrant as mod
@@ -729,13 +1025,13 @@ class TestNightlyNewsDiagnostics(unittest.TestCase):
         articles = [
             {
                 "article_id": "art-1",
-                "text": "memo text 1",
+                "text": "memo text 1 about stock markets",
                 "provider": "newspaper4k",
                 "published_at": "2026-05-04T08:00:00Z",
             },
             {
                 "article_id": "art-2",
-                "text": "memo text 2",
+                "text": "memo text 2 about stock markets",
                 "provider": "newspaper4k",
                 "published_at": "2026-05-04T09:00:00Z",
             },

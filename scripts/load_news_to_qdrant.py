@@ -31,12 +31,6 @@ if str(BACKEND_ROOT) not in sys.path:
 NEWS_CHUNKS_MODEL_FILE = (
     REPO_ROOT / "financial-engine_v2" / "reports" / "news_chunks_embedding_model.txt"
 )
-DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
-OLLAMA_URL_ENV = "OLLAMA_URL"
-OLLAMA_URL_SOURCE_CLI = "cli"
-OLLAMA_URL_SOURCE_ENV = "env"
-OLLAMA_URL_SOURCE_SETTINGS = "settings"
-OLLAMA_URL_SOURCE_DEFAULT = "default"
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +43,109 @@ EXCHANGE_TICKER_PATTERN = re.compile(
     r"([A-Z][A-Z0-9.\-]{0,12})\b",
     re.IGNORECASE,
 )
+MEMO_NON_EQUITY_TICKER_TOKENS = frozenset(
+    {
+        "AUD",
+        "CAD",
+        "CHF",
+        "CNY",
+        "EUR",
+        "GBP",
+        "HKD",
+        "JPY",
+        "NZD",
+        "USD",
+    }
+)
+MEMO_MARKET_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"asx|sharemarket|stock|stocks|shares|equity|equities|investor|"
+    r"market|markets|earnings|revenue|profit|dividend|guidance|analyst|"
+    r"price target|merger|acquisition|takeover|ipo|capital raising|"
+    r"shareholder|shareholders|disclose|disclosure|stake|bid|sale|"
+    r"savings|supply chain|superannuation|super|federal court|court|"
+    r"debt|bank|banks|broker|brokers|mortgage|fraud|cyber|regulator|"
+    r"regulators|energy|resources|infrastructure|annuity|inflows|"
+    r"commodity|commodities|gold|copper|lithium|uranium|oil|gas|"
+    r"inflation|interest rate|cash rate|bond|yield|currency|dollar|"
+    r"budget|tax|rba|federal reserve|economy|economic"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_INVESTABLE_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"asx|sharemarket|stock|stocks|shares|equity|equities|investor|"
+    r"market|markets|earnings|revenue|profit|dividend|guidance|analyst|"
+    r"price target|merger|acquisition|takeover|ipo|capital raising|"
+    r"shareholder|shareholders|stake|broker|brokers|mortgage|housing|property|"
+    r"company|companies|contract|placement|drilling|production|resource|resources|"
+    r"commodity|commodities|gold|copper|lithium|uranium|oil|gas|"
+    r"inflation|interest rate|cash rate|bond|yield|currency|dollar|"
+    r"superannuation|super|startup|start-up|venture|private capital"
+    r")\b|"
+    r"\b(?:asx|tsx|lse|nyse|nasdaq)-listed\b|"
+    r"\blisted\s+(?:company|companies|stock|stocks|business|businesses)\b|"
+    r"\b(?:company|companies|stock|stocks|shares?)\s+listed\b",
+    re.IGNORECASE,
+)
+MEMO_STRONG_FINANCIAL_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"asx|sharemarket|stock|stocks|shares|equity|equities|investor|"
+    r"earnings|revenue|profit|dividend|guidance|analyst|price target|"
+    r"merger|acquisition|takeover|ipo|capital raising|commodity|commodities|"
+    r"gold|copper|lithium|uranium|oil|gas|inflation|interest rate|cash rate|"
+    r"bond|yield|currency|dollar|budget|tax|rba|federal reserve|economy|economic"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_EQUITY_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"asx|sharemarket|stock|stocks|shares|equity|equities|investor|"
+    r"earnings|revenue|profit|dividend|guidance|analyst|price target|"
+    r"merger|acquisition|takeover|ipo|capital raising|trading halt|broker"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_FINANCE_ENTITY_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"asx|sharemarket|stock|stocks|shares|equity|equities|listed|investor|"
+    r"earnings|revenue|profit|dividend|guidance|analyst|price target|"
+    r"merger|acquisition|takeover|ipo|capital raising|company|companies"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_OBVIOUS_NON_FINANCIAL_PATTERN = re.compile(
+    r"\b("
+    r"afl|nrl|origin|coach|game|match|finals?|goal|try|football|rugby|"
+    r"swans|suns|magpies?|bulldogs?|sharks?|dolphins?|stadium|club|clubs"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_PUBLIC_POLICY_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"neo-nazi|hate group|racial|racism|antisemitic|minister|mp|parliament|"
+    r"coalition|labor|election|government|budget|income tax|tax plan|"
+    r"national security|criminal code|home affairs|foreign affairs|"
+    r"psychologist|school|footballers?|internet|emoji|decorum"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_PUBLIC_POLICY_NOISE_PATTERN = re.compile(
+    r"\b("
+    r"internet|emoji|emojis|tiktok|social media|decorum|hate group|neo-nazi|"
+    r"antisemitic|racial|racism"
+    r")\b",
+    re.IGNORECASE,
+)
+MEMO_COMPANY_ACTION_CONTEXT_PATTERN = re.compile(
+    r"\b("
+    r"contract|contracts|sale|sells|sold|acquires|acquired|acquisition|"
+    r"raises|raised|placement|stake|shareholders?|drilling|assay|assays|"
+    r"production|mine|project|resource|revenue|profit|earnings|guidance|"
+    r"outlook|dividend|price target|broker|takeover|merger|ipo|capital raising"
+    r")\b",
+    re.IGNORECASE,
+)
 
 
 def _source_id_for_article(art: Dict[str, Any]) -> str:
@@ -59,63 +156,15 @@ def _source_id_for_article(art: Dict[str, Any]) -> str:
 def _normalize_memo_ticker_candidate(value: Any) -> str:
     raw = str(value or "").strip().upper()
     if ":" in raw:
-        raw = raw.split(":", 1)[1]
-    raw = re.sub(r"[^A-Z0-9.\-]", "", raw)
-    return raw[:16]
-
-
-def resolve_ollama_url(
-    *,
-    cli_url: str | None,
-    settings_url: str | None,
-) -> tuple[str, str]:
-    """
-    Resolve Ollama base URL with explicit precedence.
-
-    1. CLI --ollama-url
-    2. OLLAMA_URL env var
-    3. settings.ollama_url
-    4. hard default
-    """
-
-    env_url = os.getenv(OLLAMA_URL_ENV, "").strip()
-    if cli_url is not None:
-        candidate = str(cli_url or "").strip()
-        if not candidate:
-            raise ValueError(
-                "Invalid --ollama-url. Expected a non-empty http:// or https:// value."
-            )
-        if not (
-            candidate.startswith("http://") or candidate.startswith("https://")
-        ):
-            raise ValueError(
-                "Invalid --ollama-url. Expected a http:// or https:// URL."
-            )
-        return candidate, OLLAMA_URL_SOURCE_CLI
-
-    if env_url:
-        candidate = env_url
-        if not (
-            candidate.startswith("http://") or candidate.startswith("https://")
-        ):
-            raise ValueError(
-                f"Invalid {OLLAMA_URL_ENV} value. Expected a http:// or https:// URL."
-            )
-        return candidate, OLLAMA_URL_SOURCE_ENV
-
-    settings_candidate = str(settings_url or "").strip()
-    if settings_candidate:
-        if not (
-            settings_candidate.startswith("http://")
-            or settings_candidate.startswith("https://")
-        ):
-            raise ValueError(
-                "Invalid configured settings.ollama_url. "
-                "Expected a http:// or https:// URL."
-            )
-        return settings_candidate, OLLAMA_URL_SOURCE_SETTINGS
-
-    return DEFAULT_OLLAMA_URL, OLLAMA_URL_SOURCE_DEFAULT
+        raw = raw.split(":", 1)[1].strip()
+    if not raw or re.search(r"\s", raw):
+        return ""
+    if raw in MEMO_NON_EQUITY_TICKER_TOKENS:
+        return ""
+    cleaned = re.sub(r"[^A-Z0-9.]", "", raw)
+    if cleaned != raw or not re.fullmatch(r"[A-Z0-9][A-Z0-9.]{0,6}", cleaned):
+        return ""
+    return cleaned
 
 
 def _memo_exchange_ticker_candidates(text: str) -> list[str]:
@@ -131,11 +180,6 @@ def _memo_exchange_ticker_candidates(text: str) -> list[str]:
 
 
 def _memo_candidate_tickers_for_article(art: Mapping[str, Any]) -> list[str]:
-    text = str(art.get("text") or "")
-    exchange_candidates = _memo_exchange_ticker_candidates(text)
-    if exchange_candidates:
-        return exchange_candidates
-
     raw_candidates: list[Any] = []
     primary = art.get("primary_ticker")
     if primary:
@@ -146,13 +190,85 @@ def _memo_candidate_tickers_for_article(art: Mapping[str, Any]) -> list[str]:
 
     candidates: list[str] = []
     seen: set[str] = set()
+    text = "\n".join(
+        str(art.get(key) or "") for key in ("title", "description", "text")
+    )
+    exchange_candidates = _memo_exchange_ticker_candidates(text)
+    if exchange_candidates:
+        return exchange_candidates
+
     for raw in raw_candidates:
         candidate = _normalize_memo_ticker_candidate(raw)
         if not candidate or candidate in seen:
             continue
+        if not _structured_ticker_has_article_support(candidate, text):
+            continue
         seen.add(candidate)
         candidates.append(candidate)
+    if candidates:
+        return candidates
+
     return candidates
+
+
+def _structured_ticker_has_article_support(
+    candidate: str,
+    text: str,
+) -> bool:
+    escaped = re.escape(candidate)
+    exchange_pattern = (
+        rf"\b(?:ASX|NYSE|NASDAQ|TSX|TSXV|TSE|LSE|AIM|OTCMKTS|OTC)\s*:"
+        rf"\s*{escaped}\b"
+    )
+    if re.search(exchange_pattern, text, re.IGNORECASE):
+        return True
+    if re.search(rf"\b{escaped}\b", text, re.IGNORECASE):
+        return True
+    return False
+
+
+def _article_has_market_memo_context(art: Mapping[str, Any]) -> bool:
+    text = "\n".join(
+        str(art.get(key) or "") for key in ("title", "description", "text")
+    )
+    return bool(MEMO_MARKET_CONTEXT_PATTERN.search(text))
+
+
+def _article_is_obvious_non_financial(art: Mapping[str, Any]) -> bool:
+    text = "\n".join(
+        str(art.get(key) or "") for key in ("title", "description", "text")
+    )
+    return bool(MEMO_OBVIOUS_NON_FINANCIAL_PATTERN.search(text)) and not bool(
+        MEMO_EQUITY_CONTEXT_PATTERN.search(text)
+    )
+
+
+def _article_is_non_market_public_policy(art: Mapping[str, Any]) -> bool:
+    text = "\n".join(
+        str(art.get(key) or "") for key in ("title", "description", "text")
+    )
+    if not MEMO_PUBLIC_POLICY_CONTEXT_PATTERN.search(text):
+        return False
+    if (
+        MEMO_PUBLIC_POLICY_NOISE_PATTERN.search(text)
+        and not MEMO_EQUITY_CONTEXT_PATTERN.search(text)
+        and not MEMO_COMPANY_ACTION_CONTEXT_PATTERN.search(text)
+        and not _memo_exchange_ticker_candidates(text)
+    ):
+        return True
+    return not bool(MEMO_INVESTABLE_CONTEXT_PATTERN.search(text))
+
+
+def is_news_memo_candidate_article(art: Mapping[str, Any]) -> bool:
+    source_id = _source_id_for_article(dict(art))
+    text = str(art.get("text") or "").strip()
+    if not source_id or not text:
+        return False
+    if _article_is_obvious_non_financial(art):
+        return False
+    if _article_is_non_market_public_policy(art):
+        return False
+    return bool(_memo_candidate_tickers_for_article(art)) or _article_has_market_memo_context(art)
 
 
 def resolve_news_memo_max_article_chars(value: int | str | None = None) -> int:
@@ -207,47 +323,119 @@ def _read_news_memo_source_ids(memos_path: str | Path | None = None) -> Dict[str
     }
 
 
+def _default_news_memo_skips_path(
+    *,
+    memos_path: str | Path | None = None,
+    skips_path: str | Path | None = None,
+) -> str | Path | None:
+    if skips_path:
+        return skips_path
+    if memos_path:
+        return Path(memos_path).expanduser().with_name("news_memo_skips.jsonl")
+    try:
+        from app.services.news_memo_extractor import DEFAULT_NEWS_MEMO_SKIPS_PATH
+    except Exception:
+        return None
+    return DEFAULT_NEWS_MEMO_SKIPS_PATH
+
+
+def _read_news_memo_skip_source_ids(
+    skips_path: str | Path | None = None,
+    *,
+    memos_path: str | Path | None = None,
+) -> Dict[str, Any]:
+    raw_path = _default_news_memo_skips_path(
+        memos_path=memos_path,
+        skips_path=skips_path,
+    )
+    if raw_path is None:
+        return {"path": "", "source_ids": set(), "read_errors": 0, "exists": False}
+    resolved = Path(raw_path).expanduser()
+    path = resolved.resolve()
+    if not path.exists():
+        return {"path": str(path), "source_ids": set(), "read_errors": 0, "exists": False}
+
+    source_ids: set[str] = set()
+    read_errors = 0
+    with path.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            text = raw_line.strip()
+            if not text:
+                continue
+            try:
+                row = json.loads(text)
+            except json.JSONDecodeError:
+                read_errors += 1
+                continue
+            if not isinstance(row, dict):
+                read_errors += 1
+                continue
+            source_id = str(row.get("source_id") or "").strip()
+            if source_id:
+                source_ids.add(source_id)
+    return {
+        "path": str(path),
+        "source_ids": source_ids,
+        "read_errors": read_errors,
+        "exists": True,
+    }
+
+
 def build_memo_coverage_diagnostics(
     articles: List[Dict[str, Any]],
     *,
     memos_path: str | Path | None = None,
+    memo_skips_path: str | Path | None = None,
 ) -> Dict[str, Any]:
     eligible_ids: list[str] = []
     skipped = 0
     for art in articles:
         source_id = _source_id_for_article(art)
-        text = str(art.get("text") or "").strip()
-        if not source_id or not text:
+        if not source_id or not is_news_memo_candidate_article(art):
             skipped += 1
             continue
         eligible_ids.append(source_id)
 
     memo_state = _read_news_memo_source_ids(memos_path)
+    skip_state = _read_news_memo_skip_source_ids(
+        memo_skips_path,
+        memos_path=memos_path,
+    )
     persisted_ids = memo_state["source_ids"]
+    skipped_ids = skip_state["source_ids"]
+    terminal_ids = persisted_ids | skipped_ids
     unique_eligible = set(eligible_ids)
-    missing_ids = sorted(unique_eligible - persisted_ids)
+    missing_ids = sorted(unique_eligible - terminal_ids)
     persisted = len(unique_eligible & persisted_ids)
+    terminal_skipped = len(unique_eligible & skipped_ids)
     read_errors = int(memo_state.get("read_errors") or 0)
+    skip_read_errors = int(skip_state.get("read_errors") or 0)
     if read_errors:
         status = "degraded"
     elif not unique_eligible:
         status = "empty"
     elif not missing_ids:
         status = "complete"
-    elif persisted:
+    elif persisted or terminal_skipped:
         status = "partial"
     else:
         status = "none"
+    if skip_read_errors:
+        status = "degraded"
     return {
         "status": status,
         "eligible": len(unique_eligible),
         "skipped": skipped,
         "persisted": persisted,
+        "terminal_skipped": terminal_skipped,
         "missing": len(missing_ids),
         "missing_samples": missing_ids[:10],
         "memos_path": str(memo_state.get("path") or ""),
         "memos_file_exists": bool(memo_state.get("exists")),
+        "memo_skips_path": str(skip_state.get("path") or ""),
+        "memo_skips_file_exists": bool(skip_state.get("exists")),
         "read_errors": read_errors,
+        "memo_skips_read_errors": skip_read_errors,
     }
 
 
@@ -261,11 +449,22 @@ def dispatch_news_memos(
     poll_interval_seconds: float = 2.0,
     force_dispatch: bool = False,
     max_article_chars: int | str | None = None,
+    llm_url: str | None = None,
     llm_model: str | None = None,
+    memo_skips_path: str | Path | None = None,
 ) -> Dict[str, Any]:
-    before = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
+    before = build_memo_coverage_diagnostics(
+        articles,
+        memos_path=memos_path,
+        memo_skips_path=memo_skips_path,
+    )
     memo_state = _read_news_memo_source_ids(memos_path)
+    skip_state = _read_news_memo_skip_source_ids(
+        memo_skips_path,
+        memos_path=memos_path,
+    )
     persisted_ids = set(memo_state.get("source_ids") or set())
+    terminal_ids = persisted_ids | set(skip_state.get("source_ids") or set())
     article_char_cap = resolve_news_memo_max_article_chars(max_article_chars)
     dispatch_task = task
     import_error = ""
@@ -288,9 +487,9 @@ def dispatch_news_memos(
         for art in articles:
             source_id = _source_id_for_article(art)
             text = str(art.get("text") or "")
-            if not source_id or not text.strip():
+            if not source_id or not is_news_memo_candidate_article(art):
                 continue
-            if not force_dispatch and source_id in persisted_ids:
+            if not force_dispatch and source_id in terminal_ids:
                 already_persisted_skipped += 1
                 continue
             dispatch_candidates += 1
@@ -302,8 +501,16 @@ def dispatch_news_memos(
                 "candidate_tickers": _memo_candidate_tickers_for_article(art),
                 "max_article_chars": article_char_cap,
             }
+            if llm_url:
+                memo_payload["llm_url"] = str(llm_url).strip()
             if llm_model:
                 memo_payload["llm_model"] = str(llm_model).strip()
+            if memos_path:
+                memo_payload["memos_path"] = str(Path(memos_path).expanduser().resolve())
+            if memo_skips_path:
+                memo_payload["memo_skips_path"] = str(
+                    Path(memo_skips_path).expanduser().resolve()
+                )
             try:
                 async_result = dispatch_task.delay(memo_payload)
                 dispatched += 1
@@ -323,8 +530,14 @@ def dispatch_news_memos(
         timeout_seconds=wait_timeout_seconds,
         poll_interval_seconds=poll_interval_seconds,
     )
-    after = build_memo_coverage_diagnostics(articles, memos_path=memos_path)
+    after = build_memo_coverage_diagnostics(
+        articles,
+        memos_path=memos_path,
+        memo_skips_path=memo_skips_path,
+    )
     unobserved_tasks = max(0, dispatched - wait_diagnostics["observed"])
+    skipped_successes = int(wait_diagnostics.get("completed_skipped") or 0)
+    missing_after_dispatch = int(after["missing"])
     if import_error:
         status = "unavailable"
     elif wait_for_completion and (
@@ -333,14 +546,16 @@ def dispatch_news_memos(
         or wait_diagnostics["pending"]
         or unobserved_tasks
         or after["read_errors"]
-        or after["missing"]
+        or missing_after_dispatch > skipped_successes
     ):
         status = "degraded"
-    elif wait_for_completion and after["missing"] == 0:
+    elif wait_for_completion and missing_after_dispatch:
+        status = "complete_with_skips"
+    elif wait_for_completion and missing_after_dispatch == 0:
         status = "complete"
     elif failed:
         status = "degraded"
-    elif after["missing"] == 0:
+    elif missing_after_dispatch == 0:
         status = "complete"
     elif dispatched:
         status = "pending"
@@ -354,6 +569,8 @@ def dispatch_news_memos(
         "dispatch_candidates": dispatch_candidates,
         "force_dispatch": bool(force_dispatch),
         "max_article_chars": article_char_cap,
+        "llm_url": str(llm_url or "").strip(),
+        "llm_url_source": "payload" if str(llm_url or "").strip() else "worker_default",
         "llm_model": str(llm_model or "").strip(),
         "llm_model_source": "payload" if str(llm_model or "").strip() else "worker_default",
         "dispatched": dispatched,
@@ -361,21 +578,28 @@ def dispatch_news_memos(
         "dispatch_failed_samples": failed_samples,
         "persisted_before_dispatch": before["persisted"],
         "persisted_after_dispatch": after["persisted"],
+        "terminal_skipped_before_dispatch": before["terminal_skipped"],
+        "terminal_skipped_after_dispatch": after["terminal_skipped"],
         "missing_after_dispatch": after["missing"],
         "missing_samples": after["missing_samples"],
         "memos_path": after["memos_path"],
         "memos_file_exists": after["memos_file_exists"],
+        "memo_skips_path": after["memo_skips_path"],
+        "memo_skips_file_exists": after["memo_skips_file_exists"],
         "read_errors": after["read_errors"],
+        "memo_skips_read_errors": after["memo_skips_read_errors"],
         "import_error": import_error,
         "completion_observable": bool(wait_for_completion),
         "task_ids_count": len(task_ids),
         "task_ids_sample": task_ids[:10],
         "tasks_observed": wait_diagnostics["observed"],
         "tasks_completed": wait_diagnostics["completed"],
+        "tasks_completed_skipped": skipped_successes,
         "tasks_failed": wait_diagnostics["failed"],
         "tasks_pending": wait_diagnostics["pending"],
         "tasks_unobserved": unobserved_tasks,
         "task_failure_samples": wait_diagnostics["failure_samples"],
+        "task_skipped_samples": wait_diagnostics["skipped_samples"],
         "wait_requested": bool(wait_for_completion),
         "wait_timeout_seconds": wait_diagnostics["timeout_seconds"],
         "wait_poll_interval_seconds": wait_diagnostics["poll_interval_seconds"],
@@ -422,6 +646,16 @@ def _task_failure_error(result: Any) -> str:
     return str(info or "")
 
 
+def _task_success_payload(result: Any) -> Any:
+    get_result = getattr(result, "get", None)
+    if callable(get_result):
+        try:
+            return get_result(timeout=0)
+        except Exception:
+            pass
+    return getattr(result, "result", None)
+
+
 def _wait_for_news_memo_tasks(
     task_results: List[Any],
     *,
@@ -441,9 +675,11 @@ def _wait_for_news_memo_tasks(
             time.sleep(min(poll_interval, max(0.0, deadline - time.monotonic())))
 
     completed = 0
+    completed_skipped = 0
     failed = 0
     pending = 0
     failure_samples: list[dict[str, str]] = []
+    skipped_samples: list[dict[str, str]] = []
     if wait_for_completion:
         for result in task_results:
             task_id = _task_result_id(result)
@@ -458,12 +694,25 @@ def _wait_for_news_memo_tasks(
                     )
                 continue
             completed += 1
+            payload = _task_success_payload(result)
+            if isinstance(payload, dict) and str(payload.get("status") or "") == "skipped":
+                completed_skipped += 1
+                if len(skipped_samples) < 10:
+                    skipped_samples.append(
+                        {
+                            "task_id": task_id,
+                            "source_id": str(payload.get("source_id") or ""),
+                            "reason": str(payload.get("skip_reason") or ""),
+                        }
+                    )
     return {
         "observed": len(task_results),
         "completed": completed,
+        "completed_skipped": completed_skipped,
         "failed": failed,
         "pending": pending,
         "failure_samples": failure_samples,
+        "skipped_samples": skipped_samples,
         "timeout_seconds": timeout,
         "poll_interval_seconds": poll_interval,
     }
@@ -1179,24 +1428,6 @@ def sync_news_to_qdrant(
     if cleanup_stale and since_hours is not None and int(since_hours) > 0:
         raise ValueError("--cleanup-stale requires a full target (--since-hours 0)")
 
-    if embed_model is None:
-        try:
-            from app.core.config import settings
-
-            embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
-            settings_ollama_url = str(getattr(settings, "ollama_url", ""))
-        except Exception:
-            embed_model = "nomic-embed-text"
-            settings_ollama_url = None
-    else:
-        settings_ollama_url = None
-
-    embed_model = str(embed_model or "nomic-embed-text")
-    ollama_url, ollama_url_source = resolve_ollama_url(
-        cli_url=ollama_url,
-        settings_url=settings_ollama_url,
-    )
-
     target = build_news_projection_target(db_path, since_hours=since_hours)
     articles = list(target["articles"])
     target_points = list(target["points"])
@@ -1207,8 +1438,6 @@ def sync_news_to_qdrant(
         "deleted": 0,
         "dry_run": bool(dry_run),
         "qdrant_only": bool(qdrant_only),
-        "ollama_url": ollama_url,
-        "ollama_url_source": ollama_url_source,
     }
     if target_contract_report or dry_run or qdrant_only or cleanup_stale:
         stats["target_contract_report"] = target["report"]
@@ -1256,6 +1485,20 @@ def sync_news_to_qdrant(
 
     if client is None:
         raise RuntimeError("Qdrant client unavailable")
+
+    if embed_model is None or ollama_url is None:
+        try:
+            from app.core.config import settings
+
+            embed_model = embed_model or str(
+                getattr(settings, "embed_model", "nomic-embed-text")
+            )
+            ollama_url = ollama_url or str(
+                getattr(settings, "ollama_url", "http://localhost:11434")
+            )
+        except Exception:
+            embed_model = embed_model or "nomic-embed-text"
+            ollama_url = ollama_url or "http://localhost:11434"
 
     if embed_texts_fn is None:
         from app.services.ollama import ollama_embed
@@ -1507,14 +1750,6 @@ def main() -> int:
         help="Optional path for a nightly sync summary JSON artifact",
     )
     ap.add_argument(
-        "--ollama-url",
-        default=None,
-        help=(
-            "Ollama base URL; overrides OLLAMA_URL, settings.ollama_url, then "
-            "http://127.0.0.1:11434"
-        ),
-    )
-    ap.add_argument(
         "--memo-diagnostics-path",
         default="",
         help=(
@@ -1630,7 +1865,6 @@ def main() -> int:
             memo_wait_poll_interval_seconds=float(args.memo_wait_poll_interval_seconds),
             memo_force_dispatch=bool(args.force_dispatch_memos),
             memo_max_article_chars=memo_max_article_chars,
-            ollama_url=args.ollama_url,
         )
         sync_status = "dry_run" if bool(args.dry_run) else "success"
         summary["qdrant_sync"] = {"status": sync_status, **stats}
