@@ -1,0 +1,56 @@
+{
+  "job_id": "m40_service_restore_from_known_good_v1_20260517",
+  "updated_at": "2026-05-17T11:29:05+10:00",
+  "status": "staged_not_installed",
+  "goal_complete": true,
+  "primary_lane": "Runtime",
+  "repo_lane": "Query Orchestration",
+  "mode": "SAFE EXTENSION",
+  "collision_risk": "MEDIUM",
+  "commit_base": "d4ef1cb381a9",
+  "known_good_source": "scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh",
+  "staged_wrapper": "scripts/runtime/m40_llama_router_8001_conservative.sh",
+  "report": "reports/agent_jobs/m40_service_restore_from_known_good_v1_20260517/README.md",
+  "current_18001_state": "no llama-server listener after optional validation; ssh listener remains on 127.0.0.1:18001",
+  "current_8001_state": "not listening after immediate cleanup of accidental wrapper start",
+  "live_systemd_changed": false,
+  "cockpit_routing_changed": false,
+  "model_files_changed": false,
+  "apex_or_qwen35_run": false,
+  "proposed_8001_command": "M40_RESTORE_8001_CONFIRMED=1 /home/l4nd0/tenn-fast-dev-storage-v1/scripts/runtime/m40_llama_router_8001_conservative.sh",
+  "proposed_underlying_command": [
+    "/home/l4nd0/.local/bin/llama-server",
+    "--model /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+    "--host 127.0.0.1",
+    "--port 8001",
+    "--n-gpu-layers 8",
+    "--ctx-size 512",
+    "--device CUDA0",
+    "--split-mode none",
+    "--main-gpu 0",
+    "--fit off",
+    "--parallel 1",
+    "--cache-ram 0"
+  ],
+  "validation": {
+    "task_card_validate": "passed",
+    "wrapper_bash_n": "passed",
+    "wrapper_unconfirmed_guard": "passed with exit_code=64 and did not bind 8001",
+    "optional_18001_health": "{\"status\":\"ok\"}",
+    "optional_18001_chat_completion": "assistant content ok",
+    "post_cleanup_nvidia_smi": "Tesla M40 visible with 0 MiB used and no compute processes",
+    "post_cleanup_kernel_tail": "no fresh NVIDIA Xid in captured journalctl tail"
+  },
+  "safety_incident": {
+    "occurred": true,
+    "summary": "Initial wrapper guard test briefly started 127.0.0.1:8001 after the 18001 llama-server had disappeared; PID 92805 was terminated immediately.",
+    "left_running": false,
+    "mitigation": "Wrapper now requires M40_RESTORE_8001_CONFIRMED=1 before it can start."
+  },
+  "remaining_risks": [
+    "The staged :8001 wrapper has not been intentionally started or validated as the production endpoint.",
+    "The live user systemd units still point to older checkout launcher paths and are disabled/inactive.",
+    "This is Qwen2.5 conservative mode only, not APEX/Qwen3.5 restored mode.",
+    "Manual restore should stop any independent :18001 smoke server before starting :8001."
+  ]
+}
