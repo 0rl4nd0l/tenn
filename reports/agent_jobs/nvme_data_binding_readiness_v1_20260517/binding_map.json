@@ -1,0 +1,52 @@
+{
+  "job_id": "nvme_data_binding_readiness_v1_20260517",
+  "backend": {
+    "compose_file": "/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2/docker-compose.yml",
+    "engine_root_from_current_config": "/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2",
+    "data_mount": "./data:/data",
+    "data_root_default": "./data",
+    "resolved_backend_data_dir_now": "/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2/data",
+    "desired_backend_data_dir_after_binding_prep": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+    "future_nvme_target_data_dir": "/mnt/nvme/tenn/financial-engine_v2/data",
+    "compose_env_file_default": ".env.docker",
+    "project_name": "financial-engine_v2_default",
+    "postgres_volume": {
+      "compose_name": "fe_pgdata",
+      "qualified_name": "financial-engine_v2_fe_pgdata",
+      "mountpoint": "/mnt/nvme/docker/volumes/financial-engine_v2_fe_pgdata/_data",
+      "create_empty_without_seed": true
+    },
+    "qdrant_volume": {
+      "compose_name": "fe_qdrant",
+      "qualified_name": "financial-engine_v2_fe_qdrant",
+      "mountpoint": "/mnt/nvme/docker/volumes/financial-engine_v2_fe_qdrant/_data",
+      "create_empty_without_seed": true
+    },
+    "backend_env_reference": {
+      "DATABASE_URL": "sqlite or postgres depending env (runtime sets if absent)",
+      "QDRANT_URL": "http://127.0.0.1:6333",
+      "LLM_URL": "http://127.0.0.1:8001",
+      "OLLAMA_URL": "http://127.0.0.1:11434"
+    }
+  },
+  "frontend": {
+    "api_target_default": "http://localhost:8000",
+    "api_target_env": "NEXT_PUBLIC_API_URL",
+    "rewrites": ["/api", "/research", "/rag"],
+    "expected_for_same-host_launch": "backend and frontend same host in dev/prod mode"
+  },
+  "llama_runtime": {
+    "expected_router_endpoint": "http://127.0.0.1:8001",
+    "runtime_default_model_path": "/mnt/nvme/tenn/models",
+    "explicit_validation_target_not_present": true,
+    "note": "No explicit tenn-m40-8001-validation-v1 path in audited binding/config snippets"
+  },
+  "migration_plan_targets": {
+    "populate_data_source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+    "populate_asx_docs_source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+    "populate_reports_source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+    "compose_data_mount_target": "/mnt/nvme/tenn/financial-engine_v2/data",
+    "compose_project_target": "financial-engine_v2",
+    "compose_volume_target": ["financial-engine_v2_fe_pgdata", "financial-engine_v2_fe_qdrant"]
+  }
+}

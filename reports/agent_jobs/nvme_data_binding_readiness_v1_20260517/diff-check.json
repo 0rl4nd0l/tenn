@@ -1,0 +1,35 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/nvme_data_binding_readiness_v1_20260517.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [
+    {
+      "field": "mutation_mode",
+      "message": "audit_only jobs may not include code changes unless allow_audit_code_changes=true"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/nvme_data_binding_readiness_v1_20260517/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/nvme_data_binding_readiness_v1_20260517.md",
+        "reports/agent_jobs/nvme_data_binding_readiness_v1_20260517/"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_data_binding_readiness_v1_20260517",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/nvme_data_binding_readiness_v1_20260517",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "job_id": "nvme_data_binding_readiness_v1_20260517",
+  "generated_at": "2026-05-17T18:04:00+10:00",
+  "generated_by": "Codex",
+  "entries": [
+    {
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data",
+      "exists": true,
+      "mount_device": "/dev/nvme0n1p1",
+      "approximate_size": "76K",
+      "depth3_entries": 17,
+      "state": "sparse",
+      "should_copy_to_2tb_target": "no",
+      "backup_required": false,
+      "risk": "small sparse/working path likely insufficient for migration launch"
+    },
+    {
+      "path": "/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2/data",
+      "exists": true,
+      "mount_device": "/dev/nvme0n1p1",
+      "approximate_size": "716K",
+      "depth3_entries": 37,
+      "state": "sparse",
+      "should_copy_to_2tb_target": "no",
+      "backup_required": false,
+      "risk": "not the populated canonical dataset"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+      "exists": true,
+      "mount_device": "/dev/sdc2",
+      "approximate_size": "153G",
+      "depth3_entries": 1677,
+      "state": "populated",
+      "should_copy_to_2tb_target": "yes",
+      "backup_required": true,
+      "risk": "critical source dataset for launch; preserve carefully"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+      "exists": true,
+      "mount_device": "/dev/sdc2",
+      "approximate_size": "152G",
+      "depth3_entries": 185637,
+      "state": "populated",
+      "should_copy_to_2tb_target": "yes",
+      "backup_required": true,
+      "risk": "high-value corpus; verify integrity after copy"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+      "exists": true,
+      "mount_device": "/dev/sdc2",
+      "approximate_size": "786M",
+      "depth3_entries": 1199,
+      "state": "populated",
+      "should_copy_to_2tb_target": "yes",
+      "backup_required": true,
+      "risk": "operational report history and evidence bundle"
+    },
+    {
+      "path": "/mnt/nvme/docker/volumes/financial-engine_v2_fe_pgdata/_data",
+      "exists": false,
+      "mount_device": "unknown",
+      "approximate_size": "0",
+      "depth3_entries": 0,
+      "state": "unknown",
+      "should_copy_to_2tb_target": "defer",
+      "backup_required": false,
+      "risk": "empty/non-existent mountpoint; starting compose here will create new empty pg volume"
+    },
+    {
+      "path": "/mnt/nvme/docker/volumes/financial-engine_v2_fe_qdrant/_data",
+      "exists": false,
+      "mount_device": "unknown",
+      "approximate_size": "0",
+      "depth3_entries": 0,
+      "state": "unknown",
+      "should_copy_to_2tb_target": "defer",
+      "backup_required": false,
+      "risk": "empty/non-existent mountpoint; starting compose here will create new empty qdrant volume"
+    },
+    {
+      "path": "/mnt/nvme/tenn/models",
+      "exists": true,
+      "mount_device": "/dev/nvme0n1p1",
+      "approximate_size": "45G",
+      "depth3_entries": 4,
+      "state": "populated",
+      "should_copy_to_2tb_target": "no",
+      "backup_required": true,
+      "risk": "model/runtime asset store; keep path stable and avoid accidental mutation"
+    },
+    {
+      "path": "/mnt/nvme/tenn/runtime-data",
+      "exists": true,
+      "mount_device": "/dev/nvme0n1p1",
+      "approximate_size": "824M",
+      "depth3_entries": 602,
+      "state": "populated",
+      "should_copy_to_2tb_target": "no",
+      "backup_required": true,
+      "risk": "runtime support data used outside code-path migration"
+    }
+  ]
+}

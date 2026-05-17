@@ -1,0 +1,12 @@
+{
+  "job_id": "nvme_data_binding_readiness_artifact_checkpoint_v1_20260517",
+  "status": "BLOCKING_ARTIFACT_CHECKPOINTED",
+  "blocking_file": "docs/agent_tasks/nvme_data_binding_readiness_v1_20260517.md",
+  "checkpointed_as_part_of": "nvme_data_binding_readiness_artifact_checkpoint_v1_20260517",
+  "runtime_data_config_touched": false,
+  "data_mutation_performed": false,
+  "service_mutation_performed": false,
+  "safe_to_retry_next_implementation_task": true,
+  "created_at": "2026-05-17T18:15:00+10:00",
+  "notes": "Readiness task card and existing report artifacts are now explicitly included in this checkpoint lane and no longer treated as an unmanaged blocker."
+}
