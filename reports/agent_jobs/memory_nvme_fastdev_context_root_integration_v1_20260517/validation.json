@@ -1,0 +1,47 @@
+{
+  "job_id": "memory_nvme_fastdev_context_root_integration_v1_20260517",
+  "lane": "Memory",
+  "branch": "integrate/memory-nvme-fastdev-context-root-v1-20260517",
+  "base_branch": "fast/dev-storage-v1-20260513-170304",
+  "worktree": "/home/l4nd0/tenn-memory-nvme-fastdev-context-root-v1-20260517",
+  "integrated_commits": [
+    {
+      "source_commit": "612bae7e",
+      "new_commit": "a2c0e8be",
+      "subject": "milestone(memory): add live research memory root override"
+    },
+    {
+      "source_commit": "a19ed12d",
+      "new_commit": "ade54548",
+      "subject": "milestone(memory): guard ticker context to active company memory"
+    }
+  ],
+  "excluded_commits": [
+    {
+      "source_commit": "f6153625",
+      "reason": "release-status artifact only; not required for functional fast-dev integration"
+    }
+  ],
+  "validation": [
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_source_registry_root.py -q",
+      "result": "pass",
+      "summary": "3 passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_context_endpoints.py::TestGetMemoryContext financial-engine_v2/backend/tests/test_context_endpoints.py::TestGetCompanyDump -q",
+      "result": "pass",
+      "summary": "6 passed, 1 warning"
+    },
+    {
+      "command": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/source_registry.py financial-engine_v2/backend/app/api/context.py financial-engine_v2/backend/tests/test_source_registry_root.py financial-engine_v2/backend/tests/test_context_endpoints.py",
+      "result": "pass",
+      "summary": "All checks passed"
+    }
+  ],
+  "data_mutation": false,
+  "remaining_risk": [
+    "Historical expired contaminated rows remain in company_memory.sqlite; this integration only prevents default ticker context from using expired company rows.",
+    "Dirty runtime preserve worktrees were intentionally not touched."
+  ]
+}
