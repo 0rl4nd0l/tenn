@@ -1,0 +1,31 @@
+{
+  "job_id": "appendix5b_fifth_doc_approval_packet_v1_20260517",
+  "mode": "SAFE_EXTENSION",
+  "lane": "Evaluation",
+  "branch": "fast/dev-storage-v1-20260513-170304",
+  "head": "f22a9ae8da5a",
+  "selected_pdf": "/mnt/hdd-cold/tenn/asx-docs/PRM/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_11faaa3d-4a2c-440f-972f-c2f5630e21ae.pdf",
+  "selected_ticker": "PRM",
+  "selected_period": "quarter ended 31 December 2025",
+  "approved_for_scoring": false,
+  "added_to_gate": false,
+  "gate_status": "BLOCKED_ACTIVE_BRANCH_MISSING_APPENDIX5B_GATE_STACK",
+  "validation_status": "PASS_REPORT_LOCAL_BLOCKED_GATE_NOT_RUN",
+  "changed_files": [
+    "docs/agent_tasks/appendix5b_fifth_doc_approval_packet_v1_20260517.md",
+    "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/README.md",
+    "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/approval_packet.json",
+    "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/candidate_inventory.json",
+    "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/diff-check.json",
+    "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/status.json"
+  ],
+  "data_missing": [
+    "Controlled Docling candidate artifact for PRM in active NVMe",
+    "Appendix 5B scorer/gate scripts and backend evaluation services in active NVMe",
+    "Permission in this task card to restore backend Appendix 5B evaluation service files"
+  ],
+  "recommended_next_step": "Integrate the existing Appendix 5B evaluation/gate stack into active NVMe under a separate allowed scope, then score the PRM packet through the recurring gate before adding it to the no-regression floor.",
+  "save_recommendation": "Save that PRM December 2025 has clean page 8 Appendix 5B line 1.9 source evidence, but was not promoted because active NVMe lacks the Appendix 5B gate stack under this task scope.",
+  "registry_claim_status": "claimed",
+  "registry_release_status": "released"
+}

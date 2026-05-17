@@ -1,0 +1,54 @@
+{
+  "artifact_type": "appendix5b_fifth_doc_approval_packet_v1",
+  "job_id": "appendix5b_fifth_doc_approval_packet_v1_20260517",
+  "canonical_write": false,
+  "classification": "UNSCORED_BLOCKED_GATE_INFRA_MISSING",
+  "source_evidence_clean": true,
+  "approved_for_scoring": false,
+  "added_to_gate": false,
+  "selected_pdf": "/mnt/hdd-cold/tenn/asx-docs/PRM/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_11faaa3d-4a2c-440f-972f-c2f5630e21ae.pdf",
+  "source_pdf_sha256": "3e9df824c77762ef5cc642f7efe0adc81f9576d8cb73ae2912fced76a4836645",
+  "ticker": "PRM",
+  "company": "Prominence Energy Ltd",
+  "period": "quarter ended 31 December 2025",
+  "period_end": "2025-12-31",
+  "metric": "operating_cash_flow",
+  "expected_value": -246000,
+  "raw_value": "(246)",
+  "currency": "AUD",
+  "scale": "thousands",
+  "page_number_pdf": 8,
+  "page_number_appendix": 1,
+  "row_line_label": "1.9 Net cash from / (used in) operating activities",
+  "column_label": "Current quarter $A'000",
+  "ytd_column_label": "Year to date (6 months) $A'000",
+  "ytd_value": "(479)",
+  "source_excerpt_reference": {
+    "tool": "pdftotext -layout",
+    "command_scope": "page 8 only",
+    "excerpt": [
+      "Appendix 5B",
+      "PROMINENCE ENERGY LTD",
+      "Quarter ended (current quarter) 31 December 2025",
+      "Consolidated statement of cash flows Current quarter $A'000 Year to date (6 months) $A'000",
+      "1.9 Net cash from / (used in) operating activities (246) (479)"
+    ]
+  },
+  "safe_to_score_assessment": {
+    "page_line_current_quarter_evidence": true,
+    "mixed_period_ambiguity": false,
+    "ocr_or_font_blocker": false,
+    "docling_candidate_artifact_available_in_active_branch": false,
+    "recurring_gate_available_in_active_branch": false,
+    "reason_not_scored": "The source evidence is clean, but the active NVMe branch is missing the Appendix 5B scorer/gate stack and the task card does not allow restoring backend evaluation services required by the existing gate pattern."
+  },
+  "ambiguity_notes": [],
+  "hard_boundaries_preserved": [
+    "No parser implementation changes",
+    "No extraction prompt changes",
+    "No canonical financial truth writes",
+    "No production DB, Qdrant, news, or memory mutations",
+    "No network or rented GPU work",
+    "No dirty preserve checkout edits"
+  ]
+}
