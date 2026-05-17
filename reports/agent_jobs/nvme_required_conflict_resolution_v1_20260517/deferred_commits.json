@@ -1,0 +1,26 @@
+{
+  "job_id": "nvme_required_conflict_resolution_v1_20260517",
+  "deferred": [
+    {
+      "sha": "c102f3f21505a01a8333b2f442dc2403cf67b509",
+      "subject": "rented GPU memo backfill helper",
+      "status": "deferred",
+      "reason_deferred": "File conflict is delete-vs-add on scripts/run_news_memo_backfill_rented_gpu.sh; not safe without broader runtime/data-binding context.",
+      "action_recommendation": "user_or_gpt_review"
+    },
+    {
+      "sha": "d147dad8ca67688d6a08b200c3a7e9fff95605ec",
+      "subject": "docs/validation baseline migration alignment",
+      "status": "deferred",
+      "reason_deferred": "Blocked by local uncommitted docs/validation_baseline.md and out-of-scope validation drift.",
+      "action_recommendation": "user_or_gpt_review"
+    },
+    {
+      "sha": "80f71c50cdff151cea014a36a865e34b1331622e",
+      "subject": "validate system/memory gate isolation",
+      "status": "deferred",
+      "reason_deferred": "Introduced out-of-scope files and report artifacts; reverted after temporary integration.",
+      "action_recommendation": "user_or_gpt_review"
+    }
+  ]
+}

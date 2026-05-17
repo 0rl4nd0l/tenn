@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/nvme_isolated_partial_baseline_reconstruct_v1_20260517.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/nvme_isolated_partial_baseline_reconstruct_v1_20260517.md",
+    "reports/agent_jobs/nvme_isolated_partial_baseline_reconstruct_v1_20260517",
+    "docs/agent_tasks/nvme_required_conflict_resolution_v1_20260517.md",
+    "reports/agent_jobs/nvme_required_conflict_resolution_v1_20260517",
+    "scripts/load_news_to_qdrant.py",
+    "scripts/test_load_news_qdrant_preflight.py",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/diff-check.json",
+    "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/status.json"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-17T07:55:49.243689Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-17T07:55:49.243689Z",
+  "job_id": "nvme_isolated_partial_baseline_reconstruct_v1_20260517",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-17T07:55:49.243689Z",
+  "output_dir": "reports/agent_jobs/nvme_isolated_partial_baseline_reconstruct_v1_20260517",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:255200:nvme_isolated_partial_baseline_reconstruct_v1_20260517",
+  "started_at": "2026-05-17T07:55:49.243689Z",
+  "status": "active",
+  "task_card": "docs/agent_tasks/nvme_isolated_partial_baseline_reconstruct_v1_20260517.md",
+  "updated_at": "2026-05-17T07:55:49.243689Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

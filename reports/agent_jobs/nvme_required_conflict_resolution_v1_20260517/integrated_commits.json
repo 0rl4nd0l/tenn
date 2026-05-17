@@ -1,0 +1,32 @@
+{
+  "job_id": "nvme_required_conflict_resolution_v1_20260517",
+  "integrated": [
+    {
+      "sha": "2de6abb0448340bea1ee34450e1985e738a9419b",
+      "mapped_commit": "420d1181d3a5b8e873acac60fb394e9f93bcfc26",
+      "subject": "milestone(news-memos): prefer explicit exchange ticker support",
+      "reason_included": "Low-risk loader validation compatibility on existing script surface; conflicts resolved directly.",
+      "files_touched": [
+        "scripts/load_news_to_qdrant.py",
+        "scripts/test_load_news_qdrant_preflight.py"
+      ],
+      "validation": [
+        "git diff --check",
+        "python3 -m py_compile scripts/load_news_to_qdrant.py scripts/test_load_news_qdrant_preflight.py"
+      ]
+    },
+    {
+      "sha": "420b3b173f12446f9c801dacb0db5a927aec1d68",
+      "mapped_commit": "26b9b027214e5bca74d73ec2e43224a7560f16c9",
+      "subject": "milestone(memory): gate memory integrity validation",
+      "reason_included": "Report-only and conflict was low-risk in report artifacts; kept baseline versions to avoid broad report churn.",
+      "files_touched": [
+        "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/diff-check.json",
+        "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/status.json"
+      ],
+      "validation": [
+        "git diff --check"
+      ]
+    }
+  ]
+}

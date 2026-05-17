@@ -1,0 +1,305 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/next-env.d.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/next.config.mjs",
+      "status": "M"
+    },
+    {
+      "path": "docs/architecture/12_evaluation_and_drift_monitoring.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/validation_baseline.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/appendix5b_backend_gate_services_restore_v1_20260517.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/appendix5b_gate_stack_prm_promotion_v1_20260517.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/m40_8001_conservative_validation_v1_20260517.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_clean_runtime_baseline_integration_v1_20260517.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_required_commit_finish_v1_20260517.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_required_conflict_resolution_v1_20260517.md",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/build_appendix5b_manifest_from_docling.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/build_asx_appendix5b_label_review_packet.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/import_asx_appendix5b_confirmed_labels.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/run_appendix5b_candidate_artifacts.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/run_appendix5b_no_regression_gate.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/run_extraction_evaluation_gates.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/score_asx_appendix5b_candidates.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/test_appendix5b_no_regression_gate.py",
+      "status": "??"
+    },
+    {
+      "path": "scripts/test_extraction_evaluation_gates.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "cockpit-ui/next-env.d.ts",
+    "cockpit-ui/next.config.mjs",
+    "docs/agent_tasks/appendix5b_backend_gate_services_restore_v1_20260517.md",
+    "docs/agent_tasks/appendix5b_gate_stack_prm_promotion_v1_20260517.md",
+    "docs/agent_tasks/m40_8001_conservative_validation_v1_20260517.md",
+    "docs/agent_tasks/nvme_clean_runtime_baseline_integration_v1_20260517.md",
+    "docs/agent_tasks/nvme_required_commit_finish_v1_20260517.md",
+    "docs/architecture/12_evaluation_and_drift_monitoring.md",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py",
+    "scripts/build_appendix5b_manifest_from_docling.py",
+    "scripts/build_asx_appendix5b_label_review_packet.py",
+    "scripts/import_asx_appendix5b_confirmed_labels.py",
+    "scripts/run_appendix5b_candidate_artifacts.py",
+    "scripts/run_appendix5b_no_regression_gate.py",
+    "scripts/run_extraction_evaluation_gates.py",
+    "scripts/score_asx_appendix5b_candidates.py",
+    "scripts/test_appendix5b_no_regression_gate.py",
+    "scripts/test_extraction_evaluation_gates.py"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "cockpit-ui/next-env.d.ts is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "cockpit-ui/next.config.mjs is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/appendix5b_backend_gate_services_restore_v1_20260517.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/appendix5b_gate_stack_prm_promotion_v1_20260517.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/m40_8001_conservative_validation_v1_20260517.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/nvme_clean_runtime_baseline_integration_v1_20260517.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/nvme_required_commit_finish_v1_20260517.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/architecture/12_evaluation_and_drift_monitoring.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/build_appendix5b_manifest_from_docling.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/build_asx_appendix5b_label_review_packet.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/import_asx_appendix5b_confirmed_labels.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_appendix5b_candidate_artifacts.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_appendix5b_no_regression_gate.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_extraction_evaluation_gates.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/score_asx_appendix5b_candidates.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/test_appendix5b_no_regression_gate.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/test_extraction_evaluation_gates.py is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/nvme_required_conflict_resolution_v1_20260517/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme_required_conflict_resolution_v1_20260517.md",
+        "reports/agent_jobs/nvme_required_conflict_resolution_v1_20260517/",
+        "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/diff-check.json",
+        "reports/agent_jobs/memory_integrity_audit_guard_v1_20260516/status.json",
+        "scripts/run_news_memo_backfill_rented_gpu.sh",
+        "scripts/load_news_to_qdrant.py",
+        "scripts/test_load_news_qdrant_preflight.py",
+        "scripts/validate_system.sh",
+        "docs/validation_baseline.md"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_required_conflict_resolution_v1_20260517",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme_required_conflict_resolution_v1_20260517",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 2400
+    },
+    "ok": true
+  }
+}

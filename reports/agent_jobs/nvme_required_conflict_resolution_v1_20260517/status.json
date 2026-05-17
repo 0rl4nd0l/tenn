@@ -1,0 +1,47 @@
+{
+  "job_id": "nvme_required_conflict_resolution_v1_20260517",
+  "mode": "safe_extension",
+  "primary_lane": "Evaluation",
+  "verdict": "BLOCKED",
+  "launch_data_readiness_verdict": "CODE_READY_DATA_NOT_READY",
+  "currency_verdict": "PARTIAL_BASELINE_ONLY",
+  "starting_branch": "migration/clean-runtime-baseline-20260517",
+  "starting_head": "2caf0f0e87f4db8f7b3d9f5f8d1b4f8a39a56a1c",
+  "final_branch": "migration/clean-runtime-baseline-20260517",
+  "final_head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+  "commits_classified": 5,
+  "commits_integrated": 2,
+  "commits_deferred": 3,
+  "required_before_migration_remaining": 3,
+  "unknown_requires_user_review": 0,
+  "tests_run": [
+    "git diff --check",
+    "python3 -m py_compile scripts/load_news_to_qdrant.py scripts/test_load_news_qdrant_preflight.py",
+    "bash -n scripts/validate_system.sh",
+    "python3 -m pytest financial-engine_v2/backend/tests/test_load_news_qdrant_preflight.py"
+  ],
+  "tests_failed": [
+    "python3 -m pytest financial-engine_v2/backend/tests/test_load_news_qdrant_preflight.py: No module named pytest"
+  ],
+  "hard_stops_hit": [
+    "delete/add conflict for scripts/run_news_memo_backfill_rented_gpu.sh (c102f3f...)",
+    "local uncommitted change in docs/validation_baseline.md blocked d147dad...",
+    "scope/block due out-of-allowed-file files introduced by 80f71c...",
+    "check-overlap / claim blocked by many unrelated dirty/untracked files"
+  ],
+  "runtime_migration_readiness": "BLOCKED",
+  "backend_data_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+  "frontend_root": "/home/l4nd0/tenn-fast-dev-storage-v1/cockpit-ui",
+  "backend_root": "/home/l4nd0/tenn-fast-dev-storage-v1",
+  "llama_runtime_root": "/home/l4nd0/tenn-m40-8001-validation-v1",
+  "postgres_volume_path": "/mnt/nvme/docker/volumes/financial-engine_v2_fe_pgdata/_data",
+  "qdrant_volume_path": "/mnt/nvme/docker/volumes/financial-engine_v2_fe_qdrant/_data",
+  "would_launch_with_populated_data": false,
+  "data_binding_work_required": [
+    "Resolve remaining required commits (3 remaining)",
+    "Re-validate backend runtime data binding to populated HDD stores"
+  ],
+  "data_mutation_performed": false,
+  "services_restarted": false,
+  "repo_final_status": "dirty"
+}
