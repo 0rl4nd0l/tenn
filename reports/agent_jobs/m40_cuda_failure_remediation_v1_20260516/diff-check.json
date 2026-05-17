@@ -15,6 +15,10 @@
     {
       "path": "reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516/status.json",
       "status": "M"
+    },
+    {
+      "path": "scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh",
+      "status": "A"
     }
   ],
   "disallowed_files": [],
@@ -49,7 +53,8 @@
         "reports/agent_jobs/m40_no_mmap_isolated_control_v1_20260516/",
         "reports/agent_jobs/m40_non_llama_cuda_smoke_v1_20260516/",
         "reports/agent_jobs/virtual_gpu_runtime_restore_v1_20260516/",
-        "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/status.json"
+        "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/status.json",
+        "scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh"
       ],
       "approval_required": false,
       "job_id": "m40_cuda_failure_remediation_v1_20260516",

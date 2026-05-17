@@ -1,10 +1,110 @@
 # M40 CUDA Failure Remediation
 
+## Corrected diagnosis: M40 works; unsafe server config failed
+
+The earlier investigation result was wrong or premature when it implied that the Tesla M40, or the M40 CUDA path for llama.cpp, was not viable. The user reported that this setup had worked before the motherboard move, and later manual user testing proved that the M40 can run both llama.cpp CLI and llama-server. Codex did not find that recovery path; this report preserves the recovery evidence from manual user testing and corrects the diagnosis.
+
+Corrected diagnosis: the M40 can run llama.cpp and llama-server; the previous failure was configuration/runtime-path specific.
+
+Manual recovery evidence:
+
+- M40 topology and PCIe were sane after cold boot: CPU-lane topology `00:03.1-[2d] -> Tesla M40`, x16 width, ASPM disabled, no AER errors, and NVIDIA driver loaded cleanly.
+- `llama-cli` with Mistral 7B on CUDA0 / Tesla M40 passed at `--n-gpu-layers 1`, `8`, and `32`.
+- `llama-cli` with Qwen2.5 14B on CUDA0 / Tesla M40 passed at `--n-gpu-layers 1`, `8`, `16`, and `32`.
+- The initially short chat outputs were caused by `--n-predict 4`, not by GPU failure.
+- `llama-server` with the conservative Qwen2.5 14B config listened on `http://127.0.0.1:18001`.
+- The successful server path used CUDA0 as the Tesla M40 24GB at `0000:2d:00.0`, `n_slots = 1`, `n_ctx = 512`, prompt cache disabled, `kv_unified = false`, and offloaded `8/49` layers to the GPU.
+- `/health` returned `{"status":"ok"}`.
+- `/v1/chat/completions` returned assistant content `ok`.
+- `nvidia-smi` showed `/home/l4nd0/.local/bin/llama-server` resident on the Tesla M40 at about 2611 MiB VRAM.
+- The kernel log tail after the successful request showed no fresh NVIDIA Xid.
+
+Known-good command:
+
+```bash
+/home/l4nd0/.local/bin/llama-server \
+  --model /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf \
+  --host 127.0.0.1 \
+  --port 18001 \
+  --n-gpu-layers 8 \
+  --ctx-size 512 \
+  --device CUDA0 \
+  --split-mode none \
+  --main-gpu 0 \
+  --fit off \
+  --parallel 1 \
+  --cache-ram 0
+```
+
+The same command is preserved as `scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh`.
+
+Unsafe or suspect settings from the earlier failing server path:
+
+- auto parallelism / `n_parallel=4`
+- `kv_unified=true`
+- prompt cache enabled / large cache behavior
+- `n_slots=4`
+- `ctx-size 2048`
+- fit/device-memory behavior
+- wrong device selection risk; in this environment the known-good path used `CUDA0` for the M40 while earlier confusion selected the GT 1030 path
+
+Do not declare the M40 unusable unless both minimal llama-cli and conservative llama-server smoke paths fail after a clean boot.
+
+## Agent process failure
+
+The user reported that this runtime had worked before the motherboard move. The investigation should have prioritised reconstructing the old known-good runtime path before drawing conclusions from a single failing server configuration. It over-indexed on one failing server path and did not isolate runtime variables early enough.
+
+Future agents must isolate variables in this order:
+
+1. hardware visibility
+2. clean dmesg/kernel log
+3. minimal llama-cli
+4. llama-cli with increasing GPU layers
+5. conservative llama-server
+6. production-like llama-server
+
+Future agents must distinguish these failure classes before making a hardware viability claim:
+
+- hardware failure
+- CUDA/driver failure
+- device selection failure
+- server config failure
+- model-size/config failure
+- production routing failure
+
+## Conservative smoke validation - 2026-05-17
+
+The known-good server was already running on `127.0.0.1:18001`, so no second server was started.
+
+Validation commands:
+
+```bash
+ss -ltnp | grep -E ':8001|:18001' || true
+curl -s http://127.0.0.1:18001/health || true
+curl -s http://127.0.0.1:18001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"local","messages":[{"role":"user","content":"Reply exactly: ok"}],"max_tokens":8,"temperature":0}'
+nvidia-smi
+journalctl -k -b --no-pager | grep -iE 'xid|nvrm|cuda|gpu' | tail -160
+```
+
+Validation result:
+
+- `:18001` was listening with `/home/l4nd0/.local/bin/llama-server`.
+- `:8001` was not listening in the preflight port check.
+- `/health` returned `{"status":"ok"}`.
+- `/v1/chat/completions` returned assistant content `ok` from `qwen2.5-14b-instruct-q4_k_m.gguf`.
+- `nvidia-smi` showed the llama-server process on the Tesla M40 using about 2611 MiB VRAM.
+- `journalctl -k -b` showed NVIDIA driver load messages for GPU IDs `0x00002200` and `0x00002d00`, with no fresh NVIDIA Xid in the captured tail after the successful request.
+- `sudo dmesg -T ...` could not be captured non-interactively because sudo required a password.
+- `:18001` was left running because it was already running before this correction pass.
+- `:8001` was not started, stopped, rebound, or otherwise touched.
+
 ## Summary
 
-Classification: `M40_CUDA_LLAMACPP_BACKEND_FAULT` with host reset/BIOS follow-up required.
+Classification: `M40_LLAMA_CPP_AND_SERVER_RECOVERED_CONSERVATIVE_QWEN25`.
 
-The attempted CPU fallback was stopped and not used as a remediation. The local M40 can still run basic CUDA and can run a reduced-layer Qwen2.5 llama.cpp server, but the configured larger Qwen3.5/Qwen3.5-A3B path cannot be restored on the current host state with the current llama.cpp build or the tested older `b8209` build.
+The attempted CPU fallback was stopped and not used as a remediation. Later manual user testing proved the local M40 can run llama.cpp CLI and a conservative Qwen2.5 14B llama-server path. Production `:8001` / systemd routing was not restored in this correction pass.
 
 ## Confirmed facts
 

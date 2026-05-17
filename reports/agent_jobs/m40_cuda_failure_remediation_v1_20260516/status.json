@@ -1,92 +1,79 @@
 {
   "job_id": "m40_cuda_failure_remediation_v1_20260516",
-  "updated_at": "2026-05-17T00:40:00+10:00",
-  "status": "blocked_not_restored",
-  "classification": "M40_CUDA_DEVICE_STATE_OR_PLATFORM_FAULT_FOR_LLAMACPP_LOADS",
-  "objective": "restore local APEX operation on the Tesla M40 without CPU fallback or remote GPU",
-  "goal_complete": false,
-  "host_config_changes": [
-    {
-      "path": "/home/l4nd0/.config/tenn/llamacpp-presets.ini",
-      "change": "model:qwen3.5-35b-a3b-apex gpu-layers changed from 999 to 20"
+  "updated_at": "2026-05-17T11:15:25+10:00",
+  "status": "corrected_recovered",
+  "classification": "M40_LLAMA_CPP_AND_SERVER_RECOVERED_CONSERVATIVE_QWEN25",
+  "objective": "correct the M40 runtime diagnosis, preserve the known-good llama-server config, and add regression guardrails",
+  "goal_complete": true,
+  "m40_llama_cli_recovered": true,
+  "m40_llama_server_recovered": true,
+  "known_good_port": 18001,
+  "production_8001_restored": false,
+  "production_8001_touched": false,
+  "known_good_model": "qwen2.5-14b-instruct-q4_k_m.gguf",
+  "known_good_model_path": "/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+  "known_good_script": "scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh",
+  "known_good_config": {
+    "llama_server": "/home/l4nd0/.local/bin/llama-server",
+    "host": "127.0.0.1",
+    "port": 18001,
+    "n_gpu_layers": 8,
+    "ctx_size": 512,
+    "device": "CUDA0",
+    "split_mode": "none",
+    "main_gpu": 0,
+    "fit": "off",
+    "parallel": 1,
+    "cache_ram": 0
+  },
+  "corrected_diagnosis": "M40 works; earlier failure was server/config path specific, not proof that the M40 or M40 CUDA path was inherently broken.",
+  "manual_user_testing_evidence": [
+    "M40 topology and PCIe were sane after cold boot: CPU-lane topology 00:03.1-[2d] -> Tesla M40, x16 width, ASPM disabled, no AER errors, and NVIDIA driver loaded cleanly.",
+    "llama-cli with Mistral 7B on CUDA0 / Tesla M40 passed at n_gpu_layers 1, 8, and 32.",
+    "llama-cli with Qwen2.5 14B on CUDA0 / Tesla M40 passed at n_gpu_layers 1, 8, 16, and 32.",
+    "Short CLI outputs were caused by --n-predict 4, not GPU failure.",
+    "llama-server conservative Qwen2.5 config returned health ok and assistant content ok on 127.0.0.1:18001.",
+    "nvidia-smi showed llama-server resident on the Tesla M40 at about 2611 MiB VRAM.",
+    "No fresh NVIDIA Xid was observed after the successful server request."
+  ],
+  "unsafe_settings_suspected_in_earlier_failure": [
+    "auto parallelism / n_parallel=4",
+    "kv_unified=true",
+    "prompt cache enabled / large cache behavior",
+    "n_slots=4",
+    "ctx-size 2048",
+    "fit/device-memory behavior",
+    "wrong device selection risk"
+  ],
+  "validation": {
+    "port_check": "127.0.0.1:18001 was already listening with llama-server; :8001 was not listed in preflight.",
+    "health": {
+      "command": "curl -s http://127.0.0.1:18001/health || true",
+      "result": "{\"status\":\"ok\"}"
     },
-    {
-      "path": "/home/l4nd0/.config/tenn/llama-server.env",
-      "change": "added LLAMA_SERVER_MMAP=0"
+    "chat_completion": {
+      "command": "curl -s http://127.0.0.1:18001/v1/chat/completions -H 'Content-Type: application/json' -d '{...}'",
+      "assistant_content": "ok",
+      "model": "qwen2.5-14b-instruct-q4_k_m.gguf",
+      "system_fingerprint": "b8233-c5a778891",
+      "total_tokens": 35
     },
-    {
-      "path": "systemd user state",
-      "change": "llama-cpp-router.service disabled to prevent accidental APEX autoload"
+    "gpu": {
+      "command": "nvidia-smi",
+      "tesla_m40_visible": true,
+      "llama_server_pid": 42231,
+      "llama_server_vram_mib": 2611
     },
-    {
-      "path": "/home/l4nd0/.config/tenn/cockpit_llm.m40-qwen25-restore.yaml",
-      "change": "created host-local degraded qwen2.5 profile but did not activate it because qwen2.5 failed before backend cutover"
-    },
-    {
-      "path": "/home/l4nd0/.config/tenn/llamacpp-presets.ini",
-      "change": "added fit=off to model:qwen2.5-14b-instruct after first qwen2.5 restore attempt failed in llama.cpp fit/device-memory discovery"
+    "kernel_log": {
+      "sudo_dmesg": "blocked: sudo required an interactive password",
+      "journalctl_fallback": "NVIDIA driver load messages only in captured tail; no fresh NVIDIA Xid after successful request"
     }
-  ],
-  "confirmed_facts": [
-    "Historical commit cdb9041 documented APEX returning ok on M40 with --n-gpu-layers 20.",
-    "Current host preset had APEX gpu-layers=999 before repair.",
-    "The repaired router exposes APEX with --n-gpu-layers 20 and --no-mmap.",
-    "A tiny CUDA smoke on CUDA_VISIBLE_DEVICES=0 used Tesla M40 24GB and returned CUDA_SMOKE_OK.",
-    "A same-boot corrected APEX probe failed with Xid 69 before the user reset.",
-    "The user performed a privileged reset gate, after which local checks showed M40 visible at 0 MiB and no compute processes.",
-    "After reset, one corrected APEX probe offloaded 20/41 layers and reached about 8115 MiB VRAM.",
-    "After reset, the corrected APEX probe failed at cudaEventSynchronize in ggml_backend_cuda_device_event_synchronize.",
-    "Kernel logged M40 Xid 32 at 2026-05-17 00:23:18 for llama-server.",
-    "The tiny APEX request did not return ok.",
-    "After the failed APEX clean-reset probe, qwen2.5 was tried as the smaller previously working local M40 chat path.",
-    "The first qwen2.5 attempt failed at ggml_backend_cuda_device_get_memory / cudaMemGetInfo and logged M40 Xid 69 at 2026-05-17 00:36:28.",
-    "After adding fit=off to qwen2.5, the second qwen2.5 attempt still failed at ggml_backend_cuda_device_get_memory / cudaMemGetInfo and logged M40 Xid 69 at 2026-05-17 00:37:54.",
-    "No qwen2.5 tiny response returned ok.",
-    "The router was stopped after the failed probes.",
-    "Final M40 state is idle at 0 MiB with no compute processes."
-  ],
-  "inferred_facts": [
-    "Full-offload preset drift was a real regression but not the only blocker.",
-    "The remaining failure is below Tenn model aliasing and is in the M40/driver/llama.cpp CUDA load path or platform path.",
-    "Because both APEX and qwen2.5 now fail in llama.cpp CUDA model-load paths, the current boot does not have a reliable local M40 llama.cpp chat runtime.",
-    "Because the corrected path fails after a reset and qwen2.5 now logs Xid 69, further same-boot llama.cpp model-load poking is unsafe and unlikely to add value.",
-    "BIOS/slot/power/PCIe settings are now plausible next diagnostics, but not proven root cause from OS evidence."
-  ],
-  "data_missing": [
-    "No successful local-M40 APEX completion after reset.",
-    "No successful qwen2.5 local-M40 completion after the return-to-working-runtime attempt.",
-    "No BIOS setting readout from OS evidence.",
-    "No root-level lspci capability decode for link/AER state."
-  ],
-  "runtime_final": {
-    "llama_router_8001": "stopped_to_prevent_repeated_failed_loads",
-    "llama_router_enabled": false,
-    "apex_status": "not_loaded",
-    "apex_args_include": [
-      "--no-mmap",
-      "--n-gpu-layers 20",
-      "--ctx-size 16384",
-      "--batch-size 512",
-      "--ubatch-size 256",
-      "--fit off"
-    ],
-    "tiny_apex_completion": "failed",
-    "tiny_qwen25_completion": "failed",
-    "qwen25_args_include": [
-      "--no-mmap",
-      "--n-gpu-layers 999",
-      "--ctx-size 8192",
-      "--batch-size 1024",
-      "--ubatch-size 512",
-      "--fit off"
-    ]
   },
-  "gpu_final": {
-    "tesla_m40_visible": true,
-    "m40_memory_used_mib": 0,
-    "compute_processes": [],
-    "latest_current_turn_xid": "Xid 69 at 2026-05-17 00:37:54"
-  },
-  "recommended_next_safe_step": "Do not run another llama.cpp M40 model load in this boot. Reset/reboot the M40, inspect/correct BIOS, PCIe slot, ASPM, Above 4G Decoding, Resize BAR, power, and cooling, then run one qwen2.5 fit-off probe before any APEX retry.",
-  "project_memory_save_recommendation": "SAVE_RECOMMENDED"
+  "remaining_risk": [
+    "Production :8001/systemd route is not restored.",
+    "This is a conservative Qwen2.5 14B recovery/smoke config only.",
+    "APEX/Qwen3.5 production-like runtime remains unproven on local M40 in this correction pass."
+  ],
+  "guardrail": "Do not declare the M40 unusable unless both minimal llama-cli and conservative llama-server smoke paths fail after a clean boot.",
+  "process_failure": "The prior investigation should have prioritised reconstructing the old known-good runtime and isolating variables before making an M40 viability claim."
 }
