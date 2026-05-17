@@ -1,47 +1,92 @@
 {
-  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/m40_cuda_failure_remediation_v1_20260516.json",
-  "agent": "Codex",
-  "allowed_files": [
-    "docs/agent_tasks/m40_cuda_failure_remediation_v1_20260516.md",
-    "reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516",
-    "docs/agent_tasks/apex_m40_gpu_vs_model_differential_probe_v1_20260516.md",
-    "docs/agent_tasks/apex_m40_runtime_recovery_or_degrade_v1_20260516.md",
-    "docs/agent_tasks/apex_m40_runtime_stability_audit_v1_20260516.md",
-    "docs/agent_tasks/local_cpu_qwen35_runtime_restore_v1_20260516.md",
-    "docs/agent_tasks/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516.md",
-    "docs/agent_tasks/m40_llamacpp_runtime_restore_v1_20260516.md",
-    "docs/agent_tasks/m40_no_mmap_isolated_control_v1_20260516.md",
-    "docs/agent_tasks/m40_non_llama_cuda_smoke_v1_20260516.md",
-    "docs/agent_tasks/virtual_gpu_runtime_restore_v1_20260516.md",
-    "reports/agent_jobs/apex_m40_gpu_vs_model_differential_probe_v1_20260516",
-    "reports/agent_jobs/apex_m40_runtime_recovery_or_degrade_v1_20260516",
-    "reports/agent_jobs/apex_m40_runtime_stability_audit_v1_20260516",
-    "reports/agent_jobs/local_cpu_qwen35_runtime_restore_v1_20260516",
-    "reports/agent_jobs/m40_llamacpp_cuda_no_vmm_rebuild_probe_v1_20260516",
-    "reports/agent_jobs/m40_llamacpp_runtime_restore_v1_20260516",
-    "reports/agent_jobs/m40_no_mmap_isolated_control_v1_20260516",
-    "reports/agent_jobs/m40_non_llama_cuda_smoke_v1_20260516",
-    "reports/agent_jobs/virtual_gpu_runtime_restore_v1_20260516",
-    "reports/agent_jobs/news_loader_ollama_url_hardening_integrate_nvme_v1_20260515/status.json"
-  ],
-  "branch": "fast/dev-storage-v1-20260513-170304",
-  "claimed_at": "2026-05-16T13:49:28.207374Z",
-  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
-  "heartbeat_at": "2026-05-16T13:49:28.207374Z",
   "job_id": "m40_cuda_failure_remediation_v1_20260516",
-  "lane": "Query Orchestration",
-  "last_seen_at": "2026-05-16T13:50:21.013220Z",
-  "output_dir": "reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516",
-  "owner": "Codex",
-  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
-  "registry_scope": "shared",
-  "released_at": "2026-05-16T13:50:21.013220Z",
-  "repo_root": "/home/l4nd0/tenn-fast-dev-storage-v1",
-  "schema_version": 1,
-  "session_id": "l4nd0-System-Product-Name:31984:m40_cuda_failure_remediation_v1_20260516",
-  "started_at": "2026-05-16T13:49:28.207374Z",
-  "status": "released",
-  "task_card": "docs/agent_tasks/m40_cuda_failure_remediation_v1_20260516.md",
-  "updated_at": "2026-05-16T13:50:21.013220Z",
-  "worktree": "/home/l4nd0/tenn-fast-dev-storage-v1"
+  "updated_at": "2026-05-17T00:40:00+10:00",
+  "status": "blocked_not_restored",
+  "classification": "M40_CUDA_DEVICE_STATE_OR_PLATFORM_FAULT_FOR_LLAMACPP_LOADS",
+  "objective": "restore local APEX operation on the Tesla M40 without CPU fallback or remote GPU",
+  "goal_complete": false,
+  "host_config_changes": [
+    {
+      "path": "/home/l4nd0/.config/tenn/llamacpp-presets.ini",
+      "change": "model:qwen3.5-35b-a3b-apex gpu-layers changed from 999 to 20"
+    },
+    {
+      "path": "/home/l4nd0/.config/tenn/llama-server.env",
+      "change": "added LLAMA_SERVER_MMAP=0"
+    },
+    {
+      "path": "systemd user state",
+      "change": "llama-cpp-router.service disabled to prevent accidental APEX autoload"
+    },
+    {
+      "path": "/home/l4nd0/.config/tenn/cockpit_llm.m40-qwen25-restore.yaml",
+      "change": "created host-local degraded qwen2.5 profile but did not activate it because qwen2.5 failed before backend cutover"
+    },
+    {
+      "path": "/home/l4nd0/.config/tenn/llamacpp-presets.ini",
+      "change": "added fit=off to model:qwen2.5-14b-instruct after first qwen2.5 restore attempt failed in llama.cpp fit/device-memory discovery"
+    }
+  ],
+  "confirmed_facts": [
+    "Historical commit cdb9041 documented APEX returning ok on M40 with --n-gpu-layers 20.",
+    "Current host preset had APEX gpu-layers=999 before repair.",
+    "The repaired router exposes APEX with --n-gpu-layers 20 and --no-mmap.",
+    "A tiny CUDA smoke on CUDA_VISIBLE_DEVICES=0 used Tesla M40 24GB and returned CUDA_SMOKE_OK.",
+    "A same-boot corrected APEX probe failed with Xid 69 before the user reset.",
+    "The user performed a privileged reset gate, after which local checks showed M40 visible at 0 MiB and no compute processes.",
+    "After reset, one corrected APEX probe offloaded 20/41 layers and reached about 8115 MiB VRAM.",
+    "After reset, the corrected APEX probe failed at cudaEventSynchronize in ggml_backend_cuda_device_event_synchronize.",
+    "Kernel logged M40 Xid 32 at 2026-05-17 00:23:18 for llama-server.",
+    "The tiny APEX request did not return ok.",
+    "After the failed APEX clean-reset probe, qwen2.5 was tried as the smaller previously working local M40 chat path.",
+    "The first qwen2.5 attempt failed at ggml_backend_cuda_device_get_memory / cudaMemGetInfo and logged M40 Xid 69 at 2026-05-17 00:36:28.",
+    "After adding fit=off to qwen2.5, the second qwen2.5 attempt still failed at ggml_backend_cuda_device_get_memory / cudaMemGetInfo and logged M40 Xid 69 at 2026-05-17 00:37:54.",
+    "No qwen2.5 tiny response returned ok.",
+    "The router was stopped after the failed probes.",
+    "Final M40 state is idle at 0 MiB with no compute processes."
+  ],
+  "inferred_facts": [
+    "Full-offload preset drift was a real regression but not the only blocker.",
+    "The remaining failure is below Tenn model aliasing and is in the M40/driver/llama.cpp CUDA load path or platform path.",
+    "Because both APEX and qwen2.5 now fail in llama.cpp CUDA model-load paths, the current boot does not have a reliable local M40 llama.cpp chat runtime.",
+    "Because the corrected path fails after a reset and qwen2.5 now logs Xid 69, further same-boot llama.cpp model-load poking is unsafe and unlikely to add value.",
+    "BIOS/slot/power/PCIe settings are now plausible next diagnostics, but not proven root cause from OS evidence."
+  ],
+  "data_missing": [
+    "No successful local-M40 APEX completion after reset.",
+    "No successful qwen2.5 local-M40 completion after the return-to-working-runtime attempt.",
+    "No BIOS setting readout from OS evidence.",
+    "No root-level lspci capability decode for link/AER state."
+  ],
+  "runtime_final": {
+    "llama_router_8001": "stopped_to_prevent_repeated_failed_loads",
+    "llama_router_enabled": false,
+    "apex_status": "not_loaded",
+    "apex_args_include": [
+      "--no-mmap",
+      "--n-gpu-layers 20",
+      "--ctx-size 16384",
+      "--batch-size 512",
+      "--ubatch-size 256",
+      "--fit off"
+    ],
+    "tiny_apex_completion": "failed",
+    "tiny_qwen25_completion": "failed",
+    "qwen25_args_include": [
+      "--no-mmap",
+      "--n-gpu-layers 999",
+      "--ctx-size 8192",
+      "--batch-size 1024",
+      "--ubatch-size 512",
+      "--fit off"
+    ]
+  },
+  "gpu_final": {
+    "tesla_m40_visible": true,
+    "m40_memory_used_mib": 0,
+    "compute_processes": [],
+    "latest_current_turn_xid": "Xid 69 at 2026-05-17 00:37:54"
+  },
+  "recommended_next_safe_step": "Do not run another llama.cpp M40 model load in this boot. Reset/reboot the M40, inspect/correct BIOS, PCIe slot, ASPM, Above 4G Decoding, Resize BAR, power, and cooling, then run one qwen2.5 fit-off probe before any APEX retry.",
+  "project_memory_save_recommendation": "SAVE_RECOMMENDED"
 }

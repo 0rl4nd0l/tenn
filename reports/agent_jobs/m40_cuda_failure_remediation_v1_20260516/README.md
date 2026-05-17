@@ -460,3 +460,292 @@ Current live check at this point:
 - `:18001` remains absent.
 
 Conclusion: preserve dirty work may be useful plumbing for the approved remote-GPU path, but it does not remove the approval gate or restore local full functionality.
+
+## Local APEX Preset Regression Probe - 2026-05-17T00:02+10:00
+
+### Session declaration
+
+```text
+Lane: Query Orchestration
+Branch: fast/dev-storage-v1-20260513-170304
+Worktree: /home/l4nd0/tenn-fast-dev-storage-v1
+Execution mode: SAFE EXTENSION, host-runtime config repair plus one bounded APEX probe
+Intended files: reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516/
+Host config touched: /home/l4nd0/.config/tenn/llamacpp-presets.ini, /home/l4nd0/.config/tenn/llama-server.env
+Contested surfaces touched: local llama.cpp router service and Tesla M40 runtime only
+Collision risk: MEDIUM
+Decision: local APEX is still not restored
+```
+
+### What changed
+
+Current-turn evidence found a concrete regression against the last documented working APEX-on-M40 shape:
+
+- Historical commit `cdb9041` says APEX returned `ok` with router preset `--n-gpu-layers 20`.
+- Current host preset had `[model:qwen3.5-35b-a3b-apex] gpu-layers = 999`.
+- The host preset was restored to `gpu-layers = 20`.
+- `LLAMA_SERVER_MMAP=0` was added to `/home/l4nd0/.config/tenn/llama-server.env` so the router persists `--no-mmap` across restarts.
+
+### Validation run
+
+Pre-checks:
+
+- `nvidia-smi`: Tesla M40 visible, `0 MiB` before the probe, no compute processes.
+- Tiny CUDA smoke on the M40 passed with `CUDA_VISIBLE_DEVICES=0`:
+  - `device0=Tesla M40 24GB cc=5.2`
+  - `CUDA_SMOKE_OK value=42`
+- `ollama ps` was initially empty.
+
+Router restart:
+
+- `systemctl --user start llama-cpp-router.service` succeeded.
+- Router command included `--no-mmap`.
+- `/v1/models` showed `model:qwen3.5-35b-a3b-apex` with:
+  - `--n-gpu-layers 20`
+  - `--ctx-size 16384`
+  - `--batch-size 512`
+  - `--ubatch-size 256`
+  - `--fit off`
+
+Tiny APEX request:
+
+```bash
+timeout 180s curl -sS --max-time 170 \
+  -H 'Authorization: Bearer local-openai-key' \
+  -H 'Content-Type: application/json' \
+  http://127.0.0.1:8001/v1/chat/completions \
+  -d '{"model":"model:qwen3.5-35b-a3b-apex","messages":[{"role":"user","content":"Reply exactly: ok"}],"temperature":0,"max_tokens":8,"stream":false}'
+```
+
+Observed result:
+
+- First child loaded far enough to report `offloaded 20/41 layers to GPU`.
+- M40 reached about `8744 MiB` used during load.
+- The router then force-killed that APEX child after a 10 second unload timeout.
+- A second APEX child immediately failed at:
+  - `CUDA error: unspecified launch failure`
+  - `ggml_backend_cuda_device_get_memory`
+  - `cudaMemGetInfo(free, total)`
+- Kernel logged another M40 Xid:
+  - `NVRM: Xid (PCI:0000:2d:00): 69, pid=71038, name=llama-server`
+- The client request was manually killed after the CUDA failure.
+
+Cleanup:
+
+- `ollama` unexpectedly loaded `nomic-embed-text:latest` on the M40 during the probe; it was stopped with `ollama stop nomic-embed-text:latest`.
+- The crashed router child left APEX stuck as `loading`; the router process did not exit cleanly on SIGTERM.
+- `systemctl --user kill -s SIGKILL llama-cpp-router.service` was used to clear the crashed process tree.
+- Router was restarted without loading a model.
+
+Final live state:
+
+- `:8001` router was initially restarted healthy with APEX visible but `unloaded`.
+- APEX preset remains corrected to `gpu-layers = 20` and `--no-mmap`.
+- Another request hit `:8001` after cleanup and triggered a second APEX failure at `00:03:30`, logging another M40 `Xid 69`.
+- To prevent repeated failed APEX loads, `llama-cpp-router.service` was stopped with SIGKILL cleanup.
+- Final router state: inactive/dead.
+- Final M40 state: idle at `0 MiB`, no compute processes.
+- Latest kernel log still contains the current-turn `Xid 69`.
+
+### Interpretation
+
+Confirmed:
+
+- There was a real host preset regression: APEX had drifted from the documented working `20/41` offload shape back to full `999` offload.
+- The M40 can still execute a tiny CUDA kernel after earlier failures.
+- The current llama.cpp router can start cleanly and enumerate APEX with the corrected preset.
+- The corrected `20` layer APEX path still fails on this boot with Xid 69 and does not answer a tiny prompt.
+
+Inferred:
+
+- Full-offload preset drift explains why the larger model path got worse, but it is not the only remaining failure.
+- The current blocker is still the M40/driver/llama.cpp CUDA interaction after or during APEX load, not a simple model alias or CPU fallback issue.
+- The unexpected Ollama embedding load is a separate regression/noise source and should be prevented from using the M40 during APEX work.
+
+DATA_MISSING:
+
+- No successful local-M40 APEX completion exists after this repair.
+- No privileged GPU reset was available after the current-turn Xid 69.
+- No BIOS readout is available from OS evidence.
+
+Recommended next safe step:
+
+1. Do not run another APEX load in this boot.
+2. Reboot or privileged-reset the M40.
+3. Before any APEX request, keep Ollama embeddings off the M40.
+4. Re-test exactly the corrected `gpu-layers = 20`, `--no-mmap` APEX path once.
+5. If that still Xids on a clean reset, local APEX-on-M40 is blocked below Tenn config and needs driver/BIOS/PCIe or llama.cpp Maxwell debugging.
+
+### Final safety stop
+
+Because another process/request retriggered APEX after the failed probe, leaving `:8001` online with APEX as the configured default is unsafe on this boot. The service was stopped rather than left available to cause repeated M40 Xids.
+
+## Reset Gate State - 2026-05-17T00:06+10:00
+
+Current live evidence after the safety stop:
+
+- Worktree: `/home/l4nd0/tenn-fast-dev-storage-v1`
+- Branch: `fast/dev-storage-v1-20260513-170304`
+- HEAD: `023bd9fcdc6d`
+- Dirty files are this task card/report bundle only.
+- `llama-cpp-router.service`: inactive/dead.
+- `llama-cpp-router.service`: disabled after this note, so a reboot should not auto-start the router before the reset-gate checks.
+- M40: visible, `0 MiB`, no compute processes.
+- Ollama: `nomic-embed-text:latest` remains loaded CPU-side, not on the M40.
+- Latest current-boot M40 kernel fault remains `Xid 69` from `llama-server`.
+
+The next APEX test must be a clean-reset test, not another same-boot probe:
+
+1. Keep automatic `:8001` startup disabled until the reset-gate checks are complete.
+2. Reboot the host or perform a privileged reset of the Tesla M40.
+3. Confirm `nvidia-smi` is responsive and M40 is idle.
+4. Confirm Ollama embeddings are not using the M40.
+5. Start the router with the corrected APEX preset (`gpu-layers = 20`, `--no-mmap`).
+6. Run exactly one tiny direct APEX request.
+
+If that clean-reset probe still logs Xid 69, the remaining blocker is below Tenn host config: driver/BIOS/PCIe/power or llama.cpp Maxwell backend behavior.
+
+Autostart safety action run:
+
+```bash
+systemctl --user disable llama-cpp-router.service
+systemctl --user is-enabled llama-cpp-router.service
+```
+
+Result: `disabled`; router remained inactive/dead and the M40 stayed at `0 MiB` with no compute processes.
+
+## Clean GPU Reset APEX Probe - 2026-05-17T00:24+10:00
+
+The user ran the privileged reset manually after `sudo nvidia-smi --gpu-reset -i 1` initially reported the M40 was in use. After unloading Ollama's embedding runner, the reset gate was rechecked locally:
+
+- `nvidia-smi`: M40 visible, `0 MiB`, no compute processes.
+- `llama-cpp-router.service`: inactive and disabled before manual start.
+- `ollama ps`: no loaded models.
+- Kernel journal for the preceding 10 minutes: no new Xid after the user's reset.
+
+One corrected APEX probe was then run:
+
+- Router was manually started, not enabled.
+- Runtime env included `LLAMA_SERVER_DISABLE_CUDA_GRAPHS=1`.
+- `/v1/models` showed APEX with `--no-mmap`, `--n-gpu-layers 20`, `--ctx-size 16384`, `--batch-size 512`, `--ubatch-size 256`, and `--fit off`.
+- Tiny request:
+
+```bash
+timeout 220s curl -sS --max-time 210 \
+  -H 'Authorization: Bearer local-openai-key' \
+  -H 'Content-Type: application/json' \
+  http://127.0.0.1:8001/v1/chat/completions \
+  -d '{"model":"model:qwen3.5-35b-a3b-apex","messages":[{"role":"user","content":"Reply exactly: ok"}],"temperature":0,"max_tokens":8,"stream":false}'
+```
+
+Result:
+
+- APEX loaded metadata and began tensor upload.
+- It offloaded `20/41` layers to the M40.
+- M40 VRAM reached about `8115 MiB`.
+- Failure occurred during tensor upload at `ggml_backend_cuda_device_event_synchronize` / `cudaEventSynchronize`.
+- Kernel logged M40 `Xid 32` for `llama-server` at `00:23:18`.
+- The request did not return `ok`; it hung behind the crashed child and was killed.
+- The router was stopped again with SIGKILL cleanup.
+- Final M40 state: `0 MiB`, no compute processes.
+
+Conclusion:
+
+- The privileged reset did not restore APEX on the local M40.
+- The corrected historical 20-layer/no-mmap APEX path still fails on a clean reset.
+- This is now classified as `M40_CUDA_LLAMACPP_BACKEND_OR_PLATFORM_FAULT`, not a simple Tenn config regression.
+- Do not run further APEX loads in this boot.
+
+Next safe diagnostic step:
+
+- Do not continue model-load poking.
+- Check BIOS/slot/power/platform settings before another APEX attempt:
+  - Above 4G Decoding enabled.
+  - Resize BAR disabled or conservative for Maxwell if present.
+  - PCIe slot forced Gen3.
+  - ASPM disabled.
+  - M40 in the most direct CPU-lane slot available.
+  - Adequate M40 auxiliary power and cooling.
+- If BIOS/platform checks are corrected, repeat only one APEX probe with the same `20` layer/no-mmap preset.
+
+## Return-To-Working-Runtime Attempt - 2026-05-17T00:38+10:00
+
+After web research confirmed CUDA 13 removed Maxwell/Pascal/Volta toolkit support and that M40 should remain on an older/sm_52-targeted stack, the local runtime was checked against the actual installed binary:
+
+- Active llama.cpp CUDA binary: `/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server`.
+- Version: `8233 (c5a778891)`.
+- Build target: `CMAKE_CUDA_ARCHITECTURES=52`.
+- CUDA toolkit available locally: `11.5.119`.
+- The earlier b8209/no-VMM rebuild was already recorded in this report and also failed with M40 Xid 69.
+
+An attempt was made to return to the last proven smaller local M40 chat model instead of APEX:
+
+1. Added host-local degraded profile `/home/l4nd0/.config/tenn/cockpit_llm.m40-qwen25-restore.yaml` pointing chat at `model:qwen2.5-14b-instruct`.
+2. Started `llama-cpp-router.service` manually; it was not re-enabled.
+3. Sent one bounded tiny request to `model:qwen2.5-14b-instruct`.
+
+First result:
+
+- Router spawned qwen2.5 with `--n-gpu-layers 999`, `--ctx-size 8192`, `--no-mmap`.
+- It failed during llama.cpp fit/device-memory discovery:
+  - `CUDA error: unspecified launch failure`
+  - `ggml_backend_cuda_device_get_memory`
+  - `cudaMemGetInfo(free, total)`
+- Kernel logged M40 `Xid 69` at `00:36:28` for `llama-server`.
+
+Mitigation attempt:
+
+- Added `fit = off` to the qwen2.5 host preset in `/home/l4nd0/.config/tenn/llamacpp-presets.ini`.
+- Restarted router manually and ran exactly one more bounded qwen2.5 tiny request.
+
+Second result:
+
+- Router confirmed qwen2.5 was spawned with `--fit off`.
+- It still failed at `ggml_backend_cuda_device_get_memory` / `cudaMemGetInfo(free, total)`.
+- Kernel logged another M40 `Xid 69` at `00:37:54` for `llama-server`.
+- The request did not return `ok`.
+- Router was stopped and broken parent/child PIDs were killed.
+- Final state after cleanup:
+  - `llama-cpp-router.service`: `failed`, disabled.
+  - `:8001`: no listener.
+  - M40: visible, `0 MiB`, no compute processes.
+
+Conclusion:
+
+- Returning to the known smaller qwen2.5 M40 runtime did not work in this boot.
+- This is no longer isolated to APEX/Qwen3.5 size.
+- Current classification is now `M40_CUDA_DEVICE_STATE_OR_PLATFORM_FAULT_FOR_LLAMACPP_LOADS`.
+- Do not run more llama.cpp model-load probes until the M40 is reset or the host is rebooted and platform settings are checked.
+
+The host-local qwen2.5 `fit = off` preset is intentionally left in place because it avoids the known llama.cpp fit path on any future reset/reboot retry. The degraded Cockpit profile file was created but not activated by restarting the backend, because qwen2.5 failed before backend/Cockpit cutover.
+
+## Manual recovery finding - M40 llama-server restored on conservative config
+
+Confirmed after cold reboot / clean driver state:
+- M40 is on CPU-lane topology: 00:03.1-[2d] -> Tesla M40.
+- PCIe link is sane: x16 width, ASPM disabled, no AER errors.
+- llama-cli works on CUDA0 / Tesla M40:
+  - Mistral 7B with ngl 1, 8, and 32.
+  - Qwen2.5 14B with ngl 1, 8, 16, and 32.
+- llama-server also works on CUDA0 / Tesla M40 with conservative settings:
+  - model: /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+  - port: 18001
+  - n_gpu_layers: 8
+  - ctx_size: 512
+  - device: CUDA0
+  - split_mode: none
+  - main_gpu: 0
+  - fit: off
+  - parallel: 1
+  - cache_ram: 0
+- Health endpoint returned status ok.
+- OpenAI-compatible /v1/chat/completions returned "ok".
+- No fresh NVIDIA Xid after the successful server request.
+
+Corrected diagnosis:
+- The M40 can run llama.cpp and llama-server.
+- The earlier failure was likely caused by unsafe server defaults or wrong device/config path, not fundamental M40 incapability.
+- Known risky settings include auto parallelism / n_parallel=4, prompt cache enabled, larger context, automatic fit behaviour, and accidental GT 1030 device selection.
+
+Known-good command saved at:
+~/m40_known_good_llama_server_qwen25_14b.sh

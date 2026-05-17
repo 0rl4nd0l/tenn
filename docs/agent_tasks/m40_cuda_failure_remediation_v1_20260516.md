@@ -5,6 +5,9 @@ owner: Codex
 allowed_files:
   - docs/agent_tasks/m40_cuda_failure_remediation_v1_20260516.md
   - reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516/
+  - reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516/README.md
+  - reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516/status.json
+  - reports/agent_jobs/m40_cuda_failure_remediation_v1_20260516/diff-check.json
   - docs/agent_tasks/apex_m40_gpu_vs_model_differential_probe_v1_20260516.md
   - docs/agent_tasks/apex_m40_runtime_recovery_or_degrade_v1_20260516.md
   - docs/agent_tasks/apex_m40_runtime_stability_audit_v1_20260516.md
