@@ -1,0 +1,24 @@
+---
+job_id: nvme2_backend_pytest_route_parity_hygiene_v1_20260518
+lane: Evaluation
+owner: Codex
+mutation_mode: safe_extension
+production_data_access: false
+approval_required: false
+allow_unapproved_safe_extension: true
+timeout_seconds: 2400
+output_dir: reports/agent_jobs/nvme2_backend_pytest_route_parity_hygiene_v1_20260518
+allowed_files:
+  - docs/agent_tasks/nvme2_backend_pytest_route_parity_hygiene_v1_20260518.md
+  - docs/agent_tasks/*nvme2*route*parity*.md
+  - docs/agent_tasks/*nvme2*pytest*.md
+  - reports/agent_jobs/nvme2_backend_pytest_route_parity_hygiene_v1_20260518/**
+  - reports/agent_jobs/*nvme2*route*parity*/**
+  - reports/agent_jobs/*nvme2*pytest*/**
+  - financial-engine_v2/backend/requirements.txt
+  - financial-engine_v2/backend/requirements-dev.txt
+  - financial-engine_v2/backend/requirements*.txt
+  - financial-engine_v2/backend/pyproject.toml
+  - financial-engine_v2/backend/pytest.ini
+  - financial-engine_v2/backend/tests/**
+---

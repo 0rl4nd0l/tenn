@@ -2,3 +2,5 @@
 import-linter>=2.1
 mlflow-skinny>=2.22.0,<3.0
 duckdb>=1.4.0,<2.0
+pytest>=8.3.3
+pytest-asyncio>=0.24.0
