@@ -1,0 +1,24 @@
+{
+  "job_id": "nvme2_binding_switch_v1_20260518",
+  "verdict": "BINDING_SWITCH_COMMITTED",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "starting_head": "52f1aba48fa429c189f65b1049ea3535654b5e92",
+  "final_head": "6f0ca8ab",
+  "commit_created": true,
+  "commit_hash": "6f0ca8ab",
+  "binding_updated_to_nvme2": true,
+  "remaining_missing_count": 2,
+  "accepted_excludes": [
+    "reports/router_metrics_snapshot.json",
+    "reports/tmpc6h17mhb.tmp"
+  ],
+  "target_data_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+  "target_reports_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+  "docker_volume_safety": "ACCEPTABLE",
+  "limited_smoke_ok": false,
+  "data_mutation_performed": false,
+  "source_data_deleted": false,
+  "services_started": [],
+  "services_stopped": [],
+  "next_safe_step": "Run the deferred limited backend smoke in `limited_smoke_or_plan.json`, then finalize launch readiness."
+}

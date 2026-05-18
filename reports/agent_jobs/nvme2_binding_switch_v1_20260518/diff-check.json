@@ -1,0 +1,37 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/docker-compose.yml",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/nvme2_binding_switch_v1_20260518.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/nvme2_binding_switch_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme2_binding_switch_v1_20260518.md",
+        "reports/agent_jobs/nvme2_binding_switch_v1_20260518/",
+        "scripts/start_config.env",
+        "financial-engine_v2/docker-compose.yml"
+      ],
+      "approval_required": false,
+      "job_id": "nvme2_binding_switch_v1_20260518",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme2_binding_switch_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 2400
+    },
+    "ok": true
+  }
+}

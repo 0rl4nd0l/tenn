@@ -1,0 +1,17 @@
+{
+  "job_id": "nvme2_binding_switch_v1_20260518",
+  "git_diff_command": "git diff --check",
+  "git_diff_check_passed": true,
+  "changed_files_checked": [
+    "scripts/start_config.env",
+    "financial-engine_v2/docker-compose.yml"
+  ],
+  "target_path_checks": {
+    "backend_container_data": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+    "backend_container_reports": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
+  },
+  "grep_hits_count": 9,
+  "target_data_size": "153G\t/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+  "target_reports_size": "786M\t/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+  "asx_doc_sample_count": 20
+}

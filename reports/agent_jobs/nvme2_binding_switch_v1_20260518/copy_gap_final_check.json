@@ -1,0 +1,15 @@
+{
+  "job_id": "nvme2_binding_switch_v1_20260518",
+  "initial_missing_count": 2,
+  "expected_remaining_missing_files": [
+    "reports/router_metrics_snapshot.json",
+    "reports/tmpc6h17mhb.tmp"
+  ],
+  "actual_remaining_missing_files": [
+    "reports/router_metrics_snapshot.json",
+    "reports/tmpc6h17mhb.tmp"
+  ],
+  "unexpected_missing_count": 0,
+  "remaining_missing_count": 2,
+  "result": "ACCEPTABLE_WITH_EXCLUDES"
+}

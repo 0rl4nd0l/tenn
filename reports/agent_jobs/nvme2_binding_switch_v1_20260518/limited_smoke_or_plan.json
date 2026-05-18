@@ -1,0 +1,18 @@
+{
+  "job_id": "nvme2_binding_switch_v1_20260518",
+  "decision": "deferred_plan",
+  "health_checked": false,
+  "reasons": [
+    "No active 8000 listener found",
+    "Limited backend smoke not completed because compose backend build reached long dependency install"
+  ],
+  "proposed_commands": [
+    "cd /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+    "docker compose -p tenn-nvme2-smoke up -d postgres redis qdrant backend",
+    "curl -sS http://127.0.0.1:8000/api/health",
+    "docker exec fe_backend test -d /data",
+    "docker exec fe_backend test -d /reports",
+    "docker compose -p tenn-nvme2-smoke down"
+  ],
+  "result": "DEFERRED"
+}

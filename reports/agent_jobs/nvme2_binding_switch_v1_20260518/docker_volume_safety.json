@@ -1,0 +1,18 @@
+{
+  "job_id": "nvme2_binding_switch_v1_20260518",
+  "named_volumes_preserved": true,
+  "compose_names": [
+    "fe_pgdata",
+    "fe_qdrant"
+  ],
+  "compose_volume_definitions_preserved": true,
+  "empty_volume_creation_expected": false,
+  "db_qdrant_migration_recommended_next": "DEFER",
+  "inspect_rc": 0,
+  "inspect_raw": "[\n    {\n        \"CreatedAt\": \"2026-04-07T18:27:34+10:00\",\n        \"Driver\": \"local\",\n        \"Labels\": {\n            \"com.docker.compose.config-hash\": \"4c527c3e0ddd336cd56dd7d09ee67abc5f215734b61123aaadde29a8d2bbba44\",\n            \"com.docker.compose.project\": \"financial-engine_v2\",\n            \"com.docker.compose.version\": \"2.37.1\",\n            \"com.docker.compose.volume\": \"fe_pgdata\"\n        },\n        \"Mountpoint\": \"/mnt/nvme/docker/volumes/financial-engine_v2_fe_pgdata/_data\",\n        \"Name\": \"financial-engine_v2_fe_pgdata\",\n        \"Options\": null,\n        \"Scope\": \"local\"\n    },\n    {\n        \"CreatedAt\": \"2026-04-07T18:27:34+10:00\",\n        \"Driver\": \"local\",\n        \"Labels\": {\n            \"com.docker.compose.config-hash\": \"6f269997542300af26831b3d0e24f11ca62c625240317b8e8015b46874f58d0b\",\n            \"com.docker.compose.project\": \"financial-engine_v2\",\n            \"com.docker.compose.version\": \"2.37.1\",\n            \"com.docker.compose.volume\": \"fe_qdrant\"\n        },\n        \"Mountpoint\": \"/mnt/nvme/docker/volumes/financial-engine_v2_fe_qdrant/_data\",\n        \"Name\": \"financial-engine_v2_fe_qdrant\",\n        \"Options\": null,\n        \"Scope\": \"local\"\n    }\n]",
+  "inspect_error": "",
+  "current_mountpoints_summary": [
+    "/mnt/nvme/docker/volumes/financial-engine_v2_fe_pgdata/_data",
+    "/mnt/nvme/docker/volumes/financial-engine_v2_fe_qdrant/_data"
+  ]
+}
