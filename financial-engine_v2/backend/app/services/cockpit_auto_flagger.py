@@ -32,6 +32,14 @@ _CONTROL_OR_GENERIC_PROMPT_RE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+_CONTROL_LITERAL_PROMPT_RE = re.compile(
+    r"^\s*(?:/(?:advisor|cloud|local|ops)\s+)?(?:"
+    r"(?:reply|respond)\s+(?:exactly|with)|say\s+exactly"
+    r")\s*:?\s*"
+    r"[\"'`]*(?:ok(?:ay)?|yes|no|done|pong|ping|hi|hello|thanks|thank\s+you)"
+    r"[\"'`]*[.!?]*\s*$",
+    re.IGNORECASE,
+)
 _ORCHESTRATOR_MEMORY_SOURCES = frozenset(
     {
         "financial_truth",
@@ -212,6 +220,14 @@ def detect_auto_flag_findings(turn: dict[str, Any]) -> list[dict[str, Any]]:
     source = str(routing.get("source") or "").strip().lower()
     model = str(routing.get("model") or "").strip()
     routing_reason = str(routing.get("routing_reason") or "").strip().lower()
+    control_literal_guard_only = (
+        routing.get("grounding_guard") == "missing_visible_sources"
+        and _CONTROL_LITERAL_PROMPT_RE.fullmatch(request_message)
+        and not routing.get("tool_audit")
+        and not evidence
+        and not tool_traces
+        and not status_events
+    )
 
     if source in {"api", "local", "orchestrator", "cockpit"} and model.lower() in {
         "",
@@ -261,7 +277,10 @@ def detect_auto_flag_findings(turn: dict[str, Any]) -> list[dict[str, Any]]:
             },
         )
 
-    if routing.get("grounding_guard") == "missing_visible_sources":
+    if (
+        routing.get("grounding_guard") == "missing_visible_sources"
+        and not control_literal_guard_only
+    ):
         _append(
             findings,
             category="missing_sources",

@@ -87,6 +87,42 @@ def test_detect_auto_flag_findings_catches_force_api_local_contradiction() -> No
     assert any("required API" in item["reason"] for item in findings)
 
 
+def test_detect_auto_flag_findings_catches_substantive_missing_visible_sources() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "request": {"message": "tell me about BHP"},
+            "response_text": "I can't verify that from current evidence.",
+            "routing_metadata": {
+                "source": "local",
+                "model": "model:test",
+                "grounding_guard": "missing_visible_sources",
+            },
+            "evidence": [],
+        }
+    )
+
+    assert any(item["category"] == "missing_sources" for item in findings)
+
+
+def test_detect_auto_flag_findings_ignores_control_prompt_missing_visible_sources_only() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "request": {"message": "Reply exactly: ok"},
+            "response_text": "I can't verify that from current evidence.",
+            "routing_metadata": {
+                "source": "local",
+                "model": "model:test",
+                "grounding_guard": "missing_visible_sources",
+            },
+            "evidence": [],
+            "tool_traces": [],
+            "status_events": [],
+        }
+    )
+
+    assert findings == []
+
+
 def test_detect_auto_flag_findings_catches_generic_orchestrator_memory() -> None:
     findings = detect_auto_flag_findings(
         {

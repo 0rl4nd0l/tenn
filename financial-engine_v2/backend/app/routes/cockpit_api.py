@@ -3025,6 +3025,14 @@ _NON_SUBSTANTIVE_CHAT_MESSAGE_RE = re.compile(
     r")\s*$",
     re.IGNORECASE,
 )
+_CONTROL_LITERAL_CHAT_MESSAGE_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:reply|respond)\s+(?:exactly|with)|say\s+exactly"
+    r")\s*:?\s*"
+    r"[\"'`]*(?:ok(?:ay)?|yes|no|done|pong|ping|hi|hello|thanks|thank\s+you)"
+    r"[\"'`]*[.!?]*\s*$",
+    re.IGNORECASE,
+)
 _BARE_OPERATIONAL_ISSUE_MESSAGE_RE = re.compile(
     r"^\s*(?:error|errored|failed|failure|it failed|that failed|that errored|"
     r"something failed|got an error)\s*[.!?]*\s*$",
@@ -3120,6 +3128,8 @@ def _message_requires_visible_sources(message: str) -> bool:
     if rewritten:
         command = rewritten.lower()
         return command.startswith(_COMMANDS_REQUIRING_SOURCES)
+    if _CONTROL_LITERAL_CHAT_MESSAGE_RE.fullmatch(text):
+        return False
     if _NON_SUBSTANTIVE_CHAT_MESSAGE_RE.fullmatch(text):
         return False
     return True

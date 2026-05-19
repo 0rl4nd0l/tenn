@@ -1,0 +1,90 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_chat_control_prompt_guard_integration_v1_20260519.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/cockpit_auto_flagger.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_auto_flagger.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_chat_orchestration_side_effect_audit_v1_20260519.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/gold_metric_coverage_audit_v1_20260519.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md",
+    "docs/agent_tasks/cockpit_chat_orchestration_side_effect_audit_v1_20260519.md",
+    "docs/agent_tasks/gold_metric_coverage_audit_v1_20260519.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_chat_orchestration_side_effect_audit_v1_20260519.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/gold_metric_coverage_audit_v1_20260519.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_chat_control_prompt_guard_integration_v1_20260519.md",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/app/services/cockpit_auto_flagger.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+        "financial-engine_v2/backend/tests/test_cockpit_auto_flagger.py",
+        "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/",
+        "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/README.md",
+        "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_chat_control_prompt_guard_integration_v1_20260519",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

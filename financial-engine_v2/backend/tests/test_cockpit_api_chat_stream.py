@@ -203,6 +203,60 @@ def test_cockpit_chat_non_stream_allows_planning_without_sources(monkeypatch) ->
     assert "grounding_guard" not in finalized_metadata[-1]
 
 
+def test_cockpit_chat_non_stream_allows_control_prompt_ok_without_sources(
+    monkeypatch,
+) -> None:
+    finalized_metadata: list[dict] = []
+    auto_flag_calls: list[str] = []
+
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="ok",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "model:test",
+                    "latency_ms": 42,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            finalized_metadata.append(dict(kwargs["response"].routing_metadata or {}))
+
+        def auto_flag_chat_response(self, **kwargs):
+            auto_flag_calls.append(kwargs["response"].text)
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={"message": "Reply exactly: ok", "stream": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["text"] == "ok"
+    assert "grounding_guard" not in finalized_metadata[-1]
+    assert auto_flag_calls == ["ok"]
+
+
 def test_cockpit_chat_non_stream_preserves_marketplace_draft_without_sources(
     monkeypatch,
 ) -> None:
