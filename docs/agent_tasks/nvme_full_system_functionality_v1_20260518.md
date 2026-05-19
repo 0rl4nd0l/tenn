@@ -11,6 +11,7 @@ output_dir: reports/agent_jobs/nvme_full_system_functionality_v1_20260518
 allowed_files:
   - docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
   - reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**
+  - reports/agent_jobs/nvme_full_system_functionality_v1_20260518/complete_after_sudo_aliases.sh
   - docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
   - reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**
   - README.md
