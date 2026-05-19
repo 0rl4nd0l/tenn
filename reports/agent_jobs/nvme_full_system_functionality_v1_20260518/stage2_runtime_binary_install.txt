@@ -1,0 +1,11 @@
+
+$ mkdir -p /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin
+
+$ cp -a /mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server
+
+$ /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server --version
+ggml_cuda_init: found 2 CUDA devices:
+  Device 0: Tesla M40 24GB, compute capability 5.2, VMM: yes
+  Device 1: NVIDIA GeForce GT 1030, compute capability 6.1, VMM: yes
+version: 8233 (c5a778891)
+built with GNU 10.5.0 for Linux x86_64

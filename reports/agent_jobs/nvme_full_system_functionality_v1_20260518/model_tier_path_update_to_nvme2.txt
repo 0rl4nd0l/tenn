@@ -1,0 +1,29 @@
+
+$ rsync -a /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf
+
+$ cp /home/l4nd0/.config/tenn/llama-server.env reports/agent_jobs/nvme_full_system_functionality_v1_20260518/model_tier_config_backups/llama-server.env.before_model_nvme2
+
+$ cp /home/l4nd0/.config/tenn/llama-server.env /home/l4nd0/.config/tenn/llama-server.env.bak.20260518T222937+1000
+
+$ cp /home/l4nd0/.config/tenn/llamacpp-presets.ini reports/agent_jobs/nvme_full_system_functionality_v1_20260518/model_tier_config_backups/llamacpp-presets.ini.before_model_nvme2
+
+$ cp /home/l4nd0/.config/tenn/llamacpp-presets.ini /home/l4nd0/.config/tenn/llamacpp-presets.ini.bak.20260518T222937+1000
+
+$ grep -nE '/mnt/nvme/tenn/models|/mnt/ssd/log/ssd_data/.*/gpt-oss|/mnt/tenn-nvme2/tenn/models' scripts/run_llama_server.sh scripts/run_extraction_server.sh scripts/start_config.env /home/l4nd0/.config/tenn/llama-server.env /home/l4nd0/.config/tenn/llamacpp-presets.ini 2>/dev/null || true
+scripts/run_llama_server.sh:79:DEFAULT_MODEL_PATH="/mnt/tenn-nvme2/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf"
+scripts/run_llama_server.sh:152:DEFAULT_MODELS_DIR="/mnt/tenn-nvme2/tenn/models"
+scripts/run_extraction_server.sh:64:DEFAULT_MODEL_PATH="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+/home/l4nd0/.config/tenn/llama-server.env:5:LLAMA_SERVER_MODELS_DIR=/mnt/tenn-nvme2/tenn/models
+/home/l4nd0/.config/tenn/llama-server.env:14:LLAMA_SERVER_MODEL=/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf
+/home/l4nd0/.config/tenn/llama-server.env:17:EXTRACTION_SERVER_MODEL=/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+/home/l4nd0/.config/tenn/llamacpp-presets.ini:22:model = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf
+/home/l4nd0/.config/tenn/llamacpp-presets.ini:30:model = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+/home/l4nd0/.config/tenn/llamacpp-presets.ini:48:model = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf
+/home/l4nd0/.config/tenn/llamacpp-presets.ini:64:model = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf
+
+$ find /mnt/tenn-nvme2/tenn/models -maxdepth 1 -type f -printf "%s %p\n" | sort -nr
+22016023168 /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf
+17293089248 /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf
+12109566560 /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf
+8988110976 /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+671 /mnt/tenn-nvme2/tenn/models/README.md

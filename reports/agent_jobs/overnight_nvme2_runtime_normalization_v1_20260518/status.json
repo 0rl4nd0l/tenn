@@ -1,0 +1,39 @@
+{
+  "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+  "verdict": "PARTIAL_WITH_ROLLBACK_READY",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "a99c1762bb72",
+  "runtime_symlink": {
+    "/home/l4nd0/tenn": "/mnt/hdd-data/home/l4nd0/tenn",
+    "/home/l4nd0/tenn-runtime": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "external_changes_made": true,
+  "external_changes": [
+    "created /home/l4nd0/tenn-runtime symlink",
+    "updated inactive llama-cpp-qwen25.service path references",
+    "updated inactive llama-cpp-router.service path references",
+    "ran systemctl --user daemon-reload"
+  ],
+  "systemd_backups": [
+    "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/systemd_backups/llama-cpp-qwen25.service.before",
+    "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/systemd_backups/llama-cpp-router.service.before",
+    "/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service.bak.20260518T215550+1000",
+    "/home/l4nd0/.config/systemd/user/llama-cpp-router.service.bak.20260518T215550+1000"
+  ],
+  "contract_validation": "passed_after_output_dir_added",
+  "registry": {
+    "claimed": true,
+    "released": true,
+    "final_active_jobs": []
+  },
+  "git_diff_check": "passed",
+  "check_diff": "passed",
+  "route_parity": "2 passed, 5 warnings",
+  "route_scoped_backend": "28 passed, 5 warnings",
+  "router_service_validation": "failed_exit_1_after_storage_guard_ok_and_stopped",
+  "services_left_running_by_task": [],
+  "ports_8000_8001_8002_8081_after": "none",
+  "commit_made": false,
+  "data_touched": false,
+  "next_safe_step": "Bounded runtime task to diagnose run_llama_server.sh exit after storage guard OK from /home/l4nd0/tenn-runtime."
+}

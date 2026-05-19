@@ -1,0 +1,35 @@
+$ grep -nE 'LLAMA_SERVER_BIN|build-cuda|llama-server|DEFAULT_MODEL_PATH|DEFAULT_MODELS_DIR' scripts/run_llama_server.sh scripts/start_config.env
+scripts/run_llama_server.sh:4:LLAMA_SERVER_ENV_FILE="${LLAMA_SERVER_ENV_FILE:-${HOME}/.config/tenn/llama-server.env}"
+scripts/run_llama_server.sh:26:LOCKFILE="${LOCKFILE:-/tmp/llama-server.lock}"
+scripts/run_llama_server.sh:29:  echo "ERROR: llama-server already running (lock at ${LOCKFILE})" >&2
+scripts/run_llama_server.sh:55:BIN_PATH="${LLAMA_SERVER_BIN:-${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server}"
+scripts/run_llama_server.sh:57:  BIN_PATH_FALLBACK="${ROOT_DIR}/tools/llama.cpp/build/bin/llama-server"
+scripts/run_llama_server.sh:69:# Only kill llama-server processes bound to OUR port.
+scripts/run_llama_server.sh:71:if pgrep -af "llama-server.*--port ${PORT}\\b" > /dev/null 2>&1; then
+scripts/run_llama_server.sh:72:  echo "Killing existing llama-server on port ${PORT}"
+scripts/run_llama_server.sh:73:  pkill -f "llama-server.*--port ${PORT}" || true
+scripts/run_llama_server.sh:76:DEFAULT_MODEL_PATH="/mnt/nvme/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf"
+scripts/run_llama_server.sh:77:MODEL_PATH="${LLAMA_SERVER_MODEL:-${DEFAULT_MODEL_PATH}}"
+scripts/run_llama_server.sh:92:  echo "llama-server binary not found at ${BIN_PATH}" >&2
+scripts/run_llama_server.sh:97:  echo "[llama-server] using Hugging Face model ref=${HF_MODEL}"
+scripts/run_llama_server.sh:98:  echo "[llama-server] Set LLAMA_SERVER_HF_REPO or LLAMA_SERVER_HF_MODEL to use this mode." >&2
+scripts/run_llama_server.sh:149:DEFAULT_MODELS_DIR="/mnt/nvme/tenn/models"
+scripts/run_llama_server.sh:150:MODELS_DIR="${LLAMA_SERVER_MODELS_DIR:-${DEFAULT_MODELS_DIR}}"
+scripts/run_llama_server.sh:153:echo "[llama-server] ROUTER_MODE_REQUESTED=${ROUTER_MODE}"
+scripts/run_llama_server.sh:157:    echo "[llama-server] models dir not found at ${MODELS_DIR}" >&2
+scripts/run_llama_server.sh:158:    echo "[llama-server] Set LLAMA_SERVER_MODELS_DIR to an existing NVMe-backed GGUF directory." >&2
+scripts/run_llama_server.sh:167:    echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
+scripts/run_llama_server.sh:169:    echo "[llama-server] WARNING: binary does not support --models-dir, falling back to single-model mode" >&2
+scripts/run_llama_server.sh:170:    echo "[llama-server] ROUTER_MODE=disabled (unsupported binary)"
+scripts/run_llama_server.sh:191:  echo "[llama-server] ROUTER_MODE=disabled (single-model)"
+scripts/run_llama_server.sh:204:echo "Starting llama-server (PID $$)"
+scripts/run_llama_server.sh:205:echo "[llama-server] BIN_PATH=${BIN_PATH}"
+scripts/run_llama_server.sh:206:echo "[llama-server] MODEL_SOURCE=${HF_MODEL:+hf_repo|${HF_MODEL}, }${LLAMA_SERVER_MODEL:-${DEFAULT_MODEL_PATH}}"
+scripts/run_llama_server.sh:207:echo "[llama-server] ROUTER_MODE=${ROUTER_MODE}"
+scripts/run_llama_server.sh:208:echo "[llama-server] PROFILE=${PROFILE}"
+scripts/run_llama_server.sh:209:echo "[llama-server] HOST=${HOST}"
+scripts/run_llama_server.sh:210:echo "[llama-server] PORT=${PORT}"
+scripts/run_llama_server.sh:211:echo "[llama-server] PARALLEL=${LLAMA_SERVER_PARALLEL:-1}"
+scripts/run_llama_server.sh:213:  echo "[llama-server] CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
+scripts/run_llama_server.sh:216:  echo "[llama-server] GGML_CUDA_DISABLE_GRAPHS=${GGML_CUDA_DISABLE_GRAPHS}"
+scripts/start_config.env:31:export LLAMA_SERVER_BIN="/mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server"

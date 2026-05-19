@@ -1,0 +1,21 @@
+$ git diff -- cockpit-ui/next-env.d.ts
+diff --git a/cockpit-ui/next-env.d.ts b/cockpit-ui/next-env.d.ts
+index 9edff1c7..c4b7818f 100644
+--- a/cockpit-ui/next-env.d.ts
++++ b/cockpit-ui/next-env.d.ts
+@@ -1,6 +1,6 @@
+ /// <reference types="next" />
+ /// <reference types="next/image-types/global" />
+-import "./.next/types/routes.d.ts";
++import "./.next/dev/types/routes.d.ts";
+ 
+ // NOTE: This file should not be edited
+ // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+
+$ git status --short --untracked-files=all
+ M cockpit-ui/next-env.d.ts
+ M financial-engine_v2/scripts/run_local_backend.sh
+ M scripts/run_llama_server.sh
+ M scripts/start_config.env
+?? docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md

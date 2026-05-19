@@ -1,0 +1,147 @@
+### host_alias_requirement_audit
+2026-05-18T22:44:21+10:00
+## repo references to absolute /data or /reports in launch/config surfaces
+financial-engine_v2/.env.example:13:DATA_ROOT=./data
+financial-engine_v2/docker-compose.yml:58:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:59:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
+financial-engine_v2/docker-compose.yml:60:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:61:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:62:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:63:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:64:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace/reports
+financial-engine_v2/docker-compose.yml:92:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:93:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:94:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:95:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:96:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:119:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:120:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:121:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:122:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:123:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:143:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:144:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:145:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:146:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:147:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+cockpit-ui/tests/marketplace-operator.spec.ts:408:        stdout_path: `/reports/cockpit/logs/${id}.out.log`,
+cockpit-ui/tests/marketplace-operator.spec.ts:409:        stderr_path: `/reports/cockpit/logs/${id}.err.log`,
+scripts/test_run_local_backend_script.py:13:    assert 'export COCKPIT_STATE_DB="${COCKPIT_STATE_DB:-${ROOT_DIR}/data/cockpit/state.db}"' in script
+scripts/generate_engine_health_snapshot.py:26:DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+financial-engine_v2/scripts/monitor_extraction.py:14:DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
+cockpit-ui/tests/verification.spec.ts:207:    dataset_dir: 'financial-engine_v2/data/extraction_gold_real',
+scripts/test_cockpit_launcher_helpers.py:168:    assert 'COCKPIT_STATE_DB_ON_STARTUP="/data/cockpit/state.db"' in config
+financial-engine_v2/scripts/announcement_reaction_report.py:101:        value = "sqlite:///./data/fe_local.db"
+financial-engine_v2/scripts/announcement_reaction_report.py:291:    parser.add_argument("--database-url", default=os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db"))
+scripts/query_financial_metrics.py:203:            f"  python scripts/extract_financial_metrics.py --pdf-dir financial-engine_v2/data/asx/docs/{args.ticker} --out-json reports/financial_metrics_{args.ticker.lower()}.json",
+financial-engine_v2/scripts/probe_all_system_tickers.py:291:        env.setdefault("DATABASE_URL", "sqlite:///./data/fe_local.db")
+scripts/test_backfill_missing_universe_announcements.py:138:            full_history_report=Path("/repo/financial-engine_v2/reports/asx/report.json"),
+scripts/test_backfill_missing_universe_announcements.py:151:                "/repo/financial-engine_v2/reports/asx/report.json",
+financial-engine_v2/scripts/nightly_stable.sh:12:LOG_DIR="${REPO_ROOT}/reports/ops_checks/nightly"
+financial-engine_v2/scripts/run_batch_extract.py:21:DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
+scripts/test_bootstrap_gold_templates.py:29:                    "file": "/tmp/data/asx/docs/BHP/financial_performance/2025-08-19_doc_89d1f8dd-f214-4fbb-94b9-01d223aa4fe1.pdf",
+scripts/test_bootstrap_gold_templates.py:70:                    "file": "/tmp/reports/expansion_runs/run_1/NST/pdf_subset/2025-08-21_annual-report_2ea617f2-46dd-45c6-8c1c-56b8a99eedb4.pdf",
+financial-engine_v2/scripts/build_production_bundle.sh:64:mkdir -p "${APP_DIR}/data/raw"
+financial-engine_v2/scripts/build_production_bundle.sh:65:mkdir -p "${APP_DIR}/data/asx/docs"
+financial-engine_v2/scripts/build_production_bundle.sh:66:mkdir -p "${APP_DIR}/data/marketindex/pdfs"
+financial-engine_v2/scripts/build_production_bundle.sh:67:mkdir -p "${APP_DIR}/reports/marketindex"
+scripts/build_news_context_db.py:37:DEFAULT_ASX_ALLOWLIST_RELATIVE = "financial-engine_v2/data/raw/asx_ticker_universe.txt"
+scripts/cockpit_flag_investigator.py:208:        help="Flagged report root. Defaults to COCKPIT_WORKSPACE_ROOT/reports/... or repo reports/...",
+cockpit-ui/lib/report-path.ts:6:  const marker = '/reports/'
+financial-engine_v2/scripts/update_ticker_financials.py:234:    database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+financial-engine_v2/scripts/generate_weekly_intelligence_pack.py:28:        value = "sqlite:///./data/fe_local.db"
+financial-engine_v2/scripts/generate_weekly_intelligence_pack.py:193:        default=os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db"),
+scripts/test_run_extract_broad_tickers.py:17:        path = "/data/docs/29M/financial_performance/2022-02-23_fy2021-appendix-4e_68d6b280-a7e2-4e10-8139-a6ee3a91f87f.pdf"
+scripts/test_run_extract_broad_tickers.py:27:        path = "/data/report.pdf"
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:191:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_742am_MGR_mgr-1h26-results-presentation_2A1654097.pdf",
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:197:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_742am_MGR_mgr-1h26-results-presentation_2A1654097.pdf",
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:203:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_737am_MGR_mgr-1h26-interim-report_2A1654094.pdf",
+scripts/test_pdf_financial_tools.py:57:        pdf = Path("/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/29M/other/2026-01-19_high-grade-at-golden-grove.pdf")
+financial-engine_v2/scripts/nightly_news.sh:21:LOG_DIR="${TENN_ROOT}/reports/ops_checks/nightly"
+financial-engine_v2/scripts/nightly_news.sh:49:    MEMO_DIAGNOSTICS_PATH="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory/news_memos.jsonl"
+scripts/start_change_review_agents.sh:5:STATE_DIR="${STATE_DIR:-$ROOT_DIR/reports/change_review_agents}"
+scripts/bootstrap_gold_templates.py:59:    # Expansion batches typically run one ticker at a time with /reports/.../pdf_subset paths.
+scripts/docling_export_tables.py:8:  python3 scripts/docling_export_tables.py --pdf financial-engine_v2/data/asx/docs/10X/financial_performance/2025-12-09_financial-report-for-period-ended-30-june-2025_3f517fe5-7b78-46b5-b861-475f72e68bd1.pdf
+scripts/prepare_cloud_worktree.sh:20:  "financial-engine_v2/reports/"
+scripts/run_ticker_expansion_batch.py:669:        default="/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+scripts/run_ticker_expansion_batch.py:679:        default="/home/l4nd0/tenn/reports/expansion_runs",
+scripts/status_change_review_agents.sh:5:STATE_DIR="${STATE_DIR:-$ROOT_DIR/reports/change_review_agents}"
+scripts/test_run_ticker_expansion_batch.py:76:        p = Path("/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/demo.pdf")
+scripts/test_agent_job_contract.py:121:        "../reports/agent_jobs/codex-dev-job-1",
+scripts/test_agent_job_contract.py:122:        "/tmp/reports/agent_jobs/codex-dev-job-1",
+scripts/protected_data_guard.py:17:    "financial-engine_v2/data/asx/docs",
+scripts/protected_data_guard.py:18:    "financial-engine_v2/data/marketindex/pdfs",
+scripts/start_config.env:69:COCKPIT_STATE_DB_ON_STARTUP="/data/cockpit/state.db"
+scripts/setup_nvme2_host_aliases.sh:45:readlink -f /data
+scripts/setup_nvme2_host_aliases.sh:46:readlink -f /reports
+scripts/stop_change_review_agents.sh:5:STATE_DIR="${STATE_DIR:-$ROOT_DIR/reports/change_review_agents}"
+scripts/test_run_real_extraction_eval.py:128:                "source_file": "financial-engine_v2/data/extraction_gold_real/doc_a.pdf",
+scripts/scrape-claude-usage.sh:4:OUTPUT_FILE="${WORKSPACE_DIR}/data/claude-usage.json"
+scripts/validate_system.sh:60:elif [[ ! -f "${TENN_MEMORY_MARKET_DB:-financial-engine_v2/data/reports/research_memory/market_memory.sqlite}" ]]; then
+scripts/validate_system.sh:61:  echo "[validate_system] SKIP: memory integrity market DB missing (${TENN_MEMORY_MARKET_DB:-financial-engine_v2/data/reports/research_memory/market_memory.sqlite})"
+scripts/validate_system.sh:66:    --market-memory "${TENN_MEMORY_MARKET_DB:-financial-engine_v2/data/reports/research_memory/market_memory.sqlite}"
+scripts/validate_system.sh:68:    --fallback-root "${TENN_MEMORY_FALLBACK_ROOT:-financial-engine_v2/backend/reports/research_memory}"
+scripts/validate_system.sh:72:  if [[ -f "${TENN_MEMORY_COMPANY_DB:-financial-engine_v2/data/reports/research_memory/company_memory.sqlite}" ]]; then
+scripts/validate_system.sh:73:    memory_args+=(--company-memory "${TENN_MEMORY_COMPANY_DB:-financial-engine_v2/data/reports/research_memory/company_memory.sqlite}")
+scripts/run_canonical_dataset_checks.sh:9:BASELINE_PATH="${BASELINE_PATH:-$ROOT_DIR/reports/baselines/canonical_eval_baseline_latest.json}"
+scripts/run_canonical_dataset_checks.sh:61:  --eval-file "$ROOT_DIR/reports/news_eval_queries.json" \
+scripts/run_canonical_dataset_checks.sh:63:  --out-json "$ROOT_DIR/reports/news_eval_report.json"
+scripts/run_canonical_dataset_checks.sh:66:  --eval-file "$ROOT_DIR/reports/company_eval_queries.json" \
+scripts/run_canonical_dataset_checks.sh:70:  --out-json "$ROOT_DIR/reports/company_eval_report_v2.json"
+scripts/run_canonical_dataset_checks.sh:73:  --eval-file "$ROOT_DIR/reports/eval_queries.json" \
+scripts/run_canonical_dataset_checks.sh:75:  --out-json "$ROOT_DIR/reports/eval_queries_report.json"
+scripts/run_canonical_dataset_checks.sh:81:    --news-report "$ROOT_DIR/reports/news_eval_report.json" \
+scripts/run_canonical_dataset_checks.sh:82:    --company-report "$ROOT_DIR/reports/company_eval_report_v2.json" \
+scripts/run_canonical_dataset_checks.sh:83:    --reference-report "$ROOT_DIR/reports/eval_queries_report.json" \
+scripts/build_asx_identity_map_from_filings.py:19:DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./financial-engine_v2/data/fe_local.db")
+scripts/test_pipeline_observability.py:130:        document = "financial-engine_v2/data/asx/docs/ABC/financial_performance/demo.pdf"
+scripts/test_pipeline_observability.py:221:                        "document": "financial-engine_v2/data/asx/docs/ABC/financial_performance/demo-presentation.pdf",
+scripts/test_pipeline_observability.py:248:                "document": "financial-engine_v2/data/asx/docs/ABC/financial_performance/demo.pdf",
+scripts/run_extraction_quality_cycle.sh:6:PDF_DIR="${PDF_DIR:-$ROOT_DIR/reports/review_input_source_gated_v2_canonical}"
+scripts/run_extraction_quality_cycle.sh:7:REVIEW_DIR="${REVIEW_DIR:-$ROOT_DIR/reports/pdf_metric_review_source_gated_v2_canonical}"
+scripts/run_extraction_quality_cycle.sh:8:RUN_ROOT="${RUN_ROOT:-$ROOT_DIR/reports/prod_hardening_runs}"
+cockpit-ui/components/cockpit/settings/settings-screen.test.tsx:55:            data_root: '/data/financial-engine',
+cockpit-ui/components/cockpit/settings/settings-screen.test.tsx:105:            data_root: '/data/financial-engine',
+cockpit-ui/components/cockpit/settings/settings-screen.test.tsx:152:            data_root: '/data/financial-engine',
+cockpit-ui/components/cockpit/settings/settings-screen.test.tsx:232:            data_root: '/data/financial-engine',
+cockpit-ui/components/cockpit/settings/settings-screen.tsx:121:    dataRoot: '/data/financial-engine',
+cockpit-ui/components/cockpit/marketplace/mission-screen.test.tsx:103:            stdout_path: '/reports/cockpit/logs/job-1.out.log',
+cockpit-ui/components/cockpit/marketplace/mission-screen.test.tsx:119:    expect(screen.getByText('/reports/cockpit/logs/job-1.out.log')).toBeInTheDocument()
+cockpit-ui/components/cockpit/marketplace/mission-screen.test.tsx:1172:          stdout_path: '/reports/cockpit/logs/job-1.out.log',
+cockpit-ui/components/cockpit/marketplace/mission-screen.test.tsx:1186:          stdout_path: '/reports/cockpit/logs/job-2.out.log',
+cockpit-ui/components/cockpit/marketplace/mission-screen.test.tsx:1259:          stdout_path: '/reports/cockpit/logs/job-stop-1.out.log',
+cockpit-ui/components/cockpit/marketplace/mission-screen.test.tsx:1315:          stdout_path: '/reports/cockpit/logs/job-stop-1.out.log',
+cockpit-ui/components/cockpit/verification/tabs/gold-eval-tab-panel.tsx:47:          Runs the current extraction pipeline against the real gold corpus in <code>financial-engine_v2/data/extraction_gold_real</code>.
+## repo references to explicit nvme2 endpoints in launch/config surfaces
+financial-engine_v2/docker-compose.yml:58:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:59:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
+financial-engine_v2/docker-compose.yml:60:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:61:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:62:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:63:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:64:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace/reports
+financial-engine_v2/docker-compose.yml:66:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace-reports
+financial-engine_v2/docker-compose.yml:92:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:93:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:94:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:95:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:96:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:119:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:120:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:121:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:122:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:123:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:143:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:144:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:145:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:146:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:147:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/scripts/run_local_backend.sh:266:export DATA_ROOT="${DATA_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data}"
+scripts/run_extraction_server.sh:64:DEFAULT_MODEL_PATH="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/verify_nvme_runtime_endpoints.sh:5:EXPECTED_DATA="/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+scripts/verify_nvme_runtime_endpoints.sh:6:EXPECTED_REPORTS="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
+scripts/verify_nvme_runtime_endpoints.sh:7:EXPECTED_MODELS="/mnt/tenn-nvme2/tenn/models"
+scripts/setup_nvme2_host_aliases.sh:4:DATA_TARGET="/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+scripts/setup_nvme2_host_aliases.sh:5:REPORTS_TARGET="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
+scripts/run_llama_server.sh:79:DEFAULT_MODEL_PATH="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/run_llama_server.sh:152:DEFAULT_MODELS_DIR="/mnt/tenn-nvme2/tenn/models"

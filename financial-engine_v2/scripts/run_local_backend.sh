@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TENN_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
+if ! command -v python >/dev/null 2>&1 && [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
+  export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
 PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
 if [[ -z "${PYTHON_BIN}" ]]; then
   echo "ERROR: python3 or python required for Tenn storage guard" >&2
@@ -260,7 +263,7 @@ if ! command -v python >/dev/null 2>&1; then
 fi
 
 export PYTHONPATH="${ROOT_DIR}/backend${PYTHONPATH:+:${PYTHONPATH}}"
-export DATA_ROOT="${DATA_ROOT:-./data}"
+export DATA_ROOT="${DATA_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data}"
 export DATABASE_URL="${DATABASE_URL:-sqlite:///${DATA_ROOT}/fe_local.db}"
 export REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379/0}"
 export CELERY_BROKER_URL="${CELERY_BROKER_URL:-${REDIS_URL}}"
@@ -280,7 +283,7 @@ export LLM_MODEL="${LLM_MODEL:-model:qwen3.5-35b-a3b-apex}"
 export ROUTER_FEEDBACK_ENABLED="${ROUTER_FEEDBACK_ENABLED:-true}"
 export ANALYZER_MAX_AGE_SECONDS="${ANALYZER_MAX_AGE_SECONDS:-600}"
 export MARKETINDEX_ANNOUNCEMENTS_FILE="${MARKETINDEX_ANNOUNCEMENTS_FILE:-${DATA_ROOT}/raw/marketindex_announcements.json}"
-export COCKPIT_STATE_DB="${COCKPIT_STATE_DB:-${ROOT_DIR}/data/cockpit/state.db}"
+export COCKPIT_STATE_DB="${COCKPIT_STATE_DB:-${DATA_ROOT}/cockpit/state.db}"
 export MARKETPLACE_BROWSER_RUNTIME="${MARKETPLACE_BROWSER_RUNTIME:-direct}"
 export MARKETPLACE_BROWSER_PROFILE_DIR="${MARKETPLACE_BROWSER_PROFILE_DIR:-${HOME}/.tenn/browser_profiles/facebook-marketplace-chrome}"
 export MARKETPLACE_BROWSER_XDG_RUNTIME_DIR="${MARKETPLACE_BROWSER_XDG_RUNTIME_DIR:-/tmp/tenn-marketplace-runtime-$(id -u)}"

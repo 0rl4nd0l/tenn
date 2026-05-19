@@ -1,0 +1,118 @@
+
+$ bash -n financial-engine_v2/scripts/run_local_backend.sh
+
+$ git diff --check
+
+$ python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/scripts/run_local_backend.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/start_config.env",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "scripts/setup_nvme2_host_aliases.sh",
+      "status": "??"
+    },
+    {
+      "path": "scripts/verify_nvme_runtime_endpoints.sh",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+        "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/**",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "financial-engine_v2/scripts/run_local_backend.sh",
+        "financial-engine_v2/backend/app/**",
+        "financial-engine_v2/backend/tests/**",
+        "cockpit-ui/README.md",
+        "cockpit-ui/next.config.mjs",
+        "cockpit-ui/package.json",
+        "cockpit-ui/pnpm-lock.yaml",
+        "scripts/**",
+        "scripts/run_llama_server.sh",
+        "scripts/start_config.env",
+        "scripts/setup_nvme2_host_aliases.sh",
+        "scripts/verify_nvme_runtime_endpoints.sh"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_full_system_functionality_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}
+backend_pid=909395
+BACKEND_HEALTH_OK
+{"status":"ok"}
+$ grep -E '\[run_local_backend\] (profile|data_root|database|docs_root)=|\[startup\] COCKPIT_STATE_DB=' 'reports/agent_jobs/nvme_full_system_functionality_v1_20260518/backend_after_state_db_patch.log' || true
+[run_local_backend] profile=isolated
+[run_local_backend] data_root=/mnt/tenn-nvme2/tenn/financial-engine_v2/data
+[run_local_backend] database=sqlite:////tmp/financial-engine_v2-fe_local_runtime.db
+[run_local_backend] docs_root=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+[startup] COCKPIT_STATE_DB=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db
+
+$ python3 scripts/agent_job_registry.py release nvme_full_system_functionality_v1_20260518
+{
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "job_id": "nvme_full_system_functionality_v1_20260518",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "removed_active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/nvme_full_system_functionality_v1_20260518.json",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "status_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/status.json",
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py list-active
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}

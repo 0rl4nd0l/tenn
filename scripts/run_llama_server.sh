@@ -53,6 +53,9 @@ if [[ "${ALLOW_LLAMA_DURING_GPU_EXCLUSIVE:-0}" != "1" ]]; then
 fi
 
 BIN_PATH="${LLAMA_SERVER_BIN:-${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server}"
+if [[ ! -x "${BIN_PATH}" && -x "/home/l4nd0/.local/bin/llama-server" ]]; then
+  BIN_PATH="/home/l4nd0/.local/bin/llama-server"
+fi
 if [[ ! -x "${BIN_PATH}" ]]; then
   BIN_PATH_FALLBACK="${ROOT_DIR}/tools/llama.cpp/build/bin/llama-server"
   if [[ -x "${BIN_PATH_FALLBACK}" ]]; then
@@ -73,7 +76,7 @@ if pgrep -af "llama-server.*--port ${PORT}\\b" > /dev/null 2>&1; then
   pkill -f "llama-server.*--port ${PORT}" || true
   sleep 2
 fi
-DEFAULT_MODEL_PATH="/mnt/nvme/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf"
+DEFAULT_MODEL_PATH="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
 MODEL_PATH="${LLAMA_SERVER_MODEL:-${DEFAULT_MODEL_PATH}}"
 HF_MODEL="${LLAMA_SERVER_HF_REPO:-${LLAMA_SERVER_HF_MODEL:-${LLAMA_SERVER_HUGGINGFACE_REPO:-}}}"
 MODEL_ALIAS="${LLAMA_SERVER_ALIAS:-qwen3-30b-a3b-instruct}"
@@ -146,7 +149,7 @@ fi
 # loading one at a time (--models-max 1). Clients select model per-request.
 # Set LLAMA_SERVER_ROUTER_MODE=0 to fall back to single-model mode.
 ROUTER_MODE="${LLAMA_SERVER_ROUTER_MODE:-1}"
-DEFAULT_MODELS_DIR="/mnt/nvme/tenn/models"
+DEFAULT_MODELS_DIR="/mnt/tenn-nvme2/tenn/models"
 MODELS_DIR="${LLAMA_SERVER_MODELS_DIR:-${DEFAULT_MODELS_DIR}}"
 PRESET_PATH="${LLAMA_SERVER_PRESET:-${HOME}/.config/tenn/llamacpp-presets.ini}"
 

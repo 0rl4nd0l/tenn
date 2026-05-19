@@ -1,0 +1,43 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+      "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/**",
+      "financial-engine_v2/README.md",
+      "financial-engine_v2/backend/README.md",
+      "financial-engine_v2/docker-compose.yml",
+      "financial-engine_v2/docker-compose*.yml",
+      "financial-engine_v2/.env.example",
+      "financial-engine_v2/scripts/**",
+      "financial-engine_v2/scripts/run_local_backend.sh",
+      "financial-engine_v2/backend/app/**",
+      "financial-engine_v2/backend/tests/**",
+      "cockpit-ui/README.md",
+      "cockpit-ui/next.config.mjs",
+      "cockpit-ui/package.json",
+      "cockpit-ui/pnpm-lock.yaml",
+      "scripts/**",
+      "scripts/run_llama_server.sh",
+      "scripts/start_config.env",
+      "scripts/setup_nvme2_host_aliases.sh",
+      "scripts/verify_nvme_runtime_endpoints.sh"
+    ],
+    "approval_required": false,
+    "job_id": "nvme_full_system_functionality_v1_20260518",
+    "lane": "Reporting",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+    "owner": "Codex",
+    "production_data_access": false,
+    "timeout_seconds": 28800
+  },
+  "ok": true
+}

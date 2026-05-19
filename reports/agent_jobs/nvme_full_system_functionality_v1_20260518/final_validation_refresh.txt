@@ -1,0 +1,189 @@
+### contract_validation_refresh
+2026-05-18T22:33:43+10:00
+## agent_job_contract validate
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+      "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/**",
+      "financial-engine_v2/README.md",
+      "financial-engine_v2/backend/README.md",
+      "financial-engine_v2/docker-compose.yml",
+      "financial-engine_v2/docker-compose*.yml",
+      "financial-engine_v2/.env.example",
+      "financial-engine_v2/scripts/**",
+      "financial-engine_v2/scripts/run_local_backend.sh",
+      "financial-engine_v2/backend/app/**",
+      "financial-engine_v2/backend/tests/**",
+      "cockpit-ui/README.md",
+      "cockpit-ui/next.config.mjs",
+      "cockpit-ui/package.json",
+      "cockpit-ui/pnpm-lock.yaml",
+      "scripts/**",
+      "scripts/run_llama_server.sh",
+      "scripts/run_extraction_server.sh",
+      "scripts/start_config.env",
+      "scripts/setup_nvme2_host_aliases.sh",
+      "scripts/verify_nvme_runtime_endpoints.sh"
+    ],
+    "approval_required": false,
+    "job_id": "nvme_full_system_functionality_v1_20260518",
+    "lane": "Reporting",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+    "owner": "Codex",
+    "production_data_access": false,
+    "timeout_seconds": 28800
+  },
+  "ok": true
+}
+## agent_job_contract check-diff
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/scripts/run_local_backend.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_extraction_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/start_config.env",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "scripts/setup_nvme2_host_aliases.sh",
+      "status": "??"
+    },
+    {
+      "path": "scripts/verify_nvme_runtime_endpoints.sh",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+        "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/**",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "financial-engine_v2/scripts/run_local_backend.sh",
+        "financial-engine_v2/backend/app/**",
+        "financial-engine_v2/backend/tests/**",
+        "cockpit-ui/README.md",
+        "cockpit-ui/next.config.mjs",
+        "cockpit-ui/package.json",
+        "cockpit-ui/pnpm-lock.yaml",
+        "scripts/**",
+        "scripts/run_llama_server.sh",
+        "scripts/run_extraction_server.sh",
+        "scripts/start_config.env",
+        "scripts/setup_nvme2_host_aliases.sh",
+        "scripts/verify_nvme_runtime_endpoints.sh"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_full_system_functionality_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}
+## bash -n runtime scripts
+## git diff --check
+## nvme runtime endpoint verifier
+OK home_tenn_runtime=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+INFO home_tenn=/mnt/hdd-data/home/l4nd0/tenn
+OK nvme2_data exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/data
+OK nvme2_reports exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+OK nvme2_fe_local_db exists file=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db
+OK nvme2_asx_docs exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+OK nvme2_models exists dir=/mnt/tenn-nvme2/tenn/models
+OK nvme2_model_qwen25 exists file=/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+OK nvme2_model_gpt_oss exists file=/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf
+OK runtime_llama_bin exists file=/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server
+FAIL host_data missing /data alias; run sudo scripts/setup_nvme2_host_aliases.sh
+FAIL host_reports missing /reports alias; run sudo scripts/setup_nvme2_host_aliases.sh
+NVME_RUNTIME_ENDPOINTS_OK=0 failures=2
+## registry list-active
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}
+## listening ports
+## qwen25 status
+○ llama-cpp-qwen25.service - llama.cpp server (router mode — Qwen3-30B-A3B default)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 21:58:58 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:02:36 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:04:11 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:04:11 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:04:11 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:14:13 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:15:56 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:18:21 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:27:15 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:33:43 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+## router status
+○ llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: srv   load_models:   * model:qwen3.5-35b-a3b-apex
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: srv   load_models:     qwen2.5-14b-instruct-q4_k_m
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: main: starting router server, no model will be loaded in this process
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: start: binding port with default address family
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: main: router server is listening on http://0.0.0.0:8001
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: main: NOTE: router mode is experimental
+May 18 22:31:09 l4nd0-System-Product-Name run_llama_server.sh[934484]: main:       it is not recommended to use this mode in untrusted environments
+May 18 22:31:17 l4nd0-System-Product-Name systemd[942]: Stopping llama.cpp server (router mode)...
+May 18 22:31:17 l4nd0-System-Product-Name run_llama_server.sh[934484]: srv    operator(): operator(): cleaning up before exit...
+May 18 22:31:17 l4nd0-System-Product-Name systemd[942]: Stopped llama.cpp server (router mode).

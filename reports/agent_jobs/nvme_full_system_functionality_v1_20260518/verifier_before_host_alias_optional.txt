@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+EXPECTED_RUNTIME="/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+EXPECTED_DATA="/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+EXPECTED_REPORTS="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
+EXPECTED_MODELS="/mnt/tenn-nvme2/tenn/models"
+EXPECTED_LLAMA_BIN="/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server"
+
+failures=0
+
+check_eq() {
+  local label="$1"
+  local actual="$2"
+  local expected="$3"
+  if [[ "$actual" == "$expected" ]]; then
+    printf 'OK %s=%s\n' "$label" "$actual"
+  else
+    printf 'FAIL %s actual=%s expected=%s\n' "$label" "${actual:-<empty>}" "$expected"
+    failures=$((failures + 1))
+  fi
+}
+
+check_exists_dir() {
+  local label="$1"
+  local path="$2"
+  if [[ -d "$path" ]]; then
+    printf 'OK %s exists dir=%s\n' "$label" "$path"
+  else
+    printf 'FAIL %s missing dir=%s\n' "$label" "$path"
+    failures=$((failures + 1))
+  fi
+}
+
+check_exists_file() {
+  local label="$1"
+  local path="$2"
+  if [[ -f "$path" ]]; then
+    printf 'OK %s exists file=%s\n' "$label" "$path"
+  else
+    printf 'FAIL %s missing file=%s\n' "$label" "$path"
+    failures=$((failures + 1))
+  fi
+}
+
+runtime_root="$(readlink -f /home/l4nd0/tenn-runtime 2>/dev/null || true)"
+home_tenn_root="$(readlink -f /home/l4nd0/tenn 2>/dev/null || true)"
+host_data="$(readlink -f /data 2>/dev/null || true)"
+host_reports="$(readlink -f /reports 2>/dev/null || true)"
+
+check_eq home_tenn_runtime "$runtime_root" "$EXPECTED_RUNTIME"
+printf 'INFO home_tenn=%s\n' "${home_tenn_root:-<missing>}"
+check_exists_dir nvme2_data "$EXPECTED_DATA"
+check_exists_dir nvme2_reports "$EXPECTED_REPORTS"
+check_exists_file nvme2_fe_local_db "$EXPECTED_DATA/fe_local.db"
+check_exists_dir nvme2_asx_docs "$EXPECTED_DATA/asx/docs"
+check_exists_dir nvme2_models "$EXPECTED_MODELS"
+check_exists_file nvme2_model_qwen25 "$EXPECTED_MODELS/qwen2.5-14b-instruct-q4_k_m.gguf"
+check_exists_file nvme2_model_gpt_oss "$EXPECTED_MODELS/gpt-oss-20b-mxfp4.gguf"
+check_exists_file runtime_llama_bin "$EXPECTED_LLAMA_BIN"
+
+if [[ -L /data || -e /data ]]; then
+  check_eq host_data "$host_data" "$EXPECTED_DATA"
+else
+  printf 'FAIL host_data missing /data alias; run sudo scripts/setup_nvme2_host_aliases.sh\n'
+  failures=$((failures + 1))
+fi
+
+if [[ -L /reports || -e /reports ]]; then
+  check_eq host_reports "$host_reports" "$EXPECTED_REPORTS"
+else
+  printf 'FAIL host_reports missing /reports alias; run sudo scripts/setup_nvme2_host_aliases.sh\n'
+  failures=$((failures + 1))
+fi
+
+if [[ "$failures" -eq 0 ]]; then
+  echo 'NVME_RUNTIME_ENDPOINTS_OK=1'
+else
+  echo "NVME_RUNTIME_ENDPOINTS_OK=0 failures=$failures"
+fi
+
+exit "$failures"

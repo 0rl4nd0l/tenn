@@ -1,0 +1,260 @@
+
+$ grep -nE '^(export )?(ENGINE_ROOT|COMPOSE_ENV_PATH|LLAMA_SERVER_BIN|LLAMA_SERVER_MODEL|DATA_ROOT|REPORTS_ROOT|DOCS_ROOT|TENN|NVME|MODEL|PORT)=' scripts/start_config.env financial-engine_v2/.env.example 2>/dev/null || true
+scripts/start_config.env:11:ENGINE_ROOT="/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2"
+scripts/start_config.env:31:export LLAMA_SERVER_BIN="/mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server"
+financial-engine_v2/.env.example:13:DATA_ROOT=./data
+financial-engine_v2/.env.example:14:PORT=8000
+
+$ grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=reports --exclude='*.sqlite' --exclude='*.db' -E '/mnt/hdd-data/home/l4nd0/tenn|/mnt/sdb2/home/l4nd0/tenn|/home/l4nd0/tenn-fast-dev-storage-v1|/home/l4nd0/tenn([^-/]|$)|/mnt/nvme/tenn|/mnt/tenn-nvme2' README.md AGENTS.md CLAUDE.md docs scripts financial-engine_v2 cockpit-ui 2>/dev/null || true
+AGENTS.md:1:# AGENTS.md instructions for /home/l4nd0/tenn
+docs/ops/docling_gpu_tesla_m40.md:22:cd /home/l4nd0/tenn
+docs/claude/current-state.md:43:Special: the launcher reads `.env` first, then `.env.local`, and explicit shell env still wins over both. On this host, the active `.env.local` override points runtime data at `/mnt/nvme/tenn/runtime-data`.
+docs/claude/current-state.md:47:- `financial-engine_v2/.env.local` points Tenn runtime data to `/mnt/nvme/tenn/runtime-data`
+docs/claude/current-state.md:48:- local docs root is `/mnt/nvme/tenn/runtime-data/asx/docs`
+docs/claude/current-state.md:49:- llama.cpp router models live at `/mnt/nvme/tenn/models`
+docs/claude/current-state.md:51:- inactive root Ollama models are archived at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+docs/claude/current-state.md:189:- `llama-cpp-router.service` now launches from `/mnt/sdb2/home/l4nd0/tenn/scripts/run_llama_server.sh` and includes `RequiresMountsFor=/mnt/sdb2/home/l4nd0/tenn` so user-service startup does not race the mounted workspace path.
+docs/claude/current-state.md:216:- Tenn runtime data: `/mnt/nvme/tenn/runtime-data`
+docs/claude/current-state.md:217:- ASX filing PDFs: `/mnt/hdd-cold/tenn/asx-docs` (symlinked from `/mnt/nvme/tenn/runtime-data/asx/docs`)
+docs/claude/current-state.md:218:- GGUF router models (hot): `/mnt/nvme/tenn/models`
+docs/claude/current-state.md:223:- Archived inactive Ollama models: `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+docs/claude/tasks/2026-05-05-wtc-usdm-canonical10-baseline-rerun.md:18:- Import-valid repair worktree: `/mnt/sdb2/home/l4nd0/tenn-canonical10-import`
+docs/claude/tasks/2026-05-05-wtc-usdm-canonical10-baseline-rerun.md:67:LLAMA_SERVER_BIN=/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server \
+docs/claude/tasks/2026-05-05-wtc-usdm-canonical10-baseline-rerun.md:110:- `/mnt/sdb2/home/l4nd0/tenn-canonical10-import/reports/wtc_usdm_canonical10_baseline_20260505T050911Z/canonical10.json`
+docs/claude/tasks/2026-05-05-wtc-usdm-canonical10-baseline-rerun.md:111:- `/mnt/sdb2/home/l4nd0/tenn-canonical10-import/reports/wtc_usdm_canonical10_baseline_20260505T050911Z/canonical10.md`
+docs/claude/tasks/2026-05-05-wtc-usdm-canonical10-baseline-rerun.md:112:- `/mnt/sdb2/home/l4nd0/tenn-canonical10-import/reports/wtc_usdm_canonical10_baseline_20260505T050911Z/llama_extraction_8002.log`
+docs/claude/tasks/codex-cloud-queue-2026-04-21.md:16:Queue root: `/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136`
+docs/claude/tasks/codex-cloud-queue-2026-04-21.md:20:| Cloud-1 extraction-quality gap audit | Analysis | `cloud/c1-extraction-quality-gap-audit-20260421-122136` | `/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c1-extraction-quality-gap-audit` | 2-4h | Ranked root-cause findings for `shares_outstanding` gaps with patch-ready plan and touched-file list | [cloud-1](./cloud-briefs/2026-04-21-cloud-1-extraction-quality-gap-audit.md) |
+docs/claude/tasks/codex-cloud-queue-2026-04-21.md:21:| Cloud-2 cockpit-routing regression tests | Testing | `cloud/c2-cockpit-routing-regression-tests-20260421-122136` | `/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c2-cockpit-routing-regression-tests` | 2-3h | Added/updated routing regression tests pass in focused lane | [cloud-2](./cloud-briefs/2026-04-21-cloud-2-cockpit-routing-regression-tests.md) |
+docs/claude/tasks/codex-cloud-queue-2026-04-21.md:22:| Cloud-3 extraction-truth real-gold eval pass | Eval | `cloud/c3-extraction-truth-real-gold-eval-20260421-122136` | `/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c3-extraction-truth-real-gold-eval` | 2-5h | Reproducible evaluation artifact plus ranked failure taxonomy and top fix candidates | [cloud-3](./cloud-briefs/2026-04-21-cloud-3-extraction-truth-real-gold-eval.md) |
+docs/claude/tasks/codex-cloud-queue-2026-04-21.md:23:| Cloud-4 system-contract conformance matrix update | Docs | `cloud/c4-system-contract-conformance-matrix-20260421-122136` | `/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c4-system-contract-conformance-matrix` | 1-2h | Updated conformance matrix with explicit invariant-risk list and evidence links | [cloud-4](./cloud-briefs/2026-04-21-cloud-4-system-contract-conformance-matrix.md) |
+docs/claude/tasks/codex-cloud-queue-2026-04-21.md:24:| Cloud-5 multipass extraction performance profile | Performance | `cloud/c5-multipass-extraction-performance-profile-20260421-122136` | `/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c5-multipass-extraction-performance-profile` | 2-4h | Benchmark table, hotspot breakdown, and low-risk optimization plan with validation approach | [cloud-5](./cloud-briefs/2026-04-21-cloud-5-multipass-performance-profile.md) |
+docs/claude/STATE.md:41:Session note 2026-05-05: Canonical10 strict Docling baseline confirmed after WTC USD M fix and import-valid repair. The previous frozen rerun target `944fd43e6a0ba14c5010fca41ad2b8250b68db38` is no longer a valid baseline anchor because backend import failed without tracked `financial-engine_v2/backend/app/models/companies.py`. Dedicated repair branch/worktree `repair/canonical10-import-valid` at `/mnt/sdb2/home/l4nd0/tenn-canonical10-import` restored `companies.py`, narrowed `.gitignore` from `models/` to `/models/`, and committed import-valid HEAD `5405802b0b7d`. Import/preflight passed (`app.models`/`Company` import plus `scripts/test_run_isolated_docling_control.py`, 9 tests). Cleared-GPU canonical10 then passed from HEAD `5405802b0b7d`: `10/10` docs, `24/24` metrics correct, `10/10` context correct, `10/10` trusted, strict Docling `docling_gpu`, no fallback, no cache hit, no timeout, all runtime ids `http://127.0.0.1:8002`, shared runtime avoided, prompt cache disabled. Artifacts live in `/mnt/sdb2/home/l4nd0/tenn-canonical10-import/reports/wtc_usdm_canonical10_baseline_20260505T050911Z/`. The run used an ignored `financial-engine_v2/data/asx` symlink in the pinned worktree to read external source PDFs. This confirms the controlled 10-doc / 24-check baseline only; broader ASX generalization, throughput, and concurrent extraction remain deferred. Freeze this extraction baseline lane; next implementation lane should be real-gold corpus expansion, not extraction redesign.
+docs/claude/STATE.md:136:| **storage-migration** | `[ verified ]` | Tenn runtime data migrated to `/mnt/nvme/tenn/runtime-data`; GGUF router assets migrated to `/mnt/nvme/tenn/models`; root Ollama store pruned to `qwen2.5:32b` + `gpt-oss:20b-cloud`; inactive Ollama models archived to `.archives/ollama-root-store-2026-04-07`; docs/configs aligned. Validation: docs-heavy workload showed low short-term IO PSI and ~1% `wa` after warm-up. **2026-04-09:** Old 500GB Barracuda (sda) wiped and reformatted as single ext4 `hdd-cold` (466G) at `/mnt/hdd-cold`; old PC backup data (135,412 files) verified and archived to external USB drive; redundant 41G `old_pc_backup_2012` deleted from sdb2 (152G free now); all drives labeled (`nvme-system`, `hdd-data`, `ssd-cache`, `hdd-cold`); llmfit updated 0.8.4→0.9.2; llama-server/llama-cli symlinked to `~/.local/bin`. |
+docs/claude/STATE.md:181:| 5405802 + artifact run | extraction-truth / evaluation | Canonical10 strict Docling baseline is import-valid and freshly confirmed. `repair/canonical10-import-valid` restored tracked `financial-engine_v2/backend/app/models/companies.py`, narrowed `.gitignore` to `/models/`, and produced committed HEAD `5405802b0b7d`; import/preflight passed. Isolated canonical10 run from `/mnt/sdb2/home/l4nd0/tenn-canonical10-import` passed: 10/10 docs, 24/24 metrics correct, 10/10 context correct, 10/10 trusted, strict `docling_gpu`, no fallback/cache hit/timeout, all runtime ids `http://127.0.0.1:8002`, prompt cache disabled. Artifacts: `/mnt/sdb2/home/l4nd0/tenn-canonical10-import/reports/wtc_usdm_canonical10_baseline_20260505T050911Z/`. Scope remains controlled 10-doc / 24-check only; broader real-gold corpus expansion is the next lane. |
+docs/claude/gap-analysis.md:3:As of 2026-03-20 audit (partially updated 2026-04-15 to reflect shipped items). Source: deep inventory of `/home/l4nd0/tenn`.
+docs/current_system.md:42:    - configured runtime DB/data roots (host-local `.env.local` may point at `/mnt/nvme/tenn/runtime-data`; isolated validation can still fall back to `/tmp/financial-engine_v2-fe_local_runtime.db`)
+docs/current_system.md:51:- current host-local storage layout uses `/mnt/nvme/tenn/runtime-data` for runtime data and `/mnt/nvme/tenn/models` for llama.cpp GGUFs
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:110:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/backend
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:184:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/backend
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:324:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/backend
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:407:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/backend
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:476:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:542:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:665:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:704:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:732:ls /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/cockpit/tests/test_command_router.py 2>/dev/null || echo "missing"
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:783:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:832:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:841:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:864:cd /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2
+docs/superpowers/plans/2026-04-29-watch-youtube-channel-nlp.md:878:cd /mnt/sdb2/home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:149:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_routing_preferences.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:230:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_routing_preferences.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:236:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:433:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_preference_updater.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:526:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_preference_updater.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:532:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:640:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_router_learned.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:684:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_router_learned.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:689:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/ -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:695:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:839:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_skill_reviewer.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:945:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_skill_reviewer.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:951:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1086:Run: `cd /home/l4nd0/tenn && python -m pytest autodev/tests/ -v -k "not experiment" --timeout=30`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1092:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1262:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/test_learning_loop_integration.py -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1267:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/ -v`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1273:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1287:Run: `cd /home/l4nd0/tenn && python -m pytest services/extraction/tests/ -v --tb=short`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1292:Run: `cd /home/l4nd0/tenn && python -m ruff check services/extraction/`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1297:Run: `cd /home/l4nd0/tenn && python -m pytest autodev/tests/ financial-engine_v2/backend/tests/ -v --timeout=60 -x`
+docs/superpowers/plans/2026-04-08-pdf-extraction-learning-loop.md:1326:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-03-24-bug-web-ui.md:68:cd /home/l4nd0/tenn
+docs/superpowers/plans/2026-03-24-bug-web-ui.md:120:cd /home/l4nd0/tenn
+docs/superpowers/specs/2026-04-18-marketplace-deal-hunter-design.md:556:/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest \
+docs/superpowers/specs/2026-04-18-memory-stabilization-design.md:279:/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest \
+docs/extraction_cloud_testing.md:43:- The canonical local llama.cpp setup assumes host-local model paths such as `/mnt/nvme/tenn/models` and optional host override file `~/.config/tenn/llama-server.env`.
+docs/architecture/model-routing.md:39:The server runs in router mode (`--models-dir /mnt/nvme/tenn/models --models-max 1`).
+docs/architecture/model-routing.md:46:- runtime data has been migrated to `/mnt/nvme/tenn/runtime-data`
+docs/architecture/model-routing.md:47:- llama.cpp GGUF router assets remain on `/mnt/nvme/tenn/models`
+docs/architecture/model-routing.md:49:- that Ollama store was pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`, with inactive models archived under `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+docs/architecture/17_agentic_chat_architecture.md:40:Current host deployment uses llama.cpp router mode on port 8001 with models served from `/mnt/nvme/tenn/models`. The active `~/.config/tenn/llama-server.env` default model is `qwen3-30b-a3b-instruct`, while extraction requests `qwen2.5-14b-instruct` by model name and the router loads it on demand. The legacy root Ollama store is retained only for local Ollama use and is not the primary Tenn chat/extraction serving path.
+docs/cloud_workflow.md:99:cd /home/l4nd0/tenn
+docs/cloud_workflow.md:114:- Repo root is `/home/l4nd0/tenn`
+docs/cloud_workflow.md:123:cd /home/l4nd0/tenn
+docs/setup/environment.md:9:| `DATA_ROOT` | `./data` | Root for runtime data, reports, and derived paths. In the current host deployment, `financial-engine_v2/.env.local` pins this to `/mnt/nvme/tenn/runtime-data`. |
+docs/setup/environment.md:18:| `LLAMA_SERVER_MODELS_DIR` | `/mnt/nvme/tenn/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). The launcher now fails instead of silently falling back to a repo-local models directory. |
+docs/setup/environment.md:48:- `financial-engine_v2/.env.local` currently points Tenn runtime data at `/mnt/nvme/tenn/runtime-data`
+docs/setup/environment.md:49:- `~/.config/tenn/llama-server.env` points llama.cpp router mode at `/mnt/nvme/tenn/models`
+docs/setup/environment.md:52:- inactive root Ollama models are archived at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+docs/setup/environment.md:71:DATA_ROOT=/mnt/nvme/tenn/runtime-data
+docs/setup/environment.md:72:DATABASE_URL=sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db
+docs/setup/environment.md:73:DOCS_ROOT=/mnt/nvme/tenn/runtime-data/asx/docs
+docs/setup/environment.md:74:IMPORTANCE_OUTPUT_ROOT=/mnt/nvme/tenn/runtime-data/asx/importance
+docs/setup/environment.md:75:MARKETINDEX_ANNOUNCEMENTS_FILE=/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json
+docs/setup/environment.md:152:- `scripts/migrate_runtime_to_nvme.sh` — migrate runtime data and repo GGUFs into `/mnt/nvme/tenn`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:40:- `/mnt/hdd-data/home/l4nd0/tenn/reports/ops_checks/nightly`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:41:- `/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:42:- `/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news.sqlite`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:69:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:110:NEWS_ARTICLES_DB=/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:111:NEWS_CONTEXT_DB=/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news.sqlite
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:112:NIGHTLY_DIR=/mnt/hdd-data/home/l4nd0/tenn/reports/ops_checks/nightly
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:121:  `/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/backups/`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:178:Use absolute DB paths if the script supports env vars or flags. If it only uses repo-relative paths, then run it from `/mnt/hdd-data/home/l4nd0/tenn` because that checkout contains the ignored runtime artifacts.
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:249:  `git -C /home/l4nd0/tenn-fast-dev-storage-v1 status --short --untracked-files=all`
+docs/agent_tasks/news_downstream_sync_fallback_live_artifact_repair_v1_20260515.md:250:  `git -C /mnt/hdd-data/home/l4nd0/tenn status --short --untracked-files=all`
+docs/agent_tasks/eval_instrumentation_dirty_worktree_audit_20260509.md:17:Audit the dirty worktree `/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421` and classify its modified files by value, risk, lane ownership, and recommended next action.
+docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md:48:Bring this test-only fixture fix into `/home/l4nd0/tenn-fast-dev-storage-v1`.
+docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md:54:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md:108:`/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2/.venv/bin/python`
+docs/agent_tasks/process_document_guardrails_fixture_fix_integrate_nvme_v1_20260515.md:112:`/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python`
+docs/agent_tasks/cockpit_home_bff_route_v1.md:77:- `python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/cockpit_home_bff_route_v1.md:78:- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_home_bff_route_v1.md --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/backend_models_companies_import_validity_v1_20260513.md:48:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:34:- NVMe worktree `/home/l4nd0/tenn-fast-dev-storage-v1` is clean/current;
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:39:- copied launcher config still points `ENGINE_ROOT` / compose paths at `/home/l4nd0/tenn`, which resolves to HDD preserve;
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:50:- readlink -f /home/l4nd0/tenn
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:51:- readlink -f /home/l4nd0/tenn-fast-dev-storage-v1
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:52:- git -C /home/l4nd0/tenn-fast-dev-storage-v1 rev-parse --show-toplevel
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:53:- git -C /home/l4nd0/tenn-fast-dev-storage-v1 branch --show-current
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:54:- git -C /home/l4nd0/tenn-fast-dev-storage-v1 rev-parse HEAD
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:55:- git -C /home/l4nd0/tenn-fast-dev-storage-v1 status --short --untracked-files=all
+docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md:75:   `/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/cockpit_home_live_wiring_v1.md:69:- `python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/cockpit_home_live_wiring_v1.md:70:- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_home_live_wiring_v1.md --repo-root /mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1`
+docs/agent_tasks/vast_gpu_operator_skill_runtime_gate_fix_v1_20260515.md:59:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/vast_gpu_operator_skill_runtime_gate_fix_v1_20260515.md:89:- `rg -n "vast-gpu|Vast|rented GPU|llama.cpp|TENN_RENTED_GPU|18001|8001|nvidia-smi" ~/.claude /home/l4nd0/tenn-fast-dev-storage-v1 docs scripts 2>/dev/null || true`
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:67:du -h --max-depth=2 /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data | sort -h | tail -120
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:68:du -sh /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:69:du -sh /mnt/nvme/tenn/financial-engine_v2/data || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:70:du -sh /mnt/nvme/tenn/financial-engine_v2/reports || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:94:mkdir -p /mnt/nvme/tenn/financial-engine_v2/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:95:mkdir -p /mnt/nvme/tenn/financial-engine_v2/reports
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:119:SRC=/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:120:DST=/mnt/nvme/tenn/financial-engine_v2/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:138:rsync -aH --info=progress2 /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports/ /mnt/nvme/tenn/financial-engine_v2/reports/
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:165:DST=/mnt/nvme/tenn/financial-engine_v2/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:166:SRC=/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:197:/mnt/nvme/tenn/financial-engine_v2/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:199:/mnt/nvme/tenn/financial-engine_v2/reports
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:211:/mnt/nvme/tenn/financial-engine_v2/data:/data
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:212:/mnt/nvme/tenn/financial-engine_v2/reports:/reports
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:216:/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:217:/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:218:/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:219:/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:234:du -sh /mnt/nvme/tenn/financial-engine_v2/data || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:235:du -sh /mnt/nvme/tenn/financial-engine_v2/reports || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:236:find /mnt/nvme/tenn/financial-engine_v2/data -maxdepth 3 -type f | head -50 || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:237:find /mnt/nvme/tenn/financial-engine_v2/data -maxdepth 4 -type l -ls || true
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:360:"source_data_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:361:"target_data_path": "/mnt/nvme/tenn/financial-engine_v2/data",
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:362:"source_reports_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+docs/agent_tasks/nvme_hybrid_runtime_data_binding_v1_20260517.md:363:"target_reports_path": "/mnt/nvme/tenn/financial-engine_v2/reports",
+docs/agent_tasks/cockpit_home_bff_route_v1_integration.md:75:- `python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/cockpit_home_bff_route_v1_integration.md:76:- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_home_bff_route_v1_integration.md --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/cockpit_home_live_wiring_final_integration_v1.md:48:- python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn
+docs/agent_tasks/home_body_shape_timing_guard_v1_20260514.md:34:- worktree: `/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/home_body_shape_timing_guard_v1_20260514.md:51:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/reporting_textual_sources_list_v1.md:55:Worktree: `/mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md:43:- Do not repoint `/home/l4nd0/tenn` while the user is asleep.
+docs/agent_tasks/nvme_runtime_integrate_companies_import_fix_and_cached_retry_v1_20260513.md:50:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/nvme_runtime_integrate_companies_import_fix_and_cached_retry_v1_20260513.md:56:Run from `/home/l4nd0/tenn-fast-dev-storage-v1` unless noted:
+docs/agent_tasks/nvme_runtime_integrate_companies_import_fix_and_cached_retry_v1_20260513.md:83:1. Integrate commit `2cc0f7180767` into `/home/l4nd0/tenn-fast-dev-storage-v1`.
+docs/agent_tasks/nvme_runtime_integrate_companies_import_fix_and_cached_retry_v1_20260513.md:170:- run `docker compose up -d` from `/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2` without `--build`
+docs/agent_tasks/nvme_runtime_integrate_companies_import_fix_and_cached_retry_v1_20260513.md:171:- start Cockpit from `/home/l4nd0/tenn-fast-dev-storage-v1/cockpit-ui` only if dependencies already exist
+docs/agent_tasks/dirty_preserve_worktree_classification_post_home_contract_20260507.md:72:- `python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/dirty_preserve_worktree_classification_post_home_contract_20260507.md:73:- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/dirty_preserve_worktree_classification_post_home_contract_20260507.md --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md:45:- `/home/l4nd0/tenn` must not be repointed.
+docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md:46:- `/data` and `/reports` should resolve to `/mnt/tenn-nvme2/tenn/financial-engine_v2/data` and `/mnt/tenn-nvme2/tenn/financial-engine_v2/reports` respectively.
+docs/agent_tasks/cockpit_home_contract_design_v1.md:88:- `python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/cockpit_home_contract_design_v1.md:89:- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_home_contract_design_v1.md --repo-root /mnt/sdb2/home/l4nd0/tenn`
+docs/agent_tasks/runtime_topology_nvme_consolidation_v1_20260513.md:17:Runtime topology consolidation audit for moving live local Tenn runtime launch base from the HDD preserve worktree to the clean NVMe worktree at `/home/l4nd0/tenn-fast-dev-storage-v1`.
+docs/agent_tasks/runtime_topology_nvme_consolidation_v1_20260513.md:21:Make the live local Tenn runtime clearly serve from `/home/l4nd0/tenn-fast-dev-storage-v1` instead of `/mnt/hdd-data/home/l4nd0/tenn`, without changing product code, databases, Qdrant, embeddings, memory stores, gold labels, model configs, or extraction behavior.
+docs/agent_tasks/query_legacy_chat_merge_readiness_audit_v1.md:35:- preserve worktree: /mnt/sdb2/home/l4nd0/tenn
+docs/agent_tasks/query_legacy_chat_merge_readiness_audit_v1.md:36:- patch worktree: /mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-compat-v1
+docs/agent_tasks/appendix5b_fifth_doc_approval_packet_v1_20260517.md:59:From /home/l4nd0/tenn-fast-dev-storage-v1, report:
+docs/agent_tasks/tenn_agent_mcp_v0_audit_scaffold_20260507.md:63:- `python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-audit-scaffold-20260507` if available
+docs/agent_tasks/tenn_agent_mcp_v0_audit_scaffold_20260507.md:64:- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/tenn_agent_mcp_v0_audit_scaffold_20260507.md --repo-root /mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-audit-scaffold-20260507` if available
+docs/agent_tasks/cockpit_shell_sidebar_nested_button_fix_v1.md:63:- python3 scripts/agent_job_registry.py list-active --repo-root /mnt/sdb2/home/l4nd0/tenn
+docs/agent_tasks/news_memo_signal_routing_candidate_fixture_integration_v1.md:37:- Worktree: /mnt/sdb2/home/l4nd0/tenn-news-memo-signal-routing-candidate-fixture-v1
+docs/agent_tasks/rented_gpu_runtime_integrate_nvme_v1_20260514.md:57:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/rented_gpu_runtime_integrate_nvme_v1_20260514.md:65:`/home/l4nd0/tenn-fast-dev-storage-v1`
+docs/agent_tasks/rented_gpu_runtime_integrate_nvme_v1_20260514.md:152:- include unrelated forced-Anthropic/runtime/launcher/secrets changes from `/mnt/hdd-data/home/l4nd0/tenn`
+docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md:43:- Worktree: /mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-v1
+docs/agent_tasks/news_memo_env_gated_fallback_provenance_integration_v1.md:48:  /mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-v1/reports/agent_jobs/news_memo_env_gated_fallback_provenance_v1/final_report.md
+scripts/test_cockpit_playwright.py:16:  cd /home/l4nd0/tenn
+scripts/build_tenn_diagrams_pdf.mjs:5:const REPO = "/home/l4nd0/tenn";
+scripts/archive_prune_root_ollama_store.py:10:ARCHIVE_ROOT = "/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07"
+scripts/start_config.env:31:export LLAMA_SERVER_BIN="/mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server"
+scripts/storage_guard.py:8:  TENN_CANONICAL_ROOT   Override repo root path (default: /mnt/sdb2/home/l4nd0/tenn)
+scripts/storage_guard.py:20:    os.environ.get("TENN_CANONICAL_ROOT", "/mnt/sdb2/home/l4nd0/tenn")
+scripts/storage_guard.py:96:        ok_t, t_msg = check_path_exists(nvme_tenn, label="/mnt/nvme/tenn")
+scripts/storage_guard.py:104:                    "CRITICAL /mnt/nvme/tenn: need at least one of `models/` or `runtime-data/` "
+scripts/storage_guard.py:158:            "    NVMe host ensure directories exist: /mnt/nvme/tenn/models and/or /mnt/nvme/tenn/runtime-data\n"
+scripts/storage_guard.py:159:            "  - Confirm: /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2\n",
+scripts/migrate_runtime_to_nvme.sh:4:SRC_ROOT="/mnt/sdb2/home/l4nd0/tenn"
+scripts/migrate_runtime_to_nvme.sh:5:DST_ROOT="/mnt/nvme/tenn"
+scripts/run_llama_server.sh:76:DEFAULT_MODEL_PATH="/mnt/nvme/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf"
+scripts/run_llama_server.sh:149:DEFAULT_MODELS_DIR="/mnt/nvme/tenn/models"
+scripts/run_isolated_docling_control.py:59:DEFAULT_MODEL_PATH = "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/runtime/m40_llama_router_8001_conservative.sh:18:MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh:17:MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/run_extraction_server.sh:64:DEFAULT_MODEL_PATH="/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+financial-engine_v2/scripts/nightly_news.sh:3:# Scheduled via crontab: 0 2 * * * /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh
+financial-engine_v2/docker-compose.yml:58:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:59:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
+financial-engine_v2/docker-compose.yml:60:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:61:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:62:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:63:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:64:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace/reports
+financial-engine_v2/docker-compose.yml:66:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace-reports
+financial-engine_v2/docker-compose.yml:67:      - ${TENN_MODELS_NVME_DIR:-/mnt/nvme/tenn/models}:/models/nvme:ro
+financial-engine_v2/docker-compose.yml:92:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:93:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:94:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:95:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:96:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:119:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:120:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:121:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:122:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:123:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:143:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:144:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:145:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:146:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:147:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/CLAUDE.md:84:A single llama-server runs in **router mode** on port 8001 (`--models-dir /mnt/nvme/tenn/models --models-max 1`). All GGUFs in the models directory are available; clients select per-request via the `model` field. Only one model occupies VRAM at a time. Default chat model: `qwen3-30b-a3b-instruct` (MoE 30B/3B-active, llmfit score 94.0). Extraction requests `qwen2.5-14b-instruct` by model name; the router loads it on demand. While extraction is active on the shared router, cockpit chat must route to the configured API backend instead of local llama.cpp; without an API backend, chat must fail fast rather than contend for VRAM.
+financial-engine_v2/CLAUDE.md:88:- runtime data: `/mnt/nvme/tenn/runtime-data`
+financial-engine_v2/CLAUDE.md:89:- llama.cpp GGUF directory: `/mnt/nvme/tenn/models`
+financial-engine_v2/CLAUDE.md:92:- archived inactive root Ollama models: `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+financial-engine_v2/backend/tests/test_extraction_eval.py:611:                            "/mnt/nvme/tenn/models/qwen2.5-14b-instruct.gguf",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:102:        database_url="sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:103:        docs_root="/mnt/nvme/tenn/runtime-data/asx/docs",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:104:        marketindex_announcements_file="/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:105:        importance_output_root="/mnt/nvme/tenn/runtime-data/asx/importance",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:128:        database_url="sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:129:        docs_root="/mnt/nvme/tenn/runtime-data/asx/docs",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:130:        marketindex_announcements_file="/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:131:        importance_output_root="/mnt/nvme/tenn/runtime-data/asx/importance",
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:144:    assert runtime.database_url == "sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db"
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:145:    assert runtime.docs_root == "/mnt/nvme/tenn/runtime-data/asx/docs"
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:148:        == "/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json"
+financial-engine_v2/backend/tests/test_qdrant_resolution.py:150:    assert runtime.importance_output_root == "/mnt/nvme/tenn/runtime-data/asx/importance"
+financial-engine_v2/backend/tests/test_cockpit_api_models.py:138:                "model_path": "/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+financial-engine_v2/backend/tests/test_cockpit_api_models.py:143:                "model_path": "/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+financial-engine_v2/backend/tests/test_cockpit_api_models.py:158:                "model_path": "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+financial-engine_v2/backend/tests/test_cockpit_api_models.py:204:                "model_path": "/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+financial-engine_v2/backend/tests/test_cockpit_api_models.py:231:                "model_path": "/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+financial-engine_v2/backend/tests/test_cockpit_api_models.py:455:                "model_path": "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+financial-engine_v2/backend/tests/test_cockpit_service_session_threads.py:52:        data_root="/mnt/nvme/tenn/runtime-data",
+financial-engine_v2/backend/tests/test_extraction_llm_separation.py:165:                            "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+financial-engine_v2/backend/app/routes/cockpit_api.py:4296:        "default": "/mnt/nvme/tenn/models",
+financial-engine_v2/cockpit/tests/test_llamacpp_manager_router_mode.py:130:                            "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+financial-engine_v2/cockpit/tests/test_llamacpp_client_model_resolution.py:19:                "model_path": "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+financial-engine_v2/cockpit/tests/test_llamacpp_client_model_resolution.py:41:                "model_path": "/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",

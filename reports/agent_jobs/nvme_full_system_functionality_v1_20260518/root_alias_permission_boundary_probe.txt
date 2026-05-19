@@ -1,0 +1,25 @@
+### root_alias_permission_boundary_probe
+2026-05-18T22:41:24+10:00
+## whoami/id
+uid=1000(l4nd0) gid=1000(l4nd0) groups=1000(l4nd0),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),122(lpadmin),135(lxd),136(sambashare),140(docker),999(ollama)
+## root path parent permissions
+drwxr-xr-x 22 root root 4096 Apr  9 11:52 /
+## can create root alias without sudo?
+root_writable_by_current_user=0
+## sudo cached?
+sudo_n_available=0
+sudo: a password is required
+## final verifier
+OK home_tenn_runtime=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+INFO home_tenn=/mnt/hdd-data/home/l4nd0/tenn
+OK nvme2_data exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/data
+OK nvme2_reports exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+OK nvme2_fe_local_db exists file=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db
+OK nvme2_asx_docs exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+OK nvme2_models exists dir=/mnt/tenn-nvme2/tenn/models
+OK nvme2_model_qwen25 exists file=/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+OK nvme2_model_gpt_oss exists file=/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf
+OK runtime_llama_bin exists file=/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server
+FAIL host_data missing /data alias; run sudo scripts/setup_nvme2_host_aliases.sh
+FAIL host_reports missing /reports alias; run sudo scripts/setup_nvme2_host_aliases.sh
+NVME_RUNTIME_ENDPOINTS_OK=0 failures=2

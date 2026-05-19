@@ -1,0 +1,42 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "cockpit-ui/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "scripts/**"
+      ],
+      "approval_required": false,
+      "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}

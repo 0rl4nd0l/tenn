@@ -1,0 +1,279 @@
+
+$ bash -n scripts/run_llama_server.sh scripts/start_full_stack.sh scripts/cockpit financial-engine_v2/scripts/run_local_backend.sh && echo BASH_N_OK
+BASH_N_OK
+
+$ git diff --check
+
+$ python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/scripts/run_local_backend.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/start_config.env",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "financial-engine_v2/scripts/run_local_backend.sh",
+    "scripts/run_llama_server.sh",
+    "scripts/start_config.env"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/scripts/run_local_backend.sh is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_llama_server.sh is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/start_config.env is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+        "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/**",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "financial-engine_v2/backend/app/**",
+        "financial-engine_v2/backend/tests/**",
+        "cockpit-ui/README.md",
+        "cockpit-ui/next.config.mjs",
+        "cockpit-ui/package.json",
+        "cockpit-ui/pnpm-lock.yaml",
+        "scripts/**"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_full_system_functionality_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}
+
+$ cd financial-engine_v2 && docker compose config >/tmp/tenn_nvme_compose_config.txt && grep -E "/mnt/tenn-nvme2/tenn/financial-engine_v2/(data|reports)|/mnt/nvme/tenn/models" /tmp/tenn_nvme_compose_config.txt | head -80
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+        source: /mnt/nvme/tenn/models
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs
+        source: /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs
+
+$ financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_route_parity_contract.py -q
+..                                                                       [100%]
+=============================== warnings summary ===============================
+financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_override" in RealGoldEvalRequest has conflict with protected namespace "model_".
+  
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+financial-engine_v2/backend/app/main.py:2150
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2150: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+financial-engine_v2/backend/app/main.py:2165
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2165: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 5 warnings in 2.96s
+
+$ financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_chat_route.py financial-engine_v2/backend/tests/test_memory_signal_router.py financial-engine_v2/backend/tests/test_route_parity_contract.py financial-engine_v2/backend/tests/test_router_state_extraction_activity.py financial-engine_v2/backend/tests/test_route_parity_contract.py -q
+............................                                             [100%]
+=============================== warnings summary ===============================
+financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_override" in RealGoldEvalRequest has conflict with protected namespace "model_".
+  
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+financial-engine_v2/backend/app/main.py:2150
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2150: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+financial-engine_v2/backend/app/main.py:2165
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2165: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+28 passed, 5 warnings in 3.32s
+
+$ financial-engine_v2/.venv/bin/python - <<"PY"
+import os, sqlite3
+root = "/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+checks = [root, f"{root}/fe_local.db", f"{root}/asx", f"{root}/asx/docs", f"{root}/extraction_gold_real"]
+for path in checks:
+    print(f"{path}: exists={os.path.exists(path)} is_dir={os.path.isdir(path)} size={os.path.getsize(path) if os.path.exists(path) and os.path.isfile(path) else dir-or-missing}")
+uri = f"file:{root}/fe_local.db?mode=ro"
+con = sqlite3.connect(uri, uri=True)
+try:
+    rows = con.execute("select name from sqlite_master where type=table order by name limit 20").fetchall()
+    print("fe_local.db_tables_sample=", [r[0] for r in rows])
+finally:
+    con.close()
+PY
+  File "<stdin>", line 5
+    (os.path.getsize(path) if os.path.exists(path) and os.path.isfile(path) else dir-or-missing)
+                                                                                     ^^
+SyntaxError: f-string: invalid syntax
+
+$ PORT_FREE=$(ss -ltn | awk "{print \\$4}" | grep -c ":8000$" || true); [ "$PORT_FREE" = "0" ] || { echo PORT_8000_BUSY; exit 1; }
+awk: cmd. line:1: {print \}
+awk: cmd. line:1:        ^ backslash not last character on line
+awk: cmd. line:1: {print \}
+awk: cmd. line:1:        ^ syntax error
+backend_pid=883074
+BACKEND_HEALTH_FAILED
+
+$ grep -E '\[run_local_backend\] (profile|data_root|database_url|docs_root|host|port)=' 'reports/agent_jobs/nvme_full_system_functionality_v1_20260518/backend_isolated.log' || true
+
+$ PORT_FREE=$(ss -ltn | awk "{print \\$4}" | grep -c ":8081$" || true); [ "$PORT_FREE" = "0" ] || { echo PORT_8081_BUSY; exit 1; }
+awk: cmd. line:1: {print \}
+awk: cmd. line:1:        ^ backslash not last character on line
+awk: cmd. line:1: {print \}
+awk: cmd. line:1:        ^ syntax error
+frontend_pid=884199
+FRONTEND_HEALTH_OK
+HTTP/1.1 200 OK
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+Cache-Control: no-cache, must-revalidate
+X-Powered-By: Next.js
+Content-Type: text/html; charset=utf-8
+Date: Mon, 18 May 2026 12:07:58 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+
+$ tail -80 'reports/agent_jobs/nvme_full_system_functionality_v1_20260518/frontend_next.log'
+▲ Next.js 16.2.0 (Turbopack)
+- Local:         http://127.0.0.1:8081
+- Network:       http://127.0.0.1:8081
+✓ Ready in 293ms
+
+ HEAD / 200 in 63ms (next.js: 3ms, application-code: 61ms)
+ 0 bytes received
+
+$ systemctl --user start llama-cpp-router.service
+
+$ systemctl --user status llama-cpp-router.service --no-pager
+● llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: active (running) since Mon 2026-05-18 22:07:58 AEST; 8s ago
+   Main PID: 884432 (llama-server)
+      Tasks: 15 (limit: 38309)
+     Memory: 10.5M (max: 12.0G available: 11.9G)
+        CPU: 314ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/llama-cpp-router.service
+             └─884432 /home/l4nd0/.local/bin/llama-server --main-gpu 0 --threads 4 --host 0.0.0.0 --port 8001 --spec-type ngram-simple --models-dir /mnt/nvme/tenn/models --models-max 1 --models-preset /home/l4nd0/.config/tenn/llamacpp-presets.ini --no-mmap --api-key local-openai-key --parallel 1
+
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: srv   load_models:   * model:qwen2.5-14b-instruct
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: srv   load_models:   * model:qwen3-14b
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: srv   load_models:   * model:qwen3.5-35b-a3b
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: srv   load_models:   * model:qwen3.5-35b-a3b-apex
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: srv   load_models:     qwen2.5-14b-instruct-q4_k_m
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: main: starting router server, no model will be loaded in this process
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: start: binding port with default address family
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: main: router server is listening on http://0.0.0.0:8001
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: main: NOTE: router mode is experimental
+May 18 22:07:58 l4nd0-System-Product-Name run_llama_server.sh[884432]: main:       it is not recommended to use this mode in untrusted environments
+
+$ curl --max-time 5 -fsS http://127.0.0.1:8001/v1/models || true
+{"data":[{"id":"Qwen3.5-35B-A3B-APEX-I-Compact","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","Qwen3.5-35B-A3B-APEX-I-Compact","--batch-size","1024","--ctx-size","16384","--model","/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[Qwen3.5-35B-A3B-APEX-I-Compact]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}},{"id":"Qwen3.5-35B-A3B-Q4_K_M","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","Qwen3.5-35B-A3B-Q4_K_M","--batch-size","1024","--ctx-size","16384","--model","/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[Qwen3.5-35B-A3B-Q4_K_M]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}},{"id":"model","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","model","--batch-size","1024","--ctx-size","16384","--cache-ram","0","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[model]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\ncache-ram = 0\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}},{"id":"model:gpt-oss-20b","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","model:gpt-oss-20b","--batch-size","1024","--ctx-size","16384","--model","/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[model:gpt-oss-20b]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}},{"id":"model:qwen2.5-14b-instruct","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","model:qwen2.5-14b-instruct","--batch-size","1024","--ctx-size","8192","--fit","off","--model","/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[model:qwen2.5-14b-instruct]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nfit = off\nmodel = /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}},{"id":"model:qwen3-14b","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","model:qwen3-14b","--batch-size","1024","--ctx-size","8192","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[model:qwen3-14b]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}},{"id":"model:qwen3.5-35b-a3b","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--chat-template-file","/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","model:qwen3.5-35b-a3b","--batch-size","512","--ctx-size","16384","--fit","off","--model","/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf","--main-gpu","0","--n-gpu-layers","16","--parallel","1","--threads","4","--ubatch-size","256"],"preset":"[model:qwen3.5-35b-a3b]\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 512\nctx-size = 16384\nfit = off\nmodel = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\nmain-gpu = 0\nn-gpu-layers = 16\nparallel = 1\nthreads = 4\nubatch-size = 256\n\n"}},{"id":"model:qwen3.5-35b-a3b-apex","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--chat-template-file","/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","model:qwen3.5-35b-a3b-apex","--batch-size","512","--ctx-size","16384","--fit","off","--model","/mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf","--main-gpu","0","--n-gpu-layers","20","--parallel","1","--threads","4","--ubatch-size","256"],"preset":"[model:qwen3.5-35b-a3b-apex]\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 512\nctx-size = 16384\nfit = off\nmodel = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\nmain-gpu = 0\nn-gpu-layers = 20\nparallel = 1\nthreads = 4\nubatch-size = 256\n\n"}},{"id":"qwen2.5-14b-instruct-q4_k_m","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1779106086,"status":{"value":"unloaded","args":["/mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","qwen2.5-14b-instruct-q4_k_m","--batch-size","1024","--ctx-size","16384","--model","/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf","--main-gpu","0","--n-gpu-layers","999","--parallel","1","--threads","4","--ubatch-size","512"],"preset":"[qwen2.5-14b-instruct-q4_k_m]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n"}}],"object":"list"}
+$ systemctl --user stop llama-cpp-router.service

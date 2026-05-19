@@ -165,7 +165,7 @@ def test_usage_lists_routing_smoke_command() -> None:
 def test_start_config_defaults_marketplace_to_direct_runtime() -> None:
     config = (REPO_ROOT / "scripts" / "start_config.env").read_text(encoding="utf-8")
 
-    assert 'COCKPIT_STATE_DB_ON_STARTUP="/data/cockpit/state.db"' in config
+    assert 'COCKPIT_STATE_DB_ON_STARTUP="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db"' in config
     assert 'MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP="direct"' in config
     assert 'MARKETPLACE_BROWSER_PROFILE_DIR_ON_STARTUP="/root/.tenn/browser_profiles/facebook-marketplace-chrome"' in config
 

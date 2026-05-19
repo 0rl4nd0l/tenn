@@ -1,0 +1,21 @@
+Final exit evidence captured at: 2026-05-18T21:53:46+10:00
+No services were started by this task.
+No registry claim was acquired; release not attempted.
+
+$ git status --short --untracked-files=all
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+
+$ ss -ltnp | grep -E ':8000|:8001|:8002|:8081' || true
+
+$ systemctl --user status llama-cpp-qwen25.service --no-pager
+○ llama-cpp-qwen25.service - llama.cpp server (router mode — Qwen3-30B-A3B default)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 21:31:42 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:53:46 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+
+$ systemctl --user status llama-cpp-router.service --no-pager
+○ llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)

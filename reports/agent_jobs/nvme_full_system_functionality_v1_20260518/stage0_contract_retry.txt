@@ -1,0 +1,128 @@
+
+$ python3 scripts/agent_job_contract.py validate docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+      "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/**",
+      "financial-engine_v2/README.md",
+      "financial-engine_v2/backend/README.md",
+      "financial-engine_v2/docker-compose.yml",
+      "financial-engine_v2/docker-compose*.yml",
+      "financial-engine_v2/.env.example",
+      "financial-engine_v2/scripts/**",
+      "financial-engine_v2/backend/app/**",
+      "financial-engine_v2/backend/tests/**",
+      "cockpit-ui/README.md",
+      "cockpit-ui/next.config.mjs",
+      "cockpit-ui/package.json",
+      "cockpit-ui/pnpm-lock.yaml",
+      "scripts/**"
+    ],
+    "approval_required": false,
+    "job_id": "nvme_full_system_functionality_v1_20260518",
+    "lane": "Reporting",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+    "owner": "Codex",
+    "production_data_access": false,
+    "timeout_seconds": 28800
+  },
+  "ok": true
+}
+
+$ python3 scripts/agent_job_registry.py list-active
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "issues": [],
+  "job_id": "nvme_full_system_functionality_v1_20260518",
+  "lane": "Reporting",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "task_card": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py claim docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/nvme_full_system_functionality_v1_20260518.json",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "job_id": "nvme_full_system_functionality_v1_20260518",
+  "ok": true,
+  "record": {
+    "agent": "Codex",
+    "allowed_files": [
+      "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+      "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/**",
+      "financial-engine_v2/README.md",
+      "financial-engine_v2/backend/README.md",
+      "financial-engine_v2/docker-compose.yml",
+      "financial-engine_v2/docker-compose*.yml",
+      "financial-engine_v2/.env.example",
+      "financial-engine_v2/scripts/**",
+      "financial-engine_v2/backend/app/**",
+      "financial-engine_v2/backend/tests/**",
+      "cockpit-ui/README.md",
+      "cockpit-ui/next.config.mjs",
+      "cockpit-ui/package.json",
+      "cockpit-ui/pnpm-lock.yaml",
+      "scripts/**"
+    ],
+    "approval_required": false,
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "claimed_at": "2026-05-18T12:03:20.088310Z",
+    "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+    "heartbeat_at": "2026-05-18T12:03:20.088310Z",
+    "hostname": "l4nd0-System-Product-Name",
+    "job_id": "nvme_full_system_functionality_v1_20260518",
+    "lane": "Reporting",
+    "last_seen_at": "2026-05-18T12:03:20.088310Z",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+    "owner": "Codex",
+    "pid": 873754,
+    "production_data_access": false,
+    "schema_version": 1,
+    "session_id": "l4nd0-System-Product-Name:873754:nvme_full_system_functionality_v1_20260518",
+    "stale_after_seconds": 1800,
+    "started_at": "2026-05-18T12:03:20.088310Z",
+    "status": "active",
+    "task_card": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+    "task_card_sha256": "e4539194830112eb7de3b2df1be5612cdf03ce58138c6b8d7132cf7e0956e54b",
+    "timeout_seconds": 28800,
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "status_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/status.json",
+  "warnings": []
+}

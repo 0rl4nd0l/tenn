@@ -1,0 +1,20 @@
+$ model dirs
+drwxrwxr-x 2 l4nd0 l4nd0 4096 Apr 10 18:59 /mnt/nvme/tenn/models
+drwxr-xr-x 2 l4nd0 l4nd0 4096 May 18 15:56 /mnt/tenn-nvme2/tenn/models
+
+$ /mnt/nvme/tenn/models sample
+22016023168 /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf
+17293089248 /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf
+8988110976 /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+671 /mnt/nvme/tenn/models/README.md
+
+$ /mnt/tenn-nvme2/tenn/models sample
+
+$ disk usage model dirs
+45G	/mnt/nvme/tenn/models
+4.0K	/mnt/tenn-nvme2/tenn/models
+
+$ free space
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p1  458G  387G   48G  90% /
+/dev/nvme1n1p1  1.9T  153G  1.6T   9% /mnt/tenn-nvme2

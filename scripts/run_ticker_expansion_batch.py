@@ -666,17 +666,17 @@ def main() -> int:
     )
     ap.add_argument(
         "--docs-root",
-        default="/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+        default="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
         help="Root docs directory containing <TICKER>/financial_performance.",
     )
     ap.add_argument(
         "--gold-root",
-        default="/home/l4nd0/tenn/gold",
+        default="/home/l4nd0/tenn-runtime/gold",
         help="Curated gold root directory.",
     )
     ap.add_argument(
         "--out-root",
-        default="/home/l4nd0/tenn/reports/expansion_runs",
+        default="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/expansion_runs",
         help="Output root for expansion batches.",
     )
     ap.add_argument("--max-pdfs-per-ticker", type=int, default=8, help="Max latest PDFs to include per ticker.")

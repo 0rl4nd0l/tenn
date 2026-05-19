@@ -1,0 +1,61 @@
+
+$ python3 scripts/agent_job_registry.py release docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+{
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "issues": [
+    {
+      "field": "job_id",
+      "message": "job_id must contain only letters, numbers, dot, underscore, or dash"
+    }
+  ],
+  "ok": false,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}
+
+$ git status --short --untracked-files=all
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+
+$ ss -ltnp | grep -E ':8000|:8001|:8002|:8081' || true
+
+$ systemctl --user status llama-cpp-qwen25.service --no-pager
+○ llama-cpp-qwen25.service - llama.cpp server (router mode — Qwen3-30B-A3B default)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 21:55:08 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:55:08 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:55:09 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:55:50 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:55:50 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:56:28 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:56:28 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:56:28 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:57:14 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:57:14 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+
+$ systemctl --user status llama-cpp-router.service --no-pager
+○ llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 21:56:37 l4nd0-System-Product-Name systemd[942]: Started llama.cpp server (router mode).
+May 18 21:56:37 l4nd0-System-Product-Name run_llama_server.sh[859158]: TENN STORAGE WARN: NVMe path /mnt/nvme is not a separate filesystem mount (/mnt/nvme is on the same filesystem as /mnt (not mounted — often an empty directory on root FS after reboot). Mount the data volume on /mnt/nvme (see /etc/fstab).) — typical when the whole system lives on one NVMe partition. Runtime layout is present (models/ or runtime-data/); continuing. If you later add a dedicated NVMe volume, mount it at /mnt/nvme for isolation.
+May 18 21:56:37 l4nd0-System-Product-Name run_llama_server.sh[859158]: TENN STORAGE GUARD: OK (critical mounts and paths present).
+May 18 21:56:38 l4nd0-System-Product-Name systemd[942]: llama-cpp-router.service: Main process exited, code=exited, status=1/FAILURE
+May 18 21:56:38 l4nd0-System-Product-Name systemd[942]: llama-cpp-router.service: Failed with result 'exit-code'.
+May 18 21:56:42 l4nd0-System-Product-Name systemd[942]: Stopped llama.cpp server (router mode).
+
+$ readlink -f /home/l4nd0/tenn || true
+/mnt/hdd-data/home/l4nd0/tenn
+
+$ readlink -f /home/l4nd0/tenn-runtime || true
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+
+$ git rev-parse --short=12 HEAD
+a99c1762bb72
+
+$ git branch --show-current
+migration/clean-runtime-baseline-reconstruct-v1

@@ -5,13 +5,14 @@ Polls the log file and DB every 60s. Sends desktop notification when done.
 Run in a separate tmux pane.
 """
 import argparse
+import os
 import subprocess
 import time
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
 
-DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
+DB_URL = os.getenv("DATABASE_URL", "sqlite:////mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db")
 engine = create_engine(DB_URL)
 
 parser = argparse.ArgumentParser()

@@ -1,0 +1,26 @@
+$ grep stale runtime paths in touched launch/helper files
+financial-engine_v2/scripts/run_local_backend.sh:266:export DATA_ROOT="${DATA_ROOT:-/mnt/tenn-nvme2/tenn/financial-engine_v2/data}"
+scripts/start_config.env:11:ENGINE_ROOT="/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2"
+scripts/start_config.env:31:export LLAMA_SERVER_BIN="/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server"
+scripts/setup_nvme2_host_aliases.sh:4:DATA_TARGET="/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+scripts/setup_nvme2_host_aliases.sh:5:REPORTS_TARGET="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
+scripts/verify_nvme_runtime_endpoints.sh:4:EXPECTED_RUNTIME="/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+scripts/verify_nvme_runtime_endpoints.sh:5:EXPECTED_DATA="/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
+scripts/verify_nvme_runtime_endpoints.sh:6:EXPECTED_REPORTS="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
+scripts/verify_nvme_runtime_endpoints.sh:7:EXPECTED_LLAMA_BIN="/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server"
+scripts/verify_nvme_runtime_endpoints.sh:45:runtime_root="$(readlink -f /home/l4nd0/tenn-runtime 2>/dev/null || true)"
+docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md:48:- Runtime root should be `/home/l4nd0/tenn-runtime` pointing at `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`.
+docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md:49:- Active worktree should remain `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1` on `migration/clean-runtime-baseline-reconstruct-v1` at `a99c1762bb72` or a direct descendant created by this task.
+docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md:51:- `/data` and `/reports` should resolve to `/mnt/tenn-nvme2/tenn/financial-engine_v2/data` and `/mnt/tenn-nvme2/tenn/financial-engine_v2/reports` respectively.
+
+$ grep stale runtime paths in systemd user units
+/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:9:WorkingDirectory=/home/l4nd0/tenn-runtime
+/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:10:ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+/home/l4nd0/.config/systemd/user/llama-cpp-router.service:5:RequiresMountsFor=/home/l4nd0/tenn-runtime
+/home/l4nd0/.config/systemd/user/llama-cpp-router.service:12:WorkingDirectory=/home/l4nd0/tenn-runtime
+/home/l4nd0/.config/systemd/user/llama-cpp-router.service:13:ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+
+$ grep stale runtime paths in llama preset
+30:model = /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+48:model = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf
+64:model = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf

@@ -15,7 +15,7 @@ set -euo pipefail
 # without rerunning the minimal CLI and conservative server smoke path first.
 
 LLAMA_SERVER="/home/l4nd0/.local/bin/llama-server"
-MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+MODEL="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
 HOST="127.0.0.1"
 PORT="8001"
 SMOKE_PORT="18001"

@@ -1,0 +1,326 @@
+
+$ readlink -f /home/l4nd0/tenn || true
+/mnt/hdd-data/home/l4nd0/tenn
+
+$ readlink -f /home/l4nd0/tenn-runtime || true
+/home/l4nd0/tenn-runtime
+
+$ ls -ld /home/l4nd0/tenn /home/l4nd0/tenn-runtime /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 /home/l4nd0/tenn-fast-dev-storage-v1 /mnt/hdd-data/home/l4nd0/tenn /mnt/sdb2/home/l4nd0/tenn 2>/dev/null || true
+lrwxrwxrwx  1 l4nd0 l4nd0   29 May 12 18:27 /home/l4nd0/tenn -> /mnt/hdd-data/home/l4nd0/tenn
+drwxr-xr-x 28 l4nd0 l4nd0 4096 May 17 15:29 /home/l4nd0/tenn-fast-dev-storage-v1
+drwx------ 26 l4nd0 l4nd0 4096 May 18 18:23 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+drwxr-xr-x 81 l4nd0 l4nd0 4096 May 18 17:31 /mnt/hdd-data/home/l4nd0/tenn
+drwxr-xr-x 81 l4nd0 l4nd0 4096 May 18 17:31 /mnt/sdb2/home/l4nd0/tenn
+
+## repo path: /home/l4nd0/tenn
+$ git -C /home/l4nd0/tenn branch --show-current
+preserve/dirty-work-20260430T065748Z
+$ git -C /home/l4nd0/tenn rev-parse --short=12 HEAD
+c102f3f21505
+$ git -C /home/l4nd0/tenn status --short --untracked-files=all
+ M cockpit-ui/components/cockpit/chat/chat-screen.tsx
+ M cockpit-ui/components/cockpit/cockpit-layout.tsx
+ M cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx
+ M cockpit-ui/components/cockpit/settings/settings-screen.tsx
+ M cockpit-ui/lib/api-client.ts
+ M cockpit-ui/lib/cockpit-store.ts
+ M cockpit-ui/lib/cockpit-types.ts
+ M cockpit-ui/lib/marketplace-assistant.ts
+ M docs/setup/environment.md
+ M financial-engine_v2/backend/app/routes/cockpit_api.py
+ M financial-engine_v2/backend/app/services/cockpit_service.py
+ M financial-engine_v2/backend/app/services/llm.py
+ M financial-engine_v2/backend/tests/test_llm_fallback_policy.py
+ M financial-engine_v2/scripts/run_local_backend.sh
+ M scripts/cockpit
+ M scripts/install_llama_cpp_user_service.sh
+ M scripts/run_extraction_server.sh
+ M scripts/run_llama_server.sh
+ M scripts/start_full_stack.sh
+ M scripts/test_cockpit_launcher_helpers.py
+?? docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md
+?? docs/agent_tasks/memory_interticker_cleanup_post_verification_v1_20260514.md
+?? docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md
+?? docs/agent_tasks/nvme_migration_baseline_reconciliation_audit_only_v1_20260517.md
+?? docs/agent_tasks/nvme_migration_baseline_reconciliation_v1_20260517.md
+?? docs/agent_tasks/nvme_runtime_migration_readiness_audit_v1_20260517.md
+?? docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md
+?? docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md
+?? docs/agent_tasks/preserve_dirty_surface_classification_v1_20260516.md
+?? docs/agent_tasks/rented_gpu_remote_llamacpp_smoke_v1_20260514.md
+?? docs/agent_tasks/rented_gpu_runtime_diff_classification_v1_20260514.md
+?? docs/agent_tasks/runtime_topology_nvme_backend_cockpit_cached_start_v1_20260513.md
+?? docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md
+?? skills-lock.json
+
+## repo path: /home/l4nd0/tenn-runtime
+SKIPPED: not a git worktree or path missing
+
+## repo path: /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+$ git -C /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 branch --show-current
+migration/clean-runtime-baseline-reconstruct-v1
+$ git -C /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 rev-parse --short=12 HEAD
+a99c1762bb72
+$ git -C /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 status --short --untracked-files=all
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+
+## repo path: /home/l4nd0/tenn-fast-dev-storage-v1
+$ git -C /home/l4nd0/tenn-fast-dev-storage-v1 branch --show-current
+migration/clean-runtime-baseline-20260517
+$ git -C /home/l4nd0/tenn-fast-dev-storage-v1 rev-parse --short=12 HEAD
+6c6748fe87e5
+$ git -C /home/l4nd0/tenn-fast-dev-storage-v1 status --short --untracked-files=all
+ M cockpit-ui/next-env.d.ts
+ M cockpit-ui/next.config.mjs
+ M docs/architecture/12_evaluation_and_drift_monitoring.md
+ M docs/validation_baseline.md
+?? docs/agent_tasks/appendix5b_backend_gate_services_restore_v1_20260517.md
+?? docs/agent_tasks/appendix5b_gate_stack_prm_promotion_v1_20260517.md
+?? docs/agent_tasks/m40_8001_conservative_validation_v1_20260517.md
+?? docs/agent_tasks/nvme_clean_runtime_baseline_integration_v1_20260517.md
+?? docs/agent_tasks/nvme_partial_baseline_checkpoint_v1_20260517.md
+?? docs/agent_tasks/nvme_required_commit_finish_v1_20260517.md
+?? docs/agent_tasks/nvme_required_conflict_resolution_v1_20260517.md
+?? financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py
+?? financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py
+?? financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py
+?? financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py
+?? financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py
+?? financial-engine_v2/backend/app/services/asx_appendix5b_parser.py
+?? financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py
+?? financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py
+?? financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py
+?? financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py
+?? financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py
+?? financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py
+?? scripts/build_appendix5b_manifest_from_docling.py
+?? scripts/build_asx_appendix5b_label_review_packet.py
+?? scripts/import_asx_appendix5b_confirmed_labels.py
+?? scripts/run_appendix5b_candidate_artifacts.py
+?? scripts/run_appendix5b_no_regression_gate.py
+?? scripts/run_extraction_evaluation_gates.py
+?? scripts/score_asx_appendix5b_candidates.py
+?? scripts/test_appendix5b_no_regression_gate.py
+?? scripts/test_extraction_evaluation_gates.py
+
+## repo path: /mnt/hdd-data/home/l4nd0/tenn
+$ git -C /mnt/hdd-data/home/l4nd0/tenn branch --show-current
+preserve/dirty-work-20260430T065748Z
+$ git -C /mnt/hdd-data/home/l4nd0/tenn rev-parse --short=12 HEAD
+c102f3f21505
+$ git -C /mnt/hdd-data/home/l4nd0/tenn status --short --untracked-files=all
+ M cockpit-ui/components/cockpit/chat/chat-screen.tsx
+ M cockpit-ui/components/cockpit/cockpit-layout.tsx
+ M cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx
+ M cockpit-ui/components/cockpit/settings/settings-screen.tsx
+ M cockpit-ui/lib/api-client.ts
+ M cockpit-ui/lib/cockpit-store.ts
+ M cockpit-ui/lib/cockpit-types.ts
+ M cockpit-ui/lib/marketplace-assistant.ts
+ M docs/setup/environment.md
+ M financial-engine_v2/backend/app/routes/cockpit_api.py
+ M financial-engine_v2/backend/app/services/cockpit_service.py
+ M financial-engine_v2/backend/app/services/llm.py
+ M financial-engine_v2/backend/tests/test_llm_fallback_policy.py
+ M financial-engine_v2/scripts/run_local_backend.sh
+ M scripts/cockpit
+ M scripts/install_llama_cpp_user_service.sh
+ M scripts/run_extraction_server.sh
+ M scripts/run_llama_server.sh
+ M scripts/start_full_stack.sh
+ M scripts/test_cockpit_launcher_helpers.py
+?? docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md
+?? docs/agent_tasks/memory_interticker_cleanup_post_verification_v1_20260514.md
+?? docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md
+?? docs/agent_tasks/nvme_migration_baseline_reconciliation_audit_only_v1_20260517.md
+?? docs/agent_tasks/nvme_migration_baseline_reconciliation_v1_20260517.md
+?? docs/agent_tasks/nvme_runtime_migration_readiness_audit_v1_20260517.md
+?? docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md
+?? docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md
+?? docs/agent_tasks/preserve_dirty_surface_classification_v1_20260516.md
+?? docs/agent_tasks/rented_gpu_remote_llamacpp_smoke_v1_20260514.md
+?? docs/agent_tasks/rented_gpu_runtime_diff_classification_v1_20260514.md
+?? docs/agent_tasks/runtime_topology_nvme_backend_cockpit_cached_start_v1_20260513.md
+?? docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md
+?? skills-lock.json
+
+## repo path: /mnt/sdb2/home/l4nd0/tenn
+$ git -C /mnt/sdb2/home/l4nd0/tenn branch --show-current
+preserve/dirty-work-20260430T065748Z
+$ git -C /mnt/sdb2/home/l4nd0/tenn rev-parse --short=12 HEAD
+c102f3f21505
+$ git -C /mnt/sdb2/home/l4nd0/tenn status --short --untracked-files=all
+ M cockpit-ui/components/cockpit/chat/chat-screen.tsx
+ M cockpit-ui/components/cockpit/cockpit-layout.tsx
+ M cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx
+ M cockpit-ui/components/cockpit/settings/settings-screen.tsx
+ M cockpit-ui/lib/api-client.ts
+ M cockpit-ui/lib/cockpit-store.ts
+ M cockpit-ui/lib/cockpit-types.ts
+ M cockpit-ui/lib/marketplace-assistant.ts
+ M docs/setup/environment.md
+ M financial-engine_v2/backend/app/routes/cockpit_api.py
+ M financial-engine_v2/backend/app/services/cockpit_service.py
+ M financial-engine_v2/backend/app/services/llm.py
+ M financial-engine_v2/backend/tests/test_llm_fallback_policy.py
+ M financial-engine_v2/scripts/run_local_backend.sh
+ M scripts/cockpit
+ M scripts/install_llama_cpp_user_service.sh
+ M scripts/run_extraction_server.sh
+ M scripts/run_llama_server.sh
+ M scripts/start_full_stack.sh
+ M scripts/test_cockpit_launcher_helpers.py
+?? docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md
+?? docs/agent_tasks/memory_interticker_cleanup_post_verification_v1_20260514.md
+?? docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md
+?? docs/agent_tasks/nvme_migration_baseline_reconciliation_audit_only_v1_20260517.md
+?? docs/agent_tasks/nvme_migration_baseline_reconciliation_v1_20260517.md
+?? docs/agent_tasks/nvme_runtime_migration_readiness_audit_v1_20260517.md
+?? docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md
+?? docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md
+?? docs/agent_tasks/preserve_dirty_surface_classification_v1_20260516.md
+?? docs/agent_tasks/rented_gpu_remote_llamacpp_smoke_v1_20260514.md
+?? docs/agent_tasks/rented_gpu_runtime_diff_classification_v1_20260514.md
+?? docs/agent_tasks/runtime_topology_nvme_backend_cockpit_cached_start_v1_20260513.md
+?? docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md
+?? skills-lock.json
+
+$ systemctl --user status llama-cpp-qwen25.service --no-pager
+○ llama-cpp-qwen25.service - llama.cpp server (router mode — Qwen3-30B-A3B default)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 21:31:42 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:53:46 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:55:08 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+
+$ systemctl --user status llama-cpp-router.service --no-pager
+○ llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+$ systemctl --user cat llama-cpp-qwen25.service
+# /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service
+[Unit]
+Description=llama.cpp server (router mode — Qwen3-30B-A3B default)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn
+ExecStart=/home/l4nd0/tenn/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+StartLimitBurst=3
+StartLimitIntervalSec=120
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target
+
+$ systemctl --user cat llama-cpp-router.service
+# /home/l4nd0/.config/systemd/user/llama-cpp-router.service
+[Unit]
+Description=llama.cpp server (router mode)
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/sdb2/home/l4nd0/tenn
+StartLimitBurst=3
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/mnt/sdb2/home/l4nd0/tenn
+ExecStart=/mnt/sdb2/home/l4nd0/tenn/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target
+
+$ systemctl --user list-unit-files | grep -Ei 'llama|tenn|cockpit|qwen|router' || true
+llama-cpp-qwen25.service                                          disabled  enabled
+llama-cpp-router.service                                          disabled  enabled
+tenn-codex-automation-health.service                              static    -
+tenn-codex-bug-regression.service                                 static    -
+tenn-codex-doc-drift.service                                      static    -
+tenn-codex-extraction-regression.service                          static    -
+tenn-codex-future-opportunities.service                           static    -
+tenn-codex-memory-drift.service                                   static    -
+tenn-codex-repo-hygiene.service                                   static    -
+tenn-codex-automation-health.timer                                enabled   enabled
+tenn-codex-bug-regression.timer                                   enabled   enabled
+tenn-codex-doc-drift.timer                                        enabled   enabled
+tenn-codex-extraction-regression.timer                            enabled   enabled
+tenn-codex-future-opportunities.timer                             enabled   enabled
+tenn-codex-memory-drift.timer                                     enabled   enabled
+tenn-codex-repo-hygiene.timer                                     enabled   enabled
+
+$ systemctl --user list-units | grep -Ei 'llama|tenn|cockpit|qwen|router' || true
+  sys-devices-pci0000:00-0000:00:01.2-0000:20:00.0-0000:21:00.0-0000:22:00.0-nvme-nvme1-nvme1n1-nvme1n1p1.device                                    loaded active plugged   Predator SSD GM6 2TB TENN_NVME2
+  mnt-tenn\x2dnvme2.mount                                                                                                                           loaded active mounted   /mnt/tenn-nvme2
+  tenn-codex-automation-health.timer                                                                                                                loaded active waiting   Run Tenn Codex automation health monitor daily
+  tenn-codex-bug-regression.timer                                                                                                                   loaded active waiting   Run Tenn Codex bug and regression finder daily
+  tenn-codex-doc-drift.timer                                                                                                                        loaded active waiting   Run Tenn Codex documentation drift updater Monday Wednesday Friday
+  tenn-codex-extraction-regression.timer                                                                                                            loaded active waiting   Run Tenn Codex extraction regression scout daily
+  tenn-codex-future-opportunities.timer                                                                                                             loaded active waiting   Run Tenn Codex future opportunity scout weekly
+  tenn-codex-memory-drift.timer                                                                                                                     loaded active waiting   Run Tenn Codex project memory drift scanner weekly
+  tenn-codex-repo-hygiene.timer                                                                                                                     loaded active waiting   Run Tenn Codex repo hygiene collision scanner daily
+
+$ ss -ltnp | grep -E ':8000|:8001|:8002|:8081' || true
+
+$ ps aux | grep -E 'llama|uvicorn|next|pnpm|node|tenn' | grep -v grep || true
+root        1125  0.0  0.0   2796  1988 ?        Ss   15:46   0:00 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000/doc
+ollama      1377  0.0  0.1 2009888 34692 ?       Ssl  15:46   0:00 /usr/local/bin/ollama serve
+l4nd0     720331  0.0  0.1 989768 49684 ?        Sl   21:05   0:00 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/multiplex-server/3ce73d09cffc8f33c6d911e972bd0f6dabbe3e26e810844be8060e6b10987db8.js 6d3e84ae-6f4e-408a-bf9d-d63c3b9b80dd 0
+l4nd0     720386  0.9  0.3 11811376 107116 ?     Sl   21:05   0:28 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/out/server-main.js --start-server --host=127.0.0.1 --port 0 --connection-token-file /tmp/cursor-remote-code.token.69b9bc72d3381eb7a81925a08cfd0d35 --telemetry-level off --enable-remote-auto-shutdown --accept-server-license-terms
+l4nd0     720448  0.2  0.2 11720672 68688 ?      Sl   21:05   0:06 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/out/bootstrap-fork --type=ptyHost --logsPath /home/l4nd0/.cursor-server/data/logs/20260518T210528
+l4nd0     720647  0.3  1.3 12251520 439624 ?     Sl   21:05   0:11 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/out/bootstrap-fork --type=fileWatcher
+l4nd0     720703  4.9  1.5 88867760 522496 ?     Sl   21:05   2:27 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node --dns-result-order=ipv4first --inspect-port=0 --experimental-network-inspection /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+l4nd0     722839  0.0  0.3 1035780 98984 ?       Sl   21:06   0:00 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/extensions/html-language-features/server/dist/node/htmlServerMain --node-ipc --clientProcessId=720703
+l4nd0     722846  0.0  0.1 996676 56176 ?        Sl   21:06   0:00 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/extensions/markdown-language-features/dist/serverWorkerMain --node-ipc --clientProcessId=720703
+l4nd0     723627  0.0  0.2 11524032 81552 ?      Sl   21:06   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/chorus-codes/bin/chorus.mjs mcp
+l4nd0     723771  0.0  0.2 11513188 74168 ?      Sl   21:06   0:00 node /home/l4nd0/.npm/_npx/6fb594a0eac5e490/node_modules/.bin/exa-mcp-server tools=web_search_exa,get_code_context_exa
+l4nd0     723781  0.0  0.3 11557684 118828 ?     Sl   21:06   0:00 node /home/l4nd0/.npm/_npx/9833c18b2d85bc59/node_modules/.bin/playwright-mcp
+l4nd0     723837  0.0  0.5 11748820 169604 ?     Ssl  21:06   0:01 /home/l4nd0/.nvm/versions/node/v22.22.0/bin/node /home/l4nd0/.npm/_npx/15c61037b1978c83/node_modules/chrome-devtools-mcp/build/src/telemetry/watchdog/main.js --parent-pid=723780 --app-version=0.26.0 --os-type=3
+l4nd0     725659  0.0  0.2 32501612 75856 ?      Sl   21:06   0:00 node /home/l4nd0/.npm/_npx/eea2bd7412d4593b/node_modules/.bin/context7-mcp
+l4nd0     731445  0.0  0.1 993988 54516 ?        Sl   21:08   0:00 /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/node /home/l4nd0/.cursor-server/bin/linux-x64/0cf8b06883f54e26bb4f0fb8647c9500ccb43310/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=720703
+l4nd0     790736  0.0  0.1 748304 47060 pts/6    Sl+  21:30   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/bin/codex
+l4nd0     790744  1.3  0.4 504036 144852 pts/6   Sl+  21:30   0:19 /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex
+l4nd0     790868  0.0  0.2 11524288 85128 pts/6  Sl   21:30   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/chorus-codes/bin/chorus.mjs mcp
+l4nd0     829038  0.0  0.1 748300 47024 ?        Sl   21:43   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/bin/codex app-server --listen unix://
+l4nd0     829049 10.7  0.5 552708 188352 ?       Sl   21:43   1:13 /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex app-server --listen unix://
+l4nd0     829597  0.0  0.1 748300 47076 ?        Sl   21:43   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/bin/codex app-server proxy
+l4nd0     829604  0.0  0.0 461004 20784 ?        Sl   21:43   0:00 /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex app-server proxy
+l4nd0     830203  0.0  0.2 11524544 84920 ?      Sl   21:43   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/chorus-codes/bin/chorus.mjs mcp
+l4nd0     844241  0.1  0.2 11524288 79444 ?      Sl   21:50   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/chorus-codes/bin/chorus.mjs mcp
+l4nd0     845403  0.1  0.2 11524536 80336 ?      Sl   21:50   0:00 node /home/l4nd0/.nvm/versions/node/v22.22.0/lib/node_modules/chorus-codes/bin/chorus.mjs mcp
+
+$ grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=reports --exclude='*.sqlite' --exclude='*.db' -E '/mnt/hdd-data/home/l4nd0/tenn|/mnt/sdb2/home/l4nd0/tenn|/home/l4nd0/tenn-fast-dev-storage-v1|/home/l4nd0/tenn([^-/]|$)' README.md AGENTS.md CLAUDE.md scripts financial-engine_v2 cockpit-ui 2>/dev/null || true
+AGENTS.md:1:# AGENTS.md instructions for /home/l4nd0/tenn
+scripts/test_cockpit_playwright.py:16:  cd /home/l4nd0/tenn
+scripts/build_tenn_diagrams_pdf.mjs:5:const REPO = "/home/l4nd0/tenn";
+scripts/archive_prune_root_ollama_store.py:10:ARCHIVE_ROOT = "/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07"
+scripts/start_config.env:31:export LLAMA_SERVER_BIN="/mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server"
+scripts/storage_guard.py:8:  TENN_CANONICAL_ROOT   Override repo root path (default: /mnt/sdb2/home/l4nd0/tenn)
+scripts/storage_guard.py:20:    os.environ.get("TENN_CANONICAL_ROOT", "/mnt/sdb2/home/l4nd0/tenn")
+scripts/storage_guard.py:159:            "  - Confirm: /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2\n",
+scripts/migrate_runtime_to_nvme.sh:4:SRC_ROOT="/mnt/sdb2/home/l4nd0/tenn"
+scripts/runtime/m40_llama_router_8001_conservative.sh:18:MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh:17:MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+financial-engine_v2/scripts/nightly_news.sh:3:# Scheduled via crontab: 0 2 * * * /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh
+financial-engine_v2/CLAUDE.md:92:- archived inactive root Ollama models: `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+TENN_LINK=/mnt/hdd-data/home/l4nd0/tenn
+RUNTIME_LINK=/home/l4nd0/tenn-runtime
+CLEAN_HEAD=a99c1762bb72
+CLEAN_BRANCH=migration/clean-runtime-baseline-reconstruct-v1
+QWEN_ACTIVE=inactive
+ROUTER_ACTIVE=inactive
+QWEN_STALE=yes
+ROUTER_STALE=yes

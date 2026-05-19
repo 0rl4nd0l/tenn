@@ -1,0 +1,191 @@
+### relevant runtime path snippets before edit
+## scripts/start_config.env
+
+# Always keep Cockpit as a client: never bootstrap infra from Cockpit.
+COCKPIT_NO_BOOT="true"
+
+# Full-stack startup feature toggles (override backend `.env`).
+# Extraction needs llama.cpp (managed by cockpit). Embeddings need Ollama. Qdrant is the vector store.
+ENABLE_EMBEDDINGS_ON_STARTUP="true"
+ENABLE_QDRANT_ON_STARTUP="true"
+ENABLE_EXTRACTION_ON_STARTUP="true"
+EMBED_MODEL_ON_STARTUP="nomic-embed-text"
+
+# Marketplace headless runtime defaults for docker-backed Cockpit reboot/start.
+# The backend image already installs Playwright Chromium, so direct mode can use
+# that browser even when no graphical desktop session exists.
+COCKPIT_STATE_DB_ON_STARTUP="/data/cockpit/state.db"
+MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP="direct"
+MARKETPLACE_BROWSER_PROFILE_DIR_ON_STARTUP="/root/.tenn/browser_profiles/facebook-marketplace-chrome"
+MARKETPLACE_BROWSER_XDG_RUNTIME_DIR_ON_STARTUP="/tmp/tenn-marketplace-runtime"
+# Leave empty to let the backend auto-resolve PATH browsers first, then
+# Playwright-installed Chromium.
+MARKETPLACE_BROWSER_EXECUTABLE_PATH_ON_STARTUP=""
+
+# Terminal preference for launching Cockpit:
+# - auto: try tmux split if inside tmux, else try gnome-terminal, else x-terminal-emulator, else run in foreground
+# - gnome-terminal: force gnome-terminal
+# - tmux: force tmux split (requires TMUX)
+## financial-engine_v2/scripts/monitor_extraction.py
+#!/usr/bin/env python3
+"""
+Monitor extraction progress for a ticker and notify on completion.
+Polls the log file and DB every 60s. Sends desktop notification when done.
+Run in a separate tmux pane.
+"""
+import argparse
+import subprocess
+import time
+from pathlib import Path
+
+from sqlalchemy import create_engine, text
+
+DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
+engine = create_engine(DB_URL)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--ticker", default="RIO")
+parser.add_argument("--log", default="/tmp/batch_extract_rio.log")
+parser.add_argument("--poll", type=int, default=60, help="Poll interval seconds")
+args = parser.parse_args()
+
+
+def notify(title, msg):
+    # Try notify-send (Linux desktop), fall back to terminal bell + print
+    try:
+        subprocess.run(["notify-send", title, msg], timeout=5)
+    except Exception:
+        pass
+    print(f"\a\U0001f514 {title}: {msg}", flush=True)
+
+
+def get_counts():
+    with engine.connect() as c:
+        total = c.execute(
+## financial-engine_v2/scripts/run_batch_extract.py
+#!/usr/bin/env python3
+"""Batch extract all unprocessed documents for a ticker. Run in tmux."""
+import argparse
+import logging
+import time
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+
+from sqlalchemy import create_engine, text
+from app.services.pipeline import process_document
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--ticker", default="BHP", help="Ticker to process (default: BHP)")
+args = parser.parse_args()
+TICKER = args.ticker.strip().upper()
+
+DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
+engine = create_engine(DB_URL)
+
+with engine.connect() as c:
+    rows = c.execute(
+        text("""
+            SELECT d.document_id, d.doc_class, d.doc_subtype, d.title
+            FROM documents d
+            WHERE d.ticker = :ticker AND d.pdf_sha256 IS NOT NULL
+              AND d.document_id NOT IN (SELECT document_id FROM extraction_runs)
+            ORDER BY d.published_at DESC
+        """),
+        {"ticker": TICKER},
+    ).fetchall()
+
+## scripts/run_ticker_expansion_batch.py
+        "aggregate_curated_gold": aggregate_result,
+    }
+    summary_path = batch_dir / "expansion_batch_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    summary["summary_json"] = str(summary_path)
+    return summary
+
+
+def main() -> int:
+    runtime_python = print_runtime_info()
+    ap = argparse.ArgumentParser(description="Run incremental ticker expansion onboarding batch.")
+    ap.add_argument("--tickers", required=True, help="Comma-separated tickers (e.g., ASB,MIN)")
+    ap.add_argument(
+        "--python-bin",
+        default=runtime_python,
+        help="Python interpreter to run child scripts with.",
+    )
+    ap.add_argument(
+        "--docs-root",
+        default="/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+        help="Root docs directory containing <TICKER>/financial_performance.",
+    )
+    ap.add_argument(
+        "--gold-root",
+        default="/home/l4nd0/tenn/gold",
+        help="Curated gold root directory.",
+    )
+    ap.add_argument(
+        "--out-root",
+        default="/home/l4nd0/tenn/reports/expansion_runs",
+        help="Output root for expansion batches.",
+    )
+    ap.add_argument("--max-pdfs-per-ticker", type=int, default=8, help="Max latest PDFs to include per ticker.")
+    ap.add_argument(
+        "--selection-strategy",
+        choices=["latest_relevance", "annual_per_year"],
+        default="latest_relevance",
+        help="PDF selection mode; annual_per_year enforces longitudinal annual coverage when available.",
+    )
+    ap.add_argument("--force-section-pass", action="store_true", help="Force section capture second pass.")
+    ap.add_argument(
+## scripts/test_run_local_backend_script.py
+from __future__ import annotations
+
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+RUN_LOCAL_BACKEND = REPO_ROOT / "financial-engine_v2" / "scripts" / "run_local_backend.sh"
+
+
+def test_run_local_backend_defaults_marketplace_to_direct_runtime() -> None:
+    script = RUN_LOCAL_BACKEND.read_text(encoding="utf-8")
+
+    assert 'export COCKPIT_STATE_DB="${COCKPIT_STATE_DB:-${ROOT_DIR}/data/cockpit/state.db}"' in script
+    assert 'export MARKETPLACE_BROWSER_RUNTIME="${MARKETPLACE_BROWSER_RUNTIME:-direct}"' in script
+    assert 'export MARKETPLACE_BROWSER_PROFILE_DIR="${MARKETPLACE_BROWSER_PROFILE_DIR:-${HOME}/.tenn/browser_profiles/facebook-marketplace-chrome}"' in script
+    assert 'export MARKETPLACE_BROWSER_XDG_RUNTIME_DIR="${MARKETPLACE_BROWSER_XDG_RUNTIME_DIR:-/tmp/tenn-marketplace-runtime-$(id -u)}"' in script
+## scripts/test_cockpit_launcher_helpers.py
+
+
+def test_usage_lists_reboot_command() -> None:
+    script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
+
+    assert "cockpit reboot" in script
+
+
+def test_usage_lists_routing_smoke_command() -> None:
+    script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
+
+    assert "cockpit smoke routing" in script
+    assert "cockpit_routing_smoke.py" in script
+
+
+def test_start_config_defaults_marketplace_to_direct_runtime() -> None:
+    config = (REPO_ROOT / "scripts" / "start_config.env").read_text(encoding="utf-8")
+
+    assert 'COCKPIT_STATE_DB_ON_STARTUP="/data/cockpit/state.db"' in config
+    assert 'MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP="direct"' in config
+    assert 'MARKETPLACE_BROWSER_PROFILE_DIR_ON_STARTUP="/root/.tenn/browser_profiles/facebook-marketplace-chrome"' in config
+
+
+def test_start_full_stack_propagates_marketplace_runtime_flags() -> None:
+    script = (REPO_ROOT / "scripts" / "start_full_stack.sh").read_text(encoding="utf-8")
+
+    assert 'set_env_key "COCKPIT_STATE_DB"' in script
+    assert 'export COCKPIT_STATE_DB="${COCKPIT_STATE_DB_ON_STARTUP}"' in script
+    assert 'set_env_key "MARKETPLACE_BROWSER_RUNTIME"' in script
+    assert 'set_env_key "MARKETPLACE_BROWSER_PROFILE_DIR"' in script
+    assert 'export MARKETPLACE_BROWSER_RUNTIME="${MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP}"' in script

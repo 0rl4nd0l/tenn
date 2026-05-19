@@ -1,0 +1,311 @@
+
+$ readlink -f /home/l4nd0/tenn-runtime || true
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+
+$ systemctl --user cat llama-cpp-qwen25.service
+# /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service
+[Unit]
+Description=llama.cpp server (router mode — Qwen3-30B-A3B default)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn-runtime
+ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+StartLimitBurst=3
+StartLimitIntervalSec=120
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target
+
+$ systemctl --user cat llama-cpp-router.service
+# /home/l4nd0/.config/systemd/user/llama-cpp-router.service
+[Unit]
+Description=llama.cpp server (router mode)
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/home/l4nd0/tenn-runtime
+StartLimitBurst=3
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn-runtime
+ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target
+
+$ git diff --check
+
+$ python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "cockpit-ui/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "scripts/**"
+      ],
+      "approval_required": false,
+      "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}
+
+$ financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_route_parity_contract.py -q
+..                                                                       [100%]
+=============================== warnings summary ===============================
+financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_override" in RealGoldEvalRequest has conflict with protected namespace "model_".
+  
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+financial-engine_v2/backend/app/main.py:2150
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2150: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+financial-engine_v2/backend/app/main.py:2165
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2165: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 5 warnings in 2.99s
+
+$ financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_chat_route.py financial-engine_v2/backend/tests/test_memory_signal_router.py financial-engine_v2/backend/tests/test_route_parity_contract.py financial-engine_v2/backend/tests/test_router_state_extraction_activity.py financial-engine_v2/backend/tests/test_route_parity_contract.py -q
+............................                                             [100%]
+=============================== warnings summary ===============================
+financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_override" in RealGoldEvalRequest has conflict with protected namespace "model_".
+  
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+financial-engine_v2/backend/app/main.py:2150
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2150: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+financial-engine_v2/backend/app/main.py:2165
+  /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/main.py:2165: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+28 passed, 5 warnings in 3.34s
+
+$ timeout 30s systemctl --user start llama-cpp-router.service
+
+$ systemctl --user status llama-cpp-router.service --no-pager
+● llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: activating (auto-restart) (Result: exit-code) since Mon 2026-05-18 21:56:38 AEST; 4s ago
+    Process: 859151 ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh (code=exited, status=1/FAILURE)
+   Main PID: 859151 (code=exited, status=1/FAILURE)
+        CPU: 228ms
+
+$ ss -ltnp | grep -E ':8001|:8002' || true
+
+$ journalctl --user -u llama-cpp-router.service -n 120 --no-pager
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv   5:                         general.size_label str              = 14B
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv   6:                            general.license str              = apache-2.0
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv   7:                       general.license.link str              = https://huggingface.co/Qwen/Qwen2.5-1...
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv   8:                   general.base_model.count u32              = 1
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv   9:                  general.base_model.0.name str              = Qwen2.5 14B
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  10:          general.base_model.0.organization str              = Qwen
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  11:              general.base_model.0.repo_url str              = https://huggingface.co/Qwen/Qwen2.5-14B
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  12:                               general.tags arr[str,2]       = ["chat", "text-generation"]
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  13:                          general.languages arr[str,1]       = ["en"]
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  14:                          qwen2.block_count u32              = 48
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  15:                       qwen2.context_length u32              = 32768
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  16:                     qwen2.embedding_length u32              = 5120
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  17:                  qwen2.feed_forward_length u32              = 13824
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  18:                 qwen2.attention.head_count u32              = 40
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  19:              qwen2.attention.head_count_kv u32              = 8
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  20:                       qwen2.rope.freq_base f32              = 1000000.000000
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  21:     qwen2.attention.layer_norm_rms_epsilon f32              = 0.000001
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  22:                          general.file_type u32              = 15
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  23:                       tokenizer.ggml.model str              = gpt2
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  24:                         tokenizer.ggml.pre str              = qwen2
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  25:                      tokenizer.ggml.tokens arr[str,152064]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  26:                  tokenizer.ggml.token_type arr[i32,152064]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  27:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  28:                tokenizer.ggml.eos_token_id u32              = 151645
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  29:            tokenizer.ggml.padding_token_id u32              = 151643
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  30:                tokenizer.ggml.bos_token_id u32              = 151643
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  31:               tokenizer.ggml.add_bos_token bool             = false
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  32:                    tokenizer.chat_template str              = {%- if tools %}\n    {{- '<|im_start|>...
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  33:               general.quantization_version u32              = 2
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  34:                      quantize.imatrix.file str              = /models_out/Qwen2.5-14B-Instruct-GGUF...
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  35:                   quantize.imatrix.dataset str              = /training_dir/calibration_datav3.txt
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  36:             quantize.imatrix.entries_count i32              = 336
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - kv  37:              quantize.imatrix.chunks_count i32              = 128
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - type  f32:  241 tensors
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - type q4_K:  289 tensors
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: llama_model_loader: - type q6_K:   49 tensors
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: print_info: file format = GGUF V3 (latest)
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: print_info: file type   = Q4_K - Medium
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: print_info: file size   = 8.37 GiB (4.87 BPW)
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: load: 0 unused tokens
+May 17 16:51:19 l4nd0-System-Product-Name env[88932]: load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load: printing all EOG tokens:
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load:   - 128247 ('</s>')
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load:   - 151643 ('<|endoftext|>')
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load:   - 151645 ('<|im_end|>')
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load:   - 151662 ('<|fim_pad|>')
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load:   - 151663 ('<|repo_name|>')
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load:   - 151664 ('<|file_sep|>')
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load: special tokens cache size = 23
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load: token to piece cache size = 0.9310 MB
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: arch                  = qwen2
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: vocab_only            = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: no_alloc              = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_ctx_train           = 32768
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_embd                = 5120
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_embd_inp            = 5120
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_layer               = 48
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_head                = 40
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_head_kv             = 8
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_rot                 = 128
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_swa                 = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: is_swa_any            = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_embd_head_k         = 128
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_embd_head_v         = 128
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_gqa                 = 5
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_embd_k_gqa          = 1024
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_embd_v_gqa          = 1024
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: f_norm_eps            = 0.0e+00
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: f_norm_rms_eps        = 1.0e-06
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: f_clamp_kqv           = 0.0e+00
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: f_max_alibi_bias      = 0.0e+00
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: f_logit_scale         = 0.0e+00
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: f_attn_scale          = 0.0e+00
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_ff                  = 13824
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_expert              = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_expert_used         = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_expert_groups       = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_group_used          = 0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: causal attn           = 1
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: pooling type          = -1
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: rope type             = 2
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: rope scaling          = linear
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: freq_base_train       = 1000000.0
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: freq_scale_train      = 1
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_ctx_orig_yarn       = 32768
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: rope_yarn_log_mul     = 0.0000
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: rope_finetuned        = unknown
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: model type            = 14B
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: model params          = 14.77 B
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: general.name          = Qwen2.5 14B Instruct
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: vocab type            = BPE
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_vocab               = 152064
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: n_merges              = 151387
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: BOS token             = 151643 '<|endoftext|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOS token             = 151645 '<|im_end|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOT token             = 151645 '<|im_end|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: PAD token             = 151643 '<|endoftext|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: LF token              = 198 'Ċ'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: FIM PRE token         = 151659 '<|fim_prefix|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: FIM SUF token         = 151661 '<|fim_suffix|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: FIM MID token         = 151660 '<|fim_middle|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: FIM PAD token         = 151662 '<|fim_pad|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: FIM REP token         = 151663 '<|repo_name|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: FIM SEP token         = 151664 '<|file_sep|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOG token             = 128247 '</s>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOG token             = 151643 '<|endoftext|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOG token             = 151645 '<|im_end|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOG token             = 151662 '<|fim_pad|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOG token             = 151663 '<|repo_name|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: EOG token             = 151664 '<|file_sep|>'
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: print_info: max token length      = 256
+May 17 16:51:20 l4nd0-System-Product-Name env[88932]: load_tensors: loading model tensors, this can take a while... (mmap = true, direct_io = false)
+May 17 16:51:25 l4nd0-System-Product-Name env[88932]: srv  log_server_r: done request: POST /v1/chat/completions 127.0.0.1 503
+May 17 16:51:35 l4nd0-System-Product-Name systemd[914]: Stopping llama.cpp server (Tesla M40 conservative Qwen2.5 on 8001)...
+May 17 16:51:35 l4nd0-System-Product-Name systemd[914]: Stopped llama.cpp server (Tesla M40 conservative Qwen2.5 on 8001).
+-- Boot 676ab7c0572b48c4b31c87addc3f3936 --
+May 18 21:56:37 l4nd0-System-Product-Name systemd[942]: Started llama.cpp server (router mode).
+May 18 21:56:37 l4nd0-System-Product-Name run_llama_server.sh[859158]: TENN STORAGE WARN: NVMe path /mnt/nvme is not a separate filesystem mount (/mnt/nvme is on the same filesystem as /mnt (not mounted — often an empty directory on root FS after reboot). Mount the data volume on /mnt/nvme (see /etc/fstab).) — typical when the whole system lives on one NVMe partition. Runtime layout is present (models/ or runtime-data/); continuing. If you later add a dedicated NVMe volume, mount it at /mnt/nvme for isolation.
+May 18 21:56:37 l4nd0-System-Product-Name run_llama_server.sh[859158]: TENN STORAGE GUARD: OK (critical mounts and paths present).
+May 18 21:56:38 l4nd0-System-Product-Name systemd[942]: llama-cpp-router.service: Main process exited, code=exited, status=1/FAILURE
+May 18 21:56:38 l4nd0-System-Product-Name systemd[942]: llama-cpp-router.service: Failed with result 'exit-code'.
+
+$ systemctl --user stop llama-cpp-router.service

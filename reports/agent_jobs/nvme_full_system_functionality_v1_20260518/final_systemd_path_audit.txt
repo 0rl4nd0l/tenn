@@ -1,0 +1,45 @@
+### final_systemd_path_audit
+2026-05-18T22:48:44+10:00
+## qwen25 unit
+# /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service
+[Unit]
+Description=llama.cpp server (router mode — Qwen3-30B-A3B default)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn-runtime
+ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+StartLimitBurst=3
+StartLimitIntervalSec=120
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target
+## router unit
+# /home/l4nd0/.config/systemd/user/llama-cpp-router.service
+[Unit]
+Description=llama.cpp server (router mode)
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/home/l4nd0/tenn-runtime
+StartLimitBurst=3
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn-runtime
+ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,13 @@
+--- reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/systemd_diffs/llama-cpp-qwen25.service.before.tmp	2026-05-18 21:55:50.195097866 +1000
++++ reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/systemd_diffs/llama-cpp-qwen25.service.after.tmp	2026-05-18 21:55:50.199097884 +1000
+@@ -6,8 +6,8 @@
+ [Service]
+ Type=simple
+ EnvironmentFile=-%h/.config/tenn/llama-server.env
+-WorkingDirectory=/home/l4nd0/tenn
+-ExecStart=/home/l4nd0/tenn/scripts/run_llama_server.sh
++WorkingDirectory=/home/l4nd0/tenn-runtime
++ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+ Restart=on-failure
+ RestartSec=15
+ StartLimitBurst=3

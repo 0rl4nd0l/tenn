@@ -1,0 +1,10 @@
+
+$ if [ ! -e /data ] && [ ! -L /data ]; then sudo -n ln -s /mnt/tenn-nvme2/tenn/financial-engine_v2/data /data; else echo "/data exists; not touching"; fi
+sudo: a password is required
+
+$ if [ ! -e /reports ] && [ ! -L /reports ]; then sudo -n ln -s /mnt/tenn-nvme2/tenn/financial-engine_v2/reports /reports; else echo "/reports exists; not touching"; fi
+sudo: a password is required
+
+$ readlink -f /data || true; readlink -f /reports || true; ls -ld /data /reports 2>/dev/null || true
+/data
+/reports

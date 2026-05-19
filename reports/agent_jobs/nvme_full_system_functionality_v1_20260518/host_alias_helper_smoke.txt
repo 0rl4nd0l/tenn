@@ -1,0 +1,3 @@
+$ scripts/setup_nvme2_host_aliases.sh || true
+ERROR: this script must run with sudo/root to create host-root aliases
+Run: sudo scripts/setup_nvme2_host_aliases.sh

@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+Cache-Control: no-cache, must-revalidate
+X-Powered-By: Next.js
+Content-Type: text/html; charset=utf-8
+Date: Mon, 18 May 2026 12:07:58 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

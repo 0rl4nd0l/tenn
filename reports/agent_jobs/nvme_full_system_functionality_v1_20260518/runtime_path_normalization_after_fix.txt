@@ -1,0 +1,202 @@
+### runtime_path_normalization_after_fix
+2026-05-18T22:45:44+10:00
+## remaining /home/l4nd0/tenn refs in active script surfaces
+financial-engine_v2/scripts/nightly_news.sh:3:# Scheduled via crontab: 0 2 * * * /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:191:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_742am_MGR_mgr-1h26-results-presentation_2A1654097.pdf",
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:197:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_742am_MGR_mgr-1h26-results-presentation_2A1654097.pdf",
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:203:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_737am_MGR_mgr-1h26-interim-report_2A1654094.pdf",
+scripts/test_cockpit_playwright.py:16:  cd /home/l4nd0/tenn
+scripts/test_pdf_financial_tools.py:57:        pdf = Path("/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/29M/other/2026-01-19_high-grade-at-golden-grove.pdf")
+scripts/archive_prune_root_ollama_store.py:10:ARCHIVE_ROOT = "/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07"
+scripts/storage_guard.py:159:            "  - Confirm: /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2\n",
+scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh:17:MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/runtime/m40_llama_router_8001_conservative.sh:18:MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/test_run_ticker_expansion_batch.py:76:        p = Path("/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/demo.pdf")
+## remaining absolute /data or /reports refs in active script/env surfaces
+scripts/scrape-claude-usage.sh:4:OUTPUT_FILE="${WORKSPACE_DIR}/data/claude-usage.json"
+scripts/validate_system.sh:60:elif [[ ! -f "${TENN_MEMORY_MARKET_DB:-financial-engine_v2/data/reports/research_memory/market_memory.sqlite}" ]]; then
+scripts/validate_system.sh:61:  echo "[validate_system] SKIP: memory integrity market DB missing (${TENN_MEMORY_MARKET_DB:-financial-engine_v2/data/reports/research_memory/market_memory.sqlite})"
+scripts/validate_system.sh:66:    --market-memory "${TENN_MEMORY_MARKET_DB:-financial-engine_v2/data/reports/research_memory/market_memory.sqlite}"
+scripts/validate_system.sh:68:    --fallback-root "${TENN_MEMORY_FALLBACK_ROOT:-financial-engine_v2/backend/reports/research_memory}"
+scripts/validate_system.sh:72:  if [[ -f "${TENN_MEMORY_COMPANY_DB:-financial-engine_v2/data/reports/research_memory/company_memory.sqlite}" ]]; then
+scripts/validate_system.sh:73:    memory_args+=(--company-memory "${TENN_MEMORY_COMPANY_DB:-financial-engine_v2/data/reports/research_memory/company_memory.sqlite}")
+scripts/stop_change_review_agents.sh:5:STATE_DIR="${STATE_DIR:-$ROOT_DIR/reports/change_review_agents}"
+scripts/start_config.env:69:COCKPIT_STATE_DB_ON_STARTUP="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db"
+scripts/status_change_review_agents.sh:5:STATE_DIR="${STATE_DIR:-$ROOT_DIR/reports/change_review_agents}"
+scripts/run_canonical_dataset_checks.sh:9:BASELINE_PATH="${BASELINE_PATH:-$ROOT_DIR/reports/baselines/canonical_eval_baseline_latest.json}"
+scripts/run_canonical_dataset_checks.sh:61:  --eval-file "$ROOT_DIR/reports/news_eval_queries.json" \
+scripts/run_canonical_dataset_checks.sh:63:  --out-json "$ROOT_DIR/reports/news_eval_report.json"
+scripts/run_canonical_dataset_checks.sh:66:  --eval-file "$ROOT_DIR/reports/company_eval_queries.json" \
+scripts/run_canonical_dataset_checks.sh:70:  --out-json "$ROOT_DIR/reports/company_eval_report_v2.json"
+scripts/run_canonical_dataset_checks.sh:73:  --eval-file "$ROOT_DIR/reports/eval_queries.json" \
+scripts/run_canonical_dataset_checks.sh:75:  --out-json "$ROOT_DIR/reports/eval_queries_report.json"
+scripts/run_canonical_dataset_checks.sh:81:    --news-report "$ROOT_DIR/reports/news_eval_report.json" \
+scripts/run_canonical_dataset_checks.sh:82:    --company-report "$ROOT_DIR/reports/company_eval_report_v2.json" \
+scripts/run_canonical_dataset_checks.sh:83:    --reference-report "$ROOT_DIR/reports/eval_queries_report.json" \
+scripts/prepare_cloud_worktree.sh:20:  "financial-engine_v2/reports/"
+scripts/run_extraction_quality_cycle.sh:6:PDF_DIR="${PDF_DIR:-$ROOT_DIR/reports/review_input_source_gated_v2_canonical}"
+scripts/run_extraction_quality_cycle.sh:7:REVIEW_DIR="${REVIEW_DIR:-$ROOT_DIR/reports/pdf_metric_review_source_gated_v2_canonical}"
+scripts/run_extraction_quality_cycle.sh:8:RUN_ROOT="${RUN_ROOT:-$ROOT_DIR/reports/prod_hardening_runs}"
+scripts/setup_nvme2_host_aliases.sh:45:readlink -f /data
+scripts/setup_nvme2_host_aliases.sh:46:readlink -f /reports
+scripts/start_change_review_agents.sh:5:STATE_DIR="${STATE_DIR:-$ROOT_DIR/reports/change_review_agents}"
+financial-engine_v2/scripts/nightly_stable.sh:12:LOG_DIR="${REPO_ROOT}/reports/ops_checks/nightly"
+financial-engine_v2/scripts/run_batch_extract.py:22:DB_URL = os.getenv("DATABASE_URL", "sqlite:////mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db")
+financial-engine_v2/scripts/announcement_reaction_report.py:101:        value = "sqlite:///./data/fe_local.db"
+financial-engine_v2/scripts/announcement_reaction_report.py:291:    parser.add_argument("--database-url", default=os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db"))
+financial-engine_v2/scripts/probe_all_system_tickers.py:291:        env.setdefault("DATABASE_URL", "sqlite:///./data/fe_local.db")
+financial-engine_v2/scripts/update_ticker_financials.py:234:    database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+financial-engine_v2/scripts/monitor_extraction.py:15:DB_URL = os.getenv("DATABASE_URL", "sqlite:////mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db")
+financial-engine_v2/scripts/build_production_bundle.sh:64:mkdir -p "${APP_DIR}/data/raw"
+financial-engine_v2/scripts/build_production_bundle.sh:65:mkdir -p "${APP_DIR}/data/asx/docs"
+financial-engine_v2/scripts/build_production_bundle.sh:66:mkdir -p "${APP_DIR}/data/marketindex/pdfs"
+financial-engine_v2/scripts/build_production_bundle.sh:67:mkdir -p "${APP_DIR}/reports/marketindex"
+financial-engine_v2/scripts/nightly_news.sh:21:LOG_DIR="${TENN_ROOT}/reports/ops_checks/nightly"
+financial-engine_v2/scripts/nightly_news.sh:49:    MEMO_DIAGNOSTICS_PATH="${TENN_ROOT}/financial-engine_v2/data/reports/research_memory/news_memos.jsonl"
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:191:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_742am_MGR_mgr-1h26-results-presentation_2A1654097.pdf",
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:197:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_742am_MGR_mgr-1h26-results-presentation_2A1654097.pdf",
+financial-engine_v2/scripts/test_cockpit_deep_analysis_grounding.py:203:                        "file": "/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs/18-02-26_737am_MGR_mgr-1h26-interim-report_2A1654094.pdf",
+financial-engine_v2/scripts/generate_weekly_intelligence_pack.py:28:        value = "sqlite:///./data/fe_local.db"
+financial-engine_v2/scripts/generate_weekly_intelligence_pack.py:193:        default=os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db"),
+## explicit nvme2 refs in fixed files
+scripts/test_cockpit_launcher_helpers.py:168:    assert 'COCKPIT_STATE_DB_ON_STARTUP="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db"' in config
+scripts/run_ticker_expansion_batch.py:669:        default="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+scripts/run_ticker_expansion_batch.py:674:        default="/home/l4nd0/tenn-runtime/gold",
+scripts/run_ticker_expansion_batch.py:679:        default="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/expansion_runs",
+financial-engine_v2/scripts/monitor_extraction.py:15:DB_URL = os.getenv("DATABASE_URL", "sqlite:////mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db")
+financial-engine_v2/scripts/run_batch_extract.py:22:DB_URL = os.getenv("DATABASE_URL", "sqlite:////mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db")
+scripts/start_config.env:31:export LLAMA_SERVER_BIN="/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server"
+scripts/start_config.env:69:COCKPIT_STATE_DB_ON_STARTUP="/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db"
+## syntax checks
+## contract check-diff
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/scripts/monitor_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/run_batch_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/run_local_backend.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_extraction_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_ticker_expansion_batch.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/start_config.env",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_cockpit_launcher_helpers.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_run_local_backend_script.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "scripts/setup_nvme2_host_aliases.sh",
+      "status": "??"
+    },
+    {
+      "path": "scripts/verify_nvme_runtime_endpoints.sh",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "financial-engine_v2/scripts/monitor_extraction.py",
+    "financial-engine_v2/scripts/run_batch_extract.py",
+    "scripts/run_ticker_expansion_batch.py",
+    "scripts/test_cockpit_launcher_helpers.py",
+    "scripts/test_run_local_backend_script.py"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/scripts/monitor_extraction.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "financial-engine_v2/scripts/run_batch_extract.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/run_ticker_expansion_batch.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/test_cockpit_launcher_helpers.py is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "scripts/test_run_local_backend_script.py is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+        "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/**",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "financial-engine_v2/scripts/run_local_backend.sh",
+        "financial-engine_v2/backend/app/**",
+        "financial-engine_v2/backend/tests/**",
+        "cockpit-ui/README.md",
+        "cockpit-ui/next.config.mjs",
+        "cockpit-ui/package.json",
+        "cockpit-ui/pnpm-lock.yaml",
+        "scripts/**",
+        "scripts/run_llama_server.sh",
+        "scripts/run_extraction_server.sh",
+        "scripts/start_config.env",
+        "scripts/setup_nvme2_host_aliases.sh",
+        "scripts/verify_nvme_runtime_endpoints.sh"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_full_system_functionality_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}

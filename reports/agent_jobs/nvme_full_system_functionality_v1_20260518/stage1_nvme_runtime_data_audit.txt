@@ -1,0 +1,688 @@
+
+$ ls -ld /data /reports /mnt/tenn-nvme2 /mnt/tenn-nvme2/tenn /mnt/tenn-nvme2/tenn/financial-engine_v2 /mnt/tenn-nvme2/tenn/financial-engine_v2/data /mnt/tenn-nvme2/tenn/financial-engine_v2/reports financial-engine_v2/data financial-engine_v2/reports 2>/dev/null || true
+drwxr-xr-x   4 root  root   4096 May 18 15:56 /mnt/tenn-nvme2
+drwxr-xr-x   6 l4nd0 l4nd0  4096 May 18 15:56 /mnt/tenn-nvme2/tenn
+drwxr-xr-x   4 l4nd0 l4nd0  4096 May 18 15:56 /mnt/tenn-nvme2/tenn/financial-engine_v2
+drwxrwxr-x+ 12 l4nd0 l4nd0  4096 Apr 20 17:20 /mnt/tenn-nvme2/tenn/financial-engine_v2/data
+drwxr-xr-x  15 l4nd0 l4nd0 20480 Apr 21 18:04 /mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+drwx------   7 l4nd0 l4nd0  4096 May 18 17:47 financial-engine_v2/data
+drwx------   3 l4nd0 l4nd0  4096 May 17 17:55 financial-engine_v2/reports
+
+$ readlink -f financial-engine_v2/data || true; readlink -f financial-engine_v2/reports || true; readlink -f /data || true; readlink -f /reports || true
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/reports
+/data
+/reports
+
+$ findmnt -T financial-engine_v2/data || true; findmnt -T financial-engine_v2/reports || true; findmnt -T /mnt/tenn-nvme2/tenn/financial-engine_v2/data || true; findmnt -T /mnt/tenn-nvme2/tenn/financial-engine_v2/reports || true
+TARGET SOURCE         FSTYPE OPTIONS
+/      /dev/nvme0n1p1 ext4   rw,relatime,errors=remount-ro
+TARGET SOURCE         FSTYPE OPTIONS
+/      /dev/nvme0n1p1 ext4   rw,relatime,errors=remount-ro
+TARGET          SOURCE         FSTYPE OPTIONS
+/mnt/tenn-nvme2 /dev/nvme1n1p1 ext4   rw,noatime
+TARGET          SOURCE         FSTYPE OPTIONS
+/mnt/tenn-nvme2 /dev/nvme1n1p1 ext4   rw,noatime
+
+$ df -h /mnt/tenn-nvme2 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 financial-engine_v2/data financial-engine_v2/reports 2>/dev/null || true
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme1n1p1  1.9T  153G  1.6T   9% /mnt/tenn-nvme2
+/dev/nvme0n1p1  458G  387G   48G  90% /
+/dev/nvme0n1p1  458G  387G   48G  90% /
+/dev/nvme0n1p1  458G  387G   48G  90% /
+
+$ printf 'PATH %s\n' '/mnt/tenn-nvme2/tenn/financial-engine_v2/data'; stat -c 'type=%F mode=%A size=%s target=%N' '/mnt/tenn-nvme2/tenn/financial-engine_v2/data'; find '/mnt/tenn-nvme2/tenn/financial-engine_v2/data' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH /mnt/tenn-nvme2/tenn/financial-engine_v2/data
+type=directory mode=drwxrwxr-x size=4096 target='/mnt/tenn-nvme2/tenn/financial-engine_v2/data'
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime.db
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/db_recovery
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/financial_engine.db
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/resource_library
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/ops
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/tenn.db
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/raw
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime_trace.db
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime.db-journal
+d /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime_trace2.db
+
+$ printf 'PATH %s\n' '/mnt/tenn-nvme2/tenn/financial-engine_v2/reports'; stat -c 'type=%F mode=%A size=%s target=%N' '/mnt/tenn-nvme2/tenn/financial-engine_v2/reports'; find '/mnt/tenn-nvme2/tenn/financial-engine_v2/reports' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH /mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+type=directory mode=drwxr-xr-x size=20480 target='/mnt/tenn-nvme2/tenn/financial-engine_v2/reports'
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v9_rejected.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/ticker_full_history_report_03ec66c8.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v8_primary.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/ticker_full_history_report_b95312d4.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v5_context.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v7.sqlite
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/cockpit_update_ticker_financials_aeeaf28d.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v11_primary.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v4_rejected.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v8_primary.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/ticker_full_history_report.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v9.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/ticker_full_history_report_extraction_failure_taxonomy.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v12.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v6_primary.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v12.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v11_blocks.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v13.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/resume_pending_cba_finish.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v5.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v7_primary.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/audit_ticker_financials_report.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v6.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v6_context.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v7_context.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v9_high_conf.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v3_high_confidence.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v13_primary.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v11_rejected.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/resume_pending_targeted_small_20260219.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/rebuild_CBA.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v3_rejected.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/cockpit_update_ticker_financials_d1daac78_resume.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/cockpit_update_ticker_financials_ea193409_resume.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v5_context.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/test_mmi_full_history.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v11_context.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v8_high_conf.csv
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v13_primary.json
+f /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/rebuild_ticker_financials_from_docs_BHP_55e401d2.json
+
+$ printf 'PATH %s\n' 'financial-engine_v2/data'; stat -c 'type=%F mode=%A size=%s target=%N' 'financial-engine_v2/data'; find 'financial-engine_v2/data' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH financial-engine_v2/data
+type=directory mode=drwx------ size=4096 target='financial-engine_v2/data'
+d financial-engine_v2/data/ops
+d financial-engine_v2/data/reports
+d financial-engine_v2/data/extraction_gold_real
+d financial-engine_v2/data/asx
+d financial-engine_v2/data/cockpit
+
+$ printf 'PATH %s\n' 'financial-engine_v2/reports'; stat -c 'type=%F mode=%A size=%s target=%N' 'financial-engine_v2/reports'; find 'financial-engine_v2/reports' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH financial-engine_v2/reports
+type=directory mode=drwx------ size=4096 target='financial-engine_v2/reports'
+f financial-engine_v2/reports/change_impact_log.md
+f financial-engine_v2/reports/extraction_baseline.json
+f financial-engine_v2/reports/agent_context_digest.md
+d financial-engine_v2/reports/marketindex
+
+$ printf 'PATH %s\n' 'financial-engine_v2/data/asx'; stat -c 'type=%F mode=%A size=%s target=%N' 'financial-engine_v2/data/asx'; find 'financial-engine_v2/data/asx' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH financial-engine_v2/data/asx
+type=directory mode=drwx------ size=4096 target='financial-engine_v2/data/asx'
+d financial-engine_v2/data/asx/docs
+
+$ printf 'PATH %s\n' 'financial-engine_v2/data/asx/docs'; stat -c 'type=%F mode=%A size=%s target=%N' 'financial-engine_v2/data/asx/docs'; find 'financial-engine_v2/data/asx/docs' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH financial-engine_v2/data/asx/docs
+type=directory mode=drwx------ size=4096 target='financial-engine_v2/data/asx/docs'
+
+$ printf 'PATH %s\n' 'financial-engine_v2/data/extraction_gold_real'; stat -c 'type=%F mode=%A size=%s target=%N' 'financial-engine_v2/data/extraction_gold_real'; find 'financial-engine_v2/data/extraction_gold_real' -maxdepth 1 -mindepth 1 -printf '%y %p\n' 2>/dev/null | head -40
+PATH financial-engine_v2/data/extraction_gold_real
+type=directory mode=drwx------ size=4096 target='financial-engine_v2/data/extraction_gold_real'
+f financial-engine_v2/data/extraction_gold_real/rio_a_2024-12-31.json
+f financial-engine_v2/data/extraction_gold_real/29m_a_2025-12-31.json
+f financial-engine_v2/data/extraction_gold_real/min_h_2025-12-31.json
+f financial-engine_v2/data/extraction_gold_real/qbe_h_2025-06-30.json
+f financial-engine_v2/data/extraction_gold_real/10x_q_2025-12-31_difficult.json
+f financial-engine_v2/data/extraction_gold_real/rms_h_2025-12-31.json
+f financial-engine_v2/data/extraction_gold_real/rio_a_2023-12-31.json
+f financial-engine_v2/data/extraction_gold_real/14d_q_2021-03-31.json
+f financial-engine_v2/data/extraction_gold_real/bhp_a_2021-06-30_difficult.json
+f financial-engine_v2/data/extraction_gold_real/bhp_a_2025-06-30.json
+f financial-engine_v2/data/extraction_gold_real/gre_q_2024-12-31.json
+f financial-engine_v2/data/extraction_gold_real/tls_h_2025-12-31.json
+f financial-engine_v2/data/extraction_gold_real/a2m_h_2025-12-31.json
+f financial-engine_v2/data/extraction_gold_real/eqr_q_2025-12-31.json
+f financial-engine_v2/data/extraction_gold_real/gre_q_2025-09-30.json
+f financial-engine_v2/data/extraction_gold_real/README.md
+
+PATH financial-engine_v2/data/extraction_gold_real/pdfs
+MISSING
+
+PATH financial-engine_v2/data/news
+MISSING
+
+PATH financial-engine_v2/data/qdrant
+MISSING
+
+PATH financial-engine_v2/data/fe_qdrant
+MISSING
+
+PATH financial-engine_v2/data/fe_pgdata
+MISSING
+
+$ for f in reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/data_tier_inventory.json reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/large_docs_binding.json reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/binding_changes.json reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/copy_results.json; do if [ -f "$f" ]; then echo "--- $f"; sed -n "1,220p" "$f"; else echo "MISSING $f"; fi; done
+--- reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/data_tier_inventory.json
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "generated_at": "2026-05-17T18:45:29+1000",
+  "source_data_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+  "source_reports_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+  "target_data_root": "/mnt/nvme/tenn/financial-engine_v2/data",
+  "target_reports_root": "/mnt/nvme/tenn/financial-engine_v2/reports",
+  "inventory_snapshot": [
+    "4.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/inbox",
+    "4.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/rejected",
+    "8.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/candidates",
+    "8.0K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/contexts",
+    "12K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/approved",
+    "24K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/extracted_text",
+    "24K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library/processed",
+    "88K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library",
+    "132K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/analysis",
+    "152K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/raw",
+    "300K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/db_recovery",
+    "952K\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/importance",
+    "3.3M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/ops",
+    "8.2M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/cockpit",
+    "17M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/bundles",
+    "17M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/extraction_review",
+    "22M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/cockpit",
+    "26M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory",
+    "35M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+    "51M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real",
+    "202M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/marketplace_captures",
+    "204M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs",
+    "205M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark",
+    "252M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports",
+    "603M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex",
+    "603M\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs",
+    "152G\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx",
+    "152G\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+    "153G\t/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data"
+  ],
+  "disk": [
+    "Filesystem     Type  Size  Used Avail Use% Mounted on",
+    "/dev/nvme0n1p1 ext4  458G  367G   68G  85% /",
+    "/dev/sdc2      ext4  916G  523G  347G  61% /mnt/hdd-data"
+  ],
+  "source_sizes": {
+    "reports": "786M"
+  },
+  "target_sizes": {
+    "data": "27M",
+    "reports": "786M"
+  },
+  "top_level_classification": [
+    {
+      "name": "asx",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx",
+      "size": "152G",
+      "size_bytes": 161872852062,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "benchmark",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark",
+      "size": "205M",
+      "size_bytes": 213718234,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "cockpit",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/cockpit",
+      "size": "22M",
+      "size_bytes": 22347776,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "db_recovery",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/db_recovery",
+      "size": "300K",
+      "size_bytes": 296568,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "extraction_gold_real",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real",
+      "size": "51M",
+      "size_bytes": 53155449,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "marketindex",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex",
+      "size": "603M",
+      "size_bytes": 630363097,
+      "classification": "BIND_FROM_HDD",
+      "rationale": "large documents/PDF path families; keep on HDD and bind read-only",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "ops",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/ops",
+      "size": "3.3M",
+      "size_bytes": 3366912,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "raw",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/raw",
+      "size": "152K",
+      "size_bytes": 149401,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "reports",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports",
+      "size": "252M",
+      "size_bytes": 256698013,
+      "classification": "UNKNOWN_REQUIRES_REVIEW",
+      "rationale": "needs explicit assessment",
+      "contains_copy_candidate": false
+    },
+    {
+      "name": "resource_library",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library",
+      "size": "88K",
+      "size_bytes": 60088,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small, runtime-critical runtime directories",
+      "contains_copy_candidate": true
+    },
+    {
+      "name": "asx/importance",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/importance",
+      "size": "952K",
+      "size_bytes": 569284,
+      "classification": "COPY_TO_NVME_NOW",
+      "rationale": "small metadata subset required at runtime; excluded from large asx/docs",
+      "contains_copy_candidate": true
+    }
+  ],
+  "large_doc_bind_list": [
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+      "size": "152G",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+      "size": "35M",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs",
+      "size": "204M",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    },
+    {
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs",
+      "size": "603M",
+      "strategy": "KEEP_ON_HDD_TEMPORARILY",
+      "binding_intent": "BIND_FROM_HDD"
+    }
+  ]
+}--- reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/large_docs_binding.json
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:46:00+1000",
+  "method": "BIND_MOUNTS",
+  "reason": "Safer than symlinks for Docker/subpath access guarantees on this platform; no assumptions about symlink resolution behavior.",
+  "selected": true,
+  "fallback_considered": "symlink",
+  "fallback_reasons_rejected": [
+    "Symlink traversal consistency under bind-mounted app container was uncertain without container-level validation.",
+    "Explicit bind mounts provide deterministic read-only guarantees for large storage folders."
+  ],
+  "bound_paths": [
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/docs",
+      "container_target": "/data/asx/docs",
+      "access": "ro"
+    },
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+      "container_target": "/data/extraction_gold_real/pdfs",
+      "access": "ro"
+    },
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/benchmark/pdfs",
+      "container_target": "/data/benchmark/pdfs",
+      "access": "ro"
+    },
+    {
+      "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/marketindex/pdfs",
+      "container_target": "/data/marketindex/pdfs",
+      "access": "ro"
+    }
+  ],
+  "applied_to_services": ["backend", "worker", "gpu_worker", "fe_beat"],
+  "safety": {
+    "destructive": false,
+    "mutated_db_or_store": false,
+    "full_153g_copy_avoided": true,
+    "write_access_on_hdd_bindings": false
+  }
+}
+--- reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/binding_changes.json
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:46:20+1000",
+  "changes": [
+    {
+      "file": "scripts/start_config.env",
+      "type": "path-update",
+      "path": "ENGINE_ROOT",
+      "before": "/home/l4nd0/tenn-fast-dev-storage-v1/financial-engine_v2",
+      "after": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+      "note": "Align launcher root with this clean baseline worktree."
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "backend",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added /mnt/nvme/tenn/financial-engine_v2/reports at /reports",
+        "added HDD read-only binds for asx/docs and PDF trees",
+        "repointed workspace/reports and workspace-reports to /mnt/nvme/tenn/financial-engine_v2/reports",
+        "replaced relative workspace mount with absolute workspace path"
+      ]
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "worker",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added HDD read-only binds for asx/docs and PDF trees"
+      ]
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "gpu_worker",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added HDD read-only binds for asx/docs and PDF trees"
+      ]
+    },
+    {
+      "file": "financial-engine_v2/docker-compose.yml",
+      "type": "volume-bind-update",
+      "service": "fe_beat",
+      "changes": [
+        "./data -> /mnt/nvme/tenn/financial-engine_v2/data at /data",
+        "added HDD read-only binds for asx/docs and PDF trees"
+      ]
+    }
+  ],
+  "volumes_preserved": {
+    "postgres": "financial-engine_v2_fe_pgdata",
+    "qdrant": "financial-engine_v2_fe_qdrant"
+  },
+  "empty_volume_risk": "No compose volume rename performed; existing named volumes unchanged."
+}
+--- reports/agent_jobs/nvme_hybrid_runtime_data_binding_v1_20260517/copy_results.json
+{
+  "job_id": "nvme_hybrid_runtime_data_binding_v1_20260517",
+  "timestamp": "2026-05-17T18:45:34+1000",
+  "data_copy": {
+    "source_root": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data",
+    "target_root": "/mnt/nvme/tenn/financial-engine_v2/data",
+    "candidates": [
+      {
+        "relative_path": "ops",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/ops",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/ops",
+        "exists": true,
+        "size": "3.3M",
+        "size_bytes": 3366912,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "cockpit",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/cockpit",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/cockpit",
+        "exists": true,
+        "size": "22M",
+        "size_bytes": 22347776,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "raw",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/raw",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/raw",
+        "exists": true,
+        "size": "152K",
+        "size_bytes": 149401,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "db_recovery",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/db_recovery",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/db_recovery",
+        "exists": true,
+        "size": "300K",
+        "size_bytes": 296568,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "asx/importance",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/asx/importance",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/asx/importance",
+        "exists": true,
+        "size": "952K",
+        "size_bytes": 569284,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "resource_library",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/resource_library",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/resource_library",
+        "exists": true,
+        "size": "88K",
+        "size_bytes": 60088,
+        "copied": true,
+        "skipped": false,
+        "return_code": 0,
+        "status": "copied",
+        "error": null
+      },
+      {
+        "relative_path": "reports",
+        "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports",
+        "target": "/mnt/nvme/tenn/financial-engine_v2/data/reports",
+        "exists": true,
+        "size": "252M",
+        "size_bytes": 256698013,
+        "copied": false,
+        "skipped": false,
+        "return_code": 23,
+        "status": "copy_failed",
+        "error": "rsync: [generator] failed to set times on \"/mnt/nvme/tenn/financial-engine_v2/data/reports/.\": Operation not permitted (1)\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/analysis\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/cockpit\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [sender] send_files failed to open \"/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/router_metrics_snapshot.json\": Permission denied (13)\n\nrsync: [sender] send_files failed to open \"/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/tmpc6h17mhb.tmp\": Permission denied (13)\nrsync: [receiver] mkstemp \"/mnt/nvme/tenn/financial-engine_v2/data/reports/.runtime_embedding_model.txt.VMdwdU\" failed: Permission denied (13)\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/extraction_review\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/marketplace_captures\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync: [generator] recv_generator: mkdir \"/mnt/nvme/tenn/financial-engine_v2/data/reports/research_memory\" failed: Permission denied (13)\n*** Skipping any contents from this failed directory ***\nrsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1338) [sender=3.2.7]"
+      }
+    ]
+  },
+  "reports_copy": {
+    "source": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/reports",
+    "target": "/mnt/nvme/tenn/financial-engine_v2/reports",
+    "attempted": true,
+    "return_code": 0,
+    "stdout_tail": [
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=17/1219)",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=15/1219)",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=8/1219) ",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=6/1219)",
+      "              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1219)"
+    ],
+    "stderr_tail": [],
+    "status": "copied",
+    "error": null
+  }
+}
+$ grep -nE '(/mnt/hdd-data/home/l4nd0/tenn|/mnt/sdb2/home/l4nd0/tenn|/home/l4nd0/tenn-fast-dev-storage-v1|/home/l4nd0/tenn([^-/]|$)|/mnt/tenn-nvme2|DATA_ROOT|REPORTS_ROOT|ENGINE_ROOT|TENN_RUNTIME)' financial-engine_v2/scripts/run_local_backend.sh scripts/run_llama_server.sh scripts/start_full_stack.sh scripts/cockpit cockpit-ui/next.config.mjs financial-engine_v2/docker-compose.yml 2>/dev/null || true
+financial-engine_v2/scripts/run_local_backend.sh:121:DATA_ROOT_PRESET="$(remember_env_override DATA_ROOT)"
+financial-engine_v2/scripts/run_local_backend.sh:146:DATA_ROOT_VALUE="$(remember_env_value DATA_ROOT)"
+financial-engine_v2/scripts/run_local_backend.sh:182:if [[ "${DATA_ROOT_PRESET}" == "1" ]]; then
+financial-engine_v2/scripts/run_local_backend.sh:183:  export "DATA_ROOT=${DATA_ROOT_VALUE}"
+financial-engine_v2/scripts/run_local_backend.sh:263:export DATA_ROOT="${DATA_ROOT:-./data}"
+financial-engine_v2/scripts/run_local_backend.sh:264:export DATABASE_URL="${DATABASE_URL:-sqlite:///${DATA_ROOT}/fe_local.db}"
+financial-engine_v2/scripts/run_local_backend.sh:270:export DOCS_ROOT="${DOCS_ROOT:-${DATA_ROOT}/asx/docs}"
+financial-engine_v2/scripts/run_local_backend.sh:282:export MARKETINDEX_ANNOUNCEMENTS_FILE="${MARKETINDEX_ANNOUNCEMENTS_FILE:-${DATA_ROOT}/raw/marketindex_announcements.json}"
+financial-engine_v2/scripts/run_local_backend.sh:291:    apply_if_not_overridden DOCS_ROOT "${DATA_ROOT}/asx/docs" "${DOCS_ROOT_PRESET}"
+financial-engine_v2/scripts/run_local_backend.sh:300:    apply_if_not_overridden DOCS_ROOT "${DATA_ROOT}/asx/docs" "${DOCS_ROOT_PRESET}"
+financial-engine_v2/scripts/run_local_backend.sh:327:echo "[run_local_backend] data_root=${DATA_ROOT}"
+scripts/start_full_stack.sh:84:if [[ -z "${ENGINE_ROOT:-}" ]]; then
+scripts/start_full_stack.sh:85:  echo "ERROR: ENGINE_ROOT is empty (set in scripts/start_config.env)" >&2
+scripts/start_full_stack.sh:88:if [[ ! -d "${ENGINE_ROOT}" ]]; then
+scripts/start_full_stack.sh:89:  echo "ERROR: ENGINE_ROOT not found: ${ENGINE_ROOT}" >&2
+scripts/start_full_stack.sh:103:  COMPOSE_ENV_PATH="${ENGINE_ROOT}/${COMPOSE_ENV_PATH}"
+scripts/start_full_stack.sh:107:  EXAMPLE="${ENGINE_ROOT}/.env.example"
+scripts/start_full_stack.sh:362:  compose_network="$(basename "${ENGINE_ROOT}")_default"
+scripts/start_full_stack.sh:421:cd "${ENGINE_ROOT}"
+scripts/start_full_stack.sh:452:  compose_network="$(basename "${ENGINE_ROOT}")_default"
+scripts/cockpit:54:ENGINE_ROOT="${ENGINE_ROOT:?ENGINE_ROOT missing (scripts/start_config.env)}"
+scripts/cockpit:70:  COMPOSE_ENV_PATH="${ENGINE_ROOT}/${COMPOSE_ENV_PATH}"
+scripts/cockpit:171:    "${ENGINE_ROOT}/scripts/cockpit_web\\.py"
+scripts/cockpit:172:    "${ENGINE_ROOT}/scripts/cockpit_tui\\.py"
+scripts/cockpit:233:  if [[ -x "${ENGINE_ROOT}/.venv/bin/python" ]]; then
+scripts/cockpit:234:    echo "${ENGINE_ROOT}/.venv/bin/python"
+scripts/cockpit:408:  if (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" ps backend >/dev/null 2>&1); then
+scripts/cockpit:409:    if (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" stop backend >/dev/null 2>&1); then
+scripts/cockpit:503:  (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" down) || true
+scripts/cockpit:522:    cfg="${ENGINE_ROOT}/${cfg}"
+scripts/cockpit:535:  local launcher="${ENGINE_ROOT}/scripts/cockpit_tui.py"
+scripts/cockpit:638:    cfg="${ENGINE_ROOT}/${cfg}"
+scripts/cockpit:644:  local launcher="${ENGINE_ROOT}/scripts/cockpit_web.py"
+scripts/cockpit:663:  (cd "${ENGINE_ROOT}" && "${textual_bin}" serve --port "${port}" -c "${py} ${launcher}")
+scripts/cockpit:725:    (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" down)
+scripts/cockpit:728:    (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" ps)
+scripts/cockpit:733:      (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" logs -f "${svc}")
+scripts/cockpit:735:      (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" logs -f)
+financial-engine_v2/docker-compose.yml:58:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:59:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
+financial-engine_v2/docker-compose.yml:60:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:61:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:62:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:63:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:64:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace/reports
+financial-engine_v2/docker-compose.yml:66:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace-reports
+financial-engine_v2/docker-compose.yml:92:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:93:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:94:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:95:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:96:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:119:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:120:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:121:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:122:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:123:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+financial-engine_v2/docker-compose.yml:143:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
+financial-engine_v2/docker-compose.yml:144:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
+financial-engine_v2/docker-compose.yml:145:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro
+financial-engine_v2/docker-compose.yml:146:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs:/data/benchmark/pdfs:ro
+financial-engine_v2/docker-compose.yml:147:      - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs:/data/marketindex/pdfs:ro
+
+$ grep -nE '^(LLAMA|TENN|MODEL|PORT|HOST|CUDA|GGML|DATA|REPORT|ENGINE|OLLAMA|OPENAI)_' /home/l4nd0/.config/tenn/llama-server.env 2>/dev/null | sed -E 's/(KEY|TOKEN|SECRET|PASSWORD)=.*/\1=<redacted>/' || true
+4:LLAMA_SERVER_ROUTER_MODE=1
+5:LLAMA_SERVER_MODELS_DIR=/mnt/nvme/tenn/models
+6:LLAMA_SERVER_HOST=0.0.0.0
+7:LLAMA_SERVER_PORT=8001
+8:LLAMA_SERVER_PRESET=/home/l4nd0/.config/tenn/llamacpp-presets.ini
+11:LLAMA_SERVER_CUDA_VISIBLE_DEVICES=0
+12:LLAMA_SERVER_MMAP=0
+14:LLAMA_SERVER_MODEL=/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf
+15:LLAMA_SERVER_ALIAS=model:gpt-oss-20b
+
+$ bash -n scripts/run_llama_server.sh && echo RUN_LLAMA_BASH_N_OK || echo RUN_LLAMA_BASH_N_FAIL
+RUN_LLAMA_BASH_N_OK
+
+$ ls -l tools/llama.cpp/build-cuda/bin/llama-server /home/l4nd0/.local/bin/llama-server models/qwen2.5-14b-instruct-q4_k_m.gguf /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf 2>/dev/null || true
+lrwxrwxrwx 1 l4nd0 l4nd0         69 Apr  9 09:35 /home/l4nd0/.local/bin/llama-server -> /mnt/sdb2/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server
+-rw-rw-r-- 1 l4nd0 l4nd0 8988110976 Mar 22 13:36 /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+
+$ test -x financial-engine_v2/.venv/bin/python && financial-engine_v2/.venv/bin/python --version || echo MISSING_LOCAL_BACKEND_VENV_PYTHON
+Python 3.10.12
+
+$ test -x cockpit-ui/node_modules/.bin/next && cockpit-ui/node_modules/.bin/next --version || echo MISSING_NEXT_BINARY
+Next.js v16.2.0
+
+$ systemctl --user cat llama-cpp-qwen25.service
+# /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service
+[Unit]
+Description=llama.cpp server (router mode — Qwen3-30B-A3B default)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn-runtime
+ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+StartLimitBurst=3
+StartLimitIntervalSec=120
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target
+
+$ systemctl --user cat llama-cpp-router.service
+# /home/l4nd0/.config/systemd/user/llama-cpp-router.service
+[Unit]
+Description=llama.cpp server (router mode)
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/home/l4nd0/tenn-runtime
+StartLimitBurst=3
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/tenn/llama-server.env
+WorkingDirectory=/home/l4nd0/tenn-runtime
+ExecStart=/home/l4nd0/tenn-runtime/scripts/run_llama_server.sh
+Restart=on-failure
+RestartSec=15
+MemoryMax=12G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=default.target

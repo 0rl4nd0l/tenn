@@ -1,0 +1,22 @@
+TARGET=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+TARGET_BRANCH=migration/clean-runtime-baseline-reconstruct-v1
+TARGET_HEAD=a99c1762bb72
+QWEN_ACTIVE=inactive
+ROUTER_ACTIVE=inactive
+
+$ ln -s /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 /home/l4nd0/tenn-runtime
+
+$ readlink -f /home/l4nd0/tenn-runtime
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+
+$ cp /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/systemd_backups/llama-cpp-qwen25.service.before
+
+$ cp /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service.bak.20260518T215550+1000
+Edited stale path references in llama-cpp-qwen25.service
+
+$ cp /home/l4nd0/.config/systemd/user/llama-cpp-router.service reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/systemd_backups/llama-cpp-router.service.before
+
+$ cp /home/l4nd0/.config/systemd/user/llama-cpp-router.service /home/l4nd0/.config/systemd/user/llama-cpp-router.service.bak.20260518T215550+1000
+Edited stale path references in llama-cpp-router.service
+
+$ systemctl --user daemon-reload

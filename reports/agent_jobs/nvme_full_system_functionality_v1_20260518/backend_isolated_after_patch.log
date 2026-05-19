@@ -1,0 +1,33 @@
+TENN STORAGE WARN: NVMe path /mnt/nvme is not a separate filesystem mount (/mnt/nvme is on the same filesystem as /mnt (not mounted — often an empty directory on root FS after reboot). Mount the data volume on /mnt/nvme (see /etc/fstab).) — typical when the whole system lives on one NVMe partition. Runtime layout is present (models/ or runtime-data/); continuing. If you later add a dedicated NVMe volume, mount it at /mnt/nvme for isolation.
+TENN STORAGE GUARD: OK (critical mounts and paths present).
+[run_local_backend] profile=isolated
+[run_local_backend] data_root=/mnt/tenn-nvme2/tenn/financial-engine_v2/data
+[run_local_backend] database=sqlite:////tmp/financial-engine_v2-fe_local_runtime.db
+[run_local_backend] docs_root=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+[run_local_backend] task_mode=sync
+[run_local_backend] embeddings=false qdrant=false extraction=false
+[startup] LLAMACPP_URL=http://127.0.0.1:8001
+[startup] EXTRACTION_LLAMACPP_URL=<unset, using router mode on LLAMACPP_URL>
+[startup] OLLAMA_URL=http://127.0.0.1:11434
+[startup] EMBEDDING_URL=<unset, falls back to OLLAMA_URL>
+[startup] OLLAMA_NUM_GPU=<unset>
+[startup] COCKPIT_STATE_DB=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/cockpit/state.db
+[startup] MARKETPLACE_BROWSER_RUNTIME=direct
+[startup] MARKETPLACE_BROWSER_PROFILE_DIR=/home/l4nd0/.tenn/browser_profiles/facebook-marketplace-chrome
+[startup] MARKETPLACE_BROWSER_XDG_RUNTIME_DIR=/tmp/tenn-marketplace-runtime-1000
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_override" in RealGoldEvalRequest has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+INFO:     Started server process [893021]
+INFO:     Waiting for application startup.
+WARNING: embeddings disabled - RAG functionality will be limited
+WARNING: extraction disabled - ingestion outputs will be limited
+backend.session_memory: OpenViking init failed — running stateless. Root cause: ModuleNotFoundError: No module named 'openviking'
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:43358 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [893021]

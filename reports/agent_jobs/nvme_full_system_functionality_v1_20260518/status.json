@@ -1,0 +1,39 @@
+{
+  "job_id": "nvme_full_system_functionality_v1_20260518",
+  "verdict": "IMPLEMENTED_AND_VALIDATED",
+  "goal_complete": true,
+  "completion_audit_artifact": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/completion_audit_checklist.md",
+  "latest_audit_artifact": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/final_completion_audit_current_state.txt",
+  "runtime_root": "/home/l4nd0/tenn-runtime",
+  "runtime_root_resolved": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "data_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+  "reports_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+  "models_root": "/mnt/tenn-nvme2/tenn/models",
+  "verifier_result": "NVME_RUNTIME_ENDPOINTS_OK=1",
+  "optional_compatibility_aliases": {
+    "/data": "absent; optional; helper available",
+    "/reports": "absent; optional; helper available"
+  },
+  "validated": {
+    "runtime_root_nvme": true,
+    "home_tenn_not_repointed": true,
+    "nvme2_data_populated": true,
+    "nvme2_reports_populated": true,
+    "nvme2_models_populated": true,
+    "active_host_runtime_defaults_nvme2": true,
+    "docker_container_data_report_mounts_nvme2": true,
+    "backend_health_smoke": true,
+    "frontend_http_smoke": true,
+    "route_parity_contract": "2 passed, 5 warnings",
+    "route_scoped_backend": "28 passed, 5 warnings",
+    "router_models_nvme2": true,
+    "task_contract_validate": true,
+    "task_contract_check_diff": true,
+    "bash_syntax_runtime_scripts": true,
+    "python_syntax_touched_scripts": true,
+    "git_diff_check": true,
+    "services_left_running": false,
+    "registry_active_jobs_empty": true
+  },
+  "updated_at": "2026-05-18T22:47:23+10:00"
+}

@@ -1,0 +1,33 @@
+TENN STORAGE WARN: NVMe path /mnt/nvme is not a separate filesystem mount (/mnt/nvme is on the same filesystem as /mnt (not mounted — often an empty directory on root FS after reboot). Mount the data volume on /mnt/nvme (see /etc/fstab).) — typical when the whole system lives on one NVMe partition. Runtime layout is present (models/ or runtime-data/); continuing. If you later add a dedicated NVMe volume, mount it at /mnt/nvme for isolation.
+TENN STORAGE GUARD: OK (critical mounts and paths present).
+python not found in PATH
+Activate your chosen venv first, then rerun this script.
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused

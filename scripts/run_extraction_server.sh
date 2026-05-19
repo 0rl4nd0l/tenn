@@ -61,7 +61,7 @@ fi
 # Defaults — override via env or ~/.config/tenn/llama-server.env
 HOST="${EXTRACTION_SERVER_HOST:-127.0.0.1}"
 PORT="${EXTRACTION_SERVER_PORT:-8002}"
-DEFAULT_MODEL_PATH="/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+DEFAULT_MODEL_PATH="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
 MODEL_PATH="${EXTRACTION_SERVER_MODEL:-${DEFAULT_MODEL_PATH}}"
 MODEL_ALIAS="${EXTRACTION_SERVER_ALIAS:-qwen2.5-14b-instruct}"
 API_KEY="${LLAMA_SERVER_API_KEY:-${LLM_API_KEY:-local-openai-key}}"

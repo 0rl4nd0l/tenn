@@ -1,0 +1,6 @@
+ M financial-engine_v2/scripts/run_local_backend.sh
+ M scripts/run_llama_server.sh
+ M scripts/start_config.env
+?? docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+?? scripts/setup_nvme2_host_aliases.sh

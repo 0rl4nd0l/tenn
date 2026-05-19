@@ -1,0 +1,11 @@
+$ model copy preflight
+22016023168 /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf
+17293089248 /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf
+8988110976 /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+671 /mnt/nvme/tenn/models/README.md
+45G	/mnt/nvme/tenn/models
+4.0K	/mnt/tenn-nvme2/tenn/models
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme1n1p1  1.9T  153G  1.6T   9% /mnt/tenn-nvme2
+inactive
+inactive

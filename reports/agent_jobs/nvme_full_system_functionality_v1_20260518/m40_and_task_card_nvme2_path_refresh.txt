@@ -1,0 +1,134 @@
+### m40_and_task_card_nvme2_path_refresh
+2026-05-18T22:46:17+10:00
+## m40 model refs
+scripts/runtime/m40_llama_router_8001_conservative.sh:18:MODEL="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh:17:MODEL="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+## task explicit additions
+39:  - scripts/runtime/m40_llama_router_8001_conservative.sh
+40:  - scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh
+41:  - scripts/test_run_local_backend_script.py
+42:  - scripts/test_cockpit_launcher_helpers.py
+43:  - scripts/run_ticker_expansion_batch.py
+44:  - financial-engine_v2/scripts/run_batch_extract.py
+45:  - financial-engine_v2/scripts/monitor_extraction.py
+## syntax checks
+## contract check-diff
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/scripts/monitor_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/run_batch_extract.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/run_local_backend.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_extraction_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_llama_server.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/run_ticker_expansion_batch.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/runtime/m40_llama_router_8001_conservative.sh",
+      "status": "M"
+    },
+    {
+      "path": "scripts/start_config.env",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_cockpit_launcher_helpers.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_run_local_backend_script.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "status": "??"
+    },
+    {
+      "path": "scripts/setup_nvme2_host_aliases.sh",
+      "status": "??"
+    },
+    {
+      "path": "scripts/verify_nvme_runtime_endpoints.sh",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md",
+        "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/**",
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/**",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "financial-engine_v2/scripts/run_local_backend.sh",
+        "financial-engine_v2/backend/app/**",
+        "financial-engine_v2/backend/tests/**",
+        "cockpit-ui/README.md",
+        "cockpit-ui/next.config.mjs",
+        "cockpit-ui/package.json",
+        "cockpit-ui/pnpm-lock.yaml",
+        "scripts/**",
+        "scripts/run_llama_server.sh",
+        "scripts/run_extraction_server.sh",
+        "scripts/start_config.env",
+        "scripts/setup_nvme2_host_aliases.sh",
+        "scripts/verify_nvme_runtime_endpoints.sh",
+        "scripts/runtime/m40_llama_router_8001_conservative.sh",
+        "scripts/runtime/m40_known_good_llama_server_qwen25_14b.sh",
+        "scripts/test_run_local_backend_script.py",
+        "scripts/test_cockpit_launcher_helpers.py",
+        "scripts/run_ticker_expansion_batch.py",
+        "financial-engine_v2/scripts/run_batch_extract.py",
+        "financial-engine_v2/scripts/monitor_extraction.py"
+      ],
+      "approval_required": false,
+      "job_id": "nvme_full_system_functionality_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": true
+  }
+}

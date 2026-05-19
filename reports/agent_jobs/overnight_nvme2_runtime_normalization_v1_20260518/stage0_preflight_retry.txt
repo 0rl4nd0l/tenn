@@ -1,0 +1,335 @@
+
+$ pwd
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+
+$ git branch --show-current
+migration/clean-runtime-baseline-reconstruct-v1
+
+$ git rev-parse --short=12 HEAD
+a99c1762bb72
+
+$ git status --short --untracked-files=all
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+
+Unexpected dirty entries after task/report allowance:
+NONE
+
+$ git worktree list
+/mnt/hdd-data/home/l4nd0/tenn                                                                      c102f3f2 [preserve/dirty-work-20260430T065748Z]
+/home/l4nd0/CLAUDEMAESTRO1                                                                         f52a7ef9 [CLAUDEMAESTRO1] prunable
+/home/l4nd0/Maestro1                                                                               79d325f5 [Maestro1] prunable
+/home/l4nd0/tenn-appendix5b-10x-approved-gate-v1-20260517                                          970779b4 [safe/appendix5b-10x-approved-gate-v1-20260517]
+/home/l4nd0/tenn-appendix5b-10x-candidate-artifact-v1-20260517                                     7f7ada15 [safe/appendix5b-10x-candidate-artifact-v1-20260517]
+/home/l4nd0/tenn-appendix5b-10x-no-regression-suite-v1-20260517                                    ae2dfd81 [safe/appendix5b-10x-no-regression-suite-v1-20260517]
+/home/l4nd0/tenn-appendix5b-alt-gre-pdf-run-v1-20260516                                            370583e4 [safe/appendix5b-alt-gre-pdf-run-v1-20260516]
+/home/l4nd0/tenn-appendix5b-broader-corpus-gate-v1-20260516                                        f4332173 [safe/appendix5b-broader-corpus-gate-v1-20260516]
+/home/l4nd0/tenn-appendix5b-candidate-artifact-runner-v1-20260516                                  6411ccb5 [safe/appendix5b-candidate-artifact-runner-v1-20260516]
+/home/l4nd0/tenn-appendix5b-candidate-scorer-v1-20260516                                           9996010f [safe/appendix5b-candidate-scorer-v1-20260516]
+/home/l4nd0/tenn-appendix5b-cash-end-line-preference-v1-20260516                                   3c5e21d5 [safe/appendix5b-cash-end-line-preference-v1-20260516]
+/home/l4nd0/tenn-appendix5b-confirmed-fixture-artifacts-v1-20260516                                f2387eac [safe/appendix5b-confirmed-fixture-artifacts-v1-20260516]
+/home/l4nd0/tenn-appendix5b-confirmed-label-importer-v1-20260516                                   4123b4d8 [safe/appendix5b-confirmed-label-importer-v1-20260516]
+/home/l4nd0/tenn-appendix5b-deterministic-parser-v1-20260516                                       8991cbfd [safe/appendix5b-deterministic-parser-v1-20260516]
+/home/l4nd0/tenn-appendix5b-expanded-gate-after-reconciliation-v1-20260517                         86d9a50e [safe/appendix5b-expanded-gate-after-reconciliation-v1-20260517]
+/home/l4nd0/tenn-appendix5b-full-gold-folder-harvest-v1-20260517                                   6b9ee98f [safe/appendix5b-full-gold-folder-harvest-v1-20260517]
+/home/l4nd0/tenn-appendix5b-gold-folder-label-expansion-v1-20260516                                accae277 [safe/appendix5b-gold-folder-label-expansion-v1-20260516]
+/home/l4nd0/tenn-appendix5b-gre-sep-investing-cf-fix-v1-20260517                                   ca00e214 [safe/appendix5b-gre-sep-investing-cf-fix-v1-20260517]
+/home/l4nd0/tenn-appendix5b-label-review-packet-v1-20260516                                        e850ff87 [safe/appendix5b-label-review-packet-v1-20260516]
+/home/l4nd0/tenn-appendix5b-parser-current-v1-20260516                                             5f9f0ede [integrate/appendix5b-parser-current-v1-20260516]
+/home/l4nd0/tenn-appendix5b-real-docling-run-v1-20260516                                           69745dc5 [safe/appendix5b-real-docling-run-v1-20260516]
+/home/l4nd0/tenn-appendix5b-real-table-manifest-v1-20260516                                        03f6e11d [safe/appendix5b-real-table-manifest-v1-20260516]
+/home/l4nd0/tenn-appendix5b-recurring-gate-integration-v1-20260517                                 5d08ee34 [safe/appendix5b-recurring-gate-integration-v1-20260517]
+/home/l4nd0/tenn-appendix5b-scale-header-propagation-v1-20260516                                   4bff6cdc [safe/appendix5b-scale-header-propagation-v1-20260516]
+/home/l4nd0/tenn-appendix5b-supplemental-review-packet-v1-20260517                                 24c14b0f [safe/appendix5b-supplemental-review-packet-v1-20260517]
+/home/l4nd0/tenn-backend-companies-model-import-integration-v1-20260516                            a7549aa2 [safe/backend-companies-model-import-integration-v1-20260516]
+/home/l4nd0/tenn-backend-models-companies-import-validity-v1-20260513                              2cc0f718 [codex/backend-models-companies-import-validity-v1-20260513]
+/home/l4nd0/tenn-cockpit-attached-source-handoff-preserve-candidate-v1-20260516                    972eeb11 [safe/cockpit-attached-source-handoff-preserve-candidate-v1-20260516]
+/home/l4nd0/tenn-cockpit-attached-source-handoff-v1-20260516                                       ea9b1b5e [safe/cockpit-attached-source-handoff-v1-20260516]
+/home/l4nd0/tenn-cockpit-current-news-missing-discipline-v1-20260517                               155141f6 [safe/cockpit-current-news-missing-discipline-v1-20260517]
+/home/l4nd0/tenn-cockpit-referent-missing-source-guard-v1-20260517                                 8bc223b8 [safe/cockpit-referent-missing-source-guard-v1-20260517]
+/home/l4nd0/tenn-cockpit-source-grounding-semantics-v1-20260517                                    c3adb8af [safe/cockpit-source-grounding-semantics-v1-20260517]
+/home/l4nd0/tenn-cockpit-tool-source-trace-recall-v1-20260517                                      1ec0ed9a [safe/cockpit-tool-source-trace-recall-v1-20260517]
+/home/l4nd0/tenn-codex-automations-v1-20260516                                                     31d5c80b [safe/codex-automated-audit-runners-v1-20260516]
+/home/l4nd0/tenn-docling-native-crash-runtime-probe-v1-20260516                                    1ac0c47e [safe/docling-native-crash-runtime-probe-v1-20260516]
+/home/l4nd0/tenn-docling-page-batch-batch-eval-v1-20260516                                         ed402657 [safe/docling-page-batch-batch-eval-v1-20260516]
+/home/l4nd0/tenn-docling-page-batch-comparator-v1-20260516                                         47336a0e [safe/docling-page-batch-comparator-v1-20260516]
+/home/l4nd0/tenn-extraction-architecture-map-v1-20260516                                           9aeaf6a3 [safe/extraction-architecture-map-v1-20260516]
+/home/l4nd0/tenn-extraction-runtime-mode-selector-integration-v1-20260516                          1fe8a030 [safe/extraction-runtime-mode-selector-integration-v1-20260516]
+/home/l4nd0/tenn-fast-dev-storage-v1                                                               6c6748fe [migration/clean-runtime-baseline-20260517]
+/home/l4nd0/tenn-gold-folder-confirmed-source-audit-v1-20260516                                    d88fd9c0 [safe/gold-folder-confirmed-source-audit-v1-20260516]
+/home/l4nd0/tenn-gold-metric-coverage-audit-v1-20260516                                            7182e2f8 [safe/gold-metric-coverage-audit-v1-20260516]
+/home/l4nd0/tenn-m40-8001-validation-v1                                                            6111b8fd [work/m40-8001-validation-v1-20260517]
+/home/l4nd0/tenn-memory-ambiguous-linked-ticker-identity-v1-20260516                               b4db78dd [safe/memory-ambiguous-linked-ticker-identity-v1-20260516]
+/home/l4nd0/tenn-memory-anthropic-answer-path-smoke-v1-20260516                                    110c3939 [safe/memory-anthropic-answer-path-smoke-v1-20260516]
+/home/l4nd0/tenn-memory-chat-company-context-routing-nvme-v1-20260517                              d082a603 [integrate/memory-chat-company-context-routing-nvme-v1-20260517]
+/home/l4nd0/tenn-memory-chat-company-context-routing-v1-20260517                                   dc3cd6b1 [safe/memory-chat-company-context-routing-v1-20260517]
+/home/l4nd0/tenn-memory-cleanup-batch5-approved-200-20260514                                       fe4c940d [safe/memory-interticker-cleanup-batch5-approved-200-20260514]
+/home/l4nd0/tenn-memory-cleanup-batch6-approved-163-20260514                                       ea535056 [safe/memory-interticker-cleanup-batch6-approved-163-20260514]
+/home/l4nd0/tenn-memory-companies-signal-routing-stack-v1-20260516                                 b4d530c2 [integrate/memory-companies-signal-routing-stack-v1-20260516]
+/home/l4nd0/tenn-memory-integrity-audit-guard-v1-20260516                                          69168518 [safe/memory-integrity-audit-guard-v1-20260516]
+/home/l4nd0/tenn-memory-integrity-validation-company-v1-20260516                                   d3cbf8ab [safe/memory-integrity-validation-company-v1-20260516]
+/home/l4nd0/tenn-memory-integrity-validation-gate-v1-20260516                                      9999ff45 [safe/memory-integrity-validation-gate-v1-20260516]
+/home/l4nd0/tenn-memory-live-context-root-resolution-nvme-v1-20260516                              f6153625 [safe/memory-live-context-root-resolution-nvme-v1-20260516]
+/home/l4nd0/tenn-memory-live-context-root-resolution-v1-20260516                                   b0f26d67 [safe/memory-live-context-root-resolution-v1-20260516]
+/home/l4nd0/tenn-memory-live-integration-v1-20260516                                               5cb71fe5 [integration/memory-contamination-root-cause-v1-20260516]
+/home/l4nd0/tenn-memory-live-row-audit-v1-20260516                                                 79c54640 [audit/memory-live-row-audit-v1-20260516]
+/home/l4nd0/tenn-memory-market-be-linked-ticker-cleanup-v1-20260516                                09789991 [safe/memory-market-be-linked-ticker-cleanup-v1-20260516]
+/home/l4nd0/tenn-memory-market-linked-ticker-canonical-reconcile-v1-20260516                       ed6d8cd6 [audit/memory-market-linked-ticker-canonical-reconcile-v1-20260516]
+/home/l4nd0/tenn-memory-market-linked-ticker-cleanup-v1-20260516                                   e1e79ff6 [safe/memory-market-linked-ticker-cleanup-v1-20260516]
+/home/l4nd0/tenn-memory-market-unsupported-linked-ticker-cleanup-v1-20260516                       b45f494f [safe/memory-market-unsupported-linked-ticker-cleanup-v1-20260516]
+/home/l4nd0/tenn-memory-memo-signal-routing-remedy-v1-20260516                                     88790507 [safe/memory-memo-signal-routing-remedy-v1-20260516]
+/home/l4nd0/tenn-memory-news-memo-signal-routing-fixture-integration-v1-20260516                   3f5a0e43 [safe/memory-news-memo-signal-routing-fixture-integration-v1-20260516]
+/home/l4nd0/tenn-memory-nvme-fastdev-context-root-v1-20260517                                      f22a9ae8 [integrate/memory-nvme-fastdev-context-root-v1-20260517]
+/home/l4nd0/tenn-memory-remaining-write-paths-v1-20260516                                          c106852a [safe/memory-remaining-write-paths-v1-20260516]
+/home/l4nd0/tenn-memory-research-root-host-data-preference-v1-20260516                             d0e0571f [safe/memory-research-root-host-data-preference-v1-20260516]
+/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v1-20260516                       fc345ed6 [safe/memory-runtime-path-status-preserve-integration-v1-20260516]
+/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v2-20260516                       d4b4bc1c [safe/memory-runtime-path-status-preserve-integration-v2-20260516]
+/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v3-20260516                       0524e9a8 [safe/memory-runtime-path-status-preserve-integration-v3-20260516]
+/home/l4nd0/tenn-memory-runtime-path-status-v1-20260516                                            7e3a3ff1 [safe/memory-runtime-path-status-v1-20260516]
+/home/l4nd0/tenn-memory-stale-fallback-research-memory-quarantine-v1-20260516                      ccbe4790 [safe/memory-stale-fallback-research-memory-quarantine-v1-20260516]
+/home/l4nd0/tenn-memory-validation-gate-isolation-v1-20260516                                      80f71c50 [safe/memory-validation-gate-isolation-v1-20260516]
+/home/l4nd0/tenn-news-downstream-sync-fallback-repair-v1-20260515                                  9eae8791 [safe/news-downstream-sync-fallback-repair-v1-20260515]
+/home/l4nd0/tenn-news-loader-ollama-url-hardening-v1-20260515                                      a1802c75 [safe/news-loader-ollama-url-hardening-v1-20260515]
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1                                                a99c1762 [migration/clean-runtime-baseline-reconstruct-v1]
+/home/l4nd0/tenn-nvme-live-preserve-20260516                                                       b0f26d67 [runtime/nvme-live-preserve-20260516]
+/home/l4nd0/tenn-overview-news-commentary-approval-v1-20260516                                     5551d28a [codex/overview-news-commentary-approval-v1-20260516]
+/home/l4nd0/tenn-process-document-rag-guardrails-audit-v1-20260514                                 1a7e2ae6 [audit/process-document-rag-guardrails-v1-20260514]
+/home/l4nd0/tenn-process-document-rag-guardrails-fixture-fix-v1-20260515                           5037f385 [safe/process-document-rag-guardrails-fixture-fix-v1-20260515]
+/home/l4nd0/tenn-query-eval-integration-readiness-v1-20260516                                      20079a01 [audit/query-eval-integration-readiness-v1-20260516]
+/home/l4nd0/tenn-query-legacy-chat-envelope-current-readiness-v1-20260516                          0524e9a8 [audit/query-legacy-chat-envelope-current-readiness-v1-20260516]
+/home/l4nd0/tenn-query-news-loader-ollama-hardening-integration-v1-20260516                        90c60755 [safe/query-news-loader-ollama-hardening-integration-v1-20260516]
+/home/l4nd0/tenn-rented-gpu-runtime-port-v1-20260514                                               5da86ab3 [safe/rented-gpu-runtime-port-v1-20260514]
+/home/l4nd0/tenn-smoke-sync-mode-gate-v1-20260516                                                  3944aafb [safe/smoke-sync-mode-gate-v1-20260516]
+/home/l4nd0/tenn-smoke-sync-mode-gate-v2-20260516                                                  08fa2402 [safe/smoke-sync-mode-gate-v2-20260516]
+/home/l4nd0/tenn-unattended-safe-batch-v1-20260514                                                 03f794d2 [audit/unattended-safe-batch-v1-20260514]
+/home/l4nd0/tenn-youtube-transcript-ie-20260516                                                    355ae4d5 [codex/youtube-transcript-ie-20260516]
+/mnt/hdd-data/home/l4nd0/tenn-agent-control-live-data-maintenance-contract-20260513                42695aa8 [codex/agent-control-live-data-maintenance-contract-v1-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-cockpit-home-news-snapshot-c0549d7-source-integration                d2cb42de [codex/cockpit-home-news-snapshot-c0549d7-source-integration-20260512]
+/mnt/hdd-data/home/l4nd0/tenn-cockpit-ui-test-drift-20260513                                       842bd2a6 [codex/cockpit-ui-test-drift-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-embedding-sqlite-invariant-contract-fix-v1-20260513                  cc73f66d [codex/embedding-sqlite-invariant-contract-fix-v1-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-extraction-runtime-mode-selector-20260516                            8aaaf324 [codex/extraction-runtime-mode-selector-20260516]
+/mnt/hdd-data/home/l4nd0/tenn-home-frontend-wiring-v1-20260513                                     c67ddece [codex/home-frontend-wiring-v1-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-home-wiring-target-route-dedupe-20260516                             3af92d50 [codex/home-wiring-target-route-dedupe-20260516]
+/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch3-20260513                                       4cc702ca [safe/memory-interticker-cleanup-batch3-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch3-approved-20260513                              ed0623b8 [safe/memory-interticker-cleanup-batch3-approved-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch4-approved-20260513                              62fbaf35 [safe/memory-interticker-cleanup-batch4-approved-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch5-approved-200-20260513                          5a119f03 [safe/memory-interticker-cleanup-batch5-approved-200-20260513]
+/mnt/hdd-data/home/l4nd0/tenn-memory-contamination-root-cause-v1-20260516                          5cb71fe5 [audit/memory-contamination-root-cause-v1-20260516]
+/mnt/sdb2/home/l4nd0/tenn-ab-isolation-20260421                                                    ae86d6a8 [audit/ab-isolation-real-gold-cap-timeout]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-auth-design-before-chatgpt-20260507                            e387e9c6 [audit/tenn-agent-mcp-auth-design-before-chatgpt-20260507]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-connector-dry-run-plan-20260507                                dd903ca5 [audit/tenn-agent-mcp-connector-dry-run-plan-20260507]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-http-adapter-v0-20260507                                       e387e9c6 [safe/tenn-agent-mcp-http-adapter-v0-20260507]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-smoke-20260507                                     dd903ca5 [audit/tenn-agent-mcp-oauth-local-smoke-20260507]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-v1-20260507                                        dd903ca5 [safe/tenn-agent-mcp-oauth-local-v1-20260507]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-audit-scaffold-20260507                                     9911b9d0 [safe/tenn-agent-mcp-v0-audit-scaffold-20260507]
+/mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-clean-integration-20260507                                  dfd3014f [safe/tenn-agent-mcp-v0-clean-integration-20260507]
+/mnt/sdb2/home/l4nd0/tenn-backend-import-validity-companies-model-v1                               19763997 [codex/backend-import-validity-companies-model-v1]
+/mnt/sdb2/home/l4nd0/tenn-bounded-closure                                                          850d4523 [bounded/contract-closure-chat-provenance]
+/mnt/sdb2/home/l4nd0/tenn-canonical10-import                                                       5405802b [repair/canonical10-import-valid]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-audit-v1                                                4f9736ce [audit/cockpit-home-backend-bff-contract-v1]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-route-integrate                                         53b60a71 [integrate/cockpit-home-bff-route-v1]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-route-v1                                                c00ee6b3 [safe/cockpit-home-bff-route-v1]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-integration-final                                      3d49c9d2 [integrate/cockpit-home-live-wiring-and-sidebar-fix]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1                                              bae8b8fe [safe/cockpit-home-live-wiring-v1]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508                                       c0549d75 [integrate/cockpit-home-news-snapshot-v1-20260508]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508                                   c0549d75 [codex/cockpit-home-news-snapshot-v1-20260508]
+/mnt/sdb2/home/l4nd0/tenn-cockpit-shell-sidebar-nested-button-fix-v1                               b573e0d2 [codex/cockpit-shell-sidebar-nested-button-fix-v1]
+/mnt/sdb2/home/l4nd0/tenn-codex-anthropic-routing                                                  dfdb41ca [codex/anthropic-extraction-routing]
+/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c1-extraction-quality-gap-audit              29ec35d3 [cloud/c1-extraction-quality-gap-audit-20260421-122136]
+/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c2-cockpit-routing-regression-tests          de8aaa23 [cloud/c2-cockpit-routing-regression-tests-20260421-122136]
+/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c3-extraction-truth-real-gold-eval           65eda921 [cloud/c3-extraction-truth-real-gold-eval-20260421-122136]
+/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c4-system-contract-conformance-matrix        088f6e64 [cloud/c4-system-contract-conformance-matrix-20260421-122136]
+/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c5-multipass-extraction-performance-profile  9919e49a [cloud/c5-multipass-extraction-performance-profile-20260421-122136]
+/mnt/sdb2/home/l4nd0/tenn-codex-youtube-selection-20260504                                         c64dcbc3 [fix/codex-youtube-selection-auto-20260504]
+/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421                                            49a5d34a [audit/eval-instrumentation-bounded-20260421]
+/mnt/sdb2/home/l4nd0/tenn-g006-legacy-api-chat-audit                                               9defaed5 [audit/query-legacy-api-chat-taxonomy-v1]
+/mnt/sdb2/home/l4nd0/tenn-holdings-intent-routing-v1                                               b7807cac [feature/holdings-intent-routing-v1]
+/mnt/sdb2/home/l4nd0/tenn-holdings-intent-routing-v1-integration-review                            94c1f88c [integration/holdings-intent-routing-v1-review]
+/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-compat-v1                                           9fc3d158 [safe/query-legacy-chat-envelope-compat-v1]
+/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-integrate                                           bcdb57dc [integrate/query-legacy-chat-envelope-compat-v1]
+/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-merge-v1                                            d86321f7 [integrate/query-legacy-chat-envelope-merge-into-preserve-v1]
+/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-refresh-candidate-v1                                487edc1a [integrate/query-legacy-chat-envelope-refresh-candidate-v1]
+/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-refresh-candidate-v2                                0423e033 [integrate/query-legacy-chat-envelope-refresh-candidate-v2]
+/mnt/sdb2/home/l4nd0/tenn-main-reconcile                                                           2944b117 [main]
+/mnt/sdb2/home/l4nd0/tenn-marketplace-integration-20260430                                         e20017b1 [integrate/marketplace-from-baseline-20260430]
+/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-contract-v1                                    a8062e65 [safe/marketplace-match-recency-contract-v1]
+/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-ui-v1                                          9b4c0b76 [safe/marketplace-match-recency-ui-v1]
+/mnt/sdb2/home/l4nd0/tenn-marketplace-recency-current-target-v1                                    047c7b66 [integrate/marketplace-recency-current-target-v1]
+/mnt/sdb2/home/l4nd0/tenn-marketplace-recency-integration-v1                                       e1fe995a [integrate/marketplace-recency-integration-v1]
+/mnt/sdb2/home/l4nd0/tenn-marketplace-scanner-instrumentation-v1                                   17ca8e37 [safe/marketplace-scanner-instrumentation-v1]
+/mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-integration-v1                   3dda92a4 [codex/news-memo-env-gated-fallback-provenance-integration-v1]
+/mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-v1                               ebae6133 [codex/news-memo-env-gated-fallback-provenance-v1]
+/mnt/sdb2/home/l4nd0/tenn-news-memo-signal-routing-candidate-fixture-v1                            0e5e7df9 [codex/news-memo-signal-routing-candidate-fixture-v1]
+/mnt/sdb2/home/l4nd0/tenn-preserve-chat-source-label-integrate                                     77ce4600 [integrate/preserve-chat-envelope-source-label-20260506]
+/mnt/sdb2/home/l4nd0/tenn-shared-router-strict-eval-gate-v1                                        570ea570 [codex/shared-router-strict-eval-acceptance-gate-v1]
+/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate                                           4f9736ce [codex/source-label-998d68e-clean-integration-20260506]
+/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate-retry                                     52f2b755 [codex/source-label-998d68e-clean-integration-retry-20260506]
+/mnt/sdb2/home/l4nd0/tenn-source-label-equivalence-audit                                           998d68ee [work/source-label-equivalence-audit]
+/mnt/sdb2/home/l4nd0/tenn-source-label-v1a                                                         5034e477 [work/source-label-v1a]
+/mnt/sdb2/home/l4nd0/tenn-source-page-viewer-import-repair-integration-v1                          b72596a6 [codex/source-page-viewer-import-repair-integration-v1]
+/mnt/sdb2/home/l4nd0/tenn-stabilization-baseline-20260430T065748Z                                  5d6ed585 [stabilize/integration-baseline-20260430T065748Z]
+/tmp/tenn-api-billing-notice                                                                       b85e896e (detached HEAD) prunable
+/tmp/tenn-baseline-944fd43                                                                         944fd43e (detached HEAD) prunable
+/tmp/tenn-cockpit-attached-source-runtime-20260516                                                 87650b08 [smoke/cockpit-attached-source-runtime-20260516] prunable
+/tmp/tenn-metric-coverage-provenance                                                               26434264 (detached HEAD) prunable
+/tmp/tenn-metric-coverage-provenance-import-valid                                                  d177c430 [codex/metric-coverage-provenance-import-valid-20260506] prunable
+/tmp/tenn-source-page-viewer-default-integration-v1                                                ce0692a6 [codex/verification-source-page-viewer-default-integration-v1] prunable
+/tmp/tenn-source-viewer-import-valid                                                               5b00fa5f [integration/verification-source-page-viewer-import-valid-v1] prunable
+/tmp/tenn-verification-clickthrough                                                                a2451226 [codex/verification-clickthrough-v1] prunable
+
+$ git log --oneline -8
+a99c1762 milestone(evaluation): restore backend pytest route parity validation
+03d1fa42 test(evaluation): lock nvme2 route parity expectations
+f870999a milestone(evaluation): switch runtime binding to nvme2 data
+52f1aba4 milestone(evaluation): checkpoint hybrid runtime data binding
+28b6bb71 chore(evaluation): checkpoint nvme data binding audit artifacts
+fc1d077b milestone(evaluation): reconstruct partial nvme baseline integration
+24db7843 milestone(memory): gate memory integrity validation
+6c6748fe Revert "milestone(memory): isolate memory validation gate"
+
+$ python3 scripts/agent_job_contract.py validate docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+{
+  "issues": [
+    {
+      "field": "output_dir",
+      "message": "required field is missing"
+    }
+  ],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+      "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "financial-engine_v2/README.md",
+      "financial-engine_v2/backend/README.md",
+      "cockpit-ui/README.md",
+      "financial-engine_v2/docker-compose.yml",
+      "financial-engine_v2/docker-compose*.yml",
+      "financial-engine_v2/.env.example",
+      "financial-engine_v2/scripts/**",
+      "scripts/**"
+    ],
+    "approval_required": false,
+    "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+    "lane": "Reporting",
+    "mutation_mode": "safe_extension",
+    "owner": "Codex",
+    "production_data_access": false,
+    "timeout_seconds": 28800
+  },
+  "ok": false
+}
+
+$ python3 scripts/agent_job_registry.py list-active
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "issues": [
+    {
+      "field": "output_dir",
+      "message": "required field is missing"
+    }
+  ],
+  "ok": false,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "validation": {
+    "issues": [
+      {
+        "field": "output_dir",
+        "message": "required field is missing"
+      }
+    ],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "cockpit-ui/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "scripts/**"
+      ],
+      "approval_required": false,
+      "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": false
+  },
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py claim docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+{
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "issues": [
+    {
+      "field": "output_dir",
+      "message": "required field is missing"
+    }
+  ],
+  "ok": false,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "validation": {
+    "issues": [
+      {
+        "field": "output_dir",
+        "message": "required field is missing"
+      }
+    ],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md",
+        "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/**",
+        "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "financial-engine_v2/README.md",
+        "financial-engine_v2/backend/README.md",
+        "cockpit-ui/README.md",
+        "financial-engine_v2/docker-compose.yml",
+        "financial-engine_v2/docker-compose*.yml",
+        "financial-engine_v2/.env.example",
+        "financial-engine_v2/scripts/**",
+        "scripts/**"
+      ],
+      "approval_required": false,
+      "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 28800
+    },
+    "ok": false
+  },
+  "warnings": []
+}

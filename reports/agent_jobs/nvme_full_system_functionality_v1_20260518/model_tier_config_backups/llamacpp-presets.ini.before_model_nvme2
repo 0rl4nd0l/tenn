@@ -1,0 +1,70 @@
+# Per-model presets for llama.cpp router mode (--models-preset).
+# Global [model] applies to all; named [model:filename-prefix] overrides per model.
+
+[*]
+; Router child defaults. Parent CLI args override presets, so keep model sizing
+; here instead of on the router launcher command line.
+ctx-size = 16384
+batch-size = 1024
+ubatch-size = 512
+gpu-layers = 999
+main-gpu = 0
+threads = 4
+parallel = 1
+
+[model]
+; Defaults for all models loaded through this server.
+cache-ram = 0
+
+[model:gpt-oss-20b]
+; llmfit runner-up (score 91.0). Dense 20B, mxfp4 quant.
+; 11 GB VRAM. Faster throughput, lower quality ceiling.
+model = /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf
+ctx-size = 16384
+batch-size = 1024
+ubatch-size = 512
+
+[model:qwen2.5-14b-instruct]
+; Legacy default. Dense 14B, Q4_K_M.
+; 8.4 GB VRAM. Extraction-tested baseline (89.47%).
+model = /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+ctx-size = 8192
+batch-size = 1024
+ubatch-size = 512
+fit = off
+
+[model:qwen3-14b]
+; Dense 14B, Q4_K_M. Evaluated and rejected for extraction (85.26%).
+ctx-size = 8192
+batch-size = 1024
+ubatch-size = 512
+
+[model:qwen3.5-35b-a3b]
+; MoE 36B/3B-active, Q4_K_M. llmfit score 93.7, est. 46 tok/s.
+; 18.4 GB VRAM. 256 experts, tool_use capable.
+; chat-template-file: Qwen3.5 embeds a multimodal Jinja template that uses
+; namespace() — unsupported by llama.cpp v8233's minja parser. Override with
+; a stripped-down text-only template to avoid "Failed to parse input" 500s.
+model = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf
+chat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja
+ctx-size = 16384
+batch-size = 512
+ubatch-size = 256
+fit = off
+gpu-layers = 16
+
+[model:qwen3.5-35b-a3b-apex]
+; MoE 36B/3B-active, APEX I-Compact (imatrix, mixed-precision).
+; ~16.1 GB VRAM. Same model, better quant — frees ~6 GB for KV cache.
+; PPL 6.669 vs Q4_K_M ~6.7. HellaSwag 81.8%.
+; chat-template-file: same namespace() fix as qwen3.5-35b-a3b above.
+; M40 stable path: partial CUDA offload on the visible GPU.
+; If you see cudaMemcpy / launch errors on long prompts, try lowering gpu-layers
+; or set LLAMA_SERVER_DISABLE_CUDA_GRAPHS=1 in llama-server.env.
+model = /mnt/nvme/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf
+chat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja
+ctx-size = 16384
+batch-size = 512
+ubatch-size = 256
+fit = off
+gpu-layers = 20

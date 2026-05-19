@@ -1,0 +1,24 @@
+
+$ python3 scripts/agent_job_registry.py release overnight_nvme2_runtime_normalization_v1_20260518
+{
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "job_id": "overnight_nvme2_runtime_normalization_v1_20260518",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "removed_active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/overnight_nvme2_runtime_normalization_v1_20260518.json",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "status_path": "reports/agent_jobs/overnight_nvme2_runtime_normalization_v1_20260518/status.json",
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py list-active
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}

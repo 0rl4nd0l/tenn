@@ -1,0 +1,40 @@
+
+$ findmnt -T /mnt/nvme || true; findmnt -T /mnt/ssd || true; findmnt -T /mnt/tenn-nvme2 || true
+TARGET SOURCE         FSTYPE OPTIONS
+/      /dev/nvme0n1p1 ext4   rw,relatime,errors=remount-ro
+TARGET   SOURCE    FSTYPE OPTIONS
+/mnt/ssd /dev/sdb2 ext4   rw,relatime
+TARGET          SOURCE         FSTYPE OPTIONS
+/mnt/tenn-nvme2 /dev/nvme1n1p1 ext4   rw,noatime
+
+$ ls -ld /mnt/nvme /mnt/nvme/tenn /mnt/nvme/tenn/models /mnt/nvme/tenn/runtime-data /mnt/tenn-nvme2/tenn/models /mnt/ssd /mnt/ssd/log /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models 2>/dev/null || true
+drwxr-xr-x   4 root  root   4096 Apr  7 18:27 /mnt/nvme
+drwxr-xr-x   5 root  root   4096 May 17 18:16 /mnt/nvme/tenn
+drwxrwxr-x   2 l4nd0 l4nd0  4096 Apr 10 18:59 /mnt/nvme/tenn/models
+drwxrwxr-x+ 11 l4nd0 l4nd0  4096 May 17 11:37 /mnt/nvme/tenn/runtime-data
+drwxr-xr-x   7 l4nd0 l4nd0  4096 Apr  7 17:51 /mnt/ssd
+drwxrwxr-x  16 root  syslog 4096 May 18 15:46 /mnt/ssd/log
+drwxr-xr-x   2 l4nd0 l4nd0  4096 Apr  9 11:26 /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models
+drwxr-xr-x   2 l4nd0 l4nd0  4096 May 18 15:56 /mnt/tenn-nvme2/tenn/models
+
+$ ls -lh /mnt/nvme/tenn/models/Qwen3-30B-A3B-Instruct-2507-Q3_K_M.gguf /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf 2>/dev/null || true
+-rw-rw-r-- 1 l4nd0 l4nd0 8.4G Mar 22 13:36 /mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+-rw-rw-r-- 1 l4nd0 l4nd0 8.4G Mar 22 13:36 /mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf
+-rw-r--r-- 1 l4nd0 l4nd0  12G Mar 31 18:45 /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf
+
+$ test -x /home/l4nd0/.local/bin/llama-server && /home/l4nd0/.local/bin/llama-server --version 2>&1 | head -5 || echo LOCAL_LLAMA_SERVER_UNAVAILABLE
+ggml_cuda_init: found 2 CUDA devices:
+  Device 0: Tesla M40 24GB, compute capability 5.2, VMM: yes
+  Device 1: NVIDIA GeForce GT 1030, compute capability 6.1, VMM: yes
+version: 8233 (c5a778891)
+built with GNU 10.5.0 for Linux x86_64
+
+$ test -x /mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server && /mnt/hdd-data/home/l4nd0/tenn/tools/llama.cpp/build-cuda/bin/llama-server --version 2>&1 | head -5 || echo HDD_LLAMA_SERVER_UNAVAILABLE
+ggml_cuda_init: found 2 CUDA devices:
+  Device 0: Tesla M40 24GB, compute capability 5.2, VMM: yes
+  Device 1: NVIDIA GeForce GT 1030, compute capability 6.1, VMM: yes
+version: 8233 (c5a778891)
+built with GNU 10.5.0 for Linux x86_64
+
+$ test -x /home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server && /home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server --version 2>&1 | head -5 || echo RUNTIME_LLAMA_SERVER_UNAVAILABLE
+RUNTIME_LLAMA_SERVER_UNAVAILABLE

@@ -1,0 +1,72 @@
+
+$ git status --short --untracked-files=all
+ M financial-engine_v2/scripts/run_local_backend.sh
+ M scripts/run_llama_server.sh
+ M scripts/start_config.env
+?? docs/agent_tasks/nvme_full_system_functionality_v1_20260518.md
+?? docs/agent_tasks/overnight_nvme2_runtime_normalization_v1_20260518.md
+?? scripts/setup_nvme2_host_aliases.sh
+
+$ ss -ltnp | grep -E ':8000|:8001|:8002|:8081' || true
+
+$ systemctl --user status llama-cpp-qwen25.service --no-pager
+○ llama-cpp-qwen25.service - llama.cpp server (router mode — Qwen3-30B-A3B default)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 21:56:28 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:57:14 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:57:14 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 21:58:58 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:02:36 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:04:11 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:04:11 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:04:11 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:14:13 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+May 18 22:15:56 l4nd0-System-Product-Name systemd[942]: /home/l4nd0/.config/systemd/user/llama-cpp-qwen25.service:14: Unknown key name 'StartLimitIntervalSec' in section 'Service', ignoring.
+
+$ systemctl --user status llama-cpp-router.service --no-pager
+○ llama-cpp-router.service - llama.cpp server (router mode)
+     Loaded: loaded (/home/l4nd0/.config/systemd/user/llama-cpp-router.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: srv   load_models:   * model:qwen3.5-35b-a3b-apex
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: srv   load_models:     qwen2.5-14b-instruct-q4_k_m
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: main: starting router server, no model will be loaded in this process
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: start: binding port with default address family
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: main: router server is listening on http://0.0.0.0:8001
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: main: NOTE: router mode is experimental
+May 18 22:12:04 l4nd0-System-Product-Name run_llama_server.sh[893269]: main:       it is not recommended to use this mode in untrusted environments
+May 18 22:12:12 l4nd0-System-Product-Name systemd[942]: Stopping llama.cpp server (router mode)...
+May 18 22:12:12 l4nd0-System-Product-Name run_llama_server.sh[893269]: srv    operator(): operator(): cleaning up before exit...
+May 18 22:12:12 l4nd0-System-Product-Name systemd[942]: Stopped llama.cpp server (router mode).
+
+$ readlink -f /home/l4nd0/tenn || true; readlink -f /home/l4nd0/tenn-runtime || true; readlink -f /data || true; readlink -f /reports || true
+/mnt/hdd-data/home/l4nd0/tenn
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+/data
+/reports
+
+$ python3 scripts/agent_job_registry.py release nvme_full_system_functionality_v1_20260518
+{
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "job_id": "nvme_full_system_functionality_v1_20260518",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "removed_active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/nvme_full_system_functionality_v1_20260518.json",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "status_path": "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/status.json",
+  "warnings": []
+}
+
+$ python3 scripts/agent_job_registry.py list-active
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "ok": true,
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "warnings": []
+}

@@ -1,0 +1,10 @@
+OK home_tenn_runtime=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1
+INFO home_tenn=/mnt/hdd-data/home/l4nd0/tenn
+OK nvme2_data exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/data
+OK nvme2_reports exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/reports
+OK nvme2_fe_local_db exists file=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db
+OK nvme2_asx_docs exists dir=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs
+OK runtime_llama_bin exists file=/home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server
+FAIL host_data missing /data alias; run sudo scripts/setup_nvme2_host_aliases.sh
+FAIL host_reports missing /reports alias; run sudo scripts/setup_nvme2_host_aliases.sh
+NVME_RUNTIME_ENDPOINTS_OK=0 failures=2

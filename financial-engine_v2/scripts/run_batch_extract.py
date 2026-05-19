@@ -2,6 +2,7 @@
 """Batch extract all unprocessed documents for a ticker. Run in tmux."""
 import argparse
 import logging
+import os
 import time
 
 logging.basicConfig(
@@ -18,7 +19,7 @@ parser.add_argument("--ticker", default="BHP", help="Ticker to process (default:
 args = parser.parse_args()
 TICKER = args.ticker.strip().upper()
 
-DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
+DB_URL = os.getenv("DATABASE_URL", "sqlite:////mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db")
 engine = create_engine(DB_URL)
 
 with engine.connect() as c:

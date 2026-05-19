@@ -1,0 +1,4 @@
+$ sudo -nv
+sudo: a password is required
+SUDO_CACHE_RC=1
+sudo credentials are not cached; interactive password still required.

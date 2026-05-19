@@ -14,7 +14,7 @@ set -euo pipefail
 # differ from llama.cpp's visible CUDA device order in this environment.
 
 LLAMA_SERVER="/home/l4nd0/.local/bin/llama-server"
-MODEL="/mnt/hdd-data/home/l4nd0/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+MODEL="/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
 HOST="127.0.0.1"
 PORT="18001"
 
