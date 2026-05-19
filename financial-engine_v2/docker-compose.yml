@@ -31,7 +31,9 @@ services:
       dockerfile: backend/Dockerfile
     container_name: fe_backend
     network_mode: host
-    env_file: [.env.docker]
+    env_file:
+      - .env.docker
+      - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
       COCKPIT_MODELS_NVME_DIR: /models/nvme
@@ -78,7 +80,9 @@ services:
       dockerfile: backend/Dockerfile
     container_name: fe_worker
     network_mode: host
-    env_file: [.env.docker]
+    env_file:
+      - .env.docker
+      - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
@@ -105,7 +109,9 @@ services:
       dockerfile: backend/Dockerfile
     container_name: fe_gpu_worker
     network_mode: host
-    env_file: [.env.docker]
+    env_file:
+      - .env.docker
+      - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
@@ -131,7 +137,9 @@ services:
     container_name: fe_beat
     restart: unless-stopped
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
-    env_file: [.env.docker]
+    env_file:
+      - .env.docker
+      - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     working_dir: /app_worker
     command: ["celery", "-A", "worker_app.celery_app:celery", "beat", "--loglevel=INFO"]
     environment:
