@@ -9,6 +9,8 @@ STAMP="$(date --iso-8601=seconds)"
 RESULT="$REPORT_DIR/post_sudo_alias_completion.txt"
 STATUS="$REPORT_DIR/status.json"
 
+cd "$REPO_ROOT"
+
 if [[ "${EUID}" -ne 0 ]]; then
   echo "ERROR: run with sudo so /data and /reports can be created safely." >&2
   echo "Example: sudo $0" >&2

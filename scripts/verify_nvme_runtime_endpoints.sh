@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
 EXPECTED_RUNTIME="/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
 EXPECTED_DATA="/mnt/tenn-nvme2/tenn/financial-engine_v2/data"
 EXPECTED_REPORTS="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports"
