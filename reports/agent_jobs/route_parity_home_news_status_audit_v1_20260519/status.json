@@ -1,0 +1,28 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/route_parity_home_news_status_audit_v1_20260519.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/route_parity_home_news_status_audit_v1_20260519.md",
+    "reports/agent_jobs/route_parity_home_news_status_audit_v1_20260519"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-19T08:31:02.749522Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-19T08:34:22.656144Z",
+  "job_id": "route_parity_home_news_status_audit_v1_20260519",
+  "lane": "Reporting",
+  "last_seen_at": "2026-05-19T08:36:34.564163Z",
+  "output_dir": "reports/agent_jobs/route_parity_home_news_status_audit_v1_20260519",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-19T08:36:34.564163Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:72026:route_parity_home_news_status_audit_v1_20260519",
+  "started_at": "2026-05-19T08:31:02.749522Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/route_parity_home_news_status_audit_v1_20260519.md",
+  "updated_at": "2026-05-19T08:36:34.564163Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

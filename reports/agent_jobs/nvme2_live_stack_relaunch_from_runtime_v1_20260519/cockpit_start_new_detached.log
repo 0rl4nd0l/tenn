@@ -1,0 +1,151 @@
+TENN STORAGE WARN: NVMe path /mnt/nvme is not a separate filesystem mount (/mnt/nvme is on the same filesystem as /mnt (not mounted — often an empty directory on root FS after reboot). Mount the data volume on /mnt/nvme (see /etc/fstab).) — typical when the whole system lives on one NVMe partition. Runtime layout is present (models/ or runtime-data/); continuing. If you later add a dedicated NVMe volume, mount it at /mnt/nvme for isolation.
+TENN STORAGE GUARD: OK (critical mounts and paths present).
+TENN STORAGE WARN: NVMe path /mnt/nvme is not a separate filesystem mount (/mnt/nvme is on the same filesystem as /mnt (not mounted — often an empty directory on root FS after reboot). Mount the data volume on /mnt/nvme (see /etc/fstab).) — typical when the whole system lives on one NVMe partition. Runtime layout is present (models/ or runtime-data/); continuing. If you later add a dedicated NVMe volume, mount it at /mnt/nvme for isolation.
+TENN STORAGE GUARD: OK (critical mounts and paths present).
+🔍 Running preflight checks...
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: ENABLE_EMBEDDINGS=true
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: ENABLE_QDRANT=true
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: ENABLE_EXTRACTION=true
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: COCKPIT_STATE_DB=/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: MARKETPLACE_BROWSER_RUNTIME=direct
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: MARKETPLACE_BROWSER_PROFILE_DIR=/root/.tenn/browser_profiles/facebook-marketplace-chrome
+🔧 Setting /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker: MARKETPLACE_BROWSER_XDG_RUNTIME_DIR=/tmp/tenn-marketplace-runtime
+Exported backend git provenance: head=5dd7ee84b49e branch=migration/clean-runtime-baseline-reconstruct-v1 dirty=true
+starting full stack infra via docker compose...
+ Container fe_qdrant  Running
+ Container fe_postgres  Running
+ Container fe_worker  Running
+ Container fe_gpu_worker  Running
+ Container fe_redis  Starting
+ Container fe_redis  Started
+ Container fe_postgres  Waiting
+ Container fe_postgres  Waiting
+ Container fe_postgres  Healthy
+ Container fe_postgres  Healthy
+running migrations...
+ Container fe_qdrant  Running
+ Container fe_postgres  Running
+ Container fe_redis  Starting
+ Container fe_redis  Started
+starting backend via docker compose...
+ Container fe_postgres  Running
+ Container fe_qdrant  Running
+ Container fe_backend  Recreate
+ Container fe_backend  Recreated
+ Container fe_redis  Starting
+ Container fe_redis  Started
+ Container fe_postgres  Waiting
+ Container fe_postgres  Healthy
+ Container fe_backend  Starting
+ Container fe_backend  Started
+waiting for backend health...
+✅ Backend healthy: http://127.0.0.1:8000/api/health
+✅ llama.cpp chat already running (http://127.0.0.1:8001)
+ℹ️  Extraction server startup skipped (sharing chat server at http://127.0.0.1:8001)
+✅ llama.cpp chat healthy: http://127.0.0.1:8001/health
+Building Cockpit UI...
+
+> my-project@0.1.0 build /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/cockpit-ui
+> next build
+
+▲ Next.js 16.2.0 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 4.0s
+  Running TypeScript ...
+  Finished TypeScript in 10.2s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/53) ...
+  Generating static pages using 11 workers (13/53) 
+  Generating static pages using 11 workers (26/53) 
+  Generating static pages using 11 workers (39/53) 
+✓ Generating static pages using 11 workers (53/53) in 504ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/cockpit/action/execute
+├ ƒ /api/cockpit/action/jobs/[jobId]
+├ ƒ /api/cockpit/action/jobs/[jobId]/stop
+├ ƒ /api/cockpit/claims/verify
+├ ƒ /api/cockpit/commentary/ephemeral-index
+├ ƒ /api/cockpit/commentary/ephemeral-index/[sessionId]
+├ ƒ /api/cockpit/commentary/marketplace-capture/submit
+├ ƒ /api/cockpit/commentary/marketplace-capture/token
+├ ƒ /api/cockpit/commentary/recent
+├ ƒ /api/cockpit/commentary/takeaways
+├ ƒ /api/cockpit/feedback
+├ ƒ /api/cockpit/feedback/flag
+├ ƒ /api/cockpit/feedback/flags/[reportId]/deploy
+├ ƒ /api/cockpit/feedback/flags/[reportId]/investigation
+├ ƒ /api/cockpit/health
+├ ƒ /api/cockpit/holdings
+├ ƒ /api/cockpit/holdings/[holdingId]
+├ ƒ /api/cockpit/home
+├ ƒ /api/cockpit/marketplace/alerts
+├ ƒ /api/cockpit/marketplace/alerts/[alertId]
+├ ƒ /api/cockpit/marketplace/benchmarks/refresh
+├ ƒ /api/cockpit/marketplace/browser-health
+├ ƒ /api/cockpit/marketplace/matches
+├ ƒ /api/cockpit/marketplace/matches/[matchId]
+├ ƒ /api/cockpit/marketplace/matches/[matchId]/benchmark-review
+├ ƒ /api/cockpit/marketplace/missions
+├ ƒ /api/cockpit/marketplace/missions/[missionId]
+├ ƒ /api/cockpit/marketplace/missions/[missionId]/link-product
+├ ƒ /api/cockpit/marketplace/price-intelligence/calibrate
+├ ƒ /api/cockpit/marketplace/price-intelligence/tracked-products
+├ ƒ /api/cockpit/marketplace/price-intelligence/tracked-products/[trackedProductId]/ebay-sync
+├ ƒ /api/cockpit/marketplace/scans
+├ ƒ /api/cockpit/marketplace/scans/[jobId]
+├ ƒ /api/cockpit/memory
+├ ƒ /api/cockpit/memory/company-dump
+├ ƒ /api/cockpit/memory/company/add
+├ ƒ /api/cockpit/memory/company/expire
+├ ƒ /api/cockpit/memory/index
+├ ƒ /api/cockpit/memory/market/add
+├ ƒ /api/cockpit/memory/market/expire
+├ ƒ /api/cockpit/memory/thesis/proposals
+├ ƒ /api/cockpit/memory/thesis/proposals/[proposalId]/apply
+├ ƒ /api/cockpit/memory/thesis/proposals/[proposalId]/confirm
+├ ƒ /api/cockpit/memory/thesis/proposals/[proposalId]/reject
+├ ƒ /api/cockpit/metrics/gpu
+├ ƒ /api/cockpit/metrics/host
+├ ƒ /api/cockpit/restart
+├ ƒ /api/cockpit/watchlist
+├ ƒ /api/cockpit/watchlist/[ticker]
+├ ○ /boot
+├ ƒ /chat
+├ ƒ /cockpit-local/feedback/flags/[reportId]/deploy
+├ ƒ /cockpit-local/feedback/flags/[reportId]/investigation
+├ ○ /full-chat
+├ ○ /history
+├ ○ /holdings
+├ ○ /intel-ops
+├ ○ /marketplace
+├ ○ /marketplace-capture
+├ ○ /marketplace/alerts
+├ ○ /marketplace/matches
+├ ƒ /marketplace/matches/[matchId]
+├ ○ /memory
+├ ○ /news
+├ ○ /operations
+├ ○ /settings
+├ ○ /thesis-audit
+├ ○ /updater
+├ ○ /verification
+└ ○ /watchlist
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+Cockpit UI (Next.js) → http://localhost:8081
+
+> my-project@0.1.0 start /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/cockpit-ui
+> next start --port 8081
+
+▲ Next.js 16.2.0
+- Local:         http://localhost:8081
+- Network:       http://192.168.135.190:8081
+✓ Ready in 108ms
