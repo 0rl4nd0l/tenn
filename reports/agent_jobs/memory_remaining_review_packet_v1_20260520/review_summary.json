@@ -1,0 +1,83 @@
+{
+  "category_counts": {
+    "known_historical_source_row": 14,
+    "manual_review_manifest_row": 3,
+    "source_fanout_threshold_cluster": 1
+  },
+  "cleanup_readiness": {
+    "cleanup_still_blocked": true,
+    "next_cleanup_requires_explicit_approval": true,
+    "reason": "Approved cleanup candidates are exhausted; remaining items require operator review, source context, backup/checksum, and a separate approved mutation task."
+  },
+  "confidence_counts": {
+    "low": 1,
+    "medium": 17
+  },
+  "confirmed_facts": {
+    "active_db_path_from_prior_artifact": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+    "active_duplicate_clusters": 0,
+    "active_source_fanout_clusters": 1,
+    "approved_manifest_active_remaining": 0,
+    "expired_or_closed_rows": 2293,
+    "known_historical_active_match_count_deduped": 14,
+    "manual_review_manifest_active_remaining": 3,
+    "memory_entries_active": 147,
+    "memory_entries_total": 2440,
+    "prior_read_only_open_mode": "mode=ro&immutable=1"
+  },
+  "data_missing": [
+    "Full source article/transcript content and source spans for each row.",
+    "Writer job IDs and batch IDs for remaining rows.",
+    "Per-row DB fields beyond capped artifact fields where not already present.",
+    "Statement preview for entry_id 717, absent from capped artifact output.",
+    "Live route proof for chat/company_dump/Memory Workbench surfacing, intentionally skipped because routes may write operational artifacts."
+  ],
+  "executive_verdict": "REVIEW_PACKET_READY",
+  "generated_at": "2026-05-20T05:34:00Z",
+  "job_id": "memory_remaining_review_packet_v1_20260520",
+  "manual_review_overlap_entry_ids": [
+    283,
+    310,
+    1129
+  ],
+  "mutation_mode": "audit_only",
+  "no_mutation_attestation": "No DB/write/API/memory/source-registry/Qdrant/news/loader/migration/runtime mutation was performed by this packet task.",
+  "production_data_access": false,
+  "production_db_opened_by_this_task": false,
+  "recommended_action_counts": {
+    "insufficient_evidence": 1,
+    "likely_legitimate": 13,
+    "review_source": 4
+  },
+  "represented_counts": {
+    "distinct_underlying_entry_ids_represented": 19,
+    "known_historical_source_rows": 14,
+    "manual_review_manifest_rows": 3,
+    "manual_review_rows_also_in_known_historical_rows": 3,
+    "review_items_total_including_manifest_duplicate_views": 18,
+    "source_fanout_threshold_clusters": 1,
+    "source_fanout_underlying_active_rows": 5
+  },
+  "source_artifacts_used": [
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/README.md",
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/suspected_fanout_clusters.json",
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/surfacing_risk_matrix.json",
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/writer_path_trace.md",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/README.md",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/active_contamination_summary.json",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/active_source_fanout_clusters.csv",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/active_duplicate_clusters.csv",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/ticker_spot_checks.json",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/known_historical_source_checks.json",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/candidate_entry_id_status_check.json",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/cleanup_readiness.md",
+    "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/DATA_MISSING.md"
+  ],
+  "surfacing_risk_summary": {
+    "chat_memory_context": "possible when company_memory provider is selected by query planning",
+    "company_analysis": "possible for active ticker-matching rows per prior code/read-path audit",
+    "company_dump": "possible for active ticker-scoped rows",
+    "memory_workbench": "possible on read/browse surfaces",
+    "source_drawer_context": "possible as context-only memory evidence label when used"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/memory_remaining_review_packet_checkpoint_v1_20260520.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/memory_remaining_review_packet_v1_20260520.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/DATA_MISSING.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/no_mutation_attestation.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/operator_review_packet.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/operator_review_rows.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/operator_review_rows.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/review_summary.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/memory_remaining_review_packet_checkpoint_v1_20260520.md",
+        "docs/agent_tasks/memory_remaining_review_packet_v1_20260520.md",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/README.md",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/operator_review_packet.md",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/operator_review_rows.csv",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/operator_review_rows.json",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/review_summary.json",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/DATA_MISSING.md",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/no_mutation_attestation.md",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/diff-check.json",
+        "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/status.json",
+        "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/",
+        "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/README.md",
+        "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/diff-check.json",
+        "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520/status.json"
+      ],
+      "approval_required": false,
+      "job_id": "memory_remaining_review_packet_checkpoint_v1_20260520",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/memory_remaining_review_packet_checkpoint_v1_20260520",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

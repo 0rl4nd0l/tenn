@@ -1,0 +1,712 @@
+[
+  {
+    "artifact_evidence": [
+      "active_source_fanout_clusters.csv",
+      "active_contamination_summary.json"
+    ],
+    "company_count": 4,
+    "company_ids": [
+      "CBA",
+      "MIN",
+      "MP1",
+      "XRO",
+      "XRO"
+    ],
+    "company_ids_capped": [
+      "CBA",
+      "MIN",
+      "MP1",
+      "XRO",
+      "XRO"
+    ],
+    "confidence": "medium",
+    "current_status": "active_cluster_from_artifact",
+    "entry_count": 5,
+    "entry_ids": [
+      2362,
+      2363,
+      2361,
+      2359,
+      2360
+    ],
+    "entry_ids_capped": [
+      2362,
+      2363,
+      2361,
+      2359,
+      2360
+    ],
+    "mutation_allowed": false,
+    "notes": "Inventory category was ambiguous; source article context is needed before preserve or expiry decisions.",
+    "prior_manifest_status": "not_applicable",
+    "recommended_operator_action": "review_source",
+    "review_item_id": "source_fanout_threshold_cluster_001",
+    "source": "news:newspaper4k",
+    "source_category": "source_fanout_threshold_cluster",
+    "source_id": "news:art_c0195feddb42ee1a1f11268d",
+    "statement_preview": "Commonwealth Bank (ASX:CBA) extending its rebound from Wednesday\u2019s sell-off",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Only active source-fanout threshold cluster in the live read-only inventory: active rows >= 5 and distinct company IDs >= 3."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows",
+      "statement_contains:A2 MILK",
+      "statement_contains:share price dropped"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      283
+    ],
+    "entry_ids_capped": [
+      283
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "manual_review_manifest_active_remaining",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_0283",
+    "source": "commentary:youtube_transcript",
+    "source_category": "known_historical_source_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "A2 MILK's share price dropped 10% due to a product recall",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows",
+      "statement_contains:A2 MILK"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      310
+    ],
+    "entry_ids_capped": [
+      310
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "manual_review_manifest_active_remaining",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_0310",
+    "source": "commentary:youtube_transcript",
+    "source_category": "known_historical_source_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "A2 MILK's share price has dropped from almost $10 back to $6.59 in a few months",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "NAB"
+    ],
+    "company_ids_capped": [
+      "NAB"
+    ],
+    "confidence": "low",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      717
+    ],
+    "entry_ids_capped": [
+      717
+    ],
+    "mutation_allowed": false,
+    "notes": "Artifact identifies the row as active under a known historical source but does not include its statement preview.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "insufficient_evidence",
+    "review_item_id": "known_historical_source_row_0717",
+    "source": "commentary:youtube_transcript",
+    "source_category": "known_historical_source_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "DATA_MISSING: statement preview not present in artifact cap",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows",
+      "statement_contains:A2 MILK"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1129
+    ],
+    "entry_ids_capped": [
+      1129
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "manual_review_manifest_active_remaining",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1129",
+    "source": "commentary:youtube_transcript",
+    "source_category": "known_historical_source_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "Potential overreaction by the market to the recall announcement for A2 MILK",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:news:art_e4faef3c4644fe5bb3b66e32"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "EZZ"
+    ],
+    "company_ids_capped": [
+      "EZZ"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1273
+    ],
+    "entry_ids_capped": [
+      1273
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1273",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_e4faef3c4644fe5bb3b66e32",
+    "statement_preview": "EZZ enters the wellness market with its MeTime range",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:news:art_e4faef3c4644fe5bb3b66e32"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "CSL"
+    ],
+    "company_ids_capped": [
+      "CSL"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1301
+    ],
+    "entry_ids_capped": [
+      1301
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1301",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_e4faef3c4644fe5bb3b66e32",
+    "statement_preview": "CSL faces renewed scrutiny over valuation gaps and growth expectations",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:news:art_e4faef3c4644fe5bb3b66e32"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "RESMED"
+    ],
+    "company_ids_capped": [
+      "RESMED"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1310
+    ],
+    "entry_ids_capped": [
+      1310
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1310",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_e4faef3c4644fe5bb3b66e32",
+    "statement_preview": "RESMED delivers strong quarterly growth",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:news:art_e4faef3c4644fe5bb3b66e32"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "CSL"
+    ],
+    "company_ids_capped": [
+      "CSL"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1341
+    ],
+    "entry_ids_capped": [
+      1341
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1341",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_e4faef3c4644fe5bb3b66e32",
+    "statement_preview": "CSL's renewed scrutiny over valuation gaps and growth expectations",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "statement_contains:A2 MILK"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1493
+    ],
+    "entry_ids_capped": [
+      1493
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1493",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_aa13edd261034dba97055d8a",
+    "statement_preview": "A2 Milk has recalled three batches of its USA label infant formula due to the presence of cereulide toxin",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "statement_contains:A2 MILK"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1495
+    ],
+    "entry_ids_capped": [
+      1495
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1495",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_aa13edd261034dba97055d8a",
+    "statement_preview": "Shares in A2 Milk plunged 11.35% to $6.44 in afternoon trade",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows",
+      "statement_contains:A2 MILK"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1829
+    ],
+    "entry_ids_capped": [
+      1829
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1829",
+    "source": "commentary:youtube_transcript",
+    "source_category": "known_historical_source_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "A2 MILK's voluntary recall of three batches of A2 Platinum USA label infant milk formula",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "source_id_contains:youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows",
+      "statement_contains:A2 MILK"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1961
+    ],
+    "entry_ids_capped": [
+      1961
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_1961",
+    "source": "commentary:youtube_transcript",
+    "source_category": "known_historical_source_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "A2 MILK's potential overreaction from the market due to the product recall",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "statement_contains:share price dropped"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "CSL"
+    ],
+    "company_ids_capped": [
+      "CSL"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      2425
+    ],
+    "entry_ids_capped": [
+      2425
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_2425",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_ffe96e73baccb32f600ec187",
+    "statement_preview": "CSL's share price dropped due to chaotic trading after CEO resignation announcement",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "statement_contains:share price dropped"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "CSL"
+    ],
+    "company_ids_capped": [
+      "CSL"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      2427
+    ],
+    "entry_ids_capped": [
+      2427
+    ],
+    "mutation_allowed": false,
+    "notes": "Statement preview appears tied to the scoped company, but source spans are still absent from prior artifacts.",
+    "prior_manifest_status": "not_available_in_artifact",
+    "recommended_operator_action": "likely_legitimate",
+    "review_item_id": "known_historical_source_row_2427",
+    "source": "news:newspaper4k",
+    "source_category": "known_historical_source_row",
+    "source_id": "news:art_ffe96e73baccb32f600ec187",
+    "statement_preview": "CSL's share price dropped amid chaotic trading after CEO resignation announcement",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Active row appears in deduped known historical source/statement checks from the live read-only inventory."
+  },
+  {
+    "artifact_evidence": [
+      "candidate_entry_id_status_check.json",
+      "known_historical_source_checks.json"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      283
+    ],
+    "entry_ids_capped": [
+      283
+    ],
+    "mutation_allowed": false,
+    "notes": "Duplicate review view for the same underlying entry ID; no mutation is authorized by this packet.",
+    "prior_manifest_status": "manual_review_manifest_active_remaining",
+    "recommended_operator_action": "review_source",
+    "review_item_id": "manual_review_manifest_row_0283",
+    "source": "commentary:youtube_transcript",
+    "source_category": "manual_review_manifest_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "A2 MILK's share price dropped 10% due to a product recall",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Still-active row from the historical manual-review manifest; represented separately from the known-source row view."
+  },
+  {
+    "artifact_evidence": [
+      "candidate_entry_id_status_check.json",
+      "known_historical_source_checks.json"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      310
+    ],
+    "entry_ids_capped": [
+      310
+    ],
+    "mutation_allowed": false,
+    "notes": "Duplicate review view for the same underlying entry ID; no mutation is authorized by this packet.",
+    "prior_manifest_status": "manual_review_manifest_active_remaining",
+    "recommended_operator_action": "review_source",
+    "review_item_id": "manual_review_manifest_row_0310",
+    "source": "commentary:youtube_transcript",
+    "source_category": "manual_review_manifest_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "A2 MILK's share price has dropped from almost $10 back to $6.59 in a few months",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Still-active row from the historical manual-review manifest; represented separately from the known-source row view."
+  },
+  {
+    "artifact_evidence": [
+      "candidate_entry_id_status_check.json",
+      "known_historical_source_checks.json"
+    ],
+    "company_count": 1,
+    "company_ids": [
+      "A2M"
+    ],
+    "company_ids_capped": [
+      "A2M"
+    ],
+    "confidence": "medium",
+    "current_status": "active",
+    "entry_count": 1,
+    "entry_ids": [
+      1129
+    ],
+    "entry_ids_capped": [
+      1129
+    ],
+    "mutation_allowed": false,
+    "notes": "Duplicate review view for the same underlying entry ID; no mutation is authorized by this packet.",
+    "prior_manifest_status": "manual_review_manifest_active_remaining",
+    "recommended_operator_action": "review_source",
+    "review_item_id": "manual_review_manifest_row_1129",
+    "source": "commentary:youtube_transcript",
+    "source_category": "manual_review_manifest_row",
+    "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+    "statement_preview": "Potential overreaction by the market to the recall announcement for A2 MILK",
+    "surfacing_risk": {
+      "chat_memory_context": "confirmed_if_query_plan_includes_company_memory",
+      "company_analysis": "confirmed_if_active_ticker_row_survives_filters",
+      "company_dump": "confirmed_if_active_ticker_row_exists",
+      "memory_workbench": "confirmed_for_read_surface",
+      "source_drawer_context": "context_label_if_used"
+    },
+    "why_included": "Still-active row from the historical manual-review manifest; represented separately from the known-source row view."
+  }
+]
