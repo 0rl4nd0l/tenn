@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import math
 import re
@@ -149,10 +150,78 @@ def _build_family_filter(framework_families: list[str] | None) -> qmodels.Filter
     )
 
 
+def _normalize_ticker_token(value: Any) -> str:
+    token = str(value or "").strip().upper()
+    if not token:
+        return ""
+    if token.startswith("ASX:"):
+        token = token.split(":", 1)[1].strip()
+    return token
+
+
+def _ticker_values_from_field(value: Any) -> set[str]:
+    if value in (None, ""):
+        return set()
+    if isinstance(value, (list, tuple, set)):
+        values: set[str] = set()
+        for item in value:
+            values.update(_ticker_values_from_field(item))
+        return values
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return set()
+        if raw.startswith("["):
+            try:
+                decoded = json.loads(raw)
+            except json.JSONDecodeError:
+                decoded = None
+            if isinstance(decoded, list):
+                return _ticker_values_from_field(decoded)
+        if any(separator in raw for separator in (",", ";", "|", "\n", "\t")):
+            return {
+                token
+                for token in (
+                    _normalize_ticker_token(part)
+                    for part in re.split(r"[,;|\s]+", raw)
+                )
+                if token
+            }
+        token = _normalize_ticker_token(raw)
+        return {token} if token else set()
+    token = _normalize_ticker_token(value)
+    return {token} if token else set()
+
+
+def _payload_ticker_values(payload: dict[str, Any]) -> set[str]:
+    values: set[str] = set()
+    values.update(_ticker_values_from_field(payload.get("ticker")))
+    values.update(_ticker_values_from_field(payload.get("primary_ticker")))
+    values.update(_ticker_values_from_field(payload.get("tickers")))
+    return values
+
+
+def _payload_matches_ticker(payload: dict[str, Any], ticker: str | None) -> bool:
+    normalized_ticker = _normalize_ticker_token(ticker)
+    if not normalized_ticker:
+        return True
+    return normalized_ticker in _payload_ticker_values(payload)
+
+
 def _build_ticker_filter(collection_name: str, ticker: str | None) -> qmodels.Filter | None:
-    normalized_ticker = str(ticker or "").strip().upper()
+    normalized_ticker = _normalize_ticker_token(ticker)
     if not normalized_ticker or str(collection_name or "").strip() not in _TICKER_FILTER_COLLECTIONS:
         return None
+    if str(collection_name or "").strip() == NEWS_CHUNKS_COLLECTION_NAME:
+        return qmodels.Filter(
+            should=[
+                qmodels.FieldCondition(
+                    key=key,
+                    match=qmodels.MatchValue(value=normalized_ticker),
+                )
+                for key in ("ticker", "primary_ticker", "tickers")
+            ]
+        )
     return qmodels.Filter(
         must=[
             qmodels.FieldCondition(
@@ -175,10 +244,7 @@ def _build_search_filter(
         return ticker_filter
     if ticker_filter is None:
         return family_filter
-    return qmodels.Filter(
-        must=list(ticker_filter.must or []),
-        should=list(family_filter.should or []),
-    )
+    return qmodels.Filter(must=[ticker_filter, family_filter])
 
 
 def _boost_retrieval_score(
@@ -189,8 +255,7 @@ def _boost_retrieval_score(
     financial_intents: list[str] | None,
 ) -> float:
     boosted_score = float(base_score)
-    payload_ticker = str(payload.get("ticker") or "").strip().upper()
-    if ticker and payload_ticker == str(ticker).strip().upper():
+    if ticker and _payload_matches_ticker(payload, ticker):
         boosted_score *= 1.25
     if financial_intents:
         doc_class = str(payload.get("doc_class") or "").strip().lower()

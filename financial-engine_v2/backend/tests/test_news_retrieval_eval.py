@@ -132,10 +132,15 @@ class TestNewsTickerFilter(unittest.TestCase):
     def test_ticker_filter_applied_for_news_chunks(self):
         f = self._build_filter(self.news_col, "BHP")
         self.assertIsNotNone(f, "Should produce a filter for news_chunks")
-        must = f.must or []
-        self.assertEqual(len(must), 1)
-        self.assertEqual(must[0].key, "ticker")
-        self.assertEqual(must[0].match.value, "BHP")
+        self.assertFalse(f.must or [])
+        should = f.should or []
+        self.assertEqual(
+            [condition.key for condition in should],
+            ["ticker", "primary_ticker", "tickers"],
+        )
+        self.assertTrue(
+            all(condition.match.value == "BHP" for condition in should)
+        )
 
     def test_ticker_filter_applied_for_asx_docs(self):
         f = self._build_filter(self.asx_col, "BHP")
@@ -156,8 +161,11 @@ class TestNewsTickerFilter(unittest.TestCase):
     def test_ticker_normalized_to_uppercase(self):
         f = self._build_filter(self.news_col, "bhp")
         self.assertIsNotNone(f)
-        must = f.must or []
-        self.assertEqual(must[0].match.value, "BHP")
+        should = f.should or []
+        self.assertTrue(should)
+        self.assertTrue(
+            all(condition.match.value == "BHP" for condition in should)
+        )
 
 
 class TestChatWithTennTickerPropagation(unittest.TestCase):
@@ -313,6 +321,82 @@ class TestChatWithTennTickerPropagation(unittest.TestCase):
         self.assertIn("claim_verified", recall_source["evidence_labels"])
         self.assertTrue(recall_source["claim_verified"])
         self.assertEqual(result["source_coverage_status"], "claim_verified")
+
+    @patch("app.services.tenn_chat.generate_json")
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_linked_ticker_news_with_different_primary_is_kept_as_context_only(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+        mock_generate_json,
+    ):
+        mock_rag.return_value = {"hits": [], "research_context": {"evidence_chunks": []}}
+        commentary_mock = MagicMock()
+        commentary_mock.retrieve.return_value = {
+            "chunks": [
+                {
+                    "chunk_id": "commentary-a2m-background",
+                    "source_name": "General company background",
+                    "source_type": "commentary",
+                    "text": "General company background without local news evidence.",
+                    "relevance_score": 0.5,
+                    "final_score": 0.5,
+                }
+            ]
+        }
+        news_mock = MagicMock()
+        news_mock.retrieve.return_value = {
+            "chunks": [
+                {
+                    "chunk_id": "news:art_62631b4f81acd6fd70efd61c:1",
+                    "article_id": "art_62631b4f81acd6fd70efd61c",
+                    "ticker": "AEG",
+                    "primary_ticker": "AEG",
+                    "tickers": ["A2M", "AEG", "BCA", "VMM"],
+                    "title": "ASX Small Caps Weekly Form Guide",
+                    "text": "The weekly form guide mentioned A2 Milk recall context.",
+                    "url": "https://example.com/weekly-form-guide",
+                    "provider": "Stockhead",
+                    "published_at": "2026-05-08T06:47:16Z",
+                    "source_type": "news_article",
+                    "relevance_score": 0.6,
+                    "final_score": 0.6,
+                }
+            ]
+        }
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+        captured: dict[str, str] = {}
+
+        def _fake_generate_json(prompt, metadata=None, timeout=None):
+            captured["prompt"] = prompt
+            return {
+                "answer": "A2M local news context was retrieved.",
+                "insights": [],
+                "supporting_evidence": [{"source_name": "Different source"}],
+                "confidence": 0.4,
+            }
+
+        mock_generate_json.side_effect = _fake_generate_json
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        result = chat_with_tenn("what changed for A2M recently?", ticker="A2M")
+
+        self.assertIn("art_62631b4f81acd6fd70efd61c", captured["prompt"])
+        source = next(
+            source
+            for source in result["sources"]
+            if source.get("article_id") == "art_62631b4f81acd6fd70efd61c"
+        )
+        self.assertEqual(source["ticker"], "AEG")
+        self.assertIn("local_news_context", source["evidence_labels"])
+        self.assertIn("context_only", source["evidence_labels"])
+        self.assertNotIn("claim_verified", source["evidence_labels"])
+        self.assertFalse(source["claim_verified"])
+        self.assertNotIn("missing_required_evidence", result["evidence_labels"])
+        self.assertNotIn("no_hit", result["evidence_labels"])
+        self.assertEqual(result["source_coverage_status"], "context_only")
 
     @patch("app.services.tenn_chat.generate_json")
     @patch("app.services.tenn_chat.query_rag")

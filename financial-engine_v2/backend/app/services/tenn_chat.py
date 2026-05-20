@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.core.config import settings
-from app.services.hybrid_retriever import HybridRetriever
+from app.services.hybrid_retriever import HybridRetriever, _payload_matches_ticker
 from app.services.llm import generate_json
 from app.services.rag import query_rag
 from app.services.fact_contract import CanonicalFact
@@ -118,7 +118,7 @@ def _filter_news_by_ticker(chunks: list[dict[str, Any]], ticker: str | None) -> 
     filtered = [
         chunk
         for chunk in chunks
-        if str(chunk.get("ticker") or "").strip().upper() == normalized_ticker
+        if _payload_matches_ticker(chunk, normalized_ticker)
     ]
     if filtered:
         return filtered
