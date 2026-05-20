@@ -1,0 +1,149 @@
+{
+  "job_id": "asx_deterministic_extraction_extension_audit_v1_20260519",
+  "artifact_type": "extension_point_inventory",
+  "canonical_truth_mutation": false,
+  "items": [
+    {
+      "id": "method_isolated_extraction_method_gate",
+      "owner_file": "financial-engine_v2/backend/app/services/method_isolated_extraction.py",
+      "owner_function": "normalize_extraction_method, run_method_isolated_extraction",
+      "current_behavior": "Normalizes requested extraction method to auto, docling, pymupdf, or anthropic and maps the selected method to run_multipass_extraction parser_backend/strict_parser settings.",
+      "proposed_deterministic_extension": "Do not route on ASX type here first. Later, this can attach an already-computed read-only ASX document-type artifact to method provenance without changing parser_backend.",
+      "risk": "high_if_routing_changes; low_if_artifact_only",
+      "safe_stage": "audit_only_or_comparator_only",
+      "hard_stops": [
+        "no parser_backend changes",
+        "no strict_parser relaxation",
+        "no canonical writes",
+        "no prompt changes"
+      ]
+    },
+    {
+      "id": "structured_document_surface",
+      "owner_file": "financial-engine_v2/backend/app/services/docling_extract.py",
+      "owner_function": "extract_structured, StructuredDocument, DoclingTable",
+      "current_behavior": "Builds Docling/PyMuPDF StructuredDocument objects with pages, tables, sections, method, parser id, and parser warnings. Strict Docling does not fallback to PyMuPDF.",
+      "proposed_deterministic_extension": "ASX classifier consumes filename/title, first-page text, table captions, headers, and row anchors from StructuredDocument as a sidecar input.",
+      "risk": "low_if_read_only; high_if_fallback_or_cache_semantics_change",
+      "safe_stage": "comparator_only",
+      "hard_stops": [
+        "do not promote PyMuPDF as truth",
+        "do not change Docling cache behavior",
+        "do not run OCR in this audit",
+        "do not drop rows or tables"
+      ]
+    },
+    {
+      "id": "multipass_pass1_classifier",
+      "owner_file": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "owner_function": "_run_pass1_classifier",
+      "current_behavior": "LLM classifier infers report_type A/H/Q, period_end, currency, scale, and confidence from first-page text. It does not model Appendix 4C/4D/4E/5B document type.",
+      "proposed_deterministic_extension": "Keep Pass 1 unchanged. Add a separate deterministic ASXDocumentType artifact that can be compared against report_type without controlling production flow.",
+      "risk": "high_if_pass1_replaced_or_confidence_gate_changed",
+      "safe_stage": "audit_only_then_tests",
+      "hard_stops": [
+        "do not replace LLM report_type gate in production",
+        "do not weaken low-confidence failure behavior",
+        "do not treat document_type as metric truth"
+      ]
+    },
+    {
+      "id": "multipass_pass2_table_locator",
+      "owner_file": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "owner_function": "_run_pass2_locator, _table_allows_extended_unit_scan, _detect_scale_from_tables, _detect_currency_from_tables",
+      "current_behavior": "Deterministically scores Docling tables for income_statement, cashflow, balance_sheet, share_capital_note, highlights, and net_debt_note. Existing logic includes Appendix 4D/4E unit scanning and Appendix 5B disqualification for non-cashflow table slots.",
+      "proposed_deterministic_extension": "Add statement-table selector comparators that rank current-period formal statement tables by ASX type while emitting only sidecar artifacts until fixtures prove no regression.",
+      "risk": "medium_if_selector_only; high_if_winner_changes_drive_metrics",
+      "safe_stage": "comparator_only_then_later_safe_extension",
+      "hard_stops": [
+        "do not change selected table winners before no-regression gates",
+        "do not infer missing statement metrics from Appendix 5B",
+        "do not override currency/scale abstain behavior"
+      ]
+    },
+    {
+      "id": "appendix5b_embedded_logic",
+      "owner_file": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "owner_function": "_merge_cf_tables, _CF_DISQUALIFY_PHRASES, _validate_gate",
+      "current_behavior": "Appendix 5B is recognized through cashflow table captions/rows, merged cashflow candidates, disqualification from income/balance slots, and quarterly validation that accepts limited cashflow metrics.",
+      "proposed_deterministic_extension": "Design a separate Appendix 5B line-item parser artifact over Docling rows, including line numbers, labels, current-quarter/YTD columns, currency, scale, and arithmetic checks.",
+      "risk": "medium_if_artifact_only; high_if_values_are_upserted",
+      "safe_stage": "comparator_only",
+      "hard_stops": [
+        "no canonical truth writes",
+        "no generic receipts-as-revenue mapping",
+        "no scoring without Appendix 5B gate stack"
+      ]
+    },
+    {
+      "id": "real_gold_eval",
+      "owner_file": "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+      "owner_function": "load_real_gold_fixtures, evaluate_real_gold_fixture",
+      "current_behavior": "Evaluates strict real-gold fixtures with trusted/abstain/quarantine semantics. Context mismatch quarantines; missing required metric abstains.",
+      "proposed_deterministic_extension": "Add comparator artifact references only after fixture provenance is explicit. Keep canonical trust labels unchanged.",
+      "risk": "low_if_read_only; high_if_gold_labels_or_supported_metrics_change",
+      "safe_stage": "audit_only_or_read_only_reporting",
+      "hard_stops": [
+        "do not change gold labels",
+        "do not broaden real-gold supported metrics in this lane",
+        "do not mutate expected_trust"
+      ]
+    },
+    {
+      "id": "confirmed_metric_coverage",
+      "owner_file": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "owner_function": "build_confirmed_metric_coverage_scorecard",
+      "current_behavior": "Builds read-only confirmed metric coverage inventory from backend/tests/eval_fixtures and separates canonical_core, expanded_required, and confirmed_metric_coverage profiles.",
+      "proposed_deterministic_extension": "Use it as the measurement surface for expanded fixture expectations after deterministic parser artifacts exist, not as production truth.",
+      "risk": "low_if_inventory_only; high_if_reframed_as_accuracy_claim",
+      "safe_stage": "read_only_reporting",
+      "hard_stops": [
+        "no production extraction coverage claim from fixture inventory alone",
+        "no canonical label mutation",
+        "no extractor output treated as gold"
+      ]
+    },
+    {
+      "id": "pipeline_persistence",
+      "owner_file": "financial-engine_v2/backend/app/services/pipeline.py",
+      "owner_function": "_upsert_financial_rows, process_document extraction persistence block",
+      "current_behavior": "Persists successful extraction runs and upserts ASXPeriodicFinancial rows for supported metric fields in a single DB transaction.",
+      "proposed_deterministic_extension": "No first-phase extension. Parser artifacts must stay report-local or comparator-only until all gates pass.",
+      "risk": "very_high",
+      "safe_stage": "blocked_for_this_audit",
+      "hard_stops": [
+        "no DB writes",
+        "no ASXPeriodicFinancial schema or field writes",
+        "no canonical write path changes"
+      ]
+    },
+    {
+      "id": "legacy_script_classifier",
+      "owner_file": "scripts/document_classifier.py, scripts/extract_financial_metrics.py",
+      "owner_function": "classify_document, normalize_document_classifier_result call site in extract_financial_metrics main",
+      "current_behavior": "Script-level first-page classifier distinguishes broad financial_report, appendix_report, announcement, presentation, investor_update, and unknown types; strict script mode can skip non-financial Docling extraction.",
+      "proposed_deterministic_extension": "Use only as prior art for a pure ASX classifier test contract. Do not bind production backend extraction to this script surface.",
+      "risk": "medium_if_reused_directly; low_as_reference",
+      "safe_stage": "tests_or_fixture_design",
+      "hard_stops": [
+        "do not run script extraction jobs",
+        "do not import script classifier into backend routing without a separate design",
+        "do not use broad appendix_report as ASX type truth"
+      ]
+    },
+    {
+      "id": "camelot_script_fallback",
+      "owner_file": "scripts/cashflow_table_fallback.py, scripts/cashflow_layout_adapter.py",
+      "owner_function": "extract_cashflow_table_rows_with_camelot_with_stats, _apply_camelot_capex_fallback",
+      "current_behavior": "Camelot is a script-only cashflow fallback for scoped cashflow pages and CAPEX numeric recovery. Backend dependency guard requires Docling and forbids Camelot in backend requirements.",
+      "proposed_deterministic_extension": "Treat Camelot only as a comparator/fallback artifact source in isolated script/report lanes.",
+      "risk": "medium_if_script_only; high_if_backend_dependency_added",
+      "safe_stage": "comparator_only",
+      "hard_stops": [
+        "do not add Camelot to backend requirements",
+        "do not make Camelot production truth",
+        "do not use fallback outside cashflow-scoped evidence"
+      ]
+    }
+  ]
+}

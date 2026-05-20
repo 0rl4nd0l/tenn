@@ -1,0 +1,117 @@
+{
+  "job_id": "asx_deterministic_extraction_extension_audit_v1_20260519",
+  "artifact_type": "no_regression_gate_map",
+  "canonical_truth_mutation": false,
+  "profiles": {
+    "canonical_core": {
+      "owner": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "current_contract": "10 real-gold documents / 24 checks, read-only, no canonical trust mutation",
+      "promotion_gate": "must remain unchanged before any parser artifact can be considered for live routing"
+    },
+    "expanded_required": {
+      "owner": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "current_contract": "15 real-gold documents / 39 checks, read-only, no canonical trust mutation",
+      "promotion_gate": "must not regress when comparator artifacts are measured"
+    },
+    "confirmed_metric_coverage": {
+      "owner": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py and confirmed_metric_coverage_review.py",
+      "current_contract": "15 fixtures / 146 expectations in API tests, fixture labels are measurement evidence only",
+      "promotion_gate": "coverage can expand only through source-evidenced, schema-supported, non-ambiguous expectations"
+    }
+  },
+  "gates": [
+    {
+      "gate": "canonical10_preservation",
+      "required_evidence": [
+        "strict Docling canonical policy unchanged",
+        "canonical_core count and metric statuses unchanged",
+        "real-gold trust semantics unchanged"
+      ],
+      "blocks": [
+        "routing changes",
+        "gold label edits",
+        "new canonical writes"
+      ]
+    },
+    {
+      "gate": "expanded_required_preservation",
+      "required_evidence": [
+        "15-document expanded_required profile stays stable",
+        "supported metrics stay schema-mapped",
+        "DATA_MISSING remains explicit rather than inferred"
+      ],
+      "blocks": [
+        "using broader coverage as production accuracy",
+        "deriving net_debt without explicit row evidence"
+      ]
+    },
+    {
+      "gate": "confirmed_metric_coverage_measurement",
+      "required_evidence": [
+        "fixture source pages/tables/rows documented",
+        "candidate/non-gold labels stay review-only",
+        "unsupported metrics remain unsupported or explicitly schema-added in a separate task"
+      ],
+      "blocks": [
+        "treating fixture count as live production coverage",
+        "scoring low-confidence labels as confirmed"
+      ]
+    },
+    {
+      "gate": "evidence_binding",
+      "required_evidence": [
+        "document type anchor",
+        "period type and period end",
+        "currency and scale",
+        "table/page/row/column or line-item reference",
+        "current-period column disambiguation"
+      ],
+      "blocks": [
+        "narrative-only metric values",
+        "generic Markdown rows without page/table provenance",
+        "receipt rows promoted to accrual revenue"
+      ]
+    },
+    {
+      "gate": "trust_semantics",
+      "required_evidence": [
+        "trusted only when context and required metrics match",
+        "abstain for missing/wrong required values without context mismatch",
+        "quarantine for context mismatch"
+      ],
+      "blocks": [
+        "masking wrong values as missing",
+        "using comparator output to alter expected_trust"
+      ]
+    },
+    {
+      "gate": "runtime_provenance",
+      "required_evidence": [
+        "extractor version",
+        "prompt hash where LLM extraction is involved",
+        "parser id/backend",
+        "source document checksum",
+        "report-only comparator artifact checksum"
+      ],
+      "blocks": [
+        "shared :8001 comparator runs",
+        "untracked runtime/model changes",
+        "cloud parser output as production truth"
+      ]
+    },
+    {
+      "gate": "local_hardware_feasibility",
+      "required_evidence": [
+        "read-only artifact generation can complete without live OCR/GPU dependency",
+        "large-document handling does not depend on non-deterministic runtime state",
+        "heavy parser dependencies stay isolated from backend"
+      ],
+      "blocks": [
+        "backend dependency on Camelot",
+        "GPU/model config changes",
+        "OCR jobs in audit lane"
+      ]
+    }
+  ],
+  "promotion_rule": "No canonical write or parser routing change until every gate above passes on canonical_core, expanded_required, and confirmed_metric_coverage measurement surfaces."
+}

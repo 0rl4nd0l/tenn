@@ -1,0 +1,190 @@
+{
+  "job_id": "asx_deterministic_extraction_extension_audit_v1_20260519",
+  "artifact_type": "document_type_classifier_plan",
+  "canonical_truth_mutation": false,
+  "classifier_scope": "deterministic_sidecar_only",
+  "inputs": [
+    "source filename and title",
+    "ASX announcement title/source metadata when already available",
+    "first page text",
+    "Docling table captions",
+    "Docling table headers",
+    "strong row anchors such as Appendix line numbers and statement titles"
+  ],
+  "types": [
+    {
+      "document_type": "annual_report",
+      "signals": [
+        "annual report",
+        "financial report",
+        "consolidated financial statements",
+        "statement of profit or loss",
+        "statement of financial position",
+        "statement of cash flows",
+        "year ended",
+        "Appendix 4E when paired with full-year result language"
+      ],
+      "extraction_policy": "Select formal annual statement tables only in comparator artifacts; do not write canonical truth.",
+      "evidence_requirements": [
+        "source title or first page proves annual/full-year report",
+        "period end is explicit",
+        "currency and scale are explicit or deterministically detected",
+        "metric values bind to statement/table/page/row/column evidence"
+      ],
+      "abstain_conditions": [
+        "presentation-only or investor deck",
+        "no formal statement table anchors",
+        "ambiguous current-period column",
+        "conflicting currency or scale evidence"
+      ]
+    },
+    {
+      "document_type": "half_year_report",
+      "signals": [
+        "half-year report",
+        "half yearly report",
+        "interim financial report",
+        "Appendix 4D",
+        "1H",
+        "H1",
+        "half year ended"
+      ],
+      "extraction_policy": "Select Appendix 4D key-information rows plus formal interim statements as read-only candidates.",
+      "evidence_requirements": [
+        "half-year period type signal",
+        "period end",
+        "table-level unit evidence",
+        "metric row and current-period column"
+      ],
+      "abstain_conditions": [
+        "mixed announcement without formal statement pages",
+        "Appendix 4D title but missing numeric table anchors",
+        "metric appears only in narrative without table binding"
+      ]
+    },
+    {
+      "document_type": "appendix_4c",
+      "signals": [
+        "Appendix 4C",
+        "quarterly cash flow report",
+        "entities subject to Listing Rule 4.7B",
+        "net cash from operating activities",
+        "cash and cash equivalents at end of period"
+      ],
+      "extraction_policy": "Cashflow-only candidate artifacts. Income-statement and balance-sheet metrics remain expected-null unless separately explicit.",
+      "evidence_requirements": [
+        "Appendix 4C title or equivalent listing-rule anchor",
+        "current-quarter and year-to-date columns separated",
+        "currency and scale from header",
+        "line-item row/page evidence"
+      ],
+      "abstain_conditions": [
+        "4C vs 5B ambiguity",
+        "missing current-quarter column",
+        "receipts row proposed as accrual revenue",
+        "line labels cannot be mapped deterministically"
+      ]
+    },
+    {
+      "document_type": "appendix_4d",
+      "signals": [
+        "Appendix 4D",
+        "half-year report",
+        "results for announcement to the market",
+        "revenue from ordinary activities",
+        "profit from ordinary activities",
+        "net tangible assets",
+        "dividends"
+      ],
+      "extraction_policy": "Use Appendix 4D summary rows as candidates when they agree with formal interim statements or when row evidence is explicit and schema-supported.",
+      "evidence_requirements": [
+        "Appendix 4D header",
+        "half-year period end",
+        "current-period value column",
+        "explicit row labels for revenue/NPAT/cashflow statement metrics"
+      ],
+      "abstain_conditions": [
+        "summary percentage movement only",
+        "unsupported EPS/NTA/dividend-only metric",
+        "current-period vs prior-period ambiguity",
+        "derived net debt only"
+      ]
+    },
+    {
+      "document_type": "appendix_4e",
+      "signals": [
+        "Appendix 4E",
+        "preliminary final report",
+        "annual report",
+        "results for announcement to the market",
+        "year ended"
+      ],
+      "extraction_policy": "Use 4E summary and annual statements as read-only candidates, with formal statement table evidence preferred.",
+      "evidence_requirements": [
+        "Appendix 4E or full-year result anchor",
+        "annual period end",
+        "currency/scale unit evidence",
+        "metric row/table/page/column binding"
+      ],
+      "abstain_conditions": [
+        "preliminary announcement lacks statement tables",
+        "summary-only movement percentages",
+        "unsupported metric rows only",
+        "conflicting annual vs half-year period signals"
+      ]
+    },
+    {
+      "document_type": "appendix_5b",
+      "signals": [
+        "Appendix 5B",
+        "mining exploration entity or oil and gas exploration entity quarterly cash flow report",
+        "quarterly activities/Appendix 5B",
+        "line 1.9 net cash from operating activities",
+        "line-numbered sections 1 through 8",
+        "$A'000"
+      ],
+      "extraction_policy": "Line-item cashflow candidate artifacts only. Current-quarter and YTD columns must remain distinct. Do not map cash receipts to revenue.",
+      "evidence_requirements": [
+        "Appendix 5B page/title anchor",
+        "line number and label",
+        "current-quarter column label",
+        "currency and scale header",
+        "page/table/row binding"
+      ],
+      "abstain_conditions": [
+        "Appendix 5B line not visible",
+        "current-quarter/YTD columns collapse",
+        "line item crosses page without deterministic row continuation",
+        "metric not cashflow-line supported"
+      ]
+    },
+    {
+      "document_type": "other_asx_announcement",
+      "signals": [
+        "ASX announcement",
+        "media release",
+        "investor presentation",
+        "trading update",
+        "corporate update",
+        "timetable"
+      ],
+      "extraction_policy": "Default to abstain for deterministic parser artifacts unless formal statement or Appendix anchors are present.",
+      "evidence_requirements": [
+        "source title or first-page text identifies non-statement announcement",
+        "absence of formal Appendix/statement anchors is recorded"
+      ],
+      "abstain_conditions": [
+        "all normal cases unless a later task proves a precise document subtype",
+        "narrative-only metrics",
+        "no table-bound evidence"
+      ]
+    }
+  ],
+  "non_goals": [
+    "parser routing",
+    "prompt changes",
+    "gold-label changes",
+    "canonical writes",
+    "production coverage claims"
+  ]
+}

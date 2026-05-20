@@ -1,0 +1,98 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/asx_deterministic_extraction_extension_audit_v1_20260519.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/DATA_MISSING.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/comparator_artifact_plan.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/deterministic_parser_plan.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/document_type_classifier_plan.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/extension_point_inventory.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/no_regression_gate_map.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520.md",
+        "docs/agent_tasks/asx_deterministic_extraction_extension_audit_v1_20260519.md",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/README.md",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/extension_point_inventory.json",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/document_type_classifier_plan.json",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/deterministic_parser_plan.md",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/comparator_artifact_plan.md",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/no_regression_gate_map.json",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/DATA_MISSING.md",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/diff-check.json",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/status.json",
+        "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/",
+        "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/README.md",
+        "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/diff-check.json",
+        "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520/status.json"
+      ],
+      "approval_required": false,
+      "job_id": "asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
