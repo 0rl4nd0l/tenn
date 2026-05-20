@@ -1,0 +1,271 @@
+{
+  "contract_name": "tenn_eval_spine_ingestion_manifest_v1",
+  "contract_version": "2026-05-20",
+  "purpose": "Minimal normalized sidecar every future report/eval task should write so DuckDB can ingest runs without scraping prose.",
+  "file_name": "manifest.json",
+  "required_fields": [
+    "job_id",
+    "lane",
+    "mode",
+    "branch",
+    "head",
+    "worktree",
+    "task_card",
+    "output_dir",
+    "started_at",
+    "completed_at",
+    "validation_commands",
+    "changed_files",
+    "result_verdicts",
+    "data_missing",
+    "save_recommendation",
+    "source_artifact_references"
+  ],
+  "schema": {
+    "job_id": {
+      "type": "string",
+      "notes": "Must match task-card job_id and output_dir third path segment."
+    },
+    "lane": {
+      "type": "string",
+      "allowed_values": [
+        "Evaluation",
+        "Provenance",
+        "Reporting",
+        "Financial Truth",
+        "Query Orchestration",
+        "Memory"
+      ]
+    },
+    "supporting_lanes": {
+      "type": "array",
+      "items": "string",
+      "required": false
+    },
+    "mode": {
+      "type": "string",
+      "allowed_values": [
+        "audit_only",
+        "safe_extension",
+        "blocked",
+        "design_only"
+      ]
+    },
+    "production_data_access": {
+      "type": "boolean",
+      "required": true
+    },
+    "branch": {
+      "type": "string"
+    },
+    "head": {
+      "type": "string",
+      "notes": "Prefer 12-character short SHA in reports and full SHA when easily available."
+    },
+    "base_head": {
+      "type": "string",
+      "required": false
+    },
+    "worktree": {
+      "type": "string"
+    },
+    "runtime_worktree": {
+      "type": "string",
+      "required": false
+    },
+    "task_card": {
+      "type": "object",
+      "required_keys": [
+        "path",
+        "sha256",
+        "validation_ok"
+      ],
+      "properties": {
+        "path": "string",
+        "sha256": "string",
+        "validation_ok": "boolean",
+        "validation_issues": "array"
+      }
+    },
+    "output_dir": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifact_family": {
+      "type": "string",
+      "examples": [
+        "gold_metric_coverage",
+        "appendix5b_approval_packet",
+        "runtime_smoke",
+        "route_parity",
+        "source_label_check",
+        "memory_audit",
+        "news_trace"
+      ]
+    },
+    "runtime_metadata": {
+      "type": "object",
+      "required": false,
+      "properties": {
+        "runtime_surface": "string",
+        "runtime_target": "string",
+        "endpoint_url": "string",
+        "model_label": "string",
+        "model_path": "string",
+        "gpu_name": "string",
+        "gpu_uuid": "string",
+        "parser_backend": "string",
+        "strict_method": "boolean",
+        "prompt_hash": "string"
+      }
+    },
+    "scorecards": {
+      "type": "array",
+      "required": false,
+      "items": {
+        "profile": "string",
+        "version": "string",
+        "is_canonical": "boolean",
+        "kpi_eligible": "boolean",
+        "document_count": "integer",
+        "metric_check_count": "integer",
+        "eligible_metric_count": "integer",
+        "candidate_count": "integer",
+        "ambiguous_count": "integer",
+        "unsupported_count": "integer",
+        "data_missing_count": "integer",
+        "pass_fail_status": "string",
+        "source_artifact": "string",
+        "overclaim_guard": "string"
+      }
+    },
+    "validation_commands": {
+      "type": "array",
+      "items": {
+        "command": "string",
+        "cwd": "string",
+        "result": "string",
+        "exit_code": "integer_or_null",
+        "notes": "string"
+      }
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "path": "string",
+        "status": "string",
+        "allowed_by_task_card": "boolean"
+      }
+    },
+    "result_verdicts": {
+      "type": "array",
+      "items": {
+        "verdict": "string",
+        "truth_status": "string",
+        "confidence": "string",
+        "notes": "string"
+      }
+    },
+    "data_missing": {
+      "type": "array",
+      "items": {
+        "code": "string",
+        "class": "string",
+        "description": "string",
+        "blocked_by_policy": "boolean",
+        "blocked_by_environment": "boolean",
+        "expected_empty_state": "boolean",
+        "source_artifact": "string"
+      }
+    },
+    "save_recommendation": {
+      "type": "string",
+      "allowed_values": [
+        "SAVE_RECOMMENDED",
+        "NO_SAVE_NEEDED",
+        "SAVE_DEFERRED",
+        "DATA_MISSING"
+      ]
+    },
+    "source_artifact_references": {
+      "type": "array",
+      "items": {
+        "path": "string",
+        "artifact_type": "string",
+        "sha256": "string_or_null",
+        "schema": "string_or_null",
+        "notes": "string"
+      }
+    },
+    "do_not_do": {
+      "type": "array",
+      "items": "string"
+    }
+  },
+  "normalization_rules": [
+    "A manifest must represent missing evidence as data_missing rows, not by omitting fields silently.",
+    "canonical_core, expanded_required, and confirmed_metric_coverage must never be merged into one unnamed accuracy number.",
+    "Expected 404 routes and expected empty states must be classified explicitly and must not be counted as failures.",
+    "Memory context rows must be labelled memory_integrity or source_label_semantics, not Financial Truth.",
+    "Live-data probes must set production_data_access=true even if opened read-only; audit-only static jobs should keep false.",
+    "Status files can seed registry fields, but current list-active output remains authoritative for live lock status."
+  ],
+  "minimal_example": {
+    "job_id": "example_eval_job_v1",
+    "lane": "Evaluation",
+    "mode": "audit_only",
+    "production_data_access": false,
+    "branch": "audit/example",
+    "head": "abc123def456",
+    "worktree": "/home/l4nd0/example",
+    "task_card": {
+      "path": "docs/agent_tasks/example_eval_job_v1.md",
+      "sha256": "DATA_MISSING",
+      "validation_ok": true,
+      "validation_issues": []
+    },
+    "output_dir": "reports/agent_jobs/example_eval_job_v1",
+    "started_at": "2026-05-20T00:00:00Z",
+    "completed_at": "2026-05-20T00:05:00Z",
+    "artifact_family": "gold_metric_coverage",
+    "validation_commands": [
+      {
+        "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/example_eval_job_v1.md",
+        "cwd": "/home/l4nd0/example",
+        "result": "PASS",
+        "exit_code": 0,
+        "notes": ""
+      }
+    ],
+    "changed_files": [],
+    "result_verdicts": [
+      {
+        "verdict": "EVALUATION_SPINE_READY_FOR_DESIGN",
+        "truth_status": "DUCKDB_SAFE_OFFLINE",
+        "confidence": "high",
+        "notes": "Report-only artifact."
+      }
+    ],
+    "data_missing": [],
+    "save_recommendation": "SAVE_RECOMMENDED",
+    "source_artifact_references": [
+      {
+        "path": "reports/agent_jobs/example_eval_job_v1/scorecard.json",
+        "artifact_type": "scorecard",
+        "sha256": null,
+        "schema": "scorecard_results",
+        "notes": ""
+      }
+    ],
+    "do_not_do": [
+      "Do not add this manifest reader to backend request paths."
+    ]
+  }
+}

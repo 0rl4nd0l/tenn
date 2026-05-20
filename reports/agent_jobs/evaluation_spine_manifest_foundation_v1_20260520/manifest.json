@@ -1,0 +1,483 @@
+{
+  "base_head": null,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "changed_files": [
+    {
+      "allowed_by_task_card": true,
+      "path": "docs/agent_tasks/evaluation_spine_duckdb_schema_audit_v1_20260520.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "docs/evaluation_spine_manifest_contract.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/DATA_MISSING.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/README.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/artifact_family_inventory.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/data_missing_and_degraded_state_model.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/diff-check.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/implementation_roadmap.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/ingestion_manifest_contract.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/proposed_duckdb_schema.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/proposed_duckdb_schema.sql",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/scorecard_dimension_model.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/status.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/validation.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/README.md",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/diff-check.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/status.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/validation.json",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "scripts/reporting/eval_spine_ingest.py",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "scripts/reporting/eval_spine_manifest.py",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "scripts/reporting/eval_spine_schema.sql",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "scripts/reporting/test_eval_spine_ingest.py",
+      "status": "A"
+    },
+    {
+      "allowed_by_task_card": true,
+      "path": "scripts/reporting/test_eval_spine_manifest.py",
+      "status": "A"
+    }
+  ],
+  "completed_at": "2026-05-20T04:09:11.731236Z",
+  "data_missing": [
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "code": "missing_head",
+      "description": "head was not found in task card, status.json, diff-check.json, validation.json, or README top-level lines.",
+      "expected_empty_state": false,
+      "field": "head",
+      "source_artifact": "manifest_generator"
+    },
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "code": "missing_base_head",
+      "description": "base_head was not found in task card, status.json, diff-check.json, validation.json, or README top-level lines.",
+      "expected_empty_state": false,
+      "field": "base_head",
+      "source_artifact": "manifest_generator"
+    },
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "code": "missing_save_recommendation",
+      "description": "save_recommendation was not found in task card, status.json, diff-check.json, validation.json, or README top-level lines.",
+      "expected_empty_state": false,
+      "field": "save_recommendation",
+      "source_artifact": "manifest_generator"
+    }
+  ],
+  "degraded_states": [],
+  "do_not_overclaim": [
+    "canonical_core must not be presented as broad production extraction coverage",
+    "Direct runtime stability must not imply Cockpit route stability",
+    "Memory context must not become financial truth",
+    "canonical_core does not prove broad ASX production extraction coverage",
+    "Production-data access must be explicit and scoped"
+  ],
+  "extras": {
+    "diff_check": {
+      "issues": [],
+      "ok": true,
+      "report_path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/diff-check.json"
+    },
+    "status": {
+      "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/evaluation_spine_manifest_foundation_v1_20260520.json",
+      "agent": "Codex",
+      "allowed_files": [
+        "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+        "docs/agent_tasks/evaluation_spine_duckdb_schema_audit_v1_20260520.md",
+        "docs/evaluation_spine_manifest_contract.md",
+        "scripts/reporting/eval_spine_manifest.py",
+        "scripts/reporting/eval_spine_ingest.py",
+        "scripts/reporting/eval_spine_schema.sql",
+        "scripts/reporting/test_eval_spine_manifest.py",
+        "scripts/reporting/test_eval_spine_ingest.py",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/README.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/artifact_family_inventory.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/proposed_duckdb_schema.sql",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/proposed_duckdb_schema.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/ingestion_manifest_contract.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/scorecard_dimension_model.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/data_missing_and_degraded_state_model.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/implementation_roadmap.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/DATA_MISSING.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/validation.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/diff-check.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/status.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/README.md",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/status.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/validation.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/diff-check.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json"
+      ],
+      "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+      "heartbeat_at": "2026-05-20T03:54:55.404975Z",
+      "last_seen_at": "2026-05-20T04:09:11.731236Z",
+      "owner": "Codex",
+      "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+      "registry_scope": "shared",
+      "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "schema_version": 1,
+      "session_id": "l4nd0-System-Product-Name:2859495:evaluation_spine_manifest_foundation_v1_20260520",
+      "task_card": "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md"
+    },
+    "task_card": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+        "docs/agent_tasks/evaluation_spine_duckdb_schema_audit_v1_20260520.md",
+        "docs/evaluation_spine_manifest_contract.md",
+        "scripts/reporting/eval_spine_manifest.py",
+        "scripts/reporting/eval_spine_ingest.py",
+        "scripts/reporting/eval_spine_schema.sql",
+        "scripts/reporting/test_eval_spine_manifest.py",
+        "scripts/reporting/test_eval_spine_ingest.py",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/README.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/artifact_family_inventory.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/proposed_duckdb_schema.sql",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/proposed_duckdb_schema.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/ingestion_manifest_contract.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/scorecard_dimension_model.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/data_missing_and_degraded_state_model.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/implementation_roadmap.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/DATA_MISSING.md",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/validation.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/diff-check.json",
+        "reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520/status.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/README.md",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/status.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/validation.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/diff-check.json",
+        "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json"
+      ],
+      "approval_required": false,
+      "owner": "Codex",
+      "timeout_seconds": 7200
+    },
+    "validation": {
+      "duckdb_available": false,
+      "production_data_access": false,
+      "status": "validation_passed_with_duckdb_execution_skipped"
+    }
+  },
+  "generated_at": "2026-05-20T04:09:38.928966Z",
+  "head": null,
+  "job_id": "evaluation_spine_manifest_foundation_v1_20260520",
+  "lane": "Evaluation",
+  "manifest_version": "evaluation_spine_manifest_v1",
+  "mode": "safe_extension",
+  "output_dir": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520",
+  "production_data_access": false,
+  "save_recommendation": null,
+  "scorecards": [],
+  "source_artifacts": [
+    {
+      "artifact_type": "task_card",
+      "notes": "",
+      "path": "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "sha256": "dcaf6b79d8133a2bf795afc043959d4d9fde23314c94d8e32c77ad9d0425a197"
+    },
+    {
+      "artifact_type": "status_json",
+      "notes": "",
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/status.json",
+      "sha256": "5cb8a2054e6b4d463c6c90033ad1384b8eba8620e8febac7a8827d8b692d842a"
+    },
+    {
+      "artifact_type": "diff_check_json",
+      "notes": "",
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/diff-check.json",
+      "sha256": "63b4628578529f101759c833be38c5bc51fee4857b70934de44dbaf5e868f19f"
+    },
+    {
+      "artifact_type": "validation_json",
+      "notes": "",
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/validation.json",
+      "sha256": "2b6466a404606d66aa4feaea7305e2de7ba13426f427fbe148dc4915255ae020"
+    },
+    {
+      "artifact_type": "readme",
+      "notes": "",
+      "path": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/README.md",
+      "sha256": "da120c381f64cac6736333267007da9d67b317038aba15b155b7d7fb3ceb3c15"
+    }
+  ],
+  "started_at": "2026-05-20T03:54:55.404975Z",
+  "status": "released",
+  "supporting_lanes": [],
+  "task_card": {
+    "path": "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+    "sha256": "dcaf6b79d8133a2bf795afc043959d4d9fde23314c94d8e32c77ad9d0425a197",
+    "validation_issues": [],
+    "validation_ok": null
+  },
+  "validation_commands": [
+    {
+      "command": "readlink -f /home/l4nd0/tenn-runtime",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git branch --show-current",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git rev-parse --short=12 HEAD",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "fa776ce93f99"
+    },
+    {
+      "command": "git status --short",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "initial status clean"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root /home/l4nd0/tenn-runtime",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok; active_jobs=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md --repo-root /home/l4nd0/tenn-runtime",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md --repo-root /home/l4nd0/tenn-runtime",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "uv run --with pytest python -m pytest scripts/reporting/test_eval_spine_manifest.py scripts/reporting/test_eval_spine_ingest.py",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "9 passed, 1 skipped, 1 warning"
+    },
+    {
+      "command": "python3 -m compileall scripts/reporting",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py --help",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --help",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 -c \"import duckdb; print(duckdb.__version__)\"",
+      "cwd": null,
+      "exit_code": 1,
+      "notes": null,
+      "result": "ModuleNotFoundError: No module named 'duckdb'"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py build --task-card docs/agent_tasks/evaluation_spine_duckdb_schema_audit_v1_20260520.md --report-dir reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520 --out /tmp/evaluation_spine_audit_manifest.json",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py validate /tmp/evaluation_spine_audit_manifest.json",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py build --task-card docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md --report-dir reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520 --out reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py validate reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --db /tmp/evaluation_spine_audit.duckdb /tmp/evaluation_spine_audit_manifest.json",
+      "cwd": null,
+      "exit_code": 2,
+      "notes": null,
+      "result": "graceful missing-DuckDB exit"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --db unsafe.duckdb /tmp/evaluation_spine_audit_manifest.json",
+      "cwd": null,
+      "exit_code": 1,
+      "notes": null,
+      "result": "unsafe path refused"
+    },
+    {
+      "command": "git diff --check",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "git diff --cached --check",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release evaluation_spine_manifest_foundation_v1_20260520 --repo-root /home/l4nd0/tenn-runtime",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root /home/l4nd0/tenn-runtime",
+      "cwd": null,
+      "exit_code": 0,
+      "notes": null,
+      "result": "ok; active_jobs=[]"
+    }
+  ],
+  "verdicts": [],
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

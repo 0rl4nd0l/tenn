@@ -1,0 +1,240 @@
+{
+  "model_name": "tenn_eval_spine_scorecard_dimension_model_v1",
+  "version": "2026-05-20",
+  "purpose": "Make every evaluation result state its scorecard/profile scope so Tenn does not overclaim canonical results.",
+  "global_rules": [
+    "Every score must include scorecard_profile, document_count, metric_check_count, and source artifact path.",
+    "canonical_core is a no-regression profile only and must not be presented as broad production extraction coverage.",
+    "expanded_required is broader than canonical_core but still limited to the current required real-gold subset.",
+    "confirmed_metric_coverage is a breadth profile and must keep candidate, ambiguous, unsupported, and DATA_MISSING counts separate from extractor failures.",
+    "Runtime, route, source-label, memory, news, UI, and feedback profiles are not Financial Truth scorecards unless their source evidence and semantics explicitly say so."
+  ],
+  "dimensions": [
+    {
+      "profile": "canonical_core",
+      "lane": "Evaluation",
+      "scope": "strict stable no-regression anchor",
+      "current_evidence": {
+        "source": "gold_metric_coverage_audit_v1_20260519 and extraction_gold_eval_scorecard.py",
+        "document_count": 10,
+        "metric_check_count": 24,
+        "metric_families": [
+          "revenue",
+          "operating_cash_flow",
+          "net_debt"
+        ]
+      },
+      "may_claim": "canonical_core passed for the strict canonical subset only",
+      "must_not_claim": "production extraction coverage, broad ASX generalization, Tier 2/Tier 3 metric coverage, parser superiority, or live runtime reliability",
+      "first_class_fields": [
+        "profile",
+        "is_canonical",
+        "document_count",
+        "metric_check_count",
+        "metric_accuracy",
+        "context_accuracy",
+        "trust_matches_expected",
+        "kpi_eligible",
+        "non_canonical_reasons"
+      ]
+    },
+    {
+      "profile": "expanded_required",
+      "lane": "Evaluation",
+      "scope": "current full real-gold required subset",
+      "current_evidence": {
+        "source": "gold_metric_coverage_audit_v1_20260519 and extraction_gold_eval_scorecard.py",
+        "document_count": 15,
+        "metric_check_count": 39,
+        "metric_families": [
+          "revenue",
+          "operating_cash_flow",
+          "net_debt"
+        ]
+      },
+      "may_claim": "expanded_required passed for the current required-metric subset",
+      "must_not_claim": "all schema-supported metrics, all production-relevant metrics, confirmed coverage for EBIT/NPAT/capex/cash/shares, or canonical KPI status unless policy allows",
+      "first_class_fields": [
+        "profile",
+        "document_count",
+        "metric_check_count",
+        "required_metric_failures",
+        "context_failures",
+        "fixture_manifest_hash",
+        "non_canonical_reason"
+      ]
+    },
+    {
+      "profile": "confirmed_metric_coverage",
+      "lane": "Evaluation",
+      "scope": "production-relevant breadth over confirmed source-evidenced schema-supported metrics",
+      "current_evidence": {
+        "source": "gold_metric_coverage_audit_v1_20260519 scorecard_proposal.json",
+        "fixture_count": 15,
+        "total_expectations": 146,
+        "eligible_confirmed_count": 73,
+        "candidate_review_required_count": 70,
+        "ambiguous_count": 3,
+        "unsupported_count": 0
+      },
+      "may_claim": "confirmed_metric_coverage reports breadth over confirmed schema-supported evidence",
+      "must_not_claim": "candidate rows are extractor failures, ambiguous rows are scored, or confirmed coverage changes canonical trust semantics",
+      "first_class_fields": [
+        "eligible_confirmed_count",
+        "candidate_review_required_count",
+        "ambiguous_count",
+        "unsupported_count",
+        "data_missing_count",
+        "correct_count",
+        "wrong_count",
+        "missing_count",
+        "coverage_accuracy",
+        "trust_accuracy"
+      ]
+    },
+    {
+      "profile": "runtime_smoke",
+      "lane": "Query Orchestration",
+      "scope": "runtime/model/API health and bounded smoke behavior",
+      "current_evidence": {
+        "source": "APEX/M40 runtime stability and direct soak reports",
+        "known_profiles": [
+          "APEX_M40_DIRECT_STABLE",
+          "APEX_M40_DEGRADED"
+        ]
+      },
+      "may_claim": "direct local llama.cpp tiny prompt stability when the artifact proves it",
+      "must_not_claim": "Cockpit chat stability, long-context stability, extraction quality, or financial correctness from direct runtime smoke",
+      "first_class_fields": [
+        "runtime_surface",
+        "runtime_target",
+        "model_label",
+        "endpoint_url",
+        "gpu_name",
+        "request_count",
+        "pass_count",
+        "latency",
+        "token_counts",
+        "degraded",
+        "verdict"
+      ]
+    },
+    {
+      "profile": "route_parity",
+      "lane": "Reporting",
+      "scope": "route ownership and expected response semantics",
+      "current_evidence": {
+        "source": "route_parity_home_news_status_audit_v1_20260519"
+      },
+      "may_claim": "a route is BFF-owned, backend-owned, intentionally absent, expected 404, or stale expectation",
+      "must_not_claim": "missing endpoint equals product failure when current contract says expected absent",
+      "first_class_fields": [
+        "route_path",
+        "route_owner",
+        "expected_status_code",
+        "actual_status_code",
+        "classification",
+        "expected_presence",
+        "observed_presence"
+      ]
+    },
+    {
+      "profile": "source_label_semantics",
+      "lane": "Provenance",
+      "scope": "source label, no-hit, missing evidence, and verified-support behavior",
+      "current_evidence": {
+        "source": "A2M trace and Cockpit chat source guard reports"
+      },
+      "may_claim": "source labels were preserved or missing evidence was honestly surfaced for the checked path",
+      "must_not_claim": "claim_verified when evidence is only memory_context/context_only or when source matching is missing",
+      "first_class_fields": [
+        "surface",
+        "source_coverage_status",
+        "missing_required_evidence",
+        "no_hit",
+        "context_only",
+        "claim_verified",
+        "guard_action"
+      ]
+    },
+    {
+      "profile": "memory_integrity",
+      "lane": "Memory",
+      "scope": "memory contamination, duplicate/fanout inventory, and surfacing risk",
+      "current_evidence": {
+        "source": "memory contamination root-cause and live inventory reports"
+      },
+      "may_claim": "active contamination counts, duplicate/fanout counts, cleanup readiness, and untrusted-memory risk when read-only live inventory proves them",
+      "must_not_claim": "memory context is financial truth or a source-verified financial claim",
+      "first_class_fields": [
+        "row_total",
+        "active_row_count",
+        "duplicate_cluster_count",
+        "source_fanout_cluster_count",
+        "manual_review_active_count",
+        "untrusted_memory",
+        "cleanup_readiness"
+      ]
+    },
+    {
+      "profile": "news_retrieval_trace",
+      "lane": "Query Orchestration",
+      "scope": "news ingestion to retrieval to source-label path trace",
+      "current_evidence": {
+        "source": "A2M news trace audit and active A2M live-trace task context"
+      },
+      "may_claim": "static or live trace status per stage when artifacts prove it",
+      "must_not_claim": "live Qdrant/news SQLite state from static-only code inspection",
+      "first_class_fields": [
+        "ticker",
+        "trace_scope",
+        "ingestion_status",
+        "entity_link_status",
+        "sqlite_status",
+        "qdrant_status",
+        "rag_query_status",
+        "backend_chat_status",
+        "no_hit",
+        "missing_required_evidence"
+      ]
+    },
+    {
+      "profile": "UI_feature_honesty",
+      "lane": "Reporting",
+      "scope": "UI/BFF representation of partial, missing, expected empty, or unavailable features",
+      "current_evidence": {
+        "source": "Cockpit Home missing producers and route parity reports"
+      },
+      "may_claim": "UI honestly exposes PARTIAL, DATA_MISSING, expected empty states, and route ownership",
+      "must_not_claim": "a section is ready when it uses mock data, stale docs, or absent producer output",
+      "first_class_fields": [
+        "surface",
+        "data_state",
+        "data_missing_codes",
+        "degraded",
+        "expected_empty_state",
+        "producer_status"
+      ]
+    },
+    {
+      "profile": "feedback_quality",
+      "lane": "Reporting",
+      "scope": "future operator feedback and auto-diagnostic quality labels",
+      "current_evidence": {
+        "source": "visible reports/cockpit artifact plus Cockpit chat side-effect audit",
+        "status": "future_contract_needed"
+      },
+      "may_claim": "feedback artifacts exist or are pending normalization",
+      "must_not_claim": "automatic score from sparse feedback or auto-diagnostic flags",
+      "first_class_fields": [
+        "feedback_source",
+        "feedback_type",
+        "operator_label",
+        "auto_diagnostic",
+        "evidence_attachment_count",
+        "quality_signal",
+        "data_missing"
+      ]
+    }
+  ]
+}

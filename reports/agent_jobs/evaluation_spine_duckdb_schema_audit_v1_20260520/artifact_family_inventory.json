@@ -1,0 +1,271 @@
+{
+  "job_id": "evaluation_spine_duckdb_schema_audit_v1_20260520",
+  "generated_at_utc": "2026-05-20T03:08:00Z",
+  "repo": {
+    "worktree": "/home/l4nd0/tenn-evaluation-spine-duckdb-audit-v1-20260520",
+    "branch": "audit/evaluation-spine-duckdb-schema-v1-20260520",
+    "head": "669bff1c7e4f",
+    "base_runtime_worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "summary_counts": {
+    "reports_json_files_maxdepth_3": 218,
+    "agent_job_json_files_maxdepth_2": 201,
+    "agent_job_readme_files_maxdepth_2": 82,
+    "agent_job_status_json_files_maxdepth_2": 70,
+    "agent_job_diff_check_json_files_maxdepth_2": 80
+  },
+  "families": [
+    {
+      "family_name": "extraction_canonical_and_real_gold_eval",
+      "lane": "Evaluation",
+      "examples_paths": [
+        "docs/architecture/12_evaluation_and_drift_monitoring.md",
+        "scripts/run_real_extraction_eval.py",
+        "scripts/analyze_real_extraction_eval_duckdb.py",
+        "scripts/run_real_extraction_eval_mlflow.py",
+        "financial-engine_v2/backend/tests/eval_config.json",
+        "financial-engine_v2/data/extraction_gold_real/*.json"
+      ],
+      "current_file_types": ["json", "csv", "markdown", "python"],
+      "machine_readable": "no",
+      "contains_branch_head": false,
+      "contains_task_card": false,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Code already emits summary JSON, canonical scorecard JSON, per-document CSV, per-metric CSV, and trust-trigger CSV, and an in-memory DuckDB analyzer exists. Current expected report outputs are missing from this checkout, so historical ingestion needs DATA_MISSING rows unless artifacts are found elsewhere."
+    },
+    {
+      "family_name": "gold_metric_coverage",
+      "lane": "Evaluation",
+      "examples_paths": [
+        "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/README.md",
+        "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/corpus_inventory.json",
+        "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/metric_inventory.json",
+        "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/scorecard_proposal.json",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "current_file_types": ["json", "markdown", "python"],
+      "machine_readable": "yes",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "ready",
+      "notes": "Best immediate DuckDB seed. The scorecard proposal cleanly separates canonical_core, expanded_required, and confirmed_metric_coverage and explicitly blocks broad production coverage claims."
+    },
+    {
+      "family_name": "appendix5b_approval_packets",
+      "lane": "Financial Truth",
+      "examples_paths": [
+        "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/README.md",
+        "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/approval_packet.json",
+        "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/candidate_inventory.json",
+        "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/status.json"
+      ],
+      "current_file_types": ["json", "markdown"],
+      "machine_readable": "yes",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "ready",
+      "notes": "Approval packet fields are highly structured: ticker, period, metric, expected value, page references, source PDF hash, canonical_write=false, gate status, and selected evidence."
+    },
+    {
+      "family_name": "asx_deterministic_extraction_design",
+      "lane": "Financial Truth",
+      "examples_paths": [
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/README.md",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/extension_point_inventory.json",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/document_type_classifier_plan.json",
+        "reports/agent_jobs/asx_deterministic_extraction_extension_audit_v1_20260519/no_regression_gate_map.json"
+      ],
+      "current_file_types": ["json", "markdown"],
+      "machine_readable": "yes",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": false,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Structured design JSON exists and should be indexed as design artifacts rather than scored evaluation results. Manifest needs to identify these as comparator/roadmap artifacts, not metric-run outputs."
+    },
+    {
+      "family_name": "nvme_runtime_validation",
+      "lane": "Evaluation",
+      "examples_paths": [
+        "reports/agent_jobs/nvme_runtime_audit_artifact_checkpoint_v1_20260519/README.md",
+        "reports/agent_jobs/nvme2_binding_switch_v1_20260518/*.json",
+        "reports/agent_jobs/nvme_full_system_functionality_v1_20260518/*.json",
+        "reports/agent_jobs/nvme_data_binding_readiness_v1_20260517/*.json"
+      ],
+      "current_file_types": ["json", "markdown", "txt", "log", "shell"],
+      "machine_readable": "no",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Some NVMe runs have strong JSON probes such as binding_changes, target_visibility, post_binding_validation, and limited_smoke_or_plan. Larger functionality reports contain many log/txt artifacts that need manifest classification before ingestion."
+    },
+    {
+      "family_name": "apex_m40_runtime",
+      "lane": "Query Orchestration",
+      "examples_paths": [
+        "reports/agent_jobs/apex_m40_runtime_stability_audit_v1_20260519/README.md",
+        "reports/agent_jobs/apex_m40_direct_runtime_soak_audit_v1_20260519/README.md",
+        "reports/agent_jobs/apex_m40_direct_runtime_soak_audit_v1_20260519/diff-check.json"
+      ],
+      "current_file_types": ["markdown", "json"],
+      "machine_readable": "no",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Direct soak metrics are in Markdown tables, not normalized JSON. They should be represented through runtime_smokes with explicit scope labels such as direct_local_tiny_prompt and cockpit_route_excluded."
+    },
+    {
+      "family_name": "cockpit_route_and_home",
+      "lane": "Reporting",
+      "examples_paths": [
+        "reports/agent_jobs/route_parity_home_news_status_audit_v1_20260519/README.md",
+        "reports/agent_jobs/cockpit_home_missing_producers_audit_v1_20260519/README.md",
+        "reports/agent_jobs/cockpit_route_validation_pass_v1_20260513/route_validation_matrix.md",
+        "financial-engine_v2/backend/tests/test_route_parity_contract.py"
+      ],
+      "current_file_types": ["markdown", "json", "python"],
+      "machine_readable": "no",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Route ownership and Home producer state are currently expressed in Markdown tables. Ingestion should preserve route_expected_404 and expected_empty_state separately from failures."
+    },
+    {
+      "family_name": "cockpit_chat_source_guard",
+      "lane": "Query Orchestration",
+      "examples_paths": [
+        "reports/agent_jobs/cockpit_chat_orchestration_side_effect_audit_v1_20260519/README.md",
+        "reports/agent_jobs/cockpit_chat_control_prompt_guard_tests_v1_20260519/README.md",
+        "reports/agent_jobs/cockpit_chat_control_prompt_guard_integration_v1_20260519/README.md"
+      ],
+      "current_file_types": ["markdown", "json"],
+      "machine_readable": "no",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Source guard behavior needs first-class dimensions for source_coverage_status, missing_required_evidence, no_hit, control_literal_guard_only, and route smoke side effects. Do not collapse route safety refusals into runtime model failures."
+    },
+    {
+      "family_name": "memory_contamination",
+      "lane": "Memory",
+      "examples_paths": [
+        "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/README.md",
+        "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/memory_store_inventory.json",
+        "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/surfacing_risk_matrix.json",
+        "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/active_contamination_summary.json",
+        "reports/agent_jobs/memory_contamination_live_inventory_readonly_v1_20260519/schema_inventory.json"
+      ],
+      "current_file_types": ["json", "csv", "markdown"],
+      "machine_readable": "yes",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "ready",
+      "notes": "Live inventory is structured and can seed memory_audit_results immediately. Ingestion must mark untrusted_memory and must not merge memory context truth with financial truth."
+    },
+    {
+      "family_name": "a2m_news_trace_and_retrieval_parity",
+      "lane": "Query Orchestration",
+      "examples_paths": [
+        "reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/README.md",
+        "reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/a2m_trace_map.json",
+        "reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/source_label_risk_matrix.json",
+        "reports/a2m_ticker_news_retrieval_selection_20260506_141455/03_retrieval_selection_contract.md"
+      ],
+      "current_file_types": ["json", "markdown"],
+      "machine_readable": "yes",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "ready",
+      "notes": "Static trace JSON is ready. Live trace artifacts from the active A2M job must not be read or imported until that job releases and its report is explicitly selected for offline ingestion."
+    },
+    {
+      "family_name": "task_registry_and_diff_checks",
+      "lane": "Reporting",
+      "examples_paths": [
+        "docs/agent_tasks/*.md",
+        "reports/agent_jobs/*/status.json",
+        "reports/agent_jobs/*/diff-check.json",
+        "scripts/agent_job_contract.py",
+        "scripts/agent_job_registry.py"
+      ],
+      "current_file_types": ["json", "markdown", "python"],
+      "machine_readable": "yes",
+      "contains_branch_head": true,
+      "contains_task_card": true,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "ready",
+      "notes": "This is the primary run envelope source. Caveat: historical status.json files can contain stale active statuses after commit; current registry list-active is authoritative for live locks."
+    },
+    {
+      "family_name": "rag_stability_and_canonical_regression",
+      "lane": "Evaluation",
+      "examples_paths": [
+        "docs/architecture/12_evaluation_and_drift_monitoring.md",
+        "docs/validation_baseline.md",
+        "reports/rag_stability/*.json",
+        "reports/baselines/canonical_eval_baseline_latest.json",
+        "reports/news_eval_report.json",
+        "reports/company_eval_report_v2.json",
+        "reports/eval_queries_report.json"
+      ],
+      "current_file_types": ["markdown", "json"],
+      "machine_readable": "no",
+      "contains_branch_head": false,
+      "contains_task_card": false,
+      "contains_validation_commands": true,
+      "contains_pass_fail_metrics": true,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Docs define stable expected artifacts, but the canonical baseline/news/company/eval report JSON files were missing in this checkout. Ingest only when present and tagged with branch/head/runtime profile."
+    },
+    {
+      "family_name": "future_feedback_and_auto_diagnostic",
+      "lane": "Reporting",
+      "examples_paths": [
+        "reports/cockpit/browser_regression_route_parity_20260504T145500.md",
+        "reports/cockpit/flagged_sessions/",
+        "reports/agent_jobs/cockpit_chat_orchestration_side_effect_audit_v1_20260519/README.md"
+      ],
+      "current_file_types": ["markdown"],
+      "machine_readable": "no",
+      "contains_branch_head": false,
+      "contains_task_card": false,
+      "contains_validation_commands": false,
+      "contains_pass_fail_metrics": false,
+      "contains_data_missing": true,
+      "duckdb_readiness": "needs_manifest",
+      "notes": "Feedback artifacts are visible as a future family but are not currently normalized. Automatic scoring from sparse feedback must be blocked until a contract distinguishes operator feedback, auto-diagnostic flags, and eval-quality labels."
+    }
+  ]
+}

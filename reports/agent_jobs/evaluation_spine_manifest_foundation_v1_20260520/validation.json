@@ -1,0 +1,127 @@
+{
+  "commands": [
+    {
+      "command": "readlink -f /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git branch --show-current",
+      "exit_code": 0,
+      "result": "migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git rev-parse --short=12 HEAD",
+      "exit_code": 0,
+      "result": "fa776ce93f99"
+    },
+    {
+      "command": "git status --short",
+      "exit_code": 0,
+      "result": "initial status clean"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok; active_jobs=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "uv run --with pytest python -m pytest scripts/reporting/test_eval_spine_manifest.py scripts/reporting/test_eval_spine_ingest.py",
+      "exit_code": 0,
+      "result": "9 passed, 1 skipped, 1 warning"
+    },
+    {
+      "command": "python3 -m compileall scripts/reporting",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py --help",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --help",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 -c \"import duckdb; print(duckdb.__version__)\"",
+      "exit_code": 1,
+      "result": "ModuleNotFoundError: No module named 'duckdb'"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py build --task-card docs/agent_tasks/evaluation_spine_duckdb_schema_audit_v1_20260520.md --report-dir reports/agent_jobs/evaluation_spine_duckdb_schema_audit_v1_20260520 --out /tmp/evaluation_spine_audit_manifest.json",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py validate /tmp/evaluation_spine_audit_manifest.json",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py build --task-card docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md --report-dir reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520 --out reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py validate reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520/manifest.json",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --db /tmp/evaluation_spine_audit.duckdb /tmp/evaluation_spine_audit_manifest.json",
+      "exit_code": 2,
+      "result": "graceful missing-DuckDB exit"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --db unsafe.duckdb /tmp/evaluation_spine_audit_manifest.json",
+      "exit_code": 1,
+      "result": "unsafe path refused"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release evaluation_spine_manifest_foundation_v1_20260520 --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok; active_jobs=[]"
+    }
+  ],
+  "duckdb_available": false,
+  "production_data_access": false,
+  "status": "validation_passed_with_duckdb_execution_skipped"
+}
