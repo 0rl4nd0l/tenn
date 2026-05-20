@@ -1,0 +1,58 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/asx_document_type_fixture_contract_integration_v1_20260520.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_framework_v1_20260520.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/asx_document_type_fixture_contract_integration_v1_20260520.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/asx_document_type_fixture_contract_integration_v1_20260520.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_quantdinger_framework_v1_20260520.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/README.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/artifact_schema_v1.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/task_card_outlines.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/diff-check.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/status.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/strategy_lab_quantdinger_framework_v1_20260520_reports.zip",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_00_preflight.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_01_tenn_surface_map.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_02_quantdinger_fit.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_03_artifact_contract.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_04_mcp_runtime_policy.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_05_strategy_lab_ux.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_06_autonomous_value_loops.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_07_runtime_compatibility.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520/checkpoints/checkpoint_08_implementation_backlog.md"
+      ],
+      "approval_required": false,
+      "job_id": "strategy_lab_quantdinger_framework_v1_20260520",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/strategy_lab_quantdinger_framework_v1_20260520",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
