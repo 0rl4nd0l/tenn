@@ -1,0 +1,108 @@
+{
+  "commands": [
+    {
+      "command": "readlink -f /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git branch --show-current",
+      "exit_code": 0,
+      "result": "migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    {
+      "command": "git rev-parse --short=12 HEAD",
+      "exit_code": 0,
+      "result": "d00110b30232"
+    },
+    {
+      "command": "git status --short",
+      "exit_code": 0,
+      "result": "clean before task-card creation"
+    },
+    {
+      "command": "git show --stat --oneline --no-renames HEAD",
+      "exit_code": 0,
+      "result": "d00110b3 feat(evaluation): add offline eval spine manifest foundation"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/evaluation_spine_duckdb_dependency_validation_v1_20260520.md",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "active_jobs=[] before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/evaluation_spine_duckdb_dependency_validation_v1_20260520.md --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/evaluation_spine_duckdb_dependency_validation_v1_20260520.md --repo-root /home/l4nd0/tenn-runtime",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "uv run --with duckdb --with pytest python - <<'PY' ... import duckdb ... PY",
+      "exit_code": 0,
+      "result": "duckdb 1.5.2"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py --help",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_ingest.py --help",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "uv run --with duckdb --with pytest python -m pytest scripts/reporting/test_eval_spine_manifest.py scripts/reporting/test_eval_spine_ingest.py -q",
+      "exit_code": 0,
+      "result": "10 passed, 1 warning"
+    },
+    {
+      "command": "python3 scripts/reporting/eval_spine_manifest.py build/validate for three committed report directories",
+      "exit_code": 0,
+      "result": "all manifests validated with issues=[]"
+    },
+    {
+      "command": "uv run --with duckdb python3 scripts/reporting/eval_spine_ingest.py --db /tmp/tenn_eval_spine_smoke.duckdb <three temp manifests>",
+      "exit_code": 0,
+      "result": "ok; inserted 3 run IDs"
+    },
+    {
+      "command": "uv run --with duckdb python3 - <<'PY' ... read-only DuckDB queries ... PY",
+      "exit_code": 0,
+      "result": "artifact_runs=3 task_cards=3 validation_commands=24 data_missing_items=14 decisions_and_verdicts=2 scorecard_results=0"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/evaluation_spine_duckdb_dependency_validation_v1_20260520.md",
+      "exit_code": 0,
+      "result": "ok"
+    },
+    {
+      "command": "git diff --cached --name-only | rg '\\.(duckdb|db|sqlite|sqlite3)$'",
+      "exit_code": 1,
+      "result": "no staged DuckDB/DB/SQLite files"
+    },
+    {
+      "command": "git diff --cached --name-only | rg '^(financial-engine_v2/backend/|financial-engine_v2/worker/|financial-engine_v2/cockpit/|cockpit-ui/|services/|systemd/|configs/|Dockerfile|.*docker|.*compose|\\.env|scripts/(run_news|load_news|build_news|extract|query_financial|benchmark_pdf))'",
+      "exit_code": 1,
+      "result": "no staged backend/runtime/Docker/service/env/extraction/news/Cockpit files"
+    }
+  ],
+  "notes": [
+    "rg exit code 1 means no matches for the staged negative checks.",
+    "No DuckDB database file is intended to be committed."
+  ]
+}

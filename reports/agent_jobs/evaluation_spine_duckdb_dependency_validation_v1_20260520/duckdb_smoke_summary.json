@@ -1,0 +1,105 @@
+{
+  "db_file": {
+    "committed": false,
+    "path": "/tmp/tenn_eval_spine_smoke.duckdb",
+    "scope": "temporary_offline_smoke"
+  },
+  "dependency_mechanism": {
+    "avoided": [
+      "requirements.txt",
+      "financial-engine_v2/backend/requirements.txt",
+      "financial-engine_v2/worker/requirements.txt",
+      "Dockerfiles",
+      "service startup",
+      ".env files"
+    ],
+    "chosen": "scripts/reporting/requirements.txt",
+    "existing_dev_dependency_observed": "financial-engine_v2/backend/requirements-dev.txt already contains duckdb>=1.4.0,<2.0",
+    "validation_environment": "uv run --with duckdb --with pytest"
+  },
+  "duckdb": {
+    "python_package_version": "1.5.2"
+  },
+  "ingest": {
+    "command": "uv run --with duckdb python3 scripts/reporting/eval_spine_ingest.py --db /tmp/tenn_eval_spine_smoke.duckdb /tmp/tenn_eval_spine_smoke_manifests/evaluation_spine_manifest_foundation_v1_20260520.json /tmp/tenn_eval_spine_smoke_manifests/news_retrieval_parity_a2m_integration_v1_20260520.json /tmp/tenn_eval_spine_smoke_manifests/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520.json",
+    "inserted_run_ids": [
+      "evaluation_spine_manifest_foundation_v1_20260520",
+      "news_retrieval_parity_a2m_integration_v1_20260520",
+      "asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520"
+    ],
+    "ok": true
+  },
+  "manifest_inputs": [
+    {
+      "manifest": "/tmp/tenn_eval_spine_smoke_manifests/evaluation_spine_manifest_foundation_v1_20260520.json",
+      "report_dir": "reports/agent_jobs/evaluation_spine_manifest_foundation_v1_20260520",
+      "task_card": "docs/agent_tasks/evaluation_spine_manifest_foundation_v1_20260520.md",
+      "validated": true
+    },
+    {
+      "manifest": "/tmp/tenn_eval_spine_smoke_manifests/news_retrieval_parity_a2m_integration_v1_20260520.json",
+      "report_dir": "reports/agent_jobs/news_retrieval_parity_a2m_integration_v1_20260520",
+      "task_card": "docs/agent_tasks/news_retrieval_parity_a2m_integration_v1_20260520.md",
+      "validated": true
+    },
+    {
+      "manifest": "/tmp/tenn_eval_spine_smoke_manifests/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520.json",
+      "report_dir": "reports/agent_jobs/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520",
+      "task_card": "docs/agent_tasks/asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520.md",
+      "validated": true
+    }
+  ],
+  "read_only_queries": {
+    "data_missing_by_run": [
+      [
+        "asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520",
+        3
+      ],
+      [
+        "evaluation_spine_manifest_foundation_v1_20260520",
+        3
+      ],
+      [
+        "news_retrieval_parity_a2m_integration_v1_20260520",
+        8
+      ]
+    ],
+    "run_ids": [
+      "asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520",
+      "evaluation_spine_manifest_foundation_v1_20260520",
+      "news_retrieval_parity_a2m_integration_v1_20260520"
+    ],
+    "scorecard_profile_guard": "not_applicable_no_scorecard_rows_in_source_manifests",
+    "validation_by_run": [
+      [
+        "evaluation_spine_manifest_foundation_v1_20260520",
+        24
+      ]
+    ],
+    "verdicts_by_run": [
+      [
+        "asx_deterministic_extraction_audit_artifact_checkpoint_v1_20260520",
+        2
+      ]
+    ]
+  },
+  "row_counts": {
+    "artifact_files": 12,
+    "artifact_runs": 3,
+    "data_missing_items": 14,
+    "decisions_and_verdicts": 2,
+    "dirty_worktree_events": 0,
+    "registry_events": 0,
+    "scorecard_results": 0,
+    "task_cards": 3,
+    "validation_commands": 24
+  },
+  "safety_boundaries": {
+    "backend_runtime_files_changed": false,
+    "db_files_committed": false,
+    "docker_or_service_files_changed": false,
+    "financial_truth_writes": false,
+    "production_data_access": false,
+    "qdrant_news_memory_extraction_cockpit_home_or_gpu_files_changed": false
+  }
+}

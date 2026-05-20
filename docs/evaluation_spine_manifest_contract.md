@@ -56,6 +56,20 @@ stores, or backend request paths.
 - Source artifacts remain authoritative. The manifest is an index and
   normalization sidecar, not a rewrite of the report.
 
+## Offline DuckDB Ingest
+
+The optional DuckDB ingest path is for offline reporting/dev validation only.
+Install its dependency from `scripts/reporting/requirements.txt` or run it with
+an ephemeral tool environment such as:
+
+```bash
+uv run --with duckdb --with pytest python -m pytest scripts/reporting/test_eval_spine_ingest.py -q
+```
+
+Do not add DuckDB to backend runtime requirements, Docker images, service
+startup, production database paths, Qdrant, news stores, memory stores,
+extraction/parser routing, Cockpit surfaces, or financial truth writes.
+
 ## Minimal Example
 
 ```json
