@@ -1,0 +1,51 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/cockpit_auto_flagger.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_auto_flagger.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_chat_control_prompt_guard_tests_v1_20260519/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md",
+        "reports/agent_jobs/cockpit_chat_control_prompt_guard_tests_v1_20260519/",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/app/services/cockpit_auto_flagger.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+        "financial-engine_v2/backend/tests/test_cockpit_auto_flagger.py"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_chat_control_prompt_guard_tests_v1_20260519",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_chat_control_prompt_guard_tests_v1_20260519",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

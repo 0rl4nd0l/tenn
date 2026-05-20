@@ -1,0 +1,62 @@
+{
+  "job_id": "memory_contamination_root_cause_audit_v1_20260519",
+  "live_db_opened": false,
+  "risk_matrix": [
+    {
+      "surface": "ticker-specific company analysis",
+      "status": "SURFACING_CONFIRMED_IF_ACTIVE_ROWS_EXIST",
+      "reader_path": "QueryOrchestrator -> MemoryAssembler -> CompanyMemoryStore.retrieve(primary_ticker) -> build_answer_input",
+      "why": "Plans for strategy, risk_catalyst, financial_interpretation, and mixed include company_memory; answer input prints selected company-memory statements.",
+      "guard_or_filter": "CompanyMemoryStore.retrieve lists active entries only; MemoryAssembler filters status=active and active_score>=0.55.",
+      "current_live_state": "DATA_MISSING because production company_memory.sqlite was not opened."
+    },
+    {
+      "surface": "chat answers",
+      "status": "SURFACING_CONFIRMED_IF_ACTIVE_ROWS_EXIST",
+      "reader_path": "orchestrate_query_with_context(mode=cockpit_chat) uses company_memory provider for memory-backed intents",
+      "why": "Contaminated active rows under the requested ticker can become answer_input memory context.",
+      "guard_or_filter": "Active/status and score filters; memory_context evidence label is context-only, not claim_verified.",
+      "current_live_state": "DATA_MISSING"
+    },
+    {
+      "surface": "source drawer / evidence envelope",
+      "status": "SURFACING_CONFIRMED_AS_CONTEXT_LABEL",
+      "reader_path": "build_evidence_envelope labels memory sources as memory_context/context_only",
+      "why": "Memory evidence appears in envelopes when used, but tests verify it is not claim_verified or financial_truth.",
+      "guard_or_filter": "source label taxonomy prevents claim_verified upgrade for memory context.",
+      "current_live_state": "Code confirmed; live contaminated payload not sampled."
+    },
+    {
+      "surface": "company_dump / filestats",
+      "status": "SURFACING_CONFIRMED_IF_ACTIVE_ROWS_EXIST",
+      "reader_path": "/api/context/company_dump -> _load_company_memory(entry_status='active') -> BackendApiClient.get_company_dump -> Cockpit get_company_dump tool and /filestats",
+      "why": "The company dump payload includes company_memory entries for the exact ticker.",
+      "guard_or_filter": "Current code defaults to active entries; tests cover active-only behavior and optional all-entry mode.",
+      "current_live_state": "DATA_MISSING; May 17 report says sampled BHP/360 had target-specific active rows and COH/HWK were empty rather than expired contamination."
+    },
+    {
+      "surface": "Memory workbench / web Memory tab",
+      "status": "SURFACING_CONFIRMED_FOR_READ_SURFACES",
+      "reader_path": "cockpit-ui /memory proxies /api/context/memory, /api/context/company_dump, and /api/context/memory/index",
+      "why": "Ticker-scoped memory reads include active company memory; index reads load memory_entries without a status WHERE clause for browsing.",
+      "guard_or_filter": "Management surface, not answer authority; UI also exposes status on rows.",
+      "current_live_state": "DATA_MISSING"
+    },
+    {
+      "surface": "thesis audit",
+      "status": "SURFACING_INFERRED",
+      "reader_path": "Query orchestrator and context endpoints can combine user_thesis_memory with company_memory for analysis; thesis audit code also exists.",
+      "why": "No focused live thesis-audit path was run in this audit.",
+      "guard_or_filter": "User thesis memory is separate and confirmation-gated.",
+      "current_live_state": "DATA_MISSING"
+    },
+    {
+      "surface": "watchlist or portfolio context",
+      "status": "LOW_DIRECT_SURFACING_INFERRED",
+      "reader_path": "Holdings/watchlist are separate local-personal-data surfaces; they may sit adjacent to memory in Home/chat but are not company_memory stores.",
+      "why": "No direct company-memory reader was found in holdings persistence.",
+      "guard_or_filter": "Source labels distinguish local_personal_data from memory_context.",
+      "current_live_state": "DATA_MISSING"
+    }
+  ]
+}

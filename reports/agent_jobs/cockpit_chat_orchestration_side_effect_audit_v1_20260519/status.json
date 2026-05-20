@@ -1,0 +1,28 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_chat_orchestration_side_effect_audit_v1_20260519.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_chat_orchestration_side_effect_audit_v1_20260519.md",
+    "reports/agent_jobs/cockpit_chat_orchestration_side_effect_audit_v1_20260519"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-19T12:12:17.281440Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-19T12:12:17.281440Z",
+  "job_id": "cockpit_chat_orchestration_side_effect_audit_v1_20260519",
+  "lane": "Query Orchestration",
+  "last_seen_at": "2026-05-19T12:21:49.990915Z",
+  "output_dir": "reports/agent_jobs/cockpit_chat_orchestration_side_effect_audit_v1_20260519",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-19T12:21:49.990915Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:644405:cockpit_chat_orchestration_side_effect_audit_v1_20260519",
+  "started_at": "2026-05-19T12:12:17.281440Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_chat_orchestration_side_effect_audit_v1_20260519.md",
+  "updated_at": "2026-05-19T12:21:49.990915Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

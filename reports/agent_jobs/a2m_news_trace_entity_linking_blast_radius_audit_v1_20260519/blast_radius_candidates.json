@@ -1,0 +1,135 @@
+{
+  "job_id": "a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519",
+  "generated_at": "2026-05-19",
+  "blast_radius": "BLAST_RADIUS_MEDIUM",
+  "candidate_classes": [
+    {
+      "class": "brand_or_company_name_not_in_ticker",
+      "risk": "Articles mention the brand or company name but not the ticker token.",
+      "examples": [
+        {
+          "ticker": "A2M",
+          "configured_aliases": [
+            "The a2 Milk Company",
+            "a2 Milk Company",
+            "A2 Milk"
+          ],
+          "current_status": "covered_static_for_core_aliases"
+        },
+        {
+          "ticker": "PPT",
+          "configured_aliases": [
+            "Perpetual",
+            "Vista",
+            "International"
+          ],
+          "current_status": "risky_single_word_aliases"
+        },
+        {
+          "ticker": "SHV",
+          "configured_aliases": [
+            "Macquarie",
+            "Select Harvests"
+          ],
+          "current_status": "risky_ambiguous_alias_sources"
+        },
+        {
+          "ticker": "DME",
+          "configured_aliases": [
+            "Dome Gold Mines",
+            "Interactive",
+            "Investment",
+            "Ttbri"
+          ],
+          "current_status": "risky_generic_single_word_aliases_filtered_by_linker_but_identity_map_noisy"
+        }
+      ],
+      "prove_or_disprove": "Run alias fixture tests and read-only DB/Qdrant traces for articles where the title/body omits the ticker token."
+    },
+    {
+      "class": "multi_ticker_or_ambiguous_primary",
+      "risk": "Qdrant payload can preserve linked tickers while leaving top-level ticker empty when multiple tickers exist and no primary_ticker is resolved. /rag/query can match payload.tickers, but chat HybridRetriever and _filter_news_by_ticker only match payload.ticker.",
+      "examples": [
+        {
+          "ticker": "A2M",
+          "risk_condition": "Actual recall payload has tickers including A2M but empty or different top-level ticker."
+        },
+        {
+          "ticker": "BHP",
+          "risk_condition": "Existing rag tests include ticker=SFR and tickers=[SFR,BHP], which /rag/query can rank for BHP; backend chat parity for this payload shape is not covered."
+        }
+      ],
+      "prove_or_disprove": "Add fixtures for chat retrieval and source labels where payload.ticker is empty/different but payload.tickers contains the requested ticker."
+    },
+    {
+      "class": "common_word_or_market_term_tickers",
+      "risk": "Ticker inference and entity linking intentionally suppress some common words, which prevents false positives but can also require explicit symbols or strong aliases.",
+      "examples": [
+        {
+          "ticker": "GOLD",
+          "configured_aliases": [],
+          "current_status": "entity_linker_strict_stopword_plain_token_blocked_explicit_symbol_allowed"
+        },
+        {
+          "ticker": "GOOD",
+          "configured_aliases": [],
+          "current_status": "entity_linker_strict_stopword_plain_token_blocked"
+        },
+        {
+          "ticker": "DATA",
+          "configured_aliases": null,
+          "current_status": "not_in_identity_map; common ticker stopword in shared ticker inference"
+        },
+        {
+          "ticker": "NOTE",
+          "configured_aliases": null,
+          "current_status": "not_in_identity_map; common ticker stopword in shared ticker inference"
+        },
+        {
+          "ticker": "ASX",
+          "configured_aliases": null,
+          "current_status": "not_in_identity_map; common ticker stopword in shared ticker inference"
+        }
+      ],
+      "prove_or_disprove": "Explicit-symbol fixtures must pass; plain language should remain no-link/no-ticker unless an approved alias removes ambiguity."
+    },
+    {
+      "class": "ui_route_parity",
+      "risk": "News Screen and search_news use /rag/query source=news, while backend chat uses HybridRetriever(news_chunks). The route semantics can diverge even when they address the same Qdrant collection.",
+      "examples": [
+        {
+          "surface": "News Screen",
+          "path": "cockpit-ui/components/cockpit/news/news-screen.tsx",
+          "retrieval": "/rag/query source=news"
+        },
+        {
+          "surface": "Cockpit agent search_news",
+          "path": "financial-engine_v2/cockpit/core/tool_executor.py",
+          "retrieval": "ToolRouter.get_news_context -> backend_api_client.rag_query"
+        },
+        {
+          "surface": "backend chat_with_tenn",
+          "path": "financial-engine_v2/backend/app/services/tenn_chat.py",
+          "retrieval": "HybridRetriever(news_chunks)"
+        }
+      ],
+      "prove_or_disprove": "Add parity fixtures asserting equivalent ticker matching over ticker, primary_ticker, and tickers payload shapes."
+    }
+  ],
+  "candidate_tickers": [
+    "A2M",
+    "DME",
+    "PPT",
+    "SHV",
+    "GOLD",
+    "GOOD",
+    "DATA",
+    "NOTE",
+    "ASX",
+    "COH"
+  ],
+  "notes": [
+    "COH was not present in the current ticker_identity_map JSON lookup; that absence is not proof COH is not a valid ticker elsewhere.",
+    "This audit did not query production stores and therefore does not quantify candidate counts."
+  ]
+}

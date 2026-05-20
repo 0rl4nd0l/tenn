@@ -1,0 +1,133 @@
+{
+  "job_id": "a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519",
+  "generated_at": "2026-05-19",
+  "production_data_access": false,
+  "executive_status": {
+    "a2m_trace": "A2M_TRACE_PARTIAL",
+    "root_cause": "ROOT_CAUSE_INFERRED",
+    "blast_radius": "BLAST_RADIUS_MEDIUM",
+    "next_state": "DATA_ACCESS_REQUIRED"
+  },
+  "current_static_a2m_identity": {
+    "ticker": "A2M",
+    "canonical_names": [
+      "The a2 Milk Company Limited",
+      "The a2 Milk Company"
+    ],
+    "aliases": [
+      "The a2 Milk Company",
+      "a2 Milk Company",
+      "A2 Milk"
+    ],
+    "news_entity_linking_enabled": true,
+    "evidence": [
+      "financial-engine_v2/config/ticker_identity_map.json:19"
+    ],
+    "status": "confirmed_static"
+  },
+  "prior_a2m_recall_metadata": {
+    "article_id": "art_aa13edd261034dba97055d8a",
+    "title": "A2 Milk shares plunge after finding toxins in infant formula",
+    "provider": "Capital Brief",
+    "published_at": "2026-05-03T22:52:00Z",
+    "evidence": [
+      "financial-engine_v2/backend/tests/test_news_retrieval_eval.py:257",
+      "reports/a2m_ticker_news_retrieval_selection_20260506_141455/00_summary.md:17"
+    ],
+    "status": "confirmed_fixture_metadata_only"
+  },
+  "trace_stages": [
+    {
+      "stage": "ingestion",
+      "owner_files": [
+        "scripts/news_pipeline/ingest.py",
+        "scripts/news_pipeline/entity_linker.py",
+        "scripts/news_pipeline/db.py"
+      ],
+      "a2m_status": "not_live_verified",
+      "static_evidence": "Current code links article text containing A2 Milk, The a2 Milk Company, ASX:A2M, ASX: A2M, or A2M.AX to A2M; A2M-specific unittest cases pass.",
+      "gap": "No current local news_articles.sqlite file or live read-only DB access was available under production_data_access=false."
+    },
+    {
+      "stage": "raw_news_sqlite",
+      "owner_files": [
+        "scripts/news_pipeline/db.py"
+      ],
+      "a2m_status": "data_missing",
+      "static_evidence": "No reports/qual_context/news_articles.sqlite or reports/qual_context/news.sqlite is present in this checkout.",
+      "gap": "Need read-only query against the active runtime news_articles.sqlite."
+    },
+    {
+      "stage": "entity_links_and_relevance",
+      "owner_files": [
+        "scripts/news_pipeline/entity_linker.py",
+        "scripts/news_pipeline/relevance.py",
+        "scripts/news_pipeline/db.py"
+      ],
+      "a2m_status": "confirmed_static_for_current_alias_forms",
+      "static_evidence": "A2M aliases are configured and A2M-specific entity-linking tests pass.",
+      "gap": "Need read-only entity_links and article_relevance rows for the actual recall article IDs."
+    },
+    {
+      "stage": "qdrant_projection",
+      "owner_files": [
+        "scripts/load_news_to_qdrant.py"
+      ],
+      "a2m_status": "confirmed_static_payload_shape_but_live_missing",
+      "static_evidence": "Payload builder stores ticker, tickers, primary_ticker, provider, title, URL, language, and published_at; the A2M payload unittest passes.",
+      "gap": "Need read-only Qdrant news_chunks scroll/search for the actual A2M article payload."
+    },
+    {
+      "stage": "rag_query_news_retrieval",
+      "owner_files": [
+        "financial-engine_v2/backend/app/main.py",
+        "financial-engine_v2/backend/app/services/rag.py",
+        "financial-engine_v2/cockpit/core/tools.py",
+        "financial-engine_v2/cockpit/integrations/backend_api.py"
+      ],
+      "a2m_status": "confirmed_static_path",
+      "static_evidence": "/rag/query source=news filters Qdrant on either payload.ticker or payload.tickers and expands ticker query candidate_limit.",
+      "gap": "Need live read-only query results and ranks for A2M."
+    },
+    {
+      "stage": "backend_chat_news_retrieval",
+      "owner_files": [
+        "financial-engine_v2/backend/app/services/tenn_chat.py",
+        "financial-engine_v2/backend/app/services/hybrid_retriever.py"
+      ],
+      "a2m_status": "partially_repaired_but_blast_radius_remains",
+      "static_evidence": "Prior fix preserves ticker-filtered news when returned with top-level ticker A2M. Current chat HybridRetriever filter and chat post-filter only check payload.ticker, not payload.tickers.",
+      "gap": "Need live trace to determine whether current A2M recall Qdrant payload has top-level ticker A2M or only linked tickers."
+    },
+    {
+      "stage": "ranking_and_synthesis",
+      "owner_files": [
+        "financial-engine_v2/backend/app/services/tenn_chat.py",
+        "financial-engine_v2/backend/tests/test_news_retrieval_eval.py"
+      ],
+      "a2m_status": "confirmed_static_fixture_for_top_level_ticker",
+      "static_evidence": "Existing fixture keeps A2M recall news in prompt and sources even when commentary has higher scores, but fixture uses top-level ticker A2M.",
+      "gap": "Missing fixture for tickers-list-only payloads and missing live ranks."
+    },
+    {
+      "stage": "source_labeling_reporting",
+      "owner_files": [
+        "financial-engine_v2/backend/app/services/tenn_chat.py",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/app/services/query_orchestrator.py"
+      ],
+      "a2m_status": "guarded_static_but_live_missing",
+      "static_evidence": "Local news is labelled local_news_context, claim_verified only when supporting evidence matches, and expected-news no-hit emits missing_required_evidence plus no_hit.",
+      "gap": "Need live chat/report trace to prove final user-facing A2M response did not overstate completeness."
+    }
+  ],
+  "likely_failure_class": {
+    "name": "ticker-filtered news not retained or not matched consistently across retrieval paths",
+    "root_cause_basis": [
+      "Prior report states local ticker-filtered retrieval selected recall articles while broad no-ticker semantic retrieval did not.",
+      "Current /rag/query news path is list-aware.",
+      "Current backend chat HybridRetriever and chat ticker post-filter are top-level ticker-only."
+    ],
+    "risk": "medium"
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "scorecard_version": "gold_metric_coverage_audit_v1_20260519",
+  "taxonomy": [
+    "REQUIRED_SCORED",
+    "CONFIRMED_UNSCORED",
+    "SCHEMA_SUPPORTED_BUT_NOT_LABELLED",
+    "EXTRACTOR_OUTPUT_BUT_NOT_GOLD",
+    "AMBIGUOUS_OR_DERIVED",
+    "UNSUPPORTED",
+    "DATA_MISSING"
+  ],
+  "scorecards": {
+    "canonical_core": {
+      "purpose": "Strict stable no-regression anchor.",
+      "input_artifacts": [
+        "financial-engine_v2/data/extraction_gold_real",
+        "canonical_core profile",
+        "strict Docling tuple"
+      ],
+      "metric_eligibility": "Only explicit required real-gold metrics in the canonical 10-document subset: revenue, operating_cash_flow, net_debt.",
+      "pass_fail_semantics": "Fail on regression in metric/context/trust checks under the canonical tuple; do not expand metrics opportunistically.",
+      "trust_semantics": "Use existing real-gold trust outcomes: trusted, abstain, quarantine. Trust must remain separate from breadth.",
+      "coverage_semantics": "Coverage claim is limited to 10 docs and 24 required checks. It is not production extraction coverage.",
+      "recommended_output_fields": [
+        "profile",
+        "is_canonical",
+        "document_count",
+        "metric_checks",
+        "metric_accuracy",
+        "context_accuracy",
+        "trust_matches",
+        "blocked_reason",
+        "unsupported_metrics_excluded"
+      ],
+      "recommended_acceptance_language": "canonical_core passed; this is a no-regression result for the strict canonical subset only."
+    },
+    "expanded_required": {
+      "purpose": "Current required-metric subset across the larger/evolving real-gold corpus.",
+      "input_artifacts": [
+        "financial-engine_v2/data/extraction_gold_real",
+        "expanded_required profile",
+        "strict/non-strict run metadata"
+      ],
+      "metric_eligibility": "Same supported required metrics as real-gold scorer: revenue, operating_cash_flow, net_debt across all current real-gold fixtures.",
+      "pass_fail_semantics": "Use as stability testing over all current required labels; failures are required-subset regressions, not broad production coverage failures.",
+      "trust_semantics": "Same real-gold trust model as canonical_core, but profile must be named expanded_required.",
+      "coverage_semantics": "Coverage claim is limited to 15 docs and 39 required checks in the current corpus.",
+      "recommended_output_fields": [
+        "profile",
+        "document_count",
+        "metric_checks",
+        "per_metric_accuracy",
+        "required_metric_failures",
+        "context_failures",
+        "fixture_manifest_hash",
+        "non_canonical_reason"
+      ],
+      "recommended_acceptance_language": "expanded_required passed for the current required-metric subset; it does not measure all schema-supported or production-relevant metrics."
+    },
+    "confirmed_metric_coverage": {
+      "purpose": "Production-relevant breadth over confirmed, source-evidenced, schema-supported metrics.",
+      "input_artifacts": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "source evidence metadata",
+        "coverage profile",
+        "optional extracted payloads for evaluation"
+      ],
+      "metric_eligibility": "Score only metrics with source_status/source evidence, schema support, and non-ambiguous definition. Candidate, ambiguous, unsupported, and DATA_MISSING rows remain inventory rows, not failures.",
+      "pass_fail_semantics": "Report coverage misses separately from trust failures. Extractor wrong/missing is a coverage miss only for eligible confirmed rows.",
+      "trust_semantics": "Does not mutate canonical trust semantics and should not be mixed into canonical_core trust pass/fail.",
+      "coverage_semantics": "Reports eligible, scored, candidate, ambiguous, unsupported, DATA_MISSING, correct, wrong, missing, abstain, quarantine counts independently.",
+      "recommended_output_fields": [
+        "profile",
+        "fixture_count",
+        "total_expectations",
+        "eligible_confirmed_count",
+        "candidate_review_required_count",
+        "ambiguous_count",
+        "unsupported_count",
+        "data_missing_count",
+        "correct_count",
+        "wrong_count",
+        "missing_count",
+        "coverage_accuracy",
+        "trust_accuracy",
+        "coverage_miss_count",
+        "trust_failure_count"
+      ],
+      "recommended_acceptance_language": "confirmed_metric_coverage reports breadth over confirmed schema-supported evidence. Candidate, ambiguous, unsupported, and DATA_MISSING rows are disclosed separately and are not silently counted as extractor failures."
+    }
+  },
+  "tier_policy": {
+    "Tier 1": "revenue, operating_cash_flow, and explicit net_debt remain eligible for hard scoring where source evidence and schema support exist.",
+    "Tier 2": "NPAT/profit attributable, EBIT, capex, cash_end/cash, total debt, EPS, shares outstanding, and free cash flow require explicit source evidence and schema/definition agreement before hard scoring.",
+    "Tier 3": "Margins, ratios, adjusted/underlying metrics, segment metrics, derived net debt, growth rates, and peer-relative metrics stay out of hard scoring until definitions and source evidence are approved."
+  },
+  "reporting_guardrails": [
+    "Never use canonical_core to claim broad production extraction coverage.",
+    "Always name the scorecard profile beside any accuracy value.",
+    "Separate no-regression, required-subset stability, confirmed coverage, and trust semantics.",
+    "Do not count unsupported, ambiguous, or DATA_MISSING rows as extractor failures unless schema/evidence supports the metric."
+  ]
+}

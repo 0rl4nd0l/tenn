@@ -1,0 +1,99 @@
+{
+  "job_id": "memory_contamination_root_cause_audit_v1_20260519",
+  "access_policy": {
+    "production_data_access": false,
+    "live_sqlite_opened": false,
+    "live_services_touched": false
+  },
+  "stores": [
+    {
+      "path_or_name": "reports/research_memory/company_memory.sqlite",
+      "resolved_by_code": "financial-engine_v2/backend/app/services/source_registry.py::RESEARCH_MEMORY_ROOT / company_memory.sqlite",
+      "type": "SQLite",
+      "role": "company",
+      "access_mode_used": "code-only plus report artifacts",
+      "production_data_access_required": true,
+      "relevant_tables_or_fields": {
+        "company_memory": ["company_id", "active_entry_count", "created_at", "updated_at"],
+        "memory_entries": ["entry_id", "company_id", "type", "statement", "normalized_statement", "entity_id", "confidence", "materiality", "persistence", "status", "source", "source_id", "first_seen_at", "last_seen_at", "closed_at", "metadata_json"],
+        "change_log": ["change_id", "company_id", "entry_id", "event_type", "details_json", "created_at"]
+      },
+      "current_checkout_data_state": "financial-engine_v2/data/reports/research_memory/company_memory.sqlite not present in isolated checkout",
+      "notes": "Historical report artifacts identify live path /mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite, but this audit did not open it."
+    },
+    {
+      "path_or_name": "reports/research_memory/market_memory.sqlite",
+      "resolved_by_code": "financial-engine_v2/backend/app/services/source_registry.py::RESEARCH_MEMORY_ROOT / market_memory.sqlite",
+      "type": "SQLite",
+      "role": "market",
+      "access_mode_used": "code-only plus report artifacts",
+      "production_data_access_required": true,
+      "relevant_tables_or_fields": {
+        "market_memory": ["scope", "active_entry_count", "created_at", "updated_at"],
+        "sector_states": ["entry_id", "sector", "type", "statement", "normalized_statement", "status", "source", "source_id", "linked_tickers_json", "metadata_json"],
+        "macro_state": ["entry_id", "macro_topic", "type", "statement", "normalized_statement", "status", "source", "source_id", "metadata_json"],
+        "change_log": ["change_id", "scope", "entity_key", "entry_id", "event_type", "details_json", "created_at"]
+      },
+      "current_checkout_data_state": "not present in isolated checkout"
+    },
+    {
+      "path_or_name": "reports/research_memory/user_thesis_memory.sqlite",
+      "resolved_by_code": "financial-engine_v2/backend/app/services/source_registry.py::RESEARCH_MEMORY_ROOT / user_thesis_memory.sqlite",
+      "type": "SQLite",
+      "role": "thesis",
+      "access_mode_used": "code-only",
+      "production_data_access_required": true,
+      "relevant_tables_or_fields": {
+        "thesis_entries": ["entry_id", "ticker", "entry_type", "statement", "signal", "confidence", "status", "source", "source_id", "metadata_json", "created_at", "updated_at"],
+        "thesis_proposals": ["proposal_id", "ticker", "proposal_type", "statement", "signal", "confidence", "payload_json", "status", "created_at", "confirmed_at", "applied_at"],
+        "thesis_alerts": ["alert_id", "entry_id", "ticker", "severity", "finding", "evidence_source_id", "status", "metadata_json", "created_at"]
+      },
+      "current_checkout_data_state": "not present in isolated checkout"
+    },
+    {
+      "path_or_name": "reports/research_memory/source_registry.jsonl",
+      "resolved_by_code": "financial-engine_v2/backend/app/services/source_registry.py::DEFAULT_SOURCE_REGISTRY_PATH",
+      "type": "JSONL",
+      "role": "research source registry/provenance",
+      "access_mode_used": "code-only",
+      "production_data_access_required": true,
+      "relevant_fields": ["source_id", "source_type", "source_name", "credibility_weight", "time_decay_half_life_days", "framework_family", "review_status", "ingested_at", "published_at"]
+    },
+    {
+      "path_or_name": "reports/research_memory/news_memos.jsonl",
+      "resolved_by_code": "financial-engine_v2/backend/app/services/news_memo_extractor.py::DEFAULT_NEWS_MEMOS_PATH",
+      "type": "JSONL",
+      "role": "research/news memo diagnostics",
+      "access_mode_used": "code-only",
+      "production_data_access_required": true,
+      "relevant_fields": ["source_id", "provider", "key_events", "sentiment", "impact_magnitude", "tickers", "claims", "risks", "published_at", "extraction_provenance"]
+    },
+    {
+      "path_or_name": "reports/research_memory/memory_read_events.jsonl and memory_write_events.jsonl",
+      "resolved_by_code": "financial-engine_v2/backend/app/services/memory_events.py",
+      "type": "JSONL",
+      "role": "memory observability",
+      "access_mode_used": "code-only",
+      "production_data_access_required": true,
+      "relevant_fields": ["event_id", "recorded_at", "memory_class", "event_type", "payload", "mode", "query_type", "entities", "source_plan", "considered_counts", "selected_counts", "filtered_counts"]
+    },
+    {
+      "path_or_name": "~/.tenn/memory",
+      "resolved_by_code": "financial-engine_v2/cockpit/core/agent/memory/store.py",
+      "type": "Markdown/JSONL filesystem",
+      "role": "session/research/durable/daily cockpit-local memory",
+      "access_mode_used": "code-only",
+      "production_data_access_required": false,
+      "relevant_paths": ["MEMORY.md", "sessions/current.md", "research/<TICKER>.md", "daily/<DATE>.md"],
+      "notes": "Not the company_memory SQLite store implicated by memo-level ticker fanout."
+    },
+    {
+      "path_or_name": "Qdrant collections: asx_docs, news_chunks, commentary_chunks",
+      "type": "Qdrant",
+      "role": "semantic retrieval index, not reasoning memory",
+      "access_mode_used": "docs/code-only",
+      "production_data_access_required": true,
+      "notes": "No Qdrant read, reindex, or resync was performed."
+    }
+  ]
+}

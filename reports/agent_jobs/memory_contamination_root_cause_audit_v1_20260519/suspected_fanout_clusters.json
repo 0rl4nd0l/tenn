@@ -1,0 +1,65 @@
+{
+  "job_id": "memory_contamination_root_cause_audit_v1_20260519",
+  "source_artifacts": [
+    "reports/memory_contamination_root_cause_20260505_161634",
+    "reports/memory_historical_cleanup_plan_20260505_170452",
+    "reports/memory_interticker_contamination_manifest_20260513_043646"
+  ],
+  "live_db_opened": false,
+  "manifest_20260513_summary": {
+    "total_rows": 2333,
+    "active_rows": 2083,
+    "expired_rows": 250,
+    "distinct_companies_total": 146,
+    "active_duplicate_cluster_count": 94,
+    "active_duplicate_row_count": 1615,
+    "approval_required_status_expire_candidate_count": 963,
+    "new_or_unclassified_active_duplicate_row_count": 652,
+    "cleanup_execution_status": "blocked_without_operator_approval_backup_and_max_row_count"
+  },
+  "top_manifest_cluster_examples": [
+    {
+      "cluster_id": "active_fanout_0001",
+      "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+      "statement": "PETTIMED's capital raising at 1 cent per share",
+      "active_row_count": 67,
+      "active_company_count": 50,
+      "companies_include": ["A2M", "A2 MILK", "BHP", "COH", "PET", "PETT", "PETTIMED", "WES"],
+      "recommended_action_from_manifest": "operator_review_then_status_expire_prior_candidates_only"
+    },
+    {
+      "cluster_id": "active_fanout_0002",
+      "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+      "statement": "A2 MILK's share price dropped 10% due to a product recall",
+      "active_row_count": 50,
+      "active_company_count": 50,
+      "companies_include": ["A2M", "A2 MILK", "BHP", "COH", "ATLASSIAN", "ACCENT GROUP"],
+      "recommended_action_from_manifest": "operator_review_then_status_expire_prior_candidates_only"
+    },
+    {
+      "cluster_id": "active_fanout_0004",
+      "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796",
+      "statement": "ACCENT GROUP's downgrade announcement",
+      "active_row_count": 50,
+      "active_company_count": 50,
+      "companies_include": ["ACCENT GROUP", "A2M", "BHP", "COH", "PETTIMED"],
+      "recommended_action_from_manifest": "operator_review_then_status_expire_prior_candidates_only"
+    }
+  ],
+  "artifact_counter_summary": {
+    "active_duplicate_rows_manifest_rows": 1615,
+    "top_sources_by_row_count": [
+      {"source": "commentary:youtube_transcript", "rows": 1349},
+      {"source": "news:newspaper4k", "rows": 266}
+    ],
+    "top_source_ids_by_row_count": [
+      {"source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796", "rows": 1349},
+      {"source_id": "news:art_e4faef3c4644fe5bb3b66e32", "rows": 104}
+    ],
+    "top_company_ids_by_active_duplicate_rows": [
+      {"company_id": "COH", "rows": 54},
+      {"company_id": "ASX", "rows": 52},
+      {"company_id": "A2M", "rows": 45}
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "job_id": "a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519",
+  "generated_at": "2026-05-19",
+  "risks": [
+    {
+      "risk_id": "SL-001",
+      "surface": "backend chat_with_tenn",
+      "condition": "Ticker-news expected and no local news source appears in final sources.",
+      "current_static_guard": "Adds missing_required_evidence and no_hit when news retrieval was attempted and no local_news_context source exists for a local-news query.",
+      "owner_files": [
+        "financial-engine_v2/backend/app/services/tenn_chat.py"
+      ],
+      "risk_level": "medium",
+      "gap": "Live A2M chat response not available under production_data_access=false."
+    },
+    {
+      "risk_id": "SL-002",
+      "surface": "backend chat source list",
+      "condition": "Local news is retrieved but the model does not cite/support it.",
+      "current_static_guard": "Source receives local_news_context plus context_only, not claim_verified, unless supporting_evidence matches source identifiers.",
+      "owner_files": [
+        "financial-engine_v2/backend/app/services/tenn_chat.py",
+        "financial-engine_v2/backend/tests/test_news_retrieval_eval.py"
+      ],
+      "risk_level": "low_medium",
+      "gap": "Only fixture-backed; live synthesis trace unavailable."
+    },
+    {
+      "risk_id": "SL-003",
+      "surface": "Cockpit API source normalization",
+      "condition": "Tool no-hit or missing evidence source is rendered as verified context.",
+      "current_static_guard": "No-hit source IDs and operational_no_hit doc_type receive no_hit and operational_trace; missing_required_evidence is added where appropriate.",
+      "owner_files": [
+        "financial-engine_v2/backend/app/routes/cockpit_api.py"
+      ],
+      "risk_level": "low_medium",
+      "gap": "No live A2M API payload captured."
+    },
+    {
+      "risk_id": "SL-004",
+      "surface": "QueryOrchestrator evidence envelope",
+      "condition": "Direct-result evidence envelope claims verified source support.",
+      "current_static_guard": "build_evidence_envelope discards claim_verified and reports claim_verified_source_count 0 for direct source rows.",
+      "owner_files": [
+        "financial-engine_v2/backend/app/services/query_orchestrator.py"
+      ],
+      "risk_level": "low",
+      "gap": "This is not the main A2M chat retrieval path."
+    },
+    {
+      "risk_id": "SL-005",
+      "surface": "Cockpit agent search_news",
+      "condition": "Current-news query returns stale historical hits and synthesis treats them as today's news.",
+      "current_static_guard": "search_news emits freshness_warning and data_insufficient for current-news queries when only historical hits are returned.",
+      "owner_files": [
+        "financial-engine_v2/cockpit/core/tool_executor.py"
+      ],
+      "risk_level": "medium",
+      "gap": "No live A2M freshness probe was run."
+    }
+  ],
+  "overall_source_label_risk": "medium_until_live_trace"
+}

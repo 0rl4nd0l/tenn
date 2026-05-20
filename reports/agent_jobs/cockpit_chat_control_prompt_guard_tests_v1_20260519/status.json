@@ -1,0 +1,32 @@
+{
+  "active_record": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_chat_control_prompt_guard_tests_v1_20260519.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md",
+    "reports/agent_jobs/cockpit_chat_control_prompt_guard_tests_v1_20260519",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/app/services/cockpit_auto_flagger.py",
+    "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+    "financial-engine_v2/backend/tests/test_cockpit_auto_flagger.py"
+  ],
+  "branch": "safe/cockpit-chat-control-prompt-guard-v1-20260519",
+  "claimed_at": "2026-05-19T12:43:31.294622Z",
+  "git_common_dir": "/mnt/hdd-data/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-19T12:43:31.294622Z",
+  "job_id": "cockpit_chat_control_prompt_guard_tests_v1_20260519",
+  "lane": "Query Orchestration",
+  "last_seen_at": "2026-05-19T12:49:40.486313Z",
+  "output_dir": "reports/agent_jobs/cockpit_chat_control_prompt_guard_tests_v1_20260519",
+  "owner": "Codex",
+  "registry_root": "/mnt/hdd-data/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-19T12:49:40.486313Z",
+  "repo_root": "/home/l4nd0/tenn-cockpit-chat-control-prompt-guard-v1-20260519",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:726068:cockpit_chat_control_prompt_guard_tests_v1_20260519",
+  "started_at": "2026-05-19T12:43:31.294622Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_chat_control_prompt_guard_tests_v1_20260519.md",
+  "updated_at": "2026-05-19T12:49:40.486313Z",
+  "worktree": "/home/l4nd0/tenn-cockpit-chat-control-prompt-guard-v1-20260519"
+}

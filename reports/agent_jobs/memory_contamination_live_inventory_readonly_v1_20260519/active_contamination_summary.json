@@ -1,0 +1,97 @@
+{
+  "active_duplicate_cluster_count": 0,
+  "active_duplicate_likely_fanout_cluster_count": 0,
+  "active_duplicate_rows_total": 0,
+  "active_source_fanout_cluster_count": 1,
+  "active_source_fanout_rows_total_top50": 5,
+  "db_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+  "generated_at": "2026-05-19T13:57:04Z",
+  "known_historical_active_entry_ids_capped": [
+    283,
+    310,
+    717,
+    1129,
+    1273,
+    1301,
+    1310,
+    1341,
+    1493,
+    1495,
+    1829,
+    1961,
+    2425,
+    2427
+  ],
+  "known_historical_active_match_count_deduped": 14,
+  "known_historical_active_match_count_sum_not_deduped": 20,
+  "manual_review_manifest_active_remaining": 3,
+  "read_only_open_mode": "mode=ro&immutable=1",
+  "row_counts": {
+    "distinct_company_ids": 184,
+    "distinct_source_ids": 132,
+    "expired_or_closed_rows": 2293,
+    "manual_review_status_rows": 0,
+    "memory_entries_active": 147,
+    "memory_entries_total": 2440
+  },
+  "rows_by_source": [
+    {
+      "active_rows": 14,
+      "distinct_source_ids": 2,
+      "source": "commentary:youtube_transcript",
+      "total_rows": 1568
+    },
+    {
+      "active_rows": 133,
+      "distinct_source_ids": 129,
+      "source": "news:newspaper4k",
+      "total_rows": 871
+    },
+    {
+      "active_rows": 0,
+      "distinct_source_ids": 1,
+      "source": "backend_manual",
+      "total_rows": 1
+    }
+  ],
+  "rows_by_source_id_prefix": [
+    {
+      "rows": 1554,
+      "source_id_prefix": "youtube_transcript",
+      "status": "expired"
+    },
+    {
+      "rows": 738,
+      "source_id_prefix": "news",
+      "status": "expired"
+    },
+    {
+      "rows": 133,
+      "source_id_prefix": "news",
+      "status": "active"
+    },
+    {
+      "rows": 14,
+      "source_id_prefix": "youtube_transcript",
+      "status": "active"
+    },
+    {
+      "rows": 1,
+      "source_id_prefix": "company-manual",
+      "status": "expired"
+    }
+  ],
+  "status_counts": {
+    "active": 147,
+    "expired": 2293
+  },
+  "verdict_inputs": {
+    "active_duplicate_clusters_present": false,
+    "active_source_fanout_clusters_present": true,
+    "approved_manifest_active_remaining": 0,
+    "known_historical_active_match_count_deduped": 14,
+    "known_historical_active_matches_present": true,
+    "manual_review_manifest_active_remaining": 3
+  },
+  "verdict_qualification": "No active approved-manifest cleanup candidates and no exact duplicate normalized_statement/source_id cross-company clusters were found; active review surface remains through one source-fanout threshold cluster plus active rows tied to known historical problem sources/manual-review IDs."
+}

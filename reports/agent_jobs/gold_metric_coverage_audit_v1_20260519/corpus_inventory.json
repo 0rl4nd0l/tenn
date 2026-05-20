@@ -1,0 +1,629 @@
+{
+  "generated_at_utc": "2026-05-19T13:00:54.825816+00:00",
+  "repo": {
+    "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "2e73de32ac77"
+  },
+  "corpora": [
+    {
+      "name": "canonical_core",
+      "path_or_report": "financial-engine_v2/data/extraction_gold_real plus profile canonical_core",
+      "document_count": 10,
+      "documents": [
+        "bhp_a_2021-06-30_difficult",
+        "bhp_a_2025-06-30",
+        "eqr_q_2025-12-31",
+        "gre_q_2024-12-31",
+        "gre_q_2025-09-30",
+        "min_h_2025-12-31",
+        "qbe_h_2025-06-30",
+        "rio_a_2023-12-31",
+        "rio_a_2024-12-31",
+        "tls_h_2025-12-31"
+      ],
+      "metrics_labelled": {
+        "net_debt": 7,
+        "operating_cash_flow": 10,
+        "revenue": 7
+      },
+      "metrics_scored": [
+        "revenue",
+        "operating_cash_flow",
+        "net_debt"
+      ],
+      "metric_checks_expected": 24,
+      "trust_context_dimensions": [
+        "period_type",
+        "period_end",
+        "currency",
+        "scale",
+        "expected_trust"
+      ],
+      "current_use": "Strict Docling no-regression anchor only.",
+      "limitations": "Ten-document subset and three metric families only; not production coverage."
+    },
+    {
+      "name": "expanded_required",
+      "path_or_report": "financial-engine_v2/data/extraction_gold_real plus profile expanded_required",
+      "document_count": 15,
+      "documents": [
+        "10x_q_2025-12-31_difficult",
+        "14d_q_2021-03-31",
+        "29m_a_2025-12-31",
+        "a2m_h_2025-12-31",
+        "bhp_a_2021-06-30_difficult",
+        "bhp_a_2025-06-30",
+        "eqr_q_2025-12-31",
+        "gre_q_2024-12-31",
+        "gre_q_2025-09-30",
+        "min_h_2025-12-31",
+        "qbe_h_2025-06-30",
+        "rio_a_2023-12-31",
+        "rio_a_2024-12-31",
+        "rms_h_2025-12-31",
+        "tls_h_2025-12-31"
+      ],
+      "period_counts": {
+        "A": 5,
+        "H": 5,
+        "Q": 5
+      },
+      "metrics_labelled": {
+        "net_debt": 12,
+        "operating_cash_flow": 15,
+        "revenue": 12
+      },
+      "non_null_metrics": {
+        "net_debt": 6,
+        "operating_cash_flow": 15,
+        "revenue": 10
+      },
+      "null_metrics": {
+        "net_debt": 6,
+        "revenue": 2
+      },
+      "metrics_scored": [
+        "revenue",
+        "operating_cash_flow",
+        "net_debt"
+      ],
+      "metric_checks_expected": 39,
+      "trust_context_dimensions": [
+        "period_type",
+        "period_end",
+        "currency",
+        "scale",
+        "expected_trust"
+      ],
+      "current_use": "Full current real-gold required-metric subset for stability tracking.",
+      "limitations": "Still restricted to three supported required metrics and missing source URLs for all fixtures."
+    },
+    {
+      "name": "confirmed_metric_coverage",
+      "path_or_report": "financial-engine_v2/backend/tests/eval_fixtures plus read-only coverage profile",
+      "document_count": 15,
+      "documents": [
+        {
+          "fixture_id": "anz_20250331_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/ANZ_H_2025-03-31.json",
+          "company": null,
+          "ticker": "ANZ",
+          "period_type": "H",
+          "period_end": "2025-03-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [
+            "net_debt"
+          ],
+          "verification_method": "claude-api-sonnet",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "azj_20251231_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/AZJ_H_2025-12-31.json",
+          "company": null,
+          "ticker": "AZJ",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "claude-api-sonnet",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "bhp_fy2021_preliminary_final",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/BHP_A_2021-06-30.json",
+          "company": null,
+          "ticker": "BHP",
+          "period_type": "A",
+          "period_end": "2021-06-30",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [
+            "net_debt"
+          ],
+          "verification_method": "DATA_MISSING",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "csl_20251231_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/CSL_H_2025-12-31.json",
+          "company": null,
+          "ticker": "CSL",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "claude-api-sonnet",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "dxs_20251231_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/DXS_H_2025-12-31.json",
+          "company": null,
+          "ticker": "DXS",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "hand-verified",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "eqr_q4_fy2026_appendix5b",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/EQR_Q_2025-12-31.json",
+          "company": null,
+          "ticker": "EQR",
+          "period_type": "Q",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "cash_end",
+            "financing_cf",
+            "investing_cf",
+            "operating_cf"
+          ],
+          "expected_nulls": [
+            "ebit",
+            "net_debt",
+            "np_attributable",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "verification_method": "DATA_MISSING",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "fmg_20251231_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/FMG_H_2025-12-31.json",
+          "company": null,
+          "ticker": "FMG",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "claude-opus",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "gre_q4_fy2025_appendix5b",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/GRE_Q_2024-12-31.json",
+          "company": null,
+          "ticker": "GRE",
+          "period_type": "Q",
+          "period_end": "2024-12-31",
+          "metrics_present": [
+            "cash_end",
+            "financing_cf",
+            "investing_cf",
+            "operating_cf"
+          ],
+          "expected_nulls": [
+            "ebit",
+            "net_debt",
+            "np_attributable",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "verification_method": "DATA_MISSING",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "min_2025h1_appendix4d",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/MIN_H_2025-12-31.json",
+          "company": null,
+          "ticker": "MIN",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [
+            "net_debt"
+          ],
+          "verification_method": "DATA_MISSING",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "qbe_20250630_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/QBE_H_2025-06-30.json",
+          "company": null,
+          "ticker": "QBE",
+          "period_type": "H",
+          "period_end": "2025-06-30",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "hand-verified",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "rms_2025h1_appendix4d",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/RMS_H_2025-12-31.json",
+          "company": null,
+          "ticker": "RMS",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [
+            "net_debt"
+          ],
+          "verification_method": "DATA_MISSING",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "seg_h_fy2026_appendix4d",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/SEG_H_2025-12-31.json",
+          "company": null,
+          "ticker": "SEG",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "cash_end",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "DATA_MISSING",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "tcl_20251231_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/TCL_H_2025-12-31.json",
+          "company": null,
+          "ticker": "TCL",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [
+            "ebit"
+          ],
+          "verification_method": "claude-opus",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "tls_20251231_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/TLS_H_2025-12-31.json",
+          "company": null,
+          "ticker": "TLS",
+          "period_type": "H",
+          "period_end": "2025-12-31",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "claude-opus",
+          "confidence": "DATA_MISSING"
+        },
+        {
+          "fixture_id": "wow_20260104_h",
+          "file": "financial-engine_v2/backend/tests/eval_fixtures/WOW_H_2026-01-04.json",
+          "company": null,
+          "ticker": "WOW",
+          "period_type": "H",
+          "period_end": "2026-01-04",
+          "metrics_present": [
+            "capex",
+            "cash_end",
+            "ebit",
+            "financing_cf",
+            "investing_cf",
+            "net_debt",
+            "np_attributable",
+            "operating_cf",
+            "revenue",
+            "shares_outstanding"
+          ],
+          "expected_nulls": [],
+          "verification_method": "claude-opus",
+          "confidence": "DATA_MISSING"
+        }
+      ],
+      "period_counts": {
+        "A": 1,
+        "H": 12,
+        "Q": 2
+      },
+      "metrics_labelled": {
+        "capex": 12,
+        "cash_end": 15,
+        "ebit": 11,
+        "financing_cf": 15,
+        "investing_cf": 15,
+        "net_debt": 11,
+        "np_attributable": 13,
+        "operating_cf": 15,
+        "revenue": 13,
+        "shares_outstanding": 13
+      },
+      "expected_nulls": {
+        "net_debt": 2
+      },
+      "metrics_scored": [
+        "capex",
+        "cash_end",
+        "ebit",
+        "financing_cf",
+        "investing_cf",
+        "net_debt",
+        "np_attributable",
+        "operating_cf",
+        "revenue",
+        "shares_outstanding"
+      ],
+      "metric_expectations_total": 146,
+      "scored_metric_expectations": 73,
+      "candidate_review_required_count": 70,
+      "ambiguous_metric_count": 3,
+      "unsupported_metric_count": 0,
+      "trust_context_dimensions": [
+        "fixture expected context",
+        "source evidence status",
+        "support status",
+        "not canonical trust"
+      ],
+      "current_use": "Read-only breadth inventory and future coverage scorecard input; current profile has no extracted payload scoring in this audit.",
+      "limitations": "No current generated report artifact found under reports/extraction_eval; candidate and ambiguous rows must not be counted as extractor failures."
+    },
+    {
+      "name": "synthetic_extraction_eval_fixtures",
+      "path_or_report": "financial-engine_v2/backend/tests/fixtures/extraction_eval",
+      "document_count": 16,
+      "metrics_labelled": {
+        "cash_end": 1,
+        "ebit": 4,
+        "net_debt": 1,
+        "np_attributable": 2,
+        "operating_cf": 3,
+        "revenue": 11,
+        "shares_outstanding": 1
+      },
+      "expected_nulls": {
+        "ebit": 1,
+        "net_debt": 3,
+        "np_attributable": 1,
+        "revenue": 1
+      },
+      "optional_metrics": {
+        "shares_outstanding": 4
+      },
+      "metrics_scored": [
+        "cash_end",
+        "ebit",
+        "net_debt",
+        "np_attributable",
+        "operating_cf",
+        "revenue",
+        "shares_outstanding"
+      ],
+      "trust_context_dimensions": [
+        "unit fixture expected context",
+        "mocked extraction behavior"
+      ],
+      "current_use": "Evaluator behavior and no-regression unit coverage.",
+      "limitations": "Synthetic fixtures do not prove production document extraction accuracy."
+    },
+    {
+      "name": "real_gold_evaluator_unit_fixtures",
+      "path_or_report": "financial-engine_v2/backend/tests/fixtures/extraction_gold",
+      "document_count": 4,
+      "metrics_labelled": {
+        "capex": 1,
+        "ebit": 2,
+        "net_debt": 1,
+        "np_attributable": 1,
+        "operating_cf": 1,
+        "revenue": 2
+      },
+      "metrics_scored": [
+        "capex",
+        "ebit",
+        "net_debt",
+        "np_attributable",
+        "operating_cf",
+        "revenue"
+      ],
+      "trust_context_dimensions": [
+        "trusted",
+        "abstain",
+        "quarantine"
+      ],
+      "current_use": "Unit tests for real-gold scorer semantics.",
+      "limitations": "Not a production corpus."
+    },
+    {
+      "name": "appendix5b_local_approval_packet",
+      "path_or_report": "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517",
+      "document_count": 1,
+      "metrics_labelled": {
+        "operating_cash_flow": 1
+      },
+      "metrics_scored": [],
+      "trust_context_dimensions": [
+        "source page",
+        "source line",
+        "approval flags"
+      ],
+      "current_use": "Evidence packet only in this branch; not active gate scoring.",
+      "limitations": "Current branch lacks Appendix 5B scorer/gate scripts referenced by prior task language."
+    },
+    {
+      "name": "supplemental_metric_normalization_spec",
+      "path_or_report": "docs/extraction/supplemental_metric_normalization_registry.yaml",
+      "document_count": "DATA_MISSING",
+      "metrics_labelled": {
+        "curated_supplemental_raw_names": 337,
+        "curated_supplemental_datapoints": 539,
+        "exhaustive_row_labels": 2999,
+        "exhaustive_datapoints": 18652
+      },
+      "metrics_scored": [],
+      "trust_context_dimensions": [
+        "spec-only KEEP/SUPPORT_ONLY/HOLD/IGNORE"
+      ],
+      "current_use": "Design reference for future breadth; explicitly spec-only.",
+      "limitations": "Does not change runtime extraction, evaluator behavior, canonical labels, or production scoring."
+    },
+    {
+      "name": "legacy_extraction_baseline_report",
+      "path_or_report": "financial-engine_v2/reports/extraction_baseline.json",
+      "document_count": 9,
+      "metrics_labelled": {
+        "metric_count": 10
+      },
+      "metrics_scored": [
+        "revenue",
+        "ebit",
+        "np_attributable",
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+        "capex",
+        "cash_end",
+        "net_debt",
+        "shares_outstanding"
+      ],
+      "trust_context_dimensions": [
+        "historical fixture/model/backend run metadata"
+      ],
+      "current_use": "Historical baseline only.",
+      "limitations": "Locked 2026-03-27 and not the current canonical10 or confirmed coverage profile."
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "generated_at": "2026-05-19T13:57:04Z",
+  "tickers": {
+    "A2 MILK": {
+      "active_rows": 0,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [],
+      "statement_previews_capped": [],
+      "top_source_ids": [],
+      "total_rows": 44
+    },
+    "A2M": {
+      "active_rows": 7,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [
+        283,
+        310,
+        1129,
+        1493,
+        1495,
+        1829,
+        1961
+      ],
+      "statement_previews_capped": [
+        "A2 MILK's share price dropped 10% due to a product recall",
+        "A2 MILK's share price has dropped from almost $10 back to $6.59 in a few months",
+        "Potential overreaction by the market to the recall announcement for A2 MILK",
+        "A2 Milk has recalled three batches of its USA label infant formula due to the presence of cereulide toxin",
+        "Shares in A2 Milk plunged 11.35% to $6.44 in afternoon trade"
+      ],
+      "top_source_ids": [
+        {
+          "active_rows": 5,
+          "source": "commentary:youtube_transcript",
+          "source_id": "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796"
+        },
+        {
+          "active_rows": 2,
+          "source": "news:newspaper4k",
+          "source_id": "news:art_aa13edd261034dba97055d8a"
+        }
+      ],
+      "total_rows": 57
+    },
+    "ASX": {
+      "active_rows": 0,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [],
+      "statement_previews_capped": [],
+      "top_source_ids": [],
+      "total_rows": 58
+    },
+    "BHP": {
+      "active_rows": 4,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [
+        1549,
+        2340,
+        2431,
+        2432
+      ],
+      "statement_previews_capped": [
+        "The record share price for BHP looks justifiable due to its copper and potash vision",
+        "BHP Group pulled back after a strong upward run",
+        "BHP regained title of world's biggest miner from Commonwealth Bank",
+        "BHP regained the title of the world's biggest miner"
+      ],
+      "top_source_ids": [
+        {
+          "active_rows": 2,
+          "source": "news:newspaper4k",
+          "source_id": "news:art_70d140beceea2b73fdb16707"
+        },
+        {
+          "active_rows": 1,
+          "source": "news:newspaper4k",
+          "source_id": "news:art_5cf586d2c6303f73e9f52219"
+        },
+        {
+          "active_rows": 1,
+          "source": "news:newspaper4k",
+          "source_id": "news:art_b3f267fa6b4ad9e3ddc7d62a"
+        }
+      ],
+      "total_rows": 62
+    },
+    "COH": {
+      "active_rows": 0,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [],
+      "statement_previews_capped": [],
+      "top_source_ids": [],
+      "total_rows": 68
+    },
+    "PET": {
+      "active_rows": 0,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [],
+      "statement_previews_capped": [],
+      "top_source_ids": [],
+      "total_rows": 26
+    },
+    "PETT": {
+      "active_rows": 0,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [],
+      "statement_previews_capped": [],
+      "top_source_ids": [],
+      "total_rows": 44
+    },
+    "PETTIMED": {
+      "active_rows": 0,
+      "duplicate_cluster_active_rows": 0,
+      "duplicate_entry_ids_capped": [],
+      "entry_ids_capped": [],
+      "statement_previews_capped": [],
+      "top_source_ids": [],
+      "total_rows": 25
+    }
+  }
+}

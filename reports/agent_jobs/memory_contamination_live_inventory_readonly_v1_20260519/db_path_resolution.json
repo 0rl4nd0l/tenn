@@ -1,0 +1,307 @@
+{
+  "active_db": {
+    "classification": "active",
+    "container_path": "/data/reports/research_memory/company_memory.sqlite",
+    "host_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+    "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+    "storage_location": "NVMe2"
+  },
+  "active_resolution_method": "container source_registry.RESEARCH_MEMORY_ROOT + Docker /data bind mount",
+  "candidates": [
+    {
+      "classification": "likely_active",
+      "device": 66307,
+      "exists": true,
+      "file_size_bytes": 4386816,
+      "gid": 1000,
+      "inode": 26100976,
+      "mode_octal": "0o644",
+      "modified_time": "2026-05-17T11:46:36.966809",
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+      "shm_exists": false,
+      "shm_size": null,
+      "storage_location": "NVMe2",
+      "uid": 1000,
+      "wal_exists": false,
+      "wal_size": null
+    },
+    {
+      "classification": "stale_or_placeholder_runtime_tree_copy",
+      "device": 66305,
+      "exists": true,
+      "file_size_bytes": 36864,
+      "gid": 1000,
+      "inode": 17214692,
+      "mode_octal": "0o600",
+      "modified_time": "2026-05-18T17:47:10.326775",
+      "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "sha256": "3dca550ca8c5dbceb315d6584648af9ddd0e94408e6948b0f7d0417617264269",
+      "shm_exists": false,
+      "shm_size": null,
+      "storage_location": "runtime_worktree",
+      "uid": 1000,
+      "wal_exists": false,
+      "wal_size": null
+    },
+    {
+      "classification": "stale_or_placeholder_runtime_tree_copy",
+      "device": 66305,
+      "exists": true,
+      "file_size_bytes": 36864,
+      "gid": 1000,
+      "inode": 17214692,
+      "mode_octal": "0o600",
+      "modified_time": "2026-05-18T17:47:10.326775",
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "sha256": "3dca550ca8c5dbceb315d6584648af9ddd0e94408e6948b0f7d0417617264269",
+      "shm_exists": false,
+      "shm_size": null,
+      "storage_location": "runtime_worktree",
+      "uid": 1000,
+      "wal_exists": false,
+      "wal_size": null
+    },
+    {
+      "classification": "historical_or_stale_identical_copy_not_container_active",
+      "device": 2082,
+      "exists": true,
+      "file_size_bytes": 4386816,
+      "gid": 1000,
+      "inode": 25561885,
+      "mode_octal": "0o644",
+      "modified_time": "2026-05-17T11:46:36.966809",
+      "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "resolved_path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+      "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+      "shm_exists": false,
+      "shm_size": null,
+      "storage_location": "HDD",
+      "uid": 1000,
+      "wal_exists": false,
+      "wal_size": null
+    }
+  ],
+  "docker_resolution": {
+    "containers": [
+      {
+        "container_path_checks": {
+          "data_candidate": {
+            "exists": true,
+            "path": "/data/reports/research_memory/company_memory.sqlite",
+            "size": 4386816
+          },
+          "default_company_memory_path": {
+            "exists": true,
+            "path": "/data/reports/research_memory/company_memory.sqlite",
+            "size": 4386816
+          },
+          "env_TENN_RESEARCH_MEMORY_ROOT": {
+            "exists": false,
+            "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+            "size": null
+          }
+        },
+        "env_relevant": [
+          {
+            "key": "TENN_RESEARCH_MEMORY_ROOT",
+            "value": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory"
+          }
+        ],
+        "mounts_relevant": [
+          {
+            "destination": "/app",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend",
+            "type": "bind"
+          },
+          {
+            "destination": "/reports",
+            "mode": "rw",
+            "rw": true,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/asx/docs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/marketindex/pdfs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs",
+            "type": "bind"
+          },
+          {
+            "destination": "/workspace/reports",
+            "mode": "rw",
+            "rw": true,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+            "type": "bind"
+          },
+          {
+            "destination": "/data",
+            "mode": "rw",
+            "rw": true,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+            "type": "bind"
+          },
+          {
+            "destination": "/workspace",
+            "mode": "ro",
+            "rw": false,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+            "type": "bind"
+          },
+          {
+            "destination": "/workspace-reports",
+            "mode": "rw",
+            "rw": true,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+            "type": "bind"
+          },
+          {
+            "destination": "/config",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/config",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/benchmark/pdfs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs",
+            "type": "bind"
+          },
+          {
+            "destination": "/app/shared",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/shared",
+            "type": "bind"
+          },
+          {
+            "destination": "/app/cockpit",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit",
+            "type": "bind"
+          },
+          {
+            "destination": "/scripts",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/scripts",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/extraction_gold_real/pdfs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+            "type": "bind"
+          }
+        ],
+        "name": "fe_backend",
+        "resolved_RESEARCH_MEMORY_ROOT": "/data/reports/research_memory",
+        "resolved_company_memory_container_path": "/data/reports/research_memory/company_memory.sqlite",
+        "resolved_company_memory_host_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+        "state": "running",
+        "working_dir": "/app"
+      },
+      {
+        "container_path_checks": {
+          "data_candidate": {
+            "exists": true,
+            "path": "/data/reports/research_memory/company_memory.sqlite",
+            "size": 4386816
+          },
+          "default_company_memory_path": {
+            "exists": true,
+            "path": "/data/reports/research_memory/company_memory.sqlite",
+            "size": 4386816
+          },
+          "env_TENN_RESEARCH_MEMORY_ROOT": {
+            "exists": false,
+            "path": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+            "size": null
+          }
+        },
+        "env_relevant": [
+          {
+            "key": "TENN_RESEARCH_MEMORY_ROOT",
+            "value": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory"
+          }
+        ],
+        "mounts_relevant": [
+          {
+            "destination": "/app",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend",
+            "type": "bind"
+          },
+          {
+            "destination": "/app/shared",
+            "mode": "rw",
+            "rw": true,
+            "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/shared",
+            "type": "bind"
+          },
+          {
+            "destination": "/data",
+            "mode": "rw",
+            "rw": true,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/asx/docs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/extraction_gold_real/pdfs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/benchmark/pdfs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs",
+            "type": "bind"
+          },
+          {
+            "destination": "/data/marketindex/pdfs",
+            "mode": "ro",
+            "rw": false,
+            "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs",
+            "type": "bind"
+          }
+        ],
+        "name": "fe_worker",
+        "resolved_RESEARCH_MEMORY_ROOT": "/data/reports/research_memory",
+        "resolved_company_memory_container_path": "/data/reports/research_memory/company_memory.sqlite",
+        "resolved_company_memory_host_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+        "state": "running",
+        "working_dir": "/app"
+      }
+    ],
+    "ok": true
+  },
+  "generated_at": "2026-05-19T13:57:04Z"
+}

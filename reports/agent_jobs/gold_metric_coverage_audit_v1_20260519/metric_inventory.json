@@ -1,0 +1,775 @@
+{
+  "generated_at_utc": "2026-05-19T13:00:54.825816+00:00",
+  "repo": {
+    "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "2e73de32ac77"
+  },
+  "summary": {
+    "canonical_core_expected_docs": 10,
+    "canonical_core_expected_metric_checks": 24,
+    "expanded_required_expected_docs": 15,
+    "expanded_required_expected_metric_checks": 39,
+    "confirmed_metric_coverage_total_expectations": 146,
+    "confirmed_metric_coverage_scored_expectations": 73,
+    "confirmed_metric_coverage_candidate_count": 70,
+    "confirmed_metric_coverage_ambiguous_count": 3,
+    "confirmed_metric_coverage_unsupported_count": 0
+  },
+  "metrics": [
+    {
+      "metric_name": "revenue",
+      "tier": "Tier 1",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": true,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "canonical_core and expanded_required real-gold profiles",
+      "classification": "REQUIRED_SCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 12,
+        "confirmed_fixture_count": 13,
+        "synthetic_fixture_count": 11,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "FMG",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/data/extraction_gold_real",
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 1 top-line metric. Required in real-gold profiles where visible and schema-supported."
+    },
+    {
+      "metric_name": "operating_cash_flow",
+      "tier": "Tier 1",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": true,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "canonical_core and expanded_required real-gold profiles",
+      "classification": "REQUIRED_SCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 15,
+        "confirmed_fixture_count": 15,
+        "synthetic_fixture_count": 3,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "EQR",
+          "FMG",
+          "GRE",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/data/extraction_gold_real",
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 1 alias for operating_cf. Required in all current real-gold documents."
+    },
+    {
+      "metric_name": "net_debt",
+      "tier": "Tier 1",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": true,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "canonical_core and expanded_required real-gold profiles",
+      "classification": "REQUIRED_SCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 12,
+        "confirmed_fixture_count": 11,
+        "synthetic_fixture_count": 1,
+        "confirmed_fixture_tickers": [
+          "AZJ",
+          "CSL",
+          "DXS",
+          "FMG",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/data/extraction_gold_real",
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 1 in current real-gold profiles when explicitly labelled; derived debt-minus-cash net debt must stay ambiguous until definition is agreed."
+    },
+    {
+      "metric_name": "ebit",
+      "tier": "Tier 2",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 11,
+        "synthetic_fixture_count": 4,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "FMG",
+          "MIN",
+          "QBE",
+          "RMS",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 14,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 2 schema-supported extraction field and confirmed coverage candidate/scored row, but not part of current real-gold required scoring."
+    },
+    {
+      "metric_name": "np_attributable",
+      "tier": "Tier 2",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 13,
+        "synthetic_fixture_count": 2,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "FMG",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 2 schema-supported profit attributable field and confirmed coverage candidate/scored row, but not current canonical/expanded required scoring."
+    },
+    {
+      "metric_name": "investing_cf",
+      "tier": "Tier 3",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 15,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "EQR",
+          "FMG",
+          "GRE",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Schema-supported cash-flow field present in backend eval fixtures; not in real-gold required profiles."
+    },
+    {
+      "metric_name": "financing_cf",
+      "tier": "Tier 3",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 15,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "EQR",
+          "FMG",
+          "GRE",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Schema-supported cash-flow field present in backend eval fixtures; not in real-gold required profiles."
+    },
+    {
+      "metric_name": "capex",
+      "tier": "Tier 2",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 12,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "FMG",
+          "MIN",
+          "QBE",
+          "RMS",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 12,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 2 if explicitly reported with agreed convention. Schema-supported, but definition can vary across capex, PP&E purchases, and investing sub-items."
+    },
+    {
+      "metric_name": "cash_end",
+      "tier": "Tier 2",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED for cash_end; generic cash remains AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 15,
+        "synthetic_fixture_count": 1,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "EQR",
+          "FMG",
+          "GRE",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 2 cash equivalent when it means ending cash/cash equivalents. Generic cash must not be collapsed into this without evidence."
+    },
+    {
+      "metric_name": "shares_outstanding",
+      "tier": "Tier 2",
+      "current_schema_support": true,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": true,
+        "synthetic_eval_fixtures": true,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "confirmed_metric_coverage profile only; not canonical/expanded real-gold required scoring",
+      "classification": "CONFIRMED_UNSCORED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 13,
+        "synthetic_fixture_count": 1,
+        "confirmed_fixture_tickers": [
+          "ANZ",
+          "AZJ",
+          "BHP",
+          "CSL",
+          "DXS",
+          "FMG",
+          "MIN",
+          "QBE",
+          "RMS",
+          "SEG",
+          "TCL",
+          "TLS",
+          "WOW"
+        ]
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 15,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/tests/eval_fixtures",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py"
+      ],
+      "notes": "Tier 2 only when explicitly reported with period-end count and scale evidence. Schema-supported and present in confirmed coverage fixtures."
+    },
+    {
+      "metric_name": "total_debt",
+      "tier": "Tier 2",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "internal extractor capture/derivation support only; not persisted or gold-scored",
+      "classification": "EXTRACTOR_OUTPUT_BUT_NOT_GOLD",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py"
+      ],
+      "notes": "Extractor prompt can capture total_debt internally for derived net_debt, but it is not in the final persisted metric field set or real-gold scoring."
+    },
+    {
+      "metric_name": "ebitda",
+      "tier": "Tier 2",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": true
+      },
+      "current_scoring_support": "not supported by current runtime extraction schema or real-gold scorer",
+      "classification": "UNSUPPORTED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "docs/extraction/supplemental_metric_normalization_registry.yaml"
+      ],
+      "notes": "Tier 2/3 depending definition. Not runtime schema-supported in current extraction/gold scorer; supplemental registry mentions underlying_ebitda as spec-only."
+    },
+    {
+      "metric_name": "eps",
+      "tier": "Tier 2",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": true
+      },
+      "current_scoring_support": "not supported by current runtime extraction schema or real-gold scorer",
+      "classification": "UNSUPPORTED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "docs/extraction/supplemental_metric_normalization_registry.yaml"
+      ],
+      "notes": "Tier 2 if explicitly reported, but not runtime schema-supported or gold-scored; supplemental spec notes currency/scale caveats."
+    },
+    {
+      "metric_name": "cash",
+      "tier": "Tier 2",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [],
+      "notes": "Ambiguous generic family. Use cash_end only when source definition matches ending cash/cash equivalents."
+    },
+    {
+      "metric_name": "free_cash_flow",
+      "tier": "Tier 2",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": true
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [
+        "docs/extraction/supplemental_metric_normalization_registry.yaml"
+      ],
+      "notes": "Tier 2 only when explicitly reported and definition agreed. Current runtime schema does not support it as a stored extraction field."
+    },
+    {
+      "metric_name": "margins",
+      "tier": "Tier 3",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [],
+      "notes": "Tier 3 derived ratios. Do not hard-score without source definition and schema support."
+    },
+    {
+      "metric_name": "ratios",
+      "tier": "Tier 3",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [],
+      "notes": "Tier 3. Derived or definition-dependent; not current extraction gold scoring."
+    },
+    {
+      "metric_name": "growth_rates",
+      "tier": "Tier 3",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [],
+      "notes": "Tier 3 derived/comparative metrics; not current extraction gold scoring."
+    },
+    {
+      "metric_name": "segment_metrics",
+      "tier": "Tier 3",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [],
+      "notes": "Tier 3 breadth. Requires separate schema and segment identity definitions before scoring."
+    },
+    {
+      "metric_name": "peer_relative_metrics",
+      "tier": "Tier 3",
+      "current_schema_support": false,
+      "current_gold_label_support": {
+        "real_gold_required": false,
+        "confirmed_metric_coverage_fixtures": false,
+        "synthetic_eval_fixtures": false,
+        "supplemental_spec_only": false
+      },
+      "current_scoring_support": "do not hard-score without explicit schema/evidence/definition agreement",
+      "classification": "AMBIGUOUS_OR_DERIVED",
+      "documents_or_tickers_seen": {
+        "real_gold_count": 0,
+        "confirmed_fixture_count": 0,
+        "synthetic_fixture_count": 0,
+        "confirmed_fixture_tickers": []
+      },
+      "coverage_profile_counts": {
+        "total_expectations": 0,
+        "scored_metric_expectations": 0,
+        "candidate_review_required_count": 0,
+        "ambiguous_metric_count": 0,
+        "expected_null_count": 0
+      },
+      "evidence_paths": [],
+      "notes": "Tier 3 comparative analytics, not document extraction gold labels."
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "generated_at": "2026-05-19T13:57:04Z",
+  "source_id_contains": {
+    "news:art_e4faef3c4644fe5bb3b66e32": {
+      "active_count": 4,
+      "company_ids_capped": [
+        "CSL",
+        "CSL",
+        "EZZ",
+        "RESMED"
+      ],
+      "entry_ids_capped": [
+        1301,
+        1341,
+        1273,
+        1310
+      ],
+      "source_ids_capped": [
+        "news:art_e4faef3c4644fe5bb3b66e32"
+      ],
+      "statement_previews_capped": [
+        "CSL faces renewed scrutiny over valuation gaps and growth expectations",
+        "CSL's renewed scrutiny over valuation gaps and growth expectations",
+        "EZZ enters the wellness market with its MeTime range",
+        "RESMED delivers strong quarterly growth"
+      ],
+      "total_count": 160
+    },
+    "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows": {
+      "active_count": 6,
+      "company_ids_capped": [
+        "A2M",
+        "A2M",
+        "A2M",
+        "A2M",
+        "A2M",
+        "NAB"
+      ],
+      "entry_ids_capped": [
+        283,
+        310,
+        1129,
+        1829,
+        1961,
+        717
+      ],
+      "source_ids_capped": [
+        "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796"
+      ],
+      "statement_previews_capped": [
+        "A2 MILK's share price dropped 10% due to a product recall",
+        "A2 MILK's share price has dropped from almost $10 back to $6.59 in a few months",
+        "Potential overreaction by the market to the recall announcement for A2 MILK",
+        "A2 MILK's voluntary recall of three batches of A2 Platinum USA label infant milk formula",
+        "A2 MILK's potential overreaction from the market due to the product recall"
+      ],
+      "total_count": 1555
+    }
+  },
+  "statement_contains": {
+    "A2 MILK": {
+      "active_count": 7,
+      "company_ids_capped": [
+        "A2M",
+        "A2M",
+        "A2M",
+        "A2M",
+        "A2M",
+        "A2M",
+        "A2M"
+      ],
+      "entry_ids_capped": [
+        283,
+        310,
+        1129,
+        1493,
+        1495,
+        1829,
+        1961
+      ],
+      "source_ids_capped": [
+        "news:art_aa13edd261034dba97055d8a",
+        "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796"
+      ],
+      "statement_previews_capped": [
+        "A2 MILK's share price dropped 10% due to a product recall",
+        "A2 MILK's share price has dropped from almost $10 back to $6.59 in a few months",
+        "Potential overreaction by the market to the recall announcement for A2 MILK",
+        "A2 Milk has recalled three batches of its USA label infant formula due to the presence of cereulide toxin",
+        "Shares in A2 Milk plunged 11.35% to $6.44 in afternoon trade"
+      ],
+      "total_count": 328
+    },
+    "ACCENT GROUP": {
+      "active_count": 0,
+      "company_ids_capped": [],
+      "entry_ids_capped": [],
+      "source_ids_capped": [],
+      "statement_previews_capped": [],
+      "total_count": 190
+    },
+    "PETTIMED": {
+      "active_count": 0,
+      "company_ids_capped": [],
+      "entry_ids_capped": [],
+      "source_ids_capped": [],
+      "statement_previews_capped": [],
+      "total_count": 176
+    },
+    "capital raising at 1 cent": {
+      "active_count": 0,
+      "company_ids_capped": [],
+      "entry_ids_capped": [],
+      "source_ids_capped": [],
+      "statement_previews_capped": [],
+      "total_count": 67
+    },
+    "share price dropped": {
+      "active_count": 3,
+      "company_ids_capped": [
+        "A2M",
+        "CSL",
+        "CSL"
+      ],
+      "entry_ids_capped": [
+        283,
+        2425,
+        2427
+      ],
+      "source_ids_capped": [
+        "news:art_ffe96e73baccb32f600ec187",
+        "youtube_transcript:asx-daily-rundown-atlassian-lifts-tech-a2-milk-recall-shock-accent-group-all-time-lows:88e960386e503796"
+      ],
+      "statement_previews_capped": [
+        "A2 MILK's share price dropped 10% due to a product recall",
+        "CSL's share price dropped due to chaotic trading after CEO resignation announcement",
+        "CSL's share price dropped amid chaotic trading after CEO resignation announcement"
+      ],
+      "total_count": 104
+    }
+  },
+  "summary": {
+    "active_entry_ids_capped": [
+      283,
+      310,
+      717,
+      1129,
+      1273,
+      1301,
+      1310,
+      1341,
+      1493,
+      1495,
+      1829,
+      1961,
+      2425,
+      2427
+    ],
+    "active_match_count_deduped": 14,
+    "note": "Deduped across known source_id and statement pattern checks; counts in per-pattern sections may overlap."
+  }
+}
