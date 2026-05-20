@@ -19,12 +19,13 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
 - LLM JSON extraction via Ollama `/api/generate` (configurable model; missing values remain NULL)
 - Postgres tables: `documents`, `extraction_runs`, `asx_periodic_financials`, `asx_risk_notes`
 - API endpoints:
-  - GET `/api/health`
-  - GET `/api/docs?ticker=BHP`
-  - GET `/api/financials?ticker=BHP`
-  - GET `/api/risk?document_id=...`
-  - POST `/api/backfill/asx20`
-  - POST `/api/backfill/ticker/{ticker}`
+  - `GET /api/health`
+  - `GET /api/docs?ticker=BHP`
+  - `GET /api/financials?ticker=BHP`
+  - `GET /api/risk?document_id=...`
+  - `GET /api/price?ticker=BHP&range=3mo&interval=1d&exchange=ASX`
+  - `POST /api/backfill/asx20`
+  - `POST /api/backfill/ticker/{ticker}`
 
 ## What isn’t included (next phase)
 - Frontend UI
@@ -41,7 +42,11 @@ Canonical (isolated backend mode, no Docker):
 
 Docker is supported for full infrastructure, but it is not the default path for agents.
 
-## Quickstart
+## Quickstart (Full Infrastructure)
+Use this path when you need Postgres, Redis/Celery, Qdrant, and Ollama-backed
+embeddings/extraction. For deterministic agent startup, use
+`Canonical Execution (Agents)` above and `Local Isolated Mode` below instead.
+
 1. Install Docker + Docker Compose (Ubuntu)
 2. Ensure Ollama is installed on the host and running
 3. `cp .env.example .env`
@@ -76,6 +81,15 @@ Defaults in local mode:
 - MarketIndex fallback enabled by default (`ENABLE_MARKETINDEX_FALLBACK=true`) using `../data/raw/marketindex_announcements.json`
 - If MarketIndex URLs return Cloudflare `403`, those docs are marked `blocked_marketindex_403` and skipped
 - MarketIndex documents are treated as headed-only and marked `blocked_marketindex_headed_required` in local non-headed mode
+
+Runtime profile summary:
+
+| Profile | Start command | Database/tasks | Processing defaults | Use when |
+|---------|---------------|----------------|---------------------|----------|
+| Local isolated | `./scripts/run_local_backend.sh` | SQLite at `./data/fe_local.db`, `TASK_MODE=sync` | `AUTO_CREATE_TABLES=true`, embeddings/Qdrant/extraction off, MarketIndex fallback on | Agent validation, smoke tests, local API work |
+| Docker/Celery | `docker compose up -d --build` | Postgres, Redis/Celery worker, Qdrant | `.env.example` enables embeddings, Qdrant, and extraction | Full ingestion/extraction stack |
+| Cockpit-assisted | `./scripts/cockpit_tui.py` | Uses backend API from `config/cockpit.yaml`; can auto-start local backend | Operator-controlled actions and optional chat/RAG tooling | Human-operated ingestion, audits, and analysis workflows |
+| Batch runner | `python3 run.py` | Depends on hardcoded `run.py` workflow settings | Runs configured batch scripts, not the API server | Explicit full-history or daily MarketIndex batch runs |
 
 ## Headed MarketIndex Recovery (Manual)
 Use this manual command after backfill to recover blocked/pending MarketIndex docs with a headed browser session.
@@ -136,11 +150,15 @@ If you want a single command with hardcoded defaults, use:
 This wrapper runs:
 - ticker full-history gathering
 - daily MarketIndex scrape/download
+- daily ASX market-wide ingestion when `CONFIG["workflow"]` is set to `daily_asx_marketwide`
 
 All config is hardcoded in `run.py` under `CONFIG`.
 
 Common edits in `run.py`:
-- `CONFIG["workflow"]`: `"both"`, `"full_history"`, or `"daily_marketindex"`
+- `CONFIG["workflow"]`: `"both"`, `"full_history"`, `"daily_marketindex"`, or `"daily_asx_marketwide"`
+- `CONFIG["full_history"]["tickers"]` or `CONFIG["full_history"]["use_asx10"]`
+- `CONFIG["full_history"]["years"]`
+- `CONFIG["daily_marketindex"]["download_limit"]`
 
 ## Announcement Type Classification (Manual Backfill)
 Rebuild announcement-type folders for existing ingested docs:
@@ -157,9 +175,6 @@ Rebuild financial rows from already-downloaded docs (no re-download):
 Audit ticker financial quality (confidence, source-linkage, period gaps):
 
 - `python3 scripts/audit_ticker_financials.py --ticker BHP`
-- `CONFIG["full_history"]["tickers"]` or `CONFIG["full_history"]["use_asx10"]`
-- `CONFIG["full_history"]["years"]`
-- `CONFIG["daily_marketindex"]["download_limit"]`
 
 ## Cockpit TUI (v1)
 Operate chat + ingestion + updater + verification from a single terminal UI.
@@ -201,11 +216,43 @@ Operational controls:
 - Single active action at a time (new runs are blocked while one job is running).
 - "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
 
+## API interface notes
+
+FastAPI mounts these routes under `/api` from `backend/app/api/routes.py`.
+Use `/openapi.json` or the interactive docs at `/docs` when the backend is
+running for the exact generated schema.
+
+| Method/path | Parameters | Returns / side effects |
+|-------------|------------|------------------------|
+| `GET /api/health` | none | `{"status": "ok"}` health response |
+| `GET /api/docs` | `ticker` | Ingested document rows for a ticker, newest first |
+| `GET /api/financials` | `ticker` | Extracted periodic financial metrics for a ticker |
+| `GET /api/risk` | `document_id` | Risk summary and bullets for one document. When a row exists, guidance/material-change fields are included; when missing, only `risk_summary` and `risk_bullets` are returned as null |
+| `GET /api/price` | `ticker`, optional `range` (default `1mo`), `interval` (default `1d`), `exchange` (default `ASX`) | Yahoo Finance chart data normalized to current price metadata and OHLCV history |
+| `POST /api/backfill/ticker/{ticker}` | optional `years` (default `1`), `process_documents` (default `false`) | Sync mode runs backfill inline; Celery mode enqueues the ticker |
+| `POST /api/backfill/asx20` | optional `years` (default `1`), `process_documents` (default `false`) | Sync mode backfills the ASX20 inline; Celery mode enqueues each ticker |
+
+`/api/price` normalizes ASX tickers to Yahoo symbols such as `BHP.AX`.
+Blank `ticker`, `range`, or `interval` values return `400`; upstream provider
+failures return `502`.
+
+In Celery mode, the backfill routes enqueue only ticker symbols; `years` and
+`process_documents` are applied by the API only in sync mode.
+
 ## Key environment variables
-- `OLLAMA_URL` (default `http://host.docker.internal:11434`)
-- `EMBED_MODEL` (default `nomic-embed-text`)
-- `EXTRACT_MODEL` (default `llama3.1:8b`)
-- `DOCS_ROOT` (default `/data/asx/docs`)
+| Variable | Code default | Local isolated override | Notes |
+|----------|--------------|-------------------------|-------|
+| `DATABASE_URL` | SQLite under `financial-engine_v2/data/fe_local.db` | `sqlite:///./data/fe_local.db` | Relative SQLite paths are resolved under `financial-engine_v2/` |
+| `TASK_MODE` | `celery` | `sync` | Sync mode runs API backfills inline without Redis/Celery |
+| `AUTO_CREATE_TABLES` | `false` | `true` | Useful for SQLite smoke tests; Docker mode should use Alembic |
+| `ENABLE_EMBEDDINGS` | `true` | `false` | Controls embedding calls during document processing |
+| `ENABLE_QDRANT` | `true` | `false` | Controls vector upsert/search dependencies |
+| `ENABLE_EXTRACTION` | `true` | `false` | Controls Ollama extraction calls |
+| `ENABLE_MARKETINDEX_FALLBACK` | `false` | `true` | Local mode can read `MARKETINDEX_ANNOUNCEMENTS_FILE` for fallback docs |
+| `OLLAMA_URL` | `http://localhost:11434` | `http://localhost:11434` | `.env.example` uses `http://host.docker.internal:11434` for Docker |
+| `EMBED_MODEL` | Backend config default | Local script default unless overridden | Embedding model sent to Ollama when embeddings are enabled |
+| `EXTRACT_MODEL` | `llama3:latest` | `llama3:latest` | `.env.example` currently uses `llama3.1:8b` |
+| `DOCS_ROOT` | Project `data/asx/docs` | Local data root override from `run_local_backend.sh` | Source PDF root; resolved relative to the project when not absolute |
 
 ## Current model prompting + iteration setup
 - Prompting is schema-first and centralized in `backend/app/services/extraction.py` (`build_prompt`).

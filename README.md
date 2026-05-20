@@ -8,8 +8,9 @@ Canonical entrypoint documentation: `docs/entrypoints.md`.
 
 Short boot sequence:
 1. `pip install -r requirements.txt`
-2. `bash financial-engine_v2/scripts/run_local_backend.sh`
-3. `bash financial-engine_v2/scripts/smoke_local.sh`
+2. `pip install -r financial-engine_v2/backend/requirements.txt`
+3. `bash financial-engine_v2/scripts/run_local_backend.sh`
+4. `bash financial-engine_v2/scripts/smoke_local.sh`
 
 Note: `python run.py` is **NOT** the canonical startup path for agents (it is a batch runner).
 
@@ -18,15 +19,27 @@ Note: `python run.py` is **NOT** the canonical startup path for agents (it is a 
 - Use phase gates in `docs/phase_checklist.md`.
 - Keep both files updated during runs and before handoff.
 
-## Run in 3 steps
-1. Create/activate your main venv at repo root.
+## Run the backend in 3 steps
+1. Create/activate the shared venv at repo root (`/workspace/.venv` in Cursor Cloud)
+   and ensure `financial-engine_v2/.venv` exists or symlinks to it.
 2. Install deps:
    - `pip install -r requirements.txt`
-   - `python -m playwright install chromium`
-3. Run:
-   - `python run.py`
+   - `pip install -r financial-engine_v2/backend/requirements.txt`
+   - `python -m playwright install chromium` (needed for MarketIndex PDF downloads)
+3. Run and validate the canonical backend:
+   - `bash financial-engine_v2/scripts/run_local_backend.sh`
+   - `bash financial-engine_v2/scripts/smoke_local.sh`
 
-That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
+The backend is considered up when `GET /api/health` responds. The canonical local
+mode uses SQLite, sync tasks, and disables embeddings, extraction, and Qdrant by
+default.
+
+## Batch runner
+`python run.py` delegates to `financial-engine_v2/run.py` and runs configured
+batch workflows such as full-history ingestion, daily MarketIndex collection,
+or daily ASX market-wide ingestion.
+Use it when you explicitly want those workflows; it is not the deterministic
+system startup path.
 
 ## Isolated AU News Collector (`newspaper4k`)
 For a separate, research-only AU finance article collector, use:
