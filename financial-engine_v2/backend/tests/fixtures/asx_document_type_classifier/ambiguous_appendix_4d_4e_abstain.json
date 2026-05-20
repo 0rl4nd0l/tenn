@@ -1,0 +1,47 @@
+{
+  "fixture_id": "ambiguous_appendix_4d_4e_abstain",
+  "document_id": "SYN-ASX-AMBIG-001",
+  "ticker": "AMB",
+  "expected_document_type": "unknown_or_abstain",
+  "expected_confidence_band": "abstain",
+  "expected_abstain": true,
+  "source_text_surrogate": {
+    "first_page_title_text": "Results announcement",
+    "asx_announcement_title": "Half year and preliminary final results summary",
+    "headings": [
+      "Results for announcement to the market",
+      "Review-only unsupported EPS and NTA context"
+    ],
+    "table_captions": [
+      "Review-only unsupported dividend summary"
+    ],
+    "relevant_line_anchors": [
+      "Appendix 4D appears in header",
+      "Appendix 4E appears in footer"
+    ],
+    "footer_form_labels": [
+      "Appendix 4D",
+      "Appendix 4E"
+    ]
+  },
+  "positive_anchors": [],
+  "negative_anchors": [
+    "conflicting Appendix 4D and Appendix 4E labels",
+    "mixed half-year and preliminary final language"
+  ],
+  "required_evidence": [
+    "conflicting form labels require abstain"
+  ],
+  "abstain_reasons": [
+    "conflicting Appendix 4D and Appendix 4E anchors",
+    "period language is mixed"
+  ],
+  "must_not_infer_metrics": [
+    "review-only unsupported EPS context is not canonical",
+    "review-only unsupported NTA context is not canonical",
+    "review-only unsupported dividends context is not canonical",
+    "document type does not infer revenue, NPAT, or net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic ambiguous fixture. Future classifier should abstain instead of choosing 4D or 4E."
+}

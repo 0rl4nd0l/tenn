@@ -1,0 +1,52 @@
+{
+  "fixture_id": "appendix_4d_half_year_results",
+  "document_id": "SYN-ASX-4D-001",
+  "ticker": "HFD",
+  "expected_document_type": "appendix_4d",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "Appendix 4D Half year report",
+    "asx_announcement_title": "Half year results for announcement to the market",
+    "headings": [
+      "Results for announcement to the market",
+      "Commentary on results",
+      "Review-only unsupported EPS and dividend context"
+    ],
+    "table_captions": [
+      "Review-only unsupported dividend summary"
+    ],
+    "relevant_line_anchors": [
+      "Current reporting period: half-year ended 31 December 2025",
+      "Previous corresponding period: half-year ended 31 December 2024"
+    ],
+    "footer_form_labels": [
+      "Appendix 4D"
+    ]
+  },
+  "positive_anchors": [
+    "Appendix 4D",
+    "Half year report",
+    "Results for announcement to the market"
+  ],
+  "negative_anchors": [
+    "Appendix 4E",
+    "Preliminary final report",
+    "Appendix 4C",
+    "Appendix 5B"
+  ],
+  "required_evidence": [
+    "Appendix 4D form label",
+    "half-year period anchor",
+    "results for announcement heading"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "review-only unsupported EPS context is not canonical",
+    "review-only unsupported NTA context is not canonical",
+    "review-only unsupported dividends context is not canonical",
+    "document type does not infer revenue, NPAT, or net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic Appendix 4D fixture. EPS, NTA, and dividends are review-only unsupported context in this contract."
+}

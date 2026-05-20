@@ -1,0 +1,52 @@
+{
+  "fixture_id": "appendix_4e_preliminary_final",
+  "document_id": "SYN-ASX-4E-001",
+  "ticker": "PFR",
+  "expected_document_type": "appendix_4e",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "Appendix 4E Preliminary final report",
+    "asx_announcement_title": "Preliminary final report for announcement to the market",
+    "headings": [
+      "Results for announcement to the market",
+      "Financial results commentary",
+      "Review-only unsupported NTA and dividend context"
+    ],
+    "table_captions": [
+      "Review-only unsupported EPS summary"
+    ],
+    "relevant_line_anchors": [
+      "Current reporting period: year ended 30 June 2025",
+      "Previous corresponding period: year ended 30 June 2024"
+    ],
+    "footer_form_labels": [
+      "Appendix 4E"
+    ]
+  },
+  "positive_anchors": [
+    "Appendix 4E",
+    "Preliminary final report",
+    "Results for announcement to the market"
+  ],
+  "negative_anchors": [
+    "Appendix 4D",
+    "Half year report",
+    "Appendix 4C",
+    "Appendix 5B"
+  ],
+  "required_evidence": [
+    "Appendix 4E form label",
+    "preliminary final report title",
+    "year-ended period anchor"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "review-only unsupported EPS context is not canonical",
+    "review-only unsupported NTA context is not canonical",
+    "review-only unsupported dividends context is not canonical",
+    "document type does not infer revenue, NPAT, or net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic Appendix 4E fixture. EPS, NTA, and dividends are review-only unsupported context in this contract."
+}

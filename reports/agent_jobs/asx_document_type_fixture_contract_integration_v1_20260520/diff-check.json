@@ -1,0 +1,123 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/asx_document_type_fixture_contract_integration_v1_20260520.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/asx_document_type_fixture_contract_v1_20260520.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/asx_document_type_fixture_contract.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/ambiguous_appendix_4d_4e_abstain.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/annual_report_basic.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4c_quarterly_cashflow.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4d_half_year_results.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4e_preliminary_final.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_5b_mining_cashflow.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/half_year_report_basic.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/other_asx_announcement_investor_presentation.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/unknown_low_signal.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_document_type_fixture_contract.py",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/diff-check.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/asx_document_type_fixture_contract_integration_v1_20260520.md",
+        "docs/agent_tasks/asx_document_type_fixture_contract_v1_20260520.md",
+        "docs/asx_document_type_fixture_contract.md",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/ambiguous_appendix_4d_4e_abstain.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/annual_report_basic.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4c_quarterly_cashflow.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4d_half_year_results.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4e_preliminary_final.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_5b_mining_cashflow.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/half_year_report_basic.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/manifest.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/other_asx_announcement_investor_presentation.json",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/unknown_low_signal.json",
+        "financial-engine_v2/backend/tests/test_asx_document_type_fixture_contract.py",
+        "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/",
+        "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/README.md",
+        "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/diff-check.json",
+        "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/status.json",
+        "reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/",
+        "reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/README.md",
+        "reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "asx_document_type_fixture_contract_integration_v1_20260520",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

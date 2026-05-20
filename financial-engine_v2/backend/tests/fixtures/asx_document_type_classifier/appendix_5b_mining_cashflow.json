@@ -1,0 +1,52 @@
+{
+  "fixture_id": "appendix_5b_mining_cashflow",
+  "document_id": "SYN-ASX-5B-001",
+  "ticker": "MEX",
+  "expected_document_type": "appendix_5b",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "Appendix 5B Mining exploration entity quarterly cash flow report",
+    "asx_announcement_title": "Quarterly activities and cash flow report",
+    "headings": [
+      "Cash flows from operating activities",
+      "Exploration and evaluation expenditure",
+      "Payments to related parties"
+    ],
+    "table_captions": [
+      "Mining exploration entity quarterly cash flow report"
+    ],
+    "relevant_line_anchors": [
+      "Rule 5.5",
+      "Total available funding"
+    ],
+    "footer_form_labels": [
+      "Appendix 5B"
+    ]
+  },
+  "positive_anchors": [
+    "Appendix 5B",
+    "Mining exploration entity quarterly cash flow report",
+    "Rule 5.5"
+  ],
+  "negative_anchors": [
+    "Appendix 4C",
+    "Appendix 4D",
+    "Appendix 4E",
+    "Annual Report"
+  ],
+  "required_evidence": [
+    "Appendix 5B form label",
+    "mining exploration quarterly cash flow title",
+    "Rule 5.5 anchor"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "do not infer revenue from Appendix 5B",
+    "do not infer NPAT from Appendix 5B",
+    "do not infer net debt from Appendix 5B",
+    "do not infer income statement metric blocks from cash flow form type"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic Appendix 5B fixture. Classification must not imply revenue, NPAT, net debt, or canonical metric extraction."
+}

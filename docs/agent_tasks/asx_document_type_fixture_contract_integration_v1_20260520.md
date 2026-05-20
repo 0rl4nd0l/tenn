@@ -21,6 +21,7 @@ allowed_files:
   - reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/
   - reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/README.md
   - reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/diff-check.json
+  - reports/agent_jobs/asx_document_type_fixture_contract_integration_v1_20260520/status.json
   - reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/
   - reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/README.md
   - reports/agent_jobs/asx_document_type_fixture_contract_v1_20260520/diff-check.json

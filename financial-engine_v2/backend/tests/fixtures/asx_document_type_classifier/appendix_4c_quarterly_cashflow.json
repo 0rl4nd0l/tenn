@@ -1,0 +1,51 @@
+{
+  "fixture_id": "appendix_4c_quarterly_cashflow",
+  "document_id": "SYN-ASX-4C-001",
+  "ticker": "QCF",
+  "expected_document_type": "appendix_4c",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "Appendix 4C Quarterly cash flow report",
+    "asx_announcement_title": "Quarterly cash flow report",
+    "headings": [
+      "Cash flows from operating activities",
+      "Cash flows from investing activities",
+      "Financing facilities"
+    ],
+    "table_captions": [
+      "Consolidated statement of cash flows"
+    ],
+    "relevant_line_anchors": [
+      "Rule 4.7B",
+      "Net cash from / (used in) operating activities"
+    ],
+    "footer_form_labels": [
+      "Appendix 4C"
+    ]
+  },
+  "positive_anchors": [
+    "Appendix 4C",
+    "Quarterly cash flow report",
+    "Rule 4.7B"
+  ],
+  "negative_anchors": [
+    "Appendix 5B",
+    "Preliminary final report",
+    "Annual Report"
+  ],
+  "required_evidence": [
+    "Appendix 4C form label",
+    "quarterly cash flow report title",
+    "Rule 4.7B anchor"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "do not infer revenue from Appendix 4C",
+    "do not infer NPAT from Appendix 4C",
+    "do not infer net debt from Appendix 4C",
+    "do not infer income statement metric blocks from cash flow form type"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic Appendix 4C fixture. Classification must not imply revenue, NPAT, net debt, or canonical metric extraction."
+}

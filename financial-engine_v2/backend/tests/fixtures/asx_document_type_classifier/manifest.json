@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "contract": "asx_document_type_fixture_contract_v1",
+  "canonical_write": false,
+  "approved_document_types": [
+    "annual_report",
+    "half_year_report",
+    "appendix_4c",
+    "appendix_4d",
+    "appendix_4e",
+    "appendix_5b",
+    "other_asx_announcement",
+    "unknown_or_abstain"
+  ],
+  "confidence_bands": [
+    "high",
+    "medium",
+    "low",
+    "abstain"
+  ],
+  "fixture_files": [
+    "annual_report_basic.json",
+    "half_year_report_basic.json",
+    "appendix_4c_quarterly_cashflow.json",
+    "appendix_4d_half_year_results.json",
+    "appendix_4e_preliminary_final.json",
+    "appendix_5b_mining_cashflow.json",
+    "other_asx_announcement_investor_presentation.json",
+    "unknown_low_signal.json",
+    "ambiguous_appendix_4d_4e_abstain.json"
+  ],
+  "safety_rules": [
+    "document type classification is metadata, not metric truth",
+    "document type does not authorize parser routing",
+    "document type does not authorize canonical writes",
+    "cash flow Appendix fixtures must not imply revenue, NPAT, or net debt extraction"
+  ]
+}

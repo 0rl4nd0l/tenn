@@ -1,0 +1,51 @@
+{
+  "fixture_id": "other_asx_announcement_investor_presentation",
+  "document_id": "SYN-ASX-OTHER-001",
+  "ticker": "INV",
+  "expected_document_type": "other_asx_announcement",
+  "expected_confidence_band": "medium",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "Investor Presentation",
+    "asx_announcement_title": "Investor presentation and strategy update",
+    "headings": [
+      "Company overview",
+      "Market opportunity",
+      "FY26 priorities"
+    ],
+    "table_captions": [
+      "Operating highlights"
+    ],
+    "relevant_line_anchors": [
+      "Presentation released to ASX",
+      "No Appendix form label is present"
+    ],
+    "footer_form_labels": []
+  },
+  "positive_anchors": [
+    "Investor Presentation",
+    "strategy update",
+    "No Appendix form label is present"
+  ],
+  "negative_anchors": [
+    "Annual Report",
+    "Half-Year Report",
+    "Appendix 4C",
+    "Appendix 4D",
+    "Appendix 4E",
+    "Appendix 5B"
+  ],
+  "required_evidence": [
+    "investor presentation title",
+    "absence of supported Appendix form labels",
+    "generic strategy update heading"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "document type does not infer revenue",
+    "document type does not infer NPAT",
+    "document type does not infer net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic generic ASX announcement fixture. Other announcement classification is metadata only."
+}

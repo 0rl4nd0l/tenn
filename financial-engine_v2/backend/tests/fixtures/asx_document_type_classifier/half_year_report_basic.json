@@ -1,0 +1,49 @@
+{
+  "fixture_id": "half_year_report_basic",
+  "document_id": "SYN-ASX-HALF-001",
+  "ticker": "HYR",
+  "expected_document_type": "half_year_report",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "HYR Half-Year Report 2025",
+    "asx_announcement_title": "Half-year financial report",
+    "headings": [
+      "Directors' report",
+      "Auditor's independence declaration",
+      "Condensed consolidated financial statements"
+    ],
+    "table_captions": [
+      "Condensed statement of cash flows"
+    ],
+    "relevant_line_anchors": [
+      "For the half-year ended 31 December 2025",
+      "Interim financial report"
+    ],
+    "footer_form_labels": []
+  },
+  "positive_anchors": [
+    "Half-Year Report",
+    "Interim financial report",
+    "Condensed consolidated financial statements"
+  ],
+  "negative_anchors": [
+    "Appendix 4C",
+    "Appendix 4E",
+    "Appendix 5B",
+    "Preliminary final report"
+  ],
+  "required_evidence": [
+    "half-year report title",
+    "half-year period label",
+    "condensed financial statements heading"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "document type does not infer revenue",
+    "document type does not infer NPAT",
+    "document type does not infer net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic half-year report fixture for metadata classification only."
+}

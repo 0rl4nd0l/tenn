@@ -1,0 +1,50 @@
+{
+  "fixture_id": "annual_report_basic",
+  "document_id": "SYN-ASX-ANNUAL-001",
+  "ticker": "ARL",
+  "expected_document_type": "annual_report",
+  "expected_confidence_band": "high",
+  "expected_abstain": false,
+  "source_text_surrogate": {
+    "first_page_title_text": "ARL Annual Report 2025",
+    "asx_announcement_title": "Annual report and accounts",
+    "headings": [
+      "Directors' report",
+      "Consolidated statement of profit or loss",
+      "Notes to the financial statements"
+    ],
+    "table_captions": [
+      "Five year summary"
+    ],
+    "relevant_line_anchors": [
+      "For the year ended 30 June 2025",
+      "This annual report is released to ASX"
+    ],
+    "footer_form_labels": []
+  },
+  "positive_anchors": [
+    "Annual Report",
+    "Directors' report",
+    "Notes to the financial statements"
+  ],
+  "negative_anchors": [
+    "Appendix 4C",
+    "Appendix 4D",
+    "Appendix 4E",
+    "Appendix 5B",
+    "Quarterly cash flow report"
+  ],
+  "required_evidence": [
+    "annual report title",
+    "year-ended period label",
+    "financial statements heading"
+  ],
+  "abstain_reasons": [],
+  "must_not_infer_metrics": [
+    "document type does not infer revenue",
+    "document type does not infer NPAT",
+    "document type does not infer net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic annual report fixture for metadata classification only."
+}

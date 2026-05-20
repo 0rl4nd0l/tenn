@@ -1,0 +1,40 @@
+{
+  "fixture_id": "unknown_low_signal",
+  "document_id": "SYN-ASX-UNKNOWN-001",
+  "ticker": "UNK",
+  "expected_document_type": "unknown_or_abstain",
+  "expected_confidence_band": "abstain",
+  "expected_abstain": true,
+  "source_text_surrogate": {
+    "first_page_title_text": "Market Update",
+    "asx_announcement_title": "Update",
+    "headings": [
+      "Overview"
+    ],
+    "table_captions": [],
+    "relevant_line_anchors": [
+      "Further details will be provided in due course"
+    ],
+    "footer_form_labels": []
+  },
+  "positive_anchors": [],
+  "negative_anchors": [
+    "no supported report title",
+    "no Appendix form label",
+    "no period-specific heading"
+  ],
+  "required_evidence": [
+    "insufficient document-type evidence"
+  ],
+  "abstain_reasons": [
+    "low signal surrogate text",
+    "no supported report or Appendix form anchor"
+  ],
+  "must_not_infer_metrics": [
+    "document type does not infer revenue",
+    "document type does not infer NPAT",
+    "document type does not infer net debt"
+  ],
+  "canonical_write": false,
+  "notes": "Synthetic low-signal fixture. Future classifier should abstain instead of guessing."
+}
