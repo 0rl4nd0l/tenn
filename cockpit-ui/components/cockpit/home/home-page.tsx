@@ -24,6 +24,7 @@ import {
   CockpitHomeDataState,
   CockpitHomeMarketMoverContract,
   CockpitHomeNewsItemContract,
+  CockpitHomeSectionKey,
   CockpitHomeState,
   DataHealthItem,
   MarketMover,
@@ -38,6 +39,17 @@ type HomeLoadState =
   | { status: 'loading' }
   | { status: 'ready'; response: CockpitHomeBffResponse }
   | { status: 'error'; message: string };
+
+type UsefulNowAction = {
+  id: string;
+  kind: 'attention' | 'source' | 'blocker' | 'ready';
+  title: string;
+  detail: string;
+  state: CockpitHomeDataState;
+  meta: string[];
+  href?: string | null;
+  newsItem?: NewsItem;
+};
 
 const DEMO_STATES: Record<MarketSessionState, CockpitHomeState> = {
   OPEN: MOCK_MARKET_OPEN,
@@ -476,9 +488,14 @@ function LiveWorkspace({
         targetRoute: item.target_route,
       }));
   const attentionState = sectionState('attention_queue', response);
+  const usefulNowActions = buildUsefulNowActions(response, news, attentionItems);
 
   return (
     <div className="grid grid-cols-12 gap-6 max-w-[1600px] mx-auto">
+      <div className="col-span-12">
+        <UsefulNowPanel actions={usefulNowActions} asOf={response.as_of ?? response.generated_at} onSelectItem={onSelectItem} />
+      </div>
+
       <div className="col-span-12 lg:col-span-4 min-h-[300px]">
         {readyMovers.length > 0 ? (
           <MarketPulseCard movers={readyMovers} />
@@ -536,6 +553,114 @@ function LiveWorkspace({
       </div>
     </div>
   );
+}
+
+function UsefulNowPanel({
+  actions,
+  asOf,
+  onSelectItem,
+}: {
+  actions: UsefulNowAction[];
+  asOf: string | null;
+  onSelectItem: (item: NewsItem) => void;
+}) {
+  return (
+    <Card className="terminal-panel" data-testid="home-useful-now-panel">
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 border-b border-border/40">
+        <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Useful Now
+        </CardTitle>
+        <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-muted-foreground">
+          <span>{actions.length} signals</span>
+          <span>{formatMelbourneTime(asOf)}</span>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div
+          className={cn(
+            "grid divide-y divide-border/40",
+            actions.length === 1 && "lg:grid-cols-1",
+            actions.length === 2 && "lg:grid-cols-2 lg:divide-y-0 lg:divide-x",
+            actions.length >= 3 && "lg:grid-cols-3 lg:divide-y-0 lg:divide-x",
+          )}
+        >
+          {actions.map((action) => (
+            <UsefulNowActionItem
+              key={action.id}
+              action={action}
+              onSelectItem={onSelectItem}
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function UsefulNowActionItem({
+  action,
+  onSelectItem,
+}: {
+  action: UsefulNowAction;
+  onSelectItem: (item: NewsItem) => void;
+}) {
+  const content = (
+    <div className="p-4 min-h-[132px] flex flex-col gap-3 text-left">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", actionStateDot(action.state))} />
+          <span className={cn("text-[10px] font-mono font-bold uppercase", stateTextColor(action.state))}>
+            {action.kind === 'blocker' ? action.state : action.kind}
+          </span>
+        </div>
+        {(action.href || action.newsItem) && <ArrowRight className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}
+      </div>
+      <div className="space-y-1">
+        <h3 className="text-[13px] font-sans font-semibold text-foreground leading-snug">{action.title}</h3>
+        <p className="text-[11px] font-sans text-muted-foreground leading-relaxed">{action.detail}</p>
+      </div>
+      {action.meta.length > 0 && (
+        <div className="mt-auto flex flex-wrap gap-1.5">
+          {action.meta.slice(0, 3).map((item) => (
+            <span
+              key={item}
+              className="rounded border border-border/50 bg-accent/25 px-1.5 py-0.5 text-[9px] font-mono uppercase text-muted-foreground"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  if (action.href) {
+    return (
+      <Link
+        href={action.href}
+        className="block hover:bg-accent/20 transition-colors"
+        aria-label={`Open useful now action: ${action.title}`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  if (action.newsItem) {
+    return (
+      <button
+        type="button"
+        className="w-full hover:bg-accent/20 transition-colors"
+        onClick={() => onSelectItem(action.newsItem as NewsItem)}
+        aria-label={`Inspect useful now source: ${action.newsItem.headline}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div>{content}</div>;
 }
 
 function MarketMoverSignalsPanel({ movers }: { movers: CockpitHomeMarketMoverContract[] }) {
@@ -942,6 +1067,102 @@ function mapDataHealthItem(item: {
   };
 }
 
+function buildUsefulNowActions(
+  response: CockpitHomeBffResponse,
+  news: NewsItem[],
+  attentionItems: CockpitHomeState['attentionQueue'],
+): UsefulNowAction[] {
+  const actions: UsefulNowAction[] = [];
+  const attentionByPriority = [...attentionItems].sort(
+    (left, right) => priorityRank(left.priority) - priorityRank(right.priority),
+  );
+
+  for (const item of attentionByPriority) {
+    actions.push({
+      id: `attention:${item.id}`,
+      kind: 'attention',
+      title: `Review ${item.label}`,
+      detail: item.description,
+      state: 'READY',
+      meta: [item.priority, item.status, item.source].filter(Boolean) as string[],
+      href: safeInternalHomeRoute(item.targetRoute),
+    });
+    if (actions.length >= 1) {
+      break;
+    }
+  }
+
+  const sourceAction = [...news]
+    .filter((item) => item.resolvable && !item.chatBlockedReason && !item.isDemo)
+    .sort((left, right) => relevanceRank(left.relevance) - relevanceRank(right.relevance))[0];
+  if (sourceAction && actions.length < 3) {
+    actions.push({
+      id: `source:${sourceAction.id}`,
+      kind: 'source',
+      title: `Inspect source: ${sourceAction.headline}`,
+      detail: sourceAction.source,
+      state: sourceAction.dataState ?? 'READY',
+      meta: [
+        sourceAction.relevance,
+        sourceAction.trustLevel,
+        sourceAction.sourceId ? 'resolvable' : 'source_id missing',
+      ],
+      newsItem: sourceAction,
+    });
+  }
+
+  for (const signal of prioritizedSignals(response)) {
+    if (actions.length >= 3) {
+      break;
+    }
+    actions.push({
+      id: `blocker:${dataMissingSignalIdentity(signal)}`,
+      kind: 'blocker',
+      title: `${sectionDisplayName(signal.section)} gap`,
+      detail: signal.message,
+      state: sectionState(signal.section, response),
+      meta: [signal.code, signal.source_label ?? 'missing_required_evidence'],
+    });
+  }
+
+  if (actions.length === 0) {
+    actions.push({
+      id: 'home-ready:no-current-actions',
+      kind: 'ready',
+      title: 'No urgent Home action',
+      detail: 'The current Home response has no queued attention items or missing-data blockers.',
+      state: 'READY',
+      meta: ['READY'],
+    });
+  }
+
+  return actions.slice(0, 3);
+}
+
+function prioritizedSignals(response: CockpitHomeBffResponse): CockpitHomeDataMissingSignal[] {
+  const sectionOrder = new Map<CockpitHomeSectionKey, number>(
+    [
+      'portfolio',
+      'news',
+      'attention_queue',
+      'market_movers',
+      'session_summary',
+      'theme_candidates',
+      'tomorrow_prep',
+      'market_session',
+      'data_health',
+    ].map((section, index) => [section as CockpitHomeSectionKey, index]),
+  );
+
+  return uniqueDataMissingSignals(response.data_missing)
+    .filter((signal) => signal.code.trim())
+    .sort((left, right) => {
+      const leftRank = sectionOrder.get(left.section) ?? sectionOrder.size;
+      const rightRank = sectionOrder.get(right.section) ?? sectionOrder.size;
+      return leftRank - rightRank || left.code.localeCompare(right.code);
+    });
+}
+
 function systemStatusFromResponse(response: CockpitHomeBffResponse): 'operational' | 'partial' | 'degraded' | 'data_missing' {
   if (response.data_state === 'READY') {
     return 'operational';
@@ -968,6 +1189,14 @@ function sectionState(section: string, response: CockpitHomeBffResponse): Cockpi
   if (section === 'attention_queue') {
     return response.attention_queue_state.data_state;
   }
+  const directHealth = response.data_health.find((item) => item.section === section);
+  if (directHealth) {
+    return directHealth.data_state;
+  }
+  const directSignal = response.data_missing.find((signal) => signal.section === section);
+  if (directSignal) {
+    return response.data_state === 'READY' ? 'PARTIAL' : response.data_state;
+  }
   return 'DATA_MISSING';
 }
 
@@ -989,6 +1218,51 @@ function stateTextColor(state: CockpitHomeDataState): string {
     return 'text-amber-500';
   }
   return 'text-red-500';
+}
+
+function actionStateDot(state: CockpitHomeDataState): string {
+  if (state === 'READY') {
+    return 'bg-green-500';
+  }
+  if (state === 'PARTIAL') {
+    return 'bg-amber-500';
+  }
+  return 'bg-red-500';
+}
+
+function sectionDisplayName(section: CockpitHomeSectionKey): string {
+  return section
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function priorityRank(priority: CockpitHomeState['attentionQueue'][number]['priority']): number {
+  if (priority === 'high') {
+    return 0;
+  }
+  if (priority === 'medium') {
+    return 1;
+  }
+  return 2;
+}
+
+function relevanceRank(relevance: NewsItem['relevance']): number {
+  if (relevance === 'high') {
+    return 0;
+  }
+  if (relevance === 'medium') {
+    return 1;
+  }
+  return 2;
+}
+
+function safeInternalHomeRoute(route: string | null | undefined): string | null {
+  const value = String(route || '').trim();
+  if (!value.startsWith('/') || value.startsWith('//')) {
+    return null;
+  }
+  return value;
 }
 
 function uniqueDataMissingSignals(signals: CockpitHomeDataMissingSignal[]): CockpitHomeDataMissingSignal[] {

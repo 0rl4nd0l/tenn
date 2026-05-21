@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { createElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { GET as getCockpitHomeRoute } from '@/app/api/cockpit/home/route';
@@ -502,7 +502,7 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getByText('A$1,000.00')).toBeInTheDocument();
     expect(screen.getByText('Local personal holdings data only. This panel is not canonical financial truth.')).toBeInTheDocument();
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
-    expect(screen.getByText('PORTFOLIO_DAY_CHANGE_PARTIAL')).toBeInTheDocument();
+    expect(screen.getAllByText('PORTFOLIO_DAY_CHANGE_PARTIAL').length).toBeGreaterThan(0);
     expect(screen.getByText('CONTEXT ONLY')).toBeInTheDocument();
     expect(screen.getByLabelText('Open portfolio holdings')).toHaveAttribute('href', '/holdings');
     expect(screen.getByLabelText('Open news workspace')).toHaveAttribute('href', '/news');
@@ -511,6 +511,72 @@ describe('CockpitHomePage live BFF wiring', () => {
       "/full-chat?prompt=Summarize+today%27s+session.",
     );
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
+  });
+
+  it('renders Useful Now from existing Home signals without upgrading missing state', async () => {
+    const base = homeBffPayload();
+    const payload = homeBffPayload({
+      data_missing: base.data_missing.filter((signal) => signal.section !== 'attention_queue'),
+      attention_queue_state: {
+        data_state: 'READY',
+        degraded: false,
+        data_missing: [],
+        as_of: '2026-05-07T01:15:00Z',
+      },
+      attention_queue: [
+        {
+          id: 'market_update_followup:fu-1',
+          section: 'attention_queue',
+          title: 'BHP: review',
+          ticker: null,
+          observed_at: '2026-05-07T01:15:00Z',
+          state: {
+            data_state: 'READY',
+            degraded: false,
+            data_missing: [],
+            as_of: '2026-05-07T01:15:00Z',
+          },
+          evidence: {
+            source_id: null,
+            source_kind: null,
+            source_label: 'operational_trace',
+            evidence_labels: ['operational_trace'],
+            resolvable: false,
+            resolver: 'none',
+            evidence_id: 'market_update_followup:fu-1',
+            document_id: null,
+            chunk_id: null,
+            url: null,
+            title: 'BHP: review',
+            published_at: '2026-05-07T01:15:00Z',
+          },
+          priority: 'high',
+          description: 'notable price move',
+          reason: 'notable price move',
+          status: 'queued',
+          source_type: 'market_update_followup',
+          created_at: '2026-05-07T01:15:00Z',
+          updated_at: '2026-05-07T01:15:00Z',
+          source_id: null,
+          target_route: '/news',
+        },
+      ],
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(payload)));
+
+    render(createElement(CockpitHomePage));
+
+    const panel = await screen.findByTestId('home-useful-now-panel');
+    expect(within(panel).getByText('Useful Now')).toBeInTheDocument();
+    expect(within(panel).getByText('Review BHP: review')).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'Open useful now action: Review BHP: review' })).toHaveAttribute(
+      'href',
+      '/news',
+    );
+    expect(within(panel).getByRole('button', { name: 'Inspect useful now source: BHP operating update' })).toBeInTheDocument();
+    expect(within(panel).getByText('Portfolio gap')).toBeInTheDocument();
+    expect(within(panel).getByText('PORTFOLIO_DAY_CHANGE_PARTIAL')).toBeInTheDocument();
+    expect(within(panel).queryByText('CLAIM VERIFIED')).not.toBeInTheDocument();
   });
 
   it('loads source detail for resolvable Home commentary sources', async () => {
@@ -652,8 +718,8 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getAllByText('BHP: review').length).toBeGreaterThan(0);
     expect(screen.getByText('MARKET_MOVER_PRICE_FIELDS_MISSING')).toBeInTheDocument();
     expect(screen.getAllByText('notable price move').length).toBeGreaterThan(0);
-    expect(screen.getByText('queued')).toBeInTheDocument();
-    expect(screen.getByText('market_update_followup')).toBeInTheDocument();
+    expect(screen.getAllByText('queued').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('market_update_followup').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Open attention item: BHP: review')).toHaveAttribute('href', '/news');
     expect(screen.queryByText('NO_ATTENTION_QUEUE_ENDPOINT')).not.toBeInTheDocument();
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
@@ -729,7 +795,7 @@ describe('CockpitHomePage live BFF wiring', () => {
 
     expect(await screen.findByText('Home state: DEGRADED')).toBeInTheDocument();
     expect(screen.getByText('DEGRADED STATE')).toBeInTheDocument();
-    expect(screen.getByText('HOME_RUNTIME_DEGRADED')).toBeInTheDocument();
+    expect(screen.getAllByText('HOME_RUNTIME_DEGRADED').length).toBeGreaterThan(0);
   });
 
   it('does not silently source-back mock fallback fixtures', async () => {
