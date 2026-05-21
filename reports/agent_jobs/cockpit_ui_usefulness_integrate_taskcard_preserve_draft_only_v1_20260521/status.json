@@ -1,0 +1,36 @@
+{
+  "job_id": "cockpit_ui_usefulness_integrate_taskcard_preserve_draft_only_v1_20260521",
+  "status": "preservation_committed_phase3g_still_blocked_by_unrelated_newer_cockpit_task_card",
+  "lane": "Reporting",
+  "mutation_mode": "safe_extension",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "2bff733e2d7f8fadfde6d492a5ff48212b710f59",
+  "target_artifact": "docs/agent_tasks/cockpit_ui_usefulness_integrate_v1_20260521.md",
+  "target_artifact_sha256": "4d6a250962a30315807470258bf36ccea4bcb87c655835955c908ff09cffb7c4",
+  "boundaries": {
+    "cockpit_code_modified": false,
+    "strategy_lab_files_modified": false,
+    "runtime_backend_product_code_modified": false,
+    "tenn_stores_touched": false,
+    "dependencies_installed": false,
+    "services_started": false,
+    "tokens_issued": false,
+    "production_data_accessed": false,
+    "paper_live_trading_touched": false
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_list_active": "passed_no_active_jobs_initial",
+    "registry_check_overlap": "failed_unrelated_dirty_files_outside_preservation_allowlist",
+    "agent_job_check_diff": "failed_unrelated_dirty_files_outside_preservation_allowlist",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "failed_preserved_cockpit_task_card_has_pre_existing_blank_line_at_eof",
+    "exact_staging": "passed_limited_to_allowed_preservation_files",
+    "post_commit_git_diff_check": "passed",
+    "post_commit_git_diff_cached_check": "passed",
+    "phase3g_task_card_validate_after_preserve": "passed",
+    "phase3g_check_overlap_after_preserve": "failed_only_on_docs_agent_tasks_cockpit_ui_usefulness_final_canonical_merge_v1_20260521_md"
+  }
+}

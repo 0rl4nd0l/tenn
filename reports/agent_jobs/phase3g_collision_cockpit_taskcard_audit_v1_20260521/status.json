@@ -1,0 +1,71 @@
+{
+  "job_id": "phase3g_collision_cockpit_taskcard_audit_v1_20260521",
+  "status": "audit_complete_phase3g_blocked_pending_cockpit_preserve",
+  "decision": "GO_COCKPIT_TASKCARD_PRESERVE_TASK_CARD_DRAFT_ONLY",
+  "follow_up_after_resolution": "GO_PHASE3G_RERUN_AFTER_COCKPIT_RESOLVED",
+  "lane": "Reporting",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "2bff733e2d7f8fadfde6d492a5ff48212b710f59",
+  "blocking_file": "docs/agent_tasks/cockpit_ui_usefulness_integrate_v1_20260521.md",
+  "blocking_file_classification": "valid_uncommitted_cockpit_reporting_task_card_completed_released_job_preservation_candidate",
+  "blocking_file_active_registry_job_now": false,
+  "canonical_cockpit_report_bundle_present": false,
+  "isolated_cockpit_report_bundle_present": true,
+  "isolated_cockpit_worktree": "/home/l4nd0/tenn-cockpit-ui-usefulness-integrate-v1-20260521",
+  "isolated_cockpit_head": "2617337678bc82f03024dd06781dc1b52ddf63a9",
+  "phase3g_safe_to_rerun_now": false,
+  "phase3g_safe_to_rerun_after_named_action_and_fresh_preflight": true,
+  "final_validation_completed_at": "2026-05-21T20:16:26+10:00",
+  "current_active_registry_jobs": [
+    "sloppy_fix_manual_only_pr_landing_v1"
+  ],
+  "live_repo_drift_observed_during_audit": [
+    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md appeared as new unrelated dirty work during final validation",
+    "shared registry gained active Evaluation job sloppy_fix_manual_only_pr_landing_v1 during final validation"
+  ],
+  "boundaries": {
+    "cockpit_task_card_modified": false,
+    "cockpit_code_modified": false,
+    "strategy_lab_files_modified": false,
+    "runtime_backend_product_code_modified": false,
+    "tenn_stores_touched": false,
+    "dependencies_installed": false,
+    "services_started": false,
+    "tokens_issued": false,
+    "production_data_accessed": false,
+    "paper_live_trading_touched": false,
+    "staged_files": false,
+    "commit_merge_cherry_pick_stash_reset_clean": false
+  },
+  "outputs": [
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/README.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/preflight.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/blocking_file_classification.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/phase3g_unblock_options.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/recommendation.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/status.json",
+    "reports/agent_jobs/phase3g_collision_cockpit_taskcard_audit_v1_20260521/diff-check.json"
+  ],
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_list_active": "passed_with_active_non_cockpit_evaluation_job_sloppy_fix_manual_only_pr_landing_v1",
+    "registry_check_overlap": "failed_dirty_files_outside_this_audit_allowlist",
+    "git_diff_check": "passed",
+    "git_diff_cached_name_only": "empty_no_staged_files",
+    "git_diff_cached_check": "passed",
+    "agent_job_check_diff": "failed_disallowed_pre_existing_and_external_dirty_task_cards",
+    "final_git_status": [
+      "?? docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "?? docs/agent_tasks/cockpit_ui_usefulness_integrate_v1_20260521.md",
+      "?? docs/agent_tasks/phase3g_collision_cockpit_taskcard_audit_v1_20260521.md",
+      "?? docs/agent_tasks/strategy_lab_consolidation_execution_phase3g_v1_20260521.md",
+      "?? docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md",
+      "?? docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md",
+      "?? docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md",
+      "?? docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md"
+    ]
+  }
+}
