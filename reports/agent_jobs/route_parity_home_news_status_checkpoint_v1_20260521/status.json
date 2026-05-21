@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/route_parity_home_news_status_checkpoint_v1_20260521.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/route_parity_home_news_status_checkpoint_v1_20260521.md",
+    "docs/agent_tasks/route_parity_home_news_status_audit_v1_20260521.md",
+    "reports/agent_jobs/route_parity_home_news_status_audit_v1_20260521",
+    "reports/agent_jobs/route_parity_home_news_status_audit_v1_20260521/README.md",
+    "reports/agent_jobs/route_parity_home_news_status_audit_v1_20260521/diff-check.json",
+    "reports/agent_jobs/route_parity_home_news_status_checkpoint_v1_20260521",
+    "reports/agent_jobs/route_parity_home_news_status_checkpoint_v1_20260521/README.md"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-21T02:10:27.332151Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-21T02:10:27.332151Z",
+  "job_id": "route_parity_home_news_status_checkpoint_v1_20260521",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-21T02:15:21.284223Z",
+  "output_dir": "reports/agent_jobs/route_parity_home_news_status_checkpoint_v1_20260521",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-21T02:15:21.284223Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:2251097:route_parity_home_news_status_checkpoint_v1_20260521",
+  "started_at": "2026-05-21T02:10:27.332151Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/route_parity_home_news_status_checkpoint_v1_20260521.md",
+  "updated_at": "2026-05-21T02:15:21.284223Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}
