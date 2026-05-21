@@ -1,0 +1,110 @@
+{
+  "data_missing": [],
+  "final_git_status": {
+    "isolated_gate_worktree": "clean after the gate packet commit is created",
+    "note": "The runtime status entry is pre-existing unrelated task-card dirt observed before this gate; it is not part of this report packet.",
+    "runtime_worktree_expected_after_fast_forward": [
+      "?? docs/agent_tasks/route_parity_home_news_status_audit_v1_20260521.md"
+    ]
+  },
+  "gate_checks": {
+    "classifier_tests_pass": true,
+    "combined_asx_tests_pass": true,
+    "compileall_passes": true,
+    "every_generated_sidecar_canonical_write_false": true,
+    "fixture_contract_tests_pass": true,
+    "fixture_json_parse_passes": true,
+    "generated_sidecar_count_matches_expected_fixture_count": true,
+    "generated_sidecars_jq_validate": true,
+    "no_forbidden_system_touched": true,
+    "no_source_code_changes_required": true,
+    "production_boundary_no_routing_imports_classifier_or_sidecar": true,
+    "sidecar_generation_succeeds": true,
+    "sidecar_tests_pass": true
+  },
+  "generated_at": "2026-05-21T00:33:11Z",
+  "generated_sidecars": {
+    "count": 9,
+    "expected_count": 9,
+    "path": "reports/agent_jobs/asx_document_type_sidecar_gate_report_v1_20260520/generated_sidecars",
+    "report_artifacts_only": true
+  },
+  "job_id": "asx_document_type_sidecar_gate_report_v1_20260520",
+  "lane": "Financial Truth",
+  "mutation_mode": "audit_only",
+  "non_promotion_statement": {
+    "does_not_approve_canonical_writes": true,
+    "does_not_approve_extraction_integration": true,
+    "does_not_approve_parser_routing": true
+  },
+  "preflight": {
+    "isolated_gate_worktree": {
+      "branch": "audit/asx-document-type-sidecar-gate-report-v1-20260520",
+      "check_overlap": {
+        "active_jobs": [],
+        "ok": true
+      },
+      "head_short12_at_gate_start": "8e38d26725e3",
+      "path": "/home/l4nd0/tenn-asx-document-type-sidecar-gate-report-v1-20260520",
+      "registry_claimed": true
+    },
+    "runtime_worktree": {
+      "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+      "check_overlap": {
+        "dirty_path": "docs/agent_tasks/route_parity_home_news_status_audit_v1_20260521.md",
+        "ok": false,
+        "reason": "runtime worktree had unrelated untracked task card outside this task card allowed_files"
+      },
+      "head_short12": "8e38d26725e3",
+      "path": "/home/l4nd0/tenn-runtime",
+      "registry_list_active": "active_jobs=[]",
+      "resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "show_head": "8e38d267 feat(financial-truth): add asx document type sidecar artifacts",
+      "status_short": [
+        "?? docs/agent_tasks/route_parity_home_news_status_audit_v1_20260521.md"
+      ]
+    }
+  },
+  "production_data_access": false,
+  "project_memory_save_recommendation": "Save the ASX_SIDECAR_GATE_PASS checkpoint, commit hash, and offline-only sidecar boundary after the final commit is known.",
+  "registry_release": {
+    "claimed": true,
+    "final_list_active": [],
+    "release_command_ok": true,
+    "released": true,
+    "removed_active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/asx_document_type_sidecar_gate_report_v1_20260520.json",
+    "status_json_status": "released"
+  },
+  "supporting_lanes": [
+    "Evaluation",
+    "Provenance"
+  ],
+  "test_results": {
+    "classifier": {
+      "command": "uv run --with pytest python -m pytest financial-engine_v2/backend/tests/test_asx_document_type_classifier.py -q",
+      "ok": true,
+      "result": "9 passed, 1 warning in 0.04s"
+    },
+    "combined_asx": {
+      "command": "uv run --with pytest python -m pytest financial-engine_v2/backend/tests/test_asx_document_type_fixture_contract.py financial-engine_v2/backend/tests/test_asx_document_type_classifier.py financial-engine_v2/backend/tests/test_asx_document_type_sidecar.py -q",
+      "ok": true,
+      "result": "29 passed, 1 warning in 0.22s"
+    },
+    "compileall": {
+      "command": "python3 -m compileall financial-engine_v2/backend/app/services/asx_document_type_classifier.py financial-engine_v2/backend/app/services/asx_document_type_sidecar.py scripts/generate_asx_document_type_sidecars.py",
+      "notes": "compileall exited 0; no cache permission workaround was needed in the isolated worktree.",
+      "ok": true
+    },
+    "fixture_contract": {
+      "command": "uv run --with pytest python -m pytest financial-engine_v2/backend/tests/test_asx_document_type_fixture_contract.py -q",
+      "ok": true,
+      "result": "9 passed, 1 warning in 0.03s"
+    },
+    "sidecar": {
+      "command": "uv run --with pytest python -m pytest financial-engine_v2/backend/tests/test_asx_document_type_sidecar.py -q",
+      "ok": true,
+      "result": "11 passed, 1 warning in 0.19s"
+    }
+  },
+  "verdict": "ASX_SIDECAR_GATE_PASS"
+}

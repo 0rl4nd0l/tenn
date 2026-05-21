@@ -1,0 +1,51 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "high",
+  "document_id": "SYN-ASX-5B-001",
+  "document_type": "appendix_5b",
+  "fixture_id": "appendix_5b_mining_cashflow",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "442ecafa7b211acabe63f786f6d9fbe661932eb4a8fc74752ca83e0e89749a66",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Appendix 5B",
+      "document_type": "appendix_5b",
+      "matched_text": "Appendix 5B"
+    },
+    {
+      "anchor": "Mining exploration entity quarterly cash flow report",
+      "document_type": "appendix_5b",
+      "matched_text": "Mining exploration entity quarterly cash flow report"
+    },
+    {
+      "anchor": "Rule 5.5",
+      "document_type": "appendix_5b",
+      "matched_text": "Rule 5.5"
+    },
+    {
+      "anchor": "exploration expenditure",
+      "document_type": "appendix_5b",
+      "matched_text": "exploration expenditure"
+    },
+    {
+      "anchor": "related-party payments",
+      "document_type": "appendix_5b",
+      "matched_text": "related-party payments"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "MEX",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "cash-flow Appendix form type does not authorize income-statement metric inference",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

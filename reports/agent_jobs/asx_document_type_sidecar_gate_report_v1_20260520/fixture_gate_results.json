@@ -1,0 +1,170 @@
+{
+  "canonical_write_false": true,
+  "fixture_count_excluding_manifest": 9,
+  "fixture_dir": "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier",
+  "fixtures": [
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-ANNUAL-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "annual_report",
+      "file": "annual_report_basic.json",
+      "fixture_id": "annual_report_basic",
+      "ticker": "ARL"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-HALF-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "half_year_report",
+      "file": "half_year_report_basic.json",
+      "fixture_id": "half_year_report_basic",
+      "ticker": "HYR"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-4C-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_4c",
+      "file": "appendix_4c_quarterly_cashflow.json",
+      "fixture_id": "appendix_4c_quarterly_cashflow",
+      "ticker": "QCF"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-4D-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_4d",
+      "file": "appendix_4d_half_year_results.json",
+      "fixture_id": "appendix_4d_half_year_results",
+      "ticker": "HFD"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-4E-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_4e",
+      "file": "appendix_4e_preliminary_final.json",
+      "fixture_id": "appendix_4e_preliminary_final",
+      "ticker": "PFR"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-5B-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_5b",
+      "file": "appendix_5b_mining_cashflow.json",
+      "fixture_id": "appendix_5b_mining_cashflow",
+      "ticker": "MEX"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-OTHER-001",
+      "expected_abstain": false,
+      "expected_confidence_band": "medium",
+      "expected_document_type": "other_asx_announcement",
+      "file": "other_asx_announcement_investor_presentation.json",
+      "fixture_id": "other_asx_announcement_investor_presentation",
+      "ticker": "INV"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-UNKNOWN-001",
+      "expected_abstain": true,
+      "expected_confidence_band": "abstain",
+      "expected_document_type": "unknown_or_abstain",
+      "file": "unknown_low_signal.json",
+      "fixture_id": "unknown_low_signal",
+      "ticker": "UNK"
+    },
+    {
+      "canonical_write": false,
+      "document_id": "SYN-ASX-AMBIG-001",
+      "expected_abstain": true,
+      "expected_confidence_band": "abstain",
+      "expected_document_type": "unknown_or_abstain",
+      "file": "ambiguous_appendix_4d_4e_abstain.json",
+      "fixture_id": "ambiguous_appendix_4d_4e_abstain",
+      "ticker": "AMB"
+    }
+  ],
+  "generated_at": "2026-05-21T00:33:11Z",
+  "json_parse": {
+    "includes_manifest": true,
+    "json_files_parsed": [
+      "ambiguous_appendix_4d_4e_abstain.json",
+      "annual_report_basic.json",
+      "appendix_4c_quarterly_cashflow.json",
+      "appendix_4d_half_year_results.json",
+      "appendix_4e_preliminary_final.json",
+      "appendix_5b_mining_cashflow.json",
+      "half_year_report_basic.json",
+      "manifest.json",
+      "other_asx_announcement_investor_presentation.json",
+      "unknown_low_signal.json"
+    ],
+    "ok": true
+  },
+  "manifest": {
+    "approved_document_types": [
+      "annual_report",
+      "half_year_report",
+      "appendix_4c",
+      "appendix_4d",
+      "appendix_4e",
+      "appendix_5b",
+      "other_asx_announcement",
+      "unknown_or_abstain"
+    ],
+    "canonical_write": false,
+    "contract": "asx_document_type_fixture_contract_v1",
+    "fixture_files": [
+      "annual_report_basic.json",
+      "half_year_report_basic.json",
+      "appendix_4c_quarterly_cashflow.json",
+      "appendix_4d_half_year_results.json",
+      "appendix_4e_preliminary_final.json",
+      "appendix_5b_mining_cashflow.json",
+      "other_asx_announcement_investor_presentation.json",
+      "unknown_low_signal.json",
+      "ambiguous_appendix_4d_4e_abstain.json"
+    ],
+    "schema_version": 1
+  },
+  "ok": true,
+  "pytest": {
+    "command": "uv run --with pytest python -m pytest financial-engine_v2/backend/tests/test_asx_document_type_fixture_contract.py -q",
+    "ok": true,
+    "result": "9 passed, 1 warning in 0.03s"
+  },
+  "required_document_type_coverage": {
+    "missing": [],
+    "observed_expected_document_types": [
+      "annual_report",
+      "appendix_4c",
+      "appendix_4d",
+      "appendix_4e",
+      "appendix_5b",
+      "half_year_report",
+      "other_asx_announcement",
+      "unknown_or_abstain"
+    ],
+    "ok": true,
+    "required": [
+      "annual_report",
+      "half_year_report",
+      "appendix_4c",
+      "appendix_4d",
+      "appendix_4e",
+      "appendix_5b",
+      "other_asx_announcement",
+      "unknown_or_abstain"
+    ]
+  }
+}

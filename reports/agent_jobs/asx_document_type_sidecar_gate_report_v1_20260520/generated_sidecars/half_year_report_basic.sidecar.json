@@ -1,0 +1,45 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "high",
+  "document_id": "SYN-ASX-HALF-001",
+  "document_type": "half_year_report",
+  "fixture_id": "half_year_report_basic",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "64e4f161e56623118be8ae76cf02b034270f9b30ecbf7458553840872118ed68",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Half-Year Report",
+      "document_type": "half_year_report",
+      "matched_text": "Half-Year Report"
+    },
+    {
+      "anchor": "Interim financial report",
+      "document_type": "half_year_report",
+      "matched_text": "Interim financial report"
+    },
+    {
+      "anchor": "Condensed consolidated financial statements",
+      "document_type": "half_year_report",
+      "matched_text": "Condensed consolidated financial statements"
+    },
+    {
+      "anchor": "half-year period",
+      "document_type": "half_year_report",
+      "matched_text": "half-year period"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "HYR",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

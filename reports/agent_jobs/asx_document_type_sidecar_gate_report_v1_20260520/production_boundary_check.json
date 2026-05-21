@@ -1,0 +1,36 @@
+{
+  "backend_app_import_search_excluding_classifier_and_sidecar_modules": {
+    "command": "rg -n 'asx_document_type_(classifier|sidecar)' financial-engine_v2/backend/app --glob '!**/asx_document_type_classifier.py' --glob '!**/asx_document_type_sidecar.py' --glob '!**/__pycache__/**'",
+    "no_hits": true,
+    "returncode": 1,
+    "stderr": "",
+    "stdout": ""
+  },
+  "backend_routes_import_sidecar": {
+    "command": "rg -n 'asx_document_type_sidecar' financial-engine_v2/backend/app --glob '!**/asx_document_type_sidecar.py' --glob '!**/__pycache__/**'",
+    "no_hits": true,
+    "returncode": 1,
+    "stderr": "",
+    "stdout": ""
+  },
+  "generated_at": "2026-05-21T00:33:11Z",
+  "notes": [
+    "No app-wide imports of classifier or sidecar were found outside the two ASX service modules.",
+    "The sidecar module imports the pure classifier; production routing files do not import either module."
+  ],
+  "ok": true,
+  "production_routing_files_checked": [
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/app/services/method_isolated_extraction.py",
+    "financial-engine_v2/backend/app/services/pipeline.py",
+    "financial-engine_v2/backend/app/services/docling_extract.py"
+  ],
+  "production_routing_imports_classifier_or_sidecar": false,
+  "qdrant_news_memory_cockpit_home_import_sidecar": false,
+  "routing_import_hits": {
+    "financial-engine_v2/backend/app/services/docling_extract.py": [],
+    "financial-engine_v2/backend/app/services/method_isolated_extraction.py": [],
+    "financial-engine_v2/backend/app/services/multipass_extraction.py": [],
+    "financial-engine_v2/backend/app/services/pipeline.py": []
+  }
+}

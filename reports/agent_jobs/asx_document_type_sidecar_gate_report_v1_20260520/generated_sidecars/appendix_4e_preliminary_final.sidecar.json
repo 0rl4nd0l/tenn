@@ -1,0 +1,46 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "high",
+  "document_id": "SYN-ASX-4E-001",
+  "document_type": "appendix_4e",
+  "fixture_id": "appendix_4e_preliminary_final",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "3336c8aa92b057e85e9f8bc315aa4da5e781d6a2a1d90447a9fad40564617f5c",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Appendix 4E",
+      "document_type": "appendix_4e",
+      "matched_text": "Appendix 4E"
+    },
+    {
+      "anchor": "Preliminary final report",
+      "document_type": "appendix_4e",
+      "matched_text": "Preliminary final report"
+    },
+    {
+      "anchor": "Results for announcement to the market",
+      "document_type": "appendix_4e",
+      "matched_text": "Results for announcement to the market"
+    },
+    {
+      "anchor": "year-ended period",
+      "document_type": "appendix_4e",
+      "matched_text": "year-ended period"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "PFR",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "EPS, NTA, and dividends are review-only unsupported context and are not canonical",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

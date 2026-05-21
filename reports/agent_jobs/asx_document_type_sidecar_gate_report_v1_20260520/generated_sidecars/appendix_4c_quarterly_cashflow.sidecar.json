@@ -1,0 +1,46 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "high",
+  "document_id": "SYN-ASX-4C-001",
+  "document_type": "appendix_4c",
+  "fixture_id": "appendix_4c_quarterly_cashflow",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "99875b7dac43b77d7cdb9d5bd265adbb63b439a685efe3790baf5118bed86a8b",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Appendix 4C",
+      "document_type": "appendix_4c",
+      "matched_text": "Appendix 4C"
+    },
+    {
+      "anchor": "Quarterly cash flow report",
+      "document_type": "appendix_4c",
+      "matched_text": "Quarterly cash flow report"
+    },
+    {
+      "anchor": "Rule 4.7B",
+      "document_type": "appendix_4c",
+      "matched_text": "Rule 4.7B"
+    },
+    {
+      "anchor": "operating cash flow lines",
+      "document_type": "appendix_4c",
+      "matched_text": "operating cash flow lines"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "QCF",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "cash-flow Appendix form type does not authorize income-statement metric inference",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "high",
+  "document_id": "SYN-ASX-ANNUAL-001",
+  "document_type": "annual_report",
+  "fixture_id": "annual_report_basic",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "3cbf6899aa62019f9f8224c74c9a2bed969e5f363e45d2d6124f3dbd78027fba",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Annual Report",
+      "document_type": "annual_report",
+      "matched_text": "Annual Report"
+    },
+    {
+      "anchor": "Directors' report",
+      "document_type": "annual_report",
+      "matched_text": "Directors' report"
+    },
+    {
+      "anchor": "financial statements",
+      "document_type": "annual_report",
+      "matched_text": "financial statements"
+    },
+    {
+      "anchor": "year-ended period",
+      "document_type": "annual_report",
+      "matched_text": "year-ended period"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "ARL",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

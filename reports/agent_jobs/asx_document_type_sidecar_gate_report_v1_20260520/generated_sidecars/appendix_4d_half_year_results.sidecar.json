@@ -1,0 +1,46 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "high",
+  "document_id": "SYN-ASX-4D-001",
+  "document_type": "appendix_4d",
+  "fixture_id": "appendix_4d_half_year_results",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "6faffdd2270c0a5dcbed31ed19c5319f8b96fa1124b9649c11e9bf197935ebe1",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Appendix 4D",
+      "document_type": "appendix_4d",
+      "matched_text": "Appendix 4D"
+    },
+    {
+      "anchor": "Half year report",
+      "document_type": "appendix_4d",
+      "matched_text": "Half year report"
+    },
+    {
+      "anchor": "Results for announcement to the market",
+      "document_type": "appendix_4d",
+      "matched_text": "Results for announcement to the market"
+    },
+    {
+      "anchor": "half-year period",
+      "document_type": "appendix_4d",
+      "matched_text": "half-year period"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "HFD",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "EPS, NTA, and dividends are review-only unsupported context and are not canonical",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

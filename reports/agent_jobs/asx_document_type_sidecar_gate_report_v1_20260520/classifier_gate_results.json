@@ -1,0 +1,196 @@
+{
+  "abstain_fixtures": [
+    {
+      "actual_abstain": true,
+      "actual_confidence_band": "abstain",
+      "actual_document_type": "unknown_or_abstain",
+      "canonical_write": false,
+      "expected_abstain": true,
+      "expected_confidence_band": "abstain",
+      "expected_document_type": "unknown_or_abstain",
+      "file": "unknown_low_signal.json",
+      "fixture_id": "unknown_low_signal",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": true,
+      "actual_confidence_band": "abstain",
+      "actual_document_type": "unknown_or_abstain",
+      "canonical_write": false,
+      "expected_abstain": true,
+      "expected_confidence_band": "abstain",
+      "expected_document_type": "unknown_or_abstain",
+      "file": "ambiguous_appendix_4d_4e_abstain.json",
+      "fixture_id": "ambiguous_appendix_4d_4e_abstain",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    }
+  ],
+  "canonical_write_false": true,
+  "classifier_results": [
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "high",
+      "actual_document_type": "annual_report",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "annual_report",
+      "file": "annual_report_basic.json",
+      "fixture_id": "annual_report_basic",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "high",
+      "actual_document_type": "half_year_report",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "half_year_report",
+      "file": "half_year_report_basic.json",
+      "fixture_id": "half_year_report_basic",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "high",
+      "actual_document_type": "appendix_4c",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_4c",
+      "file": "appendix_4c_quarterly_cashflow.json",
+      "fixture_id": "appendix_4c_quarterly_cashflow",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "high",
+      "actual_document_type": "appendix_4d",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_4d",
+      "file": "appendix_4d_half_year_results.json",
+      "fixture_id": "appendix_4d_half_year_results",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "high",
+      "actual_document_type": "appendix_4e",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_4e",
+      "file": "appendix_4e_preliminary_final.json",
+      "fixture_id": "appendix_4e_preliminary_final",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "high",
+      "actual_document_type": "appendix_5b",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "high",
+      "expected_document_type": "appendix_5b",
+      "file": "appendix_5b_mining_cashflow.json",
+      "fixture_id": "appendix_5b_mining_cashflow",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": false,
+      "actual_confidence_band": "medium",
+      "actual_document_type": "other_asx_announcement",
+      "canonical_write": false,
+      "expected_abstain": false,
+      "expected_confidence_band": "medium",
+      "expected_document_type": "other_asx_announcement",
+      "file": "other_asx_announcement_investor_presentation.json",
+      "fixture_id": "other_asx_announcement_investor_presentation",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": true,
+      "actual_confidence_band": "abstain",
+      "actual_document_type": "unknown_or_abstain",
+      "canonical_write": false,
+      "expected_abstain": true,
+      "expected_confidence_band": "abstain",
+      "expected_document_type": "unknown_or_abstain",
+      "file": "unknown_low_signal.json",
+      "fixture_id": "unknown_low_signal",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    },
+    {
+      "actual_abstain": true,
+      "actual_confidence_band": "abstain",
+      "actual_document_type": "unknown_or_abstain",
+      "canonical_write": false,
+      "expected_abstain": true,
+      "expected_confidence_band": "abstain",
+      "expected_document_type": "unknown_or_abstain",
+      "file": "ambiguous_appendix_4d_4e_abstain.json",
+      "fixture_id": "ambiguous_appendix_4d_4e_abstain",
+      "matches_expected_abstain": true,
+      "matches_expected_confidence_band": true,
+      "matches_expected_type": true
+    }
+  ],
+  "fixtures_classify_to_expected_type": true,
+  "fixtures_match_expected_abstain": true,
+  "fixtures_match_expected_confidence_band": true,
+  "generated_at": "2026-05-21T00:33:11Z",
+  "import_boundary": {
+    "allowed_import_roots": [
+      "__future__",
+      "collections",
+      "dataclasses",
+      "re",
+      "typing"
+    ],
+    "classifier_import_roots": [
+      "__future__",
+      "collections",
+      "dataclasses",
+      "re",
+      "typing"
+    ],
+    "no_forbidden_backend_or_runtime_imports": true,
+    "production_routing_classifier_import_hits": [],
+    "production_routing_files_checked": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/app/services/method_isolated_extraction.py",
+      "financial-engine_v2/backend/app/services/pipeline.py",
+      "financial-engine_v2/backend/app/services/docling_extract.py"
+    ],
+    "production_routing_imports_classifier": false
+  },
+  "ok": true,
+  "pytest": {
+    "command": "uv run --with pytest python -m pytest financial-engine_v2/backend/tests/test_asx_document_type_classifier.py -q",
+    "ok": true,
+    "result": "9 passed, 1 warning in 0.04s"
+  }
+}

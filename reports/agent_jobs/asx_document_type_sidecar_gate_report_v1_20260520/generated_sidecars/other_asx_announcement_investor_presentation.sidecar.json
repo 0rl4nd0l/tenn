@@ -1,0 +1,40 @@
+{
+  "abstain": false,
+  "abstain_reasons": [],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "medium",
+  "document_id": "SYN-ASX-OTHER-001",
+  "document_type": "other_asx_announcement",
+  "fixture_id": "other_asx_announcement_investor_presentation",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "1adbdf7f861fc245748757e2a5f3b9b8c80ab5453809ce429736eb2a2911f6bc",
+  "negative_evidence": [],
+  "positive_evidence": [
+    {
+      "anchor": "Investor Presentation",
+      "document_type": "other_asx_announcement",
+      "matched_text": "Investor Presentation"
+    },
+    {
+      "anchor": "strategy update",
+      "document_type": "other_asx_announcement",
+      "matched_text": "strategy update"
+    },
+    {
+      "anchor": "released to ASX",
+      "document_type": "other_asx_announcement",
+      "matched_text": "released to ASX"
+    }
+  ],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "INV",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}

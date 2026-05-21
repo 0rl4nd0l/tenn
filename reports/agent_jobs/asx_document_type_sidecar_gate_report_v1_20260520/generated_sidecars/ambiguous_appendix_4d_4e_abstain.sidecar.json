@@ -1,0 +1,39 @@
+{
+  "abstain": true,
+  "abstain_reasons": [
+    "conflicting supported Appendix form labels",
+    "abstained instead of choosing between high-confidence anchors"
+  ],
+  "artifact_type": "asx_document_type_sidecar_v1",
+  "canonical_write": false,
+  "classifier_version": "asx_document_type_classifier_v1",
+  "confidence_band": "abstain",
+  "document_id": "SYN-ASX-AMBIG-001",
+  "document_type": "unknown_or_abstain",
+  "fixture_id": "ambiguous_appendix_4d_4e_abstain",
+  "generated_at": "2026-05-21T00:29:08Z",
+  "input_checksum": "3318504c91d6cdf0acf1add14c7cc0ae5cf5e117387464517aa5c115c2d0097a",
+  "negative_evidence": [
+    {
+      "anchor": "Appendix 4D",
+      "document_type": "appendix_4d",
+      "matched_text": "Appendix 4D"
+    },
+    {
+      "anchor": "Appendix 4E",
+      "document_type": "appendix_4e",
+      "matched_text": "Appendix 4E"
+    }
+  ],
+  "positive_evidence": [],
+  "schema_version": 1,
+  "source": "synthetic_fixture",
+  "ticker": "AMB",
+  "warnings": [
+    "document type classification is metadata only",
+    "canonical_write is always false",
+    "document type must not infer revenue, NPAT, net debt, or other financial metrics",
+    "EPS, NTA, and dividends are review-only unsupported context and are not canonical",
+    "sidecar artifact is metadata only and does not authorize canonical writes"
+  ]
+}
