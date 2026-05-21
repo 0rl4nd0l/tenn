@@ -1,0 +1,31 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/nvme_canonical_tenn_symlink_cutover_v1_20260521.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/nvme_canonical_tenn_symlink_cutover_v1_20260521.md",
+    "reports/agent_jobs/nvme_canonical_tenn_symlink_cutover_v1_20260521",
+    "reports/agent_jobs/nvme_canonical_tenn_symlink_cutover_v1_20260521/README.md",
+    "reports/agent_jobs/nvme_canonical_tenn_symlink_cutover_v1_20260521/status.json",
+    "reports/agent_jobs/nvme_canonical_tenn_symlink_cutover_v1_20260521/diff-check.json"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-21T08:14:27.991954Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-21T08:15:59.811954Z",
+  "job_id": "nvme_canonical_tenn_symlink_cutover_v1_20260521",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-21T08:17:08.359509Z",
+  "output_dir": "reports/agent_jobs/nvme_canonical_tenn_symlink_cutover_v1_20260521",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-21T08:17:08.359509Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3152872:nvme_canonical_tenn_symlink_cutover_v1_20260521",
+  "started_at": "2026-05-21T08:14:27.991954Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/nvme_canonical_tenn_symlink_cutover_v1_20260521.md",
+  "updated_at": "2026-05-21T08:17:08.359509Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}
