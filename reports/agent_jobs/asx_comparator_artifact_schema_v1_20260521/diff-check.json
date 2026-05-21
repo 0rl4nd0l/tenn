@@ -1,0 +1,56 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/asx_comparator_artifact_schema_v1_20260521.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/asx_comparator_artifact_schema.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/asx_comparator_artifact_schema.py",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_asx_comparator_artifact_schema.py",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521/diff-check.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/asx_comparator_artifact_schema_v1_20260521.md",
+        "docs/asx_comparator_artifact_schema.md",
+        "financial-engine_v2/backend/app/services/asx_comparator_artifact_schema.py",
+        "financial-engine_v2/backend/tests/test_asx_comparator_artifact_schema.py",
+        "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521/",
+        "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521/README.md",
+        "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "asx_comparator_artifact_schema_v1_20260521",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/asx_comparator_artifact_schema_v1_20260521",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
