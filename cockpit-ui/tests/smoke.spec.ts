@@ -1,4 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+function sidebarNavLink(page: Page, label: string) {
+  return page.locator('a[data-sidebar="menu-button"]').filter({ hasText: label });
+}
 
 test.describe('Cockpit Smoke Tests', () => {
   test('should load the homepage and show the correct title', async ({ page }) => {
@@ -24,7 +28,7 @@ test.describe('Cockpit Smoke Tests', () => {
     ];
 
     for (const label of navItems) {
-      const link = page.getByRole('link').filter({ hasText: label });
+      const link = sidebarNavLink(page, label);
       await expect(link).toBeVisible();
     }
   });
@@ -32,7 +36,7 @@ test.describe('Cockpit Smoke Tests', () => {
   test('should navigate to Operations page', async ({ page }) => {
     await page.goto('/');
     
-    const operationsLink = page.getByRole('link').filter({ hasText: 'Operations' });
+    const operationsLink = sidebarNavLink(page, 'Operations');
     await expect(operationsLink).toBeVisible();
     await operationsLink.click();
     

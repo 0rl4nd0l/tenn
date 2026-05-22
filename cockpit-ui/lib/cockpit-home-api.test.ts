@@ -506,9 +506,11 @@ describe('CockpitHomePage live BFF wiring', () => {
     expect(screen.getByText('CONTEXT ONLY')).toBeInTheDocument();
     expect(screen.getByLabelText('Open portfolio holdings')).toHaveAttribute('href', '/holdings');
     expect(screen.getByLabelText('Open news workspace')).toHaveAttribute('href', '/news');
+    expect(screen.getByText('Home context')).toBeInTheDocument();
+    expect(screen.getByText('Home has partial context available. Full Chat opens a draft for the visible, source-labeled Home state.')).toBeInTheDocument();
     expect(screen.getByLabelText('Open full chat with Home context')).toHaveAttribute(
       'href',
-      "/full-chat?prompt=Summarize+today%27s+session.",
+      "/full-chat?prompt=Summarize+today%27s+available+Home+context.",
     );
     expect(screen.queryByText(/WiseTech Global/i)).not.toBeInTheDocument();
   });

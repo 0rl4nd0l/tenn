@@ -3,16 +3,29 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NewsItem } from '@/types/cockpit-home';
+import {
+  buildHomeChatDraftHref,
+  getHomeAssistantContext,
+  type CockpitHomeShellStatus,
+} from '@/lib/cockpit-home-actionability';
 import { EvidenceBadge } from './evidence-badge';
 import { Bot, Sparkles, Send, Paperclip, ChevronRight, Maximize2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ContextualAssistantProps {
   attachedItem: NewsItem | null;
+  homeMode: 'live' | 'demo';
+  homeStatus: CockpitHomeShellStatus;
   onClearContext: () => void;
 }
 
-export function ContextualAssistant({ attachedItem, onClearContext }: ContextualAssistantProps) {
+export function ContextualAssistant({
+  attachedItem,
+  homeMode,
+  homeStatus,
+  onClearContext,
+}: ContextualAssistantProps) {
+  const homeContext = getHomeAssistantContext(homeMode, homeStatus);
   const suggestedPrompts = (attachedItem
     ? [
         { label: `Assess this source for ${attachedItem.ticker || 'the selected ticker'}.`, enabled: true },
@@ -21,15 +34,15 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
         { label: "Update my thesis note.", enabled: false }
       ]
     : [
-        { label: "Summarize today's session.", enabled: true },
-        { label: "Show my top portfolio risks.", enabled: true },
-        { label: "Check morning announcements.", enabled: true },
-        { label: "Prepare tomorrow's watchlist.", enabled: true }
+        { label: homeContext.defaultPrompt, enabled: true },
+        { label: homeContext.secondaryPrompt, enabled: true },
+        { label: "Check morning announcements.", enabled: homeStatus === 'operational' || homeStatus === 'partial' },
+        { label: "Prepare tomorrow's watchlist.", enabled: homeMode === 'live' && (homeStatus === 'operational' || homeStatus === 'partial') }
       ]);
   const defaultPrompt = attachedItem
     ? `Assess this source for ${attachedItem.ticker || 'the selected ticker'}.`
-    : "Summarize today's session.";
-  const defaultChatHref = buildChatHandoffHref(defaultPrompt, attachedItem);
+    : homeContext.defaultPrompt;
+  const defaultChatHref = buildHomeChatDraftHref(defaultPrompt, attachedItem);
 
   return (
     <Card className="terminal-panel h-full flex flex-col bg-card/20 border-l border-border/50">
@@ -85,8 +98,17 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
                 <p className="text-[13px] font-sans text-muted-foreground leading-relaxed">
                   {attachedItem
                     ? `I have attached the ${attachedItem.ticker || 'selected'} Home source context. How would you like me to analyze this source?`
-                    : "I am monitoring the market session. You can ask me to summarize current movers, check your portfolio impact, or analyze specific news items."}
+                    : homeContext.message}
                 </p>
+
+                {!attachedItem && (
+                  <div className="flex items-center justify-between gap-3 rounded border border-border/40 bg-accent/15 px-3 py-2">
+                    <span className="text-[10px] font-mono uppercase text-muted-foreground">{homeContext.label}</span>
+                    <span className={`text-[10px] font-mono font-bold uppercase ${homeContext.toneClass}`}>
+                      {homeContext.stateLabel}
+                    </span>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <span className="text-[10px] font-mono uppercase text-muted-foreground/60 tracking-wider">Suggested Queries</span>
@@ -95,7 +117,7 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
                       prompt.enabled ? (
                         <Link
                           key={prompt.label}
-                          href={buildChatHandoffHref(prompt.label, attachedItem)}
+                          href={buildHomeChatDraftHref(prompt.label, attachedItem)}
                           className="text-left text-[11px] font-sans text-foreground bg-accent/30 hover:bg-accent/50 px-3 py-2 rounded border border-border/40 transition-colors flex items-center justify-between group"
                           aria-label={`Open full chat with prompt: ${prompt.label}`}
                         >
@@ -149,14 +171,4 @@ export function ContextualAssistant({ attachedItem, onClearContext }: Contextual
       </CardContent>
     </Card>
   );
-}
-
-function buildChatHandoffHref(prompt: string, attachedItem: NewsItem | null): string {
-  const params = new URLSearchParams({ prompt });
-  if (attachedItem?.sourceId && attachedItem.sourceKind && attachedItem.resolvable && !attachedItem.chatBlockedReason) {
-    params.set('source_id', attachedItem.sourceId);
-    params.set('source_kind', attachedItem.sourceKind);
-    params.set('source_title', attachedItem.headline);
-  }
-  return `/full-chat?${params.toString()}`;
 }

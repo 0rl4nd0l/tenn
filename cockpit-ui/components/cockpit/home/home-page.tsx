@@ -19,12 +19,18 @@ import {
   cockpitHomeSourceLabelToTrustLevel,
 } from '@/lib/cockpit-home-contract';
 import {
+  buildHomeUsefulNowActions,
+  getHomeSourceActionability,
+  homeSectionState,
+  type CockpitHomeShellStatus,
+  type UsefulNowAction,
+} from '@/lib/cockpit-home-actionability';
+import {
   CockpitHomeBffResponse,
   CockpitHomeDataMissingSignal,
   CockpitHomeDataState,
   CockpitHomeMarketMoverContract,
   CockpitHomeNewsItemContract,
-  CockpitHomeSectionKey,
   CockpitHomeState,
   DataHealthItem,
   MarketMover,
@@ -39,17 +45,6 @@ type HomeLoadState =
   | { status: 'loading' }
   | { status: 'ready'; response: CockpitHomeBffResponse }
   | { status: 'error'; message: string };
-
-type UsefulNowAction = {
-  id: string;
-  kind: 'attention' | 'source' | 'blocker' | 'ready';
-  title: string;
-  detail: string;
-  state: CockpitHomeDataState;
-  meta: string[];
-  href?: string | null;
-  newsItem?: NewsItem;
-};
 
 const DEMO_STATES: Record<MarketSessionState, CockpitHomeState> = {
   OPEN: MOCK_MARKET_OPEN,
@@ -116,7 +111,7 @@ export function CockpitHomePage() {
   };
 
   const handleAnalyze = (item: NewsItem) => {
-    if (!item.resolvable || item.chatBlockedReason || item.isDemo) {
+    if (!getHomeSourceActionability(item).canAttachToChat) {
       return;
     }
     setAssistantContext(item);
@@ -290,7 +285,7 @@ function HomeShell({
   children,
 }: {
   mode: 'live' | 'demo';
-  status: 'operational' | 'partial' | 'degraded' | 'data_missing';
+  status: CockpitHomeShellStatus;
   session: MarketSessionState;
   melbourneTime: string;
   nextEvent: string;
@@ -337,6 +332,8 @@ function HomeShell({
         <aside className="w-[380px] border-l border-border shrink-0 hidden xl:block">
           <ContextualAssistant
             attachedItem={assistantContext}
+            homeMode={mode}
+            homeStatus={status}
             onClearContext={onClearContext}
           />
         </aside>
@@ -487,8 +484,8 @@ function LiveWorkspace({
         updatedAt: item.updated_at ?? item.created_at ?? null,
         targetRoute: item.target_route,
       }));
-  const attentionState = sectionState('attention_queue', response);
-  const usefulNowActions = buildUsefulNowActions(response, news, attentionItems);
+  const attentionState = homeSectionState('attention_queue', response);
+  const usefulNowActions = buildHomeUsefulNowActions(response, news, attentionItems);
 
   return (
     <div className="grid grid-cols-12 gap-6 max-w-[1600px] mx-auto">
@@ -504,7 +501,7 @@ function LiveWorkspace({
         ) : (
           <SectionStatePanel
             title="Market Pulse"
-            state={sectionState('market_movers', response)}
+            state={homeSectionState('market_movers', response)}
             message="No backend market-movers data is available for Cockpit Home v1."
             signals={sectionSignals('market_movers', response)}
           />
@@ -523,7 +520,7 @@ function LiveWorkspace({
       <div className="col-span-12 lg:col-span-8">
         <LiveNewsPanel
           news={news}
-          dataState={sectionState('news', response)}
+          dataState={homeSectionState('news', response)}
           dataMissing={sectionSignals('news', response)}
           onSelectItem={onSelectItem}
         />
@@ -814,40 +811,53 @@ function LiveNewsPanel({
         ) : (
           <div className="divide-y divide-border/40 max-h-[400px] overflow-y-auto">
             {news.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="w-full text-left p-4 hover:bg-accent/30 cursor-pointer transition-colors group"
-                onClick={() => onSelectItem(item)}
-              >
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[11px] font-mono font-bold text-cyan-500 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded uppercase">
-                      {item.ticker || 'NO_TICKER'}
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground truncate">
-                      {item.timestamp}
-                    </span>
-                  </div>
-                  <EvidenceBadge level={item.trustLevel} />
-                </div>
-                <h4 className="text-[13px] font-sans font-medium leading-snug mb-3 group-hover:text-cyan-400 transition-colors">
-                  {item.headline}
-                </h4>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-[10px] font-mono text-muted-foreground/70 uppercase truncate">
-                    {item.source}
-                  </span>
-                  <span className={cn("text-[10px] font-mono uppercase", item.chatBlockedReason ? 'text-amber-500' : 'text-cyan-500')}>
-                    {item.chatBlockedReason ? item.chatBlockedReason : 'SOURCE'}
-                  </span>
-                </div>
-              </button>
+              <LiveNewsItemButton key={item.id} item={item} onSelectItem={onSelectItem} />
             ))}
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function LiveNewsItemButton({
+  item,
+  onSelectItem,
+}: {
+  item: NewsItem;
+  onSelectItem: (item: NewsItem) => void;
+}) {
+  const actionability = getHomeSourceActionability(item);
+
+  return (
+    <button
+      type="button"
+      className="w-full text-left p-4 hover:bg-accent/30 cursor-pointer transition-colors group"
+      onClick={() => onSelectItem(item)}
+    >
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] font-mono font-bold text-cyan-500 px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded uppercase">
+            {item.ticker || 'NO_TICKER'}
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground truncate">
+            {item.timestamp}
+          </span>
+        </div>
+        <EvidenceBadge level={item.trustLevel} />
+      </div>
+      <h4 className="text-[13px] font-sans font-medium leading-snug mb-3 group-hover:text-cyan-400 transition-colors">
+        {item.headline}
+      </h4>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[10px] font-mono text-muted-foreground/70 uppercase truncate">
+          {item.source}
+        </span>
+        <span className={cn("text-[10px] font-mono uppercase", actionabilityTextColor(actionability.tone))}>
+          {actionability.label}
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -1067,103 +1077,7 @@ function mapDataHealthItem(item: {
   };
 }
 
-function buildUsefulNowActions(
-  response: CockpitHomeBffResponse,
-  news: NewsItem[],
-  attentionItems: CockpitHomeState['attentionQueue'],
-): UsefulNowAction[] {
-  const actions: UsefulNowAction[] = [];
-  const attentionByPriority = [...attentionItems].sort(
-    (left, right) => priorityRank(left.priority) - priorityRank(right.priority),
-  );
-
-  for (const item of attentionByPriority) {
-    actions.push({
-      id: `attention:${item.id}`,
-      kind: 'attention',
-      title: `Review ${item.label}`,
-      detail: item.description,
-      state: 'READY',
-      meta: [item.priority, item.status, item.source].filter(Boolean) as string[],
-      href: safeInternalHomeRoute(item.targetRoute),
-    });
-    if (actions.length >= 1) {
-      break;
-    }
-  }
-
-  const sourceAction = [...news]
-    .filter((item) => item.resolvable && !item.chatBlockedReason && !item.isDemo)
-    .sort((left, right) => relevanceRank(left.relevance) - relevanceRank(right.relevance))[0];
-  if (sourceAction && actions.length < 3) {
-    actions.push({
-      id: `source:${sourceAction.id}`,
-      kind: 'source',
-      title: `Inspect source: ${sourceAction.headline}`,
-      detail: sourceAction.source,
-      state: sourceAction.dataState ?? 'READY',
-      meta: [
-        sourceAction.relevance,
-        sourceAction.trustLevel,
-        sourceAction.sourceId ? 'resolvable' : 'source_id missing',
-      ],
-      newsItem: sourceAction,
-    });
-  }
-
-  for (const signal of prioritizedSignals(response)) {
-    if (actions.length >= 3) {
-      break;
-    }
-    actions.push({
-      id: `blocker:${dataMissingSignalIdentity(signal)}`,
-      kind: 'blocker',
-      title: `${sectionDisplayName(signal.section)} gap`,
-      detail: signal.message,
-      state: sectionState(signal.section, response),
-      meta: [signal.code, signal.source_label ?? 'missing_required_evidence'],
-    });
-  }
-
-  if (actions.length === 0) {
-    actions.push({
-      id: 'home-ready:no-current-actions',
-      kind: 'ready',
-      title: 'No urgent Home action',
-      detail: 'The current Home response has no queued attention items or missing-data blockers.',
-      state: 'READY',
-      meta: ['READY'],
-    });
-  }
-
-  return actions.slice(0, 3);
-}
-
-function prioritizedSignals(response: CockpitHomeBffResponse): CockpitHomeDataMissingSignal[] {
-  const sectionOrder = new Map<CockpitHomeSectionKey, number>(
-    [
-      'portfolio',
-      'news',
-      'attention_queue',
-      'market_movers',
-      'session_summary',
-      'theme_candidates',
-      'tomorrow_prep',
-      'market_session',
-      'data_health',
-    ].map((section, index) => [section as CockpitHomeSectionKey, index]),
-  );
-
-  return uniqueDataMissingSignals(response.data_missing)
-    .filter((signal) => signal.code.trim())
-    .sort((left, right) => {
-      const leftRank = sectionOrder.get(left.section) ?? sectionOrder.size;
-      const rightRank = sectionOrder.get(right.section) ?? sectionOrder.size;
-      return leftRank - rightRank || left.code.localeCompare(right.code);
-    });
-}
-
-function systemStatusFromResponse(response: CockpitHomeBffResponse): 'operational' | 'partial' | 'degraded' | 'data_missing' {
+function systemStatusFromResponse(response: CockpitHomeBffResponse): CockpitHomeShellStatus {
   if (response.data_state === 'READY') {
     return 'operational';
   }
@@ -1174,30 +1088,6 @@ function systemStatusFromResponse(response: CockpitHomeBffResponse): 'operationa
     return 'degraded';
   }
   return 'data_missing';
-}
-
-function sectionState(section: string, response: CockpitHomeBffResponse): CockpitHomeDataState {
-  if (section === 'news') {
-    if (response.news.length === 0) {
-      return response.data_missing.some((signal) => signal.section === 'news') ? 'DATA_MISSING' : 'READY';
-    }
-    return response.news.some((item) => item.state.data_state !== 'READY') ? 'PARTIAL' : 'READY';
-  }
-  if (section === 'market_movers') {
-    return response.market_movers.some((item) => item.state.data_state !== 'DATA_MISSING') ? 'PARTIAL' : 'DATA_MISSING';
-  }
-  if (section === 'attention_queue') {
-    return response.attention_queue_state.data_state;
-  }
-  const directHealth = response.data_health.find((item) => item.section === section);
-  if (directHealth) {
-    return directHealth.data_state;
-  }
-  const directSignal = response.data_missing.find((signal) => signal.section === section);
-  if (directSignal) {
-    return response.data_state === 'READY' ? 'PARTIAL' : response.data_state;
-  }
-  return 'DATA_MISSING';
 }
 
 function sectionSignals(section: string, response: CockpitHomeBffResponse): CockpitHomeDataMissingSignal[] {
@@ -1230,39 +1120,14 @@ function actionStateDot(state: CockpitHomeDataState): string {
   return 'bg-red-500';
 }
 
-function sectionDisplayName(section: CockpitHomeSectionKey): string {
-  return section
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function priorityRank(priority: CockpitHomeState['attentionQueue'][number]['priority']): number {
-  if (priority === 'high') {
-    return 0;
+function actionabilityTextColor(tone: ReturnType<typeof getHomeSourceActionability>['tone']): string {
+  if (tone === 'ready') {
+    return 'text-cyan-500';
   }
-  if (priority === 'medium') {
-    return 1;
+  if (tone === 'warning') {
+    return 'text-amber-500';
   }
-  return 2;
-}
-
-function relevanceRank(relevance: NewsItem['relevance']): number {
-  if (relevance === 'high') {
-    return 0;
-  }
-  if (relevance === 'medium') {
-    return 1;
-  }
-  return 2;
-}
-
-function safeInternalHomeRoute(route: string | null | undefined): string | null {
-  const value = String(route || '').trim();
-  if (!value.startsWith('/') || value.startsWith('//')) {
-    return null;
-  }
-  return value;
+  return 'text-red-500';
 }
 
 function uniqueDataMissingSignals(signals: CockpitHomeDataMissingSignal[]): CockpitHomeDataMissingSignal[] {

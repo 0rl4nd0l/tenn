@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CockpitHomeState } from '@/types/cockpit-home';
+import { safeInternalHomeRoute } from '@/lib/cockpit-home-actionability';
 import { ListChecks, AlertCircle, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,7 @@ export function AttentionQueueCard({ items }: AttentionQueueCardProps) {
       <CardContent className="p-0">
         <div className="divide-y divide-border/30">
           {items.map((item) => {
-            const targetRoute = safeInternalRoute(item.targetRoute);
+            const targetRoute = safeInternalHomeRoute(item.targetRoute);
             const content = <AttentionQueueItem item={item} linked={Boolean(targetRoute)} />;
 
             return targetRoute ? (
@@ -84,14 +85,6 @@ function AttentionQueueItem({
       </div>
     </div>
   );
-}
-
-function safeInternalRoute(route: string | null | undefined): string | null {
-  const value = String(route || '').trim();
-  if (!value.startsWith('/') || value.startsWith('//')) {
-    return null;
-  }
-  return value;
 }
 
 function formatShortTimestamp(value: string): string {

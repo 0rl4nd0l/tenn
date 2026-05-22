@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { NewsItem } from '@/types/cockpit-home';
+import { getHomeSourceActionability } from '@/lib/cockpit-home-actionability';
 import { EvidenceBadge } from './evidence-badge';
 import { AlertCircle, Database, ExternalLink, Loader2, MessageSquare, ShieldCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,9 +43,10 @@ interface SourceTakeaway {
 
 export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceDetailDrawerProps) {
   const [sourceDetail, setSourceDetail] = useState<SourceDetailState>({ status: 'idle' });
+  const sourceActionability = item ? getHomeSourceActionability(item) : null;
 
   useEffect(() => {
-    if (!isOpen || !item?.sourceId || !item.resolvable || item.isDemo) {
+    if (!isOpen || !item?.sourceId || !sourceActionability?.canInspect) {
       setSourceDetail({ status: 'idle' });
       return;
     }
@@ -81,13 +83,13 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
     void loadSourceDetail();
 
     return () => controller.abort();
-  }, [isOpen, item?.isDemo, item?.resolvable, item?.sourceId]);
+  }, [isOpen, item?.sourceId, sourceActionability?.canInspect]);
 
   if (!item) return null;
 
   const dataState = item.dataState ?? (item.isDemo ? 'DATA_MISSING' : 'READY');
   const sourceLabels = item.evidenceLabels?.length ? item.evidenceLabels : [item.sourceLabel ?? null].filter(Boolean);
-  const canAnalyze = Boolean(item.resolvable && item.sourceId && !item.chatBlockedReason && !item.isDemo);
+  const canAnalyze = Boolean(sourceActionability?.canAttachToChat);
 
   return (
     <Drawer open={isOpen} onClose={onClose}>
@@ -150,23 +152,16 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
                   </div>
                 </section>
 
-                {(item.isDemo || item.dataMissing?.length || item.chatBlockedReason) && (
+                {sourceActionability && sourceActionability.reason !== 'SOURCE_READY' && (
                   <section>
                     <h5 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
                       <AlertCircle className="w-3 h-3" />
                       Limits
                     </h5>
                     <div className="space-y-2 bg-amber-500/5 p-4 rounded-lg border border-amber-500/20">
-                      {item.isDemo && (
-                        <p className="text-[12px] font-sans text-amber-500">
-                          Demo fixture only. This item is not source-backed and cannot be attached as evidence.
-                        </p>
-                      )}
-                      {item.chatBlockedReason && (
-                        <p className="text-[12px] font-sans text-amber-500">
-                          Chat handoff blocked: {item.chatBlockedReason}.
-                        </p>
-                      )}
+                      <p className="text-[12px] font-sans text-amber-500">
+                        {sourceActionability.detail}
+                      </p>
                       {item.dataMissing?.map((signal) => (
                         <div key={`${signal.section}:${signal.code}`} className="text-[11px] font-mono text-muted-foreground">
                           <span className="text-amber-500">{signal.code}</span>: {signal.message}
@@ -211,6 +206,7 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
             <Button
               className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-mono uppercase tracking-tighter disabled:opacity-50"
               disabled={!canAnalyze}
+              title={canAnalyze ? 'Attach source to Tenn Assistant' : sourceActionability?.detail}
               onClick={() => {
                 if (canAnalyze) {
                   onAnalyze(item);
