@@ -1,0 +1,114 @@
+{
+  "job_id": "strategy_lab_consolidation_save_plan_phase3f_v1_20260521",
+  "status": "complete_with_registry_and_diff_warning",
+  "mode": "consolidation_save_plan_only_audit_report_only",
+  "lane": "Provenance",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "2bff733e2d7f8fadfde6d492a5ff48212b710f59",
+  "recommendation": "GO_PHASE3G_CONSOLIDATION_EXECUTION_TASK_CARD_DRAFT_ONLY",
+  "registry": {
+    "list_active": "passed_one_unrelated_reporting_job",
+    "check_overlap": "failed_pre_existing_phase3d_and_phase3e_task_cards_dirty_outside_allowed_files",
+    "claim": "not_attempted",
+    "release": "not_applicable_no_claim"
+  },
+  "inputs": {
+    "phase2_worktree_available": true,
+    "phase2b_helper_worktree_available": true,
+    "phase3a_worktree_available": true,
+    "phase3b_worktree_available": true,
+    "phase3c_worktree_available": true,
+    "phase3d_report_available": true,
+    "phase3e_report_available": true,
+    "consolidated_baseline_ready": false
+  },
+  "classification": {
+    "active_authoritative_candidates": [
+      "phase2_strategy_lab_artifact_v1_schema_and_fixtures",
+      "phase3a_adapter_docs_and_mock_payloads",
+      "phase3b_mock_vectors_and_unittest",
+      "phase3c_mock_transport_docs_fixtures_and_unittest"
+    ],
+    "pending_review_helper_candidates": [
+      "phase2b_helper_doc_module_test_fixtures_raw_payloads_and_normalized_outputs"
+    ],
+    "report_only_evidence": [
+      "phase2_report_bundle",
+      "phase2b_report_bundle",
+      "phase3a_report_bundle",
+      "phase3b_report_bundle",
+      "phase3c_report_bundle",
+      "phase3d_report_bundle",
+      "phase3e_report_bundle",
+      "phase3f_report_bundle"
+    ],
+    "archive_only": [
+      "duplicate_strategy_lab_quantdinger_framework_v1_20260520_report_bundles"
+    ],
+    "generated_exclude": [
+      "phase3b_tests_strategy_lab_pycache",
+      "phase3c_tests_strategy_lab_pycache"
+    ],
+    "data_missing": [
+      "committed_consolidated_baseline",
+      "approved_save_destinations",
+      "approved_phase3a_staged_addition_handling",
+      "approved_report_force_add_policy"
+    ]
+  },
+  "boundaries": {
+    "real_adapter_implemented": false,
+    "real_transport_implemented": false,
+    "quantdinger_started_by_phase3f": false,
+    "mcp_started_by_phase3f": false,
+    "docker_started_by_phase3f": false,
+    "token_issued": false,
+    "dependency_installed": false,
+    "tenn_runtime_code_changed": false,
+    "cockpit_changed": false,
+    "artifact_store_implemented": false,
+    "tenn_store_written": false,
+    "production_data_accessed": false,
+    "paper_or_live_execution_by_phase3f": false,
+    "phase2_2b_3a_3b_3c_3d_3e_files_merged_copied_committed_staged_unstaged_cleaned_reset_or_removed": false
+  },
+  "outputs": {
+    "task_card": "docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md",
+    "reports": [
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/README.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/preflight.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/input_inventory.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/worktree_file_classification.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/preservation_model.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/future_action_matrix.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/phase3g_recommendation.md",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/status.json",
+      "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/diff-check.json"
+    ]
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_list_active": "passed_one_unrelated_reporting_job",
+    "registry_check_overlap": "failed_pre_existing_unrelated_dirty_files",
+    "registry_claim": "not_attempted",
+    "registry_release": "not_applicable_no_claim",
+    "status_json_parse": "passed",
+    "markdown_hygiene": "passed",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "passed",
+    "agent_job_check_diff": "failed_pre_existing_unrelated_phase3d_and_phase3e_task_cards_outside_allowed_files",
+    "diff_check_report": "reports/agent_jobs/strategy_lab_consolidation_save_plan_phase3f_v1_20260521/diff-check.json",
+    "final_registry_list_active": "passed_two_unrelated_active_jobs_cockpit_ui_reporting_and_sloppy_fix_evaluation",
+    "final_git_status": "untracked_phase3f_task_card_plus_pre_existing_phase3d_and_phase3e_task_cards; phase3f_report_bundle_ignored",
+    "written_files_scope": "phase3f_task_card_and_phase3f_report_bundle_only; pre_existing_phase3d_and_phase3e_task_cards_preserved",
+    "docs_strategy_lab_tests_strategy_lab_runtime_product_cockpit_status": "no_entries",
+    "dependency_files_status": "no_entries",
+    "quantdinger_process_scan": "no_quantdinger_process_found",
+    "services_started_by_phase3f": false,
+    "token_issued_by_phase3f": false,
+    "dependency_installed_by_phase3f": false,
+    "paper_or_live_execution_by_phase3f": false
+  }
+}

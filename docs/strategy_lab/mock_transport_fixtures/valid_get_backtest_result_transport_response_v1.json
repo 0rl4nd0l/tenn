@@ -1,0 +1,71 @@
+{
+  "transport_fixture_version": "strategy_lab_mock_transport_phase3c_v1",
+  "fixture_name": "valid_get_backtest_result_transport_response_v1",
+  "request": {
+    "request_id": "transportreq_phase3c_get_backtest_result_001",
+    "job_id": "strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+    "operation": "get_backtest_result",
+    "mock_scope": "phase3c_offline_mock_transport_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "external_job_id": "mock_backtest_job_phase3c_001",
+      "expected_kind": "backtest"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "policy_checked": true,
+    "reason_codes": ["BACKTEST_RESULT_POLL_MOCK"],
+    "human_review_required": true
+  },
+  "transport_response": {
+    "operation": "get_backtest_result",
+    "lifecycle_state": "NORMALIZED_TO_PENDING_ARTIFACT",
+    "status": "succeeded",
+    "raw_payload_ref": {
+      "storage_state": "mock_ref_only",
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_get_backtest_result_transport_response_v1.json",
+      "sha256": "DATA_MISSING",
+      "redaction_status": "no_secrets_expected"
+    },
+    "result": {
+      "external_job_id": "mock_backtest_job_phase3c_001",
+      "kind": "backtest",
+      "result_status": "succeeded",
+      "benchmark": {"status": "DATA_MISSING"},
+      "data_source": {"provider": "DATA_MISSING"},
+      "limitations": ["Offline mock transport result; no service was called."]
+    },
+    "artifact_emission_decision": {
+      "artifact_emitted": true,
+      "artifact_ref": "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+      "schema_version": "strategy_lab_artifact_v1",
+      "artifact_type": "backtest_run",
+      "review_status": "PENDING_REVIEW",
+      "canonical_financial_truth": false,
+      "production_data_access": false,
+      "may_write_db": false,
+      "may_write_qdrant": false,
+      "may_write_memory": false,
+      "may_write_financial_truth": false,
+      "execution_allowed": false,
+      "data_missing": ["benchmark", "explicit_provider_field", "raw_payload_sha256"]
+    },
+    "quarantine_decision": {
+      "quarantined": false,
+      "reason_codes": []
+    },
+    "audit_record": {
+      "policy_checked_before_dispatch": true,
+      "dispatched_to": "local_mock_fixture",
+      "network_transport_started": false,
+      "service_started": false,
+      "token_issued": false,
+      "dependency_installed": false,
+      "store_write_authorized": false,
+      "paper_live_execution_authorized": false
+    }
+  }
+}

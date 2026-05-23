@@ -1,0 +1,81 @@
+{
+  "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+  "status": "complete",
+  "mode": "design_only_safe_extension",
+  "lane": "Query Orchestration",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-strategy-lab-mocked-adapter-design-phase3-v1-20260520",
+  "branch": "safe/strategy-lab-mocked-adapter-design-phase3-v1-20260520",
+  "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+  "recommendation": "GO_PHASE3B_MOCKED_ADAPTER_TESTS_ONLY",
+  "phase2_recommendation": "GO_PHASE3_MOCKED_ADAPTER_DESIGN_ONLY",
+  "registry": {
+    "claim": "passed",
+    "release": "passed",
+    "released_at": "2026-05-21T02:30:30.132672Z",
+    "registry_scope": "shared",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry"
+  },
+  "boundaries": {
+    "real_adapter_implemented": false,
+    "quantdinger_started": false,
+    "mcp_started": false,
+    "docker_started": false,
+    "token_issued": false,
+    "dependency_installed": false,
+    "tenn_runtime_code_changed": false,
+    "cockpit_changed": false,
+    "artifact_store_implemented": false,
+    "tenn_store_written": false,
+    "production_data_accessed": false,
+    "paper_or_live_execution": false
+  },
+  "outputs": {
+    "task_card": "docs/agent_tasks/strategy_lab_mocked_adapter_design_phase3_v1_20260520.md",
+    "docs": [
+      "docs/strategy_lab/adapter_contract_v1.md",
+      "docs/strategy_lab/adapter_tool_policy_v1.md",
+      "docs/strategy_lab/adapter_request_response_envelopes_v1.md",
+      "docs/strategy_lab/adapter_quarantine_policy_v1.md",
+      "docs/strategy_lab/adapter_mock_test_plan_v1.md"
+    ],
+    "mock_payloads": [
+      "docs/strategy_lab/mock_payloads/mock_list_capabilities_result_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_market_snapshot_result_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_submit_backtest_result_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_get_job_result_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_regime_detect_result_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_policy_denied_trading_scope_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_sidecar_unavailable_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_schema_invalid_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_missing_benchmark_result_v1.json",
+      "docs/strategy_lab/mock_payloads/mock_data_missing_result_v1.json"
+    ],
+    "reports": [
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/README.md",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/phase2_schema_review.md",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/tool_policy_matrix.md",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/mock_envelope_review.md",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/quarantine_and_error_policy.md",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/go_no_go_phase3b.md",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/status.json",
+      "reports/agent_jobs/strategy_lab_mocked_adapter_design_phase3_v1_20260520/diff-check.json"
+    ]
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_list_active": "passed",
+    "registry_check_overlap": "passed",
+    "registry_claim": "passed",
+    "mock_payload_json_parse": "passed",
+    "phase2_schema_and_fixture_json_parse": "passed",
+    "status_json_parse": "passed",
+    "markdown_hygiene": "passed",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "passed",
+    "agent_job_check_diff": "passed",
+    "registry_release": "passed",
+    "final_registry_list_active": "passed_empty",
+    "final_git_status": "staged_allowed_files_only"
+  }
+}

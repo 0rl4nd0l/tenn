@@ -1,0 +1,304 @@
+{
+  "vector_version": "strategy_lab_phase3b_reconciled_schema_policy_v1",
+  "job_id": "strategy_lab_mocked_adapter_tests_phase3b_reconciled_v1_20260521",
+  "authoritative_schema": {
+    "schema_version": "strategy_lab_artifact_v1",
+    "schema_doc": "docs/strategy_lab/artifact_schema_v1.md",
+    "schema_json": "docs/strategy_lab/artifact_schema_v1.schema.json",
+    "fixture_dir": "docs/strategy_lab/artifact_fixtures",
+    "status": "authoritative"
+  },
+  "helper_candidate": {
+    "schema_version": "strategy_lab_sidecar_artifact_v1",
+    "status": "pending_review_pre_envelope_only",
+    "may_replace_authoritative_schema": false,
+    "allowed_outcomes": [
+      "map_to_full_strategy_lab_artifact_v1_envelope",
+      "quarantine_as_pre_envelope_only"
+    ],
+    "source_refs": [
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521/docs/strategy_lab_quantdinger_artifact_schema.md",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521/reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/backtest_run.json",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521/reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/regime_breakdown.json"
+    ]
+  },
+  "required_artifact_flags": {
+    "canonical_financial_truth": false,
+    "production_data_access": false,
+    "may_write_db": false,
+    "may_write_qdrant": false,
+    "may_write_memory": false,
+    "may_write_financial_truth": false,
+    "execution_allowed": false,
+    "review_status": "PENDING_REVIEW"
+  },
+  "evidence_backed_artifact_types": [
+    "backtest_run",
+    "regime_breakdown"
+  ],
+  "default_hold_or_data_missing_artifact_types": [
+    "parameter_sweep",
+    "risk_report",
+    "factor_test",
+    "portfolio_experiment"
+  ],
+  "forbidden_evidence_labels": [
+    "financial_truth",
+    "source-backed"
+  ],
+  "operations": [
+    {
+      "operation": "list_capabilities",
+      "decision": "allow_mock_only",
+      "required_mock_scope": "phase3b_reconciled_offline_mock_only",
+      "input_fields": [
+        "request_id",
+        "job_id",
+        "operation",
+        "mock_scope",
+        "production_data_access=false",
+        "execution_allowed=false"
+      ],
+      "output_shape": "capability list with decisions, denied surfaces, schema policy version, and DATA_MISSING entries for unconfirmed schemas",
+      "artifact_type_emitted": "none",
+      "raw_payload_ref_rule": "optional mock fixture ref only; no external raw payload required",
+      "quarantine_rule": "quarantine if output authorizes credentials, token admin, trading, store writes, unknown live authority, or real transport",
+      "data_missing_behavior": "missing capability schema remains DATA_MISSING and blocks promotion",
+      "audit_log_fields": [
+        "request_id",
+        "policy_version",
+        "operation",
+        "decision",
+        "forbidden_surfaces",
+        "task_card"
+      ],
+      "rate_limit_expectation": "local mock only; future capability/read maximum 10 per minute unless stricter",
+      "human_review_required": true
+    },
+    {
+      "operation": "read_market_snapshot",
+      "decision": "allow_mock_only",
+      "required_mock_scope": "phase3b_reconciled_offline_mock_only_public_or_synthetic",
+      "input_fields": [
+        "market",
+        "symbol",
+        "timeframe",
+        "lookback",
+        "requested_fields",
+        "production_data_access=false",
+        "execution_allowed=false"
+      ],
+      "output_shape": "read-only context with provider status, source limitations, and no artifact by default",
+      "artifact_type_emitted": "none",
+      "raw_payload_ref_rule": "required only if a later external result is mapped; Phase 3B uses local mock path",
+      "quarantine_rule": "quarantine if provider/source is absent without DATA_MISSING, production data appears, or order/credential fields appear",
+      "data_missing_behavior": "provider/source gaps must be explicit DATA_MISSING",
+      "audit_log_fields": [
+        "market",
+        "symbol",
+        "timeframe",
+        "provider_status",
+        "data_policy",
+        "result_count"
+      ],
+      "rate_limit_expectation": "local mock only; future read maximum 10 per minute unless stricter",
+      "human_review_required": true
+    },
+    {
+      "operation": "submit_backtest",
+      "decision": "allow_mock_only",
+      "required_mock_scope": "phase3b_reconciled_offline_mock_only_bounded_historical_simulation",
+      "input_fields": [
+        "strategy_ref",
+        "market",
+        "symbol",
+        "timeframe",
+        "start",
+        "end",
+        "initial_capital",
+        "fees_slippage",
+        "position_sizing",
+        "benchmark_policy",
+        "production_data_access=false",
+        "execution_allowed=false"
+      ],
+      "output_shape": "accepted mock job envelope with external_job_id, status, and polling policy",
+      "artifact_type_emitted": "none_at_submission",
+      "raw_payload_ref_rule": "future raw submit response ref required before promotion; local mock ref in Phase 3B",
+      "quarantine_rule": "deny or quarantine if request creates live workspace state, requests paper/live order path, or includes credential fields",
+      "data_missing_behavior": "missing benchmark policy becomes DATA_MISSING hold",
+      "audit_log_fields": [
+        "strategy_ref",
+        "date_range",
+        "requested_benchmark",
+        "denied_scopes",
+        "idempotency_key"
+      ],
+      "rate_limit_expectation": "local mock only; future submit maximum 2 per minute",
+      "human_review_required": true
+    },
+    {
+      "operation": "get_backtest_result",
+      "decision": "allow_mock_only",
+      "required_mock_scope": "phase3b_reconciled_offline_mock_only",
+      "input_fields": [
+        "external_job_id",
+        "expected_kind=backtest",
+        "request_id",
+        "job_id"
+      ],
+      "output_shape": "job status plus metrics, equity curve shape, trade summary, assumptions, benchmark, data source, and limitations",
+      "artifact_type_emitted": "backtest_run",
+      "raw_payload_ref_rule": "required; missing raw_payload_ref quarantines the output",
+      "quarantine_rule": "quarantine if malformed, missing raw payload, unexpected artifact type, benchmark/provider/source/limitations absent without DATA_MISSING, or trading fields appear",
+      "data_missing_behavior": "benchmark/provider/hash/robustness gaps carried as explicit DATA_MISSING",
+      "audit_log_fields": [
+        "external_job_id",
+        "poll_count",
+        "status",
+        "result_keys",
+        "missing_fields",
+        "mapping_decision"
+      ],
+      "rate_limit_expectation": "local mock only; future polling uses bounded backoff and maximum 10 per minute",
+      "human_review_required": true
+    },
+    {
+      "operation": "get_job",
+      "decision": "allow_mock_only",
+      "required_mock_scope": "phase3b_reconciled_offline_mock_only",
+      "input_fields": [
+        "external_job_id",
+        "expected_kind",
+        "request_id",
+        "job_id"
+      ],
+      "output_shape": "generic job status envelope that must dispatch to a known evidence-backed artifact type or no artifact",
+      "artifact_type_emitted": "backtest_run_when_expected_kind_is_backtest",
+      "raw_payload_ref_rule": "required before any artifact mapping",
+      "quarantine_rule": "quarantine if job kind is unknown, artifact_type is unexpected, raw_payload_ref is absent, or sidecar claims store/write authority",
+      "data_missing_behavior": "unknown status, result shape, or raw output becomes DATA_MISSING",
+      "audit_log_fields": [
+        "external_job_id",
+        "expected_kind",
+        "status",
+        "mapping_decision",
+        "human_review_required"
+      ],
+      "rate_limit_expectation": "local mock only; future polling maximum 10 per minute",
+      "human_review_required": true
+    },
+    {
+      "operation": "regime_detect",
+      "decision": "allow_mock_only",
+      "required_mock_scope": "phase3b_reconciled_offline_mock_only_public_or_synthetic",
+      "input_fields": [
+        "market",
+        "symbol",
+        "timeframe",
+        "start",
+        "end",
+        "regime_model"
+      ],
+      "output_shape": "regime label, confidence, features, segments, strategy families, limitations, and DATA_MISSING source gaps",
+      "artifact_type_emitted": "regime_breakdown",
+      "raw_payload_ref_rule": "required; missing raw_payload_ref quarantines the output",
+      "quarantine_rule": "quarantine if malformed, provider/sample/segment/source/limitations absent without DATA_MISSING, or strategy family output is execution advice",
+      "data_missing_behavior": "provider, segment times, sample size, and candle count gaps become explicit DATA_MISSING",
+      "audit_log_fields": [
+        "symbol",
+        "date_range",
+        "model",
+        "confidence",
+        "missing_fields",
+        "mapping_decision"
+      ],
+      "rate_limit_expectation": "local mock only; future regime detect maximum 5 per minute",
+      "human_review_required": true
+    },
+    {
+      "operation": "parameter_sweep",
+      "decision": "default_hold",
+      "required_mock_scope": "shape_not_proven",
+      "input_fields": [
+        "DATA_MISSING"
+      ],
+      "output_shape": "DATA_MISSING placeholder only",
+      "artifact_type_emitted": "none",
+      "raw_payload_ref_rule": "no raw ref until shape and compute caps are proven",
+      "quarantine_rule": "hold or quarantine any real result until schema, caps, and payload examples exist",
+      "data_missing_behavior": "always report DATA_MISSING for structured tuning result shape",
+      "audit_log_fields": [
+        "hold_reason",
+        "missing_evidence",
+        "requested_parameters_if_any"
+      ],
+      "rate_limit_expectation": "no calls allowed",
+      "human_review_required": true
+    },
+    {
+      "operation": "structured_tune",
+      "decision": "default_hold",
+      "required_mock_scope": "shape_not_proven",
+      "input_fields": [
+        "DATA_MISSING"
+      ],
+      "output_shape": "DATA_MISSING placeholder only",
+      "artifact_type_emitted": "none",
+      "raw_payload_ref_rule": "no raw ref until shape and compute caps are proven",
+      "quarantine_rule": "hold or quarantine any real result until schema, caps, and payload examples exist",
+      "data_missing_behavior": "always report DATA_MISSING for structured tuning result shape",
+      "audit_log_fields": [
+        "hold_reason",
+        "missing_evidence",
+        "requested_parameters_if_any"
+      ],
+      "rate_limit_expectation": "no calls allowed",
+      "human_review_required": true
+    },
+    {
+      "operation": "export_artifact",
+      "decision": "conditional_tenn_owned_local_mock_conversion_only",
+      "required_mock_scope": "local_mock_artifact_conversion_no_store_write",
+      "input_fields": [
+        "local_mock_artifact_ref",
+        "target_schema_version=strategy_lab_artifact_v1",
+        "store_write=false"
+      ],
+      "output_shape": "local mock conversion report; no persisted artifact-store write",
+      "artifact_type_emitted": "none_from_sidecar",
+      "raw_payload_ref_rule": "sidecar export is not accepted; Tenn-owned local mock conversion must preserve raw_payload_ref",
+      "quarantine_rule": "deny or quarantine if sidecar claims to export approved Tenn artifact or write a store",
+      "data_missing_behavior": "artifact-store design remains DATA_MISSING",
+      "audit_log_fields": [
+        "denied_operation_if_sidecar",
+        "conversion_source",
+        "conversion_target",
+        "store_write"
+      ],
+      "rate_limit_expectation": "no sidecar calls allowed",
+      "human_review_required": true
+    }
+  ],
+  "no_store_write_contract": [
+    { "target": "db", "allow_write": false },
+    { "target": "qdrant", "allow_write": false },
+    { "target": "news_store", "allow_write": false },
+    { "target": "memory", "allow_write": false },
+    { "target": "financial_truth", "allow_write": false },
+    { "target": "parser_gold_labels", "allow_write": false },
+    { "target": "source_registry", "allow_write": false },
+    { "target": "holdings_state", "allow_write": false },
+    { "target": "watchlist_state", "allow_write": false },
+    { "target": "thesis_state", "allow_write": false }
+  ],
+  "forbidden_import_authority": [
+    { "surface": "runtime_route_imports", "authorized": false },
+    { "surface": "cockpit_imports", "authorized": false },
+    { "surface": "db_qdrant_news_memory_financial_truth_imports", "authorized": false },
+    { "surface": "parser_extraction_gold_label_imports", "authorized": false },
+    { "surface": "docker_mcp_quantdinger_runtime_imports", "authorized": false },
+    { "surface": "token_modules", "authorized": false },
+    { "surface": "broker_exchange_trading_modules", "authorized": false }
+  ]
+}

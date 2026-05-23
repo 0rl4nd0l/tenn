@@ -1,0 +1,75 @@
+{
+  "job_id": "strategy_lab_offline_implementation_plan_phase3e_v1_20260521",
+  "status": "complete_with_registry_and_diff_warning",
+  "mode": "offline_implementation_plan_only_audit_report_only",
+  "lane": "Query Orchestration",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "2bff733e2d7f8fadfde6d492a5ff48212b710f59",
+  "recommendation": "GO_PHASE3F_CONSOLIDATION_SAVE_PLAN_ONLY",
+  "registry": {
+    "list_active": "passed_empty",
+    "check_overlap": "failed_pre_existing_phase3d_task_card_dirty_outside_allowed_files",
+    "claim": "not_attempted",
+    "release": "not_applicable_no_claim"
+  },
+  "inputs": {
+    "phase3d_report_available": true,
+    "phase2_worktree_available": true,
+    "phase2b_helper_worktree_available": true,
+    "phase3a_worktree_available": true,
+    "phase3b_worktree_available": true,
+    "phase3c_worktree_available": true,
+    "consolidated_baseline_ready": false
+  },
+  "boundaries": {
+    "real_adapter_implemented": false,
+    "real_transport_implemented": false,
+    "quantdinger_started_by_phase3e": false,
+    "mcp_started_by_phase3e": false,
+    "docker_started_by_phase3e": false,
+    "token_issued": false,
+    "dependency_installed": false,
+    "tenn_runtime_code_changed": false,
+    "cockpit_changed": false,
+    "artifact_store_implemented": false,
+    "tenn_store_written": false,
+    "production_data_accessed": false,
+    "paper_or_live_execution_by_phase3e": false,
+    "phase2_3a_3b_3c_files_merged_copied_committed_or_staged": false
+  },
+  "outputs": {
+    "task_card": "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md",
+    "reports": [
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/README.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/preflight.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/input_inventory.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/worktree_consolidation_readiness.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/offline_implementation_plan.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/future_phase_map.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/risk_and_hard_stops.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/go_no_go_next.md",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/status.json",
+      "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/diff-check.json"
+    ]
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_list_active": "passed_empty",
+    "registry_check_overlap": "failed_pre_existing_unrelated_dirty_file",
+    "registry_claim": "not_attempted",
+    "registry_release": "not_applicable_no_claim",
+    "markdown_hygiene": "passed",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "passed",
+    "agent_job_check_diff": "failed_pre_existing_unrelated_phase3d_task_card_outside_allowed_files",
+    "diff_check_report": "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/diff-check.json",
+    "final_git_status": "untracked_phase3d_task_card_and_phase3e_task_card; phase3e_report_bundle_ignored",
+    "written_files_scope": "phase3e_task_card_and_phase3e_report_bundle_only; pre_existing_phase3d_task_card_preserved",
+    "docs_strategy_lab_tests_strategy_lab_runtime_product_cockpit_status": "no_changes_reported_by_git_status_or_diff",
+    "dependency_files_status": "no_changes_reported_by_git_status",
+    "quantdinger_process_scan": "no_quantdinger_process_found",
+    "service_scan_note": "host had pre_existing_dockerd_and_mcp_connector_processes; phase3e_did_not_start_services"
+  }
+}

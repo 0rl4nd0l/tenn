@@ -1,0 +1,271 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_mock_transport_phase3c_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/adapter_contract_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/adapter_mock_test_plan_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/adapter_quarantine_policy_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/adapter_request_response_envelopes_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/adapter_tool_policy_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/invalid_canonical_truth_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/invalid_credentials_field_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/invalid_execution_allowed_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/invalid_financial_truth_label_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/invalid_memory_or_financial_truth_write_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/invalid_missing_provenance_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_fixtures/valid_strategy_idea_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_schema_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/artifact_schema_v1.schema.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_data_missing_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_get_job_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_list_capabilities_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_market_snapshot_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_missing_benchmark_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_policy_denied_trading_scope_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_regime_detect_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_schema_invalid_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_sidecar_unavailable_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_payloads/mock_submit_backtest_result_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_test_vectors/artifact_invariant_cases_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_test_vectors/blocked_surfaces_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_test_vectors/helper_to_artifact_mapping_cases_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_test_vectors/quarantine_cases_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_test_vectors/reconciled_schema_policy_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport/offline_mock_transport_contract_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport/offline_mock_transport_lifecycle_v1.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_missing_raw_payload_ref_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_order_field_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_policy_denied_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_sidecar_unavailable_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_store_write_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_timeout_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/invalid_trading_scope_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_capabilities_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_get_backtest_result_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_market_snapshot_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_regime_detect_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_submit_backtest_transport_response_v1.json",
+      "status": "??"
+    },
+    {
+      "path": "tests/strategy_lab/test_strategy_lab_offline_mock_transport_phase3c.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_offline_mock_transport_phase3c_v1_20260521.md",
+        "docs/strategy_lab/adapter_contract_v1.md",
+        "docs/strategy_lab/adapter_mock_test_plan_v1.md",
+        "docs/strategy_lab/adapter_quarantine_policy_v1.md",
+        "docs/strategy_lab/adapter_request_response_envelopes_v1.md",
+        "docs/strategy_lab/adapter_tool_policy_v1.md",
+        "docs/strategy_lab/artifact_schema_v1.md",
+        "docs/strategy_lab/artifact_schema_v1.schema.json",
+        "docs/strategy_lab/artifact_fixtures/invalid_canonical_truth_v1.json",
+        "docs/strategy_lab/artifact_fixtures/invalid_credentials_field_v1.json",
+        "docs/strategy_lab/artifact_fixtures/invalid_execution_allowed_v1.json",
+        "docs/strategy_lab/artifact_fixtures/invalid_financial_truth_label_v1.json",
+        "docs/strategy_lab/artifact_fixtures/invalid_memory_or_financial_truth_write_v1.json",
+        "docs/strategy_lab/artifact_fixtures/invalid_missing_provenance_v1.json",
+        "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+        "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+        "docs/strategy_lab/artifact_fixtures/valid_strategy_idea_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_data_missing_result_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_get_job_result_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_list_capabilities_result_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_market_snapshot_result_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_missing_benchmark_result_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_policy_denied_trading_scope_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_regime_detect_result_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_schema_invalid_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_sidecar_unavailable_v1.json",
+        "docs/strategy_lab/mock_payloads/mock_submit_backtest_result_v1.json",
+        "docs/strategy_lab/mock_test_vectors/artifact_invariant_cases_v1.json",
+        "docs/strategy_lab/mock_test_vectors/blocked_surfaces_v1.json",
+        "docs/strategy_lab/mock_test_vectors/helper_to_artifact_mapping_cases_v1.json",
+        "docs/strategy_lab/mock_test_vectors/quarantine_cases_v1.json",
+        "docs/strategy_lab/mock_test_vectors/reconciled_schema_policy_v1.json",
+        "docs/strategy_lab/mock_transport/offline_mock_transport_contract_v1.md",
+        "docs/strategy_lab/mock_transport/offline_mock_transport_lifecycle_v1.md",
+        "docs/strategy_lab/mock_transport_fixtures/valid_capabilities_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/valid_market_snapshot_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/valid_submit_backtest_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/valid_get_backtest_result_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/valid_regime_detect_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_policy_denied_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_trading_scope_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_missing_raw_payload_ref_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_sidecar_unavailable_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_timeout_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_order_field_transport_response_v1.json",
+        "docs/strategy_lab/mock_transport_fixtures/invalid_store_write_transport_response_v1.json",
+        "tests/strategy_lab/test_strategy_lab_offline_mock_transport_phase3c.py",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/README.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/preflight.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/phase3b_input_review.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/transport_contract.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/test_files_written.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/mock_transport_test_results.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/policy_coverage_matrix.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/quarantine_coverage.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/go_no_go_phase3d.md",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/status.json",
+        "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

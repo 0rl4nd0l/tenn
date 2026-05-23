@@ -1,0 +1,53 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_sidecar_unavailable_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_sidecar_unavailable_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "read_market_snapshot",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "reason_codes": ["PHASE3A_DESIGN_ONLY"],
+    "human_review_required": true
+  },
+  "status": "sidecar_unavailable",
+  "result": {
+    "message": "Mock unavailable result. Phase 3A did not start or call any sidecar.",
+    "retry_allowed": false,
+    "service_started": false,
+    "network_called": false
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_sidecar_unavailable_v1.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "not_quarantined_mock_error"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": false,
+    "artifact_type": null
+  },
+  "quarantine": {
+    "quarantined": false,
+    "reason_codes": ["SIDECAR_UNAVAILABLE"],
+    "review_status": "NEEDS_MORE_EVIDENCE"
+  },
+  "audit_log": {
+    "operation": "read_market_snapshot",
+    "sidecar_started": false,
+    "sidecar_called": false,
+    "token_issued": false
+  }
+}

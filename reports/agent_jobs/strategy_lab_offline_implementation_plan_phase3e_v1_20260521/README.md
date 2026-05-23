@@ -1,0 +1,189 @@
+# Phase 3E Offline Implementation Plan
+
+Job: `strategy_lab_offline_implementation_plan_phase3e_v1_20260521`
+
+Mode: offline implementation-plan-only, audit/report-only.
+
+Recommendation: `GO_PHASE3F_CONSOLIDATION_SAVE_PLAN_ONLY`
+
+## Confirmed Facts
+
+- `/home/l4nd0/tenn` resolves to
+  `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`.
+- Current branch is `migration/clean-runtime-baseline-reconstruct-v1`.
+- Current HEAD is `2bff733e2d7f8fadfde6d492a5ff48212b710f59`.
+- Phase 3D report outputs were present and inspected.
+- Phase 3D recommended `GO_PHASE3E_OFFLINE_IMPLEMENTATION_PLAN_ONLY`.
+- Phase 3D confirmed Phase 3C is sufficient for implementation-plan-only work,
+  not sufficient for runtime/client/store/token/transport/trading
+  implementation.
+- Phase 2, 2B, 3A, 3B, and 3C input paths were available.
+- Phase 2/2B/3A/3B/3C are not safe committed baselines in current state because
+  they contain untracked or staged work.
+- No active registry jobs were listed.
+- Registry `check-overlap` failed because a pre-existing Phase 3D task card is
+  dirty outside this Phase 3E task card's allowed files.
+- Registry claim was not attempted.
+
+## Inferred Facts
+
+- The correct next step is a consolidation/save planning phase before any
+  production-module task-card drafting.
+- Phase 2 authoritative schema, Phase 3A design docs, Phase 3B tests, and Phase
+  3C mock transport are coherent candidate inputs, but must be explicitly saved,
+  merged, or archived before becoming authoritative baseline.
+- Phase 2B helper output is useful as pending-review helper evidence, but it
+  must not replace `strategy_lab_artifact_v1`.
+
+## Speculative Ideas
+
+- A future Tenn-owned `StrategyLabSidecarClient` can be designed around
+  policy-before-dispatch, schema validation, raw-output quarantine, audit logs,
+  rate limits, timeout handling, disabled-by-default flags, and human review.
+- A future UI could expose pending-review and quarantine states, but only after
+  separate design and implementation authorization.
+
+## DATA_MISSING
+
+- Consolidated committed baseline for Phase 2/2B/3A/3B/3C.
+- Approved save/merge/archive destination for each candidate worktree file.
+- Real QuantDinger sidecar capability, auth, transport, retry, timeout,
+  rate-limit, and unavailable behavior.
+- Raw-output quarantine path and retention policy.
+- Artifact persistence/store implementation plan.
+- Evidence for `parameter_sweep`, broad `risk_report`, `factor_test`, and
+  `portfolio_experiment`.
+
+## Phase 3D Inputs Inspected
+
+Inspected from
+`reports/agent_jobs/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521/`:
+
+- `README.md`
+- `contract_completeness.md`
+- `safety_boundary_review.md`
+- `artifact_boundary_review.md`
+- `gaps_and_risks.md`
+- `go_no_go_phase3e.md`
+- `status.json`
+- supporting `preflight.md`, `input_inventory.md`, and `diff-check.json`
+
+Phase 3D's key boundary remains authoritative for this plan:
+
+- `strategy_lab_artifact_v1` remains authoritative.
+- `strategy_lab_sidecar_artifact_v1` remains pre-envelope only.
+- helper output cannot replace the authoritative envelope.
+- local artifacts remain `PENDING_REVIEW`.
+- only `backtest_run` and `regime_breakdown` are evidence-backed today.
+
+## Phase 2/3A/3B/3C Readiness
+
+Result: not consolidation-ready.
+
+- Phase 2: untracked authoritative schema/task/fixture files plus ignored report
+  evidence.
+- Phase 2B: untracked helper candidate doc/module/test/fixtures plus ignored
+  helper reports/raw outputs.
+- Phase 3A: staged design docs, mock payloads, task card, and reports.
+- Phase 3B: untracked docs/test, ignored reports, ignored pycache.
+- Phase 3C: untracked docs/test, ignored reports, ignored pycache.
+
+These are active candidate inputs and report-only evidence, not committed
+baseline.
+
+## Files Written
+
+- `docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/README.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/preflight.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/input_inventory.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/worktree_consolidation_readiness.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/offline_implementation_plan.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/future_phase_map.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/risk_and_hard_stops.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/go_no_go_next.md`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/status.json`
+- `reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/diff-check.json` if generated by supported validation
+
+## Offline Implementation Plan Summary
+
+Future implementation, if ever approved, should keep Tenn in control of:
+
+- policy-before-dispatch;
+- schema validation;
+- raw-output quarantine;
+- audit logging;
+- artifact emission decisions;
+- human review gates;
+- no-store-write invariants;
+- no-trading-scope invariants;
+- disabled-by-default feature flags.
+
+QuantDinger remains a replaceable sidecar/comparator. Its output can become
+pending-review Strategy Lab evidence only after Tenn-owned gates pass.
+
+## Future Phase Map
+
+- Phase 3F: consolidation/save or merge plan only.
+- Phase 3G: production-code implementation task-card draft only, if ever
+  approved.
+- Phase 3H: offline mocked production-module tests.
+- Phase 3I: no-network adapter skeleton only.
+- Phase 3J: isolated real sidecar smoke only if separately approved.
+- Phase 4: chat workflow design only.
+- Phase 5: Strategy Lab UI design only.
+
+## Risks
+
+- Dirty worktrees can be mistaken for baseline.
+- Helper artifacts can be mistaken for authoritative artifacts.
+- Mock sidecar unavailable/timeout fixtures can be mistaken for real behavior.
+- Store-write and trading scope can creep into Strategy Lab if policy gates are
+  loosened.
+- Registry claim was unavailable because of unrelated dirty Phase 3D task-card
+  state.
+
+## Hard Boundaries
+
+No Phase 3E action implemented or authorized:
+
+- real adapter/client;
+- real transport;
+- QuantDinger/MCP/Docker startup;
+- token issuance;
+- dependency installation;
+- runtime/backend/Cockpit integration;
+- artifact store implementation;
+- DB/Qdrant/news/memory/financial-truth writes;
+- parser/gold-label changes;
+- source-registry writes;
+- production data;
+- broker/exchange/paper/live/order/bot/kill-switch behavior;
+- autonomous loops or scheduled jobs.
+
+## Validation Results
+
+Pre-report validation:
+
+- task card validation: passed.
+- registry list-active: passed, no active jobs.
+- registry check-overlap: failed on pre-existing unrelated Phase 3D task card.
+- registry claim: not attempted because overlap check did not prove safe.
+
+Final validation:
+
+- markdown hygiene: passed.
+- `git diff --check`: passed.
+- `git diff --cached --check`: passed.
+- `agent_job_contract.py check-diff`: failed because the pre-existing Phase 3D
+  task card is dirty outside this Phase 3E allowed file list.
+- final registry list-active: passed, no active jobs.
+- final git status: the visible untracked files are the pre-existing Phase 3D
+  task card and the new Phase 3E task card; the Phase 3E report bundle is
+  ignored under `reports/agent_jobs/`.
+- targeted git status/diff for `docs/strategy_lab`, `tests/strategy_lab`,
+  `financial-engine_v2`, and `cockpit-ui`: no changes.
+- dependency-file status check: no changes.
+- QuantDinger process scan: no process found.
+- broader service scan observed pre-existing host `dockerd` and MCP connector
+  processes; Phase 3E did not start services.

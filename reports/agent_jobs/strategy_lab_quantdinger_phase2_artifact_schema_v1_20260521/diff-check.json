@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/strategy_lab_quantdinger_artifact_schema.md",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/strategy_lab_artifact_schema.py",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/scripts/fixtures/strategy_lab_artifact_schema/quantdinger_phase1_backtest_summary.json",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/scripts/fixtures/strategy_lab_artifact_schema/quantdinger_phase1_regime_summary.json",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/scripts/test_strategy_lab_artifact_schema.py",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521.md",
+        "docs/strategy_lab_quantdinger_artifact_schema.md",
+        "financial-engine_v2/backend/app/services/strategy_lab_artifact_schema.py",
+        "financial-engine_v2/scripts/test_strategy_lab_artifact_schema.py",
+        "financial-engine_v2/scripts/fixtures/strategy_lab_artifact_schema/quantdinger_phase1_backtest_summary.json",
+        "financial-engine_v2/scripts/fixtures/strategy_lab_artifact_schema/quantdinger_phase1_regime_summary.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/README.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/preflight.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/schema_contract.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/validation.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/security_boundaries.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/status.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/diff-check.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/raw_payloads/phase1_backtest_normalized_summary.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/raw_payloads/phase1_regime_detect_normalized_summary.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/backtest_run.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/regime_breakdown.json"
+      ],
+      "approval_required": false,
+      "job_id": "strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

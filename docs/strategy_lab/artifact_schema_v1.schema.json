@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/schemas/strategy_lab_artifact_v1.schema.json",
+  "title": "Tenn Strategy Lab Artifact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "artifact_type",
+    "job_id",
+    "created_at",
+    "created_by",
+    "tenant_scope",
+    "canonical_financial_truth",
+    "production_data_access",
+    "may_write_db",
+    "may_write_qdrant",
+    "may_write_memory",
+    "may_write_financial_truth",
+    "execution_allowed",
+    "source_of_idea",
+    "external_engine",
+    "provenance",
+    "parameters",
+    "assumptions",
+    "data_source",
+    "benchmark",
+    "limitations",
+    "result_status",
+    "evidence_label",
+    "evidence_labels",
+    "review_status",
+    "data_missing",
+    "payload",
+    "raw_payload_ref",
+    "normalized_result",
+    "storage_policy",
+    "validation",
+    "security_policy"
+  ],
+  "properties": {
+    "schema_version": { "const": "strategy_lab_artifact_v1" },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^stratlab_[a-z0-9_]+$"
+    },
+    "artifact_type": {
+      "enum": [
+        "strategy_idea",
+        "backtest_run",
+        "parameter_sweep",
+        "factor_test",
+        "regime_breakdown",
+        "risk_report",
+        "portfolio_experiment",
+        "autonomous_opportunity_note",
+        "human_review_decision"
+      ]
+    },
+    "job_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "created_by": { "type": "string", "minLength": 1 },
+    "tenant_scope": { "enum": ["local_host", "DATA_MISSING"] },
+    "canonical_financial_truth": { "const": false },
+    "production_data_access": { "const": false },
+    "may_write_db": { "const": false },
+    "may_write_qdrant": { "const": false },
+    "may_write_memory": { "const": false },
+    "may_write_financial_truth": { "const": false },
+    "execution_allowed": { "const": false },
+    "source_of_idea": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origin", "source_ref", "summary", "source_evidence_ids"],
+      "properties": {
+        "origin": { "type": "string", "minLength": 1 },
+        "source_ref": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "source_evidence_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "external_engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "transport",
+        "tool_name",
+        "allowed_scopes",
+        "token_scope",
+        "paper_only",
+        "live_trading_enabled"
+      ],
+      "properties": {
+        "name": { "enum": ["QuantDinger", "Tenn", "human", "none", "DATA_MISSING"] },
+        "version": { "type": "string", "minLength": 1 },
+        "transport": { "enum": ["rest", "mcp_stdio", "mcp_http", "none", "DATA_MISSING"] },
+        "tool_name": { "type": "string", "minLength": 1 },
+        "allowed_scopes": {
+          "type": "array",
+          "items": { "enum": ["R", "B"] },
+          "uniqueItems": true
+        },
+        "token_scope": {
+          "type": "array",
+          "items": { "enum": ["R", "B"] },
+          "uniqueItems": true
+        },
+        "paper_only": { "const": true },
+        "live_trading_enabled": { "const": false }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_artifact_ids",
+        "source_report_path",
+        "source_documents",
+        "source_urls",
+        "run_id",
+        "raw_result_ref",
+        "code_hash",
+        "config_hash",
+        "generated_by_tool"
+      ],
+      "properties": {
+        "input_artifact_ids": { "type": "array", "items": { "type": "string" } },
+        "source_report_path": { "type": "string", "minLength": 1 },
+        "source_documents": { "type": "array", "items": { "type": "string" } },
+        "source_urls": { "type": "array", "items": { "type": "string" } },
+        "run_id": { "type": "string", "minLength": 1 },
+        "raw_result_ref": { "type": "string", "minLength": 1 },
+        "code_hash": { "type": "string", "minLength": 1 },
+        "config_hash": { "type": "string", "minLength": 1 },
+        "generated_by_tool": { "type": "string", "minLength": 1 }
+      }
+    },
+    "parameters": { "type": "object" },
+    "assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "data_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "provider_status", "market", "symbols", "timeframe", "time_range", "production_data_access"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "provider_status": { "enum": ["CONFIRMED", "INFERRED", "DATA_MISSING", "NOT_APPLICABLE"] },
+        "market": { "type": "string", "minLength": 1 },
+        "symbols": { "type": "array", "items": { "type": "string" } },
+        "timeframe": { "type": "string", "minLength": 1 },
+        "time_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string", "minLength": 1 },
+            "end": { "type": "string", "minLength": 1 }
+          }
+        },
+        "production_data_access": { "const": false }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "symbol", "method", "status", "data_missing_reason"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "symbol": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["CONFIRMED", "DATA_MISSING", "NOT_APPLICABLE"] },
+        "data_missing_reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "result_status": {
+      "enum": ["NOT_RUN", "QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "DATA_MISSING", "BLOCKED", "COMPLETE"]
+    },
+    "evidence_label": {
+      "enum": [
+        "external_tool_context",
+        "backtest_result",
+        "factor_test_result",
+        "regime_context",
+        "risk_context",
+        "portfolio_simulation",
+        "context_only",
+        "local_personal_data"
+      ]
+    },
+    "evidence_labels": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "external_tool_context",
+          "backtest_result",
+          "factor_test_result",
+          "regime_context",
+          "risk_context",
+          "portfolio_simulation",
+          "context_only",
+          "local_personal_data"
+        ]
+      },
+      "not": {
+        "contains": { "enum": ["financial_truth", "source-backed"] }
+      }
+    },
+    "review_status": {
+      "enum": [
+        "PENDING_REVIEW",
+        "APPROVED_FOR_RESEARCH_CONTEXT",
+        "REJECTED",
+        "NEEDS_MORE_EVIDENCE",
+        "FAILED_SCHEMA_VALIDATION",
+        "QUARANTINED_RAW_OUTPUT",
+        "PROMOTED_TO_TASK_CARD"
+      ]
+    },
+    "data_missing": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "payload": {
+      "type": "object",
+      "not": {
+        "anyOf": [
+          { "required": ["broker_credentials"] },
+          { "required": ["exchange_credentials"] },
+          { "required": ["api_key"] },
+          { "required": ["secret"] },
+          { "required": ["order_payload"] },
+          { "required": ["execution_order"] },
+          { "required": ["live_order"] },
+          { "required": ["paper_order"] }
+        ]
+      }
+    },
+    "raw_payload_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "source_report_path", "sha256", "redaction_status"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "source_report_path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "minLength": 1 },
+        "redaction_status": { "enum": ["redacted", "no_secrets_observed", "DATA_MISSING", "not_applicable"] }
+      }
+    },
+    "normalized_result": { "type": "object" },
+    "storage_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "write_target",
+        "may_write_db",
+        "may_write_qdrant",
+        "may_write_memory",
+        "may_write_financial_truth",
+        "artifact_store_implemented"
+      ],
+      "properties": {
+        "write_target": { "type": "string", "minLength": 1 },
+        "may_write_db": { "const": false },
+        "may_write_qdrant": { "const": false },
+        "may_write_memory": { "const": false },
+        "may_write_financial_truth": { "const": false },
+        "artifact_store_implemented": { "const": false }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_parse_status", "validator_contract_version", "invariants_checked", "runtime_validator_implemented"],
+      "properties": {
+        "schema_parse_status": { "enum": ["PARSEABLE_JSON", "DATA_MISSING"] },
+        "validator_contract_version": { "const": "strategy_lab_offline_validator_contract_v1" },
+        "invariants_checked": { "type": "array", "items": { "type": "string" } },
+        "runtime_validator_implemented": { "const": false }
+      }
+    },
+    "security_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paper_live_execution_artifact",
+        "broker_exchange_credentials_present",
+        "hidden_order_execution_fields_present",
+        "token_issued_by_this_artifact",
+        "allowed_scopes"
+      ],
+      "properties": {
+        "paper_live_execution_artifact": { "const": false },
+        "broker_exchange_credentials_present": { "const": false },
+        "hidden_order_execution_fields_present": { "const": false },
+        "token_issued_by_this_artifact": { "const": false },
+        "allowed_scopes": {
+          "type": "array",
+          "items": { "enum": ["R", "B"] },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "artifact_type": { "const": "backtest_run" } },
+        "required": ["artifact_type"]
+      },
+      "then": {
+        "properties": {
+          "evidence_labels": { "contains": { "const": "backtest_result" } },
+          "payload": {
+            "required": [
+              "strategy_id",
+              "backtest_id",
+              "external_job_id",
+              "metrics",
+              "trade_summary",
+              "equity_curve",
+              "execution_assumptions",
+              "benchmark_comparison",
+              "result_error"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "artifact_type": { "const": "regime_breakdown" } },
+        "required": ["artifact_type"]
+      },
+      "then": {
+        "properties": {
+          "evidence_labels": { "contains": { "const": "regime_context" } },
+          "payload": {
+            "required": [
+              "regime_model",
+              "classification_source",
+              "regime",
+              "label",
+              "confidence",
+              "features",
+              "segments",
+              "strategy_families",
+              "result_error"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "external_engine": {
+            "type": "object",
+            "properties": { "name": { "const": "QuantDinger" } },
+            "required": ["name"]
+          }
+        },
+        "required": ["external_engine"]
+      },
+      "then": {
+        "properties": {
+          "raw_payload_ref": {
+            "properties": {
+              "path": { "not": { "const": "DATA_MISSING" } },
+              "source_report_path": { "not": { "const": "DATA_MISSING" } }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

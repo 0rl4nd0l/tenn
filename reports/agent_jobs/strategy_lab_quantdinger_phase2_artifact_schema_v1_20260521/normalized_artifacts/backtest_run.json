@@ -1,0 +1,146 @@
+{
+  "artifact_id": "strategy_lab.quantdinger.backtest_run.7f41134d04464e73bcadee86ff58ab6f",
+  "artifact_type": "backtest_run",
+  "canonical_financial_truth": false,
+  "execution_allowed": false,
+  "input_summary": {
+    "code": "fast = SMA(close, 2)\nslow = SMA(close, 3)\ndf[\"buy\"] = CROSSOVER(fast, slow).fillna(False).astype(bool)\ndf[\"sell\"] = CROSSUNDER(fast, slow).fillna(False).astype(bool)",
+    "commission": 0.001,
+    "end_date": "2026-05-20",
+    "initial_capital": 1000,
+    "leverage": 1,
+    "market": "Crypto",
+    "slippage": 0,
+    "start_date": "2026-05-10",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "trade_direction": "long"
+  },
+  "limitations": [
+    "Public crypto data source was used; exact provider identity is inferred from CryptoKline logs, not a result field.",
+    "No benchmark object was present in this result.",
+    "External sidecar output only; not canonical financial truth and not execution authority."
+  ],
+  "may_write_db": false,
+  "may_write_financial_truth": false,
+  "may_write_memory": false,
+  "may_write_qdrant": false,
+  "observations": {
+    "benchmark": {
+      "fields": []
+    },
+    "data_source": {
+      "end_date": "2026-05-20",
+      "market": "Crypto",
+      "start_date": "2026-05-10",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D"
+    },
+    "equity_curve": {
+      "first": {
+        "time": "2026-05-10 00:00",
+        "value": 1000
+      },
+      "last": {
+        "time": "2026-05-20 00:00",
+        "value": 985.81
+      },
+      "path": "result.equityCurve",
+      "points": 11
+    },
+    "execution_assumptions": {
+      "defaultFillPrice": "open",
+      "engineVersion": "strategy-backtest-v1",
+      "executionTimeframe": null,
+      "mtfActive": false,
+      "mtfRequested": false,
+      "signalTiming": "next_bar_open",
+      "signalTimingRaw": "next_bar_open",
+      "simulationMode": "standard",
+      "strategyTimeframe": "1D"
+    },
+    "fees_slippage": {
+      "commission": 0.001,
+      "leverage": 1,
+      "slippage": 0,
+      "totalCommission": 1.99
+    },
+    "job_polling": {
+      "poll_count": 2,
+      "poll_statuses": [
+        "running",
+        "succeeded"
+      ]
+    },
+    "metrics": {
+      "annualReturn": -51.79,
+      "maxDrawdown": -1.42,
+      "profitFactor": 0,
+      "sharpeRatio": -6.05,
+      "totalCommission": 1.99,
+      "totalProfit": -14.19,
+      "totalReturn": -1.42,
+      "totalTrades": 1,
+      "winRate": 0
+    },
+    "metrics_keys": [
+      "annualReturn",
+      "equityCurve",
+      "executionAssumptions",
+      "maxDrawdown",
+      "profitFactor",
+      "sharpeRatio",
+      "totalCommission",
+      "totalProfit",
+      "totalReturn",
+      "totalTrades",
+      "trades",
+      "winRate"
+    ],
+    "result_top_level_keys": [
+      "annualReturn",
+      "equityCurve",
+      "executionAssumptions",
+      "maxDrawdown",
+      "profitFactor",
+      "sharpeRatio",
+      "totalCommission",
+      "totalProfit",
+      "totalReturn",
+      "totalTrades",
+      "trades",
+      "winRate"
+    ],
+    "trade_summary": {
+      "count": 2,
+      "path": "result.trades",
+      "sample": {
+        "amount": 0.0126,
+        "balance": 999,
+        "price": 79113.2,
+        "profit": 0,
+        "time": "2026-05-16 00:00",
+        "type": "open_long"
+      }
+    }
+  },
+  "production_data_access": false,
+  "provenance": {
+    "broker_exchange_setup": false,
+    "credential_use": false,
+    "paper_or_live_execution": false,
+    "phase": "phase2_artifact_schema_only",
+    "phase1_job_id": "strategy_lab_quantdinger_phase1_sandbox_v1_20260520",
+    "production_data_access": false,
+    "source_payload_path": "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/raw_payloads/phase1_backtest_normalized_summary.json",
+    "source_role": "external_sidecar_comparator",
+    "source_system": "QuantDinger",
+    "tenn_store_write": false
+  },
+  "result_status": "succeeded",
+  "review_status": "PENDING_REVIEW",
+  "schema_version": "strategy_lab_sidecar_artifact_v1",
+  "source_payload_kind": "phase1_backtest_normalized_summary",
+  "source_role": "external_sidecar_comparator",
+  "source_system": "QuantDinger"
+}

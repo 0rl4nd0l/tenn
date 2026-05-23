@@ -1,0 +1,52 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/README.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/preflight.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/input_inventory.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/worktree_consolidation_readiness.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/offline_implementation_plan.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/future_phase_map.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/risk_and_hard_stops.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/go_no_go_next.md",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/status.json",
+        "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "strategy_lab_offline_implementation_plan_phase3e_v1_20260521",
+      "lane": "Query Orchestration",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

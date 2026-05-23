@@ -1,0 +1,116 @@
+{
+  "job_id": "7f41134d04464e73bcadee86ff58ab6f",
+  "result_status": "succeeded",
+  "kind": "backtest",
+  "request": {
+    "code": "fast = SMA(close, 2)\nslow = SMA(close, 3)\ndf[\"buy\"] = CROSSOVER(fast, slow).fillna(False).astype(bool)\ndf[\"sell\"] = CROSSUNDER(fast, slow).fillna(False).astype(bool)",
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "start_date": "2026-05-10",
+    "end_date": "2026-05-20",
+    "initial_capital": 1000,
+    "commission": 0.001,
+    "slippage": 0,
+    "leverage": 1,
+    "trade_direction": "long"
+  },
+  "poll_count": 2,
+  "poll_statuses": [
+    "running",
+    "succeeded"
+  ],
+  "result_top_level_keys": [
+    "annualReturn",
+    "equityCurve",
+    "executionAssumptions",
+    "maxDrawdown",
+    "profitFactor",
+    "sharpeRatio",
+    "totalCommission",
+    "totalProfit",
+    "totalReturn",
+    "totalTrades",
+    "trades",
+    "winRate"
+  ],
+  "metrics": {
+    "winRate": 0,
+    "maxDrawdown": -1.42,
+    "sharpeRatio": -6.05,
+    "totalProfit": -14.19,
+    "totalReturn": -1.42,
+    "totalTrades": 1,
+    "annualReturn": -51.79,
+    "profitFactor": 0,
+    "totalCommission": 1.99
+  },
+  "metrics_keys": [
+    "annualReturn",
+    "equityCurve",
+    "executionAssumptions",
+    "maxDrawdown",
+    "profitFactor",
+    "sharpeRatio",
+    "totalCommission",
+    "totalProfit",
+    "totalReturn",
+    "totalTrades",
+    "trades",
+    "winRate"
+  ],
+  "equity_curve_shape": {
+    "path": "result.equityCurve",
+    "points": 11,
+    "first": {
+      "time": "2026-05-10 00:00",
+      "value": 1000
+    },
+    "last": {
+      "time": "2026-05-20 00:00",
+      "value": 985.81
+    }
+  },
+  "trade_summary_shape": {
+    "path": "result.trades",
+    "count": 2,
+    "sample": {
+      "time": "2026-05-16 00:00",
+      "type": "open_long",
+      "price": 79113.2,
+      "amount": 0.0126,
+      "profit": 0,
+      "balance": 999
+    }
+  },
+  "benchmark_fields": [],
+  "fees_slippage_fields": {
+    "commission": 0.001,
+    "slippage": 0,
+    "leverage": 1,
+    "totalCommission": 1.99
+  },
+  "data_source_fields": {
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "start_date": "2026-05-10",
+    "end_date": "2026-05-20"
+  },
+  "execution_assumption_fields": {
+    "mtfActive": false,
+    "mtfRequested": false,
+    "signalTiming": "next_bar_open",
+    "engineVersion": "strategy-backtest-v1",
+    "simulationMode": "standard",
+    "signalTimingRaw": "next_bar_open",
+    "defaultFillPrice": "open",
+    "strategyTimeframe": "1D",
+    "executionTimeframe": null
+  },
+  "error": null,
+  "limitations": [
+    "Public crypto data source was used; exact provider identity is inferred from CryptoKline logs, not a result field.",
+    "No benchmark object was present in this result."
+  ]
+}

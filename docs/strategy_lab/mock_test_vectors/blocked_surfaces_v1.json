@@ -1,0 +1,155 @@
+{
+  "vector_version": "strategy_lab_phase3b_blocked_surfaces_v1",
+  "default_decision": "deny",
+  "blocked_surfaces": [
+    {
+      "surface": "broker credential setup",
+      "decision": "deny",
+      "reason": "credential setup is outside mocked tests"
+    },
+    {
+      "surface": "exchange key setup",
+      "decision": "deny",
+      "reason": "exchange keys are forbidden"
+    },
+    {
+      "surface": "paper order placement",
+      "decision": "deny",
+      "reason": "paper execution is forbidden"
+    },
+    {
+      "surface": "live order placement",
+      "decision": "deny",
+      "reason": "live execution is forbidden"
+    },
+    {
+      "surface": "bot activation",
+      "decision": "deny",
+      "reason": "autonomous execution is forbidden"
+    },
+    {
+      "surface": "admin token changes",
+      "decision": "deny",
+      "reason": "token issuance or admin mutation is forbidden"
+    },
+    {
+      "surface": "strategy create/update/run against live workspace",
+      "decision": "deny",
+      "reason": "live workspace mutation is forbidden"
+    },
+    {
+      "surface": "quick-trade orders",
+      "decision": "deny",
+      "reason": "order placement is forbidden"
+    },
+    {
+      "surface": "kill-switch interactions",
+      "decision": "deny",
+      "reason": "execution controls are outside mocked tests"
+    },
+    {
+      "surface": "direct Tenn DB writes",
+      "decision": "deny",
+      "reason": "Tenn store writes are forbidden"
+    },
+    {
+      "surface": "direct Qdrant writes",
+      "decision": "deny",
+      "reason": "vector store writes are forbidden"
+    },
+    {
+      "surface": "direct news writes",
+      "decision": "deny",
+      "reason": "news store writes are forbidden"
+    },
+    {
+      "surface": "direct memory writes",
+      "decision": "deny",
+      "reason": "memory writes are forbidden"
+    },
+    {
+      "surface": "direct financial-truth writes",
+      "decision": "deny",
+      "reason": "canonical financial truth writes are forbidden"
+    },
+    {
+      "surface": "parser/extraction/gold-label writes",
+      "decision": "deny",
+      "reason": "parser and gold-label mutation is forbidden"
+    },
+    {
+      "surface": "source-registry writes",
+      "decision": "deny",
+      "reason": "source registry mutation is forbidden"
+    }
+  ],
+  "forbidden_credential_trading_order_fields": [
+    "broker_credentials",
+    "exchange_credentials",
+    "api_key",
+    "secret",
+    "paper_order",
+    "live_order",
+    "order_payload",
+    "execution_order",
+    "broker_account",
+    "exchange_account",
+    "quick_trade_order",
+    "kill_switch_command",
+    "bot_activation"
+  ],
+  "forbidden_store_write_targets": [
+    "db",
+    "qdrant",
+    "news_store",
+    "memory",
+    "financial_truth",
+    "parser_gold_labels",
+    "source_registry",
+    "holdings_state",
+    "watchlist_state",
+    "thesis_state"
+  ],
+  "no_store_write_cases": [
+    {
+      "target": "db",
+      "may_write": false
+    },
+    {
+      "target": "qdrant",
+      "may_write": false
+    },
+    {
+      "target": "news_store",
+      "may_write": false
+    },
+    {
+      "target": "memory",
+      "may_write": false
+    },
+    {
+      "target": "financial_truth",
+      "may_write": false
+    },
+    {
+      "target": "parser_gold_labels",
+      "may_write": false
+    },
+    {
+      "target": "source_registry",
+      "may_write": false
+    },
+    {
+      "target": "holdings_state",
+      "may_write": false
+    },
+    {
+      "target": "watchlist_state",
+      "may_write": false
+    },
+    {
+      "target": "thesis_state",
+      "may_write": false
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_list_capabilities_result_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_list_capabilities_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "list_capabilities",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {},
+    "policy_context": {
+      "policy_version": "strategy_lab_tool_policy_v1",
+      "tenant_scope": "local_host"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "reason_codes": ["PHASE3A_DESIGN_ONLY", "READ_CAPABILITY_ONLY"],
+    "human_review_required": true
+  },
+  "status": "succeeded",
+  "result": {
+    "capabilities": [
+      {"operation": "list_capabilities", "status": "allowed_mock_only", "artifact_type": null},
+      {"operation": "read_market_snapshot", "status": "allowed_mock_only", "artifact_type": null},
+      {"operation": "submit_backtest", "status": "allowed_mock_only", "artifact_type": null},
+      {"operation": "get_backtest_result", "status": "allowed_mock_only", "artifact_type": "backtest_run"},
+      {"operation": "get_job", "status": "allowed_mock_only", "artifact_type": "backtest_run"},
+      {"operation": "regime_detect", "status": "allowed_mock_only", "artifact_type": "regime_breakdown"},
+      {"operation": "parameter_sweep", "status": "default_hold", "artifact_type": "parameter_sweep"},
+      {"operation": "structured_tune", "status": "default_hold", "artifact_type": "parameter_sweep"},
+      {"operation": "export_artifact", "status": "blocked", "artifact_type": null}
+    ],
+    "blocked_surfaces": [
+      "broker_credential_setup",
+      "exchange_key_setup",
+      "paper_order_placement",
+      "live_order_placement",
+      "bot_activation",
+      "admin_token_changes",
+      "live_workspace_strategy_mutation",
+      "quick_trade_orders",
+      "kill_switch_interactions",
+      "tenn_store_writes",
+      "parser_extraction_gold_label_writes",
+      "source_registry_writes"
+    ]
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_list_capabilities_result_v1.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "not_quarantined_mock"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": false,
+    "artifact_type": null
+  },
+  "quarantine": {
+    "quarantined": false,
+    "reason_codes": []
+  },
+  "audit_log": {
+    "operation": "list_capabilities",
+    "policy_version": "strategy_lab_tool_policy_v1",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "service_started": false,
+    "token_issued": false
+  }
+}

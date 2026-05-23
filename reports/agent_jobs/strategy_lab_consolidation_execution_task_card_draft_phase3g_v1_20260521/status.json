@@ -1,0 +1,57 @@
+{
+  "job_id": "strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521",
+  "status": "complete_with_registry_and_diff_warning",
+  "mode": "phase3g_consolidation_execution_task_card_draft_only",
+  "lane": "Provenance",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "2bff733e2d7f8fadfde6d492a5ff48212b710f59",
+  "phase3f_recommendation": "GO_PHASE3G_CONSOLIDATION_EXECUTION_TASK_CARD_DRAFT_ONLY",
+  "future_execution_job_id": "strategy_lab_consolidation_execution_phase3g_v1_20260521",
+  "registry": {
+    "list_active_initial": "passed_one_unrelated_reporting_job",
+    "check_overlap": "failed_pre_existing_phase3d_phase3e_phase3f_task_cards_dirty_outside_allowed_files",
+    "claim": "not_attempted",
+    "release": "not_applicable_no_claim"
+  },
+  "boundaries": {
+    "actual_consolidation_performed": false,
+    "merge_cherry_pick_commit_copy_stage_unstage_clean_stash_reset_remove_performed": false,
+    "docs_strategy_lab_changed": false,
+    "tests_strategy_lab_changed": false,
+    "runtime_backend_product_changed": false,
+    "cockpit_changed": false,
+    "store_written": false,
+    "dependency_installed": false,
+    "service_started": false,
+    "token_issued": false,
+    "production_data_accessed": false,
+    "paper_or_live_execution": false
+  },
+  "outputs": {
+    "task_card": "docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md",
+    "reports": [
+      "reports/agent_jobs/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521/README.md",
+      "reports/agent_jobs/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521/preflight.md",
+      "reports/agent_jobs/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521/draft_task_card.md",
+      "reports/agent_jobs/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521/status.json",
+      "reports/agent_jobs/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521/diff-check.json"
+    ]
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "status_json_parse": "passed",
+    "markdown_hygiene": "passed",
+    "registry_list_active_final": "passed_empty",
+    "registry_check_overlap": "failed_pre_existing_phase3d_phase3e_phase3f_task_cards_outside_allowed_files",
+    "git_diff_check": "passed",
+    "git_diff_cached_check": "passed",
+    "agent_job_check_diff": "failed_pre_existing_phase3d_phase3e_phase3f_task_cards_outside_allowed_files",
+    "diff_check_report": "reports/agent_jobs/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521/diff-check.json",
+    "final_git_status": "untracked_phase3g_draft_task_card_plus_pre_existing_phase3d_phase3e_phase3f_task_cards; phase3g_draft_report_bundle_ignored",
+    "written_files_scope": "phase3g_draft_task_card_and_phase3g_draft_report_bundle_only; pre_existing_phase3d_phase3e_phase3f_task_cards_preserved",
+    "targeted_forbidden_surface_status": "no_entries",
+    "quantdinger_process_scan": "no_quantdinger_process_found"
+  }
+}

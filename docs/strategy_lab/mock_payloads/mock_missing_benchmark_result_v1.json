@@ -1,0 +1,68 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_missing_benchmark_result_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_missing_benchmark_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "get_backtest_result",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "external_job_id": "mock_backtest_job_missing_benchmark_001",
+      "expected_kind": "backtest"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "reason_codes": ["PHASE3A_DESIGN_ONLY"],
+    "human_review_required": true
+  },
+  "status": "data_missing",
+  "result": {
+    "kind": "backtest",
+    "result_status": "succeeded",
+    "metrics_present": true,
+    "benchmark": {
+      "status": "DATA_MISSING",
+      "reason": "Mock raw result lacks benchmark object and benchmark returns."
+    },
+    "data_missing": ["benchmark_object", "benchmark_returns"],
+    "normalization_rule": "May map to pending-review backtest_run only if DATA_MISSING is explicit; otherwise quarantine."
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_missing_benchmark_result_v1.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "not_quarantined_DATA_MISSING_explicit"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": true,
+    "artifact_type": "backtest_run",
+    "required_flags": {
+      "canonical_financial_truth": false,
+      "production_data_access": false,
+      "may_write_db": false,
+      "may_write_qdrant": false,
+      "may_write_memory": false,
+      "may_write_financial_truth": false,
+      "execution_allowed": false,
+      "review_status": "PENDING_REVIEW"
+    },
+    "review_status": "PENDING_REVIEW",
+    "data_missing_required": ["benchmark_object", "benchmark_returns"]
+  },
+  "quarantine": {
+    "quarantined": false,
+    "reason_codes": ["MISSING_BENCHMARK_EXPLICIT_DATA_MISSING"],
+    "review_status": "PENDING_REVIEW"
+  },
+  "audit_log": {
+    "operation": "get_backtest_result",
+    "missing_fields": ["benchmark_object", "benchmark_returns"],
+    "human_review_required": true
+  }
+}

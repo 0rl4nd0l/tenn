@@ -1,0 +1,53 @@
+{
+  "transport_fixture_version": "strategy_lab_mock_transport_phase3c_v1",
+  "fixture_name": "invalid_sidecar_unavailable_transport_response_v1",
+  "request": {
+    "request_id": "transportreq_phase3c_sidecar_unavailable_001",
+    "job_id": "strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+    "operation": "list_capabilities",
+    "mock_scope": "phase3c_offline_mock_transport_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {}
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "policy_checked": true,
+    "reason_codes": ["OFFLINE_MOCK_OPERATION"],
+    "human_review_required": true
+  },
+  "transport_response": {
+    "operation": "list_capabilities",
+    "lifecycle_state": "SIDE_CAR_UNAVAILABLE_SIMULATED",
+    "status": "sidecar_unavailable_simulated",
+    "raw_payload_ref": {
+      "storage_state": "DATA_MISSING",
+      "path": "DATA_MISSING",
+      "sha256": "DATA_MISSING",
+      "redaction_status": "DATA_MISSING"
+    },
+    "result": null,
+    "artifact_emission_decision": {
+      "artifact_emitted": false,
+      "artifact_ref": null,
+      "schema_version": null,
+      "review_status": null
+    },
+    "quarantine_decision": {
+      "quarantined": true,
+      "reason_codes": ["SIDECAR_UNAVAILABLE", "RAW_PAYLOAD_UNAVAILABLE"],
+      "data_missing": ["sidecar_capability_cannot_be_confirmed", "raw_payload"]
+    },
+    "audit_record": {
+      "policy_checked_before_dispatch": true,
+      "dispatched_to": "local_mock_fixture",
+      "network_transport_started": false,
+      "service_started": false,
+      "token_issued": false,
+      "dependency_installed": false,
+      "store_write_authorized": false,
+      "paper_live_execution_authorized": false
+    }
+  }
+}

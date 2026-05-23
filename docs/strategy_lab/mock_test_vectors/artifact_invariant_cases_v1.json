@@ -1,0 +1,83 @@
+{
+  "vector_version": "strategy_lab_phase3b_artifact_invariant_cases_v1",
+  "authoritative_baseline": {
+    "schema_version": "strategy_lab_artifact_v1",
+    "schema_doc": "docs/strategy_lab/artifact_schema_v1.md",
+    "schema_json": "docs/strategy_lab/artifact_schema_v1.schema.json",
+    "valid_fixture_refs": [
+      "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+      "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+      "docs/strategy_lab/artifact_fixtures/valid_strategy_idea_v1.json"
+    ],
+    "invalid_fixture_refs": [
+      "docs/strategy_lab/artifact_fixtures/invalid_canonical_truth_v1.json",
+      "docs/strategy_lab/artifact_fixtures/invalid_credentials_field_v1.json",
+      "docs/strategy_lab/artifact_fixtures/invalid_execution_allowed_v1.json",
+      "docs/strategy_lab/artifact_fixtures/invalid_financial_truth_label_v1.json",
+      "docs/strategy_lab/artifact_fixtures/invalid_memory_or_financial_truth_write_v1.json",
+      "docs/strategy_lab/artifact_fixtures/invalid_missing_provenance_v1.json"
+    ]
+  },
+  "required_fields": [
+    "schema_version",
+    "artifact_id",
+    "artifact_type",
+    "job_id",
+    "created_at",
+    "created_by",
+    "tenant_scope",
+    "canonical_financial_truth",
+    "production_data_access",
+    "may_write_db",
+    "may_write_qdrant",
+    "may_write_memory",
+    "may_write_financial_truth",
+    "execution_allowed",
+    "source_of_idea",
+    "external_engine",
+    "provenance",
+    "parameters",
+    "assumptions",
+    "data_source",
+    "benchmark",
+    "limitations",
+    "result_status",
+    "evidence_label",
+    "evidence_labels",
+    "review_status",
+    "data_missing",
+    "payload",
+    "raw_payload_ref",
+    "normalized_result",
+    "storage_policy",
+    "validation",
+    "security_policy"
+  ],
+  "required_flags": {
+    "canonical_financial_truth": false,
+    "production_data_access": false,
+    "may_write_db": false,
+    "may_write_qdrant": false,
+    "may_write_memory": false,
+    "may_write_financial_truth": false,
+    "execution_allowed": false,
+    "review_status": "PENDING_REVIEW"
+  },
+  "storage_policy_required_false_flags": [
+    "may_write_db",
+    "may_write_qdrant",
+    "may_write_memory",
+    "may_write_financial_truth"
+  ],
+  "security_policy_required_false_flags": [
+    "paper_live_execution_artifact",
+    "broker_exchange_credentials_present",
+    "hidden_order_execution_fields_present",
+    "token_issued_by_this_artifact"
+  ],
+  "forbidden_labels": [
+    "financial_truth",
+    "source-backed"
+  ],
+  "valid_machine_generated_review_status": "PENDING_REVIEW"
+}

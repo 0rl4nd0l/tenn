@@ -1,0 +1,63 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_submit_backtest_result_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_submit_backtest_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "submit_backtest",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "strategy_ref": "mock_sma_cross_v1",
+      "strategy_source": "human_or_tenn",
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "start": "2026-05-10",
+      "end": "2026-05-20",
+      "initial_capital": 1000,
+      "fees_slippage": {"commission": 0.001, "slippage": 0.0},
+      "position_sizing": {"leverage": 1, "trade_direction": "long"},
+      "benchmark_policy": "require_benchmark_or_DATA_MISSING"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "reason_codes": ["PHASE3A_DESIGN_ONLY", "BOUNDED_BACKTEST_ONLY"],
+    "human_review_required": true
+  },
+  "status": "accepted",
+  "result": {
+    "external_job_id": "mock_backtest_job_phase3a_001",
+    "kind": "backtest",
+    "status": "queued",
+    "poll_after_seconds": 2,
+    "idempotency_key": "mock_idempotency_phase3a_001",
+    "result_endpoint": "mock://strategy_lab/get_job/mock_backtest_job_phase3a_001"
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_submit_backtest_result_v1.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "not_quarantined_mock"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": false,
+    "artifact_type": "backtest_run",
+    "mapping_note": "Submission alone does not emit an artifact; successful job result may map to backtest_run."
+  },
+  "quarantine": {
+    "quarantined": false,
+    "reason_codes": []
+  },
+  "audit_log": {
+    "operation": "submit_backtest",
+    "requested_scope": "R+B_mock_only",
+    "forbidden_scope_detected": false,
+    "rate_limit_expectation": "mock_only_future_submit_max_2_per_minute"
+  }
+}

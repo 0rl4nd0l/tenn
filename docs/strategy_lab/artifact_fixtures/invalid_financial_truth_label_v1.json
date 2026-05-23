@@ -1,0 +1,101 @@
+{
+  "schema_version": "strategy_lab_artifact_v1",
+  "artifact_id": "stratlab_strategy_idea_20260520_invalid_financial_truth_label",
+  "artifact_type": "strategy_idea",
+  "job_id": "strategy_lab_artifact_schema_phase2_v1_20260520",
+  "created_at": "2026-05-20T12:00:00Z",
+  "created_by": "Codex",
+  "tenant_scope": "local_host",
+  "canonical_financial_truth": false,
+  "production_data_access": false,
+  "may_write_db": false,
+  "may_write_qdrant": false,
+  "may_write_memory": false,
+  "may_write_financial_truth": false,
+  "execution_allowed": false,
+  "source_of_idea": {
+    "origin": "invalid_fixture",
+    "source_ref": "docs/strategy_lab/artifact_schema_v1.md",
+    "summary": "Invalid because financial_truth is forbidden for sidecar artifacts.",
+    "source_evidence_ids": []
+  },
+  "external_engine": {
+    "name": "none",
+    "version": "not_applicable",
+    "transport": "none",
+    "tool_name": "none",
+    "allowed_scopes": [],
+    "token_scope": [],
+    "paper_only": true,
+    "live_trading_enabled": false
+  },
+  "provenance": {
+    "input_artifact_ids": [],
+    "source_report_path": "docs/strategy_lab/artifact_schema_v1.md",
+    "source_documents": ["artifact_schema_v1.md"],
+    "source_urls": [],
+    "run_id": "invalid_fixture",
+    "raw_result_ref": "DATA_MISSING",
+    "code_hash": "DATA_MISSING",
+    "config_hash": "DATA_MISSING",
+    "generated_by_tool": "none"
+  },
+  "parameters": {},
+  "assumptions": ["Invalid fixture."],
+  "data_source": {
+    "provider": "NOT_APPLICABLE",
+    "provider_status": "NOT_APPLICABLE",
+    "market": "DATA_MISSING",
+    "symbols": [],
+    "timeframe": "DATA_MISSING",
+    "time_range": { "start": "DATA_MISSING", "end": "DATA_MISSING" },
+    "production_data_access": false
+  },
+  "benchmark": {
+    "name": "NOT_APPLICABLE",
+    "symbol": "NOT_APPLICABLE",
+    "method": "NOT_APPLICABLE",
+    "status": "NOT_APPLICABLE",
+    "data_missing_reason": "Invalid fixture."
+  },
+  "limitations": ["Invalid fixture."],
+  "result_status": "NOT_RUN",
+  "evidence_label": "financial_truth",
+  "evidence_labels": [
+    "context_only",
+    "financial_truth"
+  ],
+  "review_status": "PENDING_REVIEW",
+  "data_missing": [],
+  "payload": {
+    "invalid_reason": "financial_truth label is forbidden"
+  },
+  "raw_payload_ref": {
+    "path": "DATA_MISSING",
+    "source_report_path": "docs/strategy_lab/artifact_schema_v1.md",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "not_applicable"
+  },
+  "normalized_result": {},
+  "storage_policy": {
+    "write_target": "docs/strategy_lab/artifact_fixtures/invalid_financial_truth_label_v1.json",
+    "may_write_db": false,
+    "may_write_qdrant": false,
+    "may_write_memory": false,
+    "may_write_financial_truth": false,
+    "artifact_store_implemented": false
+  },
+  "validation": {
+    "schema_parse_status": "PARSEABLE_JSON",
+    "validator_contract_version": "strategy_lab_offline_validator_contract_v1",
+    "invariants_checked": ["invalid_fixture"],
+    "runtime_validator_implemented": false
+  },
+  "security_policy": {
+    "paper_live_execution_artifact": false,
+    "broker_exchange_credentials_present": false,
+    "hidden_order_execution_fields_present": false,
+    "token_issued_by_this_artifact": false,
+    "allowed_scopes": []
+  }
+}

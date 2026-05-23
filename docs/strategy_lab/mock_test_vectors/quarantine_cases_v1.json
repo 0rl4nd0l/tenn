@@ -1,0 +1,181 @@
+{
+  "vector_version": "strategy_lab_phase3b_quarantine_cases_v1",
+  "default_expected_status": "QUARANTINED_RAW_OUTPUT",
+  "cases": [
+    {
+      "case_id": "helper_missing_full_envelope_fields_promoted",
+      "expected_status": "quarantine_pre_envelope_only",
+      "reason_codes": [
+        "HELPER_PRE_ENVELOPE_ONLY",
+        "MISSING_FULL_STRATEGY_LAB_ARTIFACT_FIELDS"
+      ],
+      "missing_fields": [
+        "payload",
+        "raw_payload_ref",
+        "normalized_result",
+        "storage_policy",
+        "security_policy"
+      ]
+    },
+    {
+      "case_id": "sidecar_unavailable",
+      "expected_status": "QUARANTINED_RAW_OUTPUT",
+      "reason_codes": [
+        "SIDECAR_UNAVAILABLE",
+        "RAW_PAYLOAD_UNAVAILABLE"
+      ],
+      "data_missing": [
+        "sidecar_capability_cannot_be_confirmed",
+        "raw_payload"
+      ]
+    },
+    {
+      "case_id": "timeout",
+      "expected_status": "QUARANTINED_RAW_OUTPUT",
+      "reason_codes": [
+        "TIMEOUT",
+        "RESULT_STATUS_UNCONFIRMED"
+      ],
+      "data_missing": [
+        "sidecar_result"
+      ]
+    },
+    {
+      "case_id": "malformed_output",
+      "expected_status": "FAILED_SCHEMA_VALIDATION",
+      "reason_codes": [
+        "MALFORMED_OUTPUT"
+      ]
+    },
+    {
+      "case_id": "schema_validation_failure",
+      "expected_status": "FAILED_SCHEMA_VALIDATION",
+      "reason_codes": [
+        "SCHEMA_VALIDATION_FAILURE"
+      ]
+    },
+    {
+      "case_id": "policy_denial",
+      "expected_status": "REJECTED",
+      "reason_codes": [
+        "POLICY_DENIAL"
+      ]
+    },
+    {
+      "case_id": "forbidden_scope_requested",
+      "expected_status": "REJECTED",
+      "reason_codes": [
+        "FORBIDDEN_SCOPE_REQUESTED",
+        "SIDE_EFFECT_SCOPE_DENIED"
+      ]
+    },
+    {
+      "case_id": "missing_benchmark_without_data_missing",
+      "expected_status": "FAILED_SCHEMA_VALIDATION",
+      "reason_codes": [
+        "MISSING_BENCHMARK_WITHOUT_DATA_MISSING"
+      ],
+      "required_data_missing_if_valid": [
+        "benchmark"
+      ]
+    },
+    {
+      "case_id": "missing_data_source",
+      "expected_status": "FAILED_SCHEMA_VALIDATION",
+      "reason_codes": [
+        "MISSING_DATA_SOURCE"
+      ],
+      "required_data_missing_if_valid": [
+        "data_source_incomplete"
+      ]
+    },
+    {
+      "case_id": "missing_assumptions_or_limitations",
+      "expected_status": "FAILED_SCHEMA_VALIDATION",
+      "reason_codes": [
+        "MISSING_ASSUMPTIONS",
+        "MISSING_LIMITATIONS"
+      ]
+    },
+    {
+      "case_id": "missing_raw_payload_ref",
+      "expected_status": "QUARANTINED_RAW_OUTPUT",
+      "reason_codes": [
+        "MISSING_RAW_PAYLOAD_REF"
+      ],
+      "required_data_missing_if_valid": [
+        "raw_payload"
+      ]
+    },
+    {
+      "case_id": "broker_or_exchange_credential_fields",
+      "expected_status": "REJECTED",
+      "reason_codes": [
+        "BROKER_EXCHANGE_CREDENTIAL_FIELDS"
+      ],
+      "forbidden_fields": [
+        "broker_credentials",
+        "exchange_credentials",
+        "api_key",
+        "secret"
+      ]
+    },
+    {
+      "case_id": "paper_live_or_order_fields",
+      "expected_status": "REJECTED",
+      "reason_codes": [
+        "PAPER_LIVE_OR_ORDER_FIELDS"
+      ],
+      "forbidden_fields": [
+        "paper_order",
+        "live_order",
+        "order_payload",
+        "execution_order"
+      ]
+    },
+    {
+      "case_id": "unexpected_artifact_type",
+      "expected_status": "FAILED_SCHEMA_VALIDATION",
+      "reason_codes": [
+        "UNEXPECTED_ARTIFACT_TYPE"
+      ]
+    },
+    {
+      "case_id": "suspected_live_or_paper_execution_surface",
+      "expected_status": "REJECTED",
+      "reason_codes": [
+        "SUSPECTED_LIVE_OR_PAPER_EXECUTION_SURFACE"
+      ]
+    }
+  ],
+  "data_missing_propagation_cases": [
+    {
+      "condition": "benchmark_unavailable",
+      "required_data_missing": "benchmark"
+    },
+    {
+      "condition": "data_source_incomplete",
+      "required_data_missing": "data_source_incomplete"
+    },
+    {
+      "condition": "equity_curve_or_trade_fields_missing",
+      "required_data_missing": "equity_curve_or_trade_fields"
+    },
+    {
+      "condition": "regime_or_tuning_shape_not_proven",
+      "required_data_missing": "regime_or_tuning_shape_not_proven"
+    },
+    {
+      "condition": "raw_payload_unavailable",
+      "required_data_missing": "raw_payload"
+    },
+    {
+      "condition": "sidecar_capability_cannot_be_confirmed",
+      "required_data_missing": "sidecar_capability_cannot_be_confirmed"
+    },
+    {
+      "condition": "helper_output_cannot_prove_full_artifact_field",
+      "required_data_missing": "helper_output_cannot_prove_full_strategy_lab_artifact_field"
+    }
+  ]
+}

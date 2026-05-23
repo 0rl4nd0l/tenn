@@ -1,0 +1,207 @@
+{
+  "schema_version": "strategy_lab_artifact_v1",
+  "artifact_id": "stratlab_regime_breakdown_20260520_phase1_btc_usdt",
+  "artifact_type": "regime_breakdown",
+  "job_id": "strategy_lab_artifact_schema_phase2_v1_20260520",
+  "created_at": "2026-05-20T11:15:00Z",
+  "created_by": "Codex",
+  "tenant_scope": "local_host",
+  "canonical_financial_truth": false,
+  "production_data_access": false,
+  "may_write_db": false,
+  "may_write_qdrant": false,
+  "may_write_memory": false,
+  "may_write_financial_truth": false,
+  "execution_allowed": false,
+  "source_of_idea": {
+    "origin": "phase1_sandbox_probe",
+    "source_ref": "reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520/backtest_payload_observed.md",
+    "summary": "Public BTC/USDT regime-detection payload used to prove QuantDinger regime output shape.",
+    "source_evidence_ids": [
+      "phase1_regime_detect_raw",
+      "phase1_regime_detect_normalized_summary"
+    ]
+  },
+  "external_engine": {
+    "name": "QuantDinger",
+    "version": "market-regime-v1",
+    "transport": "rest",
+    "tool_name": "POST /api/agent/v1/experiments/regime/detect",
+    "allowed_scopes": [
+      "R",
+      "B"
+    ],
+    "token_scope": [
+      "R",
+      "B"
+    ],
+    "paper_only": true,
+    "live_trading_enabled": false
+  },
+  "provenance": {
+    "input_artifact_ids": [],
+    "source_report_path": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520",
+    "source_documents": [
+      "backtest_payload_observed.md",
+      "schema_fit_phase1.md"
+    ],
+    "source_urls": [],
+    "run_id": "regime_detect_phase1_btc_usdt_corrected_request",
+    "raw_result_ref": "raw_payloads/regime_detect_raw.json",
+    "code_hash": "DATA_MISSING",
+    "config_hash": "DATA_MISSING",
+    "generated_by_tool": "QuantDinger Agent Gateway"
+  },
+  "parameters": {
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "startDate": "2026-04-05",
+    "endDate": "2026-05-20"
+  },
+  "assumptions": [
+    "Corrected QuantDinger request requires camelCase startDate/endDate.",
+    "Public Crypto BTC/USDT data was used; no Tenn production data was used.",
+    "Segment start/end times were null in the observed response."
+  ],
+  "data_source": {
+    "provider": "DATA_MISSING",
+    "provider_status": "DATA_MISSING",
+    "market": "Crypto",
+    "symbols": [
+      "BTC/USDT"
+    ],
+    "timeframe": "1D",
+    "time_range": {
+      "start": "2026-04-05",
+      "end": "2026-05-20"
+    },
+    "production_data_access": false
+  },
+  "benchmark": {
+    "name": "NOT_APPLICABLE",
+    "symbol": "NOT_APPLICABLE",
+    "method": "NOT_APPLICABLE",
+    "status": "NOT_APPLICABLE",
+    "data_missing_reason": "Regime classification did not emit or require a benchmark object in Phase 1."
+  },
+  "limitations": [
+    "One public-data regime payload is enough for schema shape, not investment evidence.",
+    "Provider identity was not emitted in the regime payload.",
+    "Segment startTime/endTime were null.",
+    "Sample size by regime was not emitted."
+  ],
+  "result_status": "SUCCEEDED",
+  "evidence_label": "external_tool_context",
+  "evidence_labels": [
+    "external_tool_context",
+    "regime_context"
+  ],
+  "review_status": "PENDING_REVIEW",
+  "data_missing": [
+    "explicit_provider_field",
+    "segment_start_end_times",
+    "sample_size_by_regime",
+    "raw_payload_sha256"
+  ],
+  "payload": {
+    "regime_model": "market-regime-v1",
+    "classification_source": "QuantDinger Agent Gateway",
+    "instrument_universe": [
+      {
+        "market": "Crypto",
+        "symbol": "BTC/USDT"
+      }
+    ],
+    "time_range": {
+      "start": "2026-04-05",
+      "end": "2026-05-20"
+    },
+    "frequency": "1D",
+    "regime": "high_volatility",
+    "label": "High Volatility",
+    "confidence": 0.99,
+    "features": {
+      "price_change_pct": 12.2751,
+      "ema_gap_pct": 0.5277,
+      "realized_vol_pct": 7.2257,
+      "atr_pct": 2.4751,
+      "directional_efficiency": 0.0443,
+      "volume_ratio": 0.3769
+    },
+    "segments": [
+      {
+        "regime": "high_volatility",
+        "label": "High Volatility",
+        "confidence": 0.99,
+        "start_time": null,
+        "end_time": null
+      }
+    ],
+    "strategy_families": [
+      "volatility_breakout",
+      "reduced_risk_trend",
+      "event_drive"
+    ],
+    "sample_size_by_regime": {
+      "status": "DATA_MISSING",
+      "reason": "Phase 1 response did not emit sample size by regime."
+    },
+    "regime_transition_notes": [
+      "Only one observed segment was returned in Phase 1."
+    ],
+    "result_error": null
+  },
+  "raw_payload_ref": {
+    "path": "raw_payloads/regime_detect_raw.json",
+    "source_report_path": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_observed"
+  },
+  "normalized_result": {
+    "kind": "regime_detect",
+    "status": "succeeded",
+    "regime": "high_volatility",
+    "label": "High Volatility",
+    "confidence": 0.99,
+    "feature_keys": [
+      "atrPct",
+      "directionalEfficiency",
+      "emaGapPct",
+      "priceChangePct",
+      "realizedVolPct",
+      "volumeRatio"
+    ],
+    "segment_count": 1
+  },
+  "storage_policy": {
+    "write_target": "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+    "may_write_db": false,
+    "may_write_qdrant": false,
+    "may_write_memory": false,
+    "may_write_financial_truth": false,
+    "artifact_store_implemented": false
+  },
+  "validation": {
+    "schema_parse_status": "PARSEABLE_JSON",
+    "validator_contract_version": "strategy_lab_offline_validator_contract_v1",
+    "invariants_checked": [
+      "schema_only_fixture",
+      "truth_flags_false",
+      "review_status_pending",
+      "raw_payload_ref_present",
+      "no_execution_allowed"
+    ],
+    "runtime_validator_implemented": false
+  },
+  "security_policy": {
+    "paper_live_execution_artifact": false,
+    "broker_exchange_credentials_present": false,
+    "hidden_order_execution_fields_present": false,
+    "token_issued_by_this_artifact": false,
+    "allowed_scopes": [
+      "R",
+      "B"
+    ]
+  }
+}

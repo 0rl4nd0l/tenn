@@ -1,0 +1,75 @@
+{
+  "transport_fixture_version": "strategy_lab_mock_transport_phase3c_v1",
+  "fixture_name": "valid_regime_detect_transport_response_v1",
+  "request": {
+    "request_id": "transportreq_phase3c_regime_detect_001",
+    "job_id": "strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+    "operation": "regime_detect",
+    "mock_scope": "phase3c_offline_mock_transport_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "start": "2026-04-05",
+      "end": "2026-05-20",
+      "regime_model": "market-regime-v1"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "policy_checked": true,
+    "reason_codes": ["REGIME_DETECT_MOCK"],
+    "human_review_required": true
+  },
+  "transport_response": {
+    "operation": "regime_detect",
+    "lifecycle_state": "NORMALIZED_TO_PENDING_ARTIFACT",
+    "status": "succeeded",
+    "raw_payload_ref": {
+      "storage_state": "mock_ref_only",
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_regime_detect_transport_response_v1.json",
+      "sha256": "DATA_MISSING",
+      "redaction_status": "no_secrets_expected"
+    },
+    "result": {
+      "regime": "high_volatility",
+      "confidence": 0.99,
+      "provider": "DATA_MISSING",
+      "segment_times": "DATA_MISSING",
+      "sample_size_by_regime": "DATA_MISSING",
+      "limitations": ["Offline mock regime result; no service was called."]
+    },
+    "artifact_emission_decision": {
+      "artifact_emitted": true,
+      "artifact_ref": "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+      "schema_version": "strategy_lab_artifact_v1",
+      "artifact_type": "regime_breakdown",
+      "review_status": "PENDING_REVIEW",
+      "canonical_financial_truth": false,
+      "production_data_access": false,
+      "may_write_db": false,
+      "may_write_qdrant": false,
+      "may_write_memory": false,
+      "may_write_financial_truth": false,
+      "execution_allowed": false,
+      "data_missing": ["explicit_provider_field", "segment_start_end_times", "sample_size_by_regime"]
+    },
+    "quarantine_decision": {
+      "quarantined": false,
+      "reason_codes": []
+    },
+    "audit_record": {
+      "policy_checked_before_dispatch": true,
+      "dispatched_to": "local_mock_fixture",
+      "network_transport_started": false,
+      "service_started": false,
+      "token_issued": false,
+      "dependency_installed": false,
+      "store_write_authorized": false,
+      "paper_live_execution_authorized": false
+    }
+  }
+}

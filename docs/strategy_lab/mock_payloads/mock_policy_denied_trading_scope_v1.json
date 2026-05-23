@@ -1,0 +1,56 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_policy_denied_trading_scope_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_denied_trading_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "quick_trade_order",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": true,
+    "paper_live_scope": "paper",
+    "input": {
+      "symbol": "BTC/USDT",
+      "side": "buy",
+      "quantity": 1
+    }
+  },
+  "policy_decision": {
+    "decision": "deny",
+    "reason_codes": ["FORBIDDEN_TRADING_SCOPE", "EXECUTION_ALLOWED_TRUE", "OPERATION_NOT_ALLOWLISTED"],
+    "forbidden_scope_detected": true,
+    "human_review_required": true
+  },
+  "status": "policy_denied",
+  "result": {
+    "message": "Trading, paper-order, live-order, quick-trade, and kill-switch surfaces are forbidden for Strategy Lab sidecar design.",
+    "sidecar_called": false,
+    "service_started": false,
+    "token_issued": false,
+    "order_placed": false
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_policy_denied_trading_scope_v1.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "policy_denied_no_sidecar_call"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": false,
+    "artifact_type": null
+  },
+  "quarantine": {
+    "quarantined": true,
+    "reason_codes": ["FORBIDDEN_SCOPE_REQUESTED", "SUSPECTED_LIVE_OR_PAPER_EXECUTION"],
+    "review_status": "QUARANTINED_RAW_OUTPUT"
+  },
+  "audit_log": {
+    "operation": "quick_trade_order",
+    "decision": "deny",
+    "paper_live_scope": "paper",
+    "execution_allowed": true,
+    "sidecar_called": false
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "vector_version": "strategy_lab_phase3b_helper_to_artifact_mapping_cases_v1",
+  "authoritative_schema_version": "strategy_lab_artifact_v1",
+  "helper_schema_version": "strategy_lab_sidecar_artifact_v1",
+  "helper_status": "pending_review_pre_envelope_only",
+  "helper_can_replace_authoritative_envelope": false,
+  "required_target_fields": [
+    "schema_version",
+    "artifact_id",
+    "artifact_type",
+    "job_id",
+    "created_at",
+    "created_by",
+    "tenant_scope",
+    "canonical_financial_truth",
+    "production_data_access",
+    "may_write_db",
+    "may_write_qdrant",
+    "may_write_memory",
+    "may_write_financial_truth",
+    "execution_allowed",
+    "source_of_idea",
+    "external_engine",
+    "provenance",
+    "parameters",
+    "assumptions",
+    "data_source",
+    "benchmark",
+    "limitations",
+    "result_status",
+    "evidence_label",
+    "evidence_labels",
+    "review_status",
+    "data_missing",
+    "payload",
+    "raw_payload_ref",
+    "normalized_result",
+    "storage_policy",
+    "validation",
+    "security_policy"
+  ],
+  "evidence_backed_types": [
+    "backtest_run",
+    "regime_breakdown"
+  ],
+  "held_or_data_missing_types": [
+    "parameter_sweep",
+    "risk_report",
+    "factor_test",
+    "portfolio_experiment"
+  ],
+  "mappings": [
+    {
+      "case_id": "helper_backtest_run_maps_to_full_artifact_envelope",
+      "source_helper_schema_version": "strategy_lab_sidecar_artifact_v1",
+      "source_helper_artifact_type": "backtest_run",
+      "source_helper_shape": [
+        "artifact_id",
+        "artifact_type",
+        "source_system",
+        "source_role",
+        "source_payload_kind",
+        "input_summary",
+        "observations",
+        "limitations",
+        "provenance"
+      ],
+      "source_helper_missing_authoritative_fields": [
+        "job_id",
+        "created_at",
+        "created_by",
+        "tenant_scope",
+        "source_of_idea",
+        "parameters",
+        "assumptions",
+        "data_source",
+        "benchmark",
+        "evidence_label",
+        "evidence_labels",
+        "data_missing",
+        "payload",
+        "raw_payload_ref",
+        "normalized_result",
+        "storage_policy",
+        "validation",
+        "security_policy"
+      ],
+      "target_schema_version": "strategy_lab_artifact_v1",
+      "target_artifact_type": "backtest_run",
+      "mapped_artifact_ref": "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+      "mapping_decision": "map_to_full_authoritative_envelope",
+      "evidence_backed": true,
+      "required_data_missing": [
+        "benchmark",
+        "explicit_provider_field",
+        "strategy_code_hash",
+        "raw_payload_sha256"
+      ],
+      "field_mapping": {
+        "source_helper.input_summary": [
+          "parameters",
+          "data_source"
+        ],
+        "source_helper.observations.metrics": [
+          "payload.metrics",
+          "normalized_result.metrics"
+        ],
+        "source_helper.observations.equity_curve": [
+          "payload.equity_curve"
+        ],
+        "source_helper.observations.trade_summary": [
+          "payload.trade_summary"
+        ],
+        "source_helper.provenance.source_payload_path": [
+          "raw_payload_ref.path",
+          "provenance.raw_result_ref"
+        ],
+        "source_helper.limitations": [
+          "limitations"
+        ]
+      }
+    },
+    {
+      "case_id": "helper_regime_breakdown_maps_to_full_artifact_envelope",
+      "source_helper_schema_version": "strategy_lab_sidecar_artifact_v1",
+      "source_helper_artifact_type": "regime_breakdown",
+      "source_helper_shape": [
+        "artifact_id",
+        "artifact_type",
+        "source_system",
+        "source_role",
+        "source_payload_kind",
+        "input_summary",
+        "observations",
+        "limitations",
+        "provenance"
+      ],
+      "source_helper_missing_authoritative_fields": [
+        "job_id",
+        "created_at",
+        "created_by",
+        "tenant_scope",
+        "source_of_idea",
+        "parameters",
+        "assumptions",
+        "data_source",
+        "benchmark",
+        "evidence_label",
+        "evidence_labels",
+        "data_missing",
+        "payload",
+        "raw_payload_ref",
+        "normalized_result",
+        "storage_policy",
+        "validation",
+        "security_policy"
+      ],
+      "target_schema_version": "strategy_lab_artifact_v1",
+      "target_artifact_type": "regime_breakdown",
+      "mapped_artifact_ref": "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+      "mapping_decision": "map_to_full_authoritative_envelope",
+      "evidence_backed": true,
+      "required_data_missing": [
+        "explicit_provider_field",
+        "segment_start_end_times",
+        "sample_size_by_regime",
+        "raw_payload_sha256"
+      ],
+      "field_mapping": {
+        "source_helper.input_summary": [
+          "parameters",
+          "data_source"
+        ],
+        "source_helper.observations.regime": [
+          "payload.regime",
+          "normalized_result.regime"
+        ],
+        "source_helper.observations.features": [
+          "payload.features"
+        ],
+        "source_helper.observations.segments": [
+          "payload.segments"
+        ],
+        "source_helper.provenance.source_payload_path": [
+          "raw_payload_ref.path",
+          "provenance.raw_result_ref"
+        ],
+        "source_helper.limitations": [
+          "limitations"
+        ]
+      }
+    }
+  ],
+  "pre_envelope_only_cases": [
+    {
+      "case_id": "helper_compact_envelope_without_mapping_is_not_authoritative",
+      "source_helper_schema_version": "strategy_lab_sidecar_artifact_v1",
+      "attempted_target_schema_version": "strategy_lab_artifact_v1",
+      "missing_fields": [
+        "payload",
+        "raw_payload_ref",
+        "normalized_result",
+        "storage_policy",
+        "validation",
+        "security_policy"
+      ],
+      "expected_status": "quarantine_pre_envelope_only",
+      "reason": "Helper observations are useful normalizer evidence but do not satisfy the full authoritative envelope without explicit mapping."
+    }
+  ]
+}

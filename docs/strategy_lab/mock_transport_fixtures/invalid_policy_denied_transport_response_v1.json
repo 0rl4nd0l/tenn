@@ -1,0 +1,46 @@
+{
+  "transport_fixture_version": "strategy_lab_mock_transport_phase3c_v1",
+  "fixture_name": "invalid_policy_denied_transport_response_v1",
+  "request": {
+    "request_id": "transportreq_phase3c_policy_denied_001",
+    "job_id": "strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+    "operation": "broker_credential_setup",
+    "mock_scope": "phase3c_offline_mock_transport_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {"broker_account": "forbidden"}
+  },
+  "policy_decision": {
+    "decision": "deny",
+    "policy_checked": true,
+    "reason_codes": ["FORBIDDEN_OPERATION", "BROKER_CREDENTIAL_SETUP_DENIED"],
+    "human_review_required": true
+  },
+  "transport_response": {
+    "operation": "broker_credential_setup",
+    "lifecycle_state": "POLICY_DENIED",
+    "status": "policy_denied",
+    "result": null,
+    "artifact_emission_decision": {
+      "artifact_emitted": false,
+      "artifact_ref": null,
+      "schema_version": null,
+      "review_status": null
+    },
+    "quarantine_decision": {
+      "quarantined": false,
+      "reason_codes": ["POLICY_DENIAL"]
+    },
+    "audit_record": {
+      "policy_checked_before_dispatch": true,
+      "dispatched_to": "none_policy_denied",
+      "network_transport_started": false,
+      "service_started": false,
+      "token_issued": false,
+      "dependency_installed": false,
+      "store_write_authorized": false,
+      "paper_live_execution_authorized": false
+    }
+  }
+}

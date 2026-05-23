@@ -1,0 +1,274 @@
+{
+  "schema_version": "strategy_lab_artifact_v1",
+  "artifact_id": "stratlab_backtest_run_20260520_phase1_btc_usdt_sma_cross",
+  "artifact_type": "backtest_run",
+  "job_id": "strategy_lab_artifact_schema_phase2_v1_20260520",
+  "created_at": "2026-05-20T11:12:14Z",
+  "created_by": "Codex",
+  "tenant_scope": "local_host",
+  "canonical_financial_truth": false,
+  "production_data_access": false,
+  "may_write_db": false,
+  "may_write_qdrant": false,
+  "may_write_memory": false,
+  "may_write_financial_truth": false,
+  "execution_allowed": false,
+  "source_of_idea": {
+    "origin": "phase1_sandbox_probe",
+    "source_ref": "reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520/backtest_payload_observed.md",
+    "summary": "Tiny public BTC/USDT SMA crossover backtest used to prove saved QuantDinger payload shape.",
+    "source_evidence_ids": [
+      "phase1_backtest_raw",
+      "phase1_backtest_normalized_summary"
+    ]
+  },
+  "external_engine": {
+    "name": "QuantDinger",
+    "version": "backend_digest_b348c9cd43873b5ae9dca66f7bf403f09cc4c56af97ee8c9228bafb699099bc7",
+    "transport": "rest",
+    "tool_name": "POST /api/agent/v1/backtests",
+    "allowed_scopes": [
+      "R",
+      "B"
+    ],
+    "token_scope": [
+      "R",
+      "B"
+    ],
+    "paper_only": true,
+    "live_trading_enabled": false
+  },
+  "provenance": {
+    "input_artifact_ids": [],
+    "source_report_path": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520",
+    "source_documents": [
+      "backtest_payload_observed.md",
+      "schema_fit_phase1.md",
+      "permission_token_proof.md"
+    ],
+    "source_urls": [],
+    "run_id": "7f41134d04464e73bcadee86ff58ab6f",
+    "raw_result_ref": "raw_payloads/backtest_raw.json",
+    "code_hash": "DATA_MISSING",
+    "config_hash": "DATA_MISSING",
+    "generated_by_tool": "QuantDinger Agent Gateway"
+  },
+  "parameters": {
+    "strategy_code_ref": "inline_phase1_request_code",
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "start_date": "2026-05-10",
+    "end_date": "2026-05-20",
+    "initial_capital": 1000,
+    "commission": 0.001,
+    "slippage": 0,
+    "leverage": 1,
+    "trade_direction": "long"
+  },
+  "assumptions": [
+    "Public Crypto BTC/USDT data was used; no Tenn production data was used.",
+    "Signal timing used QuantDinger result executionAssumptions.signalTiming=next_bar_open.",
+    "Commission was 0.001 and slippage was 0 as supplied in the Phase 1 request.",
+    "Benchmark was absent from the QuantDinger result and is treated as DATA_MISSING."
+  ],
+  "data_source": {
+    "provider": "CryptoKline",
+    "provider_status": "INFERRED",
+    "market": "Crypto",
+    "symbols": [
+      "BTC/USDT"
+    ],
+    "timeframe": "1D",
+    "time_range": {
+      "start": "2026-05-10",
+      "end": "2026-05-20"
+    },
+    "production_data_access": false
+  },
+  "benchmark": {
+    "name": "DATA_MISSING",
+    "symbol": "DATA_MISSING",
+    "method": "DATA_MISSING",
+    "status": "DATA_MISSING",
+    "data_missing_reason": "No benchmark object was present in the Phase 1 QuantDinger backtest payload."
+  },
+  "limitations": [
+    "One tiny public-data backtest is enough for schema shape, not investment evidence.",
+    "Provider identity is inferred from backend logs, not emitted in the result payload.",
+    "Benchmark, volatility, Sortino, turnover, exposure, drawdown series, and robustness fields were not emitted.",
+    "QuantDinger output is pending-review external context only."
+  ],
+  "result_status": "SUCCEEDED",
+  "evidence_label": "external_tool_context",
+  "evidence_labels": [
+    "external_tool_context",
+    "backtest_result"
+  ],
+  "review_status": "PENDING_REVIEW",
+  "data_missing": [
+    "benchmark",
+    "explicit_provider_field",
+    "strategy_code_hash",
+    "volatility",
+    "sortino",
+    "turnover",
+    "exposure",
+    "drawdown_series",
+    "raw_payload_sha256"
+  ],
+  "payload": {
+    "strategy_id": "phase1_sma_cross_public_btc_usdt",
+    "backtest_id": "qd_job_7f41134d04464e73bcadee86ff58ab6f",
+    "external_job_id": "7f41134d04464e73bcadee86ff58ab6f",
+    "engine_run_id": "7f41134d04464e73bcadee86ff58ab6f",
+    "strategy_code_ref": "raw_payloads/backtest_raw.json.request.code",
+    "strategy_code_hash": "DATA_MISSING",
+    "instrument_universe": [
+      {
+        "market": "Crypto",
+        "symbol": "BTC/USDT"
+      }
+    ],
+    "time_range": {
+      "start": "2026-05-10",
+      "end": "2026-05-20"
+    },
+    "frequency": "1D",
+    "capital_base": {
+      "initial_capital": 1000,
+      "currency": "DATA_MISSING"
+    },
+    "position_sizing": {
+      "leverage": 1,
+      "trade_direction": "long",
+      "position_size_method": "DATA_MISSING"
+    },
+    "fees_slippage": {
+      "commission": 0.001,
+      "slippage": 0,
+      "total_commission": 1.99
+    },
+    "metrics": {
+      "total_return_pct": -1.42,
+      "annualized_return_pct": -51.79,
+      "max_drawdown_pct": -1.42,
+      "sharpe_ratio": -6.05,
+      "profit_factor": 0,
+      "total_profit": -14.19,
+      "total_trades": 1,
+      "win_rate_pct": 0
+    },
+    "trade_summary": {
+      "source_path": "result.trades",
+      "trade_rows": 2,
+      "completed_trade_count": 1,
+      "sample": {
+        "time": "2026-05-16 00:00",
+        "type": "open_long",
+        "price": 79113.2,
+        "amount": 0.0126,
+        "profit": 0,
+        "balance": 999
+      }
+    },
+    "equity_curve": {
+      "representation": "inline_points",
+      "source_path": "result.equityCurve",
+      "point_count": 11,
+      "first": {
+        "time": "2026-05-10 00:00",
+        "value": 1000
+      },
+      "last": {
+        "time": "2026-05-20 00:00",
+        "value": 985.81
+      },
+      "points": [
+        { "time": "2026-05-10 00:00", "value": 1000 },
+        { "time": "2026-05-11 00:00", "value": 1000 },
+        { "time": "2026-05-12 00:00", "value": 1000 },
+        { "time": "2026-05-13 00:00", "value": 1000 },
+        { "time": "2026-05-14 00:00", "value": 1000 },
+        { "time": "2026-05-15 00:00", "value": 1000 },
+        { "time": "2026-05-16 00:00", "value": 986.8 },
+        { "time": "2026-05-17 00:00", "value": 985.81 },
+        { "time": "2026-05-18 00:00", "value": 985.81 },
+        { "time": "2026-05-19 00:00", "value": 985.81 },
+        { "time": "2026-05-20 00:00", "value": 985.81 }
+      ]
+    },
+    "execution_assumptions": {
+      "mtf_active": false,
+      "mtf_requested": false,
+      "signal_timing": "next_bar_open",
+      "engine_version": "strategy-backtest-v1",
+      "simulation_mode": "standard",
+      "signal_timing_raw": "next_bar_open",
+      "default_fill_price": "open",
+      "strategy_timeframe": "1D",
+      "execution_timeframe": null
+    },
+    "benchmark_comparison": {
+      "status": "DATA_MISSING",
+      "reason": "No benchmark object was present in the Phase 1 result."
+    },
+    "robustness_flags": [
+      "single_public_payload_only",
+      "benchmark_missing",
+      "provider_field_inferred"
+    ],
+    "result_error": null
+  },
+  "raw_payload_ref": {
+    "path": "raw_payloads/backtest_raw.json",
+    "source_report_path": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_observed"
+  },
+  "normalized_result": {
+    "kind": "backtest",
+    "external_job_id": "7f41134d04464e73bcadee86ff58ab6f",
+    "status": "succeeded",
+    "metrics": {
+      "total_return_pct": -1.42,
+      "annualized_return_pct": -51.79,
+      "max_drawdown_pct": -1.42,
+      "sharpe_ratio": -6.05,
+      "profit_factor": 0,
+      "total_profit": -14.19,
+      "total_trades": 1,
+      "win_rate_pct": 0
+    }
+  },
+  "storage_policy": {
+    "write_target": "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+    "may_write_db": false,
+    "may_write_qdrant": false,
+    "may_write_memory": false,
+    "may_write_financial_truth": false,
+    "artifact_store_implemented": false
+  },
+  "validation": {
+    "schema_parse_status": "PARSEABLE_JSON",
+    "validator_contract_version": "strategy_lab_offline_validator_contract_v1",
+    "invariants_checked": [
+      "schema_only_fixture",
+      "truth_flags_false",
+      "review_status_pending",
+      "raw_payload_ref_present",
+      "no_execution_allowed"
+    ],
+    "runtime_validator_implemented": false
+  },
+  "security_policy": {
+    "paper_live_execution_artifact": false,
+    "broker_exchange_credentials_present": false,
+    "hidden_order_execution_fields_present": false,
+    "token_issued_by_this_artifact": false,
+    "allowed_scopes": [
+      "R",
+      "B"
+    ]
+  }
+}

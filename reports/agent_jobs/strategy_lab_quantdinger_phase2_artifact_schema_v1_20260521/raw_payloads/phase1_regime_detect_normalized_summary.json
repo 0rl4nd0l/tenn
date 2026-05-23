@@ -1,0 +1,64 @@
+{
+  "attempt_count": 2,
+  "first_attempt_error": "time data 'None' does not match format '%Y-%m-%d'",
+  "http_status": "200",
+  "result_status": "succeeded",
+  "request": {
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "startDate": "2026-04-05",
+    "endDate": "2026-05-20"
+  },
+  "top_level_keys": [
+    "confidence",
+    "features",
+    "label",
+    "market",
+    "regime",
+    "segments",
+    "strategyFamilies",
+    "symbol",
+    "timeframe",
+    "version"
+  ],
+  "regime": "high_volatility",
+  "label": "High Volatility",
+  "confidence": 0.99,
+  "feature_keys": [
+    "atrPct",
+    "directionalEfficiency",
+    "emaGapPct",
+    "priceChangePct",
+    "realizedVolPct",
+    "volumeRatio"
+  ],
+  "features": {
+    "priceChangePct": 12.2751,
+    "emaGapPct": 0.5277,
+    "realizedVolPct": 7.2257,
+    "atrPct": 2.4751,
+    "directionalEfficiency": 0.0443,
+    "volumeRatio": 0.3769
+  },
+  "segment_shape": {
+    "count": 1,
+    "sample": {
+      "regime": "high_volatility",
+      "label": "High Volatility",
+      "confidence": 0.99,
+      "startTime": null,
+      "endTime": null
+    }
+  },
+  "strategy_families": [
+    "volatility_breakout",
+    "reduced_risk_trend",
+    "event_drive"
+  ],
+  "error": "ok",
+  "limitations": [
+    "First attempt with snake_case dates failed; endpoint expects startDate/endDate.",
+    "Public crypto OHLCV was used; no production Tenn data was used."
+  ]
+}

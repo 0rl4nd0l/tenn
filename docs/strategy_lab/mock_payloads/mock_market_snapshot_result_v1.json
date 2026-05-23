@@ -1,0 +1,75 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_market_snapshot_result_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_market_snapshot_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "read_market_snapshot",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "lookback": 3,
+      "requested_fields": ["open", "high", "low", "close", "volume"]
+    },
+    "policy_context": {
+      "policy_version": "strategy_lab_tool_policy_v1",
+      "allowed_result_use": "external_tool_context_only"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "reason_codes": ["PHASE3A_DESIGN_ONLY", "READ_ONLY_MARKET_CONTEXT"],
+    "human_review_required": true
+  },
+  "status": "succeeded",
+  "result": {
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "provider": "DATA_MISSING",
+    "provider_status": "DATA_MISSING",
+    "snapshot": {
+      "count": 3,
+      "bars": [
+        {"time": 1779062400, "open": 77457.67, "high": 77800.0, "low": 76051.0, "close": 77001.87, "volume": 18745.52},
+        {"time": 1779148800, "open": 77001.88, "high": 77414.62, "low": 76144.71, "close": 76834.36, "volume": 11024.86},
+        {"time": 1779235200, "open": 76834.36, "high": 77663.0, "low": 76516.74, "close": 77526.96, "volume": 5214.33}
+      ]
+    },
+    "limitations": [
+      "Mock fixture derived from Phase 1 observed shape; no service was called in Phase 3A.",
+      "Provider is DATA_MISSING because Phase 1 payload did not emit an explicit provider field."
+    ]
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_market_snapshot_result_v1.json",
+    "source_report_path": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520/raw_payloads/capability_probe_raw.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "not_quarantined_mock"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": false,
+    "artifact_type": null,
+    "evidence_label_if_referenced": "external_tool_context"
+  },
+  "quarantine": {
+    "quarantined": false,
+    "reason_codes": []
+  },
+  "audit_log": {
+    "operation": "read_market_snapshot",
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none"
+  }
+}

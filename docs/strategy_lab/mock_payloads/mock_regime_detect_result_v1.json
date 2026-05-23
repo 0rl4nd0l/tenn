@@ -1,0 +1,86 @@
+{
+  "mock_envelope_version": "strategy_lab_mock_adapter_v1",
+  "fixture_name": "mock_regime_detect_result_v1",
+  "request": {
+    "request_id": "toolreq_phase3a_regime_detect_001",
+    "job_id": "strategy_lab_mocked_adapter_design_phase3_v1_20260520",
+    "requested_by": "Tenn",
+    "operation": "regime_detect",
+    "mock_scope": "phase3a_design_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "start": "2026-04-05",
+      "end": "2026-05-20",
+      "regime_model": "market-regime-v1"
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "reason_codes": ["PHASE3A_DESIGN_ONLY", "REGIME_CONTEXT_ONLY"],
+    "human_review_required": true
+  },
+  "status": "succeeded",
+  "result": {
+    "version": "market-regime-v1",
+    "market": "Crypto",
+    "symbol": "BTC/USDT",
+    "timeframe": "1D",
+    "regime": "high_volatility",
+    "label": "High Volatility",
+    "confidence": 0.99,
+    "features": {
+      "priceChangePct": 12.2751,
+      "emaGapPct": 0.5277,
+      "realizedVolPct": 7.2257,
+      "atrPct": 2.4751,
+      "directionalEfficiency": 0.0443,
+      "volumeRatio": 0.3769
+    },
+    "segments": [
+      {"regime": "high_volatility", "label": "High Volatility", "confidence": 0.99, "startTime": null, "endTime": null}
+    ],
+    "strategyFamilies": ["volatility_breakout", "reduced_risk_trend", "event_drive"],
+    "data_missing": ["explicit_provider", "segment_start_time", "segment_end_time", "sample_size_by_regime", "exact_candle_count"],
+    "limitations": [
+      "Mock fixture derived from Phase 1 observed shape; no service was called in Phase 3A.",
+      "Strategy families are external context only, not execution advice."
+    ]
+  },
+  "raw_payload_ref": {
+    "storage_state": "mock_ref_only",
+    "path": "docs/strategy_lab/mock_payloads/mock_regime_detect_result_v1.json",
+    "source_report_path": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520/raw_payloads/regime_detect_raw.json",
+    "sha256": "DATA_MISSING",
+    "redaction_status": "no_secrets_expected",
+    "quarantine_status": "not_quarantined_mock"
+  },
+  "artifact_mapping": {
+    "artifact_emitted": true,
+    "artifact_type": "regime_breakdown",
+    "required_flags": {
+      "canonical_financial_truth": false,
+      "production_data_access": false,
+      "may_write_db": false,
+      "may_write_qdrant": false,
+      "may_write_memory": false,
+      "may_write_financial_truth": false,
+      "execution_allowed": false,
+      "review_status": "PENDING_REVIEW"
+    }
+  },
+  "quarantine": {
+    "quarantined": false,
+    "reason_codes": []
+  },
+  "audit_log": {
+    "operation": "regime_detect",
+    "model": "market-regime-v1",
+    "human_review_required": true,
+    "provider_status": "DATA_MISSING"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "transport_fixture_version": "strategy_lab_mock_transport_phase3c_v1",
+  "fixture_name": "valid_market_snapshot_transport_response_v1",
+  "request": {
+    "request_id": "transportreq_phase3c_market_snapshot_001",
+    "job_id": "strategy_lab_offline_mock_transport_phase3c_v1_20260521",
+    "operation": "read_market_snapshot",
+    "mock_scope": "phase3c_offline_mock_transport_only",
+    "production_data_access": false,
+    "execution_allowed": false,
+    "paper_live_scope": "none",
+    "input": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "lookback": 10,
+      "requested_fields": ["close", "volume"]
+    }
+  },
+  "policy_decision": {
+    "decision": "allow_mock_only",
+    "policy_checked": true,
+    "reason_codes": ["READ_ONLY_MARKET_CONTEXT", "OFFLINE_MOCK_OPERATION"],
+    "human_review_required": true
+  },
+  "transport_response": {
+    "operation": "read_market_snapshot",
+    "lifecycle_state": "MOCK_RESULT_READY",
+    "status": "succeeded",
+    "raw_payload_ref": {
+      "storage_state": "mock_ref_only",
+      "path": "docs/strategy_lab/mock_transport_fixtures/valid_market_snapshot_transport_response_v1.json",
+      "sha256": "DATA_MISSING",
+      "redaction_status": "no_secrets_expected"
+    },
+    "result": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "provider": "DATA_MISSING",
+      "provider_status": "DATA_MISSING",
+      "production_data_access": false,
+      "limitations": ["Offline mock snapshot; no provider was contacted."]
+    },
+    "artifact_emission_decision": {
+      "artifact_emitted": false,
+      "artifact_ref": null,
+      "schema_version": null,
+      "review_status": null
+    },
+    "quarantine_decision": {
+      "quarantined": false,
+      "reason_codes": []
+    },
+    "audit_record": {
+      "policy_checked_before_dispatch": true,
+      "dispatched_to": "local_mock_fixture",
+      "network_transport_started": false,
+      "service_started": false,
+      "token_issued": false,
+      "dependency_installed": false,
+      "store_write_authorized": false,
+      "paper_live_execution_authorized": false
+    }
+  }
+}
