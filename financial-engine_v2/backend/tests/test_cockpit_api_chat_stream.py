@@ -203,6 +203,216 @@ def test_cockpit_chat_non_stream_allows_planning_without_sources(monkeypatch) ->
     assert "grounding_guard" not in finalized_metadata[-1]
 
 
+def test_cockpit_chat_metadata_marks_price_trend_missing_market_evidence(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text=(
+                    "CSL looks bearish on the current price trend, while the "
+                    "filing shows a buy-back notice."
+                ),
+                evidence=[
+                    {
+                        "type": "attached_source",
+                        "details": {
+                            "title": "CSL Appendix 3C buy-back notice",
+                            "source_id": "asx:CSL:appendix-3c",
+                            "doc_type": "asx_announcement",
+                            "snippet": "CSL lodged an on-market buy-back notice.",
+                            "evidence_labels": ["context_only"],
+                            "claim_verified": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            return None
+
+        def auto_flag_chat_response(self, **kwargs):
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={"message": "what is the CSL price trend?", "stream": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    assert "context_only" in payload["sources"][0]["evidence_labels"]
+    assert payload["sources"][0]["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "market_data_missing" in metadata["evidence_labels"]
+    assert "unsupported_or_not_verified" in metadata["evidence_labels"]
+    assert metadata["missing_evidence_categories"] == ["market_data"]
+    assert metadata["unsupported_claim_families"] == [
+        "market_price_or_technical_trend"
+    ]
+
+
+def test_cockpit_chat_stream_metadata_marks_price_trend_missing_market_evidence(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            **kwargs,
+        ):
+            if on_chunk is not None:
+                on_chunk("CSL looks bearish on the current price trend.")
+            return SimpleNamespace(
+                text="CSL looks bearish on the current price trend.",
+                evidence=[
+                    {
+                        "type": "attached_source",
+                        "details": {
+                            "title": "CSL Appendix 3C buy-back notice",
+                            "source_id": "asx:CSL:appendix-3c",
+                            "doc_type": "asx_announcement",
+                            "snippet": "CSL lodged an on-market buy-back notice.",
+                            "evidence_labels": ["context_only"],
+                            "claim_verified": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            return None
+
+        def auto_flag_chat_response(self, **kwargs):
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "what is the CSL price trend?", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events, body
+    metadata = done_events[-1]["data"]["routing_metadata"]
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "market_data_missing" in metadata["evidence_labels"]
+    assert metadata["unsupported_claim_families"] == [
+        "market_price_or_technical_trend"
+    ]
+
+
+def test_cockpit_chat_metadata_marks_metric_extraction_missing(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="CSL revenue and EBITDA margin improved in the latest period.",
+                evidence=[
+                    {
+                        "type": "attached_source",
+                        "details": {
+                            "title": "CSL announcement excerpt",
+                            "source_id": "asx:CSL:announcement",
+                            "doc_type": "asx_announcement",
+                            "snippet": "Announcement context only.",
+                            "evidence_labels": ["context_only"],
+                            "claim_verified": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            return None
+
+        def auto_flag_chat_response(self, **kwargs):
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={"message": "summarize CSL revenue", "stream": False},
+    )
+
+    assert response.status_code == 200
+    metadata = response.json()["data"]["routing_metadata"]
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "metric_extraction_missing" in metadata["evidence_labels"]
+    assert metadata["missing_evidence_categories"] == ["metric_extraction"]
+    assert metadata["unsupported_claim_families"] == ["financial_metric"]
+
+
 def test_cockpit_chat_non_stream_allows_control_prompt_ok_without_sources(
     monkeypatch,
 ) -> None:

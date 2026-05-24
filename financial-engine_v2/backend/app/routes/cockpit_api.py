@@ -45,6 +45,7 @@ from app.services.cockpit_service import (
     normalize_chat_runtime_target,
     normalize_chat_routing_policy_preference,
 )
+from app.services.chat_evidence_guard import enrich_chat_metadata_with_evidence_guard
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
     build_home_narrative_snapshot,
@@ -3436,6 +3437,11 @@ def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dic
     metadata["evidence_labels"] = sorted(evidence_labels)
     metadata["claim_verified_source_count"] = source_label_counts.get("claim_verified", 0)
     metadata["source_coverage_status"] = _source_coverage_status(evidence_labels, sources)
+    metadata = enrich_chat_metadata_with_evidence_guard(
+        metadata,
+        answer_text=str(getattr(response, "text", "") or ""),
+        sources=sources,
+    )
     return _json_safe_mapping(metadata)
 
 
