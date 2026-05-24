@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "job_id": "codex_workday_checkin_protocol_v1_20260521",
+  "status": "report_written_with_validation_blocker",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Reporting",
+    "Repo-GitHub-Codex Audit"
+  ],
+  "owner": "Codex",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "captured_at": "2026-05-24T17:36:28+10:00",
+  "updated_at": "2026-05-24T17:39:33+10:00",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "1f6193a031f2c8804051d443b2357f4805ff3f88",
+  "stage_a": {
+    "verdict": "RESOLVED",
+    "pr_number": 35,
+    "pr_title": "Make Sloppy Fix manual-only",
+    "pr_state": "MERGED",
+    "merged_at": "2026-05-21T11:03:57Z",
+    "merge_commit": "fe2a24358829005db8fc73d15456205c2b20bfc7",
+    "origin_main_head": "fe2a24358829005db8fc73d15456205c2b20bfc7",
+    "expected_files_only": true,
+    "sloppy_fix_workflow_exists_on_origin_main": true,
+    "sloppy_fix_workflow_dispatch_present": true,
+    "sloppy_fix_schedule_present": false,
+    "sloppy_fix_cron_present": false,
+    "github_auth_ok": true,
+    "github_actions_settings_mutated": false,
+    "workflow_run_cancel_disable_delete_or_dispatch_run": false
+  },
+  "stage_b": {
+    "verdict": "REPORT_WRITTEN_WITH_VALIDATION_BLOCKER",
+    "report_path": "reports/agent_jobs/codex_workday_checkin_protocol_v1_20260521/README.md",
+    "status_path": "reports/agent_jobs/codex_workday_checkin_protocol_v1_20260521/status.json",
+    "task_card": "docs/agent_tasks/codex_workday_checkin_protocol_v1_20260521.md",
+    "output_dir": "reports/agent_jobs/codex_workday_checkin_protocol_v1_20260521",
+    "new_scheduler_created": false,
+    "new_timer_created": false,
+    "new_github_action_created": false,
+    "new_codex_app_automation_created": false,
+    "source_code_modified": false,
+    "runtime_or_production_data_touched": false
+  },
+  "automation": {
+    "output_root": "/home/l4nd0/.codex/automations/tenn",
+    "report_root": "/home/l4nd0/.codex/automations/tenn/reports",
+    "automation_worktree": "/home/l4nd0/tenn-codex-automations-v1-20260516",
+    "automation_worktree_branch": "safe/codex-automated-audit-runners-v1-20260516",
+    "automation_worktree_head": "31d5c80b8289de4baaf6546f42fdfe0aad23fa19",
+    "target_worktree_from_installed_units": "/home/l4nd0/tenn",
+    "target_worktree_resolved": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "timer_count": 7,
+    "timers_enabled": 7,
+    "timers_active_waiting": 7,
+    "services_loaded_inactive_dead": 7,
+    "services_result_success": 7,
+    "report_counts": {
+      "automation-health": 13,
+      "repo-hygiene": 8,
+      "extraction-regression": 7,
+      "bug-regression": 8,
+      "memory-drift": 1,
+      "doc-drift": 3,
+      "future-opportunities": 1
+    },
+    "latest_reports": {
+      "automation-health": "20260524T074548+1000-automation-health.md",
+      "repo-hygiene": "20260524T080048+1000-repo-hygiene.md",
+      "extraction-regression": "20260524T083048+1000-extraction-regression.md",
+      "bug-regression": "20260524T090048+1000-bug-regression.md",
+      "memory-drift": "20260522T110048+1000-memory-drift.md",
+      "doc-drift": "20260522T120048+1000-doc-drift.md",
+      "future-opportunities": "20260519T150031+1000-future-opportunities.md"
+    },
+    "automation_health_present": true,
+    "repo_hygiene_present": true,
+    "latest_repo_hygiene_collision_risk": "HIGH"
+  },
+  "data_missing": [
+    "systemctl --user show reports blank LastTriggerUSec for all timers except automation-health even though reports exist.",
+    "Service ExecMainStartTimestamp, ExecMainExitTimestamp, ActiveEnterTimestamp, and InactiveEnterTimestamp are n/a for all seven tenn-codex services.",
+    "No formal reviewed/unreviewed marker for automation reports was found.",
+    "Primary repo docs do not appear to own the automation runner docs/scripts directly; installed runner lives in /home/l4nd0/tenn-codex-automations-v1-20260516."
+  ],
+  "registry": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "list_active_before_claim": "passed_empty",
+    "check_overlap_before_claim": "passed",
+    "claim_ok": true,
+    "claim_session_id": "l4nd0-System-Product-Name:1088601:codex_workday_checkin_protocol_v1_20260521",
+    "claimed_at": "2026-05-24T07:36:22.078167Z",
+    "heartbeat_ok": true,
+    "release_ok": true,
+    "released_at": "2026-05-24T07:39:27.620051Z",
+    "removed_active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/codex_workday_checkin_protocol_v1_20260521.json",
+    "final_list_active": "passed_empty",
+    "final_check_overlap": "failed_unrelated_dirty_file"
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_list_active": "passed",
+    "registry_check_overlap": "passed before unrelated dirty appeared",
+    "json_validation": "passed",
+    "git_diff_check": "passed",
+    "agent_job_check_diff": "failed_unrelated_dirty_file",
+    "final_registry_check_overlap": "failed_unrelated_dirty_file",
+    "broad_tests": "not run; audit/report-only task"
+  },
+  "validation_blocker": {
+    "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+    "classification": "unrelated_dirty_task_card",
+    "lane": "Reporting",
+    "supporting_lanes": [
+      "Provenance",
+      "Evaluation"
+    ],
+    "reason": "Dirty outside this task card allowed_files; not owned, deleted, moved, rewritten, or absorbed by this job."
+  },
+  "final_git_status_short": [
+    "?? docs/agent_tasks/codex_workday_checkin_protocol_v1_20260521.md",
+    "?? docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md"
+  ],
+  "project_memory_recommendation": {
+    "decision": "SAVE_REQUIRED",
+    "reason": "PR #35/main Sloppy Fix state was live-confirmed resolved, and current May 24 automation report state updates the older May 21 handoff."
+  }
+}
