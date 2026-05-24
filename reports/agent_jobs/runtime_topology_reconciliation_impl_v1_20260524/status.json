@@ -1,33 +1,31 @@
 {
-  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/runtime_topology_reconciliation_impl_v1_20260524.json",
-  "agent": "Codex",
-  "allowed_files": [
-    "docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md",
-    "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524",
-    "docs/startup.md",
-    "docs/setup/environment.md",
-    "systemd/llama-cpp-router.service",
-    "scripts/storage_guard.py",
-    "financial-engine_v2/scripts/nightly_news.sh"
-  ],
-  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
-  "claimed_at": "2026-05-24T01:29:23.705304Z",
-  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
-  "heartbeat_at": "2026-05-24T01:29:23.705304Z",
   "job_id": "runtime_topology_reconciliation_impl_v1_20260524",
-  "lane": "Evaluation",
-  "last_seen_at": "2026-05-24T01:35:05.888207Z",
-  "output_dir": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524",
-  "owner": "Codex",
-  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
-  "registry_scope": "shared",
-  "released_at": "2026-05-24T01:35:05.888207Z",
-  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
-  "schema_version": 1,
-  "session_id": "l4nd0-System-Product-Name:78434:runtime_topology_reconciliation_impl_v1_20260524",
-  "started_at": "2026-05-24T01:29:23.705304Z",
-  "status": "released",
-  "task_card": "docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md",
-  "updated_at": "2026-05-24T01:35:05.888207Z",
-  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  "status": "complete",
+  "updated_at": "2026-05-24T01:50:22Z",
+  "canonical_entrypoint": "/home/l4nd0/tenn",
+  "canonical_resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_at_report_update": "2811153e6f05e55d3e7989779240cd6a2447458d",
+  "runtime_bindings": {
+    "docker_backend": "canonical bind mounts; backend TENN_GIT_HEAD refreshed with a no-build recreate",
+    "docker_worker": "canonical bind mounts; TENN_GIT_* provenance env not wired by compose",
+    "docker_gpu_worker": "canonical bind mounts; TENN_GIT_* provenance env not wired by compose",
+    "cockpit_ui": "listener :8081 cwd is canonical resolved cockpit-ui",
+    "llama": "listener :8001 cwd is canonical resolved repo",
+    "cron": "/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh",
+    "codex_automation_timers": "/home/l4nd0/tenn"
+  },
+  "validations": {
+    "backend_health": "PASS",
+    "nvme_runtime_endpoints": "PASS",
+    "task_card_validate": "PASS",
+    "git_diff_check": "PASS before final report update",
+    "registry_list_active": "PASS after orphan readiness release; empty",
+    "repo_status": "clean before final report update"
+  },
+  "data_missing_or_residual": [
+    "No full nightly news run; avoided live fetch/write artifacts.",
+    "fe_worker and fe_gpu_worker do not expose TENN_GIT_* env today.",
+    "fe_redis observed Exited (1), not changed in this approved scope."
+  ]
 }
