@@ -265,6 +265,9 @@ def test_cockpit_chat_metadata_marks_price_trend_missing_market_evidence(
     assert response.status_code == 200
     payload = response.json()["data"]
     metadata = payload["routing_metadata"]
+    assert payload["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert "market_data_missing: price or technical trend claims" in payload["text"]
+    assert "unsupported_or_not_verified: treat unsupported claim families" in payload["text"]
     assert "context_only" in payload["sources"][0]["evidence_labels"]
     assert payload["sources"][0]["claim_verified"] is False
     assert metadata["source_coverage_status"] == "missing_required_evidence"
@@ -345,6 +348,11 @@ def test_cockpit_chat_stream_metadata_marks_price_trend_missing_market_evidence(
     ]
     done_events = [event for event in data_events if event.get("type") == "done"]
     assert done_events, body
+    assert done_events[-1]["data"]["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert (
+        "market_data_missing: price or technical trend claims"
+        in done_events[-1]["data"]["text"]
+    )
     metadata = done_events[-1]["data"]["routing_metadata"]
     assert metadata["source_coverage_status"] == "missing_required_evidence"
     assert "market_data_missing" in metadata["evidence_labels"]
@@ -388,9 +396,16 @@ def test_cockpit_chat_stateless_smoke_non_stream_skips_persistence_and_auto_flag
         def chat_stream(self, **kwargs):
             captured.update(kwargs)
             return SimpleNamespace(
-                text=(
-                    "CSL looks bearish on the current price trend, while the "
-                    "filing shows a buy-back notice."
+                text="\n".join(
+                    [
+                        "Facts from financial truth:",
+                        "- no canonical financial rows were returned",
+                        "Interpretation from company memory:",
+                        "- observed fact: CSL's share price dropped amid chaotic "
+                        "trading after CEO resignation announcement",
+                        "CSL looks bearish on the current price trend, while the "
+                        "filing shows a buy-back notice.",
+                    ]
                 ),
                 evidence=[
                     {
@@ -454,10 +469,22 @@ def test_cockpit_chat_stateless_smoke_non_stream_skips_persistence_and_auto_flag
     assert metadata["chat_persistence"] == "disabled"
     assert metadata["source_coverage_status"] == "missing_required_evidence"
     assert "market_data_missing" in metadata["evidence_labels"]
+    assert "metric_extraction_missing" in metadata["evidence_labels"]
     assert "unsupported_or_not_verified" in metadata["evidence_labels"]
+    assert metadata["missing_evidence_categories"] == [
+        "market_data",
+        "metric_extraction",
+    ]
     assert metadata["unsupported_claim_families"] == [
         "market_price_or_technical_trend"
     ]
+    assert payload["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert "metric_extraction_missing: canonical metric" in payload["text"]
+    assert (
+        "Context-only company memory (not verified market/technical evidence):"
+        in payload["text"]
+    )
+    assert "context-only company memory note (not market-verified)" in payload["text"]
 
 
 def test_cockpit_chat_normal_non_stream_keeps_persistence_enabled(
@@ -593,6 +620,8 @@ def test_cockpit_chat_stateless_smoke_stream_skips_persistence_and_auto_flag(
     assert metadata["stateless_smoke"] is True
     assert metadata["chat_persistence"] == "disabled"
     assert "market_data_missing" in metadata["evidence_labels"]
+    assert done["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert "unsupported_or_not_verified: treat unsupported claim families" in done["text"]
 
 
 def test_memory_read_event_suppression_preserves_normal_writes(tmp_path) -> None:
@@ -783,10 +812,13 @@ def test_cockpit_chat_metadata_marks_metric_extraction_missing(monkeypatch) -> N
 
     assert response.status_code == 200
     metadata = response.json()["data"]["routing_metadata"]
+    text = response.json()["data"]["text"]
     assert metadata["source_coverage_status"] == "missing_required_evidence"
     assert "metric_extraction_missing" in metadata["evidence_labels"]
     assert metadata["missing_evidence_categories"] == ["metric_extraction"]
     assert metadata["unsupported_claim_families"] == ["financial_metric"]
+    assert text.startswith("DATA_MISSING / evidence gaps:")
+    assert "metric_extraction_missing: canonical metric" in text
 
 
 def test_cockpit_chat_non_stream_allows_control_prompt_ok_without_sources(
@@ -2303,7 +2335,9 @@ def test_cockpit_chat_stream_financial_truth_missing_rows_surfaces_missing_evide
     done_events = [event for event in data_events if event.get("type") == "done"]
     source_events = [event for event in data_events if event.get("type") == "sources"]
 
-    assert done_events[-1]["data"]["text"] == "No canonical financial rows were returned for BHP."
+    assert done_events[-1]["data"]["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert "metric_extraction_missing: canonical metric" in done_events[-1]["data"]["text"]
+    assert "No canonical financial rows were returned for BHP." in done_events[-1]["data"]["text"]
     item = source_events[-1]["data"]["items"][0]
     assert item["source_id"] == "financial_truth:no_hit:bhp"
     assert item["evidence_label"] == "missing_required_evidence"
@@ -2311,6 +2345,7 @@ def test_cockpit_chat_stream_financial_truth_missing_rows_surfaces_missing_evide
     routing = done_events[-1]["data"]["routing_metadata"]
     assert routing["source_coverage_status"] == "missing_required_evidence"
     assert routing["claim_verified_source_count"] == 0
+    assert "metric_extraction_missing" in routing["evidence_labels"]
 
 
 def test_cockpit_chat_stream_web_tool_failure_surfaces_degraded_runtime(

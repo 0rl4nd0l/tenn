@@ -1,0 +1,70 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_v1_20260524.md",
+        "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+        "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/README.md",
+        "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/status.json",
+        "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/validation.json",
+        "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_chat_visible_evidence_gap_labels_v1_20260524",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_chat_visible_evidence_gap_labels_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 21600
+    },
+    "ok": true
+  }
+}

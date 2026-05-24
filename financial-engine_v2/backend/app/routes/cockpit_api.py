@@ -45,7 +45,10 @@ from app.services.cockpit_service import (
     normalize_chat_runtime_target,
     normalize_chat_routing_policy_preference,
 )
-from app.services.chat_evidence_guard import enrich_chat_metadata_with_evidence_guard
+from app.services.chat_evidence_guard import (
+    apply_visible_evidence_gap_labels,
+    enrich_chat_metadata_with_evidence_guard,
+)
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
     build_home_narrative_snapshot,
@@ -9903,6 +9906,10 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             if stateless_smoke:
                 ui_metadata["stateless_smoke"] = True
                 ui_metadata["chat_persistence"] = "disabled"
+            response.text = apply_visible_evidence_gap_labels(
+                str(response.text or ""),
+                ui_metadata,
+            )
             rendered_chart = _build_chart_from_chat_response(response)
             if stateless_smoke:
                 auto_flag = None
@@ -10008,6 +10015,10 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 if stateless_smoke:
                     ui_metadata["stateless_smoke"] = True
                     ui_metadata["chat_persistence"] = "disabled"
+                response.text = apply_visible_evidence_gap_labels(
+                    str(response.text or ""),
+                    ui_metadata,
+                )
                 rendered_chart = _build_chart_from_chat_response(response)
                 if stateless_smoke:
                     auto_flag = None

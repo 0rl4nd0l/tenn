@@ -61,6 +61,12 @@ _LOCAL_HOLDINGS_RE = re.compile(
     r"unrealized (?:p&l|profit|loss)|unrealised (?:p&l|profit|loss))\b",
     re.IGNORECASE,
 )
+_MISSING_CANONICAL_FINANCIAL_ROWS_RE = re.compile(
+    r"\b(?:no canonical financial rows were returned|no canonical financial rows|"
+    r"financial rows (?:were )?(?:not returned|unavailable|missing)|"
+    r"no (?:extracted|canonical) financial (?:metrics|rows))\b",
+    re.IGNORECASE,
+)
 
 _PRICE_SOURCE_PREFIXES = (
     "local_price:",
@@ -77,6 +83,31 @@ _NON_EVIDENCE_LABELS = {
     "degraded_runtime",
 }
 _NO_HIT_DOC_TYPES = {"operational_no_hit", "runtime_failure", "missing_required_evidence"}
+VISIBLE_GAP_LABELS = (
+    "market_data_missing",
+    "unsupported_or_not_verified",
+    "metric_extraction_missing",
+    "missing_required_evidence",
+)
+
+_VISIBLE_GAP_COPY = {
+    "market_data_missing": (
+        "market_data_missing: price or technical trend claims are not verified by "
+        "visible market-price or technical evidence."
+    ),
+    "unsupported_or_not_verified": (
+        "unsupported_or_not_verified: treat unsupported claim families as "
+        "unverified context, not verified conclusions."
+    ),
+    "metric_extraction_missing": (
+        "metric_extraction_missing: canonical metric or financial-row evidence "
+        "is missing or incomplete."
+    ),
+    "missing_required_evidence": (
+        "missing_required_evidence: required evidence is absent for at least "
+        "one claim."
+    ),
+}
 
 
 def _string_array(value: Any) -> list[str]:
@@ -109,6 +140,8 @@ def detect_claim_families(answer_text: str, metadata: Mapping[str, Any] | None =
     """Return broad claim families that need matching evidence classes."""
     text = str(answer_text or "")
     families: set[str] = set()
+    if re.match(r"\s*Recent videos from\b", text, re.IGNORECASE):
+        return families
     if _MARKET_TREND_CLAIM_RE.search(text):
         families.add(MARKET_PRICE_OR_TECHNICAL_TREND)
     if _FINANCIAL_METRIC_CLAIM_RE.search(text):
@@ -278,6 +311,9 @@ def evaluate_chat_evidence_requirements(
 
     if unsupported_families:
         labels.update({"missing_required_evidence", "unsupported_or_not_verified"})
+    if _MISSING_CANONICAL_FINANCIAL_ROWS_RE.search(answer_text):
+        missing_categories.add("metric_extraction")
+        labels.update({"metric_extraction_missing", "missing_required_evidence"})
     if context_only_families:
         labels.add("context_only")
 
@@ -325,10 +361,103 @@ def enrich_chat_metadata_with_evidence_guard(
         enriched["evidence_requirement_labels"] = evaluation["evidence_requirement_labels"]
         enriched["claim_evidence_requirements"] = evaluation["claim_evidence_requirements"]
 
-    if evaluation["unsupported_claim_families"]:
+    if evaluation["unsupported_claim_families"] or evaluation["missing_evidence_categories"]:
         current_status = str(enriched.get("source_coverage_status") or "").strip()
         if current_status not in {"degraded_runtime", "local_personal_data"}:
             enriched["source_coverage_status"] = "missing_required_evidence"
         enriched["sufficient_for_analysis"] = False
 
     return enriched
+
+
+def _metadata_gap_labels(metadata: Mapping[str, Any]) -> list[str]:
+    labels = set(_string_array(metadata.get("evidence_labels")))
+    labels.update(_string_array(metadata.get("evidence_requirement_labels")))
+    source_status = str(metadata.get("source_coverage_status") or "").strip()
+    if source_status:
+        labels.add(source_status)
+
+    missing_categories = set(_string_array(metadata.get("missing_evidence_categories")))
+    missing_categories.update(_string_array(metadata.get("missing_categories_after_recovery")))
+    if "market_data" in missing_categories:
+        labels.add("market_data_missing")
+    if "metric_extraction" in missing_categories:
+        labels.add("metric_extraction_missing")
+    if missing_categories:
+        labels.add("missing_required_evidence")
+
+    return [label for label in VISIBLE_GAP_LABELS if label in labels]
+
+
+def _qualify_context_memory_sections(answer_text: str, *, has_market_gap: bool) -> str:
+    lines = answer_text.splitlines()
+    qualified: list[str] = []
+    section: str | None = None
+
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        lower = stripped.lower()
+        if lower == "interpretation from company memory:":
+            section = "company"
+            qualified.append(
+                "Context-only company memory (not verified market/technical evidence):"
+                if has_market_gap
+                else "Context-only company memory:"
+            )
+            continue
+        if lower == "external context from market memory:":
+            section = "market"
+            qualified.append(
+                "Context-only market memory (not verified market/technical evidence):"
+                if has_market_gap
+                else "Context-only market memory:"
+            )
+            continue
+        if stripped and not stripped.startswith("-") and stripped.endswith(":"):
+            section = None
+
+        if section and stripped.startswith("-") and "context-only" not in lower:
+            prefix, _, detail = raw_line.partition("-")
+            label = (
+                "context-only company memory note (not market-verified)"
+                if section == "company" and has_market_gap
+                else f"context-only {section} memory note"
+            )
+            qualified.append(f"{prefix}- {label}: {detail.strip()}")
+            continue
+
+        qualified.append(raw_line)
+
+    return "\n".join(qualified)
+
+
+def apply_visible_evidence_gap_labels(
+    answer_text: str,
+    metadata: Mapping[str, Any],
+) -> str:
+    """Make response-level evidence gaps visible in the answer text itself."""
+    text = str(answer_text or "")
+    gap_labels = _metadata_gap_labels(metadata)
+    if not gap_labels:
+        return text
+    if "DATA_MISSING / evidence gaps:" in text[:1000]:
+        return text
+
+    gap_block = "\n".join(
+        [
+            "DATA_MISSING / evidence gaps:",
+            *[f"- {_VISIBLE_GAP_COPY[label]}" for label in gap_labels],
+            "",
+            "Answer below is context-only for those gap areas; do not treat "
+            "price, technical, or memory-derived lines as verified unless a "
+            "visible source explicitly supports them.",
+        ]
+    )
+    qualified_text = _qualify_context_memory_sections(
+        text,
+        has_market_gap=(
+            "market_data_missing" in gap_labels
+            or "unsupported_or_not_verified" in gap_labels
+        ),
+    )
+    return f"{gap_block}\n\n{qualified_text}".strip()
