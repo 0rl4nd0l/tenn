@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
+import { deriveChatEvidenceActionability } from '@/lib/cockpit-chat-actionability'
 import {
   Dialog,
   DialogContent,
@@ -71,6 +72,7 @@ type AnalystShell = {
   keyFacts: string[]
   gaps: string[]
   sourceWarnings: string[]
+  evidenceStateLabels: string[]
   nextActions: Array<{ label: string; enabled: boolean; onClick?: () => void }>
 }
 
@@ -207,8 +209,13 @@ function buildAnalystShell(
     || null
   const sourceCount = message.sources?.length || 0
   const toolCount = message.toolTraces?.length || 0
+  const evidenceActionability = deriveChatEvidenceActionability(message)
   const missingFromMetadata = analyst?.missingCategories || stringArray(routing.missing_categories_after_recovery)
-  const gaps = Array.from(new Set([...missingFromMetadata, ...extractTextGaps(message.content)]))
+  const gaps = Array.from(new Set([
+    ...missingFromMetadata,
+    ...extractTextGaps(message.content),
+    ...evidenceActionability.gaps,
+  ]))
   const sourceWarnings = sourceStatusWarnings(analyst?.sourceStatus || asRecord(routing.source_status))
   const responseClassification = analyst?.responseClassification || String(routing.response_classification || '')
   const groundingGuard = analyst?.groundingGuard || String(routing.grounding_guard || '')
@@ -273,6 +280,12 @@ function buildAnalystShell(
     trustLabel = 'Confirmation required'
   } else if (hasEvidenceLabel('degraded_runtime')) {
     trustLabel = 'Degraded runtime'
+  } else if (evidenceActionability.stateCodes.includes('market_data_missing')) {
+    trustLabel = 'Market data missing'
+  } else if (evidenceActionability.stateCodes.includes('metric_extraction_missing')) {
+    trustLabel = 'Metrics missing'
+  } else if (evidenceActionability.stateCodes.includes('unsupported_or_not_verified')) {
+    trustLabel = 'Unsupported / not verified'
   } else if (groundingGuard) {
     trustLabel = 'Unsupported claim blocked'
   } else if (sufficientForAnalysis === false || gaps.length > 0) {
@@ -292,6 +305,10 @@ function buildAnalystShell(
   let sourceSummaryLabel: string | null = null
   if (hasEvidenceLabel('degraded_runtime')) {
     sourceSummaryLabel = 'Runtime degraded'
+  } else if (evidenceActionability.stateCodes.includes('market_data_missing')) {
+    sourceSummaryLabel = 'Market evidence missing'
+  } else if (evidenceActionability.stateCodes.includes('metric_extraction_missing')) {
+    sourceSummaryLabel = 'Metric extraction missing'
   } else if (groundingGuard || hasEvidenceLabel('missing_required_evidence') || gaps.length > 0) {
     sourceSummaryLabel = 'Evidence incomplete'
   } else if (claimVerifiedSourceCount > 0 || hasEvidenceLabel('claim_verified')) {
@@ -319,6 +336,11 @@ function buildAnalystShell(
   if (gaps.some((gap) => /financial|rows/i.test(gap))) {
     nextActions.push({ label: 'Backfill financials', enabled: false })
   }
+  for (const action of evidenceActionability.suggestedActions) {
+    if (!nextActions.some((item) => item.label === action.label)) {
+      nextActions.push(action)
+    }
+  }
   return {
     shouldRender,
     entityLabel,
@@ -332,6 +354,7 @@ function buildAnalystShell(
     keyFacts: extractKeyFacts(message.content),
     gaps,
     sourceWarnings,
+    evidenceStateLabels: evidenceActionability.stateLabels,
     nextActions,
   }
 }
@@ -638,6 +661,19 @@ export function TerminalMessage({
             </span>
             {analystShell.sourceSummaryLabel ? <span>{analystShell.sourceSummaryLabel}</span> : null}
           </div>
+
+          {analystShell.evidenceStateLabels.length > 0 ? (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-blue-300/70">
+                Evidence state
+              </span>
+              {analystShell.evidenceStateLabels.map((label) => (
+                <span key={label} className="rounded border border-zinc-600 bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-zinc-200">
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
           {(analystShell.gaps.length > 0 || analystShell.sourceWarnings.length > 0) ? (
             <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/[0.08] p-2 text-amber-100">

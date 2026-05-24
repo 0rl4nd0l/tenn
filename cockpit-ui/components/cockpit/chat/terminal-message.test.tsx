@@ -141,6 +141,9 @@ describe('TerminalMessage', () => {
     expect(screen.getByText('Missing data / gaps')).toBeInTheDocument()
     expect(screen.getByText('financials')).toBeInTheDocument()
     expect(screen.getByText('market_context')).toBeInTheDocument()
+    expect(screen.getByText('Metric extraction missing')).toBeInTheDocument()
+    expect(screen.getByText('Market data missing')).toBeInTheDocument()
+    expect(screen.getByText('Run metric extraction (not connected)')).toBeInTheDocument()
   })
 
   it('does not call no-hit audit sources source-backed', () => {
@@ -207,6 +210,85 @@ describe('TerminalMessage', () => {
 
     expect(screen.getByText('Context sources')).toBeInTheDocument()
     expect(screen.queryByText(/Financial facts: source-backed/i)).not.toBeInTheDocument()
+  })
+
+  it('surfaces CSL filing-only price trend claims as market data missing', () => {
+    render(
+      <TerminalMessage
+        showSources={false}
+        message={buildAssistantMessage({
+          content: 'CSL looks bearish on the current price trend, while the filing shows a buy-back notice.',
+          metadata: {
+            source: 'orchestrator',
+            analyst: {
+              ticker: 'CSL',
+              entity: 'CSL',
+              evidenceLabels: ['context_only'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'context_only',
+            },
+          },
+          sources: [
+            {
+              title: 'CSL Appendix 3C buy-back notice',
+              score: 0.91,
+              kind: 'document',
+              docType: 'asx_announcement',
+              snippet: 'CSL lodged a buy-back notice.',
+              evidenceLabel: 'context_only',
+              evidenceLabels: ['context_only'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getByText('Entity: CSL')).toBeInTheDocument()
+    expect(screen.getByText('Evidence state')).toBeInTheDocument()
+    expect(screen.getByText('Market data missing')).toBeInTheDocument()
+    expect(screen.getByText('Context only')).toBeInTheDocument()
+    expect(screen.getByText('Unsupported / not verified')).toBeInTheDocument()
+    expect(screen.getByText('market_data_missing')).toBeInTheDocument()
+    expect(screen.getByText('Pull market data (not connected)')).toBeInTheDocument()
+    expect(screen.queryByText('Claim-supported')).not.toBeInTheDocument()
+    expect(screen.queryByText('Verified sources')).not.toBeInTheDocument()
+  })
+
+  it('surfaces degraded runtime evidence state without hiding it behind context', () => {
+    render(
+      <TerminalMessage
+        showSources={false}
+        message={buildAssistantMessage({
+          content: 'Runtime was degraded, so the answer is incomplete.',
+          metadata: {
+            source: 'local',
+            analyst: {
+              evidenceLabels: ['degraded_runtime', 'context_only'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'degraded_runtime',
+            },
+          },
+          sources: [
+            {
+              title: 'Runtime failure',
+              score: 0,
+              kind: 'context',
+              docType: 'runtime_failure',
+              snippet: 'Provider error affected synthesis.',
+              evidenceLabel: 'degraded_runtime',
+              evidenceLabels: ['degraded_runtime', 'operational_trace'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getAllByText('Degraded runtime').length).toBeGreaterThan(0)
+    expect(screen.getByText('Runtime degraded')).toBeInTheDocument()
+    expect(screen.getByText('degraded_runtime')).toBeInTheDocument()
+    expect(screen.queryByText('Claim-supported')).not.toBeInTheDocument()
   })
 
   it('renders action proposals as confirmation-gated and does not auto-run', async () => {
