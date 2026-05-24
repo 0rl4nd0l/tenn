@@ -1,0 +1,126 @@
+{
+  "job_id": "strategy_lab_artifact_review_value_layer_v1_20260524",
+  "status": "completed_with_data_missing_validation",
+  "schema_version": 1,
+  "generated_at": "2026-05-24T07:05:54Z",
+  "worktree": "/home/l4nd0/tenn-strategy-lab-artifact-review-value-layer-v1-20260524",
+  "shared_tenn_realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch_before": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "0141021b4622b999e3c5ca82f3dd6f559186cda9",
+  "branch_after": "safe/strategy-lab-artifact-review-value-layer-v1-20260524",
+  "head_after": "0141021b4622b999e3c5ca82f3dd6f559186cda9",
+  "required_ancestor_check": {
+    "commit": "0211a5b46091cd4858e402d10e3499a1e96819ab",
+    "is_ancestor_exit_code": 0
+  },
+  "task_card": {
+    "path": "docs/agent_tasks/strategy_lab_artifact_review_value_layer_v1_20260524.md",
+    "mutation_mode": "safe_extension",
+    "production_data_access": false,
+    "timeout_seconds": 7200,
+    "validated": true
+  },
+  "registry": {
+    "initial_active_jobs": [],
+    "check_overlap_ok": true,
+    "claimed": true,
+    "released": true,
+    "final_active_jobs": []
+  },
+  "artifact_review_user_visible": true,
+  "artifact_review_route": "/api/cockpit/strategy-lab/artifacts",
+  "status_route": "/api/cockpit/strategy-lab/status",
+  "source_mode": "repo_artifacts_only",
+  "strategy_lab_artifact_v1_sources": [
+    "docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json",
+    "docs/strategy_lab/artifact_fixtures/valid_regime_breakdown_v1.json",
+    "docs/strategy_lab/artifact_fixtures/valid_strategy_idea_v1.json"
+  ],
+  "helper_pre_envelope_sources": [
+    "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/backtest_run.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/regime_breakdown.json"
+  ],
+  "report_sources": [
+    "reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/README.md"
+  ],
+  "wording_labels_visible": [
+    "PENDING REVIEW",
+    "READ ONLY",
+    "NO LIVE TRADING",
+    "NO PAPER TRADING",
+    "NO REAL TRANSPORT",
+    "NO CANONICAL FINANCIAL TRUTH",
+    "NO STORE WRITES",
+    "DATA_MISSING"
+  ],
+  "sidecar_smoke_task_card_drafted_not_executed": "docs/agent_tasks/strategy_lab_quantdinger_sidecar_smoke_readonly_plan_v1_20260524.md",
+  "forbidden_surfaces_not_touched": [
+    "trading",
+    "broker",
+    "paper_live_execution",
+    "token_issuance",
+    "market_orders",
+    "portfolio_mutation",
+    "db_writes",
+    "qdrant_writes",
+    "news_writes",
+    "memory_writes",
+    "canonical_financial_truth_writes",
+    "artifact_store_writes",
+    "runtime_or_model_or_gpu_changes",
+    "dependency_install",
+    "service_startup",
+    "real_quantdinger_transport"
+  ],
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_artifact_review_value_layer_v1_20260524.md --write-report",
+      "result": "passed",
+      "details": "ok=true"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_artifact_review_value_layer_v1_20260524.md --repo-root .",
+      "result": "passed",
+      "details": "ok=true"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_quantdinger_sidecar_smoke_readonly_plan_v1_20260524.md",
+      "result": "passed",
+      "details": "ok=true"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed",
+      "details": "no output"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_artifact_review_value_layer_v1_20260524.md --repo-root .",
+      "result": "passed",
+      "details": "ok=true; disallowed_files=[]"
+    },
+    {
+      "command": "python3 -m unittest tests.strategy_lab.test_strategy_lab_mocked_adapter_phase3b_reconciled tests.strategy_lab.test_strategy_lab_offline_mock_transport_phase3c",
+      "result": "passed",
+      "details": "Ran 23 tests in 0.026s; OK"
+    },
+    {
+      "command": "jq empty reports/agent_jobs/strategy_lab_artifact_review_value_layer_v1_20260524/status.json reports/agent_jobs/strategy_lab_artifact_review_value_layer_v1_20260524/validation.json reports/agent_jobs/strategy_lab_artifact_review_value_layer_v1_20260524/diff-check.json",
+      "result": "passed",
+      "details": "no output"
+    }
+  ],
+  "data_missing": [
+    "Focused Vitest unavailable: no cockpit-ui/node_modules and no dependency install allowed.",
+    "Targeted ESLint unavailable: no cockpit-ui/node_modules and no dependency install allowed.",
+    "tsc --noEmit unavailable: no cockpit-ui/node_modules and no dependency install allowed.",
+    "Browser smoke unavailable: no frontend dev server support in isolated worktree without installing dependencies.",
+    "No real QuantDinger sidecar transport, auth, retry, timeout, unavailable behavior, or current endpoint capability confirmed.",
+    "No runtime artifact store, human review queue, or promotion workflow implemented."
+  ],
+  "remaining_risks": [
+    "Frontend command and browser validation remain DATA_MISSING until dependencies are available.",
+    "Artifact review is repo-only and not a persisted review queue.",
+    "Helper/pre-envelope evidence is visible only as non-authoritative context."
+  ],
+  "save_recommendation": "Save as a narrow Reporting safe-extension after accepting DATA_MISSING frontend dependency checks or rerunning them where Cockpit frontend dependencies are available."
+}

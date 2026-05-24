@@ -28,10 +28,14 @@ describe('StrategyLabStatusCard', () => {
 
     expect(await screen.findByText('PENDING REVIEW')).toBeInTheDocument();
     expect(screen.getByText('Strategy Lab / QuantDinger')).toBeInTheDocument();
-    expect(screen.getByText('No live trading')).toBeInTheDocument();
-    expect(screen.getByText('No real transport')).toBeInTheDocument();
-    expect(screen.getByText('No canonical truth')).toBeInTheDocument();
+    expect(screen.getByText('READ ONLY')).toBeInTheDocument();
+    expect(screen.getByText('NO LIVE TRADING')).toBeInTheDocument();
+    expect(screen.getByText('NO PAPER TRADING')).toBeInTheDocument();
+    expect(screen.getByText('NO REAL TRANSPORT')).toBeInTheDocument();
+    expect(screen.getByText('NO STORE WRITES')).toBeInTheDocument();
+    expect(screen.getByText('NO CANONICAL FINANCIAL TRUTH')).toBeInTheDocument();
     expect(screen.getByText('9/9 available')).toBeInTheDocument();
+    expect(screen.getByText('DATA_MISSING')).toBeInTheDocument();
     expect(screen.getByText(/No real QuantDinger sidecar capability/)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/cockpit/strategy-lab/status',

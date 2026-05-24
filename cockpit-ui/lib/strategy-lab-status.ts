@@ -31,8 +31,9 @@ export interface StrategyLabStatusResponse {
   schema_version: 'cockpit_strategy_lab_status_v1';
   generated_at: string;
   overall_state: 'pending_review_read_only';
-  cockpit_ui_entrypoint: 'home_status_card';
+  cockpit_ui_entrypoint: 'home_status_and_artifact_review_cards';
   status_route: '/api/cockpit/strategy-lab/status';
+  artifact_review_route: '/api/cockpit/strategy-lab/artifacts';
   headline: string;
   artifact_refs: StrategyLabArtifactRef[];
   capability_status: StrategyLabCapabilityStatus[];
@@ -128,8 +129,9 @@ export function buildStrategyLabStatusResponse({
     schema_version: 'cockpit_strategy_lab_status_v1',
     generated_at: generatedAt,
     overall_state: 'pending_review_read_only',
-    cockpit_ui_entrypoint: 'home_status_card',
+    cockpit_ui_entrypoint: 'home_status_and_artifact_review_cards',
     status_route: '/api/cockpit/strategy-lab/status',
+    artifact_review_route: '/api/cockpit/strategy-lab/artifacts',
     headline:
       'Strategy Lab / QuantDinger is visible as read-only pending-review evidence, not live trading functionality.',
     artifact_refs: artifactRefs,
@@ -188,7 +190,7 @@ export function buildStrategyLabStatusResponse({
     ],
     next_safe_actions: [
       'Review the pending Strategy Lab artifact fixtures and Phase 3G preservation report.',
-      'Use a separate task card for any artifact review queue or route-specific Strategy Lab page.',
+      'Use the repo-only artifact review route for existing fixtures and reports.',
       'Keep any future real sidecar smoke isolated, explicitly approved, and non-trading.',
     ],
   };

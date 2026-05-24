@@ -80,6 +80,7 @@ describe('Strategy Lab status contract', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(payload.status_route).toBe('/api/cockpit/strategy-lab/status');
+    expect(payload.artifact_review_route).toBe('/api/cockpit/strategy-lab/artifacts');
     expect(payload.artifact_refs.find((ref) => ref.id === 'phase3g_mergeback_report')?.availability).toBe('available');
     expect(payload.boundary_flags.live_trading).toBe(false);
   });

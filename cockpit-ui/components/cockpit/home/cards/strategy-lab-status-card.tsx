@@ -98,11 +98,16 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
       </CardHeader>
       <CardContent className="p-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <BoundaryPill label="Read only" active={payload.boundary_flags.read_only} />
-            <BoundaryPill label="No live trading" active={!payload.boundary_flags.live_trading} />
-            <BoundaryPill label="No real transport" active={!payload.boundary_flags.real_transport} />
-            <BoundaryPill label="No canonical truth" active={!payload.boundary_flags.canonical_financial_truth} />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+            <BoundaryPill label="READ ONLY" active={payload.boundary_flags.read_only} />
+            <BoundaryPill label="NO LIVE TRADING" active={!payload.boundary_flags.live_trading} />
+            <BoundaryPill label="NO PAPER TRADING" active={!payload.boundary_flags.paper_trading} />
+            <BoundaryPill label="NO REAL TRANSPORT" active={!payload.boundary_flags.real_transport} />
+            <BoundaryPill label="NO STORE WRITES" active={!payload.boundary_flags.store_writes} />
+            <BoundaryPill
+              label="NO CANONICAL FINANCIAL TRUTH"
+              active={!payload.boundary_flags.canonical_financial_truth}
+            />
           </div>
 
           <div className="rounded-md border border-border/50 bg-background/40 p-3">
@@ -170,7 +175,7 @@ function BoundaryPill({ label, active }: { label: string; active: boolean }) {
   return (
     <div
       className={cn(
-        'min-h-10 rounded-md border px-3 py-2 flex items-center text-[10px] font-mono uppercase leading-tight',
+        'min-h-11 rounded-md border px-2.5 py-2 flex items-center text-[9px] font-mono uppercase leading-tight',
         active
           ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
           : 'border-amber-500/30 bg-amber-500/5 text-amber-300',
