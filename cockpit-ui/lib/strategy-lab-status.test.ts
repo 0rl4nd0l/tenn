@@ -45,6 +45,20 @@ describe('Strategy Lab status contract', () => {
     expect(payload.capability_status.find((capability) => capability.id === 'real_transport')?.state).toBe('absent');
     expect(payload.capability_status.find((capability) => capability.id === 'trading')?.state).toBe('forbidden');
     expect(payload.data_missing.join(' ')).toContain('No real QuantDinger sidecar capability');
+    expect(payload.quantdinger_status).toMatchObject({
+      review_status: 'PENDING_REVIEW',
+      read_only: true,
+      real_transport: 'not_integrated',
+      current_sidecar_available: false,
+      live_trading: false,
+      paper_order_placement: false,
+      canonical_financial_truth: false,
+      store_writes: false,
+      last_readonly_sidecar_smoke: 'SMOKE_PASSED',
+      last_readonly_sidecar_smoke_review_status: 'PENDING_REVIEW',
+      last_readonly_sidecar_smoke_commit: '0ee837f7dc0706f1b0ff6d6c900522f4c2b43090',
+      sidecar_runtime_state: 'stopped_after_cleanup',
+    });
   });
 
   it('reports artifact availability from the workspace without writing stores', () => {
@@ -83,5 +97,7 @@ describe('Strategy Lab status contract', () => {
     expect(payload.artifact_review_route).toBe('/api/cockpit/strategy-lab/artifacts');
     expect(payload.artifact_refs.find((ref) => ref.id === 'phase3g_mergeback_report')?.availability).toBe('available');
     expect(payload.boundary_flags.live_trading).toBe(false);
+    expect(payload.quantdinger_status.current_sidecar_available).toBe(false);
+    expect(payload.quantdinger_status.last_readonly_sidecar_smoke_report_available).toBe(false);
   });
 });

@@ -5,12 +5,22 @@ export type StrategyLabReviewEvidenceKind =
 
 export type StrategyLabReviewAvailability = 'available' | 'missing' | 'invalid_json';
 
+export type StrategyLabHistoricalEvidenceStatus =
+  | 'historical_partial_milestone'
+  | 'historical_smoke_proof'
+  | 'DATA_MISSING';
+
 export interface StrategyLabReviewSource {
   id: string;
   label: string;
   evidence_kind: StrategyLabReviewEvidenceKind;
   authoritative: boolean;
   source_path: string;
+  preserved_commit?: string;
+  preserved_subject?: string;
+  historical_status?: StrategyLabHistoricalEvidenceStatus;
+  current_runtime_available?: false;
+  paper_order_placement?: false;
   what_it_proves: string[];
   what_it_does_not_prove: string[];
   data_missing: string[];
@@ -24,6 +34,11 @@ export interface StrategyLabReviewArtifact {
   availability: StrategyLabReviewAvailability;
   source_path: string;
   source_report_path: string;
+  preserved_commit: string;
+  preserved_subject: string;
+  historical_status: StrategyLabHistoricalEvidenceStatus;
+  current_runtime_available: false | 'DATA_MISSING';
+  paper_order_placement: false | 'DATA_MISSING';
   schema_version: string;
   artifact_id: string;
   artifact_type: string;
@@ -156,6 +171,48 @@ export const STRATEGY_LAB_REVIEW_SOURCES: StrategyLabReviewSource[] = [
     ],
     data_missing: ['artifact_envelope_fields', 'live_sidecar_transport', 'review_queue'],
   },
+  {
+    id: 'quantdinger_complete_next_phases_historical_milestone',
+    label: 'QuantDinger complete-and-next-phases milestone',
+    evidence_kind: 'report_evidence',
+    authoritative: false,
+    source_path: 'reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/README.md',
+    preserved_commit: '72c6d95c70d5b8f6e4ab816967dacc14692941ef',
+    preserved_subject: 'milestone(reporting): preserve quantdinger next phases evidence',
+    historical_status: 'historical_partial_milestone',
+    current_runtime_available: false,
+    paper_order_placement: false,
+    what_it_proves: [
+      'A preserved historical report records QuantDinger complete-and-next-phases decision evidence.',
+      'The milestone is useful as partial planning context for Strategy Lab review.',
+    ],
+    what_it_does_not_prove: [
+      'It does not prove current QuantDinger runtime, current sidecar availability, or transport integration.',
+      'It must not override the later read-only smoke proof preserved at commit 0ee837f7.',
+    ],
+    data_missing: ['current_sidecar_runtime', 'current_transport_probe', 'review_owner_decision'],
+  },
+  {
+    id: 'quantdinger_readonly_sidecar_smoke_proof',
+    label: 'QuantDinger read-only sidecar smoke proof',
+    evidence_kind: 'report_evidence',
+    authoritative: false,
+    source_path: 'reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_smoke_exec_v1_20260524/status.json',
+    preserved_commit: '0ee837f7dc0706f1b0ff6d6c900522f4c2b43090',
+    preserved_subject: 'milestone(reporting): preserve quantdinger readonly smoke proof',
+    historical_status: 'historical_smoke_proof',
+    current_runtime_available: false,
+    paper_order_placement: false,
+    what_it_proves: [
+      'A later preserved commit records a bounded loopback read-only smoke that passed and remains PENDING_REVIEW.',
+      'The smoke evidence supports historical last_readonly_sidecar_smoke=SMOKE_PASSED only.',
+    ],
+    what_it_does_not_prove: [
+      'It does not prove current sidecar availability because the smoke runtime was cleaned up after execution.',
+      'It does not enable live trading, paper order placement, or canonical financial truth writes.',
+    ],
+    data_missing: ['report_file_in_current_worktree', 'current_sidecar_runtime', 'current_transport_probe'],
+  },
 ];
 
 export function buildStrategyLabArtifactsResponse({
@@ -184,6 +241,7 @@ export function buildStrategyLabArtifactsResponse({
     },
     data_missing: [
       'No real QuantDinger sidecar transport, auth, retry, timeout, or unavailable behavior is confirmed.',
+      'The read-only smoke proof is preserved at commit 0ee837f7 but its report bundle is not checked out in this worktree.',
       'No Cockpit artifact persistence store, review decision queue, or promotion workflow is implemented.',
       'No DB, Qdrant, memory, news, canonical financial truth, paper trading, or live trading write path is used.',
     ],

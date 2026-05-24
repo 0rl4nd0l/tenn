@@ -148,6 +148,8 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
 function ArtifactReviewRow({ artifact }: { artifact: StrategyLabReviewArtifact }) {
   const firstDataMissing = artifact.data_missing[0] ?? 'DATA_MISSING';
   const status = artifact.review_status === 'DATA_MISSING' ? 'DATA_MISSING' : artifact.review_status;
+  const hasHistoricalStatus = artifact.historical_status !== 'DATA_MISSING';
+  const hasPreservedCommit = artifact.preserved_commit !== 'DATA_MISSING';
 
   return (
     <div className="rounded-md border border-border/50 bg-background/40 p-3">
@@ -166,6 +168,11 @@ function ArtifactReviewRow({ artifact }: { artifact: StrategyLabReviewArtifact }
             >
               {artifact.authoritative ? 'strategy_lab_artifact_v1' : evidenceKindLabel(artifact.evidence_kind)}
             </Badge>
+            {hasHistoricalStatus ? (
+              <Badge variant="outline" className="border-cyan-500/40 text-cyan-300 bg-cyan-500/10 text-[9px]">
+                {historicalStatusLabel(artifact.historical_status)}
+              </Badge>
+            ) : null}
           </div>
 
           <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-mono uppercase text-muted-foreground sm:grid-cols-4">
@@ -184,6 +191,12 @@ function ArtifactReviewRow({ artifact }: { artifact: StrategyLabReviewArtifact }
               <span className="font-mono uppercase text-muted-foreground/80">Report: </span>
               {artifact.source_report_path}
             </div>
+            {hasPreservedCommit ? (
+              <div>
+                <span className="font-mono uppercase text-muted-foreground/80">Commit: </span>
+                {artifact.preserved_commit}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -200,6 +213,12 @@ function ArtifactReviewRow({ artifact }: { artifact: StrategyLabReviewArtifact }
             <span className="font-mono uppercase text-amber-300">DATA_MISSING: </span>
             {firstDataMissing}
           </div>
+          {artifact.current_runtime_available === false ? (
+            <div>
+              <span className="font-mono uppercase text-amber-300">Current runtime: </span>
+              offline
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -223,5 +242,16 @@ function evidenceKindLabel(kind: StrategyLabReviewEvidenceKind) {
       return 'report evidence';
     case 'strategy_lab_artifact_v1':
       return 'strategy_lab_artifact_v1';
+  }
+}
+
+function historicalStatusLabel(status: StrategyLabReviewArtifact['historical_status']) {
+  switch (status) {
+    case 'historical_partial_milestone':
+      return 'historical partial milestone';
+    case 'historical_smoke_proof':
+      return 'historical smoke proof';
+    case 'DATA_MISSING':
+      return 'DATA_MISSING';
   }
 }

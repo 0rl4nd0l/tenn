@@ -22,6 +22,11 @@ describe('StrategyLabArtifactsReviewCard', () => {
           availability: 'available',
           source_path: 'docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json',
           source_report_path: 'reports/agent_jobs/source_report',
+          preserved_commit: 'DATA_MISSING',
+          preserved_subject: 'DATA_MISSING',
+          historical_status: 'DATA_MISSING',
+          current_runtime_available: 'DATA_MISSING',
+          paper_order_placement: 'DATA_MISSING',
           schema_version: 'strategy_lab_artifact_v1',
           artifact_id: 'stratlab_backtest_run_fixture',
           artifact_type: 'backtest_run',
@@ -43,6 +48,11 @@ describe('StrategyLabArtifactsReviewCard', () => {
           source_path:
             'reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/normalized_artifacts/backtest_run.json',
           source_report_path: 'DATA_MISSING',
+          preserved_commit: '0ee837f7dc0706f1b0ff6d6c900522f4c2b43090',
+          preserved_subject: 'milestone(reporting): preserve quantdinger readonly smoke proof',
+          historical_status: 'historical_smoke_proof',
+          current_runtime_available: false,
+          paper_order_placement: false,
           schema_version: 'strategy_lab_sidecar_artifact_v1',
           artifact_id: 'strategy_lab.quantdinger.backtest_run',
           artifact_type: 'backtest_run',
@@ -69,6 +79,9 @@ describe('StrategyLabArtifactsReviewCard', () => {
     expect(screen.getByText('Phase 2 helper backtest evidence')).toBeInTheDocument();
     expect(screen.getByText('reports/agent_jobs/source_report')).toBeInTheDocument();
     expect(screen.getByText('helper/pre-envelope')).toBeInTheDocument();
+    expect(screen.getByText('historical smoke proof')).toBeInTheDocument();
+    expect(screen.getByText('0ee837f7dc0706f1b0ff6d6c900522f4c2b43090')).toBeInTheDocument();
+    expect(screen.getByText('offline')).toBeInTheDocument();
     expect(screen.getByText(/It does not prove live QuantDinger transport/)).toBeInTheDocument();
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledWith(

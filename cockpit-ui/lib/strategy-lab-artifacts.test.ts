@@ -42,6 +42,12 @@ describe('Strategy Lab artifacts contract', () => {
         },
       }),
     );
+    const milestonePath = path.join(
+      workspace,
+      'reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/README.md',
+    );
+    mkdirSync(path.dirname(milestonePath), { recursive: true });
+    writeFileSync(milestonePath, '# QuantDinger complete-and-next-phases\n');
 
     const payload = readStrategyLabArtifacts({
       now: new Date('2026-05-24T02:00:00.000Z'),
@@ -49,6 +55,10 @@ describe('Strategy Lab artifacts contract', () => {
     });
     const backtest = payload.artifacts.find((artifact) => artifact.id === 'artifact_v1_backtest_fixture');
     const helper = payload.artifacts.find((artifact) => artifact.id === 'phase2_helper_backtest');
+    const milestone = payload.artifacts.find(
+      (artifact) => artifact.id === 'quantdinger_complete_next_phases_historical_milestone',
+    );
+    const smoke = payload.artifacts.find((artifact) => artifact.id === 'quantdinger_readonly_sidecar_smoke_proof');
 
     expect(payload.generated_at).toBe('2026-05-24T02:00:00.000Z');
     expect(payload.source_mode).toBe('repo_artifacts_only');
@@ -77,6 +87,21 @@ describe('Strategy Lab artifacts contract', () => {
       authoritative: false,
       evidence_kind: 'helper_pre_envelope',
     });
+    expect(milestone).toMatchObject({
+      availability: 'available',
+      historical_status: 'historical_partial_milestone',
+      preserved_commit: '72c6d95c70d5b8f6e4ab816967dacc14692941ef',
+      current_runtime_available: false,
+      paper_order_placement: false,
+    });
+    expect(smoke).toMatchObject({
+      availability: 'missing',
+      historical_status: 'historical_smoke_proof',
+      preserved_commit: '0ee837f7dc0706f1b0ff6d6c900522f4c2b43090',
+      current_runtime_available: false,
+      paper_order_placement: false,
+    });
+    expect(smoke?.data_missing).toContain('report_file');
   });
 
   it('serves the read-only artifact route with no-store caching', async () => {
@@ -98,6 +123,11 @@ describe('Strategy Lab artifacts contract', () => {
     expect(payload.artifacts.find((artifact) => artifact.id === 'phase2_schema_report')?.availability).toBe(
       'available',
     );
+    expect(payload.artifacts.find((artifact) => artifact.id === 'quantdinger_readonly_sidecar_smoke_proof')).toMatchObject({
+      historical_status: 'historical_smoke_proof',
+      current_runtime_available: false,
+      paper_order_placement: false,
+    });
     expect(payload.boundary_flags.store_writes).toBe(false);
   });
 });

@@ -26,6 +26,24 @@ export interface StrategyLabCapabilityStatus {
   summary: string;
 }
 
+export interface StrategyLabQuantDingerStatus {
+  review_status: 'PENDING_REVIEW';
+  read_only: true;
+  real_transport: 'not_integrated';
+  current_sidecar_available: false;
+  live_trading: false;
+  paper_order_placement: false;
+  canonical_financial_truth: false;
+  store_writes: false;
+  last_readonly_sidecar_smoke: 'SMOKE_PASSED';
+  last_readonly_sidecar_smoke_review_status: 'PENDING_REVIEW';
+  last_readonly_sidecar_smoke_commit: string;
+  last_readonly_sidecar_smoke_report_path: string;
+  last_readonly_sidecar_smoke_report_available: false;
+  sidecar_runtime_state: 'stopped_after_cleanup';
+  data_missing: string[];
+}
+
 export interface StrategyLabStatusResponse {
   ok: true;
   schema_version: 'cockpit_strategy_lab_status_v1';
@@ -35,6 +53,7 @@ export interface StrategyLabStatusResponse {
   status_route: '/api/cockpit/strategy-lab/status';
   artifact_review_route: '/api/cockpit/strategy-lab/artifacts';
   headline: string;
+  quantdinger_status: StrategyLabQuantDingerStatus;
   artifact_refs: StrategyLabArtifactRef[];
   capability_status: StrategyLabCapabilityStatus[];
   boundary_flags: {
@@ -50,6 +69,29 @@ export interface StrategyLabStatusResponse {
   data_missing: string[];
   next_safe_actions: string[];
 }
+
+export const QUANTDINGER_HISTORICAL_STATUS: StrategyLabQuantDingerStatus = {
+  review_status: 'PENDING_REVIEW',
+  read_only: true,
+  real_transport: 'not_integrated',
+  current_sidecar_available: false,
+  live_trading: false,
+  paper_order_placement: false,
+  canonical_financial_truth: false,
+  store_writes: false,
+  last_readonly_sidecar_smoke: 'SMOKE_PASSED',
+  last_readonly_sidecar_smoke_review_status: 'PENDING_REVIEW',
+  last_readonly_sidecar_smoke_commit: '0ee837f7dc0706f1b0ff6d6c900522f4c2b43090',
+  last_readonly_sidecar_smoke_report_path:
+    'reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_smoke_exec_v1_20260524/status.json',
+  last_readonly_sidecar_smoke_report_available: false,
+  sidecar_runtime_state: 'stopped_after_cleanup',
+  data_missing: [
+    'The read-only smoke report bundle is preserved at commit 0ee837f7 but is not checked out as files in this worktree.',
+    'No current QuantDinger sidecar runtime was probed under this status route.',
+    'No current QuantDinger transport is integrated with Cockpit.',
+  ],
+};
 
 export const STRATEGY_LAB_BASELINE_REFS: StrategyLabBaselineRef[] = [
   {
@@ -134,6 +176,7 @@ export function buildStrategyLabStatusResponse({
     artifact_review_route: '/api/cockpit/strategy-lab/artifacts',
     headline:
       'Strategy Lab / QuantDinger is visible as read-only pending-review evidence, not live trading functionality.',
+    quantdinger_status: QUANTDINGER_HISTORICAL_STATUS,
     artifact_refs: artifactRefs,
     capability_status: [
       {
@@ -141,6 +184,18 @@ export function buildStrategyLabStatusResponse({
         label: 'Cockpit visibility',
         state: 'present_offline',
         summary: 'Home shows a read-only status card backed by repository artifact presence.',
+      },
+      {
+        id: 'historical_readonly_smoke',
+        label: 'Historical read-only smoke',
+        state: 'present_offline',
+        summary: 'Commit 0ee837f7 preserves a past loopback read-only smoke proof with PENDING_REVIEW status.',
+      },
+      {
+        id: 'current_sidecar',
+        label: 'Current sidecar runtime',
+        state: 'absent',
+        summary: 'The smoke sidecar was cleaned up; current_sidecar_available remains false.',
       },
       {
         id: 'artifact_schema',

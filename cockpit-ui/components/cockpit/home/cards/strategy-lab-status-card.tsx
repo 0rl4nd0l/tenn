@@ -81,6 +81,7 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
     [payload.artifact_refs],
   );
   const keyCapabilities = payload.capability_status.slice(0, 4);
+  const quantdinger = payload.quantdinger_status;
 
   return (
     <Card className="terminal-panel" data-testid="strategy-lab-status-card">
@@ -92,22 +93,54 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
           </CardTitle>
           <p className="mt-2 text-[13px] text-foreground leading-snug">{payload.headline}</p>
         </div>
-        <Badge variant="outline" className="shrink-0 border-amber-500/40 text-amber-400 bg-amber-500/10">
-          PENDING REVIEW
-        </Badge>
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          <Badge variant="outline" className="border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
+            HISTORICAL SMOKE PASSED
+          </Badge>
+          <Badge variant="outline" className="border-amber-500/40 text-amber-400 bg-amber-500/10">
+            PENDING REVIEW
+          </Badge>
+          <Badge variant="outline" className="border-zinc-500/40 text-zinc-300 bg-zinc-500/10">
+            CURRENT SIDECAR OFFLINE
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="p-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
             <BoundaryPill label="READ ONLY" active={payload.boundary_flags.read_only} />
+            <BoundaryPill label="CURRENT SIDECAR OFFLINE" active={!quantdinger.current_sidecar_available} />
             <BoundaryPill label="NO LIVE TRADING" active={!payload.boundary_flags.live_trading} />
-            <BoundaryPill label="NO PAPER TRADING" active={!payload.boundary_flags.paper_trading} />
+            <BoundaryPill label="NO PAPER ORDER PLACEMENT" active={!quantdinger.paper_order_placement} />
             <BoundaryPill label="NO REAL TRANSPORT" active={!payload.boundary_flags.real_transport} />
             <BoundaryPill label="NO STORE WRITES" active={!payload.boundary_flags.store_writes} />
             <BoundaryPill
               label="NO CANONICAL FINANCIAL TRUTH"
               active={!payload.boundary_flags.canonical_financial_truth}
             />
+          </div>
+
+          <div className="rounded-md border border-cyan-500/30 bg-cyan-500/5 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-[10px] font-mono uppercase text-cyan-300">Read-only smoke history</div>
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">
+                {quantdinger.last_readonly_sidecar_smoke_review_status}
+              </div>
+            </div>
+            <div className="mt-2 grid gap-1 text-[10px] leading-relaxed text-muted-foreground">
+              <div>
+                <span className="font-mono uppercase text-muted-foreground/80">Verdict: </span>
+                {quantdinger.last_readonly_sidecar_smoke}
+              </div>
+              <div className="break-all">
+                <span className="font-mono uppercase text-muted-foreground/80">Commit: </span>
+                {quantdinger.last_readonly_sidecar_smoke_commit}
+              </div>
+              <div>
+                <span className="font-mono uppercase text-muted-foreground/80">Runtime: </span>
+                {quantdinger.sidecar_runtime_state}
+              </div>
+            </div>
           </div>
 
           <div className="rounded-md border border-border/50 bg-background/40 p-3">

@@ -21,6 +21,15 @@ allowed_files:
   - reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_resolve_v1_20260524/status.json
   - reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_resolve_v1_20260524/validation.json
   - reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_resolve_v1_20260524/diff-check.json
+  - cockpit-ui/lib/strategy-lab-status.ts
+  - cockpit-ui/lib/strategy-lab-status.test.ts
+  - cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx
+  - cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx
+  - cockpit-ui/lib/strategy-lab-artifacts.ts
+  - cockpit-ui/lib/strategy-lab-artifacts-server.ts
+  - cockpit-ui/lib/strategy-lab-artifacts.test.ts
+  - cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx
+  - cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx
 approval_required: true
 timeout_seconds: 14400
 output_dir: reports/agent_jobs/strategy_lab_quantdinger_safe_progress_goal_v1_20260524
@@ -60,8 +69,8 @@ The preserved complete-and-next-phases bundle at `72c6d95c70d5b8f6e4ab816967dacc
 
 1. Resolve `docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md` as superseded/archive-only unless current evidence proves it is still needed.
 2. Produce a current Strategy Lab / QuantDinger route and file map before implementation.
-3. Implement safe historical QD metadata only after this card is updated with exact implementation files and revalidated.
-4. Improve artifact review usefulness only after exact route/component ownership is mapped and revalidated.
+3. Implement safe historical QD metadata using only the exact Cockpit files listed in `allowed_files` after route mapping and revalidation.
+4. Improve artifact review usefulness using only the exact Cockpit files listed in `allowed_files` after route/component ownership is mapped and revalidated.
 5. Write a read-only transport design for future approval-gated work without runtime execution.
 
 ## Validation
