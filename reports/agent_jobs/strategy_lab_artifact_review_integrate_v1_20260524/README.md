@@ -4,7 +4,7 @@ Generated: 2026-05-24T08:12:32Z
 
 ## Verdict
 
-INTEGRATION IN PROGRESS under explicit proceed approval.
+INTEGRATED under explicit proceed approval.
 
 The read-only Strategy Lab artifact review value layer was applied to the
 canonical checkout with an exact staged-file boundary. The unrelated untracked
@@ -16,7 +16,7 @@ task-card blockers were not edited, staged, removed, or cleaned.
 - Realpath: `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`
 - Branch: `migration/clean-runtime-baseline-reconstruct-v1`
 - HEAD before integration: `bfa3b44c4df6ecde862d3d1913b3b99ddf16fb78`
-- Commit: `PENDING_BEFORE_COMMIT`
+- Commit: `47510e06b4044f055f4e657bca40d0c17bd16134`
 
 Known unrelated dirty files preserved:
 

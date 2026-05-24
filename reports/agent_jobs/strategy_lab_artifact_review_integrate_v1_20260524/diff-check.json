@@ -1,71 +1,11 @@
 {
   "changed_files": [
     {
-      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/home/home-page.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/strategy-lab-status.test.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/strategy-lab-status.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/strategy-lab/artifacts/route.ts",
-      "status": "??"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
-      "status": "??"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx",
-      "status": "??"
-    },
-    {
-      "path": "cockpit-ui/lib/strategy-lab-artifacts-server.ts",
-      "status": "??"
-    },
-    {
-      "path": "cockpit-ui/lib/strategy-lab-artifacts.test.ts",
-      "status": "??"
-    },
-    {
-      "path": "cockpit-ui/lib/strategy-lab-artifacts.ts",
-      "status": "??"
-    },
-    {
       "path": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
       "status": "??"
     },
     {
-      "path": "docs/agent_tasks/strategy_lab_artifact_review_clear_or_integrate_v1_20260524.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/strategy_lab_artifact_review_integrate_v1_20260524.md",
-      "status": "??"
-    },
-    {
       "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/strategy_lab_artifact_review_value_layer_v1_20260524.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/strategy_lab_quantdinger_sidecar_smoke_readonly_plan_v1_20260524.md",
       "status": "??"
     }
   ],
