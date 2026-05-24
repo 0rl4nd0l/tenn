@@ -1,0 +1,53 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/source_label_semantic_sufficiency_live_failure_fix_v1_20260524.md",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/README.md",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/status.json",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/validation.json",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/diff-check.json",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/live_smoke_A_response.json",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/live_smoke_B_response.json",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/mutation_snapshot_before.json",
+      "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/mutation_snapshot_after.json",
+      "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+      "financial-engine_v2/backend/tests/test_build_ui_sources.py",
+      "cockpit-ui/components/cockpit/chat/terminal-message.tsx",
+      "cockpit-ui/components/cockpit/chat/terminal-message.test.tsx"
+    ],
+    "approval_required": false,
+    "forbidden": [
+      "qdrant_mutation",
+      "postgres_mutation",
+      "news_store_mutation",
+      "memory_store_mutation",
+      "parser_extraction_or_canonical_financial_truth_changes",
+      "docker_rebuild",
+      "broad_runtime_topology_change",
+      "cron_systemd_model_gpu_config_changes",
+      "retrieval_ranking_rewrite_without_smoke_proof",
+      "fake_data",
+      "hiding_data_missing",
+      "weakening_source_labels",
+      "unrelated_task_card_cleanup"
+    ],
+    "job_id": "source_label_semantic_sufficiency_live_failure_fix_v1_20260524",
+    "lane": "Provenance",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Query Orchestration",
+      "Reporting",
+      "Evaluation"
+    ],
+    "timeout_seconds": 14400,
+    "title": "Source label semantic sufficiency live failure fix"
+  },
+  "ok": true
+}

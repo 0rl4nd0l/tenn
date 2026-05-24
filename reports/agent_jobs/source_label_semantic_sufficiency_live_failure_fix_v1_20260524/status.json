@@ -1,0 +1,200 @@
+{
+  "job_id": "source_label_semantic_sufficiency_live_failure_fix_v1_20260524",
+  "status": "pass",
+  "verdict": "PASS",
+  "report_updated_at": "2026-05-24T23:00:00+10:00",
+  "lane": "Provenance",
+  "supporting_lanes": [
+    "Query Orchestration",
+    "Reporting",
+    "Evaluation"
+  ],
+  "execution_mode": "SAFE EXTENSION / REGRESSION FIX",
+  "collision_risk": "MEDIUM",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "logical_repo_path": "/home/l4nd0/tenn",
+  "preflight_head": "ba5095ea105df5ac3fa83f6b464330c8f2b5bed2",
+  "canonical_commit": {
+    "sha": "a6db9760621e274c4621e98eee338a7b7ba34010",
+    "ancestor_or_head": true
+  },
+  "commit_hash": null,
+  "commit_hash_note": "Final commit hash is emitted in closeout after commit creation; it cannot be embedded self-referentially in the same commit that creates this report.",
+  "confirmed_facts": [
+    "Task-card validation passed.",
+    "Registry check-overlap passed.",
+    "Registry claim succeeded.",
+    "Focused backend tests passed.",
+    "Focused Ruff passed.",
+    "Backend-only reload restarted fe_backend only.",
+    "Both final stateless smokes returned HTTP 200 with X-Tenn-Stateless-Smoke: 1.",
+    "No chat/state/memory/news/Qdrant/Postgres mutation was detected by the available safe checks."
+  ],
+  "inferred_facts": [
+    "The failed smoke was not a classifier miss because both failed answers contained detected recent_news_or_update text.",
+    "The primary bug was mixed-source label ambiguity: broad local_news_context/news/filing context satisfied recent-update requirements.",
+    "The secondary bug was final presentation: existing DATA_MISSING text bypassed additional missing-recent-news and financial-truth qualification text."
+  ],
+  "data_missing": [
+    "graphify-out/GRAPH_REPORT.md is absent in this worktree.",
+    ".cursor/rules/00_mandatory_index.md, backend_architecture.md, embedding_rules.md, vector_store_invariants.md, and failure_policy.md are absent in this worktree.",
+    "No dedicated Postgres/Qdrant write counter was found; safe stat plus du directory comparisons were used."
+  ],
+  "root_cause_classification": [
+    "mixed_source_label_ambiguity",
+    "metadata_propagation_gap",
+    "final_answer_presentation_gap",
+    "data_missing_visibility_gap"
+  ],
+  "files_changed": [
+    "docs/agent_tasks/source_label_semantic_sufficiency_live_failure_fix_v1_20260524.md",
+    "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+    "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/README.md",
+    "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/status.json",
+    "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/validation.json",
+    "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/live_smoke_A_response.json",
+    "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/live_smoke_B_response.json"
+  ],
+  "tests_added": [
+    "recent news/update plus context-only local_news_context and filing-only evidence remains insufficient_for_recent_news",
+    "raw supports_claim/claim_verified booleans cannot self-promote to recent_news_event",
+    "claim-verified news/event source remains sufficient",
+    "mixed claim_verified plus context_only label blocks recent-event sufficiency",
+    "existing DATA_MISSING block is augmented and financial-truth event wording is qualified"
+  ],
+  "implementation": {
+    "recent_news_requirement": "recent_news_event",
+    "recent_news_event_requires_claim_verified_label": true,
+    "context_only_blocks_recent_news_event": true,
+    "raw_support_flags_self_promote": false,
+    "frontend_touched": false,
+    "retrieval_ranking_changed": false,
+    "source_visibility_reduced": false
+  },
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_check_overlap": "PASS",
+    "registry_claim": "PASS",
+    "focused_backend_pytest": {
+      "command": "financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "result": "70 passed"
+    },
+    "focused_ruff": {
+      "command": "financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/chat_evidence_guard.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py",
+      "result": "PASS"
+    },
+    "frontend_tests": "NOT_RUN_NO_FRONTEND_FILES_TOUCHED",
+    "git_diff_check": "PASS",
+    "status_json_validation": "PASS",
+    "task_card_check_diff": "PASS"
+  },
+  "live_validation": {
+    "backend_reload": {
+      "command": "docker restart fe_backend",
+      "services_restarted": [
+        "fe_backend"
+      ],
+      "services_not_restarted": [
+        "fe_postgres",
+        "fe_qdrant",
+        "fe_worker",
+        "fe_gpu_worker",
+        "frontend",
+        "llama",
+        "ollama",
+        "cron",
+        "gpu",
+        "model_services"
+      ],
+      "post_restart_started_at": "2026-05-24T12:56:19.592826884Z",
+      "post_restart_health": {
+        "status": "ok"
+      },
+      "live_import_proof": "CLAIM_REQUIREMENTS[RECENT_NEWS_OR_UPDATE] == ('recent_news_event',)"
+    },
+    "smoke_A": {
+      "prompt": "What is the latest news/update on CSL and why did it move recently?",
+      "http_status": 200,
+      "stateless_smoke_session_id": "stateless-smoke-94e616dec7b5405fba87761b0ce06493",
+      "chat_persistence": "disabled",
+      "source": "local",
+      "latency_ms": 89652,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "missing_evidence_categories": [
+        "recent_news"
+      ],
+      "unsupported_claim_families": [
+        "recent_news_or_update"
+      ],
+      "evidence_requirement_labels": [
+        "insufficient_for_recent_news",
+        "missing_required_evidence",
+        "unsupported_or_not_verified"
+      ],
+      "visible_pass": true
+    },
+    "smoke_B": {
+      "prompt": "What recent event explains the latest change in BHP, and what financial truth source verifies it?",
+      "http_status": 200,
+      "stateless_smoke_session_id": "stateless-smoke-44fa1b2c118b40649ec8c610dae1ac10",
+      "chat_persistence": "disabled",
+      "source": "orchestrator",
+      "latency_ms": 923,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "missing_evidence_categories": [
+        "metric_extraction",
+        "recent_news"
+      ],
+      "unsupported_claim_families": [
+        "financial_metric",
+        "recent_news_or_update"
+      ],
+      "evidence_requirement_labels": [
+        "insufficient_for_recent_news",
+        "metric_extraction_missing",
+        "missing_required_evidence",
+        "unsupported_or_not_verified"
+      ],
+      "visible_pass": true
+    }
+  },
+  "mutation_proof": {
+    "state_db_hash_unchanged": true,
+    "state_db_wal_hash_unchanged": true,
+    "state_db_shm_hash_unchanged_only_mtime_changed": true,
+    "state_table_counts_unchanged": {
+      "chat_messages": 1535,
+      "chat_sessions": 75,
+      "analysis_exports": 262,
+      "update_events": 4
+    },
+    "final_stateless_session_rows": {
+      "chat_messages": 0,
+      "chat_sessions": 0,
+      "analysis_exports": 0,
+      "update_events": 0
+    },
+    "memory_read_events_unchanged": true,
+    "memory_store_hashes_unchanged": true,
+    "news_store_hashes_unchanged": true,
+    "postgres_stat_du_unchanged": true,
+    "qdrant_stat_du_unchanged": true
+  },
+  "pass_criteria": {
+    "smoke_A_insufficient_recent_news_visible": true,
+    "smoke_A_price_context_filings_not_sufficient": true,
+    "smoke_B_financial_truth_numeric_not_event_verification": true,
+    "smoke_B_data_missing_visible": true,
+    "forbidden_mutation_detected": false
+  },
+  "remaining_risks": [
+    "Positive recent event sufficiency still depends on upstream code assigning claim_verified for genuinely sufficient event/news evidence.",
+    "Long LLM-generated answer bodies can still be verbose; this fix qualifies wording but does not redesign synthesis."
+  ],
+  "recommended_next_task": "Add an upstream source-role fixture for a genuinely claim-verified recent event/news source through source construction."
+}

@@ -9,6 +9,7 @@ from app.services.chat_evidence_guard import (
     BUYBACK_ACTIVITY,
     FINANCIAL_METRIC,
     MARKET_PRICE_OR_TECHNICAL_TREND,
+    RECENT_NEWS_EVENT,
     RECENT_NEWS_OR_UPDATE,
     TARIFF_REGULATORY,
     apply_visible_evidence_gap_labels,
@@ -170,6 +171,112 @@ def test_recent_news_question_with_only_price_data_is_insufficient() -> None:
     assert RECENT_NEWS_OR_UPDATE in result["unsupported_claim_families"]
 
 
+def test_recent_news_question_with_context_news_and_filings_is_insufficient() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text=(
+            "CSL latest news/update cites price action, recent filings, and local "
+            "news context."
+        ),
+        sources=[
+            {
+                "title": "CSL chart scan list",
+                "source_id": "news:art_934d2902f30a5dc5f6023e1b:2",
+                "kind": "rag",
+                "doc_type": "news",
+                "snippet": "CSL appeared in a scan list.",
+                "evidence_labels": ["context_only", "local_news_context"],
+                "claim_verified": False,
+            },
+            {
+                "title": "Update - Notification of buy-back - CSL",
+                "kind": "document",
+                "doc_type": "quarterly",
+                "snippet": "Buy-back filing context.",
+                "evidence_labels": ["context_only"],
+                "claim_verified": False,
+            },
+        ],
+    )
+
+    assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
+    assert "news" in result["evidence_categories"]
+    assert RECENT_NEWS_EVENT not in result["evidence_categories"]
+    assert "filing" in result["evidence_categories"]
+    assert "recent_news" in result["missing_evidence_categories"]
+    assert "insufficient_for_recent_news" in result["evidence_requirement_labels"]
+    assert RECENT_NEWS_OR_UPDATE in result["unsupported_claim_families"]
+
+
+def test_raw_support_flags_do_not_self_promote_to_recent_news_event() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP latest update this week was caused by a recent event.",
+        sources=[
+            {
+                "title": "BHP news item",
+                "source_id": "news:art_raw_support:1",
+                "kind": "news",
+                "doc_type": "news",
+                "snippet": "BHP was mentioned in a broad market wrap.",
+                "evidence_labels": ["local_news_context"],
+                "supports_claim": True,
+                "claim_verified": True,
+            }
+        ],
+    )
+
+    assert "news" in result["evidence_categories"]
+    assert RECENT_NEWS_EVENT not in result["evidence_categories"]
+    assert "recent_news" in result["missing_evidence_categories"]
+    assert "insufficient_for_recent_news" in result["evidence_requirement_labels"]
+
+
+def test_claim_verified_news_event_satisfies_recent_update_requirement() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP latest update this week was caused by a recent event.",
+        sources=[
+            {
+                "title": "BHP completes silver streaming transaction",
+                "source_id": "news:art_verified_event:1",
+                "kind": "news",
+                "doc_type": "news",
+                "snippet": "BHP completed the silver streaming transaction.",
+                "evidence_labels": ["claim_verified", "local_news_context"],
+                "claim_verified": True,
+            }
+        ],
+    )
+
+    assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
+    assert RECENT_NEWS_EVENT in result["evidence_categories"]
+    assert result["missing_evidence_categories"] == []
+    assert RECENT_NEWS_OR_UPDATE not in result["unsupported_claim_families"]
+
+
+def test_mixed_context_only_label_blocks_recent_news_event_sufficiency() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP latest update this week was caused by a recent event.",
+        sources=[
+            {
+                "title": "BHP broad market wrap",
+                "source_id": "news:art_mixed_label:1",
+                "kind": "news",
+                "doc_type": "news",
+                "snippet": "BHP was mentioned in a broad market wrap.",
+                "evidence_labels": [
+                    "claim_verified",
+                    "context_only",
+                    "local_news_context",
+                ],
+                "claim_verified": True,
+            }
+        ],
+    )
+
+    assert RECENT_NEWS_EVENT not in result["evidence_categories"]
+    assert "recent_news" in result["missing_evidence_categories"]
+    assert "insufficient_for_recent_news" in result["evidence_requirement_labels"]
+
+
 def test_financial_truth_numeric_context_does_not_verify_recent_event_claim() -> None:
     result = evaluate_chat_evidence_requirements(
         answer_text="BHP recent update this week was driven by an event.",
@@ -317,3 +424,46 @@ def test_visible_gap_labels_qualify_company_memory_price_context() -> None:
         in rendered
     )
     assert "context-only company memory note (not market-verified)" in rendered
+
+
+def test_visible_gap_labels_augment_existing_data_missing_for_recent_news() -> None:
+    rendered = apply_visible_evidence_gap_labels(
+        "\n".join(
+            [
+                "DATA_MISSING / evidence gaps:",
+                "- metric_extraction_missing: canonical metric or financial-row evidence is missing or incomplete.",
+                "- missing_required_evidence: required evidence is absent for at least one claim.",
+                "",
+                "Confirmed evidence already present:",
+                "- financial truth",
+                "- announcements/news context",
+                "Recovery outcome: sufficient evidence available; proceeding with analysis.",
+                "Available announcement/news context from financial truth:",
+                "- 2026-02-17 | Half Yearly Report and Accounts",
+            ]
+        ),
+        {
+            "evidence_labels": [
+                "metric_extraction_missing",
+                "missing_required_evidence",
+            ],
+            "evidence_categories": ["financial_truth_numeric"],
+            "missing_evidence_categories": ["metric_extraction", "recent_news"],
+            "source_coverage_status": "missing_required_evidence",
+        },
+    )
+
+    assert rendered.startswith("DATA_MISSING / evidence gaps:")
+    assert "insufficient_for_recent_news: recent-news or recent-update claims" in rendered
+    assert "Context available (not claim verification for missing evidence categories):" in rendered
+    assert (
+        "- financial truth numeric context (numbers only; not event/news/announcement verification)"
+        in rendered
+    )
+    assert (
+        "- announcement/news context (context only unless separately claim-verified and recent)"
+        in rendered
+    )
+    assert "Available filing/announcement context from financial truth (not event/news verification):" in rendered
+    assert "Recovery outcome: evidence remains incomplete for the gap categories" in rendered
+    assert "Available announcement/news context from financial truth:" not in rendered

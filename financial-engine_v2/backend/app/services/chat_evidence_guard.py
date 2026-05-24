@@ -11,6 +11,7 @@ BUYBACK_ACTIVITY = "buyback_activity"
 TARIFF_REGULATORY = "tariff_regulatory"
 LOCAL_HOLDINGS = "local_holdings"
 RECENT_NEWS_OR_UPDATE = "recent_news_or_update"
+RECENT_NEWS_EVENT = "recent_news_event"
 
 CLAIM_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     MARKET_PRICE_OR_TECHNICAL_TREND: (
@@ -23,7 +24,7 @@ CLAIM_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     BUYBACK_ACTIVITY: ("buyback_filing", "filing", "news"),
     TARIFF_REGULATORY: ("regulatory_source", "filing", "news"),
     LOCAL_HOLDINGS: ("local_personal_data",),
-    RECENT_NEWS_OR_UPDATE: ("news", "event_source"),
+    RECENT_NEWS_OR_UPDATE: (RECENT_NEWS_EVENT,),
 }
 
 _MARKET_TREND_CLAIM_RE = re.compile(
@@ -116,8 +117,9 @@ _VISIBLE_GAP_COPY = {
     ),
     "insufficient_for_recent_news": (
         "insufficient_for_recent_news: recent-news or recent-update claims need "
-        "a news, filing, announcement, or event source; price-only context is "
-        "not enough."
+        "actual claim-verified news/event evidence; price, filing, "
+        "local-news-context, context-only, and numeric financial-truth context "
+        "are not enough."
     ),
     "missing_required_evidence": (
         "missing_required_evidence: required evidence is absent for at least "
@@ -148,6 +150,21 @@ def _source_labels(source: Mapping[str, Any]) -> set[str]:
     for key in ("evidence_labels", "source_labels", "evidence_label", "source_label"):
         labels.update(_string_array(source.get(key)))
     return labels
+
+
+def _source_role_tokens(source: Mapping[str, Any]) -> set[str]:
+    tokens: set[str] = set()
+    for key in (
+        "source_role_labels",
+        "source_roles",
+        "source_role",
+        "evidence_role",
+        "evidence_roles",
+        "evidence_kind",
+        "source_type",
+    ):
+        tokens.update(item.lower() for item in _string_array(source.get(key)))
+    return tokens
 
 
 def detect_claim_families(answer_text: str, metadata: Mapping[str, Any] | None = None) -> set[str]:
@@ -181,6 +198,7 @@ def detect_claim_families(answer_text: str, metadata: Mapping[str, Any] | None =
 def evidence_categories_for_source(source: Mapping[str, Any]) -> set[str]:
     """Classify a visible source into the evidence categories it can satisfy."""
     labels = _source_labels(source)
+    role_tokens = _source_role_tokens(source)
     source_id = _source_value(source, "source_id", "sourceId", "chunk_id")
     kind = _source_value(source, "kind").lower()
     doc_type = _source_value(source, "doc_type", "docType", "source_type", "source").lower()
@@ -202,7 +220,10 @@ def evidence_categories_for_source(source: Mapping[str, Any]) -> set[str]:
         categories.add("degraded_runtime")
     if labels & {"no_hit", "missing_required_evidence"} or doc_type in _NO_HIT_DOC_TYPES:
         categories.add("no_hit")
-    if "context_only" in labels:
+    claim_verified = "claim_verified" in labels
+    context_only_label = "context_only" in labels
+    context_only = context_only_label and not claim_verified
+    if context_only:
         categories.add("context_only")
     if "local_personal_data" in labels:
         categories.add("local_personal_data")
@@ -234,18 +255,39 @@ def evidence_categories_for_source(source: Mapping[str, Any]) -> set[str]:
         haystack,
     ):
         categories.add("filing")
-    if kind == "news" or re.search(
-        r"\b(?:asx_announcement|announcement|news article|notice|release)\b",
-        haystack,
+    if not context_only_label and (
+        kind == "news"
+        or re.search(
+            r"\b(?:asx_announcement|announcement|news article|notice|release)\b",
+            haystack,
+        )
     ):
         categories.add("event_source")
     if _BUYBACK_RE.search(haystack):
         categories.add("buyback_filing")
     if _TARIFF_REGULATORY_RE.search(haystack):
         categories.add("regulatory_source")
-    if kind == "news" or "local_news_context" in labels or "news" in doc_type:
+    news_like = (
+        kind == "news"
+        or source_id.startswith("news:")
+        or "local_news_context" in labels
+        or "news" in doc_type
+        or "news" in role_tokens
+    )
+    event_like = news_like or bool(
+        role_tokens
+        & {
+            "event_source",
+            "recent_news_event",
+            "news_event",
+            "announcement_event",
+        }
+    )
+    if news_like:
         categories.add("news")
-    if "claim_verified" in labels:
+    if claim_verified and event_like and not context_only_label:
+        categories.add(RECENT_NEWS_EVENT)
+    if claim_verified:
         categories.add("claim_verified")
     return categories
 
@@ -410,6 +452,8 @@ def _metadata_gap_labels(metadata: Mapping[str, Any]) -> list[str]:
         labels.add("market_data_missing")
     if "metric_extraction" in missing_categories:
         labels.add("metric_extraction_missing")
+    if "recent_news" in missing_categories:
+        labels.add("insufficient_for_recent_news")
     if missing_categories:
         labels.add("missing_required_evidence")
 
@@ -458,6 +502,94 @@ def _qualify_context_memory_sections(answer_text: str, *, has_market_gap: bool) 
     return "\n".join(qualified)
 
 
+def _qualify_financial_truth_event_wording(
+    answer_text: str,
+    *,
+    has_recent_news_gap: bool,
+) -> str:
+    if not has_recent_news_gap:
+        return answer_text
+    replacements = {
+        "Confirmed evidence already present:": (
+            "Context available (not claim verification for missing evidence categories):"
+        ),
+        "- financial truth": (
+            "- financial truth numeric context (numbers only; not event/news/announcement verification)"
+        ),
+        "- announcements/news context": (
+            "- announcement/news context (context only unless separately claim-verified and recent)"
+        ),
+        "Available announcement/news context from financial truth:": (
+            "Available filing/announcement context from financial truth "
+            "(not event/news verification):"
+        ),
+        "Recent news context:": (
+            "Local news/context snippets (not sufficient recent-event verification):"
+        ),
+        "Recovery outcome: sufficient evidence available; proceeding with analysis.": (
+            "Recovery outcome: evidence remains incomplete for the gap categories; "
+            "proceeding only with context."
+        ),
+        "this is a recent-event summary from price, filing, and news evidence": (
+            "this is context-only from price, filing, and local-news snippets; "
+            "recent-event evidence is insufficient"
+        ),
+        (
+            "Answer below is context-only for those gap areas; do not treat price, "
+            "technical, or memory-derived lines as verified unless a visible "
+            "source explicitly supports them."
+        ): (
+            "Answer below is context-only for those gap areas; do not treat "
+            "price, filing, local-news-context, numeric financial truth, "
+            "technical, or memory-derived lines as verified unless a visible "
+            "source explicitly supports them."
+        ),
+    }
+    qualified = answer_text
+    for old, new in replacements.items():
+        qualified = qualified.replace(old, new)
+    return qualified
+
+
+def _apply_gap_block(text: str, gap_labels: list[str]) -> str:
+    gap_lines = [f"- {_VISIBLE_GAP_COPY[label]}" for label in gap_labels]
+    if "DATA_MISSING / evidence gaps:" in text[:1000]:
+        lines = text.splitlines()
+        header_index = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if line.strip() == "DATA_MISSING / evidence gaps:"
+            ),
+            -1,
+        )
+        if header_index < 0:
+            return text
+        missing_lines = [
+            line
+            for line in gap_lines
+            if line.split(":", 1)[0].removeprefix("- ") not in text
+        ]
+        if not missing_lines:
+            return text
+        return "\n".join(
+            [*lines[: header_index + 1], *missing_lines, *lines[header_index + 1 :]]
+        )
+
+    gap_block = "\n".join(
+        [
+            "DATA_MISSING / evidence gaps:",
+            *gap_lines,
+            "",
+            "Answer below is context-only for those gap areas; do not treat "
+            "price, filing, local-news-context, numeric financial truth, "
+            "technical, or memory-derived lines as verified unless a visible "
+            "source explicitly supports them.",
+        ]
+    )
+    return f"{gap_block}\n\n{text}".strip()
+
+
 def apply_visible_evidence_gap_labels(
     answer_text: str,
     metadata: Mapping[str, Any],
@@ -467,19 +599,8 @@ def apply_visible_evidence_gap_labels(
     gap_labels = _metadata_gap_labels(metadata)
     if not gap_labels:
         return text
-    if "DATA_MISSING / evidence gaps:" in text[:1000]:
-        return text
+    has_recent_news_gap = "insufficient_for_recent_news" in gap_labels
 
-    gap_block = "\n".join(
-        [
-            "DATA_MISSING / evidence gaps:",
-            *[f"- {_VISIBLE_GAP_COPY[label]}" for label in gap_labels],
-            "",
-            "Answer below is context-only for those gap areas; do not treat "
-            "price, technical, or memory-derived lines as verified unless a "
-            "visible source explicitly supports them.",
-        ]
-    )
     qualified_text = _qualify_context_memory_sections(
         text,
         has_market_gap=(
@@ -487,4 +608,8 @@ def apply_visible_evidence_gap_labels(
             or "unsupported_or_not_verified" in gap_labels
         ),
     )
-    return f"{gap_block}\n\n{qualified_text}".strip()
+    qualified_text = _qualify_financial_truth_event_wording(
+        qualified_text,
+        has_recent_news_gap=has_recent_news_gap,
+    )
+    return _apply_gap_block(qualified_text, gap_labels)
