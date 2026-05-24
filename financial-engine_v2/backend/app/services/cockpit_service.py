@@ -9,6 +9,7 @@ import re
 import threading
 import uuid
 import time
+from contextlib import nullcontext
 from uuid import UUID
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,7 @@ from app.services.cockpit_auto_flagger import (
     build_auto_flag_note,
     detect_auto_flag_findings,
 )
+from app.services.memory_events import suppress_memory_read_events
 from app.services.query_orchestrator import QueryOrchestrator
 
 # Import cockpit core logic
@@ -3083,20 +3085,24 @@ class CockpitService:
 
         if persist_chat:
             self._persist_chat_message(thread_id, "user", message)
-        response = controller.build_chat_response(
-            message=controller_message,
-            enable_web=bool(enable_web) if enable_web is not None else False,
-            enable_rag=bool(rag) if rag is not None else True,
-            enable_db_diagnostics=bool(db_diagnostics)
-            if db_diagnostics is not None
-            else False,
-            prior_ticker=ticker,
-            on_chunk=_capture_chunk,
-            on_status=_capture_status,
-            on_thinking=_capture_thinking,
-            ui_mode=ui_mode,
-            attached_sources=attached_sources or [],
+        memory_read_context = (
+            nullcontext() if persist_chat else suppress_memory_read_events()
         )
+        with memory_read_context:
+            response = controller.build_chat_response(
+                message=controller_message,
+                enable_web=bool(enable_web) if enable_web is not None else False,
+                enable_rag=bool(rag) if rag is not None else True,
+                enable_db_diagnostics=bool(db_diagnostics)
+                if db_diagnostics is not None
+                else False,
+                prior_ticker=ticker,
+                on_chunk=_capture_chunk,
+                on_status=_capture_status,
+                on_thinking=_capture_thinking,
+                ui_mode=ui_mode,
+                attached_sources=attached_sources or [],
+            )
         if persist_chat:
             self._remember_recent_youtube_video_options(thread_id, response)
         elapsed_ms = int((time.monotonic() - response_started) * 1000)

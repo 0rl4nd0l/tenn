@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
+from app.services.memory_events import emit_memory_read_event, suppress_memory_read_events
 from cockpit.storage.state import StateStore
 
 
@@ -594,7 +595,45 @@ def test_cockpit_chat_stateless_smoke_stream_skips_persistence_and_auto_flag(
     assert "market_data_missing" in metadata["evidence_labels"]
 
 
-def test_cockpit_service_chat_stream_stateless_smoke_does_not_persist_state() -> None:
+def test_memory_read_event_suppression_preserves_normal_writes(tmp_path) -> None:
+    memory_read_log = tmp_path / "memory_read_events.jsonl"
+
+    normal_event = emit_memory_read_event(
+        mode="cockpit_chat",
+        query_type="company_analysis",
+        query="tell me about CSL",
+        entities={"ticker": "CSL"},
+        source_plan=["company_memory"],
+        considered_counts={"company_memory": 1},
+        selected_counts={"company_memory": 1},
+        filtered_counts={"company_memory": 0},
+        path=memory_read_log,
+    )
+
+    assert normal_event.get("suppressed") is None
+    assert len(memory_read_log.read_text().splitlines()) == 1
+
+    with suppress_memory_read_events():
+        suppressed_event = emit_memory_read_event(
+            mode="cockpit_chat",
+            query_type="company_analysis",
+            query="tell me about CSL",
+            entities={"ticker": "CSL"},
+            source_plan=["company_memory"],
+            considered_counts={"company_memory": 1},
+            selected_counts={"company_memory": 1},
+            filtered_counts={"company_memory": 0},
+            path=memory_read_log,
+        )
+
+    assert suppressed_event["suppressed"] is True
+    assert suppressed_event["suppression_reason"] == "stateless_chat_smoke"
+    assert len(memory_read_log.read_text().splitlines()) == 1
+
+
+def test_cockpit_service_chat_stream_stateless_smoke_does_not_persist_state(
+    tmp_path,
+) -> None:
     service = CockpitService.__new__(CockpitService)
     service.llm_client = SimpleNamespace(model="model:test")
     service.chat_runtime_target_preference = lambda: "local"
@@ -630,6 +669,17 @@ def test_cockpit_service_chat_stream_stateless_smoke_does_not_persist_state() ->
 
         def build_chat_response(self, **kwargs):
             assert kwargs["message"] == "what is the CSL price trend?"
+            emit_memory_read_event(
+                mode="cockpit_chat",
+                query_type="company_analysis",
+                query=kwargs["message"],
+                entities={"ticker": "CSL"},
+                source_plan=["company_memory"],
+                considered_counts={"company_memory": 1},
+                selected_counts={"company_memory": 1},
+                filtered_counts={"company_memory": 0},
+                path=memory_read_log,
+            )
             return SimpleNamespace(
                 text="CSL looks bearish on the current price trend.",
                 evidence=[],
@@ -646,19 +696,36 @@ def test_cockpit_service_chat_stream_stateless_smoke_does_not_persist_state() ->
     service._build_chat_controller = (
         lambda thread_id, llm_client=None: FakeController()
     )
+    memory_read_log = tmp_path / "memory_read_events.jsonl"
 
-    response = CockpitService.chat_stream(
+    stateless_response = CockpitService.chat_stream(
         service,
         message="what is the CSL price trend?",
         session_id="smoke-csl",
         persist_chat=False,
     )
 
-    assert response.text == "CSL looks bearish on the current price trend."
-    assert response.routing_metadata["chat_persistence"] == "disabled"
+    assert stateless_response.text == "CSL looks bearish on the current price trend."
+    assert stateless_response.routing_metadata["chat_persistence"] == "disabled"
     assert persisted_messages == []
     assert turn_diagnostics == []
     assert remembered_youtube == []
+    assert not memory_read_log.exists()
+
+    normal_response = CockpitService.chat_stream(
+        service,
+        message="what is the CSL price trend?",
+        session_id="normal-csl",
+        persist_chat=True,
+    )
+
+    assert normal_response.text == "CSL looks bearish on the current price trend."
+    assert normal_response.routing_metadata.get("chat_persistence") is None
+    assert len(memory_read_log.read_text().splitlines()) == 1
+    assert [row[:2] for row in persisted_messages] == [
+        ("normal-csl", "user"),
+        ("normal-csl", "assistant"),
+    ]
 
 
 def test_cockpit_chat_metadata_marks_metric_extraction_missing(monkeypatch) -> None:

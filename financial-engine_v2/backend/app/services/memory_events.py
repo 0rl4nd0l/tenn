@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,6 +14,19 @@ from app.services.source_registry import RESEARCH_MEMORY_ROOT
 MEMORY_EVENTS_ROOT = RESEARCH_MEMORY_ROOT
 DEFAULT_MEMORY_WRITE_EVENT_LOG_PATH = MEMORY_EVENTS_ROOT / "memory_write_events.jsonl"
 DEFAULT_MEMORY_READ_EVENT_LOG_PATH = MEMORY_EVENTS_ROOT / "memory_read_events.jsonl"
+_SUPPRESS_MEMORY_READ_EVENTS: ContextVar[bool] = ContextVar(
+    "suppress_memory_read_events",
+    default=False,
+)
+
+
+@contextmanager
+def suppress_memory_read_events() -> Iterator[None]:
+    token = _SUPPRESS_MEMORY_READ_EVENTS.set(True)
+    try:
+        yield
+    finally:
+        _SUPPRESS_MEMORY_READ_EVENTS.reset(token)
 
 
 def _utc_now() -> str:
@@ -75,5 +91,9 @@ def emit_memory_read_event(
             str(key): int(value) for key, value in dict(filtered_counts or {}).items()
         },
     }
+    if _SUPPRESS_MEMORY_READ_EVENTS.get():
+        event["suppressed"] = True
+        event["suppression_reason"] = "stateless_chat_smoke"
+        return event
     _append_jsonl(Path(path or DEFAULT_MEMORY_READ_EVENT_LOG_PATH), event)
     return event
