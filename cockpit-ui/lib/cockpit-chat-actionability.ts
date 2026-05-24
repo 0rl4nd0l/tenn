@@ -77,6 +77,7 @@ const MARKET_GAP_RE = /\b(?:market_context|market data|market_data|price|price_d
 const METRIC_GAP_RE = /\b(?:financials|financial rows unavailable|metric|metric_extraction|extraction|extracted metrics)\b/i
 const PRICE_SOURCE_ID_RE = /^(?:local_price|price|price_query|price_on_date|price_range|tv_indicators|tv_screener|market_update|price_horizon):/i
 const PRICE_SOURCE_LABEL_RE = /\b(?:market_data|market price|price_data|technical_indicator|technical indicators)\b/i
+const NON_EVIDENCE_SOURCE_LABELS = new Set(['no_hit', 'missing_required_evidence', 'degraded_runtime'])
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -158,6 +159,16 @@ function sourceLabels(source: Source): string[] {
 }
 
 function sourceHasMarketPriceEvidence(source: Source): boolean {
+  const labels = sourceLabels(source)
+  const docType = String(source.docType || '').trim()
+  if (
+    labels.some((label) => NON_EVIDENCE_SOURCE_LABELS.has(label))
+    || docType === 'operational_no_hit'
+    || docType === 'runtime_failure'
+  ) {
+    return false
+  }
+
   const sourceId = String(source.sourceId || '').trim()
   if (PRICE_SOURCE_ID_RE.test(sourceId)) {
     return true
@@ -166,7 +177,7 @@ function sourceHasMarketPriceEvidence(source: Source): boolean {
   const haystack = [
     source.kind,
     source.docType,
-    ...sourceLabels(source),
+    ...labels,
   ].join(' ')
 
   return PRICE_SOURCE_LABEL_RE.test(haystack)

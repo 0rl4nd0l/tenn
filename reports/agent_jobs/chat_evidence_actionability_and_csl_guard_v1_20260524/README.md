@@ -2,7 +2,7 @@
 
 Job: `chat_evidence_actionability_and_csl_guard_v1_20260524`
 Date: 2026-05-24
-Status: complete; frontend chat evidence-state helper and CSL-style regression guard implemented
+Status: complete; frontend chat evidence-state helper and CSL-style regression guard implemented, with continuation hardening for no-hit market-tool evidence
 
 Lane: Query Orchestration
 Branch: migration/clean-runtime-baseline-reconstruct-v1
@@ -29,6 +29,7 @@ Decision: proceed with frontend chat rendering/tests only
 - A legacy backend route still exists at `financial-engine_v2/backend/app/routes/chat.py`, but the current Cockpit web chat surface inspected here uses `/api/cockpit/chat`.
 - Existing backend evidence labels include `claim_verified`, `context_only`, `no_hit`, `degraded_runtime`, `missing_required_evidence`, `local_personal_data`, `memory_context`, `external_web_context`, `financial_truth`, and `unknown_unclassified`.
 - Current code can discuss `price_state.trend_regime`, including in `financial-engine_v2/cockpit/core/chat.py`; this slice did not modify backend synthesis.
+- Continuation audit found backend UI sources can include `tv_screener:` source ids with `no_hit`/`operational_no_hit` labels when a screener returns no rows; these must not satisfy market-price evidence for price-trend claims.
 
 ## Inferred Facts
 
@@ -53,9 +54,11 @@ Decision: proceed with frontend chat rendering/tests only
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/chat_evidence_actionability_and_csl_guard_v1_20260524.md`: PASS after adding `allow_unapproved_safe_extension: true`.
 - Registry claim after narrowing: PASS.
 - A stale self-owned claim from this same job was released during claim refresh; no unrelated active job was present.
-- Wait behavior: no overlapping active job was present, so no 300 second wait loop was needed.
-- Final release command reported `active job not found` because the shared registry already had no active record for this job.
-- Final `python3 scripts/agent_job_registry.py list-active`: empty.
+- Initial implementation wait behavior: no overlapping active job was present during the implementation job's own claim window.
+- Continuation wait behavior: a same-job active record appeared while this follow-up session was auditing; target files were dirty and the heartbeat refreshed, so this session waited through three 300-second registry holds before the active job released and the worktree became clean.
+- Continuation claim after release: PASS.
+- Initial implementation release command reported `active job not found` because the shared registry already had no active record for that run.
+- Continuation final release/list-active is recorded in the final operator response after the hardening commit is created.
 
 ## Scout Findings
 
@@ -119,6 +122,7 @@ Decision: proceed with a small frontend helper and `TerminalMessage` rendering/t
 - Added `deriveChatEvidenceActionability()` in `cockpit-ui/lib/cockpit-chat-actionability.ts`.
 - The helper normalizes current answer/source metadata into compact states: `claim_verified`, `context_only`, `no_hit`, `market_data_missing`, `metric_extraction_missing`, `degraded_runtime`, `local_personal_data`, `memory_context`, `external_web_context`, `demo_mock`, `unresolved_source`, `snippet_only`, `draft_only`, and `unsupported_or_not_verified`.
 - The helper treats price/technical trend claims as `market_data_missing` unless visible sources include market/price evidence by source id, source kind/doc type, or evidence label.
+- The helper does not count no-hit, missing-required-evidence, degraded-runtime, `operational_no_hit`, or `runtime_failure` sources as market/price evidence even if their source id has a market-tool prefix.
 - The helper maps missing financial rows/financial categories to `metric_extraction_missing`.
 - `TerminalMessage` now renders a compact `Evidence state` badge row near the answer header and merges helper gaps/actions into the existing gaps/actionability block.
 - Suggested next actions are UI/copy only and disabled: `Pull market data`, `Run metric extraction`, and `Review filing group`.
@@ -145,6 +149,7 @@ After:
 - `cockpit-ui/lib/cockpit-chat-actionability.test.ts`: synthetic CSL filing-only bearish/current price trend fixture proves context-only filings do not count as market-price evidence.
 - `cockpit-ui/lib/cockpit-chat-actionability.test.ts`: visible price source fixture proves market data is not marked missing when a price source is actually surfaced.
 - `cockpit-ui/lib/cockpit-chat-actionability.test.ts`: filing text that merely mentions "share price" does not count as market-price evidence.
+- `cockpit-ui/lib/cockpit-chat-actionability.test.ts`: no-hit TradingView/screener source ids do not count as market-price evidence.
 - `cockpit-ui/lib/cockpit-chat-actionability.test.ts`: missing financial rows map to `metric_extraction_missing`.
 - `cockpit-ui/lib/cockpit-chat-actionability.test.ts`: degraded runtime remains visible.
 - `cockpit-ui/components/cockpit/chat/terminal-message.test.tsx`: CSL filing-only price-trend claim renders `Market data missing`, `Context only`, `Unsupported / not verified`, `market_data_missing`, and `Pull market data (not connected)` while not rendering `Claim-supported` or `Verified sources`.
@@ -153,6 +158,7 @@ After:
 ## Evidence-State Honesty Proof
 
 - Context-only filings do not verify price trend: the CSL fixture uses only a filing/buy-back source with `context_only` labels and no price source id; the helper and UI both mark `market_data_missing` and `unsupported_or_not_verified`.
+- No-hit market tools do not verify price trend: a `tv_screener:` source with `no_hit`/`operational_no_hit` metadata still leaves `hasMarketPriceEvidence=false` and surfaces `market_data_missing`.
 - Missing market data is surfaced: helper tests assert `market_data_missing` and `Pull market data`; component tests assert the same state appears in the rendered chat shell.
 - Missing metric extraction is surfaced: helper tests assert `metric_extraction_missing`, and the rendered missing-data test asserts `Metric extraction missing` and `Run metric extraction (not connected)`.
 - Degraded runtime is not hidden: helper and component tests assert `degraded_runtime`/`Degraded runtime` remains visible and is not shown as claim-supported.
@@ -169,7 +175,7 @@ After:
 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/chat_evidence_actionability_and_csl_guard_v1_20260524.md`: PASS.
 - `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/chat_evidence_actionability_and_csl_guard_v1_20260524.md`: PASS.
-- `corepack pnpm --dir cockpit-ui exec vitest run lib/cockpit-chat-actionability.test.ts components/cockpit/chat/terminal-message.test.tsx`: PASS, 2 files / 16 tests.
+- `corepack pnpm --dir cockpit-ui exec vitest run lib/cockpit-chat-actionability.test.ts components/cockpit/chat/terminal-message.test.tsx`: PASS, 2 files / 21 tests after continuation hardening.
 - `corepack pnpm --dir cockpit-ui exec eslint components/cockpit/chat/terminal-message.tsx components/cockpit/chat/terminal-message.test.tsx lib/cockpit-chat-actionability.ts lib/cockpit-chat-actionability.test.ts`: PASS.
 - `corepack pnpm --dir cockpit-ui exec tsc -p tsconfig.json --noEmit --incremental false`: PASS.
 - `git diff --check`: PASS.
@@ -181,8 +187,8 @@ After:
 
 ## Commit
 
-- Commit hash: recorded in final response after the scoped commit is created.
-- Planned commit subject: `feat(reporting): add chat evidence actionability states`.
+- Initial implementation commit: `370c7c99d86795932ab7a543d42b12ffb33c5828` (`feat(reporting): add chat evidence actionability states`).
+- Continuation hardening commit: recorded in final response after this report update and validation are committed.
 
 ## Final Git Status
 

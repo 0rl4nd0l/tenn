@@ -102,6 +102,32 @@ describe('deriveChatEvidenceActionability', () => {
     expect(result.stateCodes).toContain('unsupported_or_not_verified')
   })
 
+  it('does not treat no-hit market tools as visible market-price evidence', () => {
+    const result = deriveChatEvidenceActionability(
+      assistant({
+        content: 'CSL looks bearish on the current price trend.',
+        sources: [
+          {
+            title: 'TradingView screener',
+            score: 1,
+            kind: 'context',
+            docType: 'operational_no_hit',
+            sourceId: 'tv_screener:ASX',
+            snippet: 'Screener returned no rows for this query.',
+            evidenceLabel: 'no_hit',
+            evidenceLabels: ['no_hit', 'operational_trace'],
+            claimVerified: false,
+          },
+        ],
+      }),
+    )
+
+    expect(result.hasMarketTrendClaim).toBe(true)
+    expect(result.hasMarketPriceEvidence).toBe(false)
+    expect(result.stateCodes).toContain('market_data_missing')
+    expect(result.stateCodes).toContain('unsupported_or_not_verified')
+  })
+
   it('maps missing financial rows to metric extraction missing', () => {
     const result = deriveChatEvidenceActionability(
       assistant({
