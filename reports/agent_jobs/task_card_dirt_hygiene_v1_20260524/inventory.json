@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "job_id": "task_card_dirt_hygiene_v1_20260524",
+  "generated_at": "2026-05-24T16:50:16+10:00",
+  "repo": {
+    "requested_path": "/home/l4nd0/tenn",
+    "requested_realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "isolated_worktree": "/home/l4nd0/tenn-task-card-dirt-hygiene-v1-20260524",
+    "branch": "safe/task-card-dirt-hygiene-v1-20260524",
+    "base_head": "0141021b4622b999e3c5ca82f3dd6f559186cda9"
+  },
+  "active_jobs_seen": [],
+  "wait_behavior": {
+    "wait_intervals_seconds": [300, 300],
+    "reason": "Broad task-card allowance overlapped active backend and Strategy Lab task-card ownership during preflight in the shared checkout.",
+    "outcome": "Strategy Lab and backend evidence guard artifacts were committed by their owning jobs before the isolated closeout. The hygiene closeout moved to an isolated branch/worktree and narrowed the allowlist to current unowned task-card artifacts."
+  },
+  "cards": [
+    {
+      "path": "docs/agent_tasks/backend_chat_evidence_guard_canonical_integrate_v1_20260524.md",
+      "job_id": "backend_chat_evidence_guard_canonical_integrate_v1_20260524",
+      "lane": "Query Orchestration",
+      "status": "CURRENT_UNTRACKED_INTEGRATION_FOLLOWUP_CARD",
+      "report_dir_exists": false,
+      "commit_evidence": "none before this hygiene checkpoint",
+      "registry_evidence": "no active shared-registry job at isolated closeout",
+      "classification": "REPORT_ONLY_AUDIT_CARD",
+      "recommended_action": "Checkpoint this docs-only integration follow-up card with the hygiene report so it does not remain unrelated task-card dirt."
+    },
+    {
+      "path": "docs/agent_tasks/backend_chat_evidence_guard_v1_20260524.md",
+      "job_id": "backend_chat_evidence_guard_v1_20260524",
+      "lane": "Query Orchestration",
+      "status": "TRANSIENT_PREFLIGHT_SEEN_NOW_TRACKED",
+      "report_dir_exists": true,
+      "commit_evidence": "HEAD 0141021b fix(query): guard chat claims by evidence type",
+      "registry_evidence": "no active shared-registry job at isolated closeout",
+      "classification": "RECENT_COMPLETED_JOB_CARD",
+      "recommended_action": "No hygiene action needed; already committed by the owning backend evidence guard job."
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+      "job_id": "strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524",
+      "lane": "Reporting",
+      "status": "TRANSIENT_PREFLIGHT_SEEN_NOW_TRACKED",
+      "report_dir_exists": true,
+      "commit_evidence": "ancestor commit 0211a5b4 chore(reporting): surface strategy lab status in cockpit",
+      "registry_evidence": "no active shared-registry job at isolated closeout",
+      "classification": "RECENT_COMPLETED_JOB_CARD",
+      "recommended_action": "No hygiene action needed; already committed with matching report artifacts."
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_status_card_browser_smoke_v1_20260524.md",
+      "job_id": "strategy_lab_status_card_browser_smoke_v1_20260524",
+      "lane": "Reporting",
+      "status": "CURRENT_UNTRACKED_FOLLOWUP_CARD",
+      "report_dir_exists": false,
+      "commit_evidence": "none before this hygiene checkpoint",
+      "registry_evidence": "no active shared-registry job at isolated closeout",
+      "classification": "REPORT_ONLY_AUDIT_CARD",
+      "recommended_action": "Checkpoint this docs-only follow-up card with the hygiene report so it does not remain unrelated task-card dirt."
+    },
+    {
+      "path": "docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md",
+      "job_id": "task_card_dirt_hygiene_v1_20260524",
+      "lane": "Evaluation",
+      "status": "CURRENT_UNTRACKED_CURRENT_JOB_CARD",
+      "report_dir_exists": true,
+      "commit_evidence": "none before this hygiene checkpoint",
+      "registry_evidence": "active shared-registry job in isolated worktree during validation",
+      "classification": "ACTIVE_CURRENT_TASK_CARD",
+      "recommended_action": "Commit this card and its report inventory, then release the registry claim."
+    }
+  ]
+}

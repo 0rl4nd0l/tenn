@@ -1,0 +1,37 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/README.md",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md",
+        "docs/agent_tasks/backend_chat_evidence_guard_canonical_integrate_v1_20260524.md",
+        "docs/agent_tasks/strategy_lab_status_card_browser_smoke_v1_20260524.md",
+        "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/README.md",
+        "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/inventory.json",
+        "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/inventory.csv",
+        "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/status.json",
+        "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "task_card_dirt_hygiene_v1_20260524",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/task_card_dirt_hygiene_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
