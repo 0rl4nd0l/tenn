@@ -1,14 +1,6 @@
 {
   "changed_files": [
     {
-      "path": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/README.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/status.json",
-      "status": "M"
-    },
-    {
       "path": "docs/agent_tasks/cockpit_ui_wait_then_actionability_rollout_v1_20260524.md",
       "status": "??"
     }
