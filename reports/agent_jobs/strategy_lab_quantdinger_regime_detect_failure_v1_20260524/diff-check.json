@@ -1,0 +1,37 @@
+{
+  "changed_files": [],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_quantdinger_regime_detect_failure_v1_20260524.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/README.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/status.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/evidence.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/validation.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "strategy_lab_quantdinger_regime_detect_failure_v1_20260524",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524",
+      "owner": "Codex",
+      "primary_lane": "Reporting",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 10800,
+      "title": "Strategy Lab QuantDinger regime detect failure investigation",
+      "user_approval_captured": true
+    },
+    "ok": true
+  }
+}

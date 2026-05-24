@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_regime_detect_failure_v1_20260524",
+  "generated_at": "2026-05-24T13:17:00Z",
+  "overall": "PASSED",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_quantdinger_regime_detect_failure_v1_20260524.md",
+      "result": "passed",
+      "summary": "ok=true; production_data_access=false; allow_audit_code_changes=true"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_quantdinger_regime_detect_failure_v1_20260524.md",
+      "result": "passed",
+      "summary": "ok=true; active_jobs=[] before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/strategy_lab_quantdinger_regime_detect_failure_v1_20260524.md",
+      "result": "passed",
+      "summary": "claim created for Reporting audit job"
+    },
+    {
+      "command": "manual probe artifact inspection",
+      "result": "passed",
+      "summary": "runtime_proof.json confirmed regime HTTP 400 with message single positional indexer is out-of-bounds; exact regime request body was not persisted"
+    },
+    {
+      "command": "Phase 1 baseline artifact inspection",
+      "result": "passed",
+      "summary": "regime_detect_raw.json confirmed snake_case date failure and corrected camelCase 2026-04-05 to 2026-05-20 success"
+    },
+    {
+      "command": "git clone https://github.com/brokermr810/QuantDinger.git /tmp/tenn-quantdinger-regime-detect-source-audit-v1-20260524 && git checkout 91dd4e274702552b91036e2c89018622d111faee",
+      "result": "passed",
+      "summary": "external source inspected at commit 91dd4e274702552b91036e2c89018622d111faee"
+    },
+    {
+      "command": "source-level synthetic OHLCV reproduction with financial-engine_v2/.venv/bin/python",
+      "result": "passed",
+      "summary": "50, 55, 59, 80, 89, and 119 rows reproduced IndexError: single positional indexer is out-of-bounds; 29 rows produced the explicit 30-candle ValueError"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/strategy_lab_quantdinger_regime_detect_failure_v1_20260524/{status,evidence,validation}.json",
+      "result": "passed",
+      "summary": "JSON report artifacts parse"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed",
+      "summary": "no whitespace errors"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_quantdinger_regime_detect_failure_v1_20260524.md",
+      "result": "passed",
+      "summary": "ok=true after commit; changed_files=[]"
+    },
+    {
+      "command": "rm -rf /tmp/tenn-quantdinger-regime-detect-source-audit-v1-20260524",
+      "result": "passed",
+      "summary": "temporary external source checkout removed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release strategy_lab_quantdinger_regime_detect_failure_v1_20260524",
+      "result": "passed",
+      "summary": "active registry claim removed; status.json was rewritten to final report status afterward"
+    }
+  ],
+  "foreign_dirty_files_reported_by_check_diff": [],
+  "runtime_result": "NOT_STARTED",
+  "cleanup_result": "PASSED",
+  "safety_result": "PASSED"
+}

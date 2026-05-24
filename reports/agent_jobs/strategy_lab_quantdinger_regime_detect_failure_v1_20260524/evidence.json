@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_regime_detect_failure_v1_20260524",
+  "generated_at": "2026-05-24T13:12:28Z",
+  "verdict": "ROOT_CAUSE_CONFIRMED_SOURCE_LEVEL_NO_RUNTIME_RESMOKE",
+  "repo_context": {
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "initial_head": "a71a4fbeb447",
+    "active_jobs_before_claim": [],
+    "task_card_validated": true,
+    "registry_claimed": true
+  },
+  "manual_probe_evidence": {
+    "report_dir": "reports/agent_jobs/strategy_lab_quantdinger_manual_readonly_probe_v1_20260524",
+    "runtime_proof": "reports/agent_jobs/strategy_lab_quantdinger_manual_readonly_probe_v1_20260524/runtime_proof.json",
+    "regime_detect_http_status": 400,
+    "regime_detect_message": "single positional indexer is out-of-bounds",
+    "regime_request_payload": "DATA_MISSING_NOT_PERSISTED_BY_MANUAL_PROBE",
+    "klines_count": "DATA_MISSING_NOT_PERSISTED_BY_SCRIPT",
+    "backtest_equity_curve_points": 15,
+    "safety_result": {
+      "live_trading_enabled": false,
+      "paper_order_placed": false,
+      "token_revoked": true,
+      "cleanup_passed": true,
+      "current_sidecar_available_set_true": false
+    }
+  },
+  "successful_phase1_baseline": {
+    "report_dir": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520",
+    "source_commit": "91dd4e274702552b91036e2c89018622d111faee",
+    "first_attempt": {
+      "request": {
+        "market": "Crypto",
+        "symbol": "BTC/USDT",
+        "timeframe": "1D",
+        "start_date": "2026-04-05",
+        "end_date": "2026-05-20"
+      },
+      "http_status": 400,
+      "message": "time data 'None' does not match format '%Y-%m-%d'"
+    },
+    "corrected_attempt": {
+      "request": {
+        "market": "Crypto",
+        "symbol": "BTC/USDT",
+        "timeframe": "1D",
+        "startDate": "2026-04-05",
+        "endDate": "2026-05-20"
+      },
+      "http_status": 200,
+      "regime": "high_volatility",
+      "confidence": 0.99,
+      "feature_keys": [
+        "atrPct",
+        "directionalEfficiency",
+        "emaGapPct",
+        "priceChangePct",
+        "realizedVolPct",
+        "volumeRatio"
+      ]
+    }
+  },
+  "quantdinger_source_evidence": {
+    "clone_url": "https://github.com/brokermr810/QuantDinger.git",
+    "checked_out_commit": "91dd4e274702552b91036e2c89018622d111faee",
+    "temporary_checkout": "/tmp/tenn-quantdinger-regime-detect-source-audit-v1-20260524",
+    "route": {
+      "path": "backend_api_python/app/routes/agent_v1/experiments.py",
+      "evidence": "POST /experiments/regime/detect calls ExperimentRunnerService.detect_regime and converts any exception to HTTP 400."
+    },
+    "runner": {
+      "path": "backend_api_python/app/services/experiment/runner.py",
+      "evidence": "detect_regime parses startDate/endDate, fetches klines, then calls MarketRegimeService.detect."
+    },
+    "regime_service": {
+      "path": "backend_api_python/app/services/experiment/regime.py",
+      "minimum_total_candles": 30,
+      "feature_index_requirement": "close.iloc[-30]",
+      "segment_skip_threshold": 20,
+      "bug": "_build_segments allows 20-29 row segments into _extract_features, but _extract_features indexes the 30th row from the end."
+    }
+  },
+  "source_level_reproduction": {
+    "runtime_started": false,
+    "command_summary": "Imported QuantDinger regime.py directly with PYTHONDONTWRITEBYTECODE=1 and synthetic OHLCV DataFrames using financial-engine_v2/.venv pandas/numpy.",
+    "results": [
+      "29: ValueError: At least 30 candles are required for regime detection",
+      "30: ok regime=bull_trend segments=1",
+      "46: ok regime=bull_trend segments=1",
+      "49: ok regime=bull_trend segments=1",
+      "50: IndexError: single positional indexer is out-of-bounds",
+      "55: IndexError: single positional indexer is out-of-bounds",
+      "59: IndexError: single positional indexer is out-of-bounds",
+      "60: ok regime=bull_trend segments=2",
+      "79: ok regime=bull_trend segments=2",
+      "80: IndexError: single positional indexer is out-of-bounds",
+      "89: IndexError: single positional indexer is out-of-bounds",
+      "90: ok regime=bull_trend segments=3",
+      "119: IndexError: single positional indexer is out-of-bounds",
+      "120: ok regime=bull_trend segments=4"
+    ],
+    "minimal_failing_rows": 50,
+    "known_good_rows": [
+      30,
+      46,
+      49,
+      60,
+      79,
+      90,
+      120
+    ]
+  },
+  "exact_reproduction_request_payload": {
+    "manual_probe_exact_payload": "DATA_MISSING_NOT_PERSISTED_BY_MANUAL_PROBE",
+    "source_level_exact_input": "50-row OHLCV DataFrame passed to MarketRegimeService.detect(symbol='BTC/USDT', market='Crypto', timeframe='1D')",
+    "likely_runtime_payload_inferred_not_proven": {
+      "market": "Crypto",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D",
+      "startDate": "2026-04-05",
+      "endDate": "2026-05-24"
+    },
+    "inference_reason": "Phase 1 used 2026-04-05 to 2026-05-20 and succeeded; the May 24 probe likely extended the same daily window to the probe date, yielding 50 rows, which is source-confirmed failing. The manual artifact did not persist the actual body."
+  },
+  "classification": {
+    "bad_request_shape": false,
+    "bad_request_shape_note": "Snake_case dates fail with a different message. The observed message matches a valid-shape candle-count bug.",
+    "insufficient_market_rows": false,
+    "insufficient_market_rows_note": "Fewer than 30 rows raises an explicit 30-candle error, not the observed Pandas IndexError.",
+    "endpoint_bug": true,
+    "fixture_or_data_window_issue": true,
+    "expected_limitation": "The 30-candle minimum is expected; the out-of-bounds error for valid 30+ row windows is not expected."
+  },
+  "safe_fix_assessment": {
+    "narrow_fix_safe": true,
+    "fix_location": "external QuantDinger upstream source, not Tenn",
+    "recommended_fix": "Skip segments with fewer than 30 rows in _build_segments, or make _extract_features explicitly reject/handle fewer than 30 rows before close.iloc[-30]. Add regression coverage for 50/55/80-row frames.",
+    "tenn_code_change_safe_under_this_card": false,
+    "reason": "Allowed writes are task/report artifacts only, and the bug is in the sidecar endpoint."
+  },
+  "reprobe_recommendation": {
+    "clean_reprobe_justified": true,
+    "preconditions": [
+      "persist exact regime request payload",
+      "persist response body",
+      "persist fetched candle count",
+      "keep loopback-only R/B token",
+      "prove zero orders and cleanup"
+    ],
+    "safe_windows": [
+      "Known-good Phase 1 window 2026-04-05 to 2026-05-20",
+      "A deliberately non-buggy 60-candle window"
+    ],
+    "do_not_set_current_sidecar_available_true": true
+  }
+}
