@@ -1,0 +1,525 @@
+{
+  "artifact_type": "appendix5b_candidate_eval_v1",
+  "canonical_write": false,
+  "document_count": 1,
+  "documents": [
+    {
+      "candidate_count": 13,
+      "candidates": [
+        {
+          "column_role": "current_quarter",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "Current quarter $A'000",
+            "line_item": "1.9",
+            "page": 11,
+            "row_index": 15,
+            "row_label": "1.9 | Net cash from / (used in) operating activities",
+            "source_span": "page_11:table_2:row_15:col_2",
+            "table_index": 2
+          },
+          "metric_name": "operating_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Current quarter $A'000",
+          "raw_value": "(450)",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": -450.0
+        },
+        {
+          "column_role": "year_to_date",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 3,
+            "column_label": "Year to date (6 months) $A'000",
+            "line_item": "1.9",
+            "page": 11,
+            "row_index": 15,
+            "row_label": "1.9 | Net cash from / (used in) operating activities",
+            "source_span": "page_11:table_2:row_15:col_3",
+            "table_index": 2
+          },
+          "metric_name": "operating_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Year to date (6 months) $A'000",
+          "raw_value": "(796)",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": -796.0
+        },
+        {
+          "column_role": "current_quarter",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "Current quarter $A'000",
+            "line_item": "2.6",
+            "page": 12,
+            "row_index": 10,
+            "row_label": "2.6 | Net cash from / (used in) investing activities",
+            "source_span": "page_12:table_4:row_10:col_2",
+            "table_index": 4
+          },
+          "metric_name": "investing_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Current quarter $A'000",
+          "raw_value": "(624)",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": -624.0
+        },
+        {
+          "column_role": "year_to_date",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 3,
+            "column_label": "Year to date (6 months) $A'000",
+            "line_item": "2.6",
+            "page": 12,
+            "row_index": 10,
+            "row_label": "2.6 | Net cash from / (used in) investing activities",
+            "source_span": "page_12:table_4:row_10:col_3",
+            "table_index": 4
+          },
+          "metric_name": "investing_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Year to date (6 months) $A'000",
+          "raw_value": "(1,193)",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": -1193.0
+        },
+        {
+          "column_role": "current_quarter",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "Current quarter $A'000",
+            "line_item": "3.10",
+            "page": 12,
+            "row_index": 12,
+            "row_label": "3.10 | Net cash from / (used in) financing activities",
+            "source_span": "page_12:table_5:row_12:col_2",
+            "table_index": 5
+          },
+          "metric_name": "financing_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Current quarter $A'000",
+          "raw_value": "869",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 869.0
+        },
+        {
+          "column_role": "year_to_date",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 3,
+            "column_label": "Year to date (6 months) $A'000",
+            "line_item": "3.10",
+            "page": 12,
+            "row_index": 12,
+            "row_label": "3.10 | Net cash from / (used in) financing activities",
+            "source_span": "page_12:table_5:row_12:col_3",
+            "table_index": 5
+          },
+          "metric_name": "financing_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Year to date (6 months) $A'000",
+          "raw_value": "869",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 869.0
+        },
+        {
+          "column_role": "current_quarter",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "Current quarter $A'000",
+            "line_item": "4.6",
+            "page": 13,
+            "row_index": 2,
+            "row_label": "4.6 | Cash and cash equivalents at end of period*",
+            "source_span": "page_13:table_7:row_2:col_2",
+            "table_index": 7
+          },
+          "metric_name": "cash_end",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Current quarter $A'000",
+          "raw_value": "702",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 702.0
+        },
+        {
+          "column_role": "year_to_date",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 3,
+            "column_label": "Year to date (6 months) $A'000",
+            "line_item": "4.6",
+            "page": 13,
+            "row_index": 2,
+            "row_label": "4.6 | Cash and cash equivalents at end of period*",
+            "source_span": "page_13:table_7:row_2:col_3",
+            "table_index": 7
+          },
+          "metric_name": "cash_end",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Year to date (6 months) $A'000",
+          "raw_value": "702",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 702.0
+        },
+        {
+          "column_role": "current_quarter",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "Current quarter $A'000",
+            "line_item": "5.5",
+            "page": 13,
+            "row_index": 5,
+            "row_label": "5.5 | Cash and cash equivalents at end of quarter (should equal item 4.6 above)*",
+            "source_span": "page_13:table_8:row_5:col_2",
+            "table_index": 8
+          },
+          "metric_name": "cash_end",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Current quarter $A'000",
+          "raw_value": "702",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 702.0
+        },
+        {
+          "column_role": "value",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 3,
+            "column_label": "Previous quarter $A'000",
+            "line_item": "5.5",
+            "page": 13,
+            "row_index": 5,
+            "row_label": "5.5 | Cash and cash equivalents at end of quarter (should equal item 4.6 above)*",
+            "source_span": "page_13:table_8:row_5:col_3",
+            "table_index": 8
+          },
+          "metric_name": "cash_end",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "Previous quarter $A'000",
+          "raw_value": "907",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 907.0
+        },
+        {
+          "column_role": "value",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "$A'000",
+            "line_item": "1.9",
+            "page": 14,
+            "row_index": 1,
+            "row_label": "Net cash from / (used in) operating activities (item 1.9)",
+            "source_span": "page_14:table_10:row_1:col_2",
+            "table_index": 10
+          },
+          "metric_name": "operating_cf",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "$A'000",
+          "raw_value": "(450)",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": -450.0
+        },
+        {
+          "column_role": "value",
+          "component_evidence": [],
+          "confidence": 0.96,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "$A'000",
+            "line_item": "4.6",
+            "page": 14,
+            "row_index": 4,
+            "row_label": "Cash and cash equivalents at quarter end (item 4.6)",
+            "source_span": "page_14:table_10:row_4:col_2",
+            "table_index": 10
+          },
+          "metric_name": "cash_end",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "$A'000",
+          "raw_value": "702",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": 702.0
+        },
+        {
+          "column_role": "value",
+          "component_evidence": [
+            {
+              "column_index": 2,
+              "column_label": "$A'000",
+              "line_item": "2.1(d)",
+              "page": 14,
+              "row_index": 2,
+              "row_label": "(Payments for exploration & evaluation classified as investing activities) (item 2.1(d))",
+              "source_span": "page_14:table_10:row_2:col_2",
+              "table_index": 10
+            }
+          ],
+          "confidence": 0.9,
+          "currency": "AUD",
+          "document_type": "appendix_5b",
+          "evidence": {
+            "column_index": 2,
+            "column_label": "$A'000",
+            "line_item": "2.1(d)",
+            "page": 14,
+            "row_index": 2,
+            "row_label": "(Payments for exploration & evaluation classified as investing activities) (item 2.1(d))",
+            "source_span": "page_14:table_10:row_2:col_2",
+            "table_index": 10
+          },
+          "metric_name": "capex",
+          "parser_method": "appendix5b_deterministic_v1",
+          "period_label": "$A'000",
+          "raw_value": "(624)",
+          "scale": "thousands",
+          "trust_status": "candidate",
+          "unit": "currency",
+          "value": -624.0
+        }
+      ],
+      "comparisons": [
+        {
+          "candidate": {
+            "column_role": "current_quarter",
+            "component_evidence": [],
+            "confidence": 0.96,
+            "currency": "AUD",
+            "document_type": "appendix_5b",
+            "evidence": {
+              "column_index": 2,
+              "column_label": "Current quarter $A'000",
+              "line_item": "5.5",
+              "page": 13,
+              "row_index": 5,
+              "row_label": "5.5 | Cash and cash equivalents at end of quarter (should equal item 4.6 above)*",
+              "source_span": "page_13:table_8:row_5:col_2",
+              "table_index": 8
+            },
+            "metric_name": "cash_end",
+            "parser_method": "appendix5b_deterministic_v1",
+            "period_label": "Current quarter $A'000",
+            "raw_value": "702",
+            "scale": "thousands",
+            "trust_status": "candidate",
+            "unit": "currency",
+            "value": 702.0
+          },
+          "candidate_value": 702000,
+          "failure_reason": "candidate metric is not labelled in gold fixture",
+          "gold_value": null,
+          "metric_name": "cash_end",
+          "status": "candidate_unlabelled"
+        },
+        {
+          "candidate": {
+            "column_role": "current_quarter",
+            "component_evidence": [],
+            "confidence": 0.96,
+            "currency": "AUD",
+            "document_type": "appendix_5b",
+            "evidence": {
+              "column_index": 2,
+              "column_label": "Current quarter $A'000",
+              "line_item": "3.10",
+              "page": 12,
+              "row_index": 12,
+              "row_label": "3.10 | Net cash from / (used in) financing activities",
+              "source_span": "page_12:table_5:row_12:col_2",
+              "table_index": 5
+            },
+            "metric_name": "financing_cf",
+            "parser_method": "appendix5b_deterministic_v1",
+            "period_label": "Current quarter $A'000",
+            "raw_value": "869",
+            "scale": "thousands",
+            "trust_status": "candidate",
+            "unit": "currency",
+            "value": 869.0
+          },
+          "candidate_value": 869000,
+          "failure_reason": "candidate metric is not labelled in gold fixture",
+          "gold_value": null,
+          "metric_name": "financing_cf",
+          "status": "candidate_unlabelled"
+        },
+        {
+          "candidate": {
+            "column_role": "current_quarter",
+            "component_evidence": [],
+            "confidence": 0.96,
+            "currency": "AUD",
+            "document_type": "appendix_5b",
+            "evidence": {
+              "column_index": 2,
+              "column_label": "Current quarter $A'000",
+              "line_item": "2.6",
+              "page": 12,
+              "row_index": 10,
+              "row_label": "2.6 | Net cash from / (used in) investing activities",
+              "source_span": "page_12:table_4:row_10:col_2",
+              "table_index": 4
+            },
+            "metric_name": "investing_cf",
+            "parser_method": "appendix5b_deterministic_v1",
+            "period_label": "Current quarter $A'000",
+            "raw_value": "(624)",
+            "scale": "thousands",
+            "trust_status": "candidate",
+            "unit": "currency",
+            "value": -624.0
+          },
+          "candidate_value": -624000,
+          "failure_reason": "candidate metric is not labelled in gold fixture",
+          "gold_value": null,
+          "metric_name": "investing_cf",
+          "status": "candidate_unlabelled"
+        },
+        {
+          "candidate": {
+            "column_role": "current_quarter",
+            "component_evidence": [],
+            "confidence": 0.96,
+            "currency": "AUD",
+            "document_type": "appendix_5b",
+            "evidence": {
+              "column_index": 2,
+              "column_label": "Current quarter $A'000",
+              "line_item": "1.9",
+              "page": 11,
+              "row_index": 15,
+              "row_label": "1.9 | Net cash from / (used in) operating activities",
+              "source_span": "page_11:table_2:row_15:col_2",
+              "table_index": 2
+            },
+            "metric_name": "operating_cf",
+            "parser_method": "appendix5b_deterministic_v1",
+            "period_label": "Current quarter $A'000",
+            "raw_value": "(450)",
+            "scale": "thousands",
+            "trust_status": "candidate",
+            "unit": "currency",
+            "value": -450.0
+          },
+          "candidate_value": -450000,
+          "failure_reason": "candidate metric is not labelled in gold fixture",
+          "gold_value": null,
+          "metric_name": "operating_cf",
+          "status": "candidate_unlabelled"
+        }
+      ],
+      "document_id": "gre_q4_fy2025_appendix5b",
+      "document_type": "appendix_5b",
+      "gold_fixture_path": null,
+      "missing": [
+        {
+          "column_role": "current_quarter",
+          "expected_line_items": [
+            "2.1(c)",
+            "2.1(d)"
+          ],
+          "failure_reason": "DATA_MISSING: current_quarter Appendix 5B line value not found",
+          "metric_name": "capex",
+          "parser_method": "appendix5b_deterministic_v1",
+          "status": "DATA_MISSING"
+        },
+        {
+          "column_role": "year_to_date",
+          "expected_line_items": [
+            "2.1(c)",
+            "2.1(d)"
+          ],
+          "failure_reason": "DATA_MISSING: year_to_date Appendix 5B line value not found",
+          "metric_name": "capex",
+          "parser_method": "appendix5b_deterministic_v1",
+          "status": "DATA_MISSING"
+        }
+      ],
+      "missing_count": 2,
+      "parse_status": "parsed",
+      "period_end": "2024-12-31",
+      "period_type": "Q",
+      "summary": {
+        "candidate_unlabelled": 4
+      },
+      "tables_seen": 11,
+      "ticker": "GRE"
+    }
+  ],
+  "generated_at": "2026-05-17T01:25:00+11:00",
+  "parser_method": "appendix5b_deterministic_v1",
+  "run_id": "gre_q4_fy2025_appendix5b_page_batch_appendix5b",
+  "runtime": "read_only_manifest",
+  "summary": {
+    "candidate_count": 13,
+    "candidate_unlabelled": 4,
+    "documents_not_applicable": 0,
+    "documents_parsed": 1,
+    "missing_count": 2
+  }
+}

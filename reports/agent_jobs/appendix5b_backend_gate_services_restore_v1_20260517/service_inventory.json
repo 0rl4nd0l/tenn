@@ -1,0 +1,41 @@
+{
+  "artifact_type": "appendix5b_backend_service_inventory_v1",
+  "canonical_write": false,
+  "missing_in_active_before_restore": [
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py"
+  ],
+  "restored_focused_tests": [
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py"
+  ],
+  "restored_scripts": [
+    "scripts/build_appendix5b_manifest_from_docling.py",
+    "scripts/build_asx_appendix5b_label_review_packet.py",
+    "scripts/import_asx_appendix5b_confirmed_labels.py",
+    "scripts/run_appendix5b_candidate_artifacts.py",
+    "scripts/run_appendix5b_no_regression_gate.py",
+    "scripts/run_extraction_evaluation_gates.py",
+    "scripts/score_asx_appendix5b_candidates.py",
+    "scripts/test_appendix5b_no_regression_gate.py",
+    "scripts/test_extraction_evaluation_gates.py"
+  ],
+  "restored_service_files": [
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py"
+  ],
+  "source_commit": "5d08ee34cb2e",
+  "source_worktree": "/home/l4nd0/tenn-appendix5b-recurring-gate-integration-v1-20260517"
+}

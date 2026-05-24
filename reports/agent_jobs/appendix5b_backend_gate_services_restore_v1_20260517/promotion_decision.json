@@ -1,0 +1,45 @@
+{
+  "artifact_type": "appendix5b_prm_promotion_decision_v1",
+  "canonical_write": false,
+  "conditions": {
+    "approval_packet_evidence_present": true,
+    "approval_packet_value_matches": true,
+    "backend_services_import": true,
+    "canonical_or_production_data_mutation": false,
+    "existing_four_doc_floor_remains_passing": true,
+    "prm_candidate_artifact_generated_with_docling": true,
+    "prm_candidate_matches_label": true,
+    "recurring_gate_passed_with_prm": true
+  },
+  "decision": "PROMOTED_REPORT_LOCAL_NO_REGRESSION_FLOOR",
+  "gate_summary": {
+    "candidate_count": 81,
+    "candidate_unlabelled": 20,
+    "current_quarter_candidate_count": 33,
+    "document_fail": 0,
+    "document_pass": 5,
+    "document_unscored": 2,
+    "documents_scored": 7,
+    "exact_match_rate": 1.0,
+    "expected_null_respected": 2,
+    "labelled_metric_count": 13,
+    "labelled_metric_coverage": 1.0,
+    "labelled_metrics_with_candidate": 13,
+    "match": 13,
+    "trusted_metric_count": 13
+  },
+  "prm_candidate": {
+    "candidate_value": -246.0,
+    "column_label": "Current quarter $A'000",
+    "currency": "AUD",
+    "document_id": "prm_q_2025-12-31_appendix5b",
+    "line_item": "1.9",
+    "metric_name": "operating_cf",
+    "normalized_expected_value": -246000,
+    "page": 8,
+    "raw_value": "(246)",
+    "scale": "thousands",
+    "source_span": "page_8:table_2:row_15:col_2"
+  },
+  "prm_promoted_to_floor": true
+}

@@ -1,0 +1,45 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Review scope is the staged Appendix 5B integration diff only.",
+      "The preserved report evidence is intentionally report-local and not a runtime or financial-truth write path."
+    ],
+    "sources_used": [
+      "git diff --cached --stat",
+      "git diff --cached --name-only",
+      "git diff --cached -- scripts/run_extraction_evaluation_gates.py scripts/test_extraction_evaluation_gates.py scripts/run_appendix5b_no_regression_gate.py financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+      "Focused compile, pytest, report-local gate, canonical_write, routing, and JSON validation results"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py",
+      "scripts/run_appendix5b_no_regression_gate.py",
+      "scripts/run_extraction_evaluation_gates.py",
+      "scripts/test_appendix5b_no_regression_gate.py",
+      "scripts/test_extraction_evaluation_gates.py"
+    ],
+    "files_modified": [
+      "scripts/run_extraction_evaluation_gates.py",
+      "scripts/test_extraction_evaluation_gates.py"
+    ],
+    "validation_checks": [
+      "python3 -m compileall passed for changed Appendix 5B services/scripts",
+      "Appendix 5B focused pytest passed: 48 passed",
+      "scripts/run_appendix5b_no_regression_gate.py passed with canonical_write=false and gate_pass=true",
+      "scripts/run_extraction_evaluation_gates.py passed with canonical_write=false and gate_pass=true",
+      "rg proof found no true canonical-write setting in scoped files/reports",
+      "diff name proof found no parser-routing/runtime/Cockpit/data surfaces modified",
+      "JSON validation passed for preserved and fresh report artifacts"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}

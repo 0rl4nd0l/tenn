@@ -156,6 +156,24 @@ When promoting a fixture from structural-only to value-asserted, or adding a new
 4. Remove a metric from `expected_nulls` when adding it to `metrics`.
 5. Update the fixture inventory table in this doc.
 
+### Appendix 5B report-local no-regression gate
+
+The Appendix 5B deterministic candidate gate is a read-only evaluation layer for report-local labels and artifacts. It does not write canonical financial truth, does not run production data mutation, and preserves evidence-bound promotion semantics.
+
+Current recurring wrapper:
+
+```bash
+python scripts/run_extraction_evaluation_gates.py
+```
+
+The Appendix 5B subgate is:
+
+```bash
+python scripts/run_appendix5b_no_regression_gate.py
+```
+
+As of 2026-05-17, the PRM Dec 2025 approval packet is included in the Appendix 5B no-regression floor only through report-local label/artifact evidence. The floor requires five labelled passing documents, zero labelled document failures, `13/13` labelled metrics with candidates, `13/13` trusted metric matches, exact-match rate `1.0`, and labelled metric coverage `1.0`.
+
 ---
 
 ## Real-document gold eval pilot

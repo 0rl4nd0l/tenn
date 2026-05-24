@@ -1,0 +1,17 @@
+{
+  "artifact_path": "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_artifact.json",
+  "artifact_summary": {
+    "candidate_count": 12,
+    "candidate_unlabelled": 2,
+    "documents_not_applicable": 0,
+    "documents_parsed": 1,
+    "match": 1,
+    "missing_count": 3
+  },
+  "docling_method": "docling_gpu",
+  "manifest_path": "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_manifest.json",
+  "page_count": 12,
+  "status": "SUCCESS",
+  "structured_path": "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_q_2025-12-31.docling.json",
+  "table_count": 9
+}

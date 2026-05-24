@@ -1,0 +1,85 @@
+{
+  "backend_services_restored": true,
+  "backend_validation_status": "PASS_IMPORT_AND_40_FOCUSED_TESTS",
+  "branch": "fast/dev-storage-v1-20260513-170304",
+  "changed_files": [
+    "docs/agent_tasks/appendix5b_backend_gate_services_restore_v1_20260517.md",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py",
+    "scripts/build_appendix5b_manifest_from_docling.py",
+    "scripts/build_asx_appendix5b_label_review_packet.py",
+    "scripts/import_asx_appendix5b_confirmed_labels.py",
+    "scripts/run_appendix5b_candidate_artifacts.py",
+    "scripts/run_appendix5b_no_regression_gate.py",
+    "scripts/run_extraction_evaluation_gates.py",
+    "scripts/score_asx_appendix5b_candidates.py",
+    "scripts/test_appendix5b_no_regression_gate.py",
+    "scripts/test_extraction_evaluation_gates.py",
+    "docs/architecture/12_evaluation_and_drift_monitoring.md",
+    "docs/validation_baseline.md",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/README.md",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/status.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/import_check.txt",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/gate_result.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/promotion_decision.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/service_inventory.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/recurring_eval_report.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/appendix5b_no_regression_report.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/confirmed_labels_prm_included.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_artifact.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_manifest.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_q_2025-12-31.docling.json",
+    "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/prm_q_2025-12-31_source.pdf.docling.json"
+  ],
+  "check_diff_disallowed_files": [
+    "cockpit-ui/next-env.d.ts",
+    "docs/agent_tasks/appendix5b_gate_stack_prm_promotion_v1_20260517.md",
+    "docs/agent_tasks/m40_8001_conservative_validation_v1_20260517.md"
+  ],
+  "check_diff_status": "FAIL_UNRELATED_DIRTY_FILES_OUTSIDE_ALLOWED_SCOPE",
+  "data_missing": [
+    "graphify-out/GRAPH_REPORT.md and graphify-out/wiki/index.md are absent in active NVMe",
+    "active NVMe has no local financial-engine_v2/.venv; validation used /mnt/hdd-data/home/l4nd0/tenn/.venv tooling with PYTHONPATH pointed at active NVMe",
+    "registry claim was not acquired because pre-existing unrelated dirty task cards are outside this card allowed_files"
+  ],
+  "final_registry_active_jobs": [
+    {
+      "job_id": "m40_8001_conservative_validation_v1_20260517",
+      "overlap": "none with Appendix 5B/backend eval restored surfaces"
+    }
+  ],
+  "gate_status": "PASS_PRM_INCLUDED",
+  "head": "55f746aabb10",
+  "job_id": "appendix5b_backend_gate_services_restore_v1_20260517",
+  "lane": "Evaluation",
+  "mode": "SAFE_EXTENSION",
+  "prm_approval_packet_found": true,
+  "prm_promoted_to_floor": true,
+  "recommended_next_step": "Commit the restored Appendix 5B gate/service stack and PRM-inclusive report-local floor, then save project memory that PRM Dec 2025 is now part of the recurring Appendix 5B no-regression gate.",
+  "restored_service_files": [
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+    "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py"
+  ],
+  "save_recommendation": "Save that active NVMe restored the Appendix 5B backend scorer/parser/candidate services and promoted PRM Dec 2025 into the report-local no-regression floor after the recurring gate passed with 5 labelled documents and 13/13 labelled metrics.",
+  "source_commits_available": {
+    "55f746aabb10": true,
+    "5d08ee34cb2e": true,
+    "ae2dfd81cdfc": true
+  },
+  "task_card_note": "Exact restored file paths were added to allowed_files after check-diff showed the repo checker does not match broad directory allowlist entries for untracked files.",
+  "validation_status": "PASS_FUNCTIONAL_CHECKS_CHECK_DIFF_FAILS_ONLY_UNRELATED_DIRTY_FILES"
+}

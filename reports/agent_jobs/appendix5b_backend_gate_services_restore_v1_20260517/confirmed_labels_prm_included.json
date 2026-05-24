@@ -1,0 +1,413 @@
+{
+  "artifact_type": "appendix5b_candidate_labels_prm_included_v1",
+  "canonical_write": false,
+  "documents": [
+    {
+      "document_id": "10x_q_2025-12-31_difficult",
+      "expected_nulls": [
+        "net_debt",
+        "revenue"
+      ],
+      "metrics": {
+        "operating_cf": {
+          "column_role": "current_quarter",
+          "line_item": "1.9",
+          "review_status": "approved_report_local_page_bound",
+          "source_evidence": {
+            "approval_packet_path": "/home/l4nd0/tenn-appendix5b-10x-approved-gate-v1-20260517/reports/agent_jobs/appendix5b_10x_approved_gate_v1_20260517/approval_packet.json",
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 12,
+            "candidate_row_index": 15,
+            "candidate_row_label": "1.9 | Net cash from / (used in) operating activities",
+            "candidate_source_span": "page_12:table_1:row_15:col_2",
+            "candidate_table_index": 1,
+            "gold_currency": "AUD",
+            "gold_fixture_path": "/home/l4nd0/tenn-appendix5b-10x-approved-gate-v1-20260517/financial-engine_v2/data/extraction_gold_real/10x_q_2025-12-31_difficult.json",
+            "gold_metric_name": "operating_cash_flow",
+            "gold_raw_scale": "thousands",
+            "gold_value": -398000,
+            "line_item": "1.9",
+            "source_pdf_sha256": "c700e3671ff907fa56739f23cf3a716ad00895d7fb249cc9f51ffd4aaea0f1e0",
+            "source_status": "APPROVED_REPORT_LOCAL_PAGE_BOUND_NOT_PRODUCTION_TRUTH",
+            "source_type": "appendix5b_10x_page_bound_approval_packet_v1"
+          },
+          "tolerance_relative": 0.01,
+          "value": -398000
+        }
+      },
+      "period_end": "2025-12-31",
+      "period_type": "Q",
+      "ticker": "10X"
+    },
+    {
+      "document_id": "eqr_q4_fy2026_appendix5b",
+      "expected_nulls": [],
+      "metrics": {
+        "cash_end": {
+          "column_role": "current_quarter",
+          "line_item": "5.5",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 15,
+            "candidate_row_index": 5,
+            "candidate_row_label": "5.5 | Cash and cash equivalents at end of quarter (should equal item 4.6 above)",
+            "candidate_source_span": "page_15:table_7:row_5:col_2",
+            "candidate_table_index": 7,
+            "gold_document_id": "eqr_q_2025-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/eqr_q_2025-12-31.json",
+            "gold_label": "Bank balances",
+            "gold_metric_key": "bank_balances_current_quarter",
+            "gold_page": 15,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "21,979",
+            "line_item": "5.5",
+            "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.001,
+          "value": 21979000.0
+        },
+        "financing_cf": {
+          "column_role": "current_quarter",
+          "line_item": "3.10",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 3,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 14,
+            "candidate_row_index": 27,
+            "candidate_row_label": "3.10 | Net cash from / (used in) financing activities | Net cash from / (used in) financing activities",
+            "candidate_source_span": "page_14:table_5:row_27:col_3",
+            "candidate_table_index": 5,
+            "gold_document_id": "eqr_q_2025-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/eqr_q_2025-12-31.json",
+            "gold_label": "Net cash from / (used in) financing activities",
+            "gold_metric_key": "net_cash_from_financing_activities_current_quarter",
+            "gold_page": 14,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "12,011",
+            "line_item": "3.10",
+            "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": 12011000
+        },
+        "investing_cf": {
+          "column_role": "current_quarter",
+          "line_item": "2.6",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 3,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 14,
+            "candidate_row_index": 13,
+            "candidate_row_label": "2.6 | Net cash from / (used in) investing activities | Net cash from / (used in) investing activities",
+            "candidate_source_span": "page_14:table_5:row_13:col_3",
+            "candidate_table_index": 5,
+            "gold_document_id": "eqr_q_2025-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/eqr_q_2025-12-31.json",
+            "gold_label": "Net cash from / (used in) investing activities",
+            "gold_metric_key": "net_cash_from_investing_activities_current_quarter",
+            "gold_page": 14,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "2,656",
+            "line_item": "2.6",
+            "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": -2656000
+        },
+        "operating_cf": {
+          "column_role": "current_quarter",
+          "line_item": "1.9",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 3,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 13,
+            "candidate_row_index": 19,
+            "candidate_row_label": "1.9 | Net cash from / (used in) operating activities | Net cash from / (used in) operating activities",
+            "candidate_source_span": "page_13:table_4:row_19:col_3",
+            "candidate_table_index": 4,
+            "gold_document_id": "eqr_q_2025-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/eqr_q_2025-12-31.json",
+            "gold_label": "Net cash from / (used in) operating activities",
+            "gold_metric_key": "operating_cash_flow",
+            "gold_page": 13,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "1,154",
+            "line_item": "1.9",
+            "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": 1154000
+        }
+      },
+      "period_end": "2025-12-31",
+      "period_type": "Q",
+      "ticker": "EQR"
+    },
+    {
+      "document_id": "gre_q4_fy2025_appendix5b",
+      "expected_nulls": [],
+      "metrics": {
+        "cash_end": {
+          "column_role": "current_quarter",
+          "line_item": "5.5",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 13,
+            "candidate_row_index": 5,
+            "candidate_row_label": "5.5 | Cash and cash equivalents at end of quarter (should equal item 4.6 above)*",
+            "candidate_source_span": "page_13:table_8:row_5:col_2",
+            "candidate_table_index": 8,
+            "gold_document_id": "gre_q_2024-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2024-12-31.json",
+            "gold_label": "Bank balances",
+            "gold_metric_key": "bank_balances_current_quarter",
+            "gold_page": 13,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "702",
+            "line_item": "5.5",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.001,
+          "value": 702000.0
+        },
+        "financing_cf": {
+          "column_role": "current_quarter",
+          "line_item": "3.10",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 12,
+            "candidate_row_index": 12,
+            "candidate_row_label": "3.10 | Net cash from / (used in) financing activities",
+            "candidate_source_span": "page_12:table_5:row_12:col_2",
+            "candidate_table_index": 5,
+            "gold_document_id": "gre_q_2024-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2024-12-31.json",
+            "gold_label": "Net cash from / (used in) financing activities",
+            "gold_metric_key": "net_cash_from_financing_activities_current_quarter",
+            "gold_page": 12,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "869",
+            "line_item": "3.10",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": 869000
+        },
+        "investing_cf": {
+          "column_role": "current_quarter",
+          "line_item": "2.6",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 12,
+            "candidate_row_index": 10,
+            "candidate_row_label": "2.6 | Net cash from / (used in) investing activities",
+            "candidate_source_span": "page_12:table_4:row_10:col_2",
+            "candidate_table_index": 4,
+            "gold_document_id": "gre_q_2024-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2024-12-31.json",
+            "gold_label": "Net cash from / (used in) investing activities",
+            "gold_metric_key": "net_cash_from_investing_activities_current_quarter",
+            "gold_page": 12,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "(624)",
+            "line_item": "2.6",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": -624000
+        },
+        "operating_cf": {
+          "column_role": "current_quarter",
+          "line_item": "1.9",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 11,
+            "candidate_row_index": 15,
+            "candidate_row_label": "1.9 | Net cash from / (used in) operating activities",
+            "candidate_source_span": "page_11:table_2:row_15:col_2",
+            "candidate_table_index": 2,
+            "gold_document_id": "gre_q_2024-12-31",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2024-12-31.json",
+            "gold_label": "Net cash from / (used in) operating activities",
+            "gold_metric_key": "operating_cash_flow",
+            "gold_page": 11,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "(450)",
+            "line_item": "1.9",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": -450000
+        }
+      },
+      "period_end": "2024-12-31",
+      "period_type": "Q",
+      "ticker": "GRE"
+    },
+    {
+      "document_id": "gre_q_2025-09-30",
+      "expected_nulls": [],
+      "metrics": {
+        "cash_end": {
+          "column_role": "current_quarter",
+          "line_item": "5.5",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 16,
+            "candidate_row_index": 5,
+            "candidate_row_label": "5.5 | Cash and cash equivalents at end of quarter (should equal item 4.6 above)",
+            "candidate_source_span": "page_16:table_7:row_5:col_2",
+            "candidate_table_index": 7,
+            "gold_document_id": "gre_q_2025-09-30",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2025-09-30.json",
+            "gold_label": "Bank balances",
+            "gold_metric_key": "bank_balances_current_quarter",
+            "gold_page": 16,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "290",
+            "line_item": "5.5",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.001,
+          "value": 290000.0
+        },
+        "investing_cf": {
+          "column_role": "current_quarter",
+          "line_item": "4.3",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 15,
+            "candidate_row_index": 25,
+            "candidate_row_label": "4.3 | Net cash from / (used in) investing activities (item 2.6 above)",
+            "candidate_source_span": "page_15:table_5:row_25:col_2",
+            "candidate_table_index": 5,
+            "gold_document_id": "gre_q_2025-09-30",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2025-09-30.json",
+            "gold_label": "Net cash from / (used in) investing activities",
+            "gold_metric_key": "net_cash_from_investing_activities_current_quarter",
+            "gold_page": 15,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "(5)",
+            "line_item": "4.3",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": -5000
+        },
+        "operating_cf": {
+          "column_role": "current_quarter",
+          "line_item": "1.9",
+          "review_status": "source_evidenced_gold_folder_report_local",
+          "source_evidence": {
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 14,
+            "candidate_row_index": 15,
+            "candidate_row_label": "1.9 | Net cash from / (used in) operating activities",
+            "candidate_source_span": "page_14:table_4:row_15:col_2",
+            "candidate_table_index": 4,
+            "gold_document_id": "gre_q_2025-09-30",
+            "gold_json_path": "/mnt/hdd-data/home/l4nd0/tenn/docs/extraction_gold_real_exhaustive_run/gre_q_2025-09-30.json",
+            "gold_label": "Net cash from / (used in) operating activities",
+            "gold_metric_key": "operating_cash_flow",
+            "gold_page": 14,
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "(63)",
+            "line_item": "1.9",
+            "source_file": "data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+            "source_status": "SOURCE_EVIDENCED_NOT_PRODUCTION_TRUTH",
+            "source_type": "local_extraction_gold_real_exhaustive_run"
+          },
+          "tolerance_relative": 0.01,
+          "value": -63000
+        }
+      },
+      "period_end": "2025-09-30",
+      "period_type": "Q",
+      "ticker": "GRE"
+    },
+    {
+      "document_id": "prm_q_2025-12-31_appendix5b",
+      "expected_nulls": [],
+      "metrics": {
+        "operating_cf": {
+          "column_role": "current_quarter",
+          "line_item": "1.9",
+          "review_status": "approved_report_local_page_bound",
+          "source_evidence": {
+            "approval_packet_path": "reports/agent_jobs/appendix5b_fifth_doc_approval_packet_v1_20260517/approval_packet.json",
+            "candidate_column_index": 2,
+            "candidate_column_label": "Current quarter $A'000",
+            "candidate_page": 8,
+            "candidate_row_index": 15,
+            "candidate_row_label": "1.9 | Net cash from / (used in) operating activities",
+            "candidate_source_span": "page_8:table_2:row_15:col_2",
+            "candidate_table_index": 2,
+            "gold_currency": "AUD",
+            "gold_metric_name": "operating_cash_flow",
+            "gold_raw_scale": "thousands",
+            "gold_raw_value": "(246)",
+            "gold_value": -246000,
+            "line_item": "1.9",
+            "source_pdf_sha256": "3e9df824c77762ef5cc642f7efe0adc81f9576d8cb73ae2912fced76a4836645",
+            "source_status": "APPROVED_REPORT_LOCAL_PAGE_BOUND_NOT_PRODUCTION_TRUTH",
+            "source_type": "appendix5b_prm_page_bound_approval_packet_v1"
+          },
+          "tolerance_relative": 0.01,
+          "value": -246000
+        }
+      },
+      "period_end": "2025-12-31",
+      "period_type": "Q",
+      "ticker": "PRM"
+    }
+  ],
+  "generated_at": "2026-05-17T00:48:17.463538+00:00",
+  "label_schema": "appendix5b_candidate_labels_v1",
+  "label_scope": "full_gold_folder_harvest_plus_10x_report_local_approval",
+  "source_policy": {
+    "canonical_write": false,
+    "committed_source": "financial-engine_v2/data/extraction_gold_real JSON inventory",
+    "primary_source": "local read-only docs/extraction_gold_real_exhaustive_run JSON evidence",
+    "promotion_rule": "only source-evidenced metrics with matching current-quarter candidate artifact are labels",
+    "tenx_approval": "10X operating_cf approved report-local from page-bound candidate evidence; canonical_write remains false"
+  }
+}
