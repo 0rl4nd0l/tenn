@@ -1,0 +1,111 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_consolidation_execution_phase3g_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+    "docs/agent_tasks/strategy_lab_consolidation_execution_phase3g_v1_20260521.md",
+    "docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md",
+    "docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md",
+    "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md",
+    "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_consolidation_execution_phase3g_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/README.md",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/preflight.md",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/blocking_file_classification.md",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/phase3g_unblock_options.md",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/recommendation.md",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/status.json",
+        "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521",
+      "owner": "codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

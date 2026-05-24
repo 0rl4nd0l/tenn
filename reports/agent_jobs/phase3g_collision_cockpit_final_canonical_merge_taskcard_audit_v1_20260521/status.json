@@ -1,0 +1,66 @@
+{
+  "job_id": "phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521",
+  "status": "completed_audit_only_phase3g_still_blocked_by_out_of_scope_task_card_dirt",
+  "lane": "Reporting",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "7a8c872f8b652a5433afd1614eb4a657b0fc1f8d",
+  "target_file": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+  "classification": "valid_uncommitted_cockpit_job_control_evidence_blocked_merge_attempt_likely_product_obsolete_preserve_separately",
+  "active_registry_job_for_target": false,
+  "active_registry_overlap_for_target": true,
+  "target_task_card_validation": "passed",
+  "target_report_bundle": {
+    "current_repo_bundle_found": true,
+    "sibling_bundle_found": false,
+    "status_json_found": false,
+    "reported_job_result": "blocked_before_claim_or_merge"
+  },
+  "final_registry_state": {
+    "active_jobs_observed": [
+      "cockpit_ui_overnight_orchestrator_v1_20260521",
+      "codex_workday_checkin_protocol_v1_20260521"
+    ],
+    "active_job_overlaps_target": true,
+    "note": "initial list-active was empty; cockpit_ui_overnight_orchestrator_v1_20260521 and codex_workday_checkin_protocol_v1_20260521 appeared during closeout"
+  },
+  "recommendation": "DEFER_ACTIVE_COCKPIT_JOB_THEN_GO_COCKPIT_FINAL_CANONICAL_MERGE_TASKCARD_PRESERVE_DRAFT_ONLY",
+  "phase3g": {
+    "current_task_card_validation": "passed",
+    "safe_to_rerun_now": false,
+    "safe_to_rerun_after_named_action": "conditional_on_fresh_preflight_registry_and_no_remaining_out_of_scope_cockpit_or_audit_dirty_cards",
+    "current_out_of_scope_blockers_observed": [
+      "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md"
+    ]
+  },
+  "boundaries": {
+    "cockpit_blocker_modified": false,
+    "cockpit_product_code_modified": false,
+    "strategy_lab_files_modified": false,
+    "runtime_backend_product_code_modified": false,
+    "tenn_stores_touched": false,
+    "dependencies_installed": false,
+    "services_started": false,
+    "tokens_issued": false,
+    "production_data_accessed": false,
+    "paper_live_trading_touched": false,
+    "unrelated_dirty_work_modified": false,
+    "staged_files": false,
+    "commit_merge_cherry_pick_stash_reset_clean": false
+  },
+  "outputs": [
+    "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/README.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/preflight.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/blocking_file_classification.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/phase3g_unblock_options.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/recommendation.md",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/status.json",
+    "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521/diff-check.json"
+  ]
+}

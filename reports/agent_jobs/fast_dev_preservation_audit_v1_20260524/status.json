@@ -1,0 +1,117 @@
+{
+  "job_id": "fast_dev_preservation_audit_v1_20260524",
+  "mode": "AUDIT_ONLY_PRESERVATION_PLAN",
+  "lane": "Evaluation",
+  "canonical": {
+    "entrypoint": "/home/l4nd0/tenn",
+    "resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "e170f6b255ca4229462d4167861775e82ea3df34"
+  },
+  "fast_dev": {
+    "path": "/home/l4nd0/tenn-fast-dev-storage-v1",
+    "branch": "migration/clean-runtime-baseline-20260517",
+    "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+    "tracked_modification_count": 4,
+    "untracked_nonignored_count": 32
+  },
+  "relationship": {
+    "merge_base": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+    "fast_dev_ahead": 0,
+    "canonical_ahead": 33,
+    "unique_fast_dev_commits": false
+  },
+  "classification_summary": {
+    "preserve_and_integrate": [
+      "docs/architecture/12_evaluation_and_drift_monitoring.md",
+      "docs/validation_baseline.md",
+      "docs/agent_tasks/appendix5b_backend_gate_services_restore_v1_20260517.md",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_confirmed_label_importer.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_label_review_packet.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_manifest_builder.py",
+      "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py",
+      "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_artifacts.py",
+      "financial-engine_v2/backend/tests/test_asx_appendix5b_candidate_scorer.py",
+      "financial-engine_v2/backend/tests/test_asx_appendix5b_confirmed_label_importer.py",
+      "financial-engine_v2/backend/tests/test_asx_appendix5b_label_review_packet.py",
+      "financial-engine_v2/backend/tests/test_asx_appendix5b_manifest_builder.py",
+      "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py",
+      "scripts/build_appendix5b_manifest_from_docling.py",
+      "scripts/build_asx_appendix5b_label_review_packet.py",
+      "scripts/import_asx_appendix5b_confirmed_labels.py",
+      "scripts/run_appendix5b_candidate_artifacts.py",
+      "scripts/run_appendix5b_no_regression_gate.py",
+      "scripts/run_extraction_evaluation_gates.py",
+      "scripts/score_asx_appendix5b_candidates.py",
+      "scripts/test_appendix5b_no_regression_gate.py",
+      "scripts/test_extraction_evaluation_gates.py",
+      "reports/agent_jobs/appendix5b_backend_gate_services_restore_v1_20260517/"
+    ],
+    "preserve_as_archive_only": [
+      "cockpit-ui/next.config.mjs allowedDevOrigins requirement",
+      "docs/agent_tasks/appendix5b_gate_stack_prm_promotion_v1_20260517.md",
+      "docs/agent_tasks/codex_automation_inventory_v1.md",
+      "docs/agent_tasks/codex_automation_ownership_reconciliation_v1.md",
+      "docs/agent_tasks/sloppy_fix_ownership_audit_v1.md"
+    ],
+    "superseded_by_canonical": [
+      "docs/agent_tasks/m40_8001_conservative_validation_v1_20260517.md",
+      "docs/agent_tasks/nvme_clean_runtime_baseline_integration_v1_20260517.md",
+      "docs/agent_tasks/nvme_partial_baseline_checkpoint_v1_20260517.md",
+      "docs/agent_tasks/nvme_required_commit_finish_v1_20260517.md",
+      "docs/agent_tasks/nvme_required_conflict_resolution_v1_20260517.md",
+      "docs/agent_tasks/strategy_lab_quantdinger_fit_audit_v1_20260520.md"
+    ],
+    "generated_or_local_noise": [
+      "cockpit-ui/next-env.d.ts",
+      "cockpit-ui/.next/",
+      "cockpit-ui/node_modules/",
+      ".pytest_cache/",
+      ".ruff_cache/"
+    ],
+    "never_integrate": [
+      "financial-engine_v2/data/*.db",
+      "financial-engine_v2/data/**/*.sqlite",
+      "financial-engine_v2/data/**/*.jsonl",
+      "financial-engine_v2/reports/",
+      "runtime caches and generated frontend artifacts"
+    ]
+  },
+  "runtime_rebind": {
+    "blocked": true,
+    "reason": "fast-dev has Appendix 5B PRM-inclusive uncommitted code/report evidence absent from canonical"
+  },
+  "registry": {
+    "initial_list_active_ok": true,
+    "initial_active_jobs": [],
+    "check_overlap_ok": false,
+    "check_overlap_failure_reason": "unrelated pre-existing canonical untracked task cards outside this task allowlist",
+    "claim_acquired": false,
+    "release_required": false,
+    "final_list_active_ok": true,
+    "final_active_jobs": []
+  },
+  "validation": {
+    "task_card_validate": "PASS",
+    "git_diff_check": "PASS",
+    "status_json": "PASS",
+    "validation_json": "PASS",
+    "diff_check_json": "PASS",
+    "task_card_check_diff": "FAIL_UNRELATED_PRE_EXISTING_CANONICAL_TASK_CARDS",
+    "registry_check_overlap": "FAIL_UNRELATED_PRE_EXISTING_CANONICAL_TASK_CARDS"
+  },
+  "data_missing": [
+    "No production DBs or memory stores were opened",
+    "No runtime processes or service CWDs were inspected in this audit",
+    "No discard decision was made"
+  ],
+  "recommended_next_cards": [
+    "appendix5b_prm_gate_stack_canonical_integration_v1_20260524",
+    "cockpit_dev_origin_rebind_config_v1_20260524",
+    "fast_dev_archive_only_artifact_preservation_v1_20260524",
+    "fast_dev_data_artifact_rebind_inventory_v1_20260524"
+  ],
+  "project_memory_save_recommendation": "Save that fast-dev has no unique commits ahead of canonical, but it contains uncommitted Appendix 5B PRM-inclusive parser/scorer/gate work and ignored report evidence absent from canonical; runtime rebind remains blocked until that bundle is preserved or explicitly classified for discard."
+}

@@ -1,0 +1,241 @@
+{
+  "job_id": "fresh_session_repo_state_proof_v1_20260524",
+  "generated_at": "2026-05-24T10:35:49+10:00",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "accepted_checkout_paths": {
+    "logical_path": "/home/l4nd0/tenn",
+    "symlink_path": "/home/l4nd0/tenn-runtime",
+    "resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "accepted_for_this_audit": true
+  },
+  "authorized_task_card_correction": {
+    "performed": true,
+    "field": "timeout_seconds",
+    "value": 1800,
+    "other_task_card_changes": false
+  },
+  "hard_stop": {
+    "triggered": true,
+    "reason": "registry_check_overlap_failed_unrelated_dirty_files",
+    "meaningful": true,
+    "effect": "Stopped before branch, HEAD, git status, git worktree list, recent commit, Phase 3G path, and tracked/untracked task-card checks."
+  },
+  "commands_run": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+      "exit_code": 0,
+      "summary": "Validation passed with no issues."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "exit_code": 0,
+      "summary": "Supported; active_jobs empty."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+      "exit_code": 1,
+      "summary": "Failed because seven dirty task-card files are outside current task card allowed_files."
+    }
+  ],
+  "writes_performed": [
+    "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+    "reports/agent_jobs/fresh_session_repo_state_proof_v1_20260524/README.md",
+    "reports/agent_jobs/fresh_session_repo_state_proof_v1_20260524/status.json"
+  ],
+  "forbidden_actions_performed": [],
+  "task_card": {
+    "path": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+    "validation": {
+      "ok": true,
+      "issues": [],
+      "metadata": {
+        "allowed_files": [
+          "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+          "reports/agent_jobs/fresh_session_repo_state_proof_v1_20260524/"
+        ],
+        "approval_required": false,
+        "job_id": "fresh_session_repo_state_proof_v1_20260524",
+        "lane": "Reporting",
+        "mutation_mode": "audit_only",
+        "output_dir": "reports/agent_jobs/fresh_session_repo_state_proof_v1_20260524",
+        "owner": "Codex",
+        "production_data_access": false,
+        "timeout_seconds": 1800
+      }
+    }
+  },
+  "confirmed": [
+    "The symlink-resolved physical checkout is accepted for this audit.",
+    "The task card now includes timeout_seconds: 1800.",
+    "Task-card validation passes with no issues.",
+    "Registry list-active returned ok true and active_jobs empty.",
+    "Registry scope is shared.",
+    "Registry repo root is /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1.",
+    "Registry common git dir is /mnt/sdb2/home/l4nd0/tenn/.git.",
+    "Registry check-overlap failed due dirty files outside this task's allowed_files.",
+    "No implementation, cleanup, staging, removal, merge, cherry-pick, commit, service start, dependency install, token issuance, production/runtime/data-store access, or unrelated-dirt resolution was performed."
+  ],
+  "inferred": [
+    "There is no active registry job collision, but the dirty worktree collision gate is not clean.",
+    "The five handoff-listed Cockpit/mountpoint task cards are still present as dirty files outside the current allowlist because check-overlap reported each one.",
+    "Two additional dirty task cards are present outside the current allowlist: docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md and docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md.",
+    "Strategy Lab Phase 3G may still be baseline-consolidated, but this run did not verify it because overlap failed before HEAD/ancestry checks."
+  ],
+  "data_missing": [
+    "Branch name",
+    "HEAD full hash and subject",
+    "Whether HEAD is at or beyond e170f6b255ca4229462d4167861775e82ea3df34",
+    "git status --short --untracked-files=all",
+    "git worktree list",
+    "Recent commits relevant to Phase 3G / Strategy Lab",
+    "reports/agent_jobs/strategy_lab_phase3g_shared_checkout_collision_resolution_v1_20260524/ existence",
+    "/home/l4nd0/tenn-phase3g-shared-collision-preserve-20260524T000000Z existence",
+    "/home/l4nd0/tenn-strategy-lab-phase3g-mergeback-v1-20260524 existence",
+    "Tracked/untracked status of the five unrelated Cockpit/mountpoint task cards",
+    "Full dirty-state classification beyond the seven paths surfaced by check-overlap"
+  ],
+  "repo_state": {
+    "branch": "DATA_MISSING",
+    "head_full_hash": "DATA_MISSING",
+    "head_subject": "DATA_MISSING",
+    "status_short_untracked_all": "DATA_MISSING",
+    "worktrees": "DATA_MISSING",
+    "recent_phase3g_strategy_lab_commits": "DATA_MISSING",
+    "at_or_beyond_e170f6b255ca4229462d4167861775e82ea3df34": "DATA_MISSING"
+  },
+  "registry_state": {
+    "list_active": {
+      "ok": true,
+      "active_jobs": [],
+      "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+      "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+      "registry_scope": "shared",
+      "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "warnings": []
+    },
+    "check_overlap": {
+      "ok": false,
+      "active_jobs": [],
+      "job_id": "fresh_session_repo_state_proof_v1_20260524",
+      "lane": "Reporting",
+      "task_card": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+      "issues": [
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md is dirty outside current task card allowed_files"
+        }
+      ]
+    }
+  },
+  "dirty_untracked_classification": [
+    {
+      "path": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+      "lane": "Reporting",
+      "classification": "current task card; allowed; metadata-only timeout_seconds correction"
+    },
+    {
+      "path": "reports/agent_jobs/fresh_session_repo_state_proof_v1_20260524/",
+      "lane": "Reporting",
+      "classification": "current report artifacts; allowed"
+    },
+    {
+      "path": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
+      "lane": "Mountpoint/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "lane": "Cockpit/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "lane": "Cockpit/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "lane": "Cockpit/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+      "lane": "Phase3G/Cockpit/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
+      "lane": "FastDev/Storage/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md",
+      "lane": "Runtime/Reporting",
+      "classification": "dirty outside allowlist per check-overlap; tracked/untracked DATA_MISSING"
+    }
+  ],
+  "strategy_lab_phase3g_baseline_consolidated": {
+    "verdict": "DATA_MISSING",
+    "reason": "HEAD, ancestry, recent commits, and Phase 3G paths were not checked because registry check-overlap failed first."
+  },
+  "unrelated_cockpit_mountpoint_task_cards": [
+    {
+      "path": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
+      "presence": "present_dirty_outside_allowlist",
+      "tracked_state": "DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "presence": "present_dirty_outside_allowlist",
+      "tracked_state": "DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "presence": "present_dirty_outside_allowlist",
+      "tracked_state": "DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "presence": "present_dirty_outside_allowlist",
+      "tracked_state": "DATA_MISSING"
+    },
+    {
+      "path": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+      "presence": "present_dirty_outside_allowlist",
+      "tracked_state": "DATA_MISSING"
+    }
+  ],
+  "path_checks": {
+    "strategy_lab_phase3g_shared_checkout_collision_resolution_report_dir_exists": "DATA_MISSING",
+    "phase3g_shared_collision_preserve_path_exists": "DATA_MISSING",
+    "strategy_lab_phase3g_mergeback_worktree_exists": "DATA_MISSING"
+  },
+  "collision_risk": "HIGH",
+  "next_safe_step": "Run a separate repo-hygiene or task-card-dirt classification/cleanup lane, or rerun this audit from a clean isolated worktree where only this task card and report artifacts are dirty. Do not absorb unrelated Cockpit/mountpoint/runtime/fast-dev task-card dirt into the Strategy Lab baseline proof.",
+  "save_recommendation": "No /save is needed for repo artifacts. The validation fix and overlap blocker are preserved in this report and status.json."
+}

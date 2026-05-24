@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_consolidation_execution_phase3g_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+        "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+        "docs/agent_tasks/cockpit_ui_usefulness_integrate_v1_20260521.md",
+        "docs/agent_tasks/cockpit_ui_usefulness_vertical_slice_v1_20260521.md",
+        "docs/agent_tasks/phase3g_collision_cockpit_taskcard_audit_v1_20260521.md",
+        "docs/agent_tasks/strategy_lab_consolidation_execution_phase3g_v1_20260521.md",
+        "docs/agent_tasks/strategy_lab_consolidation_execution_task_card_draft_phase3g_v1_20260521.md",
+        "docs/agent_tasks/strategy_lab_consolidation_save_plan_phase3f_v1_20260521.md",
+        "docs/agent_tasks/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521.md",
+        "docs/agent_tasks/strategy_lab_offline_implementation_plan_phase3e_v1_20260521.md",
+        "cockpit-ui/components/cockpit/home/home-page.tsx",
+        "cockpit-ui/lib/cockpit-home-api.test.ts",
+        "reports/agent_jobs/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521/"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

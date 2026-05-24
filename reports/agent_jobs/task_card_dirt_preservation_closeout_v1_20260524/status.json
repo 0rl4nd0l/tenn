@@ -1,0 +1,99 @@
+{
+  "job_id": "task_card_dirt_preservation_closeout_v1_20260524",
+  "generated_at": "2026-05-24T11:24:46+10:00",
+  "mutation_mode": "safe_extension",
+  "production_data_access": false,
+  "commit_intent": {
+    "proceeding_by_user_instruction": true,
+    "subject": "chore(reporting): preserve repo hygiene task-card evidence",
+    "hash": "DATA_MISSING_IN_COMMITTED_REPORT_REPORTED_AFTER_COMMIT"
+  },
+  "branch_head": {
+    "before": {
+      "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+      "head": "e170f6b255ca4229462d4167861775e82ea3df34",
+      "subject": "chore(strategy-lab): merge phase3g evidence into baseline"
+    },
+    "after": {
+      "branch": "DATA_MISSING_IN_COMMITTED_REPORT",
+      "head": "DATA_MISSING_IN_COMMITTED_REPORT",
+      "subject": "reported after commit"
+    }
+  },
+  "validation_results": {
+    "task_card_validate": {
+      "ok": true
+    },
+    "registry_list_active": {
+      "ok": true,
+      "active_job_count": 1,
+      "active_jobs": [
+        {
+          "job_id": "appendix5b_prm_gate_stack_canonical_integration_v1_20260524",
+          "lane": "Evaluation",
+          "status": "active",
+          "worktree": "/home/l4nd0/tenn-appendix5b-prm-gate-stack-canonical-integration-v1-20260524"
+        }
+      ]
+    },
+    "registry_check_overlap": {
+      "ok": false,
+      "issues": [
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md is dirty outside current task card allowed_files"
+        }
+      ],
+      "user_override_for_scoped_commit": true
+    },
+    "json_parse_checks": {
+      "ok": true,
+      "json_count": 16,
+      "json_error_count": 0
+    },
+    "git_diff_check": {
+      "ok": true
+    },
+    "staged_file_allowlist_verification": "RUN_IMMEDIATELY_BEFORE_COMMIT",
+    "git_diff_cached_check": "RUN_IMMEDIATELY_BEFORE_COMMIT",
+    "check_diff": "DATA_MISSING_IN_COMMITTED_REPORT"
+  },
+  "normalization": {
+    "performed": true,
+    "scope": "whitespace_only",
+    "files": [
+      "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "reports/agent_jobs/canonical_path_mountpoint_audit_v1_20260522/README.md"
+    ]
+  },
+  "files_staged": "RUN_IMMEDIATELY_BEFORE_COMMIT",
+  "files_committed": "ALLOWLISTED_TASK_CARDS_AND_REPORT_DIRECTORIES",
+  "post_commit": {
+    "fresh_session_repo_proof_overlap": "DATA_MISSING_IN_COMMITTED_REPORT",
+    "remaining_dirty_untracked_files": "reported after commit"
+  },
+  "confirmed": [
+    "Task-card validation passes.",
+    "Whitespace-only normalization was applied to the six prior diff-check findings.",
+    "All 16 JSON files under the allowlisted report directories parsed successfully.",
+    "git diff --check is clean.",
+    "Registry check-overlap for this closeout fails only on docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md.",
+    "User explicitly instructed commit and closeout.",
+    "No product/runtime/backend/Cockpit files or Tenn data stores were touched."
+  ],
+  "inferred": [
+    "The scoped preservation bundle should remove the classified loose task-card/report artifacts from the untracked surface.",
+    "The fresh-session repo proof may still be blocked by docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md."
+  ],
+  "data_missing": [
+    "Exact commit hash inside committed report.",
+    "Post-commit overlap result for docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md inside committed report.",
+    "Final remaining dirty/untracked set inside committed report."
+  ],
+  "collision_risk_after_closeout": "DATA_MISSING_IN_COMMITTED_REPORT",
+  "next_safe_step": "Classify or preserve docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md separately if it still blocks overlap gates.",
+  "save_recommendation": "No /save is needed for closeout mechanics.",
+  "forbidden_actions_performed": []
+}

@@ -1,0 +1,99 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
+    "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+    "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+    "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+    "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
+        "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524/README.md",
+        "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524/status.json",
+        "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524/validation.json",
+        "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "fast_dev_preservation_audit_v1_20260524",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

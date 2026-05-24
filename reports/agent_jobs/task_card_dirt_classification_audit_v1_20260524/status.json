@@ -1,0 +1,178 @@
+{
+  "job_id": "task_card_dirt_classification_audit_v1_20260524",
+  "generated_at": "2026-05-24T10:41:05+10:00",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "accepted_checkout_paths": {
+    "logical_path": "/home/l4nd0/tenn",
+    "symlink_path": "/home/l4nd0/tenn-runtime",
+    "resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "observed_pwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": {
+    "full_hash": "e170f6b255ca4229462d4167861775e82ea3df34",
+    "subject": "chore(strategy-lab): merge phase3g evidence into baseline"
+  },
+  "registry_state": {
+    "validate": {
+      "ok": true,
+      "issues": []
+    },
+    "list_active": {
+      "ok": true,
+      "active_jobs": [],
+      "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+      "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+      "registry_scope": "shared",
+      "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "warnings": []
+    },
+    "check_overlap": {
+      "ok": false,
+      "active_jobs": [],
+      "failure_type": "dirty_files_outside_allowed_files",
+      "active_overlapping_job": false,
+      "issues": [
+        "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md is dirty outside current task card allowed_files",
+        "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md is dirty outside current task card allowed_files"
+      ]
+    }
+  },
+  "confirmed": [
+    "Symlink chain resolves /home/l4nd0/tenn to /home/l4nd0/tenn-runtime to /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1.",
+    "Task card validation passed.",
+    "Registry list-active returned no active jobs.",
+    "All seven requested task-card files are present and untracked.",
+    "Each of the seven requested task-card files has a corresponding report directory.",
+    "No dirty task cards were modified, staged, removed, committed, merged, cherry-picked, or cleaned."
+  ],
+  "inferred": [
+    "The seven requested files are untracked job-control/evidence artifacts rather than active registry-owned jobs.",
+    "The Cockpit UI usefulness cards form a superseded chain and current HEAD already contains later Cockpit Useful Now lineage via 7a8c872f.",
+    "The canonical path, fast-dev preservation, and runtime topology cards look like recent completed/released audit evidence that should be preserved or explicitly archived.",
+    "The Phase 3G collision card is partially superseded by e170f6b2 but remains useful provenance.",
+    "The original fresh-session repo proof can resume only after approved handling of the seven dirty cards plus this new classification card, or from a clean isolated worktree."
+  ],
+  "data_missing": [
+    "No owner approval for removal/archive of any dirty card.",
+    "No proof that all report bundles have already been committed elsewhere.",
+    "No full report-body audit beyond task-card metadata, first-page summaries, and available status.json/README evidence.",
+    "No registry claim/release was performed.",
+    "No product/runtime/backend/Cockpit files or Tenn data stores were inspected."
+  ],
+  "git_status_docs_agent_tasks": [
+    "?? docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
+    "?? docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+    "?? docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+    "?? docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+    "?? docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
+    "?? docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
+    "?? docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+    "?? docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md",
+    "?? docs/agent_tasks/task_card_dirt_classification_audit_v1_20260524.md"
+  ],
+  "per_file_classification": [
+    {
+      "path": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Evaluation / Repo Hygiene",
+      "purpose": "Audit and harden canonical repo/path/mountpoint guidance.",
+      "report_path": "reports/agent_jobs/canonical_path_mountpoint_audit_v1_20260522",
+      "report_path_exists": true,
+      "state": "released audit evidence; still relevant",
+      "recommended_action": "preserve_or_commit_under_separate_repo_hygiene_task_remove_only_after_approval",
+      "risk_if_left_dirty": "blocks overlap checks; removing without preservation loses canonical path/runtime binding evidence"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Reporting / Cockpit",
+      "purpose": "Reapply Useful Now changes on moved canonical HEAD.",
+      "report_path": "reports/agent_jobs/cockpit_ui_usefulness_current_head_reapply_v1_20260521",
+      "report_path_exists": true,
+      "state": "released; likely completed or superseded by current HEAD lineage",
+      "recommended_action": "preserve_with_cockpit_task_card_evidence_or_archive_remove_after_approval",
+      "risk_if_left_dirty": "blocks overlap checks; confuses active Cockpit ownership"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Reporting / Cockpit",
+      "purpose": "Rerun final canonical merge after canonical HEAD moved.",
+      "report_path": "reports/agent_jobs/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521",
+      "report_path_exists": true,
+      "state": "superseded by current-head reapply and later HEAD ancestry",
+      "recommended_action": "archive_remove_after_approval_or_preserve_as_historical_cockpit_evidence",
+      "risk_if_left_dirty": "blocks overlap checks; can mislead agents into obsolete merge instructions"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Reporting / Cockpit",
+      "purpose": "Original final canonical merge attempt for Useful Now commit.",
+      "report_path": "reports/agent_jobs/cockpit_ui_usefulness_final_canonical_merge_v1_20260521",
+      "report_path_exists": true,
+      "state": "superseded historical failed or blocked merge attempt",
+      "recommended_action": "archive_remove_after_approval_or_preserve_as_historical_merge_blocker_evidence",
+      "risk_if_left_dirty": "blocks overlap checks; can imply an old fast-forward path no longer matching HEAD"
+    },
+    {
+      "path": "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Evaluation / FastDev / Storage",
+      "purpose": "Audit fast-dev work before runtime topology rebind away from fast-dev.",
+      "report_path": "reports/agent_jobs/fast_dev_preservation_audit_v1_20260524",
+      "report_path_exists": true,
+      "state": "recent high-value audit evidence; not stale",
+      "recommended_action": "preserve_commit_under_separate_fast_dev_preservation_or_evaluation_task_before_runtime_cleanup_rebind",
+      "risk_if_left_dirty": "blocks overlap checks; removing loses Appendix 5B/runtime rebind preservation map"
+    },
+    {
+      "path": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Reporting / Phase 3G / Cockpit collision",
+      "purpose": "Audit Cockpit task-card blocker for Phase 3G consolidation.",
+      "report_path": "reports/agent_jobs/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521",
+      "report_path_exists": true,
+      "state": "completed audit-only evidence; partially superseded by Phase 3G baseline merge",
+      "recommended_action": "preserve_commit_with_strategy_lab_cockpit_collision_evidence_or_archive_after_approval",
+      "risk_if_left_dirty": "blocks overlap checks; removing without preservation loses Phase 3G collision provenance"
+    },
+    {
+      "path": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md",
+      "present": true,
+      "git_state": "untracked",
+      "lane": "Evaluation / Runtime / Repo Hygiene",
+      "purpose": "Audit runtime topology and produce approval-gated reconciliation plan.",
+      "report_path": "reports/agent_jobs/runtime_topology_reconciliation_audit_v1_20260522",
+      "report_path_exists": true,
+      "state": "released audit evidence; still current/high-risk",
+      "recommended_action": "preserve_commit_under_separate_runtime_topology_or_evaluation_evidence_task_leave_alone_until_approved",
+      "risk_if_left_dirty": "blocks overlap checks; removing loses live runtime binding/rebind risk evidence"
+    }
+  ],
+  "recommended_handling_order": [
+    "Preserve/commit recent active evidence first: fast_dev_preservation, runtime_topology_reconciliation, canonical_path_mountpoint.",
+    "Preserve or archive Phase 3G collision provenance.",
+    "Decide Cockpit Useful Now historical cleanup as one bundle.",
+    "Include this classification audit card/report in the same repo-hygiene closeout.",
+    "After approved handling, rerun check-overlap for fresh_session_repo_state_proof_v1_20260524 before resuming."
+  ],
+  "collision_risk_after_classification": "HIGH",
+  "fresh_session_repo_proof_can_resume_after_approved_handling": "conditional_yes_after_seven_cards_and_this_classification_card_are_handled_or_from_clean_isolated_worktree",
+  "save_recommendation": "No immediate /save required for this classification artifact. Consider /save after GPT chooses and completes the handling path, especially for fast-dev/runtime-topology operational guidance.",
+  "forbidden_actions_performed": []
+}
