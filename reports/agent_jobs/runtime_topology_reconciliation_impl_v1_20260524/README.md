@@ -1,156 +1,69 @@
-# Runtime Topology Reconciliation Implementation Preflight
+# Runtime Topology Reconciliation Implementation
 
 Job: `runtime_topology_reconciliation_impl_v1_20260524`
 Date: 2026-05-24
-Result: BLOCKED before runtime mutation
+Result: in progress; active runtime source paths reconciled, final validation pending
 
 ## Approval
 
-The user replied `proceedd` after the completed `runtime_topology_reconciliation_audit_v1_20260522` report. I treated that as approval to begin the reconciliation implementation lane.
+The user replied `proceedd` after the completed `runtime_topology_reconciliation_audit_v1_20260522` report, then clarified: `wait until it is safe and proceed`.
 
-## Actions Taken
+## Confirmed
 
-- Created implementation task card: `docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`.
-- Validated the task card successfully.
-- Re-checked canonical path, branch, HEAD, and dirty status.
-- Re-checked registry active jobs and overlap.
-- Inspected the active Appendix 5B integration worktree read-only to determine whether the fast-dev preservation blocker had cleared.
-- Did not claim the registry.
-- Did not mutate Docker, systemd, cron, symlinks, mounts, data, reports, or old preserve checkouts.
+- Canonical entrypoint: `/home/l4nd0/tenn`.
+- Canonical resolved path: `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`.
+- Current branch: `migration/clean-runtime-baseline-reconstruct-v1`.
+- Current HEAD before final docs commit: `1ffca6d2`.
+- Appendix 5B blocker cleared: canonical now contains the previously missing Appendix 5B service/script/test files.
+- Registry was clear before claiming this implementation job.
+- Backend health passed: `GET http://127.0.0.1:8000/api/health` returned `{"status":"ok"}`.
+- Docker backend, worker, and GPU worker bind mounts now point at `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`.
+- Docker backend, worker, and GPU worker `/data` mounts now point at `/mnt/tenn-nvme2/tenn/financial-engine_v2/data`.
+- Cockpit Next.js listener on `:8081` is running from `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/cockpit-ui`.
+- llama.cpp listener on `:8001` is running from cwd `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`.
+- Cron nightly news now points to `/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh`.
+- Canonical newspaper4k venv was created at `/home/l4nd0/tenn/integrations/newspaper4k_au/.venv`.
+- `newspaper` and `gnews` imports passed inside the canonical newspaper4k venv.
+- Enabled Tenn Codex automation timers now target `TENN_CODEX_AUTOMATION_TARGET_WORKTREE=/home/l4nd0/tenn`.
+- `scripts/verify_nvme_runtime_endpoints.sh` passed with `NVME_RUNTIME_ENDPOINTS_OK=1`.
 
-## Current Canonical State
+## Changes Made
 
-- `pwd`: `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`
-- `readlink -f /home/l4nd0/tenn`: `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`
-- `readlink -f /home/l4nd0/tenn-runtime`: `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1`
-- Branch: `migration/clean-runtime-baseline-reconstruct-v1`
-- HEAD: `e170f6b255ca4229462d4167861775e82ea3df34`
+Runtime / host changes:
 
-## Registry Findings
+- Created ignored canonical venv: `integrations/newspaper4k_au/.venv`.
+- Updated user crontab from `/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh` to `/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh`.
+- Updated user systemd service files under `/home/l4nd0/.config/systemd/user/tenn-codex-*.service` so `TENN_CODEX_AUTOMATION_TARGET_WORKTREE=/home/l4nd0/tenn`.
+- Ran `systemctl --user daemon-reload`.
 
-`python3 scripts/agent_job_registry.py list-active` reported one active Appendix 5B job. It appeared stale on the first check, but a later final `list-active` showed `stale: false` with heartbeat `2026-05-24T01:17:05.642203Z`. Treat it as active.
+Repo changes:
 
-- `appendix5b_prm_gate_stack_canonical_integration_v1_20260524`
-- Worktree: `/home/l4nd0/tenn-appendix5b-prm-gate-stack-canonical-integration-v1-20260524`
-- Branch: `integrate/appendix5b-prm-gate-stack-canonical-integration-v1-20260524`
-- Lane: `Evaluation`
-- Status: active record present; final registry state was not stale
-- PID in active record: `210691`
-- `ps -p 210691 -o pid=,stat=,etime=,cmd=` returned no process output.
+- `systemd/llama-cpp-router.service`: updated template from old `/mnt/sdb2/home/l4nd0/tenn` paths to `/home/l4nd0/tenn-runtime`.
+- `scripts/storage_guard.py`: updated default canonical root and confirmation hint from `/mnt/sdb2/home/l4nd0/tenn` to `/home/l4nd0/tenn`.
+- `financial-engine_v2/scripts/nightly_news.sh`: updated crontab comment to canonical `/home/l4nd0/tenn`.
+- `docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`: narrowed report artifact allowlist for validation.
 
-The active job owns the Appendix 5B service/script/test files that the audit identified as the main fast-dev preservation blocker. It also has many staged additions in its isolated worktree, but those files are still missing from canonical.
+## DATA_MISSING
 
-Representative canonical missing files:
+- Docker backend `TENN_GIT_HEAD` environment still reported the older `e170f6b255ca4229462d4167861775e82ea3df34` at checkpoint time. The bind mounts are canonical, but git provenance env should be refreshed by a controlled backend recreate if exact provenance display matters.
+- No nightly news full run was executed because it would fetch/write live news artifacts.
+- No Codex automation timer was manually started; only future timer target paths were updated.
 
-- `financial-engine_v2/backend/app/services/asx_appendix5b_candidate_artifacts.py`
-- `financial-engine_v2/backend/app/services/asx_appendix5b_candidate_scorer.py`
-- `financial-engine_v2/backend/app/services/asx_appendix5b_parser.py`
-- `scripts/run_extraction_evaluation_gates.py`
-- `scripts/test_extraction_evaluation_gates.py`
+## Validation So Far
 
-## Overlap / Dirty-State Blocker
+- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`: PASS before claim.
+- `python3 scripts/agent_job_registry.py claim docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`: PASS.
+- `curl -fsS --max-time 5 http://127.0.0.1:8000/api/health`: PASS.
+- `bash scripts/verify_nvme_runtime_endpoints.sh`: PASS.
+- `integrations/newspaper4k_au/.venv/bin/python -c 'import newspaper; import gnews'`: PASS with a non-fatal warning that `nltk` is not installed for optional NLP features.
+- `python3 -m py_compile scripts/storage_guard.py`: PASS.
+- `bash -n financial-engine_v2/scripts/nightly_news.sh`: PASS.
+- `rg` over the edited runtime files no longer finds `/mnt/sdb2/home/l4nd0/tenn` or `tenn-fast-dev-storage-v1`; only `docs/setup/environment.md` retains a historical archive reference.
 
-`python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md` failed.
+## Remaining Work
 
-Reasons:
-
-- unrelated untracked task cards in canonical are dirty outside this job's allowed files;
-- the active Appendix 5B job overlaps by lane `Evaluation`.
-
-Unrelated untracked task cards blocking registry-safe claim:
-
-```text
-docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md
-docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md
-docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md
-docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md
-docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md
-docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md
-docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md
-docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md
-docs/agent_tasks/task_card_dirt_classification_audit_v1_20260524.md
-docs/agent_tasks/task_card_dirt_preservation_closeout_v1_20260524.md
-```
-
-## Runtime Decision
-
-Do not rebind live runtime surfaces from fast-dev to canonical yet.
-
-Reasons:
-
-- the fast-dev preservation blocker has not cleared;
-- an active registry lane already owns the Appendix 5B integration files;
-- canonical still lacks representative Appendix 5B files that fast-dev contains;
-- registry-safe claim failed;
-- rebinding Docker would change both code root and container `/data` binding;
-- cron still lacks canonical newspaper4k venv proof.
-
-## Recommended Unblock Sequence
-
-1. Finish or explicitly close the active `appendix5b_prm_gate_stack_canonical_integration_v1_20260524` registry job.
-2. Decide whether to commit, merge, or discard the staged Appendix 5B integration worktree.
-3. Preserve or register the unrelated untracked task cards so `check-overlap` and `check-diff` are not dominated by unrelated dirt.
-4. Re-run the runtime implementation task card from a registry-clean state.
-5. Only then rebind Docker/Cockpit/cron surfaces.
-
-## Exact Commands Proposed For Unblock - DO NOT RUN WITHOUT EXPLICIT CONFIRMATION
-
-Inspect the active job:
-
-```bash
-python3 scripts/agent_job_registry.py list-active
-ps -p 210691 -o pid=,stat=,etime=,cmd=
-git -C /home/l4nd0/tenn-appendix5b-prm-gate-stack-canonical-integration-v1-20260524 status --short --untracked-files=all
-```
-
-If the user confirms the Appendix 5B job is abandoned and should be released:
-
-```bash
-python3 scripts/agent_job_registry.py release appendix5b_prm_gate_stack_canonical_integration_v1_20260524
-```
-
-If the user confirms the unrelated task cards should be preserved/registered:
-
-```bash
-python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/task_card_dirt_preservation_closeout_v1_20260524.md
-```
-
-Then rerun:
-
-```bash
-python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md
-python3 scripts/agent_job_registry.py claim docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md
-```
-
-## Validation
-
-- `python3 scripts/agent_job_contract.py validate docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`: PASS after setting `approval_required: true`.
-- `python3 scripts/agent_job_registry.py list-active`: PASS, one active Appendix 5B job reported. Final state was `stale: false`.
-- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`: FAIL, for unrelated dirty task cards and active Evaluation lane overlap.
-- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md`: FAIL, for unrelated pre-existing untracked task cards outside this job's allowed files. Output: `reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/diff-check.json`.
-- Registry claim: NOT RUN because overlap check failed.
-- Runtime validation: NOT RUN because no runtime mutation occurred.
-
-## Final Status
-
-Implementation is blocked before runtime mutation. This is a safe stop, not a failed rebind.
-
-Final `git diff --check`: PASS.
-
-Final `python3 -m json.tool reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/diff-check.json`: PASS.
-
-Final `git status --short --untracked-files=all`:
-
-```text
-?? docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md
-?? docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md
-?? docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md
-?? docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md
-?? docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md
-?? docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md
-?? docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md
-?? docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md
-?? docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md
-?? docs/agent_tasks/task_card_dirt_classification_audit_v1_20260524.md
-?? docs/agent_tasks/task_card_dirt_preservation_closeout_v1_20260524.md
-```
+- Final `git diff --check`.
+- Task-card validate/check-diff after report update.
+- Commit the allowed repo changes.
+- Release registry and run final `list-active`.
+- Decide whether to recreate backend/worker/gpu_worker solely to refresh `TENN_GIT_HEAD` provenance after the final commit.

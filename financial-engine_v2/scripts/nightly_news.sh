@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Nightly news ingestion — fetches the last 36 hours of ASX news via newspaper4k.
-# Scheduled via crontab: 0 2 * * * /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh
+# Scheduled via crontab: 0 2 * * * /home/l4nd0/tenn/financial-engine_v2/scripts/nightly_news.sh
 set -euo pipefail
 
 TENN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

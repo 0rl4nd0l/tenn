@@ -10,6 +10,10 @@ allowed_files:
   - systemd/llama-cpp-router.service
   - scripts/storage_guard.py
   - financial-engine_v2/scripts/nightly_news.sh
+  - reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/README.md
+  - reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/diff-check.json
+  - reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/status.json
+  - docs/agent_tasks/runtime_topology_rebind_readiness_impl_v1_20260524.md
 approval_required: true
 approval_source: "User replied 'proceedd' after runtime_topology_reconciliation_audit_v1_20260522 final report on 2026-05-24."
 timeout_seconds: 7200

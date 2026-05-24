@@ -5,7 +5,7 @@ This module must not mount disks, mutate paths, or import application code.
 Call from shell entrypoints via python3 (preferred) or python.
 
 Environment:
-  TENN_CANONICAL_ROOT   Override repo root path (default: /mnt/sdb2/home/l4nd0/tenn)
+  TENN_CANONICAL_ROOT   Override repo root path (default: /home/l4nd0/tenn)
   TENN_STORAGE_GUARD_SKIP=1   Explicitly skip checks (stderr warning; for non-prod only)
 """
 
@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 DEFAULT_CANONICAL_ROOT = Path(
-    os.environ.get("TENN_CANONICAL_ROOT", "/mnt/sdb2/home/l4nd0/tenn")
+    os.environ.get("TENN_CANONICAL_ROOT", "/home/l4nd0/tenn")
 )
 
 
@@ -156,7 +156,7 @@ def ensure_tenn_storage_or_exit() -> None:
             "    (and ensure /etc/fstab has a single stable line for that UUID → /mnt/sdb2 without duplicate `/` entries.)\n"
             "  - NVMe runtime: either mount a dedicated volume at /mnt/nvme (fstab), OR on a single-partition\n"
             "    NVMe host ensure directories exist: /mnt/nvme/tenn/models and/or /mnt/nvme/tenn/runtime-data\n"
-            "  - Confirm: /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2\n",
+            "  - Confirm: /home/l4nd0/tenn/financial-engine_v2\n",
             file=sys.stderr,
         )
         raise SystemExit(1)

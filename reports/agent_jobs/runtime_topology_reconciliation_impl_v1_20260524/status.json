@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/runtime_topology_reconciliation_impl_v1_20260524.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md",
+    "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524",
+    "docs/startup.md",
+    "docs/setup/environment.md",
+    "systemd/llama-cpp-router.service",
+    "scripts/storage_guard.py",
+    "financial-engine_v2/scripts/nightly_news.sh"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-24T01:29:23.705304Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-24T01:29:23.705304Z",
+  "job_id": "runtime_topology_reconciliation_impl_v1_20260524",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-24T01:35:05.888207Z",
+  "output_dir": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-24T01:35:05.888207Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:78434:runtime_topology_reconciliation_impl_v1_20260524",
+  "started_at": "2026-05-24T01:29:23.705304Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md",
+  "updated_at": "2026-05-24T01:35:05.888207Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

@@ -1,105 +1,33 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md",
-      "status": "??"
-    },
-    {
       "path": "docs/agent_tasks/runtime_topology_reconciliation_impl_v1_20260524.md",
-      "status": "??"
+      "status": "M"
     },
     {
-      "path": "docs/agent_tasks/task_card_dirt_classification_audit_v1_20260524.md",
-      "status": "??"
+      "path": "financial-engine_v2/scripts/nightly_news.sh",
+      "status": "M"
     },
     {
-      "path": "docs/agent_tasks/task_card_dirt_preservation_closeout_v1_20260524.md",
+      "path": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/README.md",
+      "status": "M"
+    },
+    {
+      "path": "scripts/storage_guard.py",
+      "status": "M"
+    },
+    {
+      "path": "systemd/llama-cpp-router.service",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/runtime_topology_rebind_readiness_impl_v1_20260524.md",
       "status": "??"
     }
   ],
-  "disallowed_files": [
-    "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md",
-    "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md",
-    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md",
-    "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md",
-    "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md",
-    "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md",
-    "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md",
-    "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md",
-    "docs/agent_tasks/task_card_dirt_classification_audit_v1_20260524.md",
-    "docs/agent_tasks/task_card_dirt_preservation_closeout_v1_20260524.md"
-  ],
-  "issues": [
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/canonical_path_mountpoint_audit_v1_20260522.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/cockpit_ui_usefulness_current_head_reapply_v1_20260521.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_rerun_v1_20260521.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/cockpit_ui_usefulness_final_canonical_merge_v1_20260521.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/fast_dev_preservation_audit_v1_20260524.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/fresh_session_repo_state_proof_v1_20260524.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/phase3g_collision_cockpit_final_canonical_merge_taskcard_audit_v1_20260521.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/runtime_topology_reconciliation_audit_v1_20260522.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/task_card_dirt_classification_audit_v1_20260524.md is outside allowed_files"
-    },
-    {
-      "field": "changed_files",
-      "message": "docs/agent_tasks/task_card_dirt_preservation_closeout_v1_20260524.md is outside allowed_files"
-    }
-  ],
-  "ok": false,
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
   "report_path": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/diff-check.json",
   "validation": {
     "issues": [],
@@ -111,7 +39,11 @@
         "docs/setup/environment.md",
         "systemd/llama-cpp-router.service",
         "scripts/storage_guard.py",
-        "financial-engine_v2/scripts/nightly_news.sh"
+        "financial-engine_v2/scripts/nightly_news.sh",
+        "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/README.md",
+        "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/diff-check.json",
+        "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/status.json",
+        "docs/agent_tasks/runtime_topology_rebind_readiness_impl_v1_20260524.md"
       ],
       "approval_required": true,
       "approval_source": "User replied 'proceedd' after runtime_topology_reconciliation_audit_v1_20260522 final report on 2026-05-24.",
