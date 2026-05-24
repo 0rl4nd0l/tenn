@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_safe_progress_goal_v1_20260524",
+  "generated_at": "2026-05-24T11:15:00Z",
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_quantdinger_safe_progress_goal_v1_20260524.md",
+      "ok": true,
+      "classification": "task_card_valid"
+    },
+    {
+      "command": "./node_modules/.bin/vitest run lib/strategy-lab-status.test.ts components/cockpit/home/cards/strategy-lab-status-card.test.tsx lib/strategy-lab-artifacts.test.ts components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
+      "cwd": "cockpit-ui",
+      "ok": true,
+      "classification": "focused_unit_and_component_tests_passed",
+      "summary": "4 files passed; 7 tests passed"
+    },
+    {
+      "command": "./node_modules/.bin/eslint lib/strategy-lab-status.ts lib/strategy-lab-status.test.ts components/cockpit/home/cards/strategy-lab-status-card.tsx components/cockpit/home/cards/strategy-lab-status-card.test.tsx lib/strategy-lab-artifacts.ts lib/strategy-lab-artifacts-server.ts lib/strategy-lab-artifacts.test.ts components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
+      "cwd": "cockpit-ui",
+      "ok": true,
+      "classification": "focused_eslint_passed"
+    },
+    {
+      "command": "git diff --check",
+      "ok": true,
+      "classification": "diff_whitespace_check_passed"
+    },
+    {
+      "command": "jq empty reports/agent_jobs/strategy_lab_quantdinger_safe_progress_goal_v1_20260524/route_map.json",
+      "ok": true,
+      "classification": "route_map_json_valid"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_quantdinger_safe_progress_goal_v1_20260524.md --repo-root .",
+      "ok": false,
+      "classification": "reporting_lane_overlap_and_foreign_dirty_task_cards_no_allowed_file_active_overlap"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_quantdinger_safe_progress_goal_v1_20260524.md --repo-root .",
+      "ok": false,
+      "classification": "foreign_dirty_task_cards_only",
+      "report_path": "reports/agent_jobs/strategy_lab_quantdinger_safe_progress_goal_v1_20260524/diff-check.json"
+    },
+    {
+      "command": "rg -n \"(Bearer|sk-[A-Za-z0-9]|password|admin_jwt|agent_token|token)\" docs/agent_tasks/strategy_lab_quantdinger_safe_progress_goal_v1_20260524.md cockpit-ui/lib/strategy-lab-status.ts cockpit-ui/lib/strategy-lab-artifacts.ts reports/agent_jobs/strategy_lab_quantdinger_safe_progress_goal_v1_20260524 || true",
+      "ok": true,
+      "classification": "no_secret_values_detected_policy_words_only"
+    },
+    {
+      "command": "python3 scripts/agent_job_hook.py --repo-root .",
+      "ok": true,
+      "classification": "no_active_task_card_allows_empty_payload"
+    },
+    {
+      "command": "TENN_AGENT_TASK_CARD=docs/agent_tasks/strategy_lab_quantdinger_safe_progress_goal_v1_20260524.md python3 scripts/agent_job_hook.py --platform gemini --event BeforeTool --repo-root .",
+      "ok": false,
+      "classification": "no_write_hook_mode_blocks_due_reporting_lane_overlap_and_foreign_dirty_task_cards"
+    }
+  ],
+  "code_review": {
+    "status": "SUCCESS",
+    "critical": [],
+    "warnings": [],
+    "suggestions": [],
+    "sources_used": [
+      "git diff for touched Cockpit files",
+      "focused Vitest output",
+      "focused ESLint output"
+    ]
+  },
+  "browser_smoke": {
+    "run": false,
+    "reason": "No existing app server was provided. The local Playwright config starts pnpm run start when no external base URL is supplied, and this goal avoided persistent service startup."
+  }
+}
