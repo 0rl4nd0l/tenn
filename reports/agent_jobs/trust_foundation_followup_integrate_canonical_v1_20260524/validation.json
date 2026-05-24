@@ -1,0 +1,67 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/trust_foundation_followup_integrate_canonical_v1_20260524.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate imported controller and 4 child cards",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/trust_foundation_followup_integrate_canonical_v1_20260524.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/trust_foundation_followup_integrate_canonical_v1_20260524.md",
+      "result": "PASS"
+    },
+    {
+      "command": "git cherry-pick --no-commit f83e8c9a541d",
+      "result": "PASS"
+    },
+    {
+      "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD/financial-engine_v2/backend:$PWD/financial-engine_v2 /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "result": "PASS: 65 passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn/cockpit-ui/node_modules/.bin/vitest run components/cockpit/chat/terminal-message.test.tsx --root cockpit-ui",
+      "result": "PASS: 14 passed after temporary clean-worktree node_modules symlink; symlink removed"
+    },
+    {
+      "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py -q",
+      "result": "PASS: 3 passed"
+    },
+    {
+      "command": "env PYTHONDONTWRITEBYTECODE=1 /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check focused changed Python files",
+      "result": "PASS"
+    },
+    {
+      "command": "env PYTHONDONTWRITEBYTECODE=1 /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m py_compile scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+      "result": "PASS"
+    },
+    {
+      "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD python3 scripts/reporting/eval_spine_manifest.py validate reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/normalized_manifest.json",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool new status.json files",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release trust_foundation_followup_integrate_canonical_v1_20260524 && python3 scripts/agent_job_registry.py list-active",
+      "result": "PASS: final active_jobs []"
+    }
+  ],
+  "code_review": {
+    "findings": [],
+    "status": "PASS"
+  },
+  "generated_at_utc": "2026-05-24T12:00:22Z",
+  "task": "trust_foundation_followup_integrate_canonical_v1_20260524",
+  "validation_result": "PASS"
+}

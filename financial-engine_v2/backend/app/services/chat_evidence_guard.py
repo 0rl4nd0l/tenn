@@ -10,6 +10,7 @@ FILING_CONTEXT = "filing_context"
 BUYBACK_ACTIVITY = "buyback_activity"
 TARIFF_REGULATORY = "tariff_regulatory"
 LOCAL_HOLDINGS = "local_holdings"
+RECENT_NEWS_OR_UPDATE = "recent_news_or_update"
 
 CLAIM_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     MARKET_PRICE_OR_TECHNICAL_TREND: (
@@ -22,6 +23,7 @@ CLAIM_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     BUYBACK_ACTIVITY: ("buyback_filing", "filing", "news"),
     TARIFF_REGULATORY: ("regulatory_source", "filing", "news"),
     LOCAL_HOLDINGS: ("local_personal_data",),
+    RECENT_NEWS_OR_UPDATE: ("news", "event_source"),
 }
 
 _MARKET_TREND_CLAIM_RE = re.compile(
@@ -61,6 +63,14 @@ _LOCAL_HOLDINGS_RE = re.compile(
     r"unrealized (?:p&l|profit|loss)|unrealised (?:p&l|profit|loss))\b",
     re.IGNORECASE,
 )
+_RECENT_NEWS_OR_UPDATE_RE = re.compile(
+    r"\b(?:what happened|happened with|this week|"
+    r"recent (?:news|update|updates|coverage|development|developments)|"
+    r"(?:today|yesterday)'?s? (?:news|update|updates|announcement|announcements|development|developments)|"
+    r"latest (?:news|update|updates|announcement|announcements|development|developments)|"
+    r"news update|market update|recall|resignation|event|catalyst)\b",
+    re.IGNORECASE,
+)
 _MISSING_CANONICAL_FINANCIAL_ROWS_RE = re.compile(
     r"\b(?:no canonical financial rows were returned|no canonical financial rows|"
     r"financial rows (?:were )?(?:not returned|unavailable|missing)|"
@@ -87,6 +97,7 @@ VISIBLE_GAP_LABELS = (
     "market_data_missing",
     "unsupported_or_not_verified",
     "metric_extraction_missing",
+    "insufficient_for_recent_news",
     "missing_required_evidence",
 )
 
@@ -102,6 +113,11 @@ _VISIBLE_GAP_COPY = {
     "metric_extraction_missing": (
         "metric_extraction_missing: canonical metric or financial-row evidence "
         "is missing or incomplete."
+    ),
+    "insufficient_for_recent_news": (
+        "insufficient_for_recent_news: recent-news or recent-update claims need "
+        "a news, filing, announcement, or event source; price-only context is "
+        "not enough."
     ),
     "missing_required_evidence": (
         "missing_required_evidence: required evidence is absent for at least "
@@ -131,8 +147,6 @@ def _source_labels(source: Mapping[str, Any]) -> set[str]:
     labels: set[str] = set()
     for key in ("evidence_labels", "source_labels", "evidence_label", "source_label"):
         labels.update(_string_array(source.get(key)))
-    if source.get("claim_verified") is True or source.get("supports_claim") is True:
-        labels.add("claim_verified")
     return labels
 
 
@@ -154,6 +168,8 @@ def detect_claim_families(answer_text: str, metadata: Mapping[str, Any] | None =
         families.add(TARIFF_REGULATORY)
     if _LOCAL_HOLDINGS_RE.search(text):
         families.add(LOCAL_HOLDINGS)
+    if _RECENT_NEWS_OR_UPDATE_RE.search(text):
+        families.add(RECENT_NEWS_OR_UPDATE)
 
     metadata = metadata or {}
     canonical_intent = str(metadata.get("canonical_intent") or metadata.get("intent") or "").strip().lower()
@@ -210,12 +226,19 @@ def evidence_categories_for_source(source: Mapping[str, Any]) -> set[str]:
         haystack,
     ):
         categories.update({"extracted_metric", "financial_statement"})
+        if "claim_verified" not in labels:
+            categories.add("financial_truth_numeric")
 
     if kind in {"document", "rag"} or re.search(
         r"\b(?:asx_announcement|announcement|filing|annual report|appendix|notice)\b",
         haystack,
     ):
         categories.add("filing")
+    if kind == "news" or re.search(
+        r"\b(?:asx_announcement|announcement|news article|notice|release)\b",
+        haystack,
+    ):
+        categories.add("event_source")
     if _BUYBACK_RE.search(haystack):
         categories.add("buyback_filing")
     if _TARIFF_REGULATORY_RE.search(haystack):
@@ -241,6 +264,8 @@ def _missing_category_for_claim_family(claim_family: str) -> str:
         return "metric_extraction"
     if claim_family == LOCAL_HOLDINGS:
         return "local_personal_data"
+    if claim_family == RECENT_NEWS_OR_UPDATE:
+        return "recent_news"
     if claim_family == TARIFF_REGULATORY:
         return "regulatory_source"
     if claim_family == BUYBACK_ACTIVITY:
@@ -253,6 +278,8 @@ def _label_for_missing_category(category: str) -> str:
         return "market_data_missing"
     if category == "metric_extraction":
         return "metric_extraction_missing"
+    if category == "recent_news":
+        return "insufficient_for_recent_news"
     return f"{category}_missing"
 
 

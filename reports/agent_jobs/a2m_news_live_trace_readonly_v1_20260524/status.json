@@ -1,0 +1,33 @@
+{
+  "classification": {
+    "data_missing": [
+      "canonical news SQLite path absent",
+      "live chat synthesis not invoked"
+    ],
+    "entity_linking_gap": false,
+    "projection_lag": true,
+    "qdrant_sync_gap": false,
+    "ranking_gap": false,
+    "source_label_recency_gap": false,
+    "storage_gap": true,
+    "synthesis_reporting_gap": "DATA_MISSING: no live chat/report call was made because that could write chat or memory events"
+  },
+  "data_missing": [
+    "canonical news SQLite path absent",
+    "live chat synthesis not invoked"
+  ],
+  "implemented": false,
+  "lane": "Query Orchestration",
+  "mode": "audit_only_read_only_live_trace",
+  "status": "complete_with_data_missing",
+  "summary": {
+    "canonical_sqlite_present": false,
+    "keyword_retrieval_articles": 4,
+    "keyword_retrieval_chunks": 8,
+    "qdrant_combined_a2m_points": 24,
+    "qdrant_points_unchanged": true,
+    "qdrant_unique_a2m_articles": 4
+  },
+  "task": "a2m_news_live_trace_readonly_v1_20260524",
+  "validation_result": "PASS_READ_ONLY_WITH_DATA_MISSING"
+}

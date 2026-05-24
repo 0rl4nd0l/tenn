@@ -1,0 +1,78 @@
+{
+  "canonical": {
+    "branch_before": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_before": "aefcda3854a62d1958d5ead8e4dc6146742de4ac",
+    "path_requested": "/home/l4nd0/tenn",
+    "realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "commit": {
+    "commit_created": "PENDING_AT_REPORT_WRITE",
+    "final_canonical_head": "DATA_MISSING_SELF_REFERENCE_PRE_COMMIT",
+    "message": "milestone(evaluation): integrate trust foundation follow-up"
+  },
+  "confirmed_facts": [
+    "source commit f83e8c9a541d651585358e04e82376d5df1c63d0 inspected",
+    "source parent and target merge-base were 4c63c51813f0197a6a37327a5baefaf1281b1d65",
+    "source worktree was clean",
+    "canonical pre-existing untracked task cards were left untouched",
+    "cherry-pick --no-commit applied cleanly",
+    "registry claim was released and final active_jobs was empty"
+  ],
+  "contested_surfaces_touched": [
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "cockpit-ui/components/cockpit/chat/terminal-message.tsx",
+    "cockpit-ui/components/cockpit/chat/terminal-message.test.tsx"
+  ],
+  "data_missing": [
+    ".cursor/rules architecture-check rule files were absent in this checkout",
+    "final canonical HEAD cannot be embedded inside the same commit before that commit exists",
+    "live chat synthesis smoke was intentionally not run to avoid chat or memory write side effects"
+  ],
+  "files_changed_categories": [
+    "deterministic source-label/evidence semantics helper logic",
+    "focused source-label/chat evidence tests",
+    "terminal-message UI wording regression test",
+    "scripts/reporting Gold Metric Coverage normalizer",
+    "focused normalizer tests",
+    "Eval Spine report-local artifacts",
+    "docs/task cards/reports"
+  ],
+  "forbidden_surfaces_check": {
+    "docker_cron_systemd_model_gpu_runtime_topology": false,
+    "extraction_parser_or_prompt_routing": false,
+    "memory_store_files": false,
+    "news_sqlite_store_files": false,
+    "production_db_files": false,
+    "qdrant_storage": false,
+    "unrelated_task_cards": false
+  },
+  "generated_at_utc": "2026-05-24T12:00:22Z",
+  "inferred_facts": [
+    "target-only commits since the source parent did not overlap source milestone files",
+    "cockpit_api.py change is narrow source-label semantics, not route topology or retrieval ownership",
+    "normalizer output remains report-local and preserves proof versus inventory boundaries"
+  ],
+  "integration_method": "clean sibling worktree plus git cherry-pick --no-commit f83e8c9a541d",
+  "lane": "Evaluation",
+  "mode": "safe_extension_integration",
+  "open_followups": [
+    "memory fanout suppression/quarantine design",
+    "A2M SQLite/projection path discovery",
+    "live stateless source-label smoke for recent-news/price-only and financial-truth wording",
+    "Eval Spine normalizer display/usage follow-up"
+  ],
+  "registry": {
+    "final_active_jobs": [],
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "save_recommendation": "SAVE_RECOMMENDED",
+  "source": {
+    "branch": "safe/trust-foundation-followup-implementation-controller-v1-20260524",
+    "commit": "f83e8c9a541d651585358e04e82376d5df1c63d0",
+    "subject": "milestone(evaluation): implement trust foundation follow-up",
+    "worktree": "/home/l4nd0/tenn-trust-foundation-followup-implementation-controller-v1-20260524"
+  },
+  "status": "PASS_READY_TO_COMMIT",
+  "validation_result": "PASS"
+}

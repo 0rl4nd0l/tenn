@@ -1366,8 +1366,10 @@ SOURCE_LABEL_DEFINITIONS: dict[str, str] = {
     "external_web_context": "External web context, not canonical financial truth.",
     "local_news_context": "Local/news retrieval evidence.",
     "financial_truth": "Canonical financial truth or structured extracted metrics.",
+    "financial_truth_numeric": "Structured numeric financial truth context, not event/news verification.",
     "degraded_runtime": "The answer was produced under runtime/tool/synthesis degradation.",
     "missing_required_evidence": "The answer has a known evidence gap.",
+    "insufficient_for_recent_news": "Recent-news/update evidence is missing or price-only.",
     "unknown_unclassified": "Safe fallback for unclassified sources; never treated as verified.",
 }
 _VALID_SOURCE_LABELS = frozenset(SOURCE_LABEL_DEFINITIONS)
@@ -1377,6 +1379,7 @@ _SOURCE_LABEL_PRIMARY_ORDER = (
     "no_hit",
     "claim_verified",
     "financial_truth",
+    "financial_truth_numeric",
     "local_personal_data",
     "memory_context",
     "external_web_context",
@@ -1485,8 +1488,7 @@ def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
     labels.update(_normalize_source_labels(raw.get("source_labels")))
     labels.update(_normalize_source_labels(raw.get("evidence_label")))
     labels.update(_normalize_source_labels(raw.get("source_label")))
-    if raw.get("claim_verified") is True or raw.get("supports_claim") is True:
-        labels.add("claim_verified")
+    raw_support_flag = raw.get("claim_verified") is True or raw.get("supports_claim") is True
 
     normalized_kind = str(kind or "").strip().lower()
     source_id = str(raw.get("source_id") or raw.get("chunk_id") or "").strip()
@@ -1506,6 +1508,7 @@ def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
         or doc_type in {"operational_no_hit", "missing_required_evidence"}
     ):
         labels.update({"no_hit", "operational_trace"})
+        labels.discard("claim_verified")
     if (
         source_id.startswith("financial_truth:no_hit:")
         or doc_type == "missing_required_evidence"
@@ -1513,6 +1516,7 @@ def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
         labels.add("missing_required_evidence")
     if source_id.startswith("runtime_failure:") or doc_type == "runtime_failure":
         labels.update({"degraded_runtime", "operational_trace"})
+        labels.discard("claim_verified")
     if normalized_kind == "news" or "news" in doc_type or "news" in source_type:
         labels.add("local_news_context")
     if normalized_kind == "web":
@@ -1523,6 +1527,10 @@ def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
         labels.add("operational_trace")
     if raw.get("financial_truth") is True or raw.get("canonical_financial_truth") is True:
         labels.add("financial_truth")
+    if "financial_truth" in labels and "claim_verified" not in labels:
+        labels.add("financial_truth_numeric")
+    if raw_support_flag and "claim_verified" not in labels:
+        labels.add("context_only")
 
     if not labels:
         labels.add("unknown_unclassified")

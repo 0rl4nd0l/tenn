@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "qdrant_probe": "qdrant_probe.json",
+    "retrieval_trace": "retrieval_trace.json",
+    "sqlite_inventory": "sqlite_inventory.json"
+  },
+  "data_missing": [
+    "canonical news SQLite path absent",
+    "live chat synthesis not invoked"
+  ],
+  "generated_at_utc": "2026-05-24T11:38:08+00:00",
+  "summary": {
+    "canonical_sqlite_present": false,
+    "keyword_retrieval_articles": 4,
+    "keyword_retrieval_chunks": 8,
+    "qdrant_combined_a2m_points": 24,
+    "qdrant_points_unchanged": true,
+    "qdrant_unique_a2m_articles": 4
+  },
+  "task": "a2m_news_live_trace_readonly_v1_20260524"
+}

@@ -9,6 +9,7 @@ from app.services.chat_evidence_guard import (
     BUYBACK_ACTIVITY,
     FINANCIAL_METRIC,
     MARKET_PRICE_OR_TECHNICAL_TREND,
+    RECENT_NEWS_OR_UPDATE,
     TARIFF_REGULATORY,
     apply_visible_evidence_gap_labels,
     enrich_chat_metadata_with_evidence_guard,
@@ -63,6 +64,26 @@ def test_price_evidence_satisfies_price_trend_requirement() -> None:
     assert "price_series" in result["evidence_categories"]
     assert result["missing_evidence_categories"] == []
     assert MARKET_PRICE_OR_TECHNICAL_TREND not in result["unsupported_claim_families"]
+
+
+def test_price_status_today_does_not_require_news_evidence() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="CSL current price trend today is flat based on visible price data.",
+        sources=[
+            {
+                "title": "CSL price data",
+                "source_id": "price:CSL:current:1d",
+                "kind": "context",
+                "snippet": "price: 284.50; market time: 2026-05-24.",
+                "evidence_labels": ["operational_trace"],
+            }
+        ],
+    )
+
+    assert MARKET_PRICE_OR_TECHNICAL_TREND in result["claim_families"]
+    assert RECENT_NEWS_OR_UPDATE not in result["claim_families"]
+    assert "insufficient_for_recent_news" not in result["evidence_requirement_labels"]
+    assert result["missing_evidence_categories"] == []
 
 
 def test_missing_financial_statement_marks_metric_extraction_missing() -> None:
@@ -125,6 +146,51 @@ def test_financial_truth_source_satisfies_metric_requirement() -> None:
     assert "financial_statement" in result["evidence_categories"]
     assert result["missing_evidence_categories"] == []
     assert FINANCIAL_METRIC not in result["unsupported_claim_families"]
+
+
+def test_recent_news_question_with_only_price_data_is_insufficient() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP rose this week after the latest update.",
+        sources=[
+            {
+                "title": "BHP price data",
+                "source_id": "local_price:BHP:current:1d",
+                "kind": "context",
+                "snippet": "price: 44.0; change: 1.15",
+                "evidence_labels": ["operational_trace"],
+            }
+        ],
+    )
+
+    assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
+    assert "market_data" in result["evidence_categories"]
+    assert "news" not in result["evidence_categories"]
+    assert "recent_news" in result["missing_evidence_categories"]
+    assert "insufficient_for_recent_news" in result["evidence_requirement_labels"]
+    assert RECENT_NEWS_OR_UPDATE in result["unsupported_claim_families"]
+
+
+def test_financial_truth_numeric_context_does_not_verify_recent_event_claim() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP recent update this week was driven by an event.",
+        sources=[
+            {
+                "title": "BHP HY revenue",
+                "source_id": "financial_truth:BHP:revenue:HY26",
+                "kind": "document",
+                "doc_type": "half_year",
+                "snippet": "revenue: 55000",
+                "evidence_labels": ["financial_truth"],
+                "claim_verified": False,
+            }
+        ],
+    )
+
+    assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
+    assert "financial_truth_numeric" in result["evidence_categories"]
+    assert "claim_verified" not in result["evidence_categories"]
+    assert "recent_news" in result["missing_evidence_categories"]
+    assert "insufficient_for_recent_news" in result["evidence_requirement_labels"]
 
 
 def test_buyback_and_tariff_filing_claims_remain_context_only_when_supported() -> None:

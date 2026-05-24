@@ -1,0 +1,58 @@
+{
+  "checks": [
+    {
+      "command": "task-card validate for controller and 4 children",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=$PWD/financial-engine_v2/backend:$PWD/financial-engine_v2 /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "result": "PASS: 65 passed"
+    },
+    {
+      "command": "cockpit-ui/node_modules/.bin/vitest run components/cockpit/chat/terminal-message.test.tsx --root cockpit-ui",
+      "result": "PASS: 1 file / 14 tests"
+    },
+    {
+      "command": "PYTHONPATH=$PWD /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py -q",
+      "result": "PASS: 3 passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check focused backend/reporting files",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=$PWD python3 scripts/reporting/eval_spine_manifest.py validate normalized_manifest.json",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/trust_foundation_followup_implementation_controller_v1_20260524.md",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "JSON validation for report status/probe/manifest files",
+      "result": "PASS"
+    }
+  ],
+  "generated_at_utc": "2026-05-24T11:42:30+00:00",
+  "pending_checks_at_generation": [],
+  "read_only_live_checks": [
+    {
+      "result": "PASS_READ_ONLY_WITH_FINDINGS",
+      "task": "memory_live_inventory_readonly_v1_20260524"
+    },
+    {
+      "result": "PASS_READ_ONLY_WITH_DATA_MISSING",
+      "task": "a2m_news_live_trace_readonly_v1_20260524"
+    }
+  ],
+  "task": "trust_foundation_followup_implementation_controller_v1_20260524",
+  "updated_at_utc": "2026-05-24T11:43:26+00:00"
+}

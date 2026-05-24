@@ -1,0 +1,22 @@
+{
+  "data_missing": [],
+  "files_changed": [
+    "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+    "financial-engine_v2/backend/tests/test_build_ui_sources.py",
+    "cockpit-ui/components/cockpit/chat/terminal-message.tsx",
+    "cockpit-ui/components/cockpit/chat/terminal-message.test.tsx"
+  ],
+  "implemented": true,
+  "lane": "Provenance",
+  "mode": "safe_extension",
+  "regressions_fixed": [
+    "raw claim_verified/supports_claim payload flags no longer become claim_verified by themselves",
+    "recent-news/update claims with price-only evidence receive insufficient_for_recent_news",
+    "financial_truth numeric evidence is labelled numeric context rather than event/news verification"
+  ],
+  "status": "complete",
+  "task": "source_label_semantic_sufficiency_guard_v1_20260524",
+  "validation_result": "PASS"
+}

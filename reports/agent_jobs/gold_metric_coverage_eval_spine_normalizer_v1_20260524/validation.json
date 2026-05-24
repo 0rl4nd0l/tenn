@@ -1,0 +1,29 @@
+{
+  "checks": [
+    {
+      "command": "task-card validate for controller and 4 children",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=$PWD /home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py -q",
+      "result": "PASS: 3 passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check focused backend/reporting files",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=$PWD python3 scripts/reporting/eval_spine_manifest.py validate normalized_manifest.json",
+      "result": "PASS"
+    }
+  ],
+  "generated_at_utc": "2026-05-24T11:42:30+00:00",
+  "manifest_validate": {
+    "ok": true
+  },
+  "task": "gold_metric_coverage_eval_spine_normalizer_v1_20260524"
+}

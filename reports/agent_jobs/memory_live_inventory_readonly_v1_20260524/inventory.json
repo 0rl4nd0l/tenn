@@ -1,0 +1,361 @@
+{
+  "company_memory": {
+    "active_source_counts": {
+      "commentary:youtube_transcript": 14,
+      "news:newspaper4k": 133
+    },
+    "active_type_counts": {
+      "catalyst": 2,
+      "interpretation": 1,
+      "management_guidance": 21,
+      "observed_fact": 84,
+      "operating_context": 14,
+      "risk": 20,
+      "strategic_initiative": 5
+    },
+    "classification_counts": {
+      "clean_or_normal_active_entries_by_this_fanout_check": 130,
+      "confirmed_contaminated_active_duplicate_statement_clusters": 0,
+      "data_missing_manual_review_csv": true,
+      "duplicate_fanout_suspicious_active_entries": 17,
+      "duplicate_fanout_suspicious_active_source_clusters_threshold_gt_2": 4
+    },
+    "dry_retrieval_simulation_statement_query": {
+      "active_rows_selectable_count": 147,
+      "current_read_path_conditions": "CompanyMemoryStore.retrieve lists active rows for company_id, ranks by active_score/promotion threshold, MemoryAssembler keeps active_score >= 0.55 and status active",
+      "duplicate_statement_entries_selectable_count": 0,
+      "fanout_suspicious_entries_selectable_count": 17,
+      "fanout_suspicious_selectable_entry_ids": [
+        1273,
+        1301,
+        1310,
+        1341,
+        2340,
+        2341,
+        2342,
+        2343,
+        2359,
+        2360,
+        2361,
+        2362,
+        2363,
+        2364,
+        2365,
+        2366,
+        2367
+      ],
+      "intent": "mixed",
+      "query_basis": "each row statement, not a live chat call"
+    },
+    "duplicate_statement_clusters_active": [],
+    "read_mode": {
+      "immutable": true,
+      "pragma_query_only": 1,
+      "sqlite_uri_mode": "ro"
+    },
+    "source_fanout_clusters_threshold_gt_2": [
+      {
+        "classification": "duplicate/fanout suspicious",
+        "company_count": 3,
+        "company_ids": [
+          "CSL",
+          "EZZ",
+          "RESMED"
+        ],
+        "entry_ids": [
+          1273,
+          1301,
+          1310,
+          1341
+        ],
+        "source": "news:newspaper4k",
+        "source_id": "news:art_e4faef3c4644fe5bb3b66e32"
+      },
+      {
+        "classification": "duplicate/fanout suspicious",
+        "company_count": 4,
+        "company_ids": [
+          "BHP",
+          "EVN",
+          "RIO",
+          "XRO"
+        ],
+        "entry_ids": [
+          2340,
+          2341,
+          2342,
+          2343
+        ],
+        "source": "news:newspaper4k",
+        "source_id": "news:art_5cf586d2c6303f73e9f52219"
+      },
+      {
+        "classification": "duplicate/fanout suspicious",
+        "company_count": 4,
+        "company_ids": [
+          "C1X",
+          "CBE",
+          "KAO",
+          "SLB"
+        ],
+        "entry_ids": [
+          2364,
+          2365,
+          2366,
+          2367
+        ],
+        "source": "news:newspaper4k",
+        "source_id": "news:art_9fe432dbf4898336703316b3"
+      },
+      {
+        "classification": "duplicate/fanout suspicious",
+        "company_count": 4,
+        "company_ids": [
+          "CBA",
+          "MIN",
+          "MP1",
+          "XRO"
+        ],
+        "entry_ids": [
+          2359,
+          2360,
+          2361,
+          2362,
+          2363
+        ],
+        "source": "news:newspaper4k",
+        "source_id": "news:art_c0195feddb42ee1a1f11268d"
+      }
+    ],
+    "status_counts": {
+      "active": 147,
+      "expired": 2293
+    },
+    "store_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+    "table_counts": {
+      "company_ids_active": 59,
+      "company_ids_total": 184,
+      "memory_entries_active": 147,
+      "memory_entries_total": 2440
+    }
+  },
+  "data_missing": [
+    "manual_review_rows.csv was not available in the prior report directory or current report-local artifacts, so manual-review exclusion could not be reproduced.",
+    "This task did not call chat/context endpoints because those may emit memory_read_events; selection was simulated offline from read-path code semantics."
+  ],
+  "generated_at_utc": "2026-05-24T11:33:29+00:00",
+  "live_runtime_resolution": {
+    "container_source_registry_root": "/data/reports/research_memory",
+    "env_TENN_RESEARCH_MEMORY_ROOT_in_fe_backend": "/mnt/hdd-data/home/l4nd0/tenn/financial-engine_v2/data/reports/research_memory (ignored by source_registry because that path is absent in container; current import resolves /data/reports/research_memory)",
+    "host_research_memory_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory"
+  },
+  "market_memory": {
+    "active_distinct_linked_ticker_count": 38,
+    "read_mode": {
+      "immutable": true,
+      "pragma_query_only": 1,
+      "sqlite_uri_mode": "ro"
+    },
+    "store_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+    "table_counts": {
+      "macro_state_total": 79,
+      "sector_states_active": 148,
+      "sector_states_total": 148
+    },
+    "unsupported_linked_ticker_count": 19,
+    "unsupported_linked_tickers": [
+      {
+        "entry_ids": [
+          23,
+          24,
+          25,
+          26
+        ],
+        "token": "360"
+      },
+      {
+        "entry_ids": [
+          145
+        ],
+        "token": "AAR"
+      },
+      {
+        "entry_ids": [
+          29,
+          30
+        ],
+        "token": "BTE"
+      },
+      {
+        "entry_ids": [
+          119
+        ],
+        "token": "CBE"
+      },
+      {
+        "entry_ids": [
+          2,
+          3,
+          4
+        ],
+        "token": "COH"
+      },
+      {
+        "entry_ids": [
+          99,
+          100
+        ],
+        "token": "DR"
+      },
+      {
+        "entry_ids": [
+          1
+        ],
+        "token": "EDV"
+      },
+      {
+        "entry_ids": [
+          84,
+          85
+        ],
+        "token": "ELV"
+      },
+      {
+        "entry_ids": [
+          101,
+          102
+        ],
+        "token": "FRU"
+      },
+      {
+        "entry_ids": [
+          78
+        ],
+        "token": "HWK"
+      },
+      {
+        "entry_ids": [
+          21,
+          22
+        ],
+        "token": "IAG"
+      },
+      {
+        "entry_ids": [
+          119
+        ],
+        "token": "KAO"
+      },
+      {
+        "entry_ids": [
+          104
+        ],
+        "token": "NVDA"
+      },
+      {
+        "entry_ids": [
+          21,
+          22
+        ],
+        "token": "QBE"
+      },
+      {
+        "entry_ids": [
+          44
+        ],
+        "token": "REG"
+      },
+      {
+        "entry_ids": [
+          86,
+          119
+        ],
+        "token": "SLB"
+      },
+      {
+        "entry_ids": [
+          21,
+          22
+        ],
+        "token": "SUN"
+      },
+      {
+        "entry_ids": [
+          87
+        ],
+        "token": "VSH"
+      },
+      {
+        "entry_ids": [
+          95,
+          96,
+          97,
+          98
+        ],
+        "token": "WTC"
+      }
+    ]
+  },
+  "no_mutation_proof": {
+    "after": {
+      "company_memory.sqlite": {
+        "mtime_ns": 1778982396966808734,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+        "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+        "size": 4386816
+      },
+      "market_memory.sqlite": {
+        "mtime_ns": 1778982262123204579,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+        "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+        "size": 344064
+      },
+      "user_thesis_memory.sqlite": {
+        "mtime_ns": 1777872895195293692,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+        "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+        "size": 40960
+      }
+    },
+    "before": {
+      "company_memory.sqlite": {
+        "mtime_ns": 1778982396966808734,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+        "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+        "size": 4386816
+      },
+      "market_memory.sqlite": {
+        "mtime_ns": 1778982262123204579,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+        "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+        "size": 344064
+      },
+      "user_thesis_memory.sqlite": {
+        "mtime_ns": 1777872895195293692,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+        "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+        "size": 40960
+      }
+    },
+    "unchanged": {
+      "company_memory.sqlite": true,
+      "market_memory.sqlite": true,
+      "user_thesis_memory.sqlite": true
+    }
+  },
+  "recommendations": [
+    "Do not clean or mutate in this task; prepare a separate approval-gated quarantine/read-path suppression task for the 4 active company source-fanout clusters if product owners confirm they are contamination rather than legitimate cross-company news.",
+    "Run an alias/entity identity follow-up for unsupported market-memory linked tokens; this inventory does not perform alias canonicalisation.",
+    "Keep confirmed duplicate-statement active contamination at zero unless a manual review artifact identifies source-fanout clusters as confirmed contamination."
+  ],
+  "task": "memory_live_inventory_readonly_v1_20260524",
+  "user_thesis_memory": {
+    "stat": {
+      "mtime_ns": 1777872895195293692,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+      "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+      "size": 40960
+    },
+    "store_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite"
+  }
+}

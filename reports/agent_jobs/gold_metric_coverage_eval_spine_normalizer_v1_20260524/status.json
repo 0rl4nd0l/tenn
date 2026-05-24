@@ -1,0 +1,78 @@
+{
+  "data_missing": [
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "class": "accuracy_proof_missing",
+      "code": "missing_confirmed_metric_coverage_current_accuracy",
+      "description": "confirmed_metric_coverage is breadth inventory only; no current extracted-payload scoring artifact was supplied.",
+      "expected_empty_state": false,
+      "field": "confirmed_metric_coverage_current_accuracy",
+      "source_artifact": "/home/l4nd0/tenn-trust-foundation-parallel-push-v1-20260524/reports/agent_jobs/gold_metric_coverage_audit_v1_20260524/metric_inventory.json"
+    },
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "class": "comparison_base_missing",
+      "code": "missing_base_head",
+      "description": "No comparison base is needed for report-local normalization.",
+      "expected_empty_state": true,
+      "field": "base_head",
+      "source_artifact": "gold_metric_coverage_eval_spine_normalizer"
+    }
+  ],
+  "files_changed": [
+    "scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py",
+    "scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py",
+    "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/normalized_manifest.json",
+    "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/scorecards.csv",
+    "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/metric_expectations.csv"
+  ],
+  "implemented": true,
+  "lane": "Evaluation",
+  "mode": "safe_extension",
+  "scorecards": [
+    {
+      "accuracy_claim": "strict_no_regression_profile",
+      "ambiguous_count": null,
+      "candidate_count": null,
+      "data_missing_count": 0,
+      "document_count": 10,
+      "eligible_metric_count": 3,
+      "metric_check_count": 24,
+      "overclaim_guard": "canonical_core is a strict 10-document / 24-check no-regression proof only",
+      "scorecard_profile": "canonical_core",
+      "status": "profile_defined_no_regression",
+      "unsupported_count": null
+    },
+    {
+      "accuracy_claim": "required_metric_profile_where_available",
+      "ambiguous_count": null,
+      "candidate_count": null,
+      "data_missing_count": 0,
+      "document_count": 15,
+      "eligible_metric_count": 3,
+      "metric_check_count": 39,
+      "overclaim_guard": "expanded_required is a 15-document / 39-check required-metric proof where available",
+      "scorecard_profile": "expanded_required",
+      "status": "profile_defined_required_metrics",
+      "unsupported_count": null
+    },
+    {
+      "accuracy_claim": "none_inventory_only",
+      "ambiguous_count": 3,
+      "candidate_count": 70,
+      "data_missing_count": 1,
+      "document_count": 15,
+      "eligible_metric_count": 73,
+      "metric_check_count": 146,
+      "overclaim_guard": "confirmed_metric_coverage is read-only breadth inventory, not current accuracy proof",
+      "scorecard_profile": "confirmed_metric_coverage",
+      "status": "inventory_only_not_accuracy",
+      "unsupported_count": 0
+    }
+  ],
+  "status": "complete",
+  "task": "gold_metric_coverage_eval_spine_normalizer_v1_20260524",
+  "validation_result": "PASS"
+}

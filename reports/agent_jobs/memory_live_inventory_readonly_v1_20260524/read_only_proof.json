@@ -1,0 +1,57 @@
+{
+  "no_mutation_proof": {
+    "after": {
+      "company_memory.sqlite": {
+        "mtime_ns": 1778982396966808734,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+        "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+        "size": 4386816
+      },
+      "market_memory.sqlite": {
+        "mtime_ns": 1778982262123204579,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+        "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+        "size": 344064
+      },
+      "user_thesis_memory.sqlite": {
+        "mtime_ns": 1777872895195293692,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+        "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+        "size": 40960
+      }
+    },
+    "before": {
+      "company_memory.sqlite": {
+        "mtime_ns": 1778982396966808734,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+        "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+        "size": 4386816
+      },
+      "market_memory.sqlite": {
+        "mtime_ns": 1778982262123204579,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+        "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+        "size": 344064
+      },
+      "user_thesis_memory.sqlite": {
+        "mtime_ns": 1777872895195293692,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+        "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+        "size": 40960
+      }
+    },
+    "unchanged": {
+      "company_memory.sqlite": true,
+      "market_memory.sqlite": true,
+      "user_thesis_memory.sqlite": true
+    }
+  },
+  "read_only_methods": [
+    "SQLite opened with mode=ro&immutable=1",
+    "PRAGMA query_only=ON set on read connections",
+    "No CompanyMemoryStore/MarketMemoryStore constructors were used against live paths",
+    "No chat/context endpoint was invoked"
+  ],
+  "result": "PASS",
+  "task": "memory_live_inventory_readonly_v1_20260524"
+}

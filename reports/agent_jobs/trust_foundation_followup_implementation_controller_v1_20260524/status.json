@@ -1,0 +1,57 @@
+{
+  "branch": "safe/trust-foundation-followup-implementation-controller-v1-20260524",
+  "children": {
+    "a2m_news_live_trace_readonly_v1_20260524": "complete_read_only_with_data_missing",
+    "gold_metric_coverage_eval_spine_normalizer_v1_20260524": "complete_implemented_validated",
+    "memory_live_inventory_readonly_v1_20260524": "complete_read_only_with_findings",
+    "source_label_semantic_sufficiency_guard_v1_20260524": "complete_implemented_validated"
+  },
+  "final_registry_status": "active_jobs_empty_after_release",
+  "git_status_short_at_report_generation": [
+    "M cockpit-ui/components/cockpit/chat/terminal-message.test.tsx",
+    " M cockpit-ui/components/cockpit/chat/terminal-message.tsx",
+    " M financial-engine_v2/backend/app/routes/cockpit_api.py",
+    " M financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+    " M financial-engine_v2/backend/tests/test_build_ui_sources.py",
+    " M financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+    "?? docs/agent_tasks/a2m_news_live_trace_readonly_v1_20260524.md",
+    "?? docs/agent_tasks/gold_metric_coverage_eval_spine_normalizer_v1_20260524.md",
+    "?? docs/agent_tasks/memory_live_inventory_readonly_v1_20260524.md",
+    "?? docs/agent_tasks/source_label_semantic_sufficiency_guard_v1_20260524.md",
+    "?? docs/agent_tasks/trust_foundation_followup_implementation_controller_v1_20260524.md",
+    "?? scripts/reporting/gold_metric_coverage_eval_spine_normalizer.py",
+    "?? scripts/reporting/test_gold_metric_coverage_eval_spine_normalizer.py"
+  ],
+  "head": "4c63c51813f0197a6a37327a5baefaf1281b1d65",
+  "lane": "Evaluation",
+  "mode": "orchestration_safe_extension_where_proven_safe",
+  "registry_release": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "released_at": "2026-05-24T11:45:20.417303Z",
+    "removed_active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/trust_foundation_followup_implementation_controller_v1_20260524.json",
+    "status": "released"
+  },
+  "regressions_fixed": [
+    "raw supports_claim/claim_verified pass-through overstatement",
+    "price-only evidence for recent-news/update now labelled insufficient",
+    "financial_truth UI/source wording narrowed to numeric context when not claim-verified",
+    "Gold Metric Coverage normalizer preserves scorecard/inventory boundary semantics"
+  ],
+  "regressions_still_open": [
+    "Historical active memory source-fanout suspicious rows remain active; no cleanup performed by policy",
+    "Canonical news SQLite/projection parity for A2M remains DATA_MISSING because checked live SQLite paths were absent"
+  ],
+  "status": "complete_validated_released",
+  "supporting_lanes": [
+    "Provenance",
+    "Query Orchestration",
+    "Memory",
+    "Financial Truth",
+    "Reporting"
+  ],
+  "task": "trust_foundation_followup_implementation_controller_v1_20260524",
+  "updated_at_utc": "2026-05-24T11:43:26+00:00",
+  "validation_result": "PASS",
+  "worktree": "/home/l4nd0/tenn-trust-foundation-followup-implementation-controller-v1-20260524"
+}

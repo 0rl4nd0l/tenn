@@ -212,6 +212,40 @@ describe('TerminalMessage', () => {
     expect(screen.queryByText(/Financial facts: source-backed/i)).not.toBeInTheDocument()
   })
 
+  it('does not render financial truth numeric context as verified sources', () => {
+    render(
+      <TerminalMessage
+        showSources={false}
+        message={buildAssistantMessage({
+          content: 'BHP revenue was 55000 in the numeric record.',
+          metadata: {
+            source: 'orchestrator',
+            analyst: {
+              ticker: 'BHP',
+              entity: 'BHP',
+              evidenceLabels: ['financial_truth', 'financial_truth_numeric'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'financial_truth',
+            },
+          },
+          sources: [
+            {
+              title: 'BHP HY numeric record',
+              score: 1,
+              kind: 'document',
+              evidenceLabel: 'financial_truth',
+              evidenceLabels: ['financial_truth', 'financial_truth_numeric'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getByText('Financial truth numeric context')).toBeInTheDocument()
+    expect(screen.queryByText('Verified sources')).not.toBeInTheDocument()
+  })
+
   it('surfaces CSL filing-only price trend claims as market data missing', () => {
     render(
       <TerminalMessage

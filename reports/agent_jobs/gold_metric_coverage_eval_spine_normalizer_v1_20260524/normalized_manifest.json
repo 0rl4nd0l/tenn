@@ -1,0 +1,123 @@
+{
+  "base_head": null,
+  "branch": "safe/trust-foundation-followup-implementation-controller-v1-20260524",
+  "changed_files": [],
+  "completed_at": "2026-05-24T11:44:23.180858Z",
+  "data_missing": [
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "class": "accuracy_proof_missing",
+      "code": "missing_confirmed_metric_coverage_current_accuracy",
+      "description": "confirmed_metric_coverage is breadth inventory only; no current extracted-payload scoring artifact was supplied.",
+      "expected_empty_state": false,
+      "field": "confirmed_metric_coverage_current_accuracy",
+      "source_artifact": "/home/l4nd0/tenn-trust-foundation-parallel-push-v1-20260524/reports/agent_jobs/gold_metric_coverage_audit_v1_20260524/metric_inventory.json"
+    },
+    {
+      "blocked_by_environment": false,
+      "blocked_by_policy": false,
+      "class": "comparison_base_missing",
+      "code": "missing_base_head",
+      "description": "No comparison base is needed for report-local normalization.",
+      "expected_empty_state": true,
+      "field": "base_head",
+      "source_artifact": "gold_metric_coverage_eval_spine_normalizer"
+    }
+  ],
+  "degraded_states": [],
+  "do_not_overclaim": [
+    "canonical_core is a strict 10-document / 24-check no-regression proof only",
+    "expanded_required is a 15-document / 39-check required-metric proof where available",
+    "confirmed_metric_coverage is read-only breadth inventory, not current accuracy proof",
+    "confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims",
+    "No normalized row is a canonical financial truth write."
+  ],
+  "extras": {},
+  "generated_at": "2026-05-24T11:44:23.180839Z",
+  "head": "4c63c51813f0197a6a37327a5baefaf1281b1d65",
+  "job_id": "gold_metric_coverage_eval_spine_normalizer_v1_20260524",
+  "lane": "Evaluation",
+  "manifest_version": "evaluation_spine_manifest_v1",
+  "mode": "safe_extension",
+  "output_dir": "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524",
+  "production_data_access": false,
+  "save_recommendation": "SAVE_RECOMMENDED",
+  "scorecards": [
+    {
+      "accuracy_claim": "strict_no_regression_profile",
+      "ambiguous_count": null,
+      "candidate_count": null,
+      "data_missing_count": 0,
+      "document_count": 10,
+      "eligible_metric_count": 3,
+      "metric_check_count": 24,
+      "overclaim_guard": "canonical_core is a strict 10-document / 24-check no-regression proof only",
+      "scorecard_profile": "canonical_core",
+      "status": "profile_defined_no_regression",
+      "unsupported_count": null
+    },
+    {
+      "accuracy_claim": "required_metric_profile_where_available",
+      "ambiguous_count": null,
+      "candidate_count": null,
+      "data_missing_count": 0,
+      "document_count": 15,
+      "eligible_metric_count": 3,
+      "metric_check_count": 39,
+      "overclaim_guard": "expanded_required is a 15-document / 39-check required-metric proof where available",
+      "scorecard_profile": "expanded_required",
+      "status": "profile_defined_required_metrics",
+      "unsupported_count": null
+    },
+    {
+      "accuracy_claim": "none_inventory_only",
+      "ambiguous_count": 3,
+      "candidate_count": 70,
+      "data_missing_count": 1,
+      "document_count": 15,
+      "eligible_metric_count": 73,
+      "metric_check_count": 146,
+      "overclaim_guard": "confirmed_metric_coverage is read-only breadth inventory, not current accuracy proof",
+      "scorecard_profile": "confirmed_metric_coverage",
+      "status": "inventory_only_not_accuracy",
+      "unsupported_count": 0
+    }
+  ],
+  "source_artifacts": [
+    {
+      "artifact_type": "metric_inventory",
+      "notes": "",
+      "path": "/home/l4nd0/tenn-trust-foundation-parallel-push-v1-20260524/reports/agent_jobs/gold_metric_coverage_audit_v1_20260524/metric_inventory.json",
+      "sha256": "a6f121f7492a4718e10c1a10bd058b4f03551c8b9ff6b1a223e497de17553dfd"
+    },
+    {
+      "artifact_type": "task_card",
+      "notes": "",
+      "path": "docs/agent_tasks/gold_metric_coverage_eval_spine_normalizer_v1_20260524.md",
+      "sha256": "5a1d9395424186ab2b86110fa4af1f7fc31a439a926e577ae813bc77bfb22157"
+    }
+  ],
+  "started_at": "2026-05-24T11:44:23.180858Z",
+  "status": "normalized_offline",
+  "supporting_lanes": [
+    "Financial Truth"
+  ],
+  "task_card": {
+    "path": "docs/agent_tasks/gold_metric_coverage_eval_spine_normalizer_v1_20260524.md",
+    "sha256": "5a1d9395424186ab2b86110fa4af1f7fc31a439a926e577ae813bc77bfb22157",
+    "validation_issues": [],
+    "validation_ok": null
+  },
+  "validation_commands": [],
+  "verdicts": [
+    {
+      "confidence": "artifact_normalization",
+      "notes": "No parser, extraction, gold-label, database, Qdrant, news, or memory writes.",
+      "source_artifact": "/home/l4nd0/tenn-trust-foundation-parallel-push-v1-20260524/reports/agent_jobs/gold_metric_coverage_audit_v1_20260524/metric_inventory.json",
+      "truth_status": "report_local_only",
+      "verdict": "GOLD_METRIC_COVERAGE_NORMALIZED_OFFLINE"
+    }
+  ],
+  "worktree": "/home/l4nd0/tenn-trust-foundation-followup-implementation-controller-v1-20260524"
+}

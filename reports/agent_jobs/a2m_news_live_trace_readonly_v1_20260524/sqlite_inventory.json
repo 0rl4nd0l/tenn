@@ -1,0 +1,135 @@
+{
+  "cockpit_projection": {
+    "a2m_candidate_counts": {
+      "entity_observations": 1,
+      "holdings_items": 0,
+      "market_update_followups": 0,
+      "marketplace_matches": 0,
+      "marketplace_price_observations": 0,
+      "marketplace_seen_listings": 0,
+      "ticker_strategy": 0,
+      "update_events": 0,
+      "watchlist": 0,
+      "watchlist_items": 0
+    },
+    "exists": true,
+    "mtime_ns": 1778920149087941088,
+    "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+    "pragma_query_only": 1,
+    "size": 22253568,
+    "table_counts": {
+      "analysis_exports": 262,
+      "canonical_products": 8,
+      "chat_messages": 1535,
+      "chat_sessions": 75,
+      "entity_observations": 53,
+      "global_strategy": 0,
+      "holdings_items": 78,
+      "jobs": 1049,
+      "listing_benchmark_scores": 2,
+      "listing_product_matches": 2,
+      "market_update_followups": 617,
+      "market_update_reports": 13,
+      "marketplace_alerts": 1396,
+      "marketplace_benchmark_snapshots": 45,
+      "marketplace_listing_timelines": 67,
+      "marketplace_match_feedback": 15,
+      "marketplace_match_value_assessments": 10,
+      "marketplace_matches": 71,
+      "marketplace_mission_candidate_products": 19,
+      "marketplace_mission_product_links": 5,
+      "marketplace_missions": 8,
+      "marketplace_observation_review_history": 30,
+      "marketplace_price_observations": 72,
+      "marketplace_seen_listings": 1367,
+      "marketplace_tracked_products": 22,
+      "pending_reviews": 0,
+      "retailer_price_observations": 24,
+      "retailer_products": 8,
+      "route_alias_preferences": 0,
+      "session_summaries": 17,
+      "sqlite_sequence": 8,
+      "ticker_strategy": 5,
+      "update_events": 4,
+      "user_preferences": 7,
+      "watchlist": 0,
+      "watchlist_items": 0
+    },
+    "tables": [
+      "analysis_exports",
+      "canonical_products",
+      "chat_messages",
+      "chat_sessions",
+      "entity_observations",
+      "global_strategy",
+      "holdings_items",
+      "jobs",
+      "listing_benchmark_scores",
+      "listing_product_matches",
+      "market_update_followups",
+      "market_update_reports",
+      "marketplace_alerts",
+      "marketplace_benchmark_snapshots",
+      "marketplace_listing_timelines",
+      "marketplace_match_feedback",
+      "marketplace_match_value_assessments",
+      "marketplace_matches",
+      "marketplace_mission_candidate_products",
+      "marketplace_mission_product_links",
+      "marketplace_missions",
+      "marketplace_observation_review_history",
+      "marketplace_price_observations",
+      "marketplace_seen_listings",
+      "marketplace_tracked_products",
+      "pending_reviews",
+      "retailer_price_observations",
+      "retailer_products",
+      "route_alias_preferences",
+      "session_summaries",
+      "sqlite_sequence",
+      "ticker_strategy",
+      "update_events",
+      "user_preferences",
+      "watchlist",
+      "watchlist_items"
+    ]
+  },
+  "sqlite": {
+    "candidate_paths": [
+      {
+        "exists": false,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/qual_context/news_articles.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/qual_context/news.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/reports/qual_context/news_articles.sqlite"
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/reports/qual_context/news.sqlite"
+      }
+    ],
+    "canonical_contract_path": "reports/qual_context/news.sqlite per docs/architecture/15_news_substrate.md and cockpit.yaml",
+    "data_missing": "No news.sqlite or news_articles.sqlite file was present at checked canonical/live host paths during this trace."
+  }
+}

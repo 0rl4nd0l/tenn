@@ -1,0 +1,4 @@
+accuracy_claim,ambiguous_count,candidate_count,data_missing_count,document_count,eligible_metric_count,metric_check_count,overclaim_guard,scorecard_profile,status,unsupported_count
+strict_no_regression_profile,,,0,10,3,24,canonical_core is a strict 10-document / 24-check no-regression proof only,canonical_core,profile_defined_no_regression,
+required_metric_profile_where_available,,,0,15,3,39,expanded_required is a 15-document / 39-check required-metric proof where available,expanded_required,profile_defined_required_metrics,
+none_inventory_only,3,70,1,15,73,146,"confirmed_metric_coverage is read-only breadth inventory, not current accuracy proof",confirmed_metric_coverage,inventory_only_not_accuracy,0

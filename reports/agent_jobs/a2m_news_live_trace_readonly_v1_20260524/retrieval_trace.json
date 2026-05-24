@@ -1,0 +1,229 @@
+{
+  "classification": {
+    "data_missing": [
+      "canonical news SQLite path absent",
+      "live chat synthesis not invoked"
+    ],
+    "entity_linking_gap": false,
+    "projection_lag": true,
+    "qdrant_sync_gap": false,
+    "ranking_gap": false,
+    "source_label_recency_gap": false,
+    "storage_gap": true,
+    "synthesis_reporting_gap": "DATA_MISSING: no live chat/report call was made because that could write chat or memory events"
+  },
+  "retrieval_ranking": {
+    "article_count": 4,
+    "attempted": true,
+    "chunk_count": 8,
+    "chunks": [
+      {
+        "article_id": "art_aa13edd261034dba97055d8a",
+        "chunk_id": "news:art_aa13edd261034dba97055d8a:0",
+        "has_vector_payload": false,
+        "keyword_score": 4.57921351315092,
+        "matches_a2m": true,
+        "primary_ticker": "A2M",
+        "published_at": "2026-05-03T22:52:00Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "A2M",
+        "tickers": [
+          "A2M"
+        ],
+        "title": "A2 Milk shares plunge after finding toxins in infant formula",
+        "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_aa13edd261034dba97055d8a",
+        "chunk_id": "news:art_aa13edd261034dba97055d8a:1",
+        "has_vector_payload": false,
+        "keyword_score": 4.1614564254599795,
+        "matches_a2m": true,
+        "primary_ticker": "A2M",
+        "published_at": "2026-05-03T22:52:00Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "A2M",
+        "tickers": [
+          "A2M"
+        ],
+        "title": "A2 Milk shares plunge after finding toxins in infant formula",
+        "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_f3c9e8f4127434214cd36893",
+        "chunk_id": "news:art_f3c9e8f4127434214cd36893:1",
+        "has_vector_payload": false,
+        "keyword_score": 4.042586961626953,
+        "matches_a2m": true,
+        "primary_ticker": "A2M",
+        "published_at": "2026-05-04T03:26:52Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "A2M",
+        "tickers": [
+          "A2M",
+          "FRS",
+          "VKA",
+          "WDS"
+        ],
+        "title": "Lunch Wrap: A2 Milk smashed on US recall, Accent dragged into ASIC probe",
+        "url": "https://stockhead.com.au/news/lunch-wrap-a2-milk-smashed-on-us-recall-accent-dragged-into-asic-probe",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_2838ecb1f6db7788f830439e",
+        "chunk_id": "news:art_2838ecb1f6db7788f830439e:2",
+        "has_vector_payload": false,
+        "keyword_score": 3.7092749067415394,
+        "matches_a2m": true,
+        "primary_ticker": "A2M",
+        "published_at": "2026-05-04T06:41:44Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "A2M",
+        "tickers": [
+          "A2M",
+          "ALM",
+          "ATT",
+          "EOS",
+          "TMX"
+        ],
+        "title": "Closing Bell: ASX whacked by weak corporate updates and A2 Milk recall",
+        "url": "https://stockhead.com.au/news/closing-bell-asx-whacked-by-weak-corporate-updates-and-a2-milk-recall",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_62631b4f81acd6fd70efd61c",
+        "chunk_id": "news:art_62631b4f81acd6fd70efd61c:0",
+        "has_vector_payload": false,
+        "keyword_score": 2.914986804818203,
+        "matches_a2m": true,
+        "primary_ticker": "AEG",
+        "published_at": "2026-05-08T06:47:16Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "AEG",
+        "tickers": [
+          "A2M",
+          "AEG",
+          "BCA",
+          "VMM"
+        ],
+        "title": "ASX Small Caps Weekly Form Guide",
+        "url": "https://stockhead.com.au/experts/asx-small-caps-weekly-form-guide-17",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_62631b4f81acd6fd70efd61c",
+        "chunk_id": "news:art_62631b4f81acd6fd70efd61c:7",
+        "has_vector_payload": false,
+        "keyword_score": 2.859708094125061,
+        "matches_a2m": true,
+        "primary_ticker": "AEG",
+        "published_at": "2026-05-08T06:47:16Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "AEG",
+        "tickers": [
+          "A2M",
+          "AEG",
+          "BCA",
+          "VMM"
+        ],
+        "title": "ASX Small Caps Weekly Form Guide",
+        "url": "https://stockhead.com.au/experts/asx-small-caps-weekly-form-guide-17",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_f3c9e8f4127434214cd36893",
+        "chunk_id": "news:art_f3c9e8f4127434214cd36893:0",
+        "has_vector_payload": false,
+        "keyword_score": 2.764644046172442,
+        "matches_a2m": true,
+        "primary_ticker": "A2M",
+        "published_at": "2026-05-04T03:26:52Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "A2M",
+        "tickers": [
+          "A2M",
+          "FRS",
+          "VKA",
+          "WDS"
+        ],
+        "title": "Lunch Wrap: A2 Milk smashed on US recall, Accent dragged into ASIC probe",
+        "url": "https://stockhead.com.au/news/lunch-wrap-a2-milk-smashed-on-us-recall-accent-dragged-into-asic-probe",
+        "vector_score": 0.0
+      },
+      {
+        "article_id": "art_62631b4f81acd6fd70efd61c",
+        "chunk_id": "news:art_62631b4f81acd6fd70efd61c:6",
+        "has_vector_payload": false,
+        "keyword_score": 2.739303244055664,
+        "matches_a2m": true,
+        "primary_ticker": "AEG",
+        "published_at": "2026-05-08T06:47:16Z",
+        "retrieval_strategies": [
+          "keyword"
+        ],
+        "ticker": "AEG",
+        "tickers": [
+          "A2M",
+          "AEG",
+          "BCA",
+          "VMM"
+        ],
+        "title": "ASX Small Caps Weekly Form Guide",
+        "url": "https://stockhead.com.au/experts/asx-small-caps-weekly-form-guide-17",
+        "vector_score": 0.0
+      }
+    ],
+    "mode": "keyword_only_no_embedding",
+    "ok": true,
+    "route_filter_keys": [
+      "ticker",
+      "primary_ticker",
+      "tickers"
+    ],
+    "with_vectors": false
+  },
+  "route_trace": {
+    "hybrid_retriever_filter": {
+      "file": "financial-engine_v2/backend/app/services/hybrid_retriever.py",
+      "keys": [
+        "ticker",
+        "primary_ticker",
+        "tickers"
+      ],
+      "used_by": "Tenn chat news_chunks HybridRetriever path and keyword-only trace"
+    },
+    "rag_query_news_chunks_filter": {
+      "data_missing_or_gap": "primary_ticker is not included in this separate helper filter, although current A2M payloads also set ticker=A2M when primary_ticker=A2M",
+      "file": "financial-engine_v2/backend/app/services/rag.py",
+      "keys": [
+        "ticker",
+        "tickers"
+      ]
+    },
+    "tenn_chat_post_filter": {
+      "behavior": "drops unrelated news when no matching ticker payload exists",
+      "file": "financial-engine_v2/backend/app/services/tenn_chat.py",
+      "keys": [
+        "ticker",
+        "primary_ticker",
+        "tickers"
+      ]
+    }
+  }
+}

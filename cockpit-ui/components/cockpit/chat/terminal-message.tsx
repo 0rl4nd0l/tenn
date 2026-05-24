@@ -314,7 +314,7 @@ function buildAnalystShell(
   } else if (claimVerifiedSourceCount > 0 || hasEvidenceLabel('claim_verified')) {
     sourceSummaryLabel = 'Verified sources'
   } else if (hasEvidenceLabel('financial_truth')) {
-    sourceSummaryLabel = 'Verified sources'
+    sourceSummaryLabel = 'Financial truth numeric context'
   } else if (hasEvidenceLabel('local_personal_data')) {
     sourceSummaryLabel = 'Local holdings'
   } else if (hasEvidenceLabel('memory_context')) {

@@ -1,0 +1,31 @@
+{
+  "data_missing": [
+    "manual_review_rows.csv was not available in the prior report directory or current report-local artifacts, so manual-review exclusion could not be reproduced.",
+    "This task did not call chat/context endpoints because those may emit memory_read_events; selection was simulated offline from read-path code semantics."
+  ],
+  "implemented": false,
+  "lane": "Memory",
+  "mode": "audit_only_read_only_live_inventory",
+  "recommended_next_actions": [
+    "Do not clean or mutate in this task; prepare a separate approval-gated quarantine/read-path suppression task for the 4 active company source-fanout clusters if product owners confirm they are contamination rather than legitimate cross-company news.",
+    "Run an alias/entity identity follow-up for unsupported market-memory linked tokens; this inventory does not perform alias canonicalisation.",
+    "Keep confirmed duplicate-statement active contamination at zero unless a manual review artifact identifies source-fanout clusters as confirmed contamination."
+  ],
+  "status": "complete_with_findings",
+  "store_paths": {
+    "container_research_memory_root": "/data/reports/research_memory",
+    "host_research_memory_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory"
+  },
+  "summary": {
+    "active_company_ids": 59,
+    "active_company_memory_rows": 147,
+    "confirmed_contaminated_active_duplicate_statement_clusters": 0,
+    "duplicate_fanout_suspicious_active_entries": 17,
+    "duplicate_fanout_suspicious_active_source_clusters_threshold_gt_2": 4,
+    "fanout_suspicious_entries_selectable_in_dry_run": 17,
+    "market_memory_unsupported_linked_ticker_count": 19,
+    "no_mutation": true
+  },
+  "task": "memory_live_inventory_readonly_v1_20260524",
+  "validation_result": "PASS_READ_ONLY_WITH_FINDINGS"
+}

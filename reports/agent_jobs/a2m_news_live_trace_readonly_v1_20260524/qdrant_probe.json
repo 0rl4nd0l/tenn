@@ -1,0 +1,62 @@
+{
+  "articles": [
+    {
+      "article_id": "art_2838ecb1f6db7788f830439e",
+      "primary_ticker": "A2M",
+      "provider": "newspaper4k",
+      "published_at": "2026-05-04T06:41:44Z",
+      "source_type": "news_article",
+      "ticker": "A2M",
+      "tickers": "[\"A2M\", \"ALM\", \"ATT\", \"EOS\", \"TMX\"]",
+      "title": "Closing Bell: ASX whacked by weak corporate updates and A2 Milk recall",
+      "url": "https://stockhead.com.au/news/closing-bell-asx-whacked-by-weak-corporate-updates-and-a2-milk-recall"
+    },
+    {
+      "article_id": "art_f3c9e8f4127434214cd36893",
+      "primary_ticker": "A2M",
+      "provider": "newspaper4k",
+      "published_at": "2026-05-04T03:26:52Z",
+      "source_type": "news_article",
+      "ticker": "A2M",
+      "tickers": "[\"A2M\", \"FRS\", \"VKA\", \"WDS\"]",
+      "title": "Lunch Wrap: A2 Milk smashed on US recall, Accent dragged into ASIC probe",
+      "url": "https://stockhead.com.au/news/lunch-wrap-a2-milk-smashed-on-us-recall-accent-dragged-into-asic-probe"
+    },
+    {
+      "article_id": "art_62631b4f81acd6fd70efd61c",
+      "primary_ticker": "AEG",
+      "provider": "newspaper4k",
+      "published_at": "2026-05-08T06:47:16Z",
+      "source_type": "news_article",
+      "ticker": "AEG",
+      "tickers": "[\"A2M\", \"AEG\", \"BCA\", \"VMM\"]",
+      "title": "ASX Small Caps Weekly Form Guide",
+      "url": "https://stockhead.com.au/experts/asx-small-caps-weekly-form-guide-17"
+    },
+    {
+      "article_id": "art_aa13edd261034dba97055d8a",
+      "primary_ticker": "A2M",
+      "provider": "newspaper4k",
+      "published_at": "2026-05-03T22:52:00Z",
+      "source_type": "news_article",
+      "ticker": "A2M",
+      "tickers": "[\"A2M\"]",
+      "title": "A2 Milk shares plunge after finding toxins in infant formula",
+      "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303"
+    }
+  ],
+  "collection": "news_chunks",
+  "collection_point_count_unchanged": true,
+  "collection_points_after": 22324,
+  "collection_points_before": 22324,
+  "collection_vector_config_present": true,
+  "counts": {
+    "combined_any_A2M": 24,
+    "primary_ticker_A2M": 16,
+    "ticker_A2M": 16,
+    "tickers_contains_A2M": 24,
+    "unique_articles_combined_any_A2M": 4
+  },
+  "url": "http://127.0.0.1:6333",
+  "with_vectors_false_confirmed": true
+}

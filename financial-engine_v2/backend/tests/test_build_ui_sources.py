@@ -1178,6 +1178,75 @@ def test_no_hit_source_is_not_claim_verified() -> None:
     assert len(sources) == 1
     assert sources[0]["evidence_label"] == "no_hit"
     assert "no_hit" in sources[0]["evidence_labels"]
+
+
+def test_raw_supports_claim_attached_source_does_not_claim_verify() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "attached_source",
+                "details": {
+                    "title": "Unvetted attached context",
+                    "source_id": "attached:raw-support",
+                    "snippet": "Context row with a raw support flag.",
+                    "supports_claim": True,
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["claim_verified"] is False
+    assert "claim_verified" not in sources[0]["evidence_labels"]
+    assert "context_only" in sources[0]["evidence_labels"]
+
+
+def test_explicit_claim_verified_label_remains_claim_verified() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "attached_source",
+                "details": {
+                    "title": "Verified source row",
+                    "source_id": "attached:verified",
+                    "snippet": "Directly quoted evidence.",
+                    "evidence_labels": ["claim_verified", "local_news_context"],
+                    "claim_verified": True,
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["claim_verified"] is True
+    assert "claim_verified" in sources[0]["evidence_labels"]
+
+
+def test_financial_truth_numeric_source_is_not_claim_verified() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "financial_truth",
+                "details": {
+                    "financials": [
+                        {
+                            "ticker": "BHP",
+                            "period_type": "HY",
+                            "period_end": "2026-12-31",
+                            "revenue": 55000,
+                            "source_document_id": "doc-bhp-hy",
+                        }
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["claim_verified"] is False
+    assert "financial_truth" in sources[0]["evidence_labels"]
+    assert "financial_truth_numeric" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
     assert sources[0]["claim_verified"] is False
 
 
