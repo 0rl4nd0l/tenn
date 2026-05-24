@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524",
+  "lane": "Reporting",
+  "supporting_lanes": [
+    "Query Orchestration",
+    "Provenance",
+    "Evaluation"
+  ],
+  "mutation_mode": "safe_extension",
+  "production_data_access": false,
+  "task_card": "docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+  "output_dir": "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524",
+  "status": "implemented_with_final_validation_caveat",
+  "repo": {
+    "requested_path": "/home/l4nd0/tenn",
+    "symlink": "/home/l4nd0/tenn -> /home/l4nd0/tenn-runtime",
+    "realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch_before": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_before": "0552a9eb5955f94b9842111c5e9a53fae8260e4b",
+    "branch_after": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_after": "0552a9eb5955f94b9842111c5e9a53fae8260e4b",
+    "worktree_count": 194
+  },
+  "registry": {
+    "pre_claim_active_jobs": [],
+    "check_overlap_before_implementation": "ok=true",
+    "claim": "ok=true",
+    "release": "ok=true",
+    "final_active_jobs": [
+      "backend_chat_evidence_guard_v1_20260524"
+    ],
+    "final_overlap_status": "failed_due_unrelated_dirty_task_card"
+  },
+  "ancestor_gate": {
+    "commit": "e170f6b255ca4229462d4167861775e82ea3df34",
+    "is_ancestor_of_head": true,
+    "command_result": "exit=0"
+  },
+  "frontend_live_verdict": {
+    "was_live_before_task": false,
+    "evidence": "rg found no QuantDinger, quantdinger, Strategy Lab, strategy_lab, or StrategyLab references under cockpit-ui before implementation.",
+    "implemented_now": true,
+    "implemented_surface": [
+      "GET /api/cockpit/strategy-lab/status",
+      "Cockpit Home StrategyLabStatusCard"
+    ],
+    "honesty": [
+      "PENDING_REVIEW",
+      "read_only",
+      "no_live_trading",
+      "no_paper_trading",
+      "no_real_transport",
+      "no_canonical_financial_truth",
+      "no_store_writes",
+      "DATA_MISSING"
+    ]
+  },
+  "files_inspected": [
+    "cockpit-ui/",
+    "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+    "cockpit-ui/components/cockpit/home/home-page.tsx",
+    "cockpit-ui/app/api/cockpit/home/route.ts",
+    "cockpit-ui/lib/cockpit-home-api.ts",
+    "cockpit-ui/package.json",
+    "docs/strategy_lab/artifact_schema_v1.md",
+    "docs/strategy_lab/adapter_contract_v1.md",
+    "docs/strategy_lab/mock_transport/offline_mock_transport_contract_v1.md",
+    "docs/strategy_lab/artifact_fixtures/*.json",
+    "docs/strategy_lab/mock_transport_fixtures/*.json",
+    "tests/strategy_lab/test_strategy_lab_mocked_adapter_phase3b_reconciled.py",
+    "tests/strategy_lab/test_strategy_lab_offline_mock_transport_phase3c.py",
+    "reports/agent_jobs/strategy_lab_phase3g_mergeback_v1_20260524/README.md",
+    "reports/agent_jobs/strategy_lab_offline_adapter_contract_review_phase3d_v1_20260521/README.md",
+    "reports/agent_jobs/strategy_lab_offline_implementation_plan_phase3e_v1_20260521/README.md"
+  ],
+  "files_changed": [
+    "docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+    "cockpit-ui/app/api/cockpit/strategy-lab/status/route.ts",
+    "cockpit-ui/components/cockpit/home/home-page.tsx",
+    "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
+    "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+    "cockpit-ui/lib/strategy-lab-status.ts",
+    "cockpit-ui/lib/strategy-lab-status-server.ts",
+    "cockpit-ui/lib/strategy-lab-status.test.ts",
+    "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/README.md",
+    "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/status.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/diff-check.json"
+  ],
+  "confirmed": [
+    "No Cockpit UI entrypoint existed before this task.",
+    "Existing Strategy Lab artifacts are docs, JSON fixtures, reports, and offline tests.",
+    "strategy_lab_artifact_v1 remains authoritative.",
+    "strategy_lab_sidecar_artifact_v1 remains pre-envelope/helper evidence only.",
+    "Existing Strategy Lab artifacts default to review_status=PENDING_REVIEW.",
+    "Existing mock transport is design/test layer only."
+  ],
+  "inferred": [
+    "Cockpit Home is the smallest useful current Cockpit-facing entrypoint for read-only visibility.",
+    "Repository artifact presence checks are safer than a fake live adapter for this slice."
+  ],
+  "data_missing": [
+    "No real QuantDinger sidecar capability, auth, network transport, retry, timeout, or unavailable behavior is confirmed.",
+    "No real adapter/client/MCP/API call path is implemented.",
+    "No artifact persistence store, review queue, promotion workflow, or human-review route is implemented.",
+    "No evidence-backed parameter_sweep, factor_test, broad risk_report, or portfolio_experiment surface is live.",
+    "No rendered-browser screenshot was taken; validation stayed command-line only and did not start a dev server."
+  ],
+  "forbidden_surfaces_not_touched": [
+    "trading",
+    "broker",
+    "paper_live_execution",
+    "token_issuance",
+    "market_orders",
+    "portfolio_mutation",
+    "Tenn_DB",
+    "Qdrant",
+    "news_store",
+    "memory_store",
+    "financial_truth",
+    "parser_extraction",
+    "canonical_metric",
+    "gold_label",
+    "runtime_model_gpu_config",
+    "service_startup",
+    "dependency_install"
+  ],
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+      "result": "passed ok=true"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md --repo-root .",
+      "result": "passed ok=true before implementation; final rerun failed after unrelated task_card_dirt_hygiene_v1_20260524.md appeared"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed with no output"
+    },
+    {
+      "command": "pnpm test -- strategy-lab-status.test.ts strategy-lab-status-card.test.tsx",
+      "result": "DATA_MISSING unavailable: pnpm command not found"
+    },
+    {
+      "command": "./node_modules/.bin/vitest run lib/strategy-lab-status.test.ts components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+      "result": "passed: 2 files, 4 tests"
+    },
+    {
+      "command": "./node_modules/.bin/eslint lib/strategy-lab-status.ts lib/strategy-lab-status-server.ts lib/strategy-lab-status.test.ts components/cockpit/home/cards/strategy-lab-status-card.tsx components/cockpit/home/cards/strategy-lab-status-card.test.tsx components/cockpit/home/home-page.tsx",
+      "result": "passed with no output"
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit --pretty false",
+      "result": "passed with no output"
+    },
+    {
+      "command": "python3 -m unittest tests.strategy_lab.test_strategy_lab_mocked_adapter_phase3b_reconciled tests.strategy_lab.test_strategy_lab_offline_mock_transport_phase3c",
+      "result": "passed: 23 tests"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md --repo-root .",
+      "result": "passed earlier with ok=true disallowed_files=[]; final rerun failed due unrelated docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/status.json",
+      "result": "passed after final status overwrite"
+    }
+  ],
+  "unrelated_dirty_blocker": {
+    "path": "docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md",
+    "appeared_after_implementation": true,
+    "touched_by_this_task": false,
+    "effect": "final check-overlap and final check-diff do not pass in shared checkout"
+  },
+  "remaining_risks": [
+    "The status card is read-only visibility only, not an artifact review workflow.",
+    "The route reports repository artifact presence; it does not prove real sidecar capability.",
+    "Cockpit UI rendering was not browser-smoked in this task.",
+    "Broader frontend test suite was not run.",
+    "Final diff/overlap validation is blocked by unrelated task-card dirt that appeared after implementation."
+  ],
+  "next_safe_tasks": [
+    "Add a dedicated Strategy Lab read-only route if the Home card is too compact for review workflows.",
+    "Add an artifact review queue that only reads existing strategy_lab_artifact_v1 fixtures/reports.",
+    "Add browser smoke coverage for the Home Strategy Lab card.",
+    "Draft any real-sidecar smoke task separately with explicit approval and no trading/canonical writes."
+  ],
+  "git_status": [
+    "M cockpit-ui/components/cockpit/home/home-page.tsx",
+    "?? cockpit-ui/app/api/cockpit/strategy-lab/status/route.ts",
+    "?? cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+    "?? cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
+    "?? cockpit-ui/lib/strategy-lab-status-server.ts",
+    "?? cockpit-ui/lib/strategy-lab-status.test.ts",
+    "?? cockpit-ui/lib/strategy-lab-status.ts",
+    "?? docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+    "?? docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md"
+  ],
+  "save_recommendation": "Save this narrow Reporting safe-extension only with the validation caveat noted; it makes Strategy Lab / QuantDinger visible in Cockpit without claiming live functionality or crossing Tenn architecture boundaries."
+}

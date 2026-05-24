@@ -7,6 +7,7 @@ import { DataHealthStrip } from './data-health-strip';
 import { MarketPulseCard } from './cards/market-pulse-card';
 import { PortfolioImpactCard } from './cards/portfolio-impact-card';
 import { AttentionQueueCard } from './cards/attention-queue-card';
+import { StrategyLabStatusCard } from './cards/strategy-lab-status-card';
 import { SourceDetailDrawer } from './source-detail-drawer';
 import { ContextualAssistant } from './contextual-assistant';
 import { SessionSummaryCard } from './cards/session-summary-card';
@@ -326,6 +327,9 @@ function HomeShell({
         )}
 
         <div className="flex-1 overflow-y-auto p-6 pt-14 scroll-smooth">
+          <div className="max-w-[1600px] mx-auto mb-6">
+            <StrategyLabStatusCard />
+          </div>
           {children}
         </div>
 

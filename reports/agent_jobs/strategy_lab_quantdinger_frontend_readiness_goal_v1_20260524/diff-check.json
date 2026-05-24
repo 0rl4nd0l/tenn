@@ -1,0 +1,84 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/home/home-page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/app/api/cockpit/strategy-lab/status/route.ts",
+      "status": "??"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+      "status": "??"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
+      "status": "??"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-status-server.ts",
+      "status": "??"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-status.test.ts",
+      "status": "??"
+    },
+    {
+      "path": "cockpit-ui/lib/strategy-lab-status.ts",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/task_card_dirt_hygiene_v1_20260524.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/README.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/status.json",
+        "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524/diff-check.json",
+        "cockpit-ui/app/api/cockpit/strategy-lab/status/route.ts",
+        "cockpit-ui/components/cockpit/home/home-page.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+        "cockpit-ui/lib/strategy-lab-status.ts",
+        "cockpit-ui/lib/strategy-lab-status-server.ts",
+        "cockpit-ui/lib/strategy-lab-status.test.ts"
+      ],
+      "approval_required": false,
+      "job_id": "strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/strategy_lab_quantdinger_frontend_readiness_goal_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
