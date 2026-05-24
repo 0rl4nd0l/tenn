@@ -352,6 +352,315 @@ def test_cockpit_chat_stream_metadata_marks_price_trend_missing_market_evidence(
     ]
 
 
+def test_cockpit_chat_stateless_smoke_requires_header(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            raise AssertionError("stateless smoke without header should not run chat")
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "tell me about CSL",
+            "stream": False,
+            "stateless_smoke": True,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "X-Tenn-Stateless-Smoke" in response.json()["detail"]
+
+
+def test_cockpit_chat_stateless_smoke_non_stream_skips_persistence_and_auto_flag(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text=(
+                    "CSL looks bearish on the current price trend, while the "
+                    "filing shows a buy-back notice."
+                ),
+                evidence=[
+                    {
+                        "type": "attached_source",
+                        "details": {
+                            "title": "CSL Appendix 3C buy-back notice",
+                            "source_id": "asx:CSL:appendix-3c",
+                            "doc_type": "asx_announcement",
+                            "snippet": "CSL lodged an on-market buy-back notice.",
+                            "evidence_labels": ["context_only"],
+                            "claim_verified": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                    "chat_persistence": "disabled",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            raise AssertionError("stateless smoke must not finalize chat state")
+
+        def auto_flag_chat_response(self, **kwargs):
+            raise AssertionError("stateless smoke must not persist auto flags")
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+        json={
+            "message": "what is the CSL price trend?",
+            "session_id": "real-session-should-not-be-read",
+            "stream": False,
+            "stateless_smoke": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["persist_chat"] is False
+    assert str(captured["session_id"]).startswith("stateless-smoke-")
+    assert captured["session_id"] != "real-session-should-not-be-read"
+    payload = response.json()["data"]
+    assert payload["stateless_smoke"] is True
+    assert payload["stateless_smoke_session_id"] == captured["session_id"]
+    assert payload["auto_flag"] is None
+    metadata = payload["routing_metadata"]
+    assert metadata["stateless_smoke"] is True
+    assert metadata["chat_persistence"] == "disabled"
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "market_data_missing" in metadata["evidence_labels"]
+    assert "unsupported_or_not_verified" in metadata["evidence_labels"]
+    assert metadata["unsupported_claim_families"] == [
+        "market_price_or_technical_trend"
+    ]
+
+
+def test_cockpit_chat_normal_non_stream_keeps_persistence_enabled(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+    finalize_calls: list[str] = []
+    auto_flag_calls: list[str] = []
+
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text="Hello there.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 42,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            finalize_calls.append(kwargs["response"].text)
+
+        def auto_flag_chat_response(self, **kwargs):
+            auto_flag_calls.append(kwargs["response"].text)
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={"message": "hello", "stream": False},
+    )
+
+    assert response.status_code == 200
+    assert captured["persist_chat"] is True
+    assert captured["session_id"] is None
+    assert "stateless_smoke" not in response.json()["data"]
+    assert finalize_calls == ["Hello there."]
+    assert auto_flag_calls == ["Hello there."]
+
+
+def test_cockpit_chat_stateless_smoke_stream_skips_persistence_and_auto_flag(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeService:
+        def chat_stream(self, on_chunk=None, **kwargs):
+            captured.update(kwargs)
+            if on_chunk is not None:
+                on_chunk("CSL looks bearish on the current price trend.")
+            return SimpleNamespace(
+                text="CSL looks bearish on the current price trend.",
+                evidence=[
+                    {
+                        "type": "attached_source",
+                        "details": {
+                            "title": "CSL Appendix 3C buy-back notice",
+                            "source_id": "asx:CSL:appendix-3c",
+                            "doc_type": "asx_announcement",
+                            "snippet": "CSL lodged an on-market buy-back notice.",
+                            "evidence_labels": ["context_only"],
+                            "claim_verified": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                    "chat_persistence": "disabled",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            raise AssertionError("stateless smoke must not finalize chat state")
+
+        def auto_flag_chat_response(self, **kwargs):
+            raise AssertionError("stateless smoke must not persist auto flags")
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+        json={
+            "message": "what is the CSL price trend?",
+            "session_id": "real-session-should-not-be-read",
+            "stream": True,
+            "stateless_smoke": True,
+        },
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    assert captured["persist_chat"] is False
+    assert str(captured["session_id"]).startswith("stateless-smoke-")
+    assert captured["session_id"] != "real-session-should-not-be-read"
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events, body
+    done = done_events[-1]["data"]
+    assert done["stateless_smoke"] is True
+    assert done["stateless_smoke_session_id"] == captured["session_id"]
+    assert done["auto_flag"] is None
+    metadata = done["routing_metadata"]
+    assert metadata["stateless_smoke"] is True
+    assert metadata["chat_persistence"] == "disabled"
+    assert "market_data_missing" in metadata["evidence_labels"]
+
+
+def test_cockpit_service_chat_stream_stateless_smoke_does_not_persist_state() -> None:
+    service = CockpitService.__new__(CockpitService)
+    service.llm_client = SimpleNamespace(model="model:test")
+    service.chat_runtime_target_preference = lambda: "local"
+    service._resolve_chat_runtime_target = lambda runtime_target, **kwargs: (
+        "local",
+        "test",
+    )
+    service._resolve_thread_id = (
+        lambda session_id: str(session_id or "").strip()[:128] or "global-main"
+    )
+    service._resolve_continuity_turn = lambda **kwargs: (None, None, {})
+    service._apply_api_default_routing = lambda message: (message, False)
+    service._seed_recent_youtube_video_options = lambda *args, **kwargs: None
+
+    persisted_messages: list[tuple[str, str, str]] = []
+    turn_diagnostics: list[tuple[str, dict]] = []
+    remembered_youtube: list[tuple[object, ...]] = []
+
+    service._persist_chat_message = (
+        lambda thread_id, role, content: persisted_messages.append(
+            (thread_id, role, content)
+        )
+    )
+    service._remember_turn_diagnostics = (
+        lambda thread_id, payload: turn_diagnostics.append((thread_id, payload))
+    )
+    service._remember_recent_youtube_video_options = (
+        lambda *args: remembered_youtube.append(args)
+    )
+
+    class FakeController:
+        _hybrid_router = None
+
+        def build_chat_response(self, **kwargs):
+            assert kwargs["message"] == "what is the CSL price trend?"
+            return SimpleNamespace(
+                text="CSL looks bearish on the current price trend.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "model:test",
+                    "latency_ms": 42,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    service._build_chat_controller = (
+        lambda thread_id, llm_client=None: FakeController()
+    )
+
+    response = CockpitService.chat_stream(
+        service,
+        message="what is the CSL price trend?",
+        session_id="smoke-csl",
+        persist_chat=False,
+    )
+
+    assert response.text == "CSL looks bearish on the current price trend."
+    assert response.routing_metadata["chat_persistence"] == "disabled"
+    assert persisted_messages == []
+    assert turn_diagnostics == []
+    assert remembered_youtube == []
+
+
 def test_cockpit_chat_metadata_marks_metric_extraction_missing(monkeypatch) -> None:
     class FakeService:
         def chat_stream(

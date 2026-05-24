@@ -1,0 +1,42 @@
+{
+  "job_id": "cockpit_chat_stateless_smoke_harness_v1_20260524",
+  "base_head": "cde9c26d37e51373bf13dee2c9ce1245883b33b4",
+  "source_implementation_commit": "f3f76b0e8c8ab8a1fd795a61d650753e8337c074",
+  "branch": "integrate/cockpit-chat-stateless-smoke-harness-v1-20260524",
+  "worktree": "/home/l4nd0/tenn-cockpit-chat-stateless-smoke-harness-integrate-v1-20260524",
+  "task_card_validate": "PASS",
+  "registry_list_active_initial": "PASS_EMPTY",
+  "registry_check_overlap": "PASS",
+  "registry_claim": "PASS",
+  "architecture_review": "PASS_SYSTEM_CONTRACT_COMPLIANT",
+  "code_review": {
+    "critical": [],
+    "warnings": [],
+    "suggestions_handled": [
+      "Use a generated stateless-smoke session id to avoid reading a caller's existing chat session."
+    ]
+  },
+  "validation": [
+    {
+      "command": "PYTHONPYCACHEPREFIX=/tmp/tenn_stateless_smoke_integrate_pycache python3 -m compileall -q financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/app/services/cockpit_service.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "PASS"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "PASS",
+      "summary": "66 passed"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/app/services/cockpit_service.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "PASS"
+    }
+  ],
+  "final_checks": {
+    "json_validation": "PASS",
+    "git_diff_check": "PASS",
+    "task_card_check_diff": "PASS",
+    "registry_release": "PASS",
+    "final_list_active": "PASS_EMPTY",
+    "final_git_status": "PASS_EXPECTED_ALLOWED_CHANGES_BEFORE_COMMIT"
+  }
+}

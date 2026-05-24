@@ -1836,43 +1836,83 @@ class CockpitService:
         db_diagnostics: bool | None,
         ui_mode: str | None,
     ) -> None:
+        self._prepare_direct_chat_response_metadata(
+            response=response,
+            started_at_monotonic=started_at_monotonic,
+        )
+        self._persist_chat_message(thread_id, "user", message)
+        self._persist_chat_message(thread_id, "assistant", response.text)
+        self._remember_turn_diagnostics(
+            thread_id,
+            self._direct_chat_response_diagnostics(
+                thread_id=thread_id,
+                message=message,
+                response=response,
+                status_events=status_events,
+                thinking_events=thinking_events,
+                ticker=ticker,
+                enable_web=enable_web,
+                model=model,
+                rag=rag,
+                db_diagnostics=db_diagnostics,
+                ui_mode=ui_mode,
+            ),
+        )
+
+    @staticmethod
+    def _prepare_direct_chat_response_metadata(
+        *,
+        response: ChatResponse,
+        started_at_monotonic: float,
+    ) -> None:
         elapsed_ms = int((time.monotonic() - started_at_monotonic) * 1000)
         meta = dict(response.routing_metadata or {})
         meta.setdefault("source", "cockpit")
         meta.setdefault("latency_ms", max(1, elapsed_ms))
         meta.setdefault("cost_usd", 0.0)
         response.routing_metadata = meta
-        self._persist_chat_message(thread_id, "user", message)
-        self._persist_chat_message(thread_id, "assistant", response.text)
-        self._remember_turn_diagnostics(
-            thread_id,
-            {
-                "created_at": _now_iso(),
-                "thread_id": thread_id,
-                "session_id": thread_id,
-                "ticker": str(ticker or "").strip().upper() or None,
-                "request": {
-                    "message": message,
-                    "ticker": ticker,
-                    "enable_web": bool(enable_web) if enable_web is not None else False,
-                    "requested_model": str(model or "").strip() or None,
-                    "rag": bool(rag) if rag is not None else True,
-                    "db_diagnostics": bool(db_diagnostics)
-                    if db_diagnostics is not None
-                    else False,
-                    "ui_mode": ui_mode,
-                },
-                "status_events": status_events,
-                "thinking_events": thinking_events,
-                "response_mode": str(getattr(response, "mode", "") or "") or None,
-                "response_text": response.text,
-                "prompt": getattr(response, "prompt", None),
-                "action_preview": response.action_preview,
-                "tool_traces": list(getattr(response, "tool_traces", None) or []),
-                "evidence": list(response.evidence or []),
-                "routing_metadata": meta,
+
+    @staticmethod
+    def _direct_chat_response_diagnostics(
+        *,
+        thread_id: str,
+        message: str,
+        response: ChatResponse,
+        status_events: list[dict[str, Any]],
+        thinking_events: list[dict[str, Any]],
+        ticker: str | None,
+        enable_web: bool | None,
+        model: str | None,
+        rag: bool | None,
+        db_diagnostics: bool | None,
+        ui_mode: str | None,
+    ) -> dict[str, Any]:
+        return {
+            "created_at": _now_iso(),
+            "thread_id": thread_id,
+            "session_id": thread_id,
+            "ticker": str(ticker or "").strip().upper() or None,
+            "request": {
+                "message": message,
+                "ticker": ticker,
+                "enable_web": bool(enable_web) if enable_web is not None else False,
+                "requested_model": str(model or "").strip() or None,
+                "rag": bool(rag) if rag is not None else True,
+                "db_diagnostics": bool(db_diagnostics)
+                if db_diagnostics is not None
+                else False,
+                "ui_mode": ui_mode,
             },
-        )
+            "status_events": status_events,
+            "thinking_events": thinking_events,
+            "response_mode": str(getattr(response, "mode", "") or "") or None,
+            "response_text": response.text,
+            "prompt": getattr(response, "prompt", None),
+            "action_preview": response.action_preview,
+            "tool_traces": list(getattr(response, "tool_traces", None) or []),
+            "evidence": list(response.evidence or []),
+            "routing_metadata": dict(response.routing_metadata or {}),
+        }
 
     def finalize_chat_response_delivery(
         self,
@@ -2868,6 +2908,7 @@ class CockpitService:
         ui_mode: str | None = None,
         attached_sources: list[dict[str, Any]] | None = None,
         runtime_target: str | None = None,
+        persist_chat: bool = True,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
         requested_model = str(model or "").strip()
@@ -2903,20 +2944,29 @@ class CockpitService:
             thread_id=thread_id,
         )
         if continuity_response is not None:
-            self._persist_direct_chat_response(
-                thread_id=thread_id,
-                message=message,
-                response=continuity_response,
-                status_events=status_events,
-                thinking_events=thinking_events,
-                started_at_monotonic=response_started,
-                ticker=ticker,
-                enable_web=enable_web,
-                model=model,
-                rag=rag,
-                db_diagnostics=db_diagnostics,
-                ui_mode=ui_mode,
-            )
+            if persist_chat:
+                self._persist_direct_chat_response(
+                    thread_id=thread_id,
+                    message=message,
+                    response=continuity_response,
+                    status_events=status_events,
+                    thinking_events=thinking_events,
+                    started_at_monotonic=response_started,
+                    ticker=ticker,
+                    enable_web=enable_web,
+                    model=model,
+                    rag=rag,
+                    db_diagnostics=db_diagnostics,
+                    ui_mode=ui_mode,
+                )
+            else:
+                self._prepare_direct_chat_response_metadata(
+                    response=continuity_response,
+                    started_at_monotonic=response_started,
+                )
+                continuity_meta = dict(continuity_response.routing_metadata or {})
+                continuity_meta["chat_persistence"] = "disabled"
+                continuity_response.routing_metadata = continuity_meta
             return continuity_response
 
         controller = self._build_chat_controller(
@@ -3031,7 +3081,8 @@ class CockpitService:
             if on_thinking is not None:
                 on_thinking(assessment, plan)
 
-        self._persist_chat_message(thread_id, "user", message)
+        if persist_chat:
+            self._persist_chat_message(thread_id, "user", message)
         response = controller.build_chat_response(
             message=controller_message,
             enable_web=bool(enable_web) if enable_web is not None else False,
@@ -3046,7 +3097,8 @@ class CockpitService:
             ui_mode=ui_mode,
             attached_sources=attached_sources or [],
         )
-        self._remember_recent_youtube_video_options(thread_id, response)
+        if persist_chat:
+            self._remember_recent_youtube_video_options(thread_id, response)
         elapsed_ms = int((time.monotonic() - response_started) * 1000)
         meta = dict(getattr(response, "routing_metadata", None) or {})
         if continuity_metadata:
@@ -3112,44 +3164,47 @@ class CockpitService:
         if provider_error:
             meta["provider_error"] = provider_error
             _capture_status("Claude API billing action required: top up Anthropic credits.")
+        if not persist_chat:
+            meta["chat_persistence"] = "disabled"
         response.routing_metadata = meta
-        self._persist_chat_message(thread_id, "assistant", response.text)
-        self._remember_turn_diagnostics(
-            thread_id,
-            {
-                "created_at": _now_iso(),
-                "thread_id": thread_id,
-                "session_id": thread_id,
-                "ticker": str(ticker or "").strip().upper() or None,
-                "request": {
-                    "message": message,
-                    "resolved_message": controller_message
-                    if controller_message != message
-                    else None,
-                    "api_default_applied": api_default_applied,
-                    "ticker": ticker,
-                    "enable_web": bool(enable_web) if enable_web is not None else False,
-                    "requested_model": str(model or "").strip() or None,
-                    "rag": bool(rag) if rag is not None else True,
-                    "db_diagnostics": bool(db_diagnostics)
-                    if db_diagnostics is not None
-                    else False,
-                    "ui_mode": ui_mode,
-                    "runtime_target": resolved_runtime_target,
-                    "runtime_target_requested": runtime_target,
-                    "runtime_routing_reason": runtime_reason,
+        if persist_chat:
+            self._persist_chat_message(thread_id, "assistant", response.text)
+            self._remember_turn_diagnostics(
+                thread_id,
+                {
+                    "created_at": _now_iso(),
+                    "thread_id": thread_id,
+                    "session_id": thread_id,
+                    "ticker": str(ticker or "").strip().upper() or None,
+                    "request": {
+                        "message": message,
+                        "resolved_message": controller_message
+                        if controller_message != message
+                        else None,
+                        "api_default_applied": api_default_applied,
+                        "ticker": ticker,
+                        "enable_web": bool(enable_web) if enable_web is not None else False,
+                        "requested_model": str(model or "").strip() or None,
+                        "rag": bool(rag) if rag is not None else True,
+                        "db_diagnostics": bool(db_diagnostics)
+                        if db_diagnostics is not None
+                        else False,
+                        "ui_mode": ui_mode,
+                        "runtime_target": resolved_runtime_target,
+                        "runtime_target_requested": runtime_target,
+                        "runtime_routing_reason": runtime_reason,
+                    },
+                    "status_events": status_events,
+                    "thinking_events": thinking_events,
+                    "response_mode": str(getattr(response, "mode", "") or "") or None,
+                    "response_text": response.text,
+                    "prompt": getattr(response, "prompt", None),
+                    "action_preview": response.action_preview,
+                    "tool_traces": list(getattr(response, "tool_traces", None) or []),
+                    "evidence": list(response.evidence or []),
+                    "routing_metadata": meta,
                 },
-                "status_events": status_events,
-                "thinking_events": thinking_events,
-                "response_mode": str(getattr(response, "mode", "") or "") or None,
-                "response_text": response.text,
-                "prompt": getattr(response, "prompt", None),
-                "action_preview": response.action_preview,
-                "tool_traces": list(getattr(response, "tool_traces", None) or []),
-                "evidence": list(response.evidence or []),
-                "routing_metadata": meta,
-            },
-        )
+            )
         return response
 
     # ------------------------------------------------------------------

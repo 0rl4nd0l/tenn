@@ -106,6 +106,7 @@ _MARKETPLACE_SCHEDULER_INTERVAL_SECONDS = 60
 # How long the SSE chat stream may remain silent before emitting a keepalive
 # comment. Module-level so tests can monkey-patch it to a smaller value.
 SSE_KEEPALIVE_INTERVAL_SECONDS = 10.0
+STATELESS_SMOKE_HEADER = "x-tenn-stateless-smoke"
 
 
 @dataclass
@@ -3595,6 +3596,18 @@ def _serialize_flag_handoff(flag_result: dict[str, Any] | None) -> dict[str, Any
     return payload or None
 
 
+def _stateless_smoke_requested(payload: CockpitChatRequest, request: Request) -> bool:
+    if not payload.stateless_smoke:
+        return False
+    header_value = str(request.headers.get(STATELESS_SMOKE_HEADER) or "").strip().lower()
+    if header_value not in {"1", "true", "yes"}:
+        raise HTTPException(
+            status_code=400,
+            detail="stateless_smoke requires X-Tenn-Stateless-Smoke: 1",
+        )
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Helper: probe a single HTTP endpoint
 # ---------------------------------------------------------------------------
@@ -5618,6 +5631,7 @@ class CockpitChatRequest(BaseModel):
     db_diagnostics: bool | None = None
     attached_sources: list[AttachedSource] = Field(default_factory=list)
     runtime_target: str | None = None
+    stateless_smoke: bool = False
 
 
 class CockpitChatSessionSummary(BaseModel):
@@ -9855,6 +9869,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
         raise HTTPException(
             status_code=500, detail=f"Service initialization failed: {str(exc)}"
         ) from exc
+    stateless_smoke = _stateless_smoke_requested(payload, request)
+    chat_session_id = (
+        f"stateless-smoke-{uuid.uuid4().hex}"
+        if stateless_smoke
+        else payload.session_id
+    )
 
     if not payload.stream:
         # Blocking implementation if requested (rare for this UI)
@@ -9864,7 +9884,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 service.chat_stream,
                 message=payload.message,
                 ticker=payload.ticker,
-                session_id=payload.session_id,
+                session_id=chat_session_id,
                 enable_web=payload.web_search,
                 model=payload.model,
                 rag=payload.rag,
@@ -9872,6 +9892,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 ui_mode=payload.mode,
                 attached_sources=attached_sources,
                 runtime_target=payload.runtime_target,
+                persist_chat=not stateless_smoke,
             )
             sources = _enforce_visible_source_contract(
                 payload.message,
@@ -9879,53 +9900,60 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 ui_mode=payload.mode,
             )
             ui_metadata = _build_chat_ui_metadata(response, sources)
+            if stateless_smoke:
+                ui_metadata["stateless_smoke"] = True
+                ui_metadata["chat_persistence"] = "disabled"
             rendered_chart = _build_chart_from_chat_response(response)
-            _finalize_delivered_chat_response(
-                service,
-                session_id=payload.session_id,
-                response=response,
-                metadata=_build_persisted_chat_metadata(
-                    response,
-                    sources=sources,
-                    routing_metadata=ui_metadata,
-                    chart=rendered_chart,
-                ),
-            )
-            auto_flag = _maybe_auto_flag_chat_response(
-                service,
-                session_id=payload.session_id,
-                ticker=payload.ticker,
-                response=response,
-            )
-            return {
-                "type": "done",
-                "data": {
-                    "text": response.text,
-                    "model": response.routing_metadata.get("model")
-                    if response.routing_metadata
-                    else "unknown",
-                    "latency_ms": response.routing_metadata.get("latency_ms")
-                    if response.routing_metadata
-                    else 0,
-                    "cost_usd": response.routing_metadata.get("cost_usd")
-                    if response.routing_metadata
-                    else 0,
-                    "source": response.routing_metadata.get("source")
-                    if response.routing_metadata
-                    else "unknown",
-                    "provider_error": response.routing_metadata.get("provider_error")
-                    if response.routing_metadata
-                    else None,
-                    "action_preview": response.action_preview,
-                    "chart": rendered_chart,
-                    "sources": sources,
-                    "routing_metadata": ui_metadata,
-                    "runtime_target": response.routing_metadata.get("runtime_target")
-                    if response.routing_metadata
-                    else None,
-                    "auto_flag": _serialize_flag_handoff(auto_flag),
-                },
+            if stateless_smoke:
+                auto_flag = None
+            else:
+                _finalize_delivered_chat_response(
+                    service,
+                    session_id=payload.session_id,
+                    response=response,
+                    metadata=_build_persisted_chat_metadata(
+                        response,
+                        sources=sources,
+                        routing_metadata=ui_metadata,
+                        chart=rendered_chart,
+                    ),
+                )
+                auto_flag = _maybe_auto_flag_chat_response(
+                    service,
+                    session_id=payload.session_id,
+                    ticker=payload.ticker,
+                    response=response,
+                )
+            done_data = {
+                "text": response.text,
+                "model": response.routing_metadata.get("model")
+                if response.routing_metadata
+                else "unknown",
+                "latency_ms": response.routing_metadata.get("latency_ms")
+                if response.routing_metadata
+                else 0,
+                "cost_usd": response.routing_metadata.get("cost_usd")
+                if response.routing_metadata
+                else 0,
+                "source": response.routing_metadata.get("source")
+                if response.routing_metadata
+                else "unknown",
+                "provider_error": response.routing_metadata.get("provider_error")
+                if response.routing_metadata
+                else None,
+                "action_preview": response.action_preview,
+                "chart": rendered_chart,
+                "sources": sources,
+                "routing_metadata": ui_metadata,
+                "runtime_target": response.routing_metadata.get("runtime_target")
+                if response.routing_metadata
+                else None,
+                "auto_flag": _serialize_flag_handoff(auto_flag),
             }
+            if stateless_smoke:
+                done_data["stateless_smoke"] = True
+                done_data["stateless_smoke_session_id"] = chat_session_id
+            return {"type": "done", "data": done_data}
         except Exception as exc:
             logger.exception("Cockpit chat non-streaming error")
             raise HTTPException(
@@ -9959,7 +9987,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     service.chat_stream,
                     message=payload.message,
                     ticker=payload.ticker,
-                    session_id=payload.session_id,
+                    session_id=chat_session_id,
                     on_chunk=on_chunk,
                     on_status=on_status,
                     enable_web=payload.web_search,
@@ -9969,6 +9997,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     ui_mode=payload.mode,
                     attached_sources=attached_sources,
                     runtime_target=payload.runtime_target,
+                    persist_chat=not stateless_smoke,
                 )
                 sources = _enforce_visible_source_contract(
                     payload.message,
@@ -9976,24 +10005,30 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     ui_mode=payload.mode,
                 )
                 ui_metadata = _build_chat_ui_metadata(response, sources)
+                if stateless_smoke:
+                    ui_metadata["stateless_smoke"] = True
+                    ui_metadata["chat_persistence"] = "disabled"
                 rendered_chart = _build_chart_from_chat_response(response)
-                _finalize_delivered_chat_response(
-                    service,
-                    session_id=payload.session_id,
-                    response=response,
-                    metadata=_build_persisted_chat_metadata(
-                        response,
-                        sources=sources,
-                        routing_metadata=ui_metadata,
-                        chart=rendered_chart,
-                    ),
-                )
-                auto_flag = _maybe_auto_flag_chat_response(
-                    service,
-                    session_id=payload.session_id,
-                    ticker=payload.ticker,
-                    response=response,
-                )
+                if stateless_smoke:
+                    auto_flag = None
+                else:
+                    _finalize_delivered_chat_response(
+                        service,
+                        session_id=payload.session_id,
+                        response=response,
+                        metadata=_build_persisted_chat_metadata(
+                            response,
+                            sources=sources,
+                            routing_metadata=ui_metadata,
+                            chart=rendered_chart,
+                        ),
+                    )
+                    auto_flag = _maybe_auto_flag_chat_response(
+                        service,
+                        session_id=payload.session_id,
+                        ticker=payload.ticker,
+                        response=response,
+                    )
 
                 # After streaming finishes, send metadata and final state
                 if response.tool_traces:
@@ -10013,24 +10048,23 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
 
                 # Final 'done' event with metrics
                 meta = response.routing_metadata or {}
-                await queue.put(
-                    {
-                        "type": "done",
-                        "data": {
-                            "text": response.text,
-                            "model": meta.get("model", "unknown"),
-                            "latency_ms": meta.get("latency_ms", 0),
-                            "cost_usd": meta.get("cost_usd", 0),
-                            "source": meta.get("source", "unknown"),
-                            "provider_error": meta.get("provider_error"),
-                            "chart": rendered_chart,
-                            "sources": sources,
-                            "routing_metadata": ui_metadata,
-                            "runtime_target": meta.get("runtime_target"),
-                            "auto_flag": _serialize_flag_handoff(auto_flag),
-                        },
-                    }
-                )
+                done_data = {
+                    "text": response.text,
+                    "model": meta.get("model", "unknown"),
+                    "latency_ms": meta.get("latency_ms", 0),
+                    "cost_usd": meta.get("cost_usd", 0),
+                    "source": meta.get("source", "unknown"),
+                    "provider_error": meta.get("provider_error"),
+                    "chart": rendered_chart,
+                    "sources": sources,
+                    "routing_metadata": ui_metadata,
+                    "runtime_target": meta.get("runtime_target"),
+                    "auto_flag": _serialize_flag_handoff(auto_flag),
+                }
+                if stateless_smoke:
+                    done_data["stateless_smoke"] = True
+                    done_data["stateless_smoke_session_id"] = chat_session_id
+                await queue.put({"type": "done", "data": done_data})
             except asyncio.CancelledError:
                 logger.info("Cockpit chat stream cancelled by client disconnect")
             except Exception as exc:
