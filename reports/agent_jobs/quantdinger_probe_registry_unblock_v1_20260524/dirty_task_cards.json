@@ -1,0 +1,93 @@
+{
+  "generated_at": "2026-05-24T12:24:10Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "a6db9760621e",
+  "manual_probe_card": "docs/agent_tasks/strategy_lab_quantdinger_manual_readonly_probe_v1_20260524.md",
+  "manual_probe_check_overlap_before": "failed_dirty_files_outside_allowed_files",
+  "active_jobs_before": [],
+  "dirty_task_cards": [
+    {
+      "path": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Query Orchestration",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "stale_or_historical_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Query Orchestration",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "stale_or_historical_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Evaluation",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "stale_or_historical_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Evaluation",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "stale_or_historical_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/pc_ssh_slow_safe_diagnostics_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Evaluation",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "stale_or_historical_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/repo_native_orchestration_readiness_audit_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Reporting",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "stale_or_historical_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/source_label_semantic_sufficiency_live_smoke_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Provenance",
+      "validation": "passed",
+      "report_dir": "empty_dir_present",
+      "classification": "unstarted_or_report_missing_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_readiness_audit_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Reporting",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "completed_readiness_audit_task_card_provenance",
+      "preservation_action": "preserve_unchanged"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_manual_readonly_probe_v1_20260524.md",
+      "git_status": "untracked",
+      "lane": "Reporting",
+      "validation": "passed",
+      "report_dir": "present",
+      "classification": "target_manual_probe_card_previously_blocked_before_runtime",
+      "preservation_action": "preserve_unchanged"
+    }
+  ],
+  "forbidden_surfaces_touched": []
+}
