@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_readonly_sidecar_online_resolve_v1_20260524",
+  "generated_at": "2026-05-24T10:35:00Z",
+  "checks": [
+    {
+      "command": "test -d reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524",
+      "ok": false,
+      "classification": "expected_absent_source_report_dir"
+    },
+    {
+      "command": "git show 0ee837f7:reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_smoke_exec_v1_20260524/status.json",
+      "ok": true,
+      "classification": "superseding_smoke_report_read_from_git_object"
+    }
+  ],
+  "result": "supersession_marker_written"
+}

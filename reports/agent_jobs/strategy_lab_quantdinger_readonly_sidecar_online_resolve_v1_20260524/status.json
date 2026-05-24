@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_readonly_sidecar_online_resolve_v1_20260524",
+  "generated_at": "2026-05-24T10:35:00Z",
+  "status": "resolved_superseded_archive_only",
+  "decision": "SUPERSEDED_ARCHIVE_ONLY_DO_NOT_EXECUTE",
+  "source_card": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+  "source_report_dir": {
+    "path": "reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524",
+    "exists_in_current_worktree": false
+  },
+  "superseded_by": {
+    "commit": "0ee837f7dc0706f1b0ff6d6c900522f4c2b43090",
+    "branch": "audit/strategy-lab-quantdinger-readonly-sidecar-smoke-exec-v1-20260524",
+    "subject": "milestone(reporting): preserve quantdinger readonly smoke proof",
+    "report_path": "reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_smoke_exec_v1_20260524/status.json",
+    "report_present_in_current_worktree": false,
+    "report_read_via_git_show": true
+  },
+  "historical_smoke_metadata_allowed": {
+    "last_readonly_sidecar_smoke": "SMOKE_PASSED",
+    "last_readonly_sidecar_smoke_review_status": "PENDING_REVIEW",
+    "last_readonly_sidecar_smoke_commit": "0ee837f7dc0706f1b0ff6d6c900522f4c2b43090"
+  },
+  "current_state_must_remain": {
+    "current_sidecar_available": false,
+    "sidecar_runtime_state": "not_running_after_cleanup",
+    "real_transport": "not_integrated",
+    "live_trading": false,
+    "paper_order_placement": false,
+    "canonical_financial_truth_writes": false,
+    "store_writes": false
+  },
+  "forbidden_actions_not_performed": [
+    "sidecar_execution",
+    "docker_startup",
+    "external_clone_or_pull",
+    "token_issuance",
+    "broker_connection",
+    "live_trading",
+    "paper_order_placement",
+    "tenn_db_writes",
+    "qdrant_writes",
+    "news_writes",
+    "memory_writes",
+    "canonical_financial_truth_writes",
+    "strategy_lab_metadata_update"
+  ],
+  "data_missing": [
+    "The original source card's matching report directory is absent in the current worktree.",
+    "The later smoke report files are not present in the current worktree and were read via git show from commit 0ee837f7."
+  ],
+  "next_safe_step": "Commit this supersession/archive marker, then map current Strategy Lab status/artifact routes before any implementation."
+}
