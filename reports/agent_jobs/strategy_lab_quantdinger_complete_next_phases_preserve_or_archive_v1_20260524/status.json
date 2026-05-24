@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "job_id": "strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524",
+  "generated_at": "2026-05-24T10:02:00Z",
+  "status": "preserved_committed",
+  "decision": "preserve",
+  "commit_hash_note": "Final amended commit hash is reported in the closeout; embedding the final hash inside the committed artifact would make the commit self-referential.",
+  "initial_preservation_commit": "5706a086",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "0973349937cd42d25d9ea72882d1bd7fc787ce07",
+  "task_card": "docs/agent_tasks/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524.md",
+  "source_bundle": {
+    "task_card": "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+    "report_dir": "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524",
+    "files": [
+      "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/README.md",
+      "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/status.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/validation.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/diff-check.json"
+    ],
+    "source_verdict": "PARTIAL",
+    "source_sidecar_readiness": "BLOCKED_DATA_MISSING",
+    "source_smoke_run": false,
+    "source_value": "historical Strategy Lab / QuantDinger milestone evidence; canonical artifact-review validation and explicit sidecar DATA_MISSING boundaries"
+  },
+  "later_smoke_proof": {
+    "commit": "0ee837f7dc0706f1b0ff6d6c900522f4c2b43090",
+    "branch": "audit/strategy-lab-quantdinger-readonly-sidecar-smoke-exec-v1-20260524",
+    "subject": "milestone(reporting): preserve quantdinger readonly smoke proof",
+    "relationship": "later proof supersedes this bundle for smoke/runtime proof; this preservation does not set sidecar_available=true"
+  },
+  "registry": {
+    "list_active_ok": true,
+    "active_jobs": [],
+    "check_overlap_ok": false,
+    "check_overlap_classification": "expected environmental block from unrelated foreign dirty task cards outside this task allowed_files",
+    "foreign_dirty_blockers": [
+      "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md",
+      "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+      "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+      "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+      "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md"
+    ]
+  },
+  "validation": {
+    "task_card_validate": "passed",
+    "source_task_card_validate": "passed",
+    "json_parse": "passed",
+    "git_diff_check": "passed",
+    "task_card_check_diff": "expected_environmental_block_and_glob_tooling_limitation_before_commit; expected_environmental_block_after_commit",
+    "registry_check_overlap": "expected_environmental_block",
+    "hook_posture": "expected_environmental_block_while_foreign_dirty_task_cards_remain"
+  },
+  "files_to_commit": [
+    "docs/agent_tasks/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/README.md",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/status.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/validation.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/diff-check.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524/README.md",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524/status.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524/validation.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524/diff-check.json"
+  ],
+  "foreign_files_intentionally_not_touched": [
+    "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+    "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md",
+    "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+    "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+    "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md"
+  ],
+  "data_missing": [
+    "registry/check-diff clean pass unavailable while unrelated foreign dirty task cards remain"
+  ],
+  "next_safe_dirt_item": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+  "project_memory_save_recommendation": "Save that the older partial QuantDinger complete-and-next-phases bundle was preserved only as historical decision evidence and does not supersede later smoke proof commit 0ee837f7."
+}

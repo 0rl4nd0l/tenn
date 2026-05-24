@@ -1,0 +1,212 @@
+{
+  "job_id": "strategy_lab_quantdinger_complete_and_next_phases_v1_20260524",
+  "generated_at": "2026-05-24T08:25:44Z",
+  "overall_verdict": "PARTIAL",
+  "canonical": {
+    "path": "/home/l4nd0/tenn",
+    "realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_before": "cde9c26d37e51373bf13dee2c9ce1245883b33b4",
+    "head_after": "cde9c26d37e51373bf13dee2c9ce1245883b33b4",
+    "head_subject": "chore(reporting): record strategy lab artifact review integration",
+    "status_short": [
+      "?? docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "?? docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "?? docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md"
+    ]
+  },
+  "commits_checked": {
+    "0211a5b46091cd4858e402d10e3499a1e96819ab": "ancestor_or_head",
+    "47510e06b4044f055f4e657bca40d0c17bd16134": "ancestor_or_head",
+    "cde9c26d37e51373bf13dee2c9ce1245883b33b4": "ancestor_or_head"
+  },
+  "commits_created": [],
+  "files_changed": [
+    "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/README.md",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/status.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/validation.json",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/diff-check.json"
+  ],
+  "artifact_review_integration": {
+    "status": "INTEGRATED",
+    "status_route_present": true,
+    "artifacts_route_present": true,
+    "home_status_card_present": true,
+    "home_artifact_review_card_present": true,
+    "helpers_tests_present": true,
+    "committed_report_dirs": [
+      "reports/agent_jobs/strategy_lab_artifact_review_value_layer_v1_20260524/",
+      "reports/agent_jobs/strategy_lab_artifact_review_clear_or_integrate_v1_20260524/",
+      "reports/agent_jobs/strategy_lab_artifact_review_integrate_v1_20260524/"
+    ],
+    "local_uncommitted_report_dirs": [
+      "reports/agent_jobs/strategy_lab_artifact_review_integration_readiness_v1_20260524/"
+    ]
+  },
+  "task_card_blockers": [
+    {
+      "path": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "lane": "Query Orchestration",
+      "classification": "LOOSE_TASK_CARD_REPORT_EVIDENCE_UNRELATED_TO_STRATEGY_LAB",
+      "preserved": false
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "lane": "Reporting",
+      "classification": "LOOSE_TASK_CARD_REPORT_EVIDENCE_RELATED_BUT_UNCOMMITTED",
+      "preserved": false
+    }
+  ],
+  "validation_results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md --write-report",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "ok": true,
+      "summary": "initially one non-overlapping Query Orchestration job; later no active jobs"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+      "ok": false,
+      "expected_blocker": true,
+      "summary": "blocked by unrelated loose task-card/report evidence outside allowed_files"
+    },
+    {
+      "command": "git diff --check",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md --repo-root .",
+      "ok": false,
+      "expected_blocker": true,
+      "summary": "blocked by chat_guard and integration_readiness task cards outside allowed_files"
+    },
+    {
+      "command": "jq empty reports/agent_jobs/strategy_lab_artifact_review_value_layer_v1_20260524/*.json reports/agent_jobs/strategy_lab_artifact_review_integration_readiness_v1_20260524/*.json reports/agent_jobs/strategy_lab_artifact_review_clear_or_integrate_v1_20260524/*.json reports/agent_jobs/strategy_lab_artifact_review_integrate_v1_20260524/*.json reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/validation.json reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/diff-check.json",
+      "ok": true
+    },
+    {
+      "command": "./node_modules/.bin/vitest run lib/strategy-lab-status.test.ts lib/strategy-lab-artifacts.test.ts components/cockpit/home/cards/strategy-lab-status-card.test.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
+      "workdir": "cockpit-ui",
+      "ok": true,
+      "summary": "4 files, 7 tests passed"
+    },
+    {
+      "command": "./node_modules/.bin/eslint lib/strategy-lab-status.ts lib/strategy-lab-status.test.ts lib/strategy-lab-artifacts.ts lib/strategy-lab-artifacts-server.ts lib/strategy-lab-artifacts.test.ts components/cockpit/home/cards/strategy-lab-status-card.tsx components/cockpit/home/cards/strategy-lab-status-card.test.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx components/cockpit/home/home-page.tsx",
+      "workdir": "cockpit-ui",
+      "ok": true
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit --pretty false",
+      "workdir": "cockpit-ui",
+      "ok": true
+    },
+    {
+      "command": "python3 -m unittest tests.strategy_lab.test_strategy_lab_mocked_adapter_phase3b_reconciled tests.strategy_lab.test_strategy_lab_offline_mock_transport_phase3c",
+      "ok": true,
+      "summary": "23 tests passed"
+    }
+  ],
+  "browser_smoke": {
+    "status": "PASS",
+    "browser_plugin_available": false,
+    "playwright_used": true,
+    "url": "http://127.0.0.1:3127",
+    "viewport": "1440x1200",
+    "status_route_status": 200,
+    "artifacts_route_status": 200,
+    "source_mode": "repo_artifacts_only",
+    "read_only": true,
+    "live_trading": false,
+    "store_writes": false,
+    "cards_visible": [
+      "strategy-lab-status-card",
+      "strategy-lab-artifacts-review-card"
+    ],
+    "labels_visible": [
+      "PENDING REVIEW",
+      "READ ONLY",
+      "NO LIVE TRADING",
+      "NO PAPER TRADING",
+      "NO REAL TRANSPORT",
+      "NO CANONICAL FINANCIAL TRUTH",
+      "NO STORE WRITES",
+      "DATA_MISSING"
+    ],
+    "console_errors": [],
+    "page_errors": [],
+    "failed_requests": [],
+    "framework_error_overlay": false,
+    "screenshot": "/tmp/strategy-lab-quantdinger-complete-smoke.png",
+    "dev_server_stopped": true,
+    "generated_next_type_reverted_or_absent": true
+  },
+  "sidecar_readiness": {
+    "status": "BLOCKED_DATA_MISSING",
+    "smoke_run": false,
+    "plan_card": "docs/agent_tasks/strategy_lab_quantdinger_sidecar_smoke_readonly_plan_v1_20260524.md",
+    "plan_requires_later_approval": true,
+    "prior_non_mock_evidence": {
+      "phase1_sandbox_report": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520/reports/agent_jobs/strategy_lab_quantdinger_phase1_sandbox_v1_20260520/README.md",
+      "loopback_ports": [
+        "127.0.0.1:15080",
+        "127.0.0.1:15432",
+        "127.0.0.1:16379"
+      ],
+      "token_scope": "R,B paper_only=true",
+      "w_t_denied": true,
+      "paper_orders_count_zero": true,
+      "backtest_and_regime_succeeded": true,
+      "cleanup_passed": true
+    },
+    "current_host_evidence": {
+      "tmp_phase1_sandbox_absent": true,
+      "quantdinger_listeners_present": false,
+      "quantdinger_docker_containers_present": false,
+      "quantdinger_docker_images_present": false
+    },
+    "blockers": [
+      "no current approved sidecar endpoint",
+      "no current local QuantDinger clone/runtime target",
+      "no tokenless or pre-approved read-only auth mode",
+      "real smoke would require service startup or endpoint/auth confirmation"
+    ]
+  },
+  "value_added_now": [
+    "canonical Cockpit Home exposes Strategy Lab as read-only pending-review evidence",
+    "repo-only artifact review route and UI card are validated",
+    "operator-visible safety labels prevent overclaiming trading/canonical truth readiness"
+  ],
+  "still_mock_or_repo_only": [
+    "artifact review reads repo artifacts only",
+    "helper/pre-envelope evidence is non-authoritative",
+    "no persistence, promotion, store writes, or canonical financial truth",
+    "no real QuantDinger runtime is currently running or integrated"
+  ],
+  "data_missing": [
+    "current approved QuantDinger endpoint",
+    "current local QuantDinger runtime target",
+    "tokenless or pre-approved read-only auth mode",
+    "live sidecar unavailable/failure response",
+    "committed preservation decision for loose task-card/report blockers"
+  ],
+  "forbidden_surfaces_not_touched": [
+    "trading, broker, paper/live execution, token issuance, market orders, portfolio mutation",
+    "Tenn DB/Qdrant/news/memory/canonical financial truth writes",
+    "artifact store or promotion workflow",
+    "parser/extraction/gold-label/runtime/model/GPU changes",
+    "dependency installation",
+    "QuantDinger service startup or real transport call",
+    "unrelated task-card cleanup"
+  ],
+  "remaining_risks": [
+    "global check-overlap/check-diff remain blocked by loose task-card/report evidence",
+    "Phase 1 non-mock QuantDinger proof is stale for current-runtime availability",
+    "future sidecar execution needs exact approval to avoid token/trading-capable drift"
+  ],
+  "next_safe_task": "Preserve loose task-card/report blockers under an exact repo-hygiene card, then create an approval-gated read-only QuantDinger sidecar smoke exec card with confirmed endpoint/auth.",
+  "save_recommendation": "Save this report as current readiness evidence. Do not run real QuantDinger transport until a child execution card has exact allowed files, confirmed endpoint/auth, and clean gates."
+}

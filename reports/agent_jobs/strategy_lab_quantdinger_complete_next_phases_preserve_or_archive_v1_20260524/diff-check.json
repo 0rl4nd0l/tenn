@@ -1,0 +1,99 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+    "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md",
+    "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+    "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+    "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md is outside allowed_files"
+    },
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524.md",
+        "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+        "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/**",
+        "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524/**"
+      ],
+      "approval_required": true,
+      "job_id": "strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/strategy_lab_quantdinger_complete_next_phases_preserve_or_archive_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Strategy Lab QuantDinger complete next phases preserve or archive"
+    },
+    "ok": true
+  }
+}
