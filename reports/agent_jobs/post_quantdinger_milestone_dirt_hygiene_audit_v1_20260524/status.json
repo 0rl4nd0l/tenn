@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "job_id": "post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524",
+  "generated_at": "2026-05-24T09:36:00Z",
+  "status": "completed_report_only_with_expected_contract_blocks",
+  "mode": "audit_only",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "0973349937cd42d25d9ea72882d1bd7fc787ce07",
+  "task_card": "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+  "output_dir": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524",
+  "commit_created": false,
+  "registry_state": {
+    "list_active_ok": true,
+    "active_jobs": [],
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "check_overlap_ok": false,
+    "check_overlap_classification": "not_active_registry_overlap; blocked by existing dirty files outside this audit allowed_files",
+    "check_overlap_blockers": [
+      "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+      "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+      "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+      "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md"
+    ]
+  },
+  "hook_posture": {
+    "no_active_task_card": {
+      "command": "python3 scripts/agent_job_hook.py",
+      "result": "{}",
+      "classification": "allow_noop"
+    },
+    "tracked_quantdinger_smoke_plan_no_write_mode": {
+      "task_card": "docs/agent_tasks/strategy_lab_quantdinger_sidecar_smoke_readonly_plan_v1_20260524.md",
+      "command": "TENN_AGENT_TASK_CARD=docs/agent_tasks/strategy_lab_quantdinger_sidecar_smoke_readonly_plan_v1_20260524.md python3 scripts/agent_job_hook.py --platform gemini --event BeforeTool",
+      "result": "block",
+      "classification": "expected_contract_block_due_foreign_dirty_task_cards_outside_smoke_plan_allowed_files",
+      "write_avoidance_note": "default Stop hook would write diff-check.json for the QuantDinger smoke plan outside this audit allowed_files, so no-write mode was used for this posture check"
+    },
+    "this_audit_card_default_stop": {
+      "task_card": "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+      "command": "TENN_AGENT_TASK_CARD=docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md python3 scripts/agent_job_hook.py",
+      "result": "block",
+      "classification": "expected_contract_block_due_six_foreign_dirty_task_cards_outside_this_audit_allowed_files",
+      "report_written": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/diff-check.json"
+    }
+  },
+  "dirty_inventory_summary": {
+    "pre_audit_foreign_untracked_task_cards": 6,
+    "post_card_creation_untracked_task_cards": 7,
+    "deleted_files": [],
+    "modified_tracked_files": [],
+    "classification_artifact": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/file_classification.json"
+  },
+  "stop_hook_warning_classification": {
+    "original_five_file_warning_reproduced_exactly": false,
+    "current_warning_state": "reproduced_as_six_foreign_untracked_task_cards_before_this_audit_card_and_six_foreign_blockers_after_this_audit_card",
+    "data_missing": [
+      "the original two truncated filenames from the pasted report cannot be proven from that pasted text",
+      "current evidence identifies chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md and docker_builder_cache_broad_prune_v1_20260524.md as the two additional current foreign dirty task cards beyond the three named files"
+    ]
+  },
+  "merge_parking_registry": {
+    "docs/agent_registry/merge_parking/REGISTRY.md": "absent",
+    "docs/agent_registry/merge_parking/parked/": "absent",
+    "classification": "DATA_MISSING_NOT_PRESENT",
+    "created_or_modified": false
+  },
+  "files_intentionally_not_touched": [
+    "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+    "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+    "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+    "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+    "reports/agent_jobs/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524/**",
+    "reports/agent_jobs/disk_pressure_safe_cleanup_audit_v1_20260524/**",
+    "reports/agent_jobs/docker_builder_cache_broad_prune_v1_20260524/**",
+    "reports/agent_jobs/strategy_lab_artifact_review_integration_readiness_v1_20260524/**",
+    "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/**",
+    "reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524/**"
+  ],
+  "recommendations": {
+    "commit_now": false,
+    "primary_next_safe_codex_action": "create a separate exact-allowlist preservation or archive task card for the completed loose bundles; start with strategy_lab_quantdinger_complete_and_next_phases_v1_20260524 because it is the QuantDinger-related milestone bundle with a report and explicit next_safe_task",
+    "specific_actions": [
+      {
+        "path": "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+        "action": "separate_exact_preservation_commit_or_archive_decision",
+        "reason": "QuantDinger-related partial milestone report exists and is the best first blocker to preserve or park"
+      },
+      {
+        "path": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+        "action": "owner_review_execute_as_next_task_or_archive",
+        "reason": "QuantDinger-related draft card has no report directory and no active registry job"
+      },
+      {
+        "path": "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+        "action": "owner_review_required_before_commit",
+        "reason": "safe-extension prune output exists and reports 142.3GB reclaimed, but README.md/status.json are absent"
+      },
+      {
+        "path": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+        "action": "separate_query_orchestration_preservation_or_archive",
+        "reason": "complete meaningful report bundle, unrelated to QuantDinger"
+      },
+      {
+        "path": "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+        "action": "separate_repo_hygiene_preservation_or_archive",
+        "reason": "audit report exists, unrelated to QuantDinger"
+      },
+      {
+        "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+        "action": "owner_review_preserve_or_archive_as_stale_readiness_evidence",
+        "reason": "blocked report exists but current HEAD now contains later Strategy Lab integration evidence"
+      }
+    ],
+    "merge_parking": "not_available_in_current_repo; do not create in this audit"
+  },
+  "remaining_risks": [
+    "report artifacts are ignored by git and remain local-only until a later exact preservation task force-adds or archives them",
+    "docker_builder_cache_broad_prune_v1_20260524 appears to have performed a Docker builder prune, but its final README/status artifacts are missing",
+    "the online QuantDinger sidecar card has no report bundle, so intent is DATA_MISSING",
+    "check-overlap and stop-hook will continue blocking active cards until the six foreign untracked task cards are resolved by their owners or under explicit cleanup/preservation cards"
+  ],
+  "project_memory_save_recommendation": "Save that on /home/l4nd0/tenn at HEAD 0973349937cd42d25d9ea72882d1bd7fc787ce07, the post-QuantDinger hook dirt was six foreign untracked task cards plus this audit card, registry active_jobs was empty, merge-parking registry was absent, and the recommended first preservation candidate is strategy_lab_quantdinger_complete_and_next_phases_v1_20260524."
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "job_id": "post_quantdinger_dirty_taskcard_archive_v1_20260524",
+  "generated_at": "2026-05-24T11:31:23Z",
+  "status": "archive_only_preserve_candidate",
+  "mode": "safe_extension_audit",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "8504b7bc73999bd9c73abeabdbffe8a7e20edbf3",
+  "head_subject": "milestone(reporting): archive strategy lab artifact review readiness",
+  "task_card": "docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+  "output_dir": "reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524",
+  "commit_created": null,
+  "commit_note": "Pending narrow commit; final commit hash is reported outside this self-referential artifact.",
+  "exact_allowed_files": [
+    "docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+    "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+    "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/README.md",
+    "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/status.json",
+    "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/file_classification.json",
+    "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/validation.json",
+    "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/diff-check.json",
+    "reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/README.md",
+    "reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/status.json",
+    "reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/validation.json",
+    "reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/diff-check.json"
+  ],
+  "preserve_bundle": {
+    "task_card": "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+    "report_dir": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524",
+    "classification": "archive_only_historical_provenance",
+    "reason": "Explains the post-QuantDinger stop-hook dirty task-card state and bounded follow-up sequence."
+  },
+  "skipped": [
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+      "reason": "Already preserved by commit 72c6d95c."
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+      "reason": "Already superseded by commit eb01cec2."
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "reason": "Already archived by commit 8504b7bc."
+    }
+  ],
+  "foreign_dirt_left_untouched": [
+    "docs/agent_tasks/a2m_news_live_trace_readonly_v1_20260524.md",
+    "docs/agent_tasks/gold_metric_coverage_eval_spine_normalizer_v1_20260524.md",
+    "docs/agent_tasks/memory_live_inventory_readonly_v1_20260524.md",
+    "docs/agent_tasks/source_label_semantic_sufficiency_guard_v1_20260524.md",
+    "docs/agent_tasks/trust_foundation_followup_implementation_controller_v1_20260524.md",
+    "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+    "docs/agent_tasks/cockpit_chat_visible_evidence_gap_labels_live_reload_smoke_v1_20260524.md",
+    "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+    "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+    "docs/agent_tasks/pc_ssh_slow_safe_diagnostics_v1_20260524.md",
+    "docs/agent_tasks/repo_native_orchestration_readiness_audit_v1_20260524.md"
+  ],
+  "registry": {
+    "list_active_jobs": [
+      "trust_foundation_followup_implementation_controller_v1_20260524"
+    ],
+    "archive_path_active_overlap": false,
+    "check_overlap_ok": false,
+    "claim_created": false,
+    "claim_blocker": "unrelated dirty files outside current task card allowed_files"
+  },
+  "validation_summary": {
+    "task_card_validation_ok": true,
+    "json_parse_ok": true,
+    "git_diff_check_ok": true,
+    "check_diff_ok": false,
+    "check_diff_blocker": "unrelated dirty files outside this task card allowed_files",
+    "staged_file_allowlist_ok": true
+  },
+  "forbidden_surfaces_touched": false,
+  "data_missing": [
+    "clean_registry_claim_due_foreign_dirty_files",
+    "merge_parking_registry_absent"
+  ]
+}

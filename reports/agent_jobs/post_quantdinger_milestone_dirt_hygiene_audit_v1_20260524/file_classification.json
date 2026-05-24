@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "job_id": "post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524",
+  "generated_at": "2026-05-24T09:36:00Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "0973349937cd42d25d9ea72882d1bd7fc787ce07",
+  "source_status_command": "git status --short --untracked-files=all",
+  "current_dirty_inventory": [
+    {
+      "path": "docs/agent_tasks/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Query Orchestration",
+      "supporting_lanes": [],
+      "job_id": "chat_guard_canonical_review_and_csl_live_smoke_v1_20260524",
+      "mutation_mode": "audit_only",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "chat_guard_canonical_review_and_csl_live_smoke_v1_20260524",
+      "report_directory": {
+        "path": "reports/agent_jobs/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524",
+        "exists": true,
+        "tracked": false,
+        "ignored": true,
+        "files_seen": [
+          "README.md",
+          "csl_live_smoke_response.json",
+          "csl_live_smoke_summary.md",
+          "diff-check.json",
+          "status.json",
+          "validation.json"
+        ]
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": false,
+      "appears_unrelated_foreign_dirt": true,
+      "artifact_state": "completed_report_bundle_ignored_untracked",
+      "recommended_action": "owner_review_then_separate_query_orchestration_preservation_or_archive_task",
+      "safe_to_ignore_for_this_audit": true,
+      "evidence_used": [
+        "frontmatter shows lane Query Orchestration and output_dir reports/agent_jobs/chat_guard_canonical_review_and_csl_live_smoke_v1_20260524",
+        "README reports backend/frontend guard verified and live CSL smoke blocked by chat-history persistence",
+        "git status shows untracked task card",
+        "git status --ignored shows matching report files ignored under reports/",
+        "git ls-files and git log --all show no tracked or committed task/report path in this worktree family",
+        "registry list-active returned active_jobs empty"
+      ],
+      "data_missing": []
+    },
+    {
+      "path": "docs/agent_tasks/disk_pressure_safe_cleanup_audit_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Evaluation",
+      "supporting_lanes": [
+        "Repo Hygiene",
+        "Runtime/Ops"
+      ],
+      "job_id": "disk_pressure_safe_cleanup_audit_v1_20260524",
+      "mutation_mode": "audit_only",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "disk_pressure_safe_cleanup_audit_v1_20260524",
+      "report_directory": {
+        "path": "reports/agent_jobs/disk_pressure_safe_cleanup_audit_v1_20260524",
+        "exists": true,
+        "tracked": false,
+        "ignored": true,
+        "files_seen": [
+          "README.md",
+          "diff-check.json"
+        ]
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": false,
+      "appears_unrelated_foreign_dirt": true,
+      "artifact_state": "completed_audit_bundle_ignored_untracked",
+      "recommended_action": "owner_review_then_separate_repo_hygiene_preservation_or_archive_task",
+      "safe_to_ignore_for_this_audit": true,
+      "evidence_used": [
+        "frontmatter shows lane Evaluation and output_dir reports/agent_jobs/disk_pressure_safe_cleanup_audit_v1_20260524",
+        "README reports audit-only disk pressure findings and no cleanup mutation",
+        "git status shows untracked task card",
+        "git status --ignored shows report files ignored under reports/",
+        "git ls-files and git log --all show no tracked or committed task/report path",
+        "registry list-active returned active_jobs empty"
+      ],
+      "data_missing": [
+        "status.json is absent in the matching report directory"
+      ]
+    },
+    {
+      "path": "docs/agent_tasks/docker_builder_cache_broad_prune_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Evaluation",
+      "supporting_lanes": [
+        "Runtime/Ops",
+        "Repo Hygiene"
+      ],
+      "job_id": "docker_builder_cache_broad_prune_v1_20260524",
+      "mutation_mode": "safe_extension",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "docker_builder_cache_broad_prune_v1_20260524",
+      "report_directory": {
+        "path": "reports/agent_jobs/docker_builder_cache_broad_prune_v1_20260524",
+        "exists": true,
+        "tracked": false,
+        "ignored": true,
+        "files_seen": [
+          "diff-check.json",
+          "docker-builder-prune-output.txt",
+          "docker-system-df-after.txt",
+          "docker-system-df-before.txt"
+        ]
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": false,
+      "appears_unrelated_foreign_dirt": true,
+      "artifact_state": "implementation_evidence_incomplete_report_bundle_ignored_untracked",
+      "recommended_action": "owner_review_required_before_commit_or_archive_because_safe_extension_prune_output_exists_but_readme_status_are_missing",
+      "safe_to_ignore_for_this_audit": true,
+      "evidence_used": [
+        "frontmatter shows mutation_mode safe_extension and allowed Docker builder prune only",
+        "docker-builder-prune-output.txt ends with Total reclaimed space: 142.3GB",
+        "matching report directory lacks README.md and status.json",
+        "git status shows untracked task card",
+        "git status --ignored shows report files ignored under reports/",
+        "git ls-files and git log --all show no tracked or committed task/report path",
+        "registry list-active returned active_jobs empty"
+      ],
+      "data_missing": [
+        "final README.md is absent",
+        "status.json is absent",
+        "final runtime health summary is not present in the matching report directory"
+      ]
+    },
+    {
+      "path": "docs/agent_tasks/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Evaluation",
+      "supporting_lanes": [
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "job_id": "post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524",
+      "mutation_mode": "audit_only",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "this_audit",
+      "report_directory": {
+        "path": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524",
+        "exists": true,
+        "tracked": false,
+        "ignored": true,
+        "files_seen": [
+          "README.md",
+          "diff-check.json",
+          "file_classification.json",
+          "status.json",
+          "validation.json"
+        ]
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": true,
+      "appears_unrelated_foreign_dirt": false,
+      "artifact_state": "current_audit_report_bundle",
+      "recommended_action": "leave_uncommitted_unless_user_explicitly_requests_narrow_audit_commit",
+      "safe_to_ignore_for_this_audit": false,
+      "evidence_used": [
+        "created by this audit under explicit allowed_files",
+        "task-card validation returned ok true",
+        "hook with this card blocks only because foreign task cards are outside allowed_files"
+      ],
+      "data_missing": []
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_artifact_review_integration_readiness_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Reporting",
+      "supporting_lanes": [
+        "Provenance",
+        "Evaluation"
+      ],
+      "job_id": "strategy_lab_artifact_review_integration_readiness_v1_20260524",
+      "mutation_mode": "audit_only",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "strategy_lab_artifact_review_integration_readiness_v1_20260524",
+      "report_directory": {
+        "path": "reports/agent_jobs/strategy_lab_artifact_review_integration_readiness_v1_20260524",
+        "exists": true,
+        "tracked": false,
+        "ignored": true,
+        "files_seen": [
+          "README.md",
+          "diff-check.json",
+          "status.json",
+          "validation.json"
+        ]
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": "indirect_strategy_lab_related_not_quantdinger_smoke_specific",
+      "appears_unrelated_foreign_dirt": true,
+      "artifact_state": "blocked_report_only_bundle_ignored_untracked",
+      "recommended_action": "owner_review_then_separate_reporting_preservation_or_archive_task",
+      "safe_to_ignore_for_this_audit": true,
+      "evidence_used": [
+        "frontmatter shows Reporting lane and Strategy Lab artifact review readiness scope",
+        "README verdict is DO_NOT_INTEGRATE_REPORT_ONLY",
+        "status.json status is blocked_report_only",
+        "current HEAD later contains Strategy Lab artifact review integration commits, making this readiness report likely stale but meaningful",
+        "git status shows untracked task card",
+        "git status --ignored shows report files ignored under reports/",
+        "git ls-files and git log --all show no tracked or committed task/report path",
+        "registry list-active returned active_jobs empty"
+      ],
+      "data_missing": [
+        "whether the owner wants stale readiness evidence preserved after later integration landed"
+      ]
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Reporting",
+      "supporting_lanes": [
+        "Provenance",
+        "Query Orchestration",
+        "Evaluation"
+      ],
+      "job_id": "strategy_lab_quantdinger_complete_and_next_phases_v1_20260524",
+      "mutation_mode": "safe_extension",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "strategy_lab_quantdinger_complete_and_next_phases_v1_20260524",
+      "report_directory": {
+        "path": "reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524",
+        "exists": true,
+        "tracked": false,
+        "ignored": true,
+        "files_seen": [
+          "README.md",
+          "diff-check.json",
+          "status.json",
+          "validation.json"
+        ]
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": true,
+      "appears_unrelated_foreign_dirt": false,
+      "artifact_state": "partial_completed_quantdinger_milestone_bundle_ignored_untracked",
+      "recommended_action": "best_first_candidate_for_separate_exact_preservation_commit_or_archive_decision",
+      "safe_to_ignore_for_this_audit": false,
+      "evidence_used": [
+        "frontmatter names Strategy Lab QuantDinger complete and next phases",
+        "README verdict is PARTIAL",
+        "status.json states artifact review layer integrated and no sidecar smoke run",
+        "status.json next_safe_task recommends preserving loose blockers then creating approval-gated read-only QuantDinger sidecar smoke exec card with confirmed endpoint/auth",
+        "git status shows untracked task card",
+        "git status --ignored shows report files ignored under reports/",
+        "git ls-files and git log --all show no tracked or committed task/report path",
+        "registry list-active returned active_jobs empty"
+      ],
+      "data_missing": [
+        "current approved QuantDinger endpoint",
+        "current local QuantDinger runtime target",
+        "tokenless or pre-approved read-only auth mode",
+        "committed preservation decision for this loose bundle"
+      ]
+    },
+    {
+      "path": "docs/agent_tasks/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524.md",
+      "git_status": "??",
+      "likely_lane": "Reporting",
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance",
+        "Evaluation"
+      ],
+      "job_id": "strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524",
+      "mutation_mode": "audit_only",
+      "production_data_access": false,
+      "validator_ok": true,
+      "likely_owning_job_or_task_card": "strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524",
+      "report_directory": {
+        "path": "reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_online_v1_20260524",
+        "exists": false,
+        "tracked": false,
+        "ignored": "DATA_MISSING_NOT_APPLICABLE_ABSENT",
+        "files_seen": []
+      },
+      "committed_on_any_branch": false,
+      "matching_branch_or_worktree": false,
+      "active_registry_job": false,
+      "appears_related_to_quantdinger_smoke_preservation": true,
+      "appears_unrelated_foreign_dirt": false,
+      "artifact_state": "draft_or_unexecuted_parent_card_no_report_bundle",
+      "recommended_action": "owner_review_required_decide_execute_as_next_task_or_archive_under_separate_card",
+      "safe_to_ignore_for_this_audit": false,
+      "evidence_used": [
+        "frontmatter describes read-only sidecar online audit and approval gate",
+        "matching report directory is absent",
+        "git status shows untracked task card",
+        "git ls-files and git log --all show no tracked or committed task/report path",
+        "registry list-active returned active_jobs empty"
+      ],
+      "data_missing": [
+        "whether this draft was intentionally queued as the next approved sidecar audit",
+        "runtime endpoint/auth evidence because no report bundle exists"
+      ]
+    }
+  ],
+  "merge_parking_registry": {
+    "registry_md_present": false,
+    "parked_dir_present": false,
+    "recommendation": "do_not_create_merge_parking_registry_in_this_audit"
+  }
+}

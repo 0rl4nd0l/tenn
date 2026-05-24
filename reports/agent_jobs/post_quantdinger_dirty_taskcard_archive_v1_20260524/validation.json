@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "job_id": "post_quantdinger_dirty_taskcard_archive_v1_20260524",
+  "generated_at": "2026-05-24T11:31:23Z",
+  "results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+      "ok": true,
+      "notes": "Task card validation returned ok true with no issues."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "ok": true,
+      "notes": "One active trust-foundation job was present; no archive allowed-file overlap was observed."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+      "ok": false,
+      "notes": "Returned false due unrelated dirty files outside the archive card allowlist, not due an active overlap on archive files."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+      "ok": false,
+      "notes": "Claim was blocked by the same unrelated dirty-file gate."
+    }
+  ],
+  "results_extra": [
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/status.json",
+      "ok": true,
+      "notes": "Preserved prior status JSON parsed successfully."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/file_classification.json",
+      "ok": true,
+      "notes": "Preserved prior file classification JSON parsed successfully."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/validation.json",
+      "ok": true,
+      "notes": "Preserved prior validation JSON parsed successfully."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/diff-check.json",
+      "ok": true,
+      "notes": "Preserved prior diff-check JSON parsed successfully."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/status.json",
+      "ok": true,
+      "notes": "Archive status JSON parsed successfully before final status update."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/validation.json",
+      "ok": true,
+      "notes": "Archive validation JSON parsed successfully before final validation update."
+    },
+    {
+      "command": "git diff --check",
+      "ok": true,
+      "notes": "No whitespace errors reported."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+      "ok": false,
+      "notes": "Diff-check report was written, but command returned false because unrelated dirty files remain outside this task card's exact allowlist."
+    }
+  ],
+  "final_results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+      "ok": true,
+      "notes": "Final task card validation passed after replacing glob-style report entries with explicit allowed file paths."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/status.json",
+      "ok": true,
+      "notes": "Final archive status JSON parsed successfully."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/post_quantdinger_dirty_taskcard_archive_v1_20260524/validation.json",
+      "ok": true,
+      "notes": "Final archive validation JSON parsed successfully before adding this final-results block."
+    },
+    {
+      "command": "git diff --check",
+      "ok": true,
+      "notes": "Final whitespace check passed."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/post_quantdinger_dirty_taskcard_archive_v1_20260524.md",
+      "ok": false,
+      "notes": "Final check-diff only blocked on unrelated dirty files outside this task card allowlist."
+    }
+  ],
+  "pending_results": [],
+  "staged_file_allowlist_check": {
+    "ok": true,
+    "checked_command": "git diff --cached --name-only",
+    "notes": "Staged files are exactly the archive task card, prior post-QuantDinger audit task card, and both allowed report bundles."
+  },
+  "forbidden_surfaces_touched": false
+}
