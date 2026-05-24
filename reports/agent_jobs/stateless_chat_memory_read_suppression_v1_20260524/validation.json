@@ -1,0 +1,94 @@
+{
+  "final_artifact_validation": [
+    {
+      "command": "python3 -m json.tool runtime_proof/csl_response/no_mutation/validation/status",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --cached --check && git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/stateless_chat_memory_read_suppression_v1_20260524.md",
+      "result": "PASS"
+    }
+  ],
+  "job_id": "stateless_chat_memory_read_suppression_v1_20260524",
+  "runtime_validation": [
+    {
+      "check": "canonical HEAD at/after 8c2406d4 and suppression commit present",
+      "head": "30a3b168994d9862a522017534f6385846701613",
+      "result": "PASS"
+    },
+    {
+      "check": "Docker backend bound to canonical /home/l4nd0/tenn target",
+      "result": "PASS"
+    },
+    {
+      "check": "backend-only restart health",
+      "result": "PASS",
+      "started": "/fe_backend running started=2026-05-24T08:59:37.114466252Z /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial"
+    },
+    {
+      "check": "stateless route/header gate after restart",
+      "details": {
+        "body": "{\"detail\":\"stateless_smoke requires X-Tenn-Stateless-Smoke: 1\"}",
+        "status": 400
+      },
+      "result": "PASS"
+    },
+    {
+      "check": "single CSL stateless smoke",
+      "elapsed_seconds": 0.589,
+      "http_status": 200,
+      "result": "PASS"
+    },
+    {
+      "change_counts": {
+        "before_restart_to_after_backend_restart": 0,
+        "before_restart_to_after_csl_stateless_smoke": 0,
+        "before_restart_to_after_missing_header_probe": 0
+      },
+      "check": "no tracked store/chat-history/memory-read mutation",
+      "result": "PASS"
+    },
+    {
+      "check": "CSL visible answer guard criteria",
+      "details": {
+        "metadata_guard": "PASS",
+        "runtime_no_mutation": "PASS",
+        "visible_answer_guard": "FAIL"
+      },
+      "result": "FAIL"
+    }
+  ],
+  "static_validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/stateless_chat_memory_read_suppression_v1_20260524.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/stateless_chat_memory_read_suppression_v1_20260524.md",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/tmp/tenn_stateless_memory_suppression_pycache python3 -m compileall -q financial-engine_v2/backend/app/services/memory_events.py financial-engine_v2/backend/app/services/cockpit_service.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "PASS"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py -k \"memory_read_event_suppression or stateless_smoke_does_not_persist_state or stateless_smoke_non_stream or stateless_smoke_stream or stateless_smoke_requires_header\"",
+      "details": "5 passed, 54 deselected",
+      "result": "PASS"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "details": "67 passed",
+      "result": "PASS"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/memory_events.py financial-engine_v2/backend/app/services/cockpit_service.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "PASS"
+    }
+  ],
+  "updated_at": "2026-05-24T09:07:12.144747+00:00"
+}

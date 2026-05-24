@@ -1,0 +1,39 @@
+{
+  "attested_at": "2026-05-24T09:05:59.183656+00:00",
+  "basis": {
+    "before_restart_to_after_backend_restart_change_count": 0,
+    "before_restart_to_after_csl_stateless_smoke_change_count": 0,
+    "before_restart_to_after_missing_header_probe_change_count": 0,
+    "chat_history_readonly_lookup": {
+      "checked_at": "2026-05-24T09:03:38.814024+00:00",
+      "database": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+      "mode": "sqlite uri mode=ro",
+      "stateless_smoke_session_id": "stateless-smoke-b7b9998623824dee9285cbebdbefaa13",
+      "tables": {
+        "analysis_exports": {
+          "thread_id": 0
+        },
+        "chat_messages": {
+          "thread_id": 0
+        },
+        "chat_sessions": {
+          "thread_id": 0
+        },
+        "update_events": {
+          "thread_id": 0
+        }
+      },
+      "total_matches": 0
+    },
+    "cockpit_state_db_unchanged": true,
+    "memory_read_events_unchanged": true,
+    "news_db_candidates_after_csl": [],
+    "news_db_candidates_before": [],
+    "qdrant_postgres_dir_stats_unchanged": true
+  },
+  "job_id": "stateless_chat_memory_read_suppression_v1_20260524",
+  "notes": [
+    "Tracked file hashes/stat metadata and Qdrant/Postgres directory stat+du output had zero changes across the approved restart/header/smoke window."
+  ],
+  "result": "PASS"
+}

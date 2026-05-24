@@ -1,0 +1,352 @@
+{
+  "elapsed_seconds": 0.589,
+  "http_status": 200,
+  "request": {
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Tenn-Stateless-Smoke": "1"
+    },
+    "method": "POST",
+    "payload": {
+      "message": "what does the evidence say about CSL price trend, buybacks, tariffs, and financials?",
+      "stateless_smoke": true,
+      "stream": false,
+      "ticker": "CSL"
+    },
+    "url": "http://127.0.0.1:8000/api/cockpit/chat"
+  },
+  "requested_at": "2026-05-24T09:01:36.174412+00:00",
+  "response_json": {
+    "data": {
+      "action_preview": null,
+      "auto_flag": null,
+      "chart": null,
+      "cost_usd": 0.0,
+      "latency_ms": 579,
+      "model": null,
+      "provider_error": null,
+      "routing_metadata": {
+        "chat_persistence": "disabled",
+        "claim_evidence_families": [
+          "filing_context",
+          "financial_metric",
+          "market_price_or_technical_trend"
+        ],
+        "claim_evidence_requirements": [
+          {
+            "claim_family": "filing_context",
+            "required_any": [
+              "filing"
+            ],
+            "satisfied": true,
+            "status": "context_only"
+          },
+          {
+            "claim_family": "financial_metric",
+            "required_any": [
+              "extracted_metric",
+              "financial_statement"
+            ],
+            "satisfied": true,
+            "status": "satisfied"
+          },
+          {
+            "claim_family": "market_price_or_technical_trend",
+            "required_any": [
+              "market_data",
+              "price_series",
+              "technical_indicator"
+            ],
+            "satisfied": false,
+            "status": "missing_required_evidence"
+          }
+        ],
+        "claim_verified_source_count": 0,
+        "context_only_claim_families": [
+          "filing_context"
+        ],
+        "cost_usd": 0.0,
+        "entities": {
+          "primary_ticker": "CSL",
+          "sector": null,
+          "tickers": [
+            "CSL"
+          ]
+        },
+        "evidence_categories": [
+          "buyback_filing",
+          "context_only",
+          "extracted_metric",
+          "filing",
+          "financial_statement",
+          "news"
+        ],
+        "evidence_labels": [
+          "context_only",
+          "financial_truth",
+          "local_news_context",
+          "market_data_missing",
+          "missing_required_evidence",
+          "operational_trace",
+          "unknown_unclassified",
+          "unsupported_or_not_verified"
+        ],
+        "evidence_requirement_labels": [
+          "market_data_missing",
+          "missing_required_evidence",
+          "unsupported_or_not_verified"
+        ],
+        "intent": "financial_interpretation",
+        "latency_ms": 579,
+        "missing_categories_after_recovery": [
+          "market_data",
+          "stale_evidence"
+        ],
+        "missing_categories_before_recovery": [
+          "stale_evidence"
+        ],
+        "missing_data_recovery": {
+          "attempted": false,
+          "remaining_categories": [
+            "stale_evidence"
+          ],
+          "resolved_categories": [],
+          "sources": []
+        },
+        "missing_evidence_categories": [
+          "market_data"
+        ],
+        "runtime_routing_reason": "operator_selected",
+        "runtime_target": "local",
+        "runtime_target_requested": "local",
+        "source": "orchestrator",
+        "source_coverage_status": "missing_required_evidence",
+        "source_label_counts": {
+          "context_only": 9,
+          "financial_truth": 1,
+          "local_news_context": 1,
+          "operational_trace": 1,
+          "unknown_unclassified": 8
+        },
+        "source_label_taxonomy_version": "source_label_semantics_v1",
+        "source_plan": [
+          "financial_truth",
+          "company_memory",
+          "market_memory",
+          "user_thesis_memory"
+        ],
+        "source_status": {
+          "company_memory": "ok",
+          "financial_truth": "ok",
+          "market_memory": "ok",
+          "user_thesis_memory": "not_configured"
+        },
+        "sources": [
+          "financial_truth",
+          "company_memory",
+          "market_memory",
+          "user_thesis_memory"
+        ],
+        "stateless_smoke": true,
+        "sufficient_for_analysis": false,
+        "unsupported_claim_families": [
+          "market_price_or_technical_trend"
+        ],
+        "visible_source_count": 10,
+        "visible_source_kinds": [
+          "context",
+          "document"
+        ]
+      },
+      "runtime_target": "local",
+      "source": "orchestrator",
+      "sources": [
+        {
+          "claim_verified": false,
+          "doc_type": null,
+          "document_id": "fefcf480-dd1d-46f4-a007-a63a5619c568",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-04-07_u-s-section-232-tariffs-on-pharmaceuticals_fefcf480-dd1d-46f4-a007-a63a5619c568.pdf",
+          "published_at": "2026-04-07T00:00:00Z",
+          "score": 0.0,
+          "snippet": "asx announcement page | 1 7 april 2026 melbourne, australia u.s. section 232 tariffs on pharmaceuticals csl limited (asx:csl; usotc:cslly) notes the announcement by the united states administration on 2 april 2026 that it intends to impose tariffs on pharmaceutical products im...",
+          "source_id": null,
+          "title": "U.S. Section 232 Tariffs on Pharmaceuticals",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03079554"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "59e49104-6ed7-433d-9fae-6f07d01a26fd",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-04-02_update-notification-of-buy-back-csl_59e49104-6ed7-433d-9fae-6f07d01a26fd.pdf",
+          "published_at": "2026-04-02T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03078806"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "f84ee994-5eea-4be0-b886-8f7a71241073",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-04-01_update-notification-of-buy-back-csl_f84ee994-5eea-4be0-b886-8f7a71241073.pdf",
+          "published_at": "2026-04-01T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03078255"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "f8ae419b-5ce3-4bc9-aa4a-dd3f3eca5e07",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-03-31_update-notification-of-buy-back-csl_f8ae419b-5ce3-4bc9-aa4a-dd3f3eca5e07.pdf",
+          "published_at": "2026-03-31T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03077596"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "cfa05c4f-3208-4bee-a318-798ddd51f8d7",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-03-30_update-notification-of-buy-back-csl_cfa05c4f-3208-4bee-a318-798ddd51f8d7.pdf",
+          "published_at": "2026-03-30T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03077048"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "ca198fd0-c06a-4a12-823d-332e98b07f4d",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-03-27_update-notification-of-buy-back-csl_ca198fd0-c06a-4a12-823d-332e98b07f4d.pdf",
+          "published_at": "2026-03-27T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03076513"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "51f94c8b-437b-41cd-af1d-eba35365fd9e",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-03-26_update-notification-of-buy-back-csl_51f94c8b-437b-41cd-af1d-eba35365fd9e.pdf",
+          "published_at": "2026-03-26T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03076037"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": "quarterly",
+          "document_id": "7209fb5f-441a-490f-8479-de8304ac3f2c",
+          "evidence_label": "unknown_unclassified",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "kind": "document",
+          "path": "/data/asx/docs/CSL/other/2026-03-25_update-notification-of-buy-back-csl_7209fb5f-441a-490f-8479-de8304ac3f2c.pdf",
+          "published_at": "2026-03-25T00:00:00Z",
+          "score": 0.0,
+          "snippet": null,
+          "source_id": null,
+          "title": "Update - Notification of buy-back - CSL",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03075533"
+        },
+        {
+          "claim_verified": false,
+          "doc_type": null,
+          "document_id": null,
+          "evidence_label": "financial_truth",
+          "evidence_labels": [
+            "financial_truth"
+          ],
+          "kind": "document",
+          "path": null,
+          "published_at": null,
+          "score": 0.0,
+          "snippet": null,
+          "source_id": "financials:unknown:unknown:period",
+          "title": "Financials",
+          "url": null
+        },
+        {
+          "claim_verified": false,
+          "doc_type": null,
+          "document_id": null,
+          "evidence_label": "local_news_context",
+          "evidence_labels": [
+            "context_only",
+            "local_news_context",
+            "operational_trace"
+          ],
+          "kind": "context",
+          "path": null,
+          "published_at": null,
+          "score": 0.992,
+          "snippet": "CSL slashed its full year FY26 outlook and flagged multi-billion dollar impairment",
+          "source_id": "news:art_b120ef4f6d0600fec953dc14",
+          "title": "news:newspaper4k management_guidance",
+          "url": null
+        }
+      ],
+      "stateless_smoke": true,
+      "stateless_smoke_session_id": "stateless-smoke-b7b9998623824dee9285cbebdbefaa13",
+      "text": "Query intent: financial_interpretation\nPrimary ticker: CSL\nSource priority: financial_truth -> company_memory -> market_memory -> user_thesis_memory\nUser question: what does the evidence say about CSL price trend, buybacks, tariffs, and financials?\nUse financial truth for explicit numbers, company memory for business meaning, and market memory only when it adds relevant external context.\nFacts from financial truth:\n- no canonical financial rows were returned\nAvailable announcement/news context from financial truth:\n- 2026-04-07T00:00:00Z | U.S. Section 232 Tariffs on Pharmaceuticals: asx announcement page | 1 7 april 2026 melbourne, australia u.s. section 232 tariffs on pharmaceuticals csl limited (asx:csl; usotc:cslly) notes the announcement by the united states administration on 2 april 2026 that it intends to impose tariffs on pharmaceutical products imported to the united states (u.s.) using a proclamation under section 232 of the trade expansion act (proclamation). csl is working through the details of the proclamation, but the initial view is that most of csl\u2019s u.s. product sales will not be subject to tariffs. csl is pleased the u.s. administration has recognised the unique nature of plasma-derived therapies under the proclamation. this is consistent with the long... (source: https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03079554)\nInterpretation from company memory:\n- observed fact: CSL's share price dropped amid chaotic trading after CEO resignation announcement\n- management guidance: CSL slashed its full year FY26 outlook and flagged multi-billion dollar impairment\n- observed fact: CSL's CEO, Dr Paul McKenzie, abruptly resigned before half-year results announcement\nExternal context from market memory:\n- relevant sector: Healthcare\n- sector: {'date': '2026-05-07', 'description': 'Jason Atherton, a British Michelin-starred chef, opens a new restaurant in Forte dei Marmi, Tuscany, Italy, to subsidize his UK venues due to high UK taxes and a struggling hospitality sector.'}\n- sector: CSL reported December half-year results that fell short of market estimates with $1.5 billion in writedowns\n- macro: Cost of automatic indexation to inflation of income tax thresholds could be as high as $35 billion between 2028-29 and 2031-32\nUser thesis memory (confirmed):\n- no confirmed thesis items matched\nNotes:\n- user_thesis_memory is not configured for this orchestrator yet\nNumbers must come from canonical financial truth only.\n\nCoverage and Failure Signals:\n- Unresolved evidence gaps: stale_evidence\n- user_thesis_memory retrieval status: not_configured"
+    },
+    "type": "done"
+  },
+  "response_text": "{\"type\":\"done\",\"data\":{\"text\":\"Query intent: financial_interpretation\\nPrimary ticker: CSL\\nSource priority: financial_truth -> company_memory -> market_memory -> user_thesis_memory\\nUser question: what does the evidence say about CSL price trend, buybacks, tariffs, and financials?\\nUse financial truth for explicit numbers, company memory for business meaning, and market memory only when it adds relevant external context.\\nFacts from financial truth:\\n- no canonical financial rows were returned\\nAvailable announcement/news context from financial truth:\\n- 2026-04-07T00:00:00Z | U.S. Section 232 Tariffs on Pharmaceuticals: asx announcement page | 1 7 april 2026 melbourne, australia u.s. section 232 tariffs on pharmaceuticals csl limited (asx:csl; usotc:cslly) notes the announcement by the united states administration on 2 april 2026 that it intends to impose tariffs on pharmaceutical products imported to the united states (u.s.) using a proclamation under section 232 of the trade expansion act (proclamation). csl is working through the details of the proclamation, but the initial view is that most of csl\u2019s u.s. product sales will not be subject to tariffs. csl is pleased the u.s. administration has recognised the unique nature of plasma-derived therapies under the proclamation. this is consistent with the long... (source: https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03079554)\\nInterpretation from company memory:\\n- observed fact: CSL's share price dropped amid chaotic trading after CEO resignation announcement\\n- management guidance: CSL slashed its full year FY26 outlook and flagged multi-billion dollar impairment\\n- observed fact: CSL's CEO, Dr Paul McKenzie, abruptly resigned before half-year results announcement\\nExternal context from market memory:\\n- relevant sector: Healthcare\\n- sector: {'date': '2026-05-07', 'description': 'Jason Atherton, a British Michelin-starred chef, opens a new restaurant in Forte dei Marmi, Tuscany, Italy, to subsidize his UK venues due to high UK taxes and a struggling hospitality sector.'}\\n- sector: CSL reported December half-year results that fell short of market estimates with $1.5 billion in writedowns\\n- macro: Cost of automatic indexation to inflation of income tax thresholds could be as high as $35 billion between 2028-29 and 2031-32\\nUser thesis memory (confirmed):\\n- no confirmed thesis items matched\\nNotes:\\n- user_thesis_memory is not configured for this orchestrator yet\\nNumbers must come from canonical financial truth only.\\n\\nCoverage and Failure Signals:\\n- Unresolved evidence gaps: stale_evidence\\n- user_thesis_memory retrieval status: not_configured\",\"model\":null,\"latency_ms\":579,\"cost_usd\":0.0,\"source\":\"orchestrator\",\"provider_error\":null,\"action_preview\":null,\"chart\":null,\"sources\":[{\"title\":\"U.S. Section 232 Tariffs on Pharmaceuticals\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03079554\",\"snippet\":\"asx announcement page | 1 7 april 2026 melbourne, australia u.s. section 232 tariffs on pharmaceuticals csl limited (asx:csl; usotc:cslly) notes the announcement by the united states administration on 2 april 2026 that it intends to impose tariffs on pharmaceutical products im...\",\"published_at\":\"2026-04-07T00:00:00Z\",\"document_id\":\"fefcf480-dd1d-46f4-a007-a63a5619c568\",\"source_id\":null,\"doc_type\":null,\"path\":\"/data/asx/docs/CSL/other/2026-04-07_u-s-section-232-tariffs-on-pharmaceuticals_fefcf480-dd1d-46f4-a007-a63a5619c568.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03078806\",\"snippet\":null,\"published_at\":\"2026-04-02T00:00:00Z\",\"document_id\":\"59e49104-6ed7-433d-9fae-6f07d01a26fd\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-04-02_update-notification-of-buy-back-csl_59e49104-6ed7-433d-9fae-6f07d01a26fd.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03078255\",\"snippet\":null,\"published_at\":\"2026-04-01T00:00:00Z\",\"document_id\":\"f84ee994-5eea-4be0-b886-8f7a71241073\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-04-01_update-notification-of-buy-back-csl_f84ee994-5eea-4be0-b886-8f7a71241073.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03077596\",\"snippet\":null,\"published_at\":\"2026-03-31T00:00:00Z\",\"document_id\":\"f8ae419b-5ce3-4bc9-aa4a-dd3f3eca5e07\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-03-31_update-notification-of-buy-back-csl_f8ae419b-5ce3-4bc9-aa4a-dd3f3eca5e07.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03077048\",\"snippet\":null,\"published_at\":\"2026-03-30T00:00:00Z\",\"document_id\":\"cfa05c4f-3208-4bee-a318-798ddd51f8d7\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-03-30_update-notification-of-buy-back-csl_cfa05c4f-3208-4bee-a318-798ddd51f8d7.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03076513\",\"snippet\":null,\"published_at\":\"2026-03-27T00:00:00Z\",\"document_id\":\"ca198fd0-c06a-4a12-823d-332e98b07f4d\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-03-27_update-notification-of-buy-back-csl_ca198fd0-c06a-4a12-823d-332e98b07f4d.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03076037\",\"snippet\":null,\"published_at\":\"2026-03-26T00:00:00Z\",\"document_id\":\"51f94c8b-437b-41cd-af1d-eba35365fd9e\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-03-26_update-notification-of-buy-back-csl_51f94c8b-437b-41cd-af1d-eba35365fd9e.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Update - Notification of buy-back - CSL\",\"score\":0.0,\"url\":\"https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03075533\",\"snippet\":null,\"published_at\":\"2026-03-25T00:00:00Z\",\"document_id\":\"7209fb5f-441a-490f-8479-de8304ac3f2c\",\"source_id\":null,\"doc_type\":\"quarterly\",\"path\":\"/data/asx/docs/CSL/other/2026-03-25_update-notification-of-buy-back-csl_7209fb5f-441a-490f-8479-de8304ac3f2c.pdf\",\"kind\":\"document\",\"evidence_label\":\"unknown_unclassified\",\"evidence_labels\":[\"context_only\",\"unknown_unclassified\"],\"claim_verified\":false},{\"title\":\"Financials\",\"score\":0.0,\"url\":null,\"snippet\":null,\"published_at\":null,\"document_id\":null,\"source_id\":\"financials:unknown:unknown:period\",\"doc_type\":null,\"path\":null,\"kind\":\"document\",\"evidence_label\":\"financial_truth\",\"evidence_labels\":[\"financial_truth\"],\"claim_verified\":false},{\"title\":\"news:newspaper4k management_guidance\",\"score\":0.992,\"url\":null,\"snippet\":\"CSL slashed its full year FY26 outlook and flagged multi-billion dollar impairment\",\"published_at\":null,\"document_id\":null,\"source_id\":\"news:art_b120ef4f6d0600fec953dc14\",\"doc_type\":null,\"path\":null,\"kind\":\"context\",\"evidence_label\":\"local_news_context\",\"evidence_labels\":[\"context_only\",\"local_news_context\",\"operational_trace\"],\"claim_verified\":false}],\"routing_metadata\":{\"source\":\"orchestrator\",\"intent\":\"financial_interpretation\",\"sources\":[\"financial_truth\",\"company_memory\",\"market_memory\",\"user_thesis_memory\"],\"runtime_target\":\"local\",\"runtime_target_requested\":\"local\",\"runtime_routing_reason\":\"operator_selected\",\"latency_ms\":579,\"cost_usd\":0.0,\"chat_persistence\":\"disabled\",\"source_plan\":[\"financial_truth\",\"company_memory\",\"market_memory\",\"user_thesis_memory\"],\"entities\":{\"primary_ticker\":\"CSL\",\"tickers\":[\"CSL\"],\"sector\":null},\"source_status\":{\"financial_truth\":\"ok\",\"company_memory\":\"ok\",\"market_memory\":\"ok\",\"user_thesis_memory\":\"not_configured\"},\"missing_data_recovery\":{\"attempted\":false,\"sources\":[],\"resolved_categories\":[],\"remaining_categories\":[\"stale_evidence\"]},\"missing_categories_before_recovery\":[\"stale_evidence\"],\"missing_categories_after_recovery\":[\"market_data\",\"stale_evidence\"],\"sufficient_for_analysis\":false,\"visible_source_count\":10,\"visible_source_kinds\":[\"context\",\"document\"],\"source_label_taxonomy_version\":\"source_label_semantics_v1\",\"source_label_counts\":{\"context_only\":9,\"unknown_unclassified\":8,\"financial_truth\":1,\"operational_trace\":1,\"local_news_context\":1},\"evidence_labels\":[\"context_only\",\"financial_truth\",\"local_news_context\",\"market_data_missing\",\"missing_required_evidence\",\"operational_trace\",\"unknown_unclassified\",\"unsupported_or_not_verified\"],\"claim_verified_source_count\":0,\"source_coverage_status\":\"missing_required_evidence\",\"claim_evidence_families\":[\"filing_context\",\"financial_metric\",\"market_price_or_technical_trend\"],\"evidence_categories\":[\"buyback_filing\",\"context_only\",\"extracted_metric\",\"filing\",\"financial_statement\",\"news\"],\"missing_evidence_categories\":[\"market_data\"],\"unsupported_claim_families\":[\"market_price_or_technical_trend\"],\"context_only_claim_families\":[\"filing_context\"],\"evidence_requirement_labels\":[\"market_data_missing\",\"missing_required_evidence\",\"unsupported_or_not_verified\"],\"claim_evidence_requirements\":[{\"claim_family\":\"filing_context\",\"required_any\":[\"filing\"],\"status\":\"context_only\",\"satisfied\":true},{\"claim_family\":\"financial_metric\",\"required_any\":[\"extracted_metric\",\"financial_statement\"],\"status\":\"satisfied\",\"satisfied\":true},{\"claim_family\":\"market_price_or_technical_trend\",\"required_any\":[\"market_data\",\"price_series\",\"technical_indicator\"],\"status\":\"missing_required_evidence\",\"satisfied\":false}],\"stateless_smoke\":true},\"runtime_target\":\"local\",\"auto_flag\":null,\"stateless_smoke\":true,\"stateless_smoke_session_id\":\"stateless-smoke-b7b9998623824dee9285cbebdbefaa13\"}}"
+}

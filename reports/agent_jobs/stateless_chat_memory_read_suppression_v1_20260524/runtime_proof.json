@@ -1,0 +1,1053 @@
+{
+  "chat_history_readonly_lookup": {
+    "checked_at": "2026-05-24T09:03:38.814024+00:00",
+    "database": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+    "mode": "sqlite uri mode=ro",
+    "stateless_smoke_session_id": "stateless-smoke-b7b9998623824dee9285cbebdbefaa13",
+    "tables": {
+      "analysis_exports": {
+        "thread_id": 0
+      },
+      "chat_messages": {
+        "thread_id": 0
+      },
+      "chat_sessions": {
+        "thread_id": 0
+      },
+      "update_events": {
+        "thread_id": 0
+      }
+    },
+    "total_matches": 0
+  },
+  "comparisons": {
+    "after_backend_restart_to_after_missing_header_probe": [],
+    "after_missing_header_probe_to_after_csl_stateless_smoke": [],
+    "before_restart_to_after_backend_restart": [],
+    "before_restart_to_after_csl_stateless_smoke": [],
+    "before_restart_to_after_missing_header_probe": []
+  },
+  "created_at": "2026-05-24T08:59:21.898730+00:00",
+  "csl_smoke_request": {
+    "elapsed_seconds": 0.589,
+    "http_status": 200,
+    "response_artifact": "reports/agent_jobs/stateless_chat_memory_read_suppression_v1_20260524/csl_stateless_smoke_response.json",
+    "started_at": "2026-05-24T09:01:36.174412+00:00"
+  },
+  "job_id": "stateless_chat_memory_read_suppression_v1_20260524",
+  "route_gate": {
+    "missing_header_probe": {
+      "body": "{\"detail\":\"stateless_smoke requires X-Tenn-Stateless-Smoke: 1\"}",
+      "status": 400
+    }
+  },
+  "runtime_gate": {
+    "backend_health_after_restart": {
+      "cmd": [
+        "curl",
+        "-fsS",
+        "http://127.0.0.1:8000/api/health"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "backend_health_before_restart": {
+      "cmd": [
+        "curl",
+        "-fsS",
+        "http://127.0.0.1:8000/api/health"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "canonical_at_or_after_8c2406d4": {
+      "cmd": [
+        "git",
+        "-C",
+        "/home/l4nd0/tenn",
+        "merge-base",
+        "--is-ancestor",
+        "8c2406d4d6a3be2ab24cf1ae053ab86b8d85f99d",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "canonical_branch": {
+      "cmd": [
+        "git",
+        "-C",
+        "/home/l4nd0/tenn",
+        "branch",
+        "--show-current"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    "canonical_head": {
+      "cmd": [
+        "git",
+        "-C",
+        "/home/l4nd0/tenn",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "30a3b168994d9862a522017534f6385846701613"
+    },
+    "canonical_path": {
+      "cmd": [
+        "readlink",
+        "-f",
+        "/home/l4nd0/tenn"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+    },
+    "container_source_visibility": {
+      "cmd": [
+        "docker",
+        "exec",
+        "fe_backend",
+        "sh",
+        "-lc",
+        "grep -n \"suppress_memory_read_events\\|suppression_reason\\|stateless_smoke\" /app/app/services/cockpit_service.py /app/app/services/memory_events.py /app/app/routes/cockpit_api.py | head -80"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/app/app/services/cockpit_service.py:32:from app.services.memory_events import suppress_memory_read_events\n/app/app/services/cockpit_service.py:3089:            nullcontext() if persist_chat else suppress_memory_read_events()\n/app/app/services/memory_events.py:18:    \"suppress_memory_read_events\",\n/app/app/services/memory_events.py:24:def suppress_memory_read_events() -> Iterator[None]:\n/app/app/services/memory_events.py:96:        event[\"suppression_reason\"] = \"stateless_chat_smoke\"\n/app/app/routes/cockpit_api.py:3599:def _stateless_smoke_requested(payload: CockpitChatRequest, request: Request) -> bool:\n/app/app/routes/cockpit_api.py:3600:    if not payload.stateless_smoke:\n/app/app/routes/cockpit_api.py:3606:            detail=\"stateless_smoke requires X-Tenn-Stateless-Smoke: 1\",\n/app/app/routes/cockpit_api.py:5634:    stateless_smoke: bool = False\n/app/app/routes/cockpit_api.py:9872:    stateless_smoke = _stateless_smoke_requested(payload, request)\n/app/app/routes/cockpit_api.py:9875:        if stateless_smoke\n/app/app/routes/cockpit_api.py:9895:                persist_chat=not stateless_smoke,\n/app/app/routes/cockpit_api.py:9903:            if stateless_smoke:\n/app/app/routes/cockpit_api.py:9904:                ui_metadata[\"stateless_smoke\"] = True\n/app/app/routes/cockpit_api.py:9907:            if stateless_smoke:\n/app/app/routes/cockpit_api.py:9953:            if stateless_smoke:\n/app/app/routes/cockpit_api.py:9954:                done_data[\"stateless_smoke\"] = True\n/app/app/routes/cockpit_api.py:9955:                done_data[\"stateless_smoke_session_id\"] = chat_session_id\n/app/app/routes/cockpit_api.py:10000:                    persist_chat=not stateless_smoke,\n/app/app/routes/cockpit_api.py:10008:                if stateless_smoke:\n/app/app/routes/cockpit_api.py:10009:                    ui_metadata[\"stateless_smoke\"] = True\n/app/app/routes/cockpit_api.py:10012:                if stateless_smoke:\n/app/app/routes/cockpit_api.py:10064:                if stateless_smoke:\n/app/app/routes/cockpit_api.py:10065:                    done_data[\"stateless_smoke\"] = True\n/app/app/routes/cockpit_api.py:10066:                    done_data[\"stateless_smoke_session_id\"] = chat_session_id"
+    },
+    "docker_backend_bind": {
+      "cmd": [
+        "docker",
+        "inspect",
+        "fe_backend",
+        "--format",
+        "{{.Name}} {{.State.Status}} started={{.State.StartedAt}} {{index .Config.Labels \"com.docker.compose.project.working_dir\"}} {{range .Mounts}}{{.Source}}->{{.Destination}} {{end}}"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/fe_backend running started=2026-05-24T08:41:28.530008544Z /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2 /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models->/models/ssd /mnt/nvme/tenn/models->/models/nvme /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend->/app /mnt/hdd-cold/tenn/models->/models/hdd /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/config->/config /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs->/data/marketindex/pdfs /mnt/tenn-nvme2/tenn/financial-engine_v2/reports->/workspace-reports /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/shared->/app/shared /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs->/data/extraction_gold_real/pdfs /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs->/data/benchmark/pdfs /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1->/workspace /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit->/app/cockpit /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs->/data/asx/docs /mnt/tenn-nvme2/tenn/financial-engine_v2/data->/data /mnt/tenn-nvme2/tenn/financial-engine_v2/reports->/reports /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/scripts->/scripts /mnt/tenn-nvme2/tenn/financial-engine_v2/reports->/workspace/reports"
+    },
+    "docker_backend_bind_after_restart": {
+      "cmd": [
+        "docker",
+        "inspect",
+        "fe_backend",
+        "--format",
+        "{{.Name}} {{.State.Status}} started={{.State.StartedAt}} {{index .Config.Labels \"com.docker.compose.project.working_dir\"}} {{range .Mounts}}{{.Source}}->{{.Destination}} {{end}}"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/fe_backend running started=2026-05-24T08:59:37.114466252Z /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/config->/config /mnt/tenn-nvme2/tenn/financial-engine_v2/data/marketindex/pdfs->/data/marketindex/pdfs /mnt/tenn-nvme2/tenn/financial-engine_v2/reports->/workspace-reports /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/shared->/app/shared /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs->/data/extraction_gold_real/pdfs /mnt/tenn-nvme2/tenn/financial-engine_v2/data/benchmark/pdfs->/data/benchmark/pdfs /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1->/workspace /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit->/app/cockpit /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs->/data/asx/docs /mnt/tenn-nvme2/tenn/financial-engine_v2/data->/data /mnt/tenn-nvme2/tenn/financial-engine_v2/reports->/reports /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/scripts->/scripts /mnt/tenn-nvme2/tenn/financial-engine_v2/reports->/workspace/reports /mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models->/models/ssd /mnt/nvme/tenn/models->/models/nvme /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend->/app /mnt/hdd-cold/tenn/models->/models/hdd"
+    },
+    "gpu_process_guard": {
+      "cmd": [
+        "bash",
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "suppression_commit_present": {
+      "cmd": [
+        "git",
+        "-C",
+        "/home/l4nd0/tenn",
+        "merge-base",
+        "--is-ancestor",
+        "30a3b168994d9862a522017534f6385846701613",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    }
+  },
+  "snapshots": {
+    "after_backend_restart": {
+      "captured_at": "2026-05-24T09:00:36.946104+00:00",
+      "files": [
+        {
+          "ctime_ns": 1779088391307742699,
+          "exists": true,
+          "inode": 25464104,
+          "mode": "0o644",
+          "mtime_ns": 1778920149087941088,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+          "sha256": "7ccf7d7eded32fb0a62963dca25c741efa1537970bbb128605b953402b1c915a",
+          "size": 22253568
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-wal"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-shm"
+        },
+        {
+          "ctime_ns": 1779088454810019362,
+          "exists": true,
+          "inode": 26100976,
+          "mode": "0o644",
+          "mtime_ns": 1778982396966808734,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+          "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+          "size": 4386816
+        },
+        {
+          "ctime_ns": 1779088455096020591,
+          "exists": true,
+          "inode": 26100977,
+          "mode": "0o644",
+          "mtime_ns": 1778982262123204579,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+          "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+          "size": 344064
+        },
+        {
+          "ctime_ns": 1779088455415021962,
+          "exists": true,
+          "inode": 26100983,
+          "mode": "0o644",
+          "mtime_ns": 1777872895195293692,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779612448218071191,
+          "exists": true,
+          "inode": 26100978,
+          "mode": "0o664",
+          "mtime_ns": 1779612448218071191,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "769b89f7d41d8aba6cee7dc3da4604ccb6edce8a17727d3ee754049ffce8021d",
+          "size": 231573
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100979,
+          "mode": "0o664",
+          "mtime_ns": 1778982396998808850,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "e50b4a4e7b4d4523ac58311104ca2d4c9208c3e3e4d81829dea74e12b8629366",
+          "size": 1215879
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100981,
+          "mode": "0o664",
+          "mtime_ns": 1779002110463427093,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+          "sha256": "4ce09c4e2fa50cca47cef0841c9ed08d5d50e380aefeee56a49daa1c73f82396",
+          "size": 390939
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100980,
+          "mode": "0o664",
+          "mtime_ns": 1779002110464427098,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memo_skips.jsonl",
+          "sha256": "ca1c8248fe2fbc110950870d7658b46dc5991000aaf20ff406b723f27aef2dc3",
+          "size": 2821
+        },
+        {
+          "ctime_ns": 1779088454596018441,
+          "exists": true,
+          "inode": 26100975,
+          "mode": "0o664",
+          "mtime_ns": 1778911770682023986,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "694eb96495c56baab15fc36c05082dfb562f669d9053276ccf8c89280806fd6d",
+          "size": 3955
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100982,
+          "mode": "0o664",
+          "mtime_ns": 1778914820852044360,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/source_registry.jsonl",
+          "sha256": "2b51515fe0c5ace0cdca20ccc63eb33e7ac31208140dca6dd2d3ed21d4b00ac9",
+          "size": 2003
+        },
+        {
+          "ctime_ns": 1779088478149119253,
+          "exists": true,
+          "inode": 26102054,
+          "mode": "0o644",
+          "mtime_ns": 1776496784737659680,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/company_memory.sqlite",
+          "sha256": "08b25830d0fcc025886632c33d2e2a5bd54d103537f663bd7bd3f2c5e6be6521",
+          "size": 36864
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102055,
+          "mode": "0o644",
+          "mtime_ns": 1776496785259652276,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/market_memory.sqlite",
+          "sha256": "3a0cc2cf0b9a274fc0d70049e99ec6b5534516f7e68f49dbde3e6a9d0e734c04",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779088478337120055,
+          "exists": true,
+          "inode": 26102059,
+          "mode": "0o644",
+          "mtime_ns": 1776738296523234762,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "6cb025c4649cd92c55d09c01db964c9457f421d5ab6fea9db010e66fec99b342",
+          "size": 28672
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102056,
+          "mode": "0o664",
+          "mtime_ns": 1776740235588040179,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "22a47f25a8e8b1500d5619434629e210a215d836a13996b9714a26b8b6b2ef2f",
+          "size": 16668
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102057,
+          "mode": "0o664",
+          "mtime_ns": 1776740236595026311,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "f719765052aa2245f61ed2995cdafdebccfebb0f4b33497ba72594fb3d076078",
+          "size": 42479
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memos.jsonl"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memo_skips.jsonl"
+        },
+        {
+          "ctime_ns": 1779088478114119104,
+          "exists": true,
+          "inode": 26102053,
+          "mode": "0o664",
+          "mtime_ns": 1773646621092385232,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "e7cf5577e27c1cf5166f3dad3f70269cf479369642e89f43af295af988c88e56",
+          "size": 568
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102058,
+          "mode": "0o664",
+          "mtime_ns": 1773816237298698400,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/source_registry.jsonl",
+          "sha256": "5d35a2aa2752927df8081ba3725154c7a0d8dd86745d5524f4740c152f8ad63e",
+          "size": 2625
+        }
+      ],
+      "label": "after_backend_restart",
+      "news_db_candidates": [],
+      "postgres_data": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_postgres",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /var/lib/postgresql/data 2>/dev/null; du -sb /var/lib/postgresql/data 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/var/lib/postgresql/data|4096|1779604896|10912569\n71518966\t/var/lib/postgresql/data"
+      },
+      "qdrant_storage": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_qdrant",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /qdrant/storage 2>/dev/null; du -sb /qdrant/storage 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/qdrant/storage|4096|1777968223|10912571\n762603324\t/qdrant/storage"
+      }
+    },
+    "after_csl_stateless_smoke": {
+      "captured_at": "2026-05-24T09:02:25.772089+00:00",
+      "files": [
+        {
+          "ctime_ns": 1779088391307742699,
+          "exists": true,
+          "inode": 25464104,
+          "mode": "0o644",
+          "mtime_ns": 1778920149087941088,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+          "sha256": "7ccf7d7eded32fb0a62963dca25c741efa1537970bbb128605b953402b1c915a",
+          "size": 22253568
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-wal"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-shm"
+        },
+        {
+          "ctime_ns": 1779088454810019362,
+          "exists": true,
+          "inode": 26100976,
+          "mode": "0o644",
+          "mtime_ns": 1778982396966808734,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+          "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+          "size": 4386816
+        },
+        {
+          "ctime_ns": 1779088455096020591,
+          "exists": true,
+          "inode": 26100977,
+          "mode": "0o644",
+          "mtime_ns": 1778982262123204579,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+          "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+          "size": 344064
+        },
+        {
+          "ctime_ns": 1779088455415021962,
+          "exists": true,
+          "inode": 26100983,
+          "mode": "0o644",
+          "mtime_ns": 1777872895195293692,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779612448218071191,
+          "exists": true,
+          "inode": 26100978,
+          "mode": "0o664",
+          "mtime_ns": 1779612448218071191,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "769b89f7d41d8aba6cee7dc3da4604ccb6edce8a17727d3ee754049ffce8021d",
+          "size": 231573
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100979,
+          "mode": "0o664",
+          "mtime_ns": 1778982396998808850,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "e50b4a4e7b4d4523ac58311104ca2d4c9208c3e3e4d81829dea74e12b8629366",
+          "size": 1215879
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100981,
+          "mode": "0o664",
+          "mtime_ns": 1779002110463427093,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+          "sha256": "4ce09c4e2fa50cca47cef0841c9ed08d5d50e380aefeee56a49daa1c73f82396",
+          "size": 390939
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100980,
+          "mode": "0o664",
+          "mtime_ns": 1779002110464427098,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memo_skips.jsonl",
+          "sha256": "ca1c8248fe2fbc110950870d7658b46dc5991000aaf20ff406b723f27aef2dc3",
+          "size": 2821
+        },
+        {
+          "ctime_ns": 1779088454596018441,
+          "exists": true,
+          "inode": 26100975,
+          "mode": "0o664",
+          "mtime_ns": 1778911770682023986,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "694eb96495c56baab15fc36c05082dfb562f669d9053276ccf8c89280806fd6d",
+          "size": 3955
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100982,
+          "mode": "0o664",
+          "mtime_ns": 1778914820852044360,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/source_registry.jsonl",
+          "sha256": "2b51515fe0c5ace0cdca20ccc63eb33e7ac31208140dca6dd2d3ed21d4b00ac9",
+          "size": 2003
+        },
+        {
+          "ctime_ns": 1779088478149119253,
+          "exists": true,
+          "inode": 26102054,
+          "mode": "0o644",
+          "mtime_ns": 1776496784737659680,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/company_memory.sqlite",
+          "sha256": "08b25830d0fcc025886632c33d2e2a5bd54d103537f663bd7bd3f2c5e6be6521",
+          "size": 36864
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102055,
+          "mode": "0o644",
+          "mtime_ns": 1776496785259652276,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/market_memory.sqlite",
+          "sha256": "3a0cc2cf0b9a274fc0d70049e99ec6b5534516f7e68f49dbde3e6a9d0e734c04",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779088478337120055,
+          "exists": true,
+          "inode": 26102059,
+          "mode": "0o644",
+          "mtime_ns": 1776738296523234762,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "6cb025c4649cd92c55d09c01db964c9457f421d5ab6fea9db010e66fec99b342",
+          "size": 28672
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102056,
+          "mode": "0o664",
+          "mtime_ns": 1776740235588040179,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "22a47f25a8e8b1500d5619434629e210a215d836a13996b9714a26b8b6b2ef2f",
+          "size": 16668
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102057,
+          "mode": "0o664",
+          "mtime_ns": 1776740236595026311,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "f719765052aa2245f61ed2995cdafdebccfebb0f4b33497ba72594fb3d076078",
+          "size": 42479
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memos.jsonl"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memo_skips.jsonl"
+        },
+        {
+          "ctime_ns": 1779088478114119104,
+          "exists": true,
+          "inode": 26102053,
+          "mode": "0o664",
+          "mtime_ns": 1773646621092385232,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "e7cf5577e27c1cf5166f3dad3f70269cf479369642e89f43af295af988c88e56",
+          "size": 568
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102058,
+          "mode": "0o664",
+          "mtime_ns": 1773816237298698400,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/source_registry.jsonl",
+          "sha256": "5d35a2aa2752927df8081ba3725154c7a0d8dd86745d5524f4740c152f8ad63e",
+          "size": 2625
+        }
+      ],
+      "label": "after_csl_stateless_smoke",
+      "news_db_candidates": [],
+      "postgres_data": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_postgres",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /var/lib/postgresql/data 2>/dev/null; du -sb /var/lib/postgresql/data 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/var/lib/postgresql/data|4096|1779604896|10912569\n71518966\t/var/lib/postgresql/data"
+      },
+      "qdrant_storage": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_qdrant",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /qdrant/storage 2>/dev/null; du -sb /qdrant/storage 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/qdrant/storage|4096|1777968223|10912571\n762603324\t/qdrant/storage"
+      }
+    },
+    "after_missing_header_probe": {
+      "captured_at": "2026-05-24T09:01:14.958204+00:00",
+      "files": [
+        {
+          "ctime_ns": 1779088391307742699,
+          "exists": true,
+          "inode": 25464104,
+          "mode": "0o644",
+          "mtime_ns": 1778920149087941088,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+          "sha256": "7ccf7d7eded32fb0a62963dca25c741efa1537970bbb128605b953402b1c915a",
+          "size": 22253568
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-wal"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-shm"
+        },
+        {
+          "ctime_ns": 1779088454810019362,
+          "exists": true,
+          "inode": 26100976,
+          "mode": "0o644",
+          "mtime_ns": 1778982396966808734,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+          "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+          "size": 4386816
+        },
+        {
+          "ctime_ns": 1779088455096020591,
+          "exists": true,
+          "inode": 26100977,
+          "mode": "0o644",
+          "mtime_ns": 1778982262123204579,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+          "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+          "size": 344064
+        },
+        {
+          "ctime_ns": 1779088455415021962,
+          "exists": true,
+          "inode": 26100983,
+          "mode": "0o644",
+          "mtime_ns": 1777872895195293692,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779612448218071191,
+          "exists": true,
+          "inode": 26100978,
+          "mode": "0o664",
+          "mtime_ns": 1779612448218071191,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "769b89f7d41d8aba6cee7dc3da4604ccb6edce8a17727d3ee754049ffce8021d",
+          "size": 231573
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100979,
+          "mode": "0o664",
+          "mtime_ns": 1778982396998808850,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "e50b4a4e7b4d4523ac58311104ca2d4c9208c3e3e4d81829dea74e12b8629366",
+          "size": 1215879
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100981,
+          "mode": "0o664",
+          "mtime_ns": 1779002110463427093,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+          "sha256": "4ce09c4e2fa50cca47cef0841c9ed08d5d50e380aefeee56a49daa1c73f82396",
+          "size": 390939
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100980,
+          "mode": "0o664",
+          "mtime_ns": 1779002110464427098,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memo_skips.jsonl",
+          "sha256": "ca1c8248fe2fbc110950870d7658b46dc5991000aaf20ff406b723f27aef2dc3",
+          "size": 2821
+        },
+        {
+          "ctime_ns": 1779088454596018441,
+          "exists": true,
+          "inode": 26100975,
+          "mode": "0o664",
+          "mtime_ns": 1778911770682023986,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "694eb96495c56baab15fc36c05082dfb562f669d9053276ccf8c89280806fd6d",
+          "size": 3955
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100982,
+          "mode": "0o664",
+          "mtime_ns": 1778914820852044360,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/source_registry.jsonl",
+          "sha256": "2b51515fe0c5ace0cdca20ccc63eb33e7ac31208140dca6dd2d3ed21d4b00ac9",
+          "size": 2003
+        },
+        {
+          "ctime_ns": 1779088478149119253,
+          "exists": true,
+          "inode": 26102054,
+          "mode": "0o644",
+          "mtime_ns": 1776496784737659680,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/company_memory.sqlite",
+          "sha256": "08b25830d0fcc025886632c33d2e2a5bd54d103537f663bd7bd3f2c5e6be6521",
+          "size": 36864
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102055,
+          "mode": "0o644",
+          "mtime_ns": 1776496785259652276,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/market_memory.sqlite",
+          "sha256": "3a0cc2cf0b9a274fc0d70049e99ec6b5534516f7e68f49dbde3e6a9d0e734c04",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779088478337120055,
+          "exists": true,
+          "inode": 26102059,
+          "mode": "0o644",
+          "mtime_ns": 1776738296523234762,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "6cb025c4649cd92c55d09c01db964c9457f421d5ab6fea9db010e66fec99b342",
+          "size": 28672
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102056,
+          "mode": "0o664",
+          "mtime_ns": 1776740235588040179,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "22a47f25a8e8b1500d5619434629e210a215d836a13996b9714a26b8b6b2ef2f",
+          "size": 16668
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102057,
+          "mode": "0o664",
+          "mtime_ns": 1776740236595026311,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "f719765052aa2245f61ed2995cdafdebccfebb0f4b33497ba72594fb3d076078",
+          "size": 42479
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memos.jsonl"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memo_skips.jsonl"
+        },
+        {
+          "ctime_ns": 1779088478114119104,
+          "exists": true,
+          "inode": 26102053,
+          "mode": "0o664",
+          "mtime_ns": 1773646621092385232,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "e7cf5577e27c1cf5166f3dad3f70269cf479369642e89f43af295af988c88e56",
+          "size": 568
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102058,
+          "mode": "0o664",
+          "mtime_ns": 1773816237298698400,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/source_registry.jsonl",
+          "sha256": "5d35a2aa2752927df8081ba3725154c7a0d8dd86745d5524f4740c152f8ad63e",
+          "size": 2625
+        }
+      ],
+      "label": "after_missing_header_probe",
+      "news_db_candidates": [],
+      "postgres_data": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_postgres",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /var/lib/postgresql/data 2>/dev/null; du -sb /var/lib/postgresql/data 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/var/lib/postgresql/data|4096|1779604896|10912569\n71518966\t/var/lib/postgresql/data"
+      },
+      "qdrant_storage": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_qdrant",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /qdrant/storage 2>/dev/null; du -sb /qdrant/storage 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/qdrant/storage|4096|1777968223|10912571\n762603324\t/qdrant/storage"
+      }
+    },
+    "before_restart": {
+      "captured_at": "2026-05-24T08:59:25.598540+00:00",
+      "files": [
+        {
+          "ctime_ns": 1779088391307742699,
+          "exists": true,
+          "inode": 25464104,
+          "mode": "0o644",
+          "mtime_ns": 1778920149087941088,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+          "sha256": "7ccf7d7eded32fb0a62963dca25c741efa1537970bbb128605b953402b1c915a",
+          "size": 22253568
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-wal"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db-shm"
+        },
+        {
+          "ctime_ns": 1779088454810019362,
+          "exists": true,
+          "inode": 26100976,
+          "mode": "0o644",
+          "mtime_ns": 1778982396966808734,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/company_memory.sqlite",
+          "sha256": "dab03bb363988907252070553f0e7f87a8fa16d05ed525655f4c3ab7b5b8521e",
+          "size": 4386816
+        },
+        {
+          "ctime_ns": 1779088455096020591,
+          "exists": true,
+          "inode": 26100977,
+          "mode": "0o644",
+          "mtime_ns": 1778982262123204579,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/market_memory.sqlite",
+          "sha256": "e901c7404253034ffd6f88dba4c83a176ea5c672fd6f9929f1675061b92e5092",
+          "size": 344064
+        },
+        {
+          "ctime_ns": 1779088455415021962,
+          "exists": true,
+          "inode": 26100983,
+          "mode": "0o644",
+          "mtime_ns": 1777872895195293692,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "5d23a987d9e6fb249852e617c78b50374cfbe65ab45741669d8635e6d8ee0f94",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779612448218071191,
+          "exists": true,
+          "inode": 26100978,
+          "mode": "0o664",
+          "mtime_ns": 1779612448218071191,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "769b89f7d41d8aba6cee7dc3da4604ccb6edce8a17727d3ee754049ffce8021d",
+          "size": 231573
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100979,
+          "mode": "0o664",
+          "mtime_ns": 1778982396998808850,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "e50b4a4e7b4d4523ac58311104ca2d4c9208c3e3e4d81829dea74e12b8629366",
+          "size": 1215879
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100981,
+          "mode": "0o664",
+          "mtime_ns": 1779002110463427093,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+          "sha256": "4ce09c4e2fa50cca47cef0841c9ed08d5d50e380aefeee56a49daa1c73f82396",
+          "size": 390939
+        },
+        {
+          "ctime_ns": 1779088455335021617,
+          "exists": true,
+          "inode": 26100980,
+          "mode": "0o664",
+          "mtime_ns": 1779002110464427098,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/news_memo_skips.jsonl",
+          "sha256": "ca1c8248fe2fbc110950870d7658b46dc5991000aaf20ff406b723f27aef2dc3",
+          "size": 2821
+        },
+        {
+          "ctime_ns": 1779088454596018441,
+          "exists": true,
+          "inode": 26100975,
+          "mode": "0o664",
+          "mtime_ns": 1778911770682023986,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "694eb96495c56baab15fc36c05082dfb562f669d9053276ccf8c89280806fd6d",
+          "size": 3955
+        },
+        {
+          "ctime_ns": 1779088455401021902,
+          "exists": true,
+          "inode": 26100982,
+          "mode": "0o664",
+          "mtime_ns": 1778914820852044360,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/research_memory/source_registry.jsonl",
+          "sha256": "2b51515fe0c5ace0cdca20ccc63eb33e7ac31208140dca6dd2d3ed21d4b00ac9",
+          "size": 2003
+        },
+        {
+          "ctime_ns": 1779088478149119253,
+          "exists": true,
+          "inode": 26102054,
+          "mode": "0o644",
+          "mtime_ns": 1776496784737659680,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/company_memory.sqlite",
+          "sha256": "08b25830d0fcc025886632c33d2e2a5bd54d103537f663bd7bd3f2c5e6be6521",
+          "size": 36864
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102055,
+          "mode": "0o644",
+          "mtime_ns": 1776496785259652276,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/market_memory.sqlite",
+          "sha256": "3a0cc2cf0b9a274fc0d70049e99ec6b5534516f7e68f49dbde3e6a9d0e734c04",
+          "size": 40960
+        },
+        {
+          "ctime_ns": 1779088478337120055,
+          "exists": true,
+          "inode": 26102059,
+          "mode": "0o644",
+          "mtime_ns": 1776738296523234762,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/user_thesis_memory.sqlite",
+          "sha256": "6cb025c4649cd92c55d09c01db964c9457f421d5ab6fea9db010e66fec99b342",
+          "size": 28672
+        },
+        {
+          "ctime_ns": 1779088478229119594,
+          "exists": true,
+          "inode": 26102056,
+          "mode": "0o664",
+          "mtime_ns": 1776740235588040179,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_read_events.jsonl",
+          "sha256": "22a47f25a8e8b1500d5619434629e210a215d836a13996b9714a26b8b6b2ef2f",
+          "size": 16668
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102057,
+          "mode": "0o664",
+          "mtime_ns": 1776740236595026311,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/memory_write_events.jsonl",
+          "sha256": "f719765052aa2245f61ed2995cdafdebccfebb0f4b33497ba72594fb3d076078",
+          "size": 42479
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memos.jsonl"
+        },
+        {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/news_memo_skips.jsonl"
+        },
+        {
+          "ctime_ns": 1779088478114119104,
+          "exists": true,
+          "inode": 26102053,
+          "mode": "0o664",
+          "mtime_ns": 1773646621092385232,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/commentary_memos.jsonl",
+          "sha256": "e7cf5577e27c1cf5166f3dad3f70269cf479369642e89f43af295af988c88e56",
+          "size": 568
+        },
+        {
+          "ctime_ns": 1779088478271119774,
+          "exists": true,
+          "inode": 26102058,
+          "mode": "0o664",
+          "mtime_ns": 1773816237298698400,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/research_memory/source_registry.jsonl",
+          "sha256": "5d35a2aa2752927df8081ba3725154c7a0d8dd86745d5524f4740c152f8ad63e",
+          "size": 2625
+        }
+      ],
+      "label": "before_restart",
+      "news_db_candidates": [],
+      "postgres_data": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_postgres",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /var/lib/postgresql/data 2>/dev/null; du -sb /var/lib/postgresql/data 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/var/lib/postgresql/data|4096|1779604896|10912569\n71518966\t/var/lib/postgresql/data"
+      },
+      "qdrant_storage": {
+        "cmd": [
+          "docker",
+          "exec",
+          "fe_qdrant",
+          "sh",
+          "-lc",
+          "stat -c \"%n|%s|%Y|%i\" /qdrant/storage 2>/dev/null; du -sb /qdrant/storage 2>/dev/null"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "/qdrant/storage|4096|1777968223|10912571\n762603324\t/qdrant/storage"
+      }
+    }
+  }
+}
