@@ -129,6 +129,9 @@ context even when visible local news was context-only or absent.
   `test_cockpit_news_status.py`, `test_build_ui_sources.py`,
   `test_sources.py`, `test_route_parity_contract.py`: `147 passed, 6 warnings`.
 - `git diff --check HEAD~1..HEAD`: pass.
+- Task-card check-diff: pass in the isolated worktree before the report commit.
+  The final canonical checkout check-diff still reports the two known foreign
+  untracked task cards, which were intentionally not touched.
 
 ## Live Smoke
 

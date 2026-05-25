@@ -83,6 +83,18 @@
       "result": "canonical fast-forwarded from 4d2d4b69 to bb78656"
     },
     {
+      "name": "task_card_check_diff_isolated",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md --no-write-report",
+      "status": "pass",
+      "result": "isolated worktree changed files were all inside allowed_files before the merge-review report commit"
+    },
+    {
+      "name": "task_card_check_diff_final_canonical",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md --no-write-report",
+      "status": "blocked_by_known_foreign_untracked_files",
+      "result": "final canonical checkout still has the two unrelated untracked task cards: docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md and docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md; they were intentionally not touched"
+    },
+    {
       "name": "route_smoke_after_restart",
       "command": "GET /api/cockpit/news/status; GET /api/cockpit/config; GET /openapi.json",
       "status": "pass",
