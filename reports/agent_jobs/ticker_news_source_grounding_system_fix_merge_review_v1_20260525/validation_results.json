@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "job_id": "ticker_news_source_grounding_system_fix_merge_review_v1_20260525",
+  "generated_at": "2026-05-25T07:24:05Z",
+  "overall_status": "pass",
+  "commands": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md",
+      "status": "pass",
+      "result": "ok true, issues []"
+    },
+    {
+      "name": "registry_check_overlap_initial_canonical",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md",
+      "status": "blocked_by_foreign_untracked_task_cards",
+      "result": "Canonical checkout had unrelated untracked a2m_backend_reload_news_status_activation_smoke and automation_audit_issue_preservation task cards outside this task card."
+    },
+    {
+      "name": "registry_check_overlap_isolated",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md",
+      "status": "pass",
+      "result": "ok true, issues []; unrelated Reporting lane job later appeared on cockpit-ui/report files only."
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md",
+      "status": "pass",
+      "result": "registry claim succeeded in isolated worktree"
+    },
+    {
+      "name": "parked_report_json_validation",
+      "command": "python3 -m json.tool reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/{blast_radius_matrix.json,root_cause_trace.json,validation_results.json,smoke_results.json,status.json}",
+      "status": "pass",
+      "result": "all parked report JSON artifacts validated"
+    },
+    {
+      "name": "merge_tree_conflict_scan",
+      "command": "git merge-tree $(git merge-base HEAD 703d8ada2fccb29f1a77c8a401e1c4fafd046497) HEAD 703d8ada2fccb29f1a77c8a401e1c4fafd046497 | rg -n '<<<<<<<|CONFLICT|changed in both|removed|added by us|added by them'",
+      "status": "pass",
+      "result": "no conflicts or conflict markers"
+    },
+    {
+      "name": "cherry_pick",
+      "command": "git cherry-pick -x 703d8ada2fccb29f1a77c8a401e1c4fafd046497",
+      "status": "pass",
+      "result": "initial integration commit 0a2bbd31db93b37c5ae83b2ab781c7948cee45f5"
+    },
+    {
+      "name": "target_drift_rebase",
+      "command": "git rebase migration/clean-runtime-baseline-reconstruct-v1",
+      "status": "pass",
+      "result": "canonical moved to 4d2d4b69; rebased integration commit became bb78656ba28908df3efa54efcbad10fa17f841d1"
+    },
+    {
+      "name": "py_compile",
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/chat_evidence_guard.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py financial-engine_v2/backend/tests/test_sources.py",
+      "status": "pass",
+      "result": "no compile errors after rebase"
+    },
+    {
+      "name": "ruff_changed_python",
+      "command": "uv run --python /home/l4nd0/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11 --with ruff==0.15.6 ruff check financial-engine_v2/backend/app/services/chat_evidence_guard.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py financial-engine_v2/backend/tests/test_sources.py",
+      "status": "pass",
+      "result": "All checks passed!"
+    },
+    {
+      "name": "focused_pytest_expanded_suite",
+      "command": "uv run --python /home/l4nd0/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11 --with pytest --with fastapi==0.115.6 --with httpx==0.27.2 --with pydantic==2.9.2 --with pydantic-settings==2.6.1 --with SQLAlchemy==2.0.36 --with qdrant-client==1.12.1 --with numpy==1.26.4 --with pandas --with python-dateutil==2.9.0.post0 --with rank-bm25==0.2.2 --with PyYAML --with exchange_calendars --with pymupdf==1.24.10 --with celery==5.4.0 --with redis==5.1.1 --with beautifulsoup4==4.12.3 --with lxml==5.3.0 pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py financial-engine_v2/backend/tests/test_cockpit_news_status.py financial-engine_v2/backend/tests/test_build_ui_sources.py financial-engine_v2/backend/tests/test_sources.py financial-engine_v2/backend/tests/test_route_parity_contract.py -q",
+      "status": "pass",
+      "result": "147 passed, 6 warnings in 6.25s after rebase"
+    },
+    {
+      "name": "git_diff_check_integration_commit",
+      "command": "git diff --check HEAD~1..HEAD",
+      "status": "pass",
+      "result": "no whitespace errors"
+    },
+    {
+      "name": "canonical_fast_forward",
+      "command": "git -C /home/l4nd0/tenn merge --ff-only safe/ticker-news-source-grounding-system-fix-merge-review-v1-20260525",
+      "status": "pass",
+      "result": "canonical fast-forwarded from 4d2d4b69 to bb78656"
+    },
+    {
+      "name": "route_smoke_after_restart",
+      "command": "GET /api/cockpit/news/status; GET /api/cockpit/config; GET /openapi.json",
+      "status": "pass",
+      "result": "all returned HTTP 200 after backend-only restart; relevant cockpit paths present"
+    },
+    {
+      "name": "changed_code_live_chat_smoke",
+      "command": "POST /api/cockpit/chat with X-Tenn-Stateless-Smoke: 1, web_search=false, rag=true, stream=false/true, 30s timeout",
+      "status": "pass",
+      "result": "A2M, BHP, COH non-stream plus A2M SSE passed; SSE chunk count 0"
+    }
+  ],
+  "warnings": [
+    "PytestConfigWarning: unknown config option asyncio_default_fixture_loop_scope in transient uv pytest environment",
+    "Pydantic protected namespace warning for existing RealGoldEvalRequest.model_override",
+    "FastAPI on_event deprecation warnings in existing app startup/shutdown code"
+  ],
+  "architecture_review": {
+    "status": "pass",
+    "cursor_rules_present": false,
+    "docs_checked": [
+      "docs/architecture/07_rag_contract.md",
+      "docs/architecture/15_news_substrate.md",
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "forbidden_mutation_attestation": [
+      "No DB mutation",
+      "No Qdrant mutation",
+      "No news-store mutation",
+      "No reindex/resync/backfill/projection repair",
+      "No parser routing change",
+      "No canonical financial truth write",
+      "No Tenn memory write",
+      "No runtime/model/GPU config edit"
+    ]
+  }
+}

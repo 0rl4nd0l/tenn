@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "job_id": "ticker_news_source_grounding_system_fix_merge_review_v1_20260525",
+  "generated_at": "2026-05-25T07:24:05Z",
+  "classification": "MERGED_AND_VALIDATED",
+  "canonical": {
+    "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "launcher_aliases": [
+      "/home/l4nd0/tenn",
+      "/home/l4nd0/tenn-runtime"
+    ],
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "initial_preflight_head": "dfa76437bebd9e0ec22f6c80ec9ab5e9177a5f4b",
+    "head_after_external_reporting_commit": "4d2d4b69e70535e81aec502cb2e99349d4a11a4c",
+    "integrated_code_head": "bb78656ba28908df3efa54efcbad10fa17f841d1"
+  },
+  "isolated_integration_worktree": {
+    "path": "/home/l4nd0/tenn-ticker-news-source-grounding-system-fix-merge-review-v1-20260525",
+    "branch": "safe/ticker-news-source-grounding-system-fix-merge-review-v1-20260525",
+    "reason": "Canonical checkout had unrelated untracked task cards that made registry/check-overlap fail; isolation avoided touching or cleaning foreign files."
+  },
+  "parked_source": {
+    "branch": "safe/ticker-news-source-grounding-system-fix-v1-20260525",
+    "commit": "703d8ada2fccb29f1a77c8a401e1c4fafd046497",
+    "worktree": "/home/l4nd0/tenn-ticker-news-source-grounding-system-fix-v1-20260525",
+    "base": "5a6c0c00b58c056fcf93933a9d1dd5754daa3338",
+    "report": "/home/l4nd0/tenn-ticker-news-source-grounding-system-fix-v1-20260525/reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/README.md"
+  },
+  "merge_method": {
+    "initial_method": "git cherry-pick -x 703d8ada2fccb29f1a77c8a401e1c4fafd046497",
+    "initial_cherry_pick_head": "0a2bbd31db93b37c5ae83b2ab781c7948cee45f5",
+    "target_drift_after_validation": "Canonical moved to 4d2d4b69e70535e81aec502cb2e99349d4a11a4c with a Reporting-lane cockpit-ui/report commit.",
+    "drift_resolution": "git rebase migration/clean-runtime-baseline-reconstruct-v1",
+    "rebased_cherry_pick_head": "bb78656ba28908df3efa54efcbad10fa17f841d1",
+    "canonical_integration": "git -C /home/l4nd0/tenn merge --ff-only safe/ticker-news-source-grounding-system-fix-merge-review-v1-20260525",
+    "conflicts": []
+  },
+  "changed_files": [
+    "docs/agent_tasks/ticker_news_source_grounding_system_fix_v1_20260525.md",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+    "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+    "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+    "financial-engine_v2/backend/tests/test_sources.py",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/README.md",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/blast_radius_matrix.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/diff_review.md",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/root_cause_trace.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/smoke_results.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/status.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_v1_20260525/validation_results.json",
+    "docs/agent_tasks/ticker_news_source_grounding_system_fix_merge_review_v1_20260525.md",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_merge_review_v1_20260525/README.md",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_merge_review_v1_20260525/merge_review.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_merge_review_v1_20260525/validation_results.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_merge_review_v1_20260525/smoke_results.json",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_merge_review_v1_20260525/diff_review.md",
+    "reports/agent_jobs/ticker_news_source_grounding_system_fix_merge_review_v1_20260525/status.json"
+  ],
+  "files_intentionally_not_touched": [
+    "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+    "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+    "cockpit-ui/**",
+    "DB/Qdrant/news-store/projection/parser/runtime/model/GPU/env config surfaces"
+  ],
+  "parked_report_review": {
+    "root_cause_classification": "prompt_context_assembly_failure_and_synthesis_honesty_failure",
+    "fix_type": "deterministic_local_news_only_final_answer_guard",
+    "not_a2m_only": true,
+    "basket": ["A2M", "BHP", "CSL", "XRO", "NST", "COH"],
+    "blast_radius_summary": {
+      "tickers_probed": 6,
+      "qdrant_local_news_present_for": ["A2M", "BHP", "CSL", "XRO", "NST"],
+      "low_or_no_local_news_controls": ["COH"],
+      "systemic_failure_count": 5,
+      "pass_count": 1
+    },
+    "validation_reported_by_parked_branch": "147 passed, 6 warnings"
+  },
+  "registry": {
+    "claim": "succeeded in isolated worktree",
+    "active_query_orchestration_overlap": false,
+    "other_active_jobs_seen": [
+      {
+        "job_id": "cockpit_home_strategy_lab_declutter_v1_20260525",
+        "lane": "Reporting",
+        "overlap": false
+      }
+    ],
+    "canonical_overlap_blocker": "Foreign untracked task cards in canonical checkout; isolated worktree used."
+  },
+  "architecture_review": {
+    "cursor_rules_present": false,
+    "docs_checked": [
+      "docs/architecture/07_rag_contract.md",
+      "docs/architecture/15_news_substrate.md",
+      "docs/architecture/19_backend_api_surface.md"
+    ],
+    "result": "pass",
+    "attestation": [
+      "No DB mutation",
+      "No Qdrant mutation",
+      "No news-store mutation",
+      "No reindex/resync/backfill/projection repair",
+      "No parser routing change",
+      "No canonical financial truth write",
+      "No Tenn memory write",
+      "No runtime/model/GPU config edit",
+      "No A2M-only hardcoded alias patch",
+      "No source-label masking"
+    ]
+  },
+  "runtime_restart": {
+    "performed": true,
+    "command": "docker compose --env-file /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker -f /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/docker-compose.yml restart backend",
+    "scope": "backend service only / fe_backend",
+    "reason": "Running backend process started before integration and was plain uvicorn without visible reload flags.",
+    "services_not_restarted": ["fe_qdrant", "fe_postgres", "fe_worker", "fe_gpu_worker", "llama-server", "next-server"]
+  },
+  "live_smoke_summary": {
+    "status": "pass",
+    "probes": ["A2M non-stream", "BHP non-stream", "COH no-local-news control", "A2M SSE"],
+    "all_returned_data_missing": true,
+    "sse_unguarded_chunk_leak": false
+  },
+  "final_decision": {
+    "integrate": true,
+    "classification": "MERGED_AND_VALIDATED",
+    "next_recommended_task": "Separate retrieval/ranking follow-up for broad multi-ticker news ranking; do not mix with this source-honesty guard integration."
+  }
+}
