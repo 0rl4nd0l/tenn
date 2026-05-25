@@ -1,0 +1,90 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/repo_native_goal_schema_slice_review_integration_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/task_card_schema_notes_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/goals/README.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/goals/_template.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/goals/goal_schema_v1.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/integration_readiness.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/status_schema_v1.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/agent_goal_contract.py",
+      "status": "A"
+    },
+    {
+      "path": "scripts/test_agent_goal_contract.py",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/repo_native_goal_schema_slice_review_integration_v1_20260525.md",
+        "docs/agent_tasks/task_card_schema_notes_v1.md",
+        "docs/goals/README.md",
+        "docs/goals/_template.md",
+        "docs/goals/goal_schema_v1.json",
+        "reports/agent_jobs/status_schema_v1.json",
+        "scripts/agent_goal_contract.py",
+        "scripts/test_agent_goal_contract.py",
+        "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/README.md",
+        "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/status.json",
+        "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/validation.json",
+        "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/integration_readiness.json",
+        "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "repo_native_goal_schema_slice_review_integration_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/repo_native_goal_schema_slice_review_integration_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

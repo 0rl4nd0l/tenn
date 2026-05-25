@@ -1,0 +1,118 @@
+{
+  "$id": "https://tenn.local/schemas/goal_schema_v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Validates only YAML frontmatter for docs/goals/*.md files. Markdown body sections remain prose and are not schema-enforced.",
+  "properties": {
+    "goal_id": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "type": "string"
+    },
+    "hard_stops": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "merge_parking_status": {
+      "enum": [
+        "not_implemented",
+        "not_started",
+        "docs_only",
+        "blocked",
+        "ready_for_later_slice"
+      ],
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "audit_only",
+        "safe_extension",
+        "blocked"
+      ],
+      "type": "string"
+    },
+    "objective": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "output_dir": {
+      "pattern": "^reports/agent_jobs/[A-Za-z0-9_.-]+$",
+      "type": "string"
+    },
+    "owner": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_lane": {
+      "enum": [
+        "Evaluation",
+        "Financial Truth",
+        "Memory",
+        "Provenance",
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "type": "string"
+    },
+    "save_recommendation": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "goal_schema_v1",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "active",
+        "blocked",
+        "complete",
+        "superseded"
+      ],
+      "type": "string"
+    },
+    "supporting_lanes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "task_card": {
+      "pattern": "^docs/agent_tasks/[A-Za-z0-9_.-]+\\.md$",
+      "type": "string"
+    },
+    "validation": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "goal_id",
+    "status",
+    "owner",
+    "mode",
+    "objective",
+    "primary_lane",
+    "supporting_lanes",
+    "task_card",
+    "output_dir",
+    "validation",
+    "hard_stops",
+    "merge_parking_status",
+    "save_recommendation"
+  ],
+  "title": "Tenn Repo-Native Goal Frontmatter Schema v1",
+  "type": "object"
+}

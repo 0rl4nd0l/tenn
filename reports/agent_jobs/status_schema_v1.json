@@ -1,0 +1,87 @@
+{
+  "$id": "https://tenn.local/schemas/agent_job_status_schema_v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Minimal status schema for current and future reports/agent_jobs status artifacts. It defines required summary fields only and does not retroactively enforce historical artifacts unless they are explicitly validated or changed.",
+  "properties": {
+    "branch": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "data_missing": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "files_changed": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "hard_blockers": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "head": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "job_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "key_findings": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "lane": {
+      "enum": [
+        "Evaluation",
+        "Financial Truth",
+        "Memory",
+        "Provenance",
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "audit_only",
+        "safe_extension",
+        "blocked"
+      ],
+      "type": "string"
+    },
+    "recommended_next_task": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "validation_passed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "lane",
+    "mode",
+    "branch",
+    "head",
+    "validation_passed",
+    "files_changed",
+    "key_findings",
+    "recommended_next_task",
+    "hard_blockers",
+    "data_missing"
+  ],
+  "title": "Tenn Agent Job Status Schema v1",
+  "type": "object"
+}
