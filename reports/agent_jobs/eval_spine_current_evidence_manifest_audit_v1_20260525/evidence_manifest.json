@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-05-25T14:29:56+10:00",
+  "job_id": "eval_spine_current_evidence_manifest_audit_v1_20260525",
+  "claims": [
+    {
+      "id": "confirmed_metric_source_pdf_openability",
+      "classification": "Confirmed",
+      "state": "resolved_for_source_route",
+      "evidence": [
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/README.md",
+        "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/README.md"
+      ],
+      "summary": "All 146 confirmed metric fixture rows resolve to readable PDFs through /data/asx/docs; this does not prove extracted-payload correctness."
+    },
+    {
+      "id": "confirmed_metric_extracted_payload_scoring",
+      "classification": "DATA_MISSING",
+      "state": "not_yet_scored",
+      "evidence": [
+        "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/README.md",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/README.md"
+      ],
+      "summary": "The eligible denominator is 73 rows, but no current extracted-payload scoring artifact was supplied."
+    },
+    {
+      "id": "eval_spine_profile_boundaries",
+      "classification": "Confirmed",
+      "state": "normalized_offline",
+      "evidence": [
+        "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/README.md",
+        "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/README.md"
+      ],
+      "summary": "canonical_core, expanded_required, and confirmed_metric_coverage boundaries are preserved; confirmed_metric_coverage is breadth inventory, not accuracy proof."
+    },
+    {
+      "id": "source_label_recent_news_sufficiency",
+      "classification": "Confirmed",
+      "state": "guarded_with_positive_fixture",
+      "evidence": [
+        "reports/agent_jobs/source_label_semantic_sufficiency_live_failure_fix_v1_20260524/README.md",
+        "reports/agent_jobs/recent_news_positive_claim_verified_fixture_v1_20260524/README.md"
+      ],
+      "summary": "Recent-news/update claims require deterministic recent_news_event evidence; price-only, filing-only, context-only, and numeric financial truth do not self-promote."
+    },
+    {
+      "id": "a2m_news_qdrant_presence",
+      "classification": "Confirmed",
+      "state": "qdrant_has_a2m_points",
+      "evidence": [
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/README.md",
+        "reports/agent_jobs/a2m_news_live_trace_readonly_v1_20260524/README.md"
+      ],
+      "summary": "Qdrant news_chunks contains 24 A2M-matching points; read-only retrieval found A2M chunks without mutation."
+    },
+    {
+      "id": "a2m_news_sqlite_projection_parity",
+      "classification": "DATA_MISSING",
+      "state": "source_sqlite_absent_at_checked_paths",
+      "evidence": [
+        "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/README.md"
+      ],
+      "summary": "Configured/default SQLite article files were absent at checked paths, so SQLite-to-Qdrant parity is unproven."
+    },
+    {
+      "id": "memory_fanout_runtime_safety",
+      "classification": "Confirmed",
+      "state": "risk_inventory_open",
+      "evidence": [
+        "reports/agent_jobs/memory_live_inventory_readonly_v1_20260524/README.md",
+        "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/README.md"
+      ],
+      "summary": "Read-only inventory shows 4 suspicious source-fanout clusters covering 17 active selectable entries; no cleanup or guard has been applied."
+    },
+    {
+      "id": "strategy_lab_quantdinger_status",
+      "classification": "Confirmed",
+      "state": "verified_readonly_proof_display_only",
+      "evidence": [
+        "reports/agent_jobs/strategy_lab_quantdinger_verified_readonly_status_v1_20260525/README.md"
+      ],
+      "summary": "Verified read-only sandbox proof can be surfaced, while current sidecar, trading, store writes, and canonical financial truth remain disabled/unavailable."
+    },
+    {
+      "id": "pr39_ci_status",
+      "classification": "Confirmed",
+      "state": "ci_failing_backend_cockpit_pytest",
+      "evidence": [
+        "reports/agent_jobs/pr39_ci_failure_root_cause_audit_v1_20260525/README.md",
+        "gh pr list snapshot from this audit"
+      ],
+      "summary": "PR #39 is open draft and unstable; latest CI fails at backend+cockpit pytest with 65 failures while scan passes."
+    },
+    {
+      "id": "production_hardening_status",
+      "classification": "Confirmed",
+      "state": "not_closed",
+      "evidence": [
+        "reports/agent_jobs/production_hardening_gate_audit_v1_20260525/README.md"
+      ],
+      "summary": "Hardening gates exist, but remaining control-plane gaps prevent marking production hardening complete."
+    },
+    {
+      "id": "merge_parking_registry",
+      "classification": "Confirmed",
+      "state": "absent_design_ready",
+      "evidence": [
+        "reports/agent_jobs/merge_parking_registry_surface_audit_design_v1_20260525/README.md"
+      ],
+      "summary": "No committed repo-visible merge parking registry exists; a docs-owned safe extension is the next safest implementation."
+    },
+    {
+      "id": "graphify_agent_contract",
+      "classification": "Confirmed",
+      "state": "instruction_gap",
+      "evidence": [
+        "reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/README.md"
+      ],
+      "summary": "Agent instructions require graphify-out artifacts that are ignored and absent; wording should be conditional."
+    }
+  ],
+  "recommended_order": [
+    "merge_parking_registry_surface_safe_extension_v1_20260525",
+    "graphify_instruction_conditionality_safe_extension_v1_20260525",
+    "confirmed_metric_extracted_payload_scoring_audit_v1_20260525"
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "generated_at": "2026-05-25T14:29:56+10:00",
+  "job_id": "eval_spine_current_evidence_manifest_audit_v1_20260525",
+  "github_issue": 62,
+  "report_families": [
+    {
+      "family": "confirmed_metrics",
+      "reports": [
+        {
+          "id": "confirmed_metric_source_pdf_resolution_audit_v1_20260524",
+          "status": "confirmed",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "146/146 fixture rows open through /data/asx/docs route resolver; 73 eligible rows are source-PDF-unblocked."
+        },
+        {
+          "id": "confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+          "status": "confirmed_with_data_missing",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "confirmed_metric_coverage denominator is 73 eligible rows; extracted-payload scoring remains DATA_MISSING."
+        },
+        {
+          "id": "gold_metric_coverage_audit_v1_20260519",
+          "status": "confirmed",
+          "freshness": "current_report_referenced_by_may_25_followups",
+          "key_evidence": "canonical_core 10 docs/24 checks; expanded_required 15 docs/39 checks; confirmed_metric_coverage 146 total, 73 scorable, 70 candidate, 3 ambiguous."
+        },
+        {
+          "id": "gold_metric_coverage_eval_spine_normalizer_v1_20260524",
+          "status": "confirmed",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "offline normalizer preserves canonical_core, expanded_required, and confirmed_metric_coverage boundaries."
+        },
+        {
+          "id": "eval_spine_normalizer_usage_followup_v1_20260524",
+          "status": "confirmed_with_data_missing",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "normalizer accepts current audit inventory shape and generated report-local sample; runtime display integration remains absent."
+        }
+      ]
+    },
+    {
+      "family": "query_provenance_trust",
+      "reports": [
+        {
+          "id": "source_label_semantic_sufficiency_live_failure_fix_v1_20260524",
+          "status": "confirmed",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "recent-news/update claims require recent_news_event; live stateless smoke returned DATA_MISSING rather than unsupported source-backed wording."
+        },
+        {
+          "id": "recent_news_positive_claim_verified_fixture_v1_20260524",
+          "status": "confirmed",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "positive fixture proves source_role_labels recent_news_event can satisfy recent-news/update claims."
+        },
+        {
+          "id": "a2m_news_projection_path_discovery_v1_20260524",
+          "status": "confirmed_with_data_missing",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "Qdrant has 24 A2M-matching news points; source SQLite/projection parity remains DATA_MISSING."
+        },
+        {
+          "id": "a2m_news_live_trace_readonly_v1_20260524",
+          "status": "confirmed_with_data_missing",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "read-only trace found 24 A2M Qdrant points and 8 keyword-retrieved chunks; no Qdrant/SQLite mutation."
+        }
+      ]
+    },
+    {
+      "family": "memory",
+      "reports": [
+        {
+          "id": "memory_live_inventory_readonly_v1_20260524",
+          "status": "confirmed_with_open_risk",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "147 active company-memory rows, 4 suspicious source-fanout clusters covering 17 selectable entries, no mutation."
+        },
+        {
+          "id": "memory_fanout_suppression_quarantine_design_v1_20260524",
+          "status": "design_complete_no_mutation",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "candidate_quarantine is a report-local review seed; runtime guard/cleanup requires operator approval."
+        }
+      ]
+    },
+    {
+      "family": "strategy_lab",
+      "reports": [
+        {
+          "id": "strategy_lab_quantdinger_verified_readonly_status_v1_20260525",
+          "status": "confirmed_readonly_display",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "Verified read-only sandbox proof is displayable while current_sidecar_available remains false and no trading/store/canonical capabilities are enabled."
+        }
+      ]
+    },
+    {
+      "family": "control_plane_hardening",
+      "reports": [
+        {
+          "id": "pr39_ci_failure_root_cause_audit_v1_20260525",
+          "status": "confirmed_failure_root_cause",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "PR #39 latest CI fails at Pytest backend+cockpit with 65 failures; install, pip-audit advisory, Ruff, and scan pass."
+        },
+        {
+          "id": "production_hardening_gate_audit_v1_20260525",
+          "status": "not_closed",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "strong gates exist, but worker provenance, merge parking/report visibility, worktree hygiene, live smoke, and Redis semantics remain open."
+        },
+        {
+          "id": "worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+          "status": "confirmed_gap",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "backend has TENN_GIT_* env; worker, gpu_worker, and beat do not have parity in compose."
+        },
+        {
+          "id": "redis_role_audit_v1_20260525",
+          "status": "confirmed_with_docs_gap",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "Redis is required for Celery/worker execution and transient coordination, optional only for sync/isolated backend mode, and not canonical truth."
+        },
+        {
+          "id": "merge_parking_registry_surface_audit_design_v1_20260525",
+          "status": "confirmed_gap_design_ready",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "no committed merge parking registry exists; child safe extension should add docs-owned registry surface."
+        },
+        {
+          "id": "graphify_artifact_contract_audit_v1_20260525",
+          "status": "confirmed_instruction_gap",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "agent instructions require missing ignored graphify-out artifacts; wording should be conditional when artifacts are absent."
+        },
+        {
+          "id": "worktree_taskcard_hygiene_audit_v1_20260525",
+          "status": "confirmed_hygiene_gap",
+          "freshness": "current_may_25_inventory",
+          "key_evidence": "221 worktrees, 22 dry-run prunable entries, loose task-card dirt in non-audit worktrees, and reports ignored by default."
+        }
+      ]
+    }
+  ],
+  "active_registry_jobs_at_claim": [
+    "status_route_contract_implementation_for_news_health_v1_20260525",
+    "strategy_lab_quantdinger_repeatability_review_path_v1_20260525"
+  ],
+  "open_issue_snapshot": [
+    63,
+    62,
+    61,
+    57,
+    56,
+    55,
+    54,
+    53,
+    51,
+    50,
+    49,
+    46,
+    42,
+    41,
+    40,
+    38,
+    37,
+    36
+  ]
+}

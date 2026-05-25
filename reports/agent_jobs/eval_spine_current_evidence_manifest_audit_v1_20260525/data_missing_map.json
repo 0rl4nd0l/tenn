@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-05-25T14:29:56+10:00",
+  "job_id": "eval_spine_current_evidence_manifest_audit_v1_20260525",
+  "items": [
+    {
+      "id": "confirmed_metric_extracted_payload_scoring",
+      "lane": "Evaluation",
+      "blocking_next_task": "confirmed_metric_extracted_payload_scoring_audit_v1_20260525",
+      "missing_evidence": "Current extracted payload artifact and score results for the 73 eligible confirmed_metric_coverage rows."
+    },
+    {
+      "id": "reports_extraction_eval_latest",
+      "lane": "Evaluation",
+      "blocking_next_task": "confirmed_metric_extracted_payload_scoring_audit_v1_20260525",
+      "missing_evidence": "Current generated reports/extraction_eval latest artifact."
+    },
+    {
+      "id": "a2m_sqlite_projection_parity",
+      "lane": "Query Orchestration",
+      "blocking_next_task": "news_runtime_path_health_check_v1_20260525",
+      "missing_evidence": "Readable configured source SQLite files and row-level parity from SQLite article corpus to Qdrant news_chunks."
+    },
+    {
+      "id": "memory_fanout_operator_decisions",
+      "lane": "Memory",
+      "blocking_next_task": "operator_reviewed_memory_quarantine_v1_20260525",
+      "missing_evidence": "Operator preserve/suppress/expire decisions and backup/checksum proof before any mutation or read-path suppression."
+    },
+    {
+      "id": "worker_live_runtime_provenance",
+      "lane": "Reporting",
+      "blocking_next_task": "worker_runtime_provenance_env_parity_safe_extension_v1_20260525",
+      "missing_evidence": "Live worker/gpu_worker/beat provenance parity proof; current evidence is static compose/script/report inspection."
+    },
+    {
+      "id": "merge_parking_registry_surface",
+      "lane": "Reporting",
+      "blocking_next_task": "merge_parking_registry_surface_safe_extension_v1_20260525",
+      "missing_evidence": "Committed docs-owned merge parking registry files."
+    },
+    {
+      "id": "graphify_artifact_or_conditional_contract",
+      "lane": "Reporting",
+      "blocking_next_task": "graphify_instruction_conditionality_safe_extension_v1_20260525",
+      "missing_evidence": "Either present graphify-out artifacts or corrected conditional agent instructions."
+    },
+    {
+      "id": "production_hardening_live_smoke",
+      "lane": "Reporting",
+      "blocking_next_task": "production_hardening_live_smoke_readonly_v1_20260525",
+      "missing_evidence": "Live health/capability smoke and full validation run; this audit did not start or query services."
+    },
+    {
+      "id": "pr39_fix_ownership",
+      "lane": "Evaluation",
+      "blocking_next_task": "ci_backend_cockpit_suite_triage_matrix_v1_20260525",
+      "missing_evidence": "Cluster-by-cluster reproduction and ownership plan for the 65 backend/cockpit pytest failures."
+    }
+  ]
+}
