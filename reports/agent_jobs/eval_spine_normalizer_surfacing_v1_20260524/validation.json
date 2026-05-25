@@ -1,0 +1,114 @@
+{
+  "job_id": "eval_spine_normalizer_surfacing_v1_20260524",
+  "generated_at": "2026-05-25T15:27:03+10:00",
+  "issue": 50,
+  "lane": "Evaluation",
+  "execution_mode": "audit_only_closeout_for_existing_safe_extension",
+  "current_turn_evidence": {
+    "github_issue_state": "OPEN before closeout",
+    "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+    "pre_closeout_head": "2bb96b0bd2fd",
+    "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+    "active_jobs_before_claim": [],
+    "task_card": "docs/agent_tasks/eval_spine_normalizer_surfacing_v1_20260524.md",
+    "report_path": "reports/agent_jobs/eval_spine_normalizer_surfacing_v1_20260524/README.md"
+  },
+  "acceptance_status": {
+    "surfacing_gaps_proven": true,
+    "profile_labels_separate": true,
+    "broad_accuracy_claim_made": false,
+    "implementation_bounded_and_validated": true,
+    "cockpit_runtime_display_claimed": false,
+    "product_remediation_claimed_by_this_closeout": false
+  },
+  "current_findings": {
+    "canonical_core": {
+      "document_count": 10,
+      "metric_check_count": 24,
+      "claim": "strict no-regression profile only"
+    },
+    "expanded_required": {
+      "document_count": 15,
+      "metric_check_count": 39,
+      "claim": "required metric profile where available"
+    },
+    "confirmed_metric_coverage": {
+      "total_expectations": 146,
+      "eligible_expectations": 73,
+      "candidate_count": 70,
+      "ambiguous_count": 3,
+      "claim": "inventory only, not current accuracy"
+    }
+  },
+  "source_artifacts_validated": [
+    "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/normalized_manifest.json",
+    "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/scorecards.csv",
+    "reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/metric_expectations.csv",
+    "scripts/reporting/README.md"
+  ],
+  "mutations_performed": {
+    "extraction_logic_changed": false,
+    "parser_routing_changed": false,
+    "prompts_or_gold_labels_changed": false,
+    "canonical_truth_written": false,
+    "db_qdrant_news_memory_or_production_data_mutated": false,
+    "cockpit_runtime_surface_changed": false,
+    "services_started_stopped_or_restarted": false,
+    "new_accuracy_generated": false
+  },
+  "validation_commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/eval_spine_normalizer_surfacing_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_before_claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/eval_spine_normalizer_surfacing_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/eval_spine_normalizer_surfacing_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/normalized_manifest.json",
+      "result": "passed"
+    },
+    {
+      "command": "test -s reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/scorecards.csv",
+      "result": "passed"
+    },
+    {
+      "command": "test -s reports/agent_jobs/eval_spine_normalizer_usage_followup_v1_20260524/metric_expectations.csv",
+      "result": "passed"
+    },
+    {
+      "command": "test -s scripts/reporting/README.md",
+      "result": "passed"
+    },
+    {
+      "command": "git merge-base --is-ancestor d00110b3 HEAD",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/eval_spine_normalizer_surfacing_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release eval_spine_normalizer_surfacing_v1_20260524",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_after_release"
+    }
+  ],
+  "result": "issue_50_acceptance_met_for_offline_report_local_surfacing_no_runtime_display_claimed"
+}
