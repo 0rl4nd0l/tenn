@@ -1,0 +1,75 @@
+{
+  "job_id": "source_label_fixture_expansion_v1_20260524",
+  "coverage_rows": [
+    {
+      "category": "live_source_positive",
+      "case": "claim-verified recent-news event satisfies recent update",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py::test_claim_verified_news_event_satisfies_recent_update_requirement",
+      "positive_or_negative": "positive"
+    },
+    {
+      "category": "financial_truth_positive",
+      "case": "claim-verified financial truth satisfies financial metric claim",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py::test_financial_truth_source_satisfies_metric_requirement",
+      "positive_or_negative": "positive"
+    },
+    {
+      "category": "market_data_positive",
+      "case": "price source identifier satisfies price trend requirement",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py::test_price_evidence_satisfies_price_trend_requirement",
+      "positive_or_negative": "positive"
+    },
+    {
+      "category": "weak_source_negative",
+      "case": "filing-only context cannot verify market-price trend claim",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py::test_filing_only_context_cannot_verify_price_trend_claim and cockpit-ui/lib/cockpit-chat-actionability.test.ts",
+      "positive_or_negative": "negative"
+    },
+    {
+      "category": "data_missing_negative",
+      "case": "missing canonical financial rows mark metric extraction missing",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py::test_missing_canonical_financial_rows_marks_metric_extraction_missing",
+      "positive_or_negative": "negative"
+    },
+    {
+      "category": "recent_news_negative",
+      "case": "price-only or context-only news is insufficient for recent news claims",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py recent-news negative cases",
+      "positive_or_negative": "negative"
+    },
+    {
+      "category": "raw_support_negative",
+      "case": "raw support flags do not self-promote to recent-news events",
+      "coverage": "covered",
+      "evidence": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py::test_raw_support_flags_do_not_self_promote_to_recent_news_event",
+      "positive_or_negative": "negative"
+    },
+    {
+      "category": "ui_non_verified_negative",
+      "case": "no-hit, degraded, missing, unknown, snippet-only, memory, external web context remain non-verified",
+      "coverage": "covered",
+      "evidence": "cockpit-ui/lib/cockpit-chat-actionability.test.ts and cockpit-ui/lib/cockpit-home-contract.test.ts",
+      "positive_or_negative": "negative"
+    },
+    {
+      "category": "historical_source_cross_surface",
+      "case": "historical source vs live source is represented in a unified fixture matrix",
+      "coverage": "gap",
+      "evidence": "Coverage is spread across tests and historical reports; no issue-exact matrix exists.",
+      "positive_or_negative": "mixed"
+    },
+    {
+      "category": "api_sse_reload_drawer_parity",
+      "case": "label preservation across API, SSE, reload persistence, source drawer, and Home handoff",
+      "coverage": "partial",
+      "evidence": "Historical reports and targeted tests cover parts, but no single fixture bundle proves all surfaces together.",
+      "positive_or_negative": "mixed"
+    }
+  ]
+}

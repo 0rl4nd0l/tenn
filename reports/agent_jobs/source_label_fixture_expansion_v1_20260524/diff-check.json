@@ -1,0 +1,60 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/source_label_fixture_expansion_v1_20260524.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/fixture_coverage_map.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/gap_register.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/source_label_fixture_expansion_v1_20260524.md",
+        "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/README.md",
+        "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/status.json",
+        "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/validation.json",
+        "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/fixture_coverage_map.json",
+        "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/gap_register.json",
+        "reports/agent_jobs/source_label_fixture_expansion_v1_20260524/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "source_label_fixture_expansion_v1_20260524",
+      "lane": "Provenance",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/source_label_fixture_expansion_v1_20260524",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

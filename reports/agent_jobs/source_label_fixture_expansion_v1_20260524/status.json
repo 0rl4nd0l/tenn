@@ -1,0 +1,18 @@
+{
+  "job_id": "source_label_fixture_expansion_v1_20260524",
+  "issue": 56,
+  "status": "complete",
+  "registry_status": "released",
+  "lane": "Provenance",
+  "execution_mode": "AUDIT ONLY",
+  "target_layer": "provenance and evaluation report artifacts",
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "base_head": "b12e906676e3066a32ab1451018fa818f3b8a725",
+  "released_at": "2026-05-25T05:59:20.593759Z",
+  "result": "fixture_coverage_audit_complete_no_fixture_mutation",
+  "production_data_access": false,
+  "product_remediation_landed": false,
+  "source_label_semantics_mutated": false,
+  "runtime_or_store_mutation": false,
+  "validation_status": "passed_with_environment_data_missing"
+}

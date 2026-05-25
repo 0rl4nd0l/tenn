@@ -1,0 +1,35 @@
+{
+  "job_id": "source_label_fixture_expansion_v1_20260524",
+  "gaps": [
+    {
+      "id": "issue_exact_fixture_matrix_missing",
+      "severity": "medium",
+      "description": "No issue-exact source-label fixture matrix existed before this report.",
+      "recommended_next_step": "Create source_label_fixture_matrix_v1 as a bounded test/fixture safe extension."
+    },
+    {
+      "id": "coverage_spread_across_surfaces",
+      "severity": "medium",
+      "description": "Existing coverage is spread across backend guard tests, backend UI-source tests, frontend chat actionability tests, Home contract tests, and historical reports.",
+      "recommended_next_step": "Add one table-driven coverage matrix that references the same cases across backend and frontend assertions."
+    },
+    {
+      "id": "historical_vs_live_source_taxonomy_gap",
+      "severity": "medium",
+      "description": "Live-source and historical-source categories are not normalized into one explicit positive/negative fixture taxonomy.",
+      "recommended_next_step": "Separate live-source, historical-source, weak-source, and DATA_MISSING rows in the child fixture bundle."
+    },
+    {
+      "id": "cross_surface_parity_gap",
+      "severity": "medium",
+      "description": "No single fixture bundle proves source-label behavior across API, SSE, reload persistence, Home handoff, source drawer, and chat actionability.",
+      "recommended_next_step": "Add cross-surface fixture assertions only after exact files and source-label branch collision risk are reviewed."
+    },
+    {
+      "id": "targeted_test_execution_missing",
+      "severity": "low",
+      "description": "Targeted test commands could not run because bare pytest and pnpm were not on PATH in this shell.",
+      "recommended_next_step": "Use the repo-approved backend venv/frontend package manager setup in the child implementation task."
+    }
+  ]
+}
