@@ -1,0 +1,82 @@
+{
+  "job_id": "pr39_ci_failure_root_cause_audit_v1_20260525",
+  "source": "gh run view 26379324415 --log-failed",
+  "latest_run": {
+    "run_id": 26379324415,
+    "job_id": 77645418602,
+    "failed_command": "pytest -c pytest.ini financial-engine_v2/backend/tests financial-engine_v2/cockpit/tests -q",
+    "summary_line": "65 failed, 2822 passed, 18 skipped, 1 deselected, 57 warnings, 38 subtests passed in 250.70s"
+  },
+  "failure_clusters": [
+    {
+      "cluster": "architecture_invariants",
+      "examples": [
+        "test_no_sqlite_usage_in_backend_runtime",
+        "test_no_uuid4_usage_inside_process_document",
+        "test_no_sqlite3_in_runtime",
+        "test_no_random_uuid_generation_in_pipeline"
+      ],
+      "likely_classification": "architecture_gate_or_existing_product_contract"
+    },
+    {
+      "cluster": "vector_id_ingestion_invariants",
+      "examples": [
+        "test_vector_ids_use_document_id_and_chunk_index",
+        "test_process_document_integration_vector_id_and_payload"
+      ],
+      "likely_classification": "product_or_test_contract_regression"
+    },
+    {
+      "cluster": "missing_fixture_asset",
+      "examples": [
+        "test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist"
+      ],
+      "likely_classification": "repo_fixture_or_ci_artifact_policy"
+    },
+    {
+      "cluster": "news_qdrant_script_contract",
+      "examples": [
+        "test_resolve_ollama_url_prefers_cli",
+        "test_sync_news_to_qdrant_records_ollama_url_source_in_stats"
+      ],
+      "likely_classification": "script_api_contract_drift"
+    },
+    {
+      "cluster": "redis_dependency_isolation",
+      "examples": [
+        "test_process_document_api_passes_method_and_strict_flag"
+      ],
+      "likely_classification": "unit_test_requires_unavailable_service"
+    },
+    {
+      "cluster": "cockpit_chat_service_contract",
+      "examples": [
+        "test_chat_stream_uses_session_thread_and_persists_turns",
+        "test_chat_stream_passes_attached_sources_to_controller",
+        "test_chat_stream_records_response_mode_in_turn_diagnostics"
+      ],
+      "likely_classification": "test_mock_adapter_contract_drift"
+    },
+    {
+      "cluster": "cockpit_router_and_subagents",
+      "examples": [
+        "test_force_local_with_api_only_policy_uses_local",
+        "test_chat_passes_on_chunk_to_local_client",
+        "test_spawn_researcher_runs",
+        "test_spawn_returns_failure_on_llm_error"
+      ],
+      "likely_classification": "routing_policy_and_async_runtime_contract_drift"
+    },
+    {
+      "cluster": "marketplace_memo_source_expectations",
+      "examples": [
+        "test_benchmark_rollup_freshness_and_confidence_states",
+        "test_news_extractor_can_store_and_route_signals",
+        "test_orchestrator_envelope_source_item_is_cockpit_metadata_compatible"
+      ],
+      "likely_classification": "feature_expectation_or_fixture_drift"
+    }
+  ],
+  "root_cause_hypothesis": "The latest failure is not one exact dependency error; it is a broad-suite gate mismatch. CI now successfully installs and starts pytest, then fails because backend/cockpit tests include multiple architecture, service-isolation, fixture-availability, and mock-contract expectations that are not satisfied by the PR head.",
+  "safe_resolution": "Close the audit issue with this root-cause report; open bounded child fixes by cluster before attempting code changes."
+}

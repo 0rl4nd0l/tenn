@@ -1,0 +1,70 @@
+{
+  "job_id": "pr39_ci_failure_root_cause_audit_v1_20260525",
+  "github_issue": 66,
+  "pull_request": {
+    "number": 39,
+    "title": "[codex] integrate trust foundation next phase",
+    "state": "OPEN",
+    "is_draft": true,
+    "base_ref": "migration/clean-runtime-baseline-reconstruct-base-36130cbd",
+    "head_ref": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_sha": "9940a9a78bad0694ce9066528a8f40067128eb2f",
+    "merge_state": "UNSTABLE",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/39"
+  },
+  "latest_status": {
+    "ci_run_id": 26379324415,
+    "ci_job_id": 77645418602,
+    "ci_job_url": "https://github.com/0rl4nd0l/tenn/actions/runs/26379324415/job/77645418602",
+    "ci_conclusion": "failure",
+    "ci_failed_job": "lint-and-test",
+    "ci_failed_step": "Pytest (backend + cockpit)",
+    "sloppy_scan_run_id": 26379324430,
+    "sloppy_scan_conclusion": "success"
+  },
+  "timeline": [
+    {
+      "run_id": 26378919228,
+      "head_sha": "ed31b2d4a76de0fc404089746d280b1e9ef4716b",
+      "failure_stage": "Pytest (backend + cockpit)",
+      "primary_failure": "pytest command not found",
+      "classification": "ci_dependency_setup"
+    },
+    {
+      "run_id": 26379178022,
+      "head_sha": "b7be44463dd2107428d27165c564e62637576cdd",
+      "failure_stage": "Pytest collection",
+      "primary_failure": "ModuleNotFoundError: No module named 'respx'",
+      "classification": "ci_dependency_setup"
+    },
+    {
+      "run_id": 26379324415,
+      "head_sha": "9940a9a78bad0694ce9066528a8f40067128eb2f",
+      "failure_stage": "Pytest execution",
+      "primary_failure": "65 backend/cockpit pytest failures",
+      "classification": "suite_readiness_and_product_contract"
+    }
+  ],
+  "current_failed_steps": [
+    {
+      "number": 7,
+      "name": "Pytest (backend + cockpit)",
+      "conclusion": "failure"
+    },
+    {
+      "number": 8,
+      "name": "Pytest (autodev)",
+      "conclusion": "skipped"
+    }
+  ],
+  "current_passed_steps": [
+    "Set up job",
+    "checkout",
+    "setup-python",
+    "Install dependencies",
+    "pip-audit (advisory)",
+    "Ruff"
+  ],
+  "root_cause_summary": "Current PR #39 CI is blocked by the broad backend+cockpit pytest suite surfacing multiple product/test contract failures after dependency setup was fixed.",
+  "recommended_next_task": "ci_backend_cockpit_suite_triage_matrix_v1_20260525"
+}
