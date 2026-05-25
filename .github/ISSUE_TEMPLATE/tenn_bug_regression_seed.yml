@@ -1,0 +1,225 @@
+name: Tenn bug or regression seed
+description: Confirmed bugs, regressions, or seed regressions with blast-radius and root-cause tracking.
+title: "[Tenn Bug]: "
+labels:
+  - "state:needs-followup"
+  - "type:bug"
+  - "type:regression-seed"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only when the bug, regression, or seed-regression risk is supported by current evidence.
+        Keep labels and milestone values as recommendations unless a task card explicitly approves live GitHub mutation.
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      description: Select the primary ownership lane label.
+      options:
+        - "lane:evaluation"
+        - "lane:reporting"
+        - "lane:repo-hygiene"
+        - "lane:financial-truth"
+        - "lane:provenance"
+        - "lane:query-orchestration"
+        - "lane:memory"
+        - "lane:runtime"
+        - "lane:cockpit"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      description: Select the expected execution mode label.
+      options:
+        - "mode:audit"
+        - "mode:safe-extension"
+        - "mode:implementation"
+        - "mode:result-review"
+        - "mode:issue-closeout"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the priority label.
+      options:
+        - "priority:p1"
+        - "priority:p0"
+        - "priority:p2"
+        - "priority:p3"
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: Select the risk label.
+      options:
+        - "risk:high"
+        - "risk:medium"
+        - "risk:low"
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Type
+      description: Select the type label.
+      options:
+        - "type:bug"
+        - "type:regression-seed"
+        - "type:validation-gap"
+        - "type:ci"
+        - "type:security"
+        - "type:automation"
+        - "type:control-plane"
+        - "type:usability"
+        - "type:docs"
+    validations:
+      required: true
+  - type: dropdown
+    id: state_recommendation
+    attributes:
+      label: State recommendation
+      description: Select the current state label.
+      options:
+        - "state:needs-followup"
+        - "state:ready"
+        - "state:blocked"
+        - "state:data-missing"
+        - "state:needs-review"
+        - "state:parked"
+        - "state:superseded"
+        - "state:duplicate"
+        - "state:done-audit-only"
+        - "state:done-remediated"
+        - "state:running"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone_recommendation
+    attributes:
+      label: Milestone recommendation
+      description: Recommend an existing activated milestone, or choose no milestone.
+      options:
+        - "M2 — Evaluation Spine"
+        - "M0 — Control Plane Hardening"
+        - "M1 — Trust / Provenance Foundation"
+        - "M3 — Query + Memory Integrity"
+        - "M4 — Financial Truth Expansion"
+        - "M5 — Cockpit Analyst Workflow"
+        - "M6 — Runtime / Local Automation"
+        - "No milestone recommendation"
+    validations:
+      required: true
+  - type: textarea
+    id: source_evidence
+    attributes:
+      label: Source evidence
+      description: Provide evidence that the bug or regression is confirmed, including commands, reports, logs, screenshots, issue links, or failing tests.
+      placeholder: |
+        - Confirming command/evidence:
+        - Failing test or observed behavior:
+        - Expected behavior:
+    validations:
+      required: true
+  - type: textarea
+    id: why_it_matters
+    attributes:
+      label: Why it matters
+      description: Explain user impact, trust impact, data-risk impact, or repo-control impact.
+    validations:
+      required: true
+  - type: textarea
+    id: blast_radius
+    attributes:
+      label: Blast-radius assessment
+      description: Identify affected tickers, routes, workflows, files, tests, reports, users, or automation lanes.
+      placeholder: |
+        Affected:
+        Not affected / not yet tested:
+        DATA_MISSING:
+    validations:
+      required: true
+  - type: textarea
+    id: root_cause_vs_workaround
+    attributes:
+      label: Root cause vs workaround
+      description: Separate the suspected or confirmed root cause from any temporary workaround. State DATA_MISSING if root cause is not proven.
+      placeholder: |
+        Root cause:
+        Workaround:
+        Root-cause proof:
+        DATA_MISSING:
+    validations:
+      required: true
+  - type: input
+    id: task_card_path
+    attributes:
+      label: Required task card path
+      description: Repo-relative path for the required remediation or audit task card.
+      placeholder: docs/agent_tasks/<job_id>.md
+    validations:
+      required: true
+  - type: input
+    id: report_path
+    attributes:
+      label: Required report path
+      description: Repo-relative report directory or primary report artifact.
+      placeholder: reports/agent_jobs/<job_id>/
+    validations:
+      required: true
+  - type: textarea
+    id: allowed_surfaces
+    attributes:
+      label: Allowed files / surfaces
+      description: List every file, directory, runtime surface, data surface, or GitHub surface the task may touch.
+    validations:
+      required: true
+  - type: textarea
+    id: forbidden_surfaces
+    attributes:
+      label: Forbidden files / surfaces
+      description: List files, data stores, runtime surfaces, GitHub mutations, and cleanup actions that must not occur.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List proof required to reproduce, fix, and prevent recurrence, including no-regression checks where applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: hard_stops
+    attributes:
+      label: Hard stops
+      description: List conditions that require stopping and reporting instead of widening scope.
+    validations:
+      required: true
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of done
+      description: State the required closeout evidence, regression-seed status, and completion conditions.
+    validations:
+      required: true
+  - type: textarea
+    id: data_missing
+    attributes:
+      label: DATA_MISSING
+      description: "Keep unknowns visible. Write DATA_MISSING with exact evidence needed, or DATA_MISSING: none."
+      placeholder: "DATA_MISSING: root-cause proof still needed"
+    validations:
+      required: true
+  - type: textarea
+    id: followup_parking_dependency_links
+    attributes:
+      label: Follow-up / parking / dependency links
+      description: Link related issues, PRs, parked branches, reports, or blockers. Write none only when there are no dependencies.
+    validations:
+      required: true

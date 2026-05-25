@@ -1,0 +1,208 @@
+name: Tenn task
+description: Planned Codex or Claude task-card-ready work.
+title: "[Tenn Task]: "
+labels:
+  - "state:ready"
+  - "type:docs"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for planned Tenn work that is ready to become a bounded task card.
+        Keep labels and milestone values as recommendations unless a task card explicitly approves live GitHub mutation.
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      description: Select the primary ownership lane label.
+      options:
+        - "lane:reporting"
+        - "lane:repo-hygiene"
+        - "lane:evaluation"
+        - "lane:financial-truth"
+        - "lane:provenance"
+        - "lane:query-orchestration"
+        - "lane:memory"
+        - "lane:runtime"
+        - "lane:cockpit"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      description: Select the expected execution mode label.
+      options:
+        - "mode:safe-extension"
+        - "mode:audit"
+        - "mode:implementation"
+        - "mode:result-review"
+        - "mode:issue-closeout"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the priority label.
+      options:
+        - "priority:p2"
+        - "priority:p0"
+        - "priority:p1"
+        - "priority:p3"
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: Select the risk label.
+      options:
+        - "risk:medium"
+        - "risk:low"
+        - "risk:high"
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Type
+      description: Select the type label.
+      options:
+        - "type:docs"
+        - "type:control-plane"
+        - "type:automation"
+        - "type:validation-gap"
+        - "type:bug"
+        - "type:regression-seed"
+        - "type:usability"
+        - "type:ci"
+        - "type:security"
+    validations:
+      required: true
+  - type: dropdown
+    id: state_recommendation
+    attributes:
+      label: State recommendation
+      description: Select the current state label.
+      options:
+        - "state:ready"
+        - "state:blocked"
+        - "state:data-missing"
+        - "state:needs-review"
+        - "state:needs-followup"
+        - "state:parked"
+        - "state:superseded"
+        - "state:duplicate"
+        - "state:done-audit-only"
+        - "state:done-remediated"
+        - "state:running"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone_recommendation
+    attributes:
+      label: Milestone recommendation
+      description: Recommend an existing activated milestone, or choose no milestone.
+      options:
+        - "No milestone recommendation"
+        - "M0 — Control Plane Hardening"
+        - "M1 — Trust / Provenance Foundation"
+        - "M2 — Evaluation Spine"
+        - "M3 — Query + Memory Integrity"
+        - "M4 — Financial Truth Expansion"
+        - "M5 — Cockpit Analyst Workflow"
+        - "M6 — Runtime / Local Automation"
+    validations:
+      required: true
+  - type: textarea
+    id: source_evidence
+    attributes:
+      label: Source evidence
+      description: List current repo evidence, report paths, commands, issue references, or user instruction that justifies this task.
+      placeholder: |
+        - User instruction:
+        - Repo evidence:
+        - Existing issue/report/task references:
+    validations:
+      required: true
+  - type: textarea
+    id: why_it_matters
+    attributes:
+      label: Why it matters
+      description: Explain the operational, trust, evaluation, reporting, or repo-control impact.
+    validations:
+      required: true
+  - type: input
+    id: task_card_path
+    attributes:
+      label: Required task card path
+      description: Repo-relative path for the required task card.
+      placeholder: docs/agent_tasks/<job_id>.md
+    validations:
+      required: true
+  - type: input
+    id: report_path
+    attributes:
+      label: Required report path
+      description: Repo-relative report directory or primary report artifact.
+      placeholder: reports/agent_jobs/<job_id>/
+    validations:
+      required: true
+  - type: textarea
+    id: allowed_surfaces
+    attributes:
+      label: Allowed files / surfaces
+      description: List every file, directory, runtime surface, data surface, or GitHub surface the task may touch.
+      placeholder: |
+        - docs/agent_tasks/<job_id>.md
+        - reports/agent_jobs/<job_id>/**
+    validations:
+      required: true
+  - type: textarea
+    id: forbidden_surfaces
+    attributes:
+      label: Forbidden files / surfaces
+      description: List files, data stores, runtime surfaces, GitHub mutations, and cleanup actions that must not occur.
+      placeholder: |
+        - No product/backend/frontend/runtime code unless explicitly allowed.
+        - No DB/Qdrant/news/memory mutation unless explicitly allowed.
+        - No branch cleanup, merge, rebase, reset, stash, prune, or delete unless explicitly allowed.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List the exact validation commands, checks, screenshots, or evidence required before closeout.
+    validations:
+      required: true
+  - type: textarea
+    id: hard_stops
+    attributes:
+      label: Hard stops
+      description: List conditions that require stopping and reporting instead of widening scope.
+    validations:
+      required: true
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of done
+      description: State the required closeout evidence and completion conditions.
+    validations:
+      required: true
+  - type: textarea
+    id: data_missing
+    attributes:
+      label: DATA_MISSING
+      description: "Keep unknowns visible. Write DATA_MISSING with exact evidence needed, or DATA_MISSING: none."
+      placeholder: "DATA_MISSING: none"
+    validations:
+      required: true
+  - type: textarea
+    id: followup_parking_dependency_links
+    attributes:
+      label: Follow-up / parking / dependency links
+      description: Link related issues, PRs, parked branches, reports, or blockers. Write none only when there are no dependencies.
+    validations:
+      required: true

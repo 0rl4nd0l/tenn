@@ -113,6 +113,22 @@ include:
 - Hard stops.
 - Definition of done.
 
+## Issue Template Policy
+
+Use the repo-native GitHub Issue Forms under `.github/ISSUE_TEMPLATE/` for new
+Tenn issues whenever the task card approves issue drafting or live issue
+creation:
+
+- `tenn_task.yml` for planned task-card-ready work.
+- `tenn_bug_regression_seed.yml` for confirmed bugs and seed regressions.
+- `tenn_audit_finding.yml` for audit-only findings.
+- `tenn_followup_remediation.yml` for unresolved findings from closed or
+  completed audits.
+- `tenn_branch_merge_review.yml` for branch, worktree, merge, and PR visibility.
+
+Template body classifications are not labels unless they use an activated
+`lane:*`, `mode:*`, `priority:*`, `risk:*`, `state:*`, or `type:*` value.
+
 ## De-Duplication Rule
 
 Before creating any issue, search:

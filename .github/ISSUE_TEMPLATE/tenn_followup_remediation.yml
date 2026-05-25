@@ -1,0 +1,217 @@
+name: Tenn follow-up remediation
+description: Remediation issues for unresolved findings from closed or completed audits.
+title: "[Tenn Follow-up]: "
+labels:
+  - "state:needs-followup"
+  - "type:validation-gap"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when an audit or completed task leaves unresolved remediation work.
+        The issue must link the source issue or report and classify whether follow-up is required or recommended.
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      description: Select the primary ownership lane label.
+      options:
+        - "lane:reporting"
+        - "lane:evaluation"
+        - "lane:repo-hygiene"
+        - "lane:financial-truth"
+        - "lane:provenance"
+        - "lane:query-orchestration"
+        - "lane:memory"
+        - "lane:runtime"
+        - "lane:cockpit"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      description: Select the expected execution mode label.
+      options:
+        - "mode:safe-extension"
+        - "mode:implementation"
+        - "mode:issue-closeout"
+        - "mode:result-review"
+        - "mode:audit"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Select the priority label.
+      options:
+        - "priority:p2"
+        - "priority:p1"
+        - "priority:p0"
+        - "priority:p3"
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: Select the risk label.
+      options:
+        - "risk:medium"
+        - "risk:high"
+        - "risk:low"
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Type
+      description: Select the type label.
+      options:
+        - "type:validation-gap"
+        - "type:bug"
+        - "type:regression-seed"
+        - "type:control-plane"
+        - "type:automation"
+        - "type:ci"
+        - "type:security"
+        - "type:usability"
+        - "type:docs"
+    validations:
+      required: true
+  - type: dropdown
+    id: state_recommendation
+    attributes:
+      label: State recommendation
+      description: Select the current state label.
+      options:
+        - "state:needs-followup"
+        - "state:ready"
+        - "state:blocked"
+        - "state:data-missing"
+        - "state:needs-review"
+        - "state:parked"
+        - "state:superseded"
+        - "state:duplicate"
+        - "state:done-audit-only"
+        - "state:done-remediated"
+        - "state:running"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone_recommendation
+    attributes:
+      label: Milestone recommendation
+      description: Recommend an existing activated milestone, or choose no milestone.
+      options:
+        - "No milestone recommendation"
+        - "M0 — Control Plane Hardening"
+        - "M1 — Trust / Provenance Foundation"
+        - "M2 — Evaluation Spine"
+        - "M3 — Query + Memory Integrity"
+        - "M4 — Financial Truth Expansion"
+        - "M5 — Cockpit Analyst Workflow"
+        - "M6 — Runtime / Local Automation"
+    validations:
+      required: true
+  - type: dropdown
+    id: followup_classification
+    attributes:
+      label: Follow-up classification
+      description: Classify the source finding disposition.
+      options:
+        - "FOLLOWUP_REQUIRED"
+        - "FOLLOWUP_RECOMMENDED"
+    validations:
+      required: true
+  - type: textarea
+    id: source_issue_report
+    attributes:
+      label: Source issue / report link
+      description: Link the source audit issue, completed task, closeout report, or finding matrix row that produced this remediation.
+      placeholder: |
+        Source issue:
+        Source report:
+        Finding row or section:
+    validations:
+      required: true
+  - type: textarea
+    id: source_evidence
+    attributes:
+      label: Source evidence
+      description: Preserve the evidence proving this follow-up remains unresolved.
+    validations:
+      required: true
+  - type: textarea
+    id: why_it_matters
+    attributes:
+      label: Why it matters
+      description: Explain why the unresolved finding must be remediated or intentionally accepted.
+    validations:
+      required: true
+  - type: input
+    id: task_card_path
+    attributes:
+      label: Required task card path
+      description: Repo-relative path for the remediation task card.
+      placeholder: docs/agent_tasks/<job_id>.md
+    validations:
+      required: true
+  - type: input
+    id: report_path
+    attributes:
+      label: Required report path
+      description: Repo-relative report directory or primary report artifact.
+      placeholder: reports/agent_jobs/<job_id>/
+    validations:
+      required: true
+  - type: textarea
+    id: allowed_surfaces
+    attributes:
+      label: Allowed files / surfaces
+      description: List every file, directory, runtime surface, data surface, or GitHub surface the remediation may touch.
+    validations:
+      required: true
+  - type: textarea
+    id: forbidden_surfaces
+    attributes:
+      label: Forbidden files / surfaces
+      description: List files, data stores, runtime surfaces, GitHub mutations, and cleanup actions that must not occur.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List root-cause proof, no-regression checks, report updates, and closeout evidence required.
+    validations:
+      required: true
+  - type: textarea
+    id: hard_stops
+    attributes:
+      label: Hard stops
+      description: List conditions that require stopping and reporting instead of widening scope.
+    validations:
+      required: true
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of done
+      description: State how remediation is proven, how source audit linkage is closed, and what evidence permits issue closure.
+    validations:
+      required: true
+  - type: textarea
+    id: data_missing
+    attributes:
+      label: DATA_MISSING
+      description: "Keep unknowns visible. Write DATA_MISSING with exact evidence needed, or DATA_MISSING: none."
+    validations:
+      required: true
+  - type: textarea
+    id: followup_parking_dependency_links
+    attributes:
+      label: Follow-up / parking / dependency links
+      description: Link dependency issues, PRs, parked branches, reports, or blockers. Include the source issue/report link if it is not already above.
+    validations:
+      required: true
