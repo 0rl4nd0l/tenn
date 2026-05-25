@@ -1,0 +1,116 @@
+{
+  "job_id": "memory_contamination_root_cause_v1",
+  "generated_at": "2026-05-25T15:22:26+10:00",
+  "issue": 36,
+  "lane": "Memory",
+  "execution_mode": "audit_only",
+  "current_turn_evidence": {
+    "github_issue_state": "OPEN before closeout",
+    "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+    "pre_closeout_head": "c6280a56c5ed",
+    "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+    "active_jobs_before_claim": [],
+    "task_card": "docs/agent_tasks/memory_contamination_root_cause_v1.md",
+    "report_path": "reports/agent_jobs/memory_contamination_root_cause_v1/README.md"
+  },
+  "acceptance_status": {
+    "no_production_data_mutation": true,
+    "no_cleanup_performed": true,
+    "root_cause_evidence_separated_from_hypothesis": true,
+    "ticker_specific_surfacing_risk_documented": true,
+    "prevention_plan_documented": true,
+    "cleanup_prerequisites_documented": true,
+    "product_remediation_claimed_by_this_closeout": false
+  },
+  "current_findings": {
+    "historical_root_cause": "confirmed_old_memo_level_ticker_fanout",
+    "active_company_memory_rows_20260524": 147,
+    "active_company_ids_20260524": 59,
+    "active_duplicate_statement_clusters_20260524": 0,
+    "active_source_fanout_suspicious_clusters_20260524": 4,
+    "selectable_suspicious_entries_20260524": 17,
+    "operator_decisions": "DATA_MISSING"
+  },
+  "source_artifacts_validated": [
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/memory_store_inventory.json",
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/surfacing_risk_matrix.json",
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/suspected_fanout_clusters.json",
+    "reports/agent_jobs/memory_live_inventory_readonly_v1_20260524/inventory.json",
+    "reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.json"
+  ],
+  "mutations_performed": {
+    "live_memory_store_opened_for_this_closeout": false,
+    "memory_rows_deleted_expired_rewritten_or_quarantined": false,
+    "schema_or_migration_changed": false,
+    "alias_canonicalization_changed": false,
+    "qdrant_reindex_or_news_resync": false,
+    "source_registry_mutated": false,
+    "live_chat_or_context_route_called": false,
+    "writer_or_reader_code_changed": false,
+    "db_qdrant_news_memory_or_runtime_mutated": false,
+    "services_started_stopped_or_restarted": false
+  },
+  "validation_commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/memory_contamination_root_cause_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_before_claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/memory_contamination_root_cause_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/memory_contamination_root_cause_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "git worktree list --porcelain",
+      "result": "passed"
+    },
+    {
+      "command": "git log --oneline -5",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/memory_store_inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/surfacing_risk_matrix.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/suspected_fanout_clusters.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_live_inventory_readonly_v1_20260524/inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_fanout_suppression_quarantine_design_v1_20260524/candidate_quarantine.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/memory_contamination_root_cause_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release memory_contamination_root_cause_v1",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_after_release"
+    }
+  ],
+  "result": "issue_36_audit_acceptance_met_no_cleanup_or_product_remediation_claimed"
+}
