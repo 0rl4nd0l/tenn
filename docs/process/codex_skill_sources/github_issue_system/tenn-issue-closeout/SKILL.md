@@ -21,6 +21,36 @@ Close only when one close gate is satisfied:
 
 If no gate is true, leave the issue open and add a blocker/status comment.
 
+## Branch Hygiene / Merge Visibility Gate
+
+Before closing any issue whose work landed only on a local branch, remote branch, worktree, or draft PR, prove that the merge state is visible. Completed or blocked branch work must be linked to an issue, PR, task card, report, or parking entry before closure. If that evidence is unavailable, leave the issue open or mark the closeout `KEEP_OPEN_DATA_MISSING`.
+
+Classify branch work before closeout:
+
+```text
+ACTIVE_LINKED
+PARKED_READY_FOR_REVIEW
+PARKED_NEEDS_REBASE
+BLOCKED_BY_CI
+BLOCKED_BY_DEPENDENCY
+SUPERSEDED
+STALE_UNKNOWN_NEEDS_AUDIT
+SAFE_TO_ARCHIVE_CANDIDATE
+```
+
+Use the classification as follows:
+
+- `ACTIVE_LINKED`: keep the issue open unless the active issue/PR/task fully replaces it and is linked.
+- `PARKED_READY_FOR_REVIEW`: closure is allowed only as `PARKED_FOR_REVIEW` or audit complete when a visible review or parking issue exists.
+- `PARKED_NEEDS_REBASE`: do not close as fixed; link or create a branch review item with the rebase blocker.
+- `BLOCKED_BY_CI`: do not close as fixed; link CI evidence or record `DATA_MISSING`.
+- `BLOCKED_BY_DEPENDENCY`: do not close as fixed; link the dependency or blocker.
+- `SUPERSEDED`: close only when the replacement branch, PR, issue, report, or commit covers the same objective and validation path.
+- `STALE_UNKNOWN_NEEDS_AUDIT`: leave open or create/draft a branch review issue before closure.
+- `SAFE_TO_ARCHIVE_CANDIDATE`: closure is allowed only when evidence shows no useful unmerged value or full coverage by a linked replacement; actual branch cleanup still requires separate explicit approval.
+
+Do not delete, prune, reset, stash, merge, rebase, or cherry-pick branches while closing issues unless a separate task card and user approval explicitly allow that operation.
+
 ## Supervisor Operating Model
 
 Use this skill as the dispatcher, safety gate, and final arbiter for issue closeout. Do not run it as one giant issue fixer.
@@ -244,7 +274,7 @@ Treat confirmed blockers, remediation tasks, validation gaps, regression seeds, 
 
 ## Follow-Up Rule
 
-Before closing any audit-mode issue, every `FOLLOWUP_REQUIRED` item must be linked to an existing open issue, converted into a new issue, converted into a merge-parking entry for completed-but-unmerged work, or explicitly marked `DATA_MISSING` with the evidence needed. Do not leave required follow-ups only inside a closed issue comment or report.
+Before closing any audit-mode issue, every `FOLLOWUP_REQUIRED` item must be linked to an existing open issue, converted into a new issue, converted into a merge-parking entry for completed-but-unmerged work, converted into a branch review issue/draft for unmerged branch work, or explicitly marked `DATA_MISSING` with the evidence needed. Do not leave required follow-ups only inside a closed issue comment, report, or aging branch.
 
 ## GitHub-Native Backlog Policy
 
@@ -374,6 +404,65 @@ In plain language:
 - validation cannot run or fails without explanation
 ```
 
+Branch review issue body:
+
+```markdown
+## Task
+`<job_id>`
+
+## Lane
+Primary lane: Repo Hygiene
+Supporting lanes: Reporting, Evaluation
+Mode: audit / result-review
+
+## GitHub Tracking
+Recommended labels: lane:repo-hygiene, type:control-plane, mode:<audit/result-review>, risk:<medium/high>, state:<needs-review/parked/blocked/data-missing>
+Recommended milestone: M0 — Control Plane Hardening
+Project fields: Lane=Repo Hygiene; Mode=<audit/result-review>; Risk=<medium/high>; Priority=<P1/P2/P3>; Status=<Needs Review/Parked/Blocked/Data Missing>; Task Card=<task_card_path>; Report Path=<report_path>; Blocked By=<issue/PR/branch/none>; Root Cause Fixed=NO; Follow-up Required=YES; Production Data Access=NO
+
+## Branch
+- Branch: `<branch>`
+- Worktree: `<path or DATA_MISSING>`
+- Base ref / commit: `<base>`
+- Branch HEAD: `<head>`
+- Classification: ACTIVE_LINKED / PARKED_READY_FOR_REVIEW / PARKED_NEEDS_REBASE / BLOCKED_BY_CI / BLOCKED_BY_DEPENDENCY / SUPERSEDED / STALE_UNKNOWN_NEEDS_AUDIT / SAFE_TO_ARCHIVE_CANDIDATE
+
+## Summary
+In plain language:
+- What the branch appears to contain:
+- What it may impact:
+- Why review or parking matters:
+- What evidence is missing, if any:
+
+## Evidence
+- Unique commits: `<command/result or DATA_MISSING>`
+- Changed files: `<summary or DATA_MISSING>`
+- Existing issue/PR/task/report links: `<links or DATA_MISSING>`
+- Validation evidence: `<commands/reports or DATA_MISSING>`
+- Supersession/duplicate check: `<replacement link or DATA_MISSING>`
+
+## Allowed files / surfaces
+- Branch review report artifacts.
+- Issue/PR comments or labels only if explicitly approved.
+
+## Forbidden files / surfaces
+- product/backend/frontend/runtime code unless a later implementation task allows it
+- production DB/Qdrant/news/memory
+- canonical financial truth
+- parser routing
+- extraction prompts
+- gold labels
+- runtime/model/GPU/service config
+- branch delete/prune/reset/stash/merge/rebase/cherry-pick without separate explicit approval
+- unrelated dirty work
+
+## Acceptance criteria
+- Branch classification is evidence-backed or marked `DATA_MISSING`.
+- Useful work is linked to an issue, PR, task card, report, or parking entry.
+- Completed-but-unmerged issue work is parked or linked before closure.
+- No destructive branch cleanup occurs in this task.
+```
+
 ## Closeout Comments
 
 Add a closeout comment before or during every closure:
@@ -429,6 +518,11 @@ GitHub tracking:
 - Project fields recommended/applied:
 - PR link mode: fixes / refs / audit for / none
 
+Branch hygiene:
+- Branch classification: ACTIVE_LINKED / PARKED_READY_FOR_REVIEW / PARKED_NEEDS_REBASE / BLOCKED_BY_CI / BLOCKED_BY_DEPENDENCY / SUPERSEDED / STALE_UNKNOWN_NEEDS_AUDIT / SAFE_TO_ARCHIVE_CANDIDATE / not applicable
+- Merge visibility: issue / PR / task card / report / parking entry / DATA_MISSING
+- Destructive cleanup approved: NO
+
 Remaining DATA_MISSING:
 - `<item or none>`
 
@@ -478,9 +572,11 @@ Leave the issue open if acceptance criteria are unmet, validation failed and no 
 If work is completed and validated but cannot merge safely:
 
 1. Do not close as merged.
-2. Create or update a merge-parking entry if repo merge-parking surfaces exist.
-3. If no parking surface exists, create a follow-up issue or blocker comment.
-4. Close only if the parked entry is visible and linked.
+2. Classify the branch as `PARKED_READY_FOR_REVIEW`, `PARKED_NEEDS_REBASE`, `BLOCKED_BY_CI`, or `BLOCKED_BY_DEPENDENCY`.
+3. Create or update a merge-parking entry if repo merge-parking surfaces exist.
+4. If no parking surface exists, create or draft a branch review issue with `lane:repo-hygiene`, `type:control-plane`, `state:parked` or `state:blocked`, `risk:medium` or `risk:high`, `mode:result-review`, and milestone `M0 — Control Plane Hardening`.
+5. If branch evidence is unavailable, mark `DATA_MISSING` and keep the source issue open or blocked.
+6. Close only if the parked entry, branch review issue, or blocker link is visible and linked.
 
 Parking is not merge approval. Parking closeout must include task card, report, branch, base commit, HEAD commit, changed files, validation, parking status, merge/review blockers, and next review action.
 

@@ -57,6 +57,8 @@ git branch --show-current
 git rev-parse HEAD
 git status --short --untracked-files=all
 git worktree list --porcelain
+git branch --all --verbose --no-abbrev
+git for-each-ref --format="%(refname:short) %(objectname) %(committerdate:iso8601) %(upstream:short)" refs/heads refs/remotes
 rg -n "DATA_MISSING|FOLLOWUP_REQUIRED|BLOCKED|FAIL|REGRESSION|FIXME" docs reports .github scripts tests backend frontend
 ```
 
@@ -141,6 +143,50 @@ Before creating or recommending a GitHub issue:
 5. Decide whether the candidate is already tracked, superseded, parked, stale, or new.
 
 Treat a finding as duplicate only when the existing tracker covers the same root cause, lane, validation path, and hard stops. Similar symptoms are not enough.
+
+## Branch Hygiene / Merge Visibility Discovery
+
+Use branch discovery to find useful untracked branch work, not to generate a stale-branch issue for every old ref. Branch review is read-only unless the user and task card explicitly permit GitHub mutation. Do not delete, prune, reset, stash, merge, rebase, or cherry-pick branches during issue discovery.
+
+Discover branch candidates with current local and remote-tracking refs. If a remote refresh would be needed to know current PR/branch truth and the task does not approve ref or GitHub mutation, record `DATA_MISSING` instead of fetching.
+
+For each candidate branch, collect only bounded evidence:
+
+- branch name, worktree path if present, base ref, and branch HEAD;
+- unique commits using a read-only command such as `git log --left-right --cherry-pick --oneline <base>...<branch>`;
+- changed files using a read-only command such as `git diff --name-status <base>...<branch>`;
+- existing issue, PR, task-card, report, and parking links;
+- validation or CI evidence when already available;
+- duplicate or supersession evidence.
+
+Classify each branch:
+
+```text
+ACTIVE_LINKED
+PARKED_READY_FOR_REVIEW
+PARKED_NEEDS_REBASE
+BLOCKED_BY_CI
+BLOCKED_BY_DEPENDENCY
+SUPERSEDED
+STALE_UNKNOWN_NEEDS_AUDIT
+SAFE_TO_ARCHIVE_CANDIDATE
+```
+
+Create or draft a branch review issue only when the branch has at least one of:
+
+- unique commits not reachable from the target base;
+- meaningful changed files or report/task artifacts;
+- unclear merge state, ownership, or validation status;
+- validation evidence that may be useful later;
+- possible Tenn product, evaluation, reporting, repo-hygiene, or control-plane value.
+
+Do not create branch issues for low-evidence stale refs whose only signal is age. Use `SAFE_TO_ARCHIVE_CANDIDATE` only when current evidence shows no unique commits, no meaningful unmerged changed files, or full coverage by a linked replacement; this classification is not cleanup approval.
+
+Recommended tracking for branch review drafts:
+
+- Labels: `lane:repo-hygiene`, `type:control-plane`, `state:needs-review` / `state:parked` / `state:blocked` / `state:data-missing`, `risk:medium` or `risk:high`, and `mode:audit` or `mode:result-review`.
+- Milestone: `M0 — Control Plane Hardening`.
+- Classification maps to the issue state: `PARKED_*` uses `state:parked`, `BLOCKED_*` uses `state:blocked`, `STALE_UNKNOWN_NEEDS_AUDIT` uses `state:data-missing`, and reviewable active work uses `state:needs-review`.
 
 ## GitHub-Native Issue System
 
@@ -281,6 +327,79 @@ In plain language:
 - forbidden surface required
 - production data access required without approval
 - validation cannot run or fails without explanation
+```
+
+## Branch Review Issue Body Template
+
+Use this body for authorized branch review issue creation or for drafts:
+
+```markdown
+## Task
+`<job_id>`
+
+## Lane
+Primary lane: Repo Hygiene
+Supporting lanes: Reporting, Evaluation
+Mode: audit / result-review
+
+## GitHub Tracking
+Recommended labels: lane:repo-hygiene, type:control-plane, mode:<audit/result-review>, risk:<medium/high>, state:<needs-review/parked/blocked/data-missing>
+Recommended milestone: M0 — Control Plane Hardening
+Project fields: Lane=Repo Hygiene; Mode=<audit/result-review>; Risk=<medium/high>; Priority=<P1/P2/P3>; Status=<Needs Review/Parked/Blocked/Data Missing>; Task Card=<task_card_path>; Report Path=<report_path>; Blocked By=<issue/PR/branch/none>; Root Cause Fixed=NO; Follow-up Required=YES; Production Data Access=NO
+
+## Branch
+- Branch: `<branch>`
+- Worktree: `<path or DATA_MISSING>`
+- Base ref / commit: `<base>`
+- Branch HEAD: `<head>`
+- Classification: ACTIVE_LINKED / PARKED_READY_FOR_REVIEW / PARKED_NEEDS_REBASE / BLOCKED_BY_CI / BLOCKED_BY_DEPENDENCY / SUPERSEDED / STALE_UNKNOWN_NEEDS_AUDIT / SAFE_TO_ARCHIVE_CANDIDATE
+
+## Summary
+In plain language:
+- What the branch appears to contain:
+- What it may impact:
+- Why review or parking matters:
+- What evidence is missing, if any:
+
+## Evidence
+- Unique commits: `<command/result or DATA_MISSING>`
+- Changed files: `<summary or DATA_MISSING>`
+- Existing issue/PR/task/report links: `<links or DATA_MISSING>`
+- Validation evidence: `<commands/reports or DATA_MISSING>`
+- Supersession/duplicate check: `<replacement link or DATA_MISSING>`
+
+## Required task card
+`docs/agent_tasks/<job_id>.md`
+
+## Required output
+`reports/agent_jobs/<job_id>/`
+
+## Allowed files / surfaces
+- Branch review report artifacts.
+- Issue/PR comments or labels only if explicitly approved.
+
+## Forbidden files / surfaces
+- product/backend/frontend/runtime code unless a later implementation task allows it
+- production DB/Qdrant/news/memory
+- canonical financial truth
+- parser routing
+- extraction prompts
+- gold labels
+- runtime/model/GPU/service config
+- branch delete/prune/reset/stash/merge/rebase/cherry-pick without separate explicit approval
+- unrelated dirty work
+
+## Acceptance criteria
+- Branch classification is evidence-backed or marked `DATA_MISSING`.
+- Useful work is linked to an issue, PR, task card, report, or parking entry.
+- Superseded or archive-candidate status links the replacement or evidence.
+- No destructive branch cleanup occurs in this task.
+
+## Validation
+- `git branch --contains` / `git branch --no-merged` or equivalent read-only checks.
+- `git log --left-right --cherry-pick --oneline <base>...<branch>` where safe.
+- `git diff --name-status <base>...<branch>` where safe.
+- Existing report/test/CI evidence, or `DATA_MISSING`.
 ```
 
 ## Finding Matrix

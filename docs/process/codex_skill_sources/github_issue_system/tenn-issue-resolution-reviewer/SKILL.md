@@ -33,6 +33,39 @@ Review any of these inputs:
 
 Classify the lane before review: `Financial Truth`, `Evaluation`, `Provenance`, `Query Orchestration`, `Memory`, `Reporting`, `Cockpit / Usability`, `Repo Hygiene / Dev-agent`, `Performance / Local Runtime`, or `Security / Boundary`.
 
+## Branch Hygiene / Merge Visibility Review
+
+When reviewing a branch, PR, worktree, or closeout that depends on unmerged branch work, decide whether the work is merge-ready, should be parked, is blocked, is superseded, or needs a branch review issue. This review is read-only. Do not delete, prune, reset, stash, merge, rebase, or cherry-pick branches.
+
+Assign one branch classification:
+
+```text
+ACTIVE_LINKED
+PARKED_READY_FOR_REVIEW
+PARKED_NEEDS_REBASE
+BLOCKED_BY_CI
+BLOCKED_BY_DEPENDENCY
+SUPERSEDED
+STALE_UNKNOWN_NEEDS_AUDIT
+SAFE_TO_ARCHIVE_CANDIDATE
+```
+
+Review these branch dimensions:
+
+- Merge readiness: base commit, branch HEAD, divergence, conflicts if already known, changed files, and linked PR state.
+- Regression risk: blast radius across tickers, source types, routes, docs, workflows, tests, reports, and control-plane scripts.
+- Validation: focused tests, report checks, CI status, `git diff --check`, and any unavailable evidence marked `DATA_MISSING`.
+- Supersession: whether another branch, PR, issue, report, or commit covers the same objective and validation path.
+- Parking eligibility: task card, report path, changed-file summary, validation evidence, blockers, and next review action are visible.
+- Cleanup eligibility: `SAFE_TO_ARCHIVE_CANDIDATE` is only a non-destructive recommendation. Actual archive/delete/prune requires separate explicit approval.
+
+Use `PARK_FOR_REVIEW` only when completed or frozen unmerged work has enough evidence for a visible parking path. Use `BLOCKED_DATA_MISSING` when unique commits, meaningful changed files, validation, PR state, or supersession evidence cannot be determined.
+
+Recommended branch review issue tracking:
+
+- Labels: `lane:repo-hygiene`, `type:control-plane`, `state:needs-review` / `state:parked` / `state:blocked` / `state:data-missing`, `risk:medium` or `risk:high`, and `mode:audit` or `mode:result-review`.
+- Milestone: `M0 — Control Plane Hardening`.
+
 ## Hard Boundaries
 
 Preserve Tenn architecture and orchestration rules:
@@ -94,6 +127,7 @@ Run these passes:
 - `Security/Boundary Reviewer`: check task-card permissions, forbidden surfaces, secrets, auth, CI, repo-control, and runtime boundaries.
 - `Financial Truth/Provenance Reviewer`: check canonical truth, source traceability, provenance labels, source pages, and no fabricated or relaxed labels.
 - `User Value Reviewer`: check whether the issue's actual user/workflow value was restored and validated.
+- `Branch Hygiene Reviewer`: when branch work is involved, check branch classification, merge readiness, validation, supersession, parking eligibility, and destructive-cleanup boundaries.
 - `Skeptic/Opposition Reviewer`: argue the strongest reason this should remain open or be parked.
 - `Final Arbiter`: reconcile the passes into a closeout verdict.
 
@@ -246,6 +280,13 @@ GitHub backlog integrity:
 - Project fields recommended/applied:
 - PR link mode: fixes / refs / audit for / none
 - Required follow-ups tracked in GitHub/PR/parking: YES / NO
+
+Branch hygiene:
+- Branch classification:
+- Merge readiness:
+- Parking eligibility:
+- Supersession:
+- Destructive cleanup approved: NO
 
 DATA_MISSING:
 - ...
