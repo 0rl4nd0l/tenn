@@ -1,0 +1,70 @@
+{
+  "job_id": "production_hardening_gate_audit_v1_20260525",
+  "issue": 60,
+  "gaps": [
+    {
+      "id": "worker_runtime_provenance_parity",
+      "status": "Confirmed",
+      "severity": "medium",
+      "evidence": "worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+      "next_task": "worker_runtime_provenance_env_parity_safe_extension_v1_20260525"
+    },
+    {
+      "id": "merge_parking_missing",
+      "status": "Confirmed",
+      "severity": "medium",
+      "evidence": "merge_parking_registry_surface_audit_design_v1_20260525",
+      "next_task": "merge_parking_registry_surface_safe_extension_v1_20260525"
+    },
+    {
+      "id": "ignored_report_visibility",
+      "status": "Confirmed",
+      "severity": "medium",
+      "evidence": "worktree_taskcard_hygiene_audit_v1_20260525",
+      "next_task": "report_visibility_registry_safe_extension_v1_20260525"
+    },
+    {
+      "id": "stale_worktree_metadata",
+      "status": "Confirmed",
+      "severity": "low",
+      "evidence": "22 git worktree prune --dry-run entries",
+      "next_task": "stale_worktree_metadata_prune_approval_v1_20260525"
+    },
+    {
+      "id": "loose_task_cards",
+      "status": "Confirmed",
+      "severity": "medium",
+      "evidence": "four NVMe baseline untracked cards and 14 preserve-worktree untracked cards",
+      "next_task": "loose_taskcard_preservation_classification_v1_20260525"
+    },
+    {
+      "id": "redis_health_semantics",
+      "status": "Confirmed",
+      "severity": "low",
+      "evidence": "redis_role_audit_v1_20260525",
+      "next_task": "redis_role_docs_and_health_semantics_v1_20260525"
+    },
+    {
+      "id": "live_runtime_health_not_sampled",
+      "status": "DATA_MISSING",
+      "severity": "medium",
+      "evidence": "this audit did not start services or query live runtime",
+      "next_task": "production_hardening_live_smoke_readonly_v1_20260525"
+    },
+    {
+      "id": "full_validation_not_rerun",
+      "status": "DATA_MISSING",
+      "severity": "medium",
+      "evidence": "validation baseline exists but was not run in this audit",
+      "next_task": "production_hardening_validation_gate_run_v1_20260525"
+    },
+    {
+      "id": "graphify_agent_artifact_contract",
+      "status": "Confirmed",
+      "severity": "low",
+      "evidence": "graphify_artifact_contract_audit_v1_20260525",
+      "next_task": "graphify_instruction_conditionality_safe_extension_v1_20260525"
+    }
+  ],
+  "overall_recommendation": "Do not mark production hardening complete until the confirmed medium-severity coordination/provenance/report-visibility gaps are closed or explicitly accepted."
+}

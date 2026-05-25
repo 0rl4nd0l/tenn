@@ -1,0 +1,117 @@
+{
+  "job_id": "production_hardening_gate_audit_v1_20260525",
+  "issue": 60,
+  "gates": [
+    {
+      "gate": "system_contract",
+      "status": "Confirmed",
+      "readiness": "strong",
+      "evidence": [
+        "CLAUDE.md:11-34",
+        "docs/architecture/SYSTEM_CONTRACT.md read in current turn"
+      ],
+      "notes": "System contract is mandatory and backend remains sole authority."
+    },
+    {
+      "gate": "canonical_entrypoint",
+      "status": "Confirmed",
+      "readiness": "strong",
+      "evidence": [
+        "docs/entrypoints.md:1-21",
+        "docs/entrypoints.md:28-61"
+      ],
+      "notes": "Canonical backend startup and health confirmation path are documented."
+    },
+    {
+      "gate": "task_card_registry_enforcement",
+      "status": "Confirmed",
+      "readiness": "strong_for_dev_agent_work",
+      "evidence": [
+        "AGENTS.md:259-269",
+        "task-card validate/check-overlap/claim/check-diff/release commands passed for this audit batch"
+      ],
+      "notes": "Current active registry before this task was empty; this task claimed and released through shared registry."
+    },
+    {
+      "gate": "runtime_provenance",
+      "status": "Confirmed",
+      "readiness": "partial",
+      "evidence": [
+        "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/README.md",
+        "financial-engine_v2/docker-compose.yml:37-50,77-122,135-158"
+      ],
+      "notes": "Backend has git provenance env; worker/gpu_worker/beat parity is incomplete."
+    },
+    {
+      "gate": "redis_role_boundary",
+      "status": "Confirmed",
+      "readiness": "partial",
+      "evidence": [
+        "reports/agent_jobs/redis_role_audit_v1_20260525/README.md"
+      ],
+      "notes": "Redis role is classified, but docs/health semantics need clarification."
+    },
+    {
+      "gate": "worktree_and_task_card_hygiene",
+      "status": "Confirmed",
+      "readiness": "needs_cleanup_child_tasks",
+      "evidence": [
+        "reports/agent_jobs/worktree_taskcard_hygiene_audit_v1_20260525/README.md"
+      ],
+      "notes": "221 worktrees, 22 prunable dry-run entries, and loose task cards in non-audit worktrees require approval-gated cleanup."
+    },
+    {
+      "gate": "merge_parking_and_report_visibility",
+      "status": "Confirmed",
+      "readiness": "gap",
+      "evidence": [
+        "reports/agent_jobs/merge_parking_registry_surface_audit_design_v1_20260525/README.md",
+        ".git/info/exclude:31 reports/"
+      ],
+      "notes": "No committed merge parking surface; reports are ignored by default unless force-added."
+    },
+    {
+      "gate": "validation_no_regression",
+      "status": "Confirmed",
+      "readiness": "documented_not_live_rerun",
+      "evidence": [
+        "docs/validation_baseline.md:1-24",
+        "docs/validation_baseline.md:26-38"
+      ],
+      "notes": "Full stable validation runbook exists; this audit did not run the full suite."
+    },
+    {
+      "gate": "degraded_state_reporting",
+      "status": "Confirmed",
+      "readiness": "present_not_live_verified",
+      "evidence": [
+        "docs/architecture/19_backend_api_surface.md:192-204",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:3874-3970"
+      ],
+      "notes": "Backend API docs and Cockpit health route expose dependency health, but live status was not sampled."
+    },
+    {
+      "gate": "secrets_and_config_boundaries",
+      "status": "Confirmed",
+      "readiness": "documented",
+      "evidence": [
+        "docs/architecture/13_security_and_secrets.md:1-32"
+      ],
+      "notes": "Secret-bearing surfaces and local config boundaries are documented."
+    },
+    {
+      "gate": "graphify_agent_artifact_contract",
+      "status": "Confirmed",
+      "readiness": "gap",
+      "evidence": [
+        "reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/README.md"
+      ],
+      "notes": "Agent instructions expect missing ignored Graphify artifacts in clean checkouts."
+    }
+  ],
+  "overall": {
+    "status": "not_closed",
+    "readiness": "partial",
+    "reason": "Core gates exist, but runtime provenance parity, merge parking/report visibility, worktree hygiene, and live smoke evidence remain open."
+  }
+}

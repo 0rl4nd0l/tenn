@@ -1,0 +1,42 @@
+{
+  "agent": "Codex",
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "collision_risk": "LOW",
+  "decision": "resolved_audit_report",
+  "execution_mode": "AUDIT MODE",
+  "files_changed": [
+    "docs/agent_tasks/production_hardening_gate_audit_v1_20260525.md",
+    "reports/agent_jobs/production_hardening_gate_audit_v1_20260525/README.md",
+    "reports/agent_jobs/production_hardening_gate_audit_v1_20260525/status.json",
+    "reports/agent_jobs/production_hardening_gate_audit_v1_20260525/hardening_gate_matrix.json",
+    "reports/agent_jobs/production_hardening_gate_audit_v1_20260525/risk_gap_register.json",
+    "reports/agent_jobs/production_hardening_gate_audit_v1_20260525/diff-check.json"
+  ],
+  "files_intentionally_not_touched": [
+    "financial-engine_v2/**",
+    "cockpit-ui/**",
+    "docker-compose.yml",
+    "live runtime services",
+    "production data stores"
+  ],
+  "github_issue": 60,
+  "job_id": "production_hardening_gate_audit_v1_20260525",
+  "lane": "Reporting",
+  "remaining_blockers": [
+    "Production hardening is not closed until child remediation tasks address runtime provenance, merge parking/report visibility, stale worktree hygiene, live smoke evidence, and Redis health semantics."
+  ],
+  "result": "not_closed",
+  "task_card": "docs/agent_tasks/production_hardening_gate_audit_v1_20260525.md",
+  "validation": [
+    "python3 scripts/agent_job_contract.py validate docs/agent_tasks/production_hardening_gate_audit_v1_20260525.md",
+    "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/production_hardening_gate_audit_v1_20260525.md",
+    "python3 scripts/agent_job_registry.py claim docs/agent_tasks/production_hardening_gate_audit_v1_20260525.md",
+    "python3 -m json.tool reports/agent_jobs/production_hardening_gate_audit_v1_20260525/hardening_gate_matrix.json",
+    "python3 -m json.tool reports/agent_jobs/production_hardening_gate_audit_v1_20260525/risk_gap_register.json",
+    "python3 -m json.tool reports/agent_jobs/production_hardening_gate_audit_v1_20260525/status.json",
+    "git diff --check",
+    "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/production_hardening_gate_audit_v1_20260525.md",
+    "python3 scripts/agent_job_registry.py release production_hardening_gate_audit_v1_20260525"
+  ],
+  "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+}
