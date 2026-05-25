@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "command": "git branch --show-current && git rev-parse HEAD",
+      "name": "target branch and head",
+      "result": "passed",
+      "summary": "migration/clean-runtime-baseline-reconstruct-v1 at 3a18475b91a325baccd22a3daf07237dc1d3d18b before this unblock commit"
+    },
+    {
+      "command": "git status --short --untracked-files=all",
+      "name": "initial dirty state",
+      "result": "passed",
+      "summary": "Three untracked task cards were present: the two named blockers plus an unrelated A2M task card outside this task."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525.md",
+      "name": "task-card validate",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "name": "registry list-active",
+      "result": "passed",
+      "summary": "active_jobs: []"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525.md --repo-root .",
+      "name": "registry check-overlap",
+      "result": "failed_blocking_unrelated",
+      "summary": "Only the unrelated A2M task card remained dirty outside this task allowlist."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/full_system_local_repo_system_audit_v1_20260525/status.json reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/status.json",
+      "name": "existing report JSON inspection",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525/status.json && python3 -m json.tool reports/agent_jobs/strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525/validation.json",
+      "name": "new report JSON validation",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "name": "diff whitespace",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525.md --repo-root . --no-write-report",
+      "name": "task-card check-diff",
+      "result": "failed_blocking_unrelated",
+      "summary": "The unrelated A2M task card remains outside this task's allowed_files."
+    }
+  ],
+  "job_id": "strategy_lab_readonly_integration_dirty_taskcard_unblock_v1_20260525",
+  "schema_version": "strategy_lab_readonly_integration_dirty_taskcard_unblock_validation_v1",
+  "status": "passed_for_allowed_scope_with_unrelated_a2m_dirty_blocker"
+}
