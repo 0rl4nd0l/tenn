@@ -345,6 +345,13 @@ export function buildStrategyLabStatusResponse({
           'Clean re-probe evidence records VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY; current_sidecar_available remains false.',
       },
       {
+        id: 'review_queue',
+        label: 'Review queue',
+        state: 'present_offline',
+        summary:
+          'The artifact route exposes repo-backed PENDING_REVIEW queue, experiment session, and export packet semantics.',
+      },
+      {
         id: 'historical_readonly_smoke',
         label: 'Historical read-only smoke',
         state: 'present_offline',
@@ -399,7 +406,7 @@ export function buildStrategyLabStatusResponse({
     },
     data_missing: [
       'No current QuantDinger sidecar capability, auth, network transport, retry, timeout, or unavailable behavior is confirmed by this status route.',
-      'No artifact persistence store, review queue, or promotion workflow is implemented in Cockpit.',
+      'Review queue and export packets are repo-backed artifacts only; no artifact persistence store or promotion workflow is implemented.',
       'No evidence-backed parameter_sweep, factor_test, broad risk_report, or portfolio_experiment surface is live.',
     ],
     next_safe_actions: [

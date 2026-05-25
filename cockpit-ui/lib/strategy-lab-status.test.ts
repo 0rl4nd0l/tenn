@@ -76,16 +76,17 @@ describe('Strategy Lab status contract', () => {
   });
 
   it('reports artifact availability from the workspace without writing stores', () => {
-    workspace = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-status-'));
-    const schemaPath = path.join(workspace, 'docs/strategy_lab/artifact_schema_v1.md');
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-status-'));
+    workspace = workspaceRoot;
+    const schemaPath = path.join(workspaceRoot, 'docs/strategy_lab/artifact_schema_v1.md');
     mkdirSync(path.dirname(schemaPath), { recursive: true });
     writeFileSync(schemaPath, '# Strategy Lab Artifact Schema\n');
     const cleanReprobeReadmePath = path.join(
-      workspace,
+      workspaceRoot,
       'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/README.md',
     );
     const cleanReprobeStatusPath = path.join(
-      workspace,
+      workspaceRoot,
       'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
     );
     mkdirSync(path.dirname(cleanReprobeReadmePath), { recursive: true });
@@ -94,7 +95,7 @@ describe('Strategy Lab status contract', () => {
 
     const payload = readStrategyLabStatus({
       now: new Date('2026-05-24T01:00:00.000Z'),
-      workspaceRoot: workspace,
+      workspaceRoot,
     });
 
     expect(payload.generated_at).toBe('2026-05-24T01:00:00.000Z');
@@ -115,14 +116,15 @@ describe('Strategy Lab status contract', () => {
   });
 
   it('serves the read-only status route with no-store caching', async () => {
-    workspace = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-route-'));
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-route-'));
+    workspace = workspaceRoot;
     const reportPath = path.join(
-      workspace,
+      workspaceRoot,
       'reports/agent_jobs/strategy_lab_phase3g_mergeback_v1_20260524/README.md',
     );
     mkdirSync(path.dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, '# Strategy Lab Phase 3G Mergeback\n');
-    process.env.COCKPIT_WORKSPACE_ROOT = workspace;
+    process.env.COCKPIT_WORKSPACE_ROOT = workspaceRoot;
 
     const response = await getStrategyLabStatusRoute();
     const payload = (await response.json()) as StrategyLabStatusResponse;

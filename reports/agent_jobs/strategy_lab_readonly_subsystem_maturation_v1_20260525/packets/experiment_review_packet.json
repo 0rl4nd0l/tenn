@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "packet_type": "experiment_review_packet",
+  "job_id": "strategy_lab_readonly_subsystem_maturation_v1_20260525",
+  "generated_at": "2026-05-25T04:48:03Z",
+  "source_mode": "repo_artifacts_only",
+  "review_status": "PENDING_REVIEW",
+  "current_sidecar_available": false,
+  "execution_allowed": false,
+  "canonical_financial_truth": false,
+  "real_transport": false,
+  "session": {
+    "session_id": "stratlab_qd_clean_reprobe_readonly_20260525",
+    "label": "QuantDinger clean read-only sandbox re-probe",
+    "runtime_proof_refs": [
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/runtime_proof.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/validation.json"
+    ],
+    "reprobe_refs": [
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/backtest_request.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/backtest_final_response.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/regime_request.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/regime_response.json"
+    ],
+    "degraded_state_refs": [
+      "docs/strategy_lab/mock_transport_fixtures/invalid_sidecar_unavailable_transport_response_v1.json",
+      "docs/strategy_lab/mock_transport_fixtures/invalid_timeout_transport_response_v1.json"
+    ],
+    "cleanup_proof_refs": [
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/cleanup_proof.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/zero_order_proof.json"
+    ],
+    "revoke_proof_refs": [
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/revoke_response.json",
+      "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/post_revoke_whoami_response.json"
+    ]
+  },
+  "what_is_now_trustworthy": [
+    "The clean re-probe evidence can be reviewed as historical read-only sandbox proof.",
+    "Exact sanitized payload and response refs are organized into one session envelope.",
+    "Cleanup, revoke, and zero-order refs are explicit review gates."
+  ],
+  "what_remains_non_live_non_authoritative": [
+    "No current sidecar runtime is available through this subsystem.",
+    "No real transport or backend orchestration exists.",
+    "No sidecar output is canonical Tenn financial truth."
+  ],
+  "promotion_blockers": [
+    "human_review_decision=DATA_MISSING",
+    "current_sidecar_available=false",
+    "execution_allowed=false",
+    "real_transport=false",
+    "canonical_financial_truth=false",
+    "persistent_sidecar_runtime_absent"
+  ],
+  "data_missing": [
+    "review_owner",
+    "review_decision",
+    "source_commit_ref_for_tenn_reprobe_state",
+    "current_sidecar_runtime"
+  ]
+}

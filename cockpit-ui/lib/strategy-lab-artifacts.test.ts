@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { GET as getStrategyLabArtifactsRoute } from '@/app/api/cockpit/strategy-lab/artifacts/route';
 import type { StrategyLabArtifactsResponse } from './strategy-lab-artifacts';
 import { readStrategyLabArtifacts } from './strategy-lab-artifacts-server';
+import { buildStrategyLabReviewWorkflow } from './strategy-lab-review-queue';
 
 describe('Strategy Lab artifacts contract', () => {
   let workspace: string | null = null;
@@ -19,8 +20,9 @@ describe('Strategy Lab artifacts contract', () => {
   });
 
   it('reads only explicit repo artifact paths and preserves deny boundaries', () => {
-    workspace = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-artifacts-'));
-    const fixturePath = path.join(workspace, 'docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json');
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-artifacts-'));
+    workspace = workspaceRoot;
+    const fixturePath = path.join(workspaceRoot, 'docs/strategy_lab/artifact_fixtures/valid_backtest_run_v1.json');
     mkdirSync(path.dirname(fixturePath), { recursive: true });
     writeFileSync(
       fixturePath,
@@ -43,13 +45,13 @@ describe('Strategy Lab artifacts contract', () => {
       }),
     );
     const milestonePath = path.join(
-      workspace,
+      workspaceRoot,
       'reports/agent_jobs/strategy_lab_quantdinger_complete_and_next_phases_v1_20260524/README.md',
     );
     mkdirSync(path.dirname(milestonePath), { recursive: true });
     writeFileSync(milestonePath, '# QuantDinger complete-and-next-phases\n');
     const cleanReprobeStatusPath = path.join(
-      workspace,
+      workspaceRoot,
       'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
     );
     mkdirSync(path.dirname(cleanReprobeStatusPath), { recursive: true });
@@ -57,7 +59,7 @@ describe('Strategy Lab artifacts contract', () => {
 
     const payload = readStrategyLabArtifacts({
       now: new Date('2026-05-24T02:00:00.000Z'),
-      workspaceRoot: workspace,
+      workspaceRoot,
     });
     const backtest = payload.artifacts.find((artifact) => artifact.id === 'artifact_v1_backtest_fixture');
     const helper = payload.artifacts.find((artifact) => artifact.id === 'phase2_helper_backtest');
@@ -71,6 +73,29 @@ describe('Strategy Lab artifacts contract', () => {
 
     expect(payload.generated_at).toBe('2026-05-24T02:00:00.000Z');
     expect(payload.source_mode).toBe('repo_artifacts_only');
+    expect(payload.review_workflow).toMatchObject({
+      schema_version: 'cockpit_strategy_lab_review_workflow_v1',
+      source_mode: 'repo_artifacts_only',
+      review_status: 'PENDING_REVIEW',
+      current_sidecar_available: false,
+      execution_allowed: false,
+      canonical_financial_truth: false,
+      real_transport: false,
+    });
+    expect(payload.review_workflow.review_queue.length).toBeGreaterThan(0);
+    expect(payload.review_workflow.experiment_sessions[0]).toMatchObject({
+      session_id: 'stratlab_qd_clean_reprobe_readonly_20260525',
+      review_status: 'PENDING_REVIEW',
+      current_sidecar_available: false,
+      execution_allowed: false,
+      canonical_financial_truth: false,
+      real_transport: false,
+    });
+    expect(payload.review_workflow.export_packets.find((packet) => packet.id === 'risk_summary_packet')).toMatchObject({
+      availability: 'missing',
+      review_status: 'PENDING_REVIEW',
+      current_sidecar_available: false,
+    });
     expect(payload.boundary_flags).toMatchObject({
       read_only: true,
       live_trading: false,
@@ -122,14 +147,15 @@ describe('Strategy Lab artifacts contract', () => {
   });
 
   it('serves the read-only artifact route with no-store caching', async () => {
-    workspace = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-artifacts-route-'));
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-artifacts-route-'));
+    workspace = workspaceRoot;
     const reportPath = path.join(
-      workspace,
+      workspaceRoot,
       'reports/agent_jobs/strategy_lab_quantdinger_phase2_artifact_schema_v1_20260521/README.md',
     );
     mkdirSync(path.dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, '# Strategy Lab Phase 2\n');
-    process.env.COCKPIT_WORKSPACE_ROOT = workspace;
+    process.env.COCKPIT_WORKSPACE_ROOT = workspaceRoot;
 
     const response = await getStrategyLabArtifactsRoute();
     const payload = (await response.json()) as StrategyLabArtifactsResponse;
@@ -146,5 +172,20 @@ describe('Strategy Lab artifacts contract', () => {
       paper_order_placement: false,
     });
     expect(payload.boundary_flags.store_writes).toBe(false);
+    expect(payload.review_workflow.filter_facets).toContain('group');
+  });
+
+  it('can build an empty repo-only review workflow for tests', () => {
+    const workflow = buildStrategyLabReviewWorkflow({
+      generatedAt: '2026-05-24T03:00:00.000Z',
+      reviewQueue: [],
+      experimentSessions: [],
+      exportPackets: [],
+    });
+
+    expect(workflow.review_status).toBe('PENDING_REVIEW');
+    expect(workflow.current_sidecar_available).toBe(false);
+    expect(workflow.source_mode).toBe('repo_artifacts_only');
+    expect(workflow.sort_options).toContain('priority_then_sort_key');
   });
 });

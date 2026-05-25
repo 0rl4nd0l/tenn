@@ -10,6 +10,7 @@ import type {
   StrategyLabReviewArtifact,
   StrategyLabReviewEvidenceKind,
 } from '@/lib/strategy-lab-artifacts';
+import { groupLabel, type StrategyLabReviewQueueItem } from '@/lib/strategy-lab-review-queue';
 import { cn } from '@/lib/utils';
 
 type StrategyLabArtifactsCardState =
@@ -83,6 +84,7 @@ export function StrategyLabArtifactsReviewCard() {
 }
 
 function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLabArtifactsResponse }) {
+  const workflow = payload.review_workflow;
   const counts = useMemo(() => {
     return payload.artifacts.reduce(
       (acc, artifact) => {
@@ -97,6 +99,7 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
       { available: 0, authoritative: 0 },
     );
   }, [payload.artifacts]);
+  const firstSession = workflow.experiment_sessions[0] ?? null;
 
   return (
     <Card className="terminal-panel" data-testid="strategy-lab-artifacts-review-card">
@@ -131,6 +134,12 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
           <MetricPill label="review" value="PENDING" />
         </div>
 
+        <ReviewQueuePreview queue={workflow.review_queue} />
+
+        {firstSession ? <ExperimentSessionPreview session={firstSession} /> : null}
+
+        <ExportPacketsPreview packets={workflow.export_packets} />
+
         <div className="grid gap-3">
           {payload.artifacts.map((artifact) => (
             <ArtifactReviewRow key={artifact.id} artifact={artifact} />
@@ -145,6 +154,126 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ReviewQueuePreview({ queue }: { queue: StrategyLabReviewQueueItem[] }) {
+  const preview = queue.slice(0, 6);
+  const available = queue.filter((item) => item.availability === 'available').length;
+
+  return (
+    <div className="rounded-md border border-cyan-500/30 bg-cyan-500/5 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="text-[10px] font-mono uppercase text-cyan-300">Review Queue</div>
+          <div className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
+            Repo-backed queue items sorted by priority and grouped for analyst review.
+          </div>
+        </div>
+        <Badge variant="outline" className="border-cyan-500/40 text-cyan-300 bg-cyan-500/10 text-[9px]">
+          {available}/{queue.length} available
+        </Badge>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {preview.map((item) => (
+          <div key={item.id} className="rounded-md border border-border/50 bg-background/40 p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-foreground">{item.label}</span>
+              <Badge variant="outline" className="text-[9px] font-mono uppercase">
+                {item.priority}
+              </Badge>
+              <Badge variant="outline" className="text-[9px] font-mono uppercase">
+                {item.review_status}
+              </Badge>
+              <Badge variant="outline" className="text-[9px] font-mono uppercase">
+                {item.availability}
+              </Badge>
+            </div>
+            <div className="mt-1 text-[10px] font-mono uppercase text-muted-foreground">
+              {groupLabel(item.group)}
+            </div>
+            <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {item.what_is_trustworthy[0]}
+            </div>
+            <div className="mt-1 text-[10px] leading-relaxed text-amber-300">
+              Blocker: {item.promotion_blockers[0]}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ExperimentSessionPreview({
+  session,
+}: {
+  session: StrategyLabArtifactsResponse['review_workflow']['experiment_sessions'][number];
+}) {
+  const refCount =
+    session.runtime_proof_refs.length +
+    session.reprobe_refs.length +
+    session.degraded_state_refs.length +
+    session.cleanup_proof_refs.length +
+    session.revoke_proof_refs.length +
+    session.review_decision_refs.length;
+
+  return (
+    <div className="rounded-md border border-border/50 bg-background/40 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="text-[10px] font-mono uppercase text-muted-foreground">Experiment Session</div>
+          <div className="mt-1 text-[12px] font-semibold text-foreground">{session.label}</div>
+        </div>
+        <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/10 text-[9px]">
+          {session.review_status}
+        </Badge>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+        <MetricPill label="refs" value={`${refCount}`} />
+        <MetricPill label="runtime" value={String(session.current_sidecar_available)} />
+        <MetricPill label="transport" value={String(session.real_transport)} />
+        <MetricPill label="canonical" value={String(session.canonical_financial_truth)} />
+      </div>
+      <div className="mt-3 grid gap-1 text-[11px] leading-relaxed text-muted-foreground">
+        <div>
+          <span className="font-mono uppercase text-muted-foreground/80">Session id: </span>
+          {session.session_id}
+        </div>
+        <div>
+          <span className="font-mono uppercase text-muted-foreground/80">Source worktree: </span>
+          {session.source_worktree_ref}
+        </div>
+        <div>
+          <span className="font-mono uppercase text-amber-300">Promotion gate: </span>
+          {session.promotion_blockers[0]}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExportPacketsPreview({ packets }: { packets: StrategyLabArtifactsResponse['review_workflow']['export_packets'] }) {
+  return (
+    <div className="rounded-md border border-border/50 bg-background/40 p-3">
+      <div className="text-[10px] font-mono uppercase text-muted-foreground">Export Packets</div>
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        {packets.map((packet) => (
+          <div key={packet.id} className="rounded-md border border-border/50 bg-background/40 p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-foreground">{packet.label}</span>
+              <Badge variant="outline" className="text-[9px] font-mono uppercase">
+                {packet.availability}
+              </Badge>
+            </div>
+            <div className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{packet.summary}</div>
+            <div className="mt-1 break-all text-[9px] font-mono uppercase text-muted-foreground/80">
+              {packet.path}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -1,3 +1,5 @@
+import type { StrategyLabReviewWorkflow } from './strategy-lab-review-queue';
+
 export type StrategyLabReviewEvidenceKind =
   | 'strategy_lab_artifact_v1'
   | 'helper_pre_envelope'
@@ -65,6 +67,7 @@ export interface StrategyLabArtifactsResponse {
   artifact_review_route: '/api/cockpit/strategy-lab/artifacts';
   source_mode: 'repo_artifacts_only';
   artifacts: StrategyLabReviewArtifact[];
+  review_workflow: StrategyLabReviewWorkflow;
   boundary_flags: {
     pending_review: true;
     read_only: true;
@@ -252,9 +255,11 @@ export const STRATEGY_LAB_REVIEW_SOURCES: StrategyLabReviewSource[] = [
 export function buildStrategyLabArtifactsResponse({
   generatedAt,
   artifacts,
+  reviewWorkflow,
 }: {
   generatedAt: string;
   artifacts: StrategyLabReviewArtifact[];
+  reviewWorkflow: StrategyLabReviewWorkflow;
 }): StrategyLabArtifactsResponse {
   return {
     ok: true,
@@ -263,6 +268,7 @@ export function buildStrategyLabArtifactsResponse({
     artifact_review_route: '/api/cockpit/strategy-lab/artifacts',
     source_mode: 'repo_artifacts_only',
     artifacts,
+    review_workflow: reviewWorkflow,
     boundary_flags: {
       pending_review: true,
       read_only: true,

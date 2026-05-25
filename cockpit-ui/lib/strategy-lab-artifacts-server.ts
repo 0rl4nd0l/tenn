@@ -8,6 +8,7 @@ import {
   type StrategyLabReviewArtifact,
   type StrategyLabReviewSource,
 } from './strategy-lab-artifacts';
+import { readStrategyLabReviewWorkflow } from './strategy-lab-review-queue-server';
 import { resolveStrategyLabWorkspaceRoot } from './strategy-lab-status-server';
 
 export interface ReadStrategyLabArtifactsOptions {
@@ -23,8 +24,9 @@ export function readStrategyLabArtifacts(
   const artifacts = STRATEGY_LAB_REVIEW_SOURCES.map((source) =>
     readReviewArtifactFromSource(source, workspaceRoot),
   );
+  const reviewWorkflow = readStrategyLabReviewWorkflow({ generatedAt, workspaceRoot, artifacts });
 
-  return buildStrategyLabArtifactsResponse({ generatedAt, artifacts });
+  return buildStrategyLabArtifactsResponse({ generatedAt, artifacts, reviewWorkflow });
 }
 
 function readReviewArtifactFromSource(

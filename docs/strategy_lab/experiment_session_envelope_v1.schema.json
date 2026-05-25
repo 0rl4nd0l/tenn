@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tenn.local/strategy_lab/experiment_session_envelope_v1.schema.json",
+  "title": "Strategy Lab Experiment Session Envelope v1",
+  "type": "object",
+  "required": [
+    "session_id",
+    "label",
+    "review_status",
+    "current_sidecar_available",
+    "execution_allowed",
+    "canonical_financial_truth",
+    "real_transport",
+    "runtime_proof_refs",
+    "reprobe_refs",
+    "degraded_state_refs",
+    "cleanup_proof_refs",
+    "revoke_proof_refs",
+    "review_decision_refs",
+    "promotion_blockers",
+    "unresolved_risks",
+    "data_missing"
+  ],
+  "properties": {
+    "session_id": {"type": "string", "minLength": 1},
+    "label": {"type": "string", "minLength": 1},
+    "review_status": {"const": "PENDING_REVIEW"},
+    "current_sidecar_available": {"const": false},
+    "execution_allowed": {"const": false},
+    "canonical_financial_truth": {"const": false},
+    "real_transport": {"const": false},
+    "runtime_proof_refs": {"type": "array"},
+    "reprobe_refs": {"type": "array"},
+    "degraded_state_refs": {"type": "array"},
+    "cleanup_proof_refs": {"type": "array"},
+    "revoke_proof_refs": {"type": "array"},
+    "review_decision_refs": {"type": "array"},
+    "promotion_blockers": {"type": "array", "items": {"type": "string"}},
+    "unresolved_risks": {"type": "array", "items": {"type": "string"}},
+    "data_missing": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}
