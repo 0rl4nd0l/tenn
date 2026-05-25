@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "job_id": "confirmed_metric_source_pdf_resolution_audit_v1_20260524",
+  "status": "audit_complete",
+  "agent": "Codex",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Provenance"
+  ],
+  "mode": "audit_only",
+  "production_data_access": false,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "6e6dcdbdb03c37cecc731a30c090050813ba4368",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "canonical_path_checked": "/home/l4nd0/tenn",
+  "canonical_path_resolved_to_worktree": true,
+  "task_card": {
+    "path": "docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+    "validation_ok": true,
+    "validation_report": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/validation.json"
+  },
+  "registry": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "list_active_initial_ok": true,
+    "check_overlap_ok": true,
+    "claim_ok": true,
+    "release_ok": true,
+    "active_overlap_after_release": {
+      "active_jobs_present": true,
+      "overlap_with_this_task": false,
+      "observed_active_job": "strategy_lab_quantdinger_verified_readonly_status_v1_20260525",
+      "observed_active_lane": "Reporting"
+    }
+  },
+  "collision_classification": {
+    "initial_risk": "LOW if restricted to task card and report artifacts; HIGH if copying PDFs, mutating labels, weakening allowlists, running extraction, touching parser routing, or writing truth",
+    "actual_risk": "LOW",
+    "contested_surfaces_touched": [],
+    "forbidden_surfaces_touched": [],
+    "decision": "audit_only_completed"
+  },
+  "changed_files": [
+    "docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/README.md",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/status.json",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/source_pdf_resolution_matrix.json",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/source_path_gap_register.json",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/next_task_recommendation.md",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/recommended_child_task_card.md",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/validation.json",
+    "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/diff-check.json"
+  ],
+  "artifacts": {
+    "readme": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/README.md",
+    "source_pdf_resolution_matrix": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/source_pdf_resolution_matrix.json",
+    "source_path_gap_register": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/source_path_gap_register.json",
+    "next_task_recommendation": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/next_task_recommendation.md",
+    "recommended_child_task_card": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/recommended_child_task_card.md",
+    "validation": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/validation.json",
+    "diff_check": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/diff-check.json"
+  },
+  "source_pdf_resolution_summary": {
+    "fixture_source_groups": 15,
+    "total_rows": 146,
+    "source_route_openable_rows": 146,
+    "readable_pdf_header_groups": 15,
+    "scorecard_source_pdf_status_missing_rows": 146,
+    "source_route_missing_rows": 0,
+    "allowlist_blocked_rows": 0,
+    "external_only_rows": 0,
+    "ambiguous_source_reference_rows": 0,
+    "source_unopenable_rows": 0,
+    "project_root_candidate_missing_groups": 15,
+    "root_cause": "scorecard project-root-only existence check diverges from existing source-route resolver roots",
+    "resolved_data_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs"
+  },
+  "row_status_counts": {
+    "CONFIRMED_SOURCE_EVIDENCED": 73,
+    "CANDIDATE_REVIEW_REQUIRED": 70,
+    "AMBIGUOUS_OR_DERIVED": 3
+  },
+  "scoring_unblock_decision": {
+    "can_confirmed_metric_scoring_gap_task_proceed": true,
+    "eligible_for_scoring_rows": 73,
+    "excluded_candidate_rows": 70,
+    "excluded_ambiguous_rows": 3,
+    "reason": "All fixture source PDFs are openable through the existing allowlisted source route roots; candidate and ambiguous rows remain excluded."
+  },
+  "validation": {
+    "task_card_validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md --write-report",
+      "result": "passed"
+    },
+    "registry_check_overlap": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+      "result": "passed"
+    },
+    "json_validation": {
+      "command": "python3 -m json.tool on status, validation, source_pdf_resolution_matrix, source_path_gap_register, and diff-check artifacts",
+      "result": "passed"
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+      "result": "passed",
+      "visible_changed_files": [
+        "docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md"
+      ],
+      "note": "Report artifacts are ignored by git status before force-add, but were written under the allowed output_dir and validated directly."
+    }
+  },
+  "final_git_status_before_commit": {
+    "result": "only_allowed_task_card_visible_before_commit",
+    "short_untracked_all": [
+      "?? docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md"
+    ],
+    "ignored_report_artifacts_present": true
+  },
+  "next_task_recommendation": "confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+  "recommended_child_task_card_path": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/recommended_child_task_card.md",
+  "data_missing": [
+    "current extracted-payload scoring for confirmed metric coverage",
+    "current generated reports/extraction_eval latest artifact",
+    "graphify-out/GRAPH_REPORT.md and graphify-out/wiki/index.md",
+    "live HTTP source route response under a running authenticated backend"
+  ],
+  "save_recommendation": "SAVE_RECOMMENDED",
+  "save_recommendation_reason": "The audit separates false project-root missing-PDF status from source-route openability and unblocks the next confirmed-metric scoring-gap task."
+}

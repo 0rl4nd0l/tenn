@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "job_id": "confirmed_metric_source_pdf_resolution_audit_v1_20260524",
+  "mode": "audit_only",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "6e6dcdbdb03c37cecc731a30c090050813ba4368",
+  "summary": {
+    "source_pdf_root_cause": "path_mismatch_between_scorecard_existence_probe_and_source_route_resolver",
+    "source_route_openable_rows": 146,
+    "scorecard_source_pdf_status_missing_rows": 146,
+    "eligible_for_next_scoring_gap_task": 73,
+    "excluded_candidate_rows": 70,
+    "excluded_ambiguous_rows": 3,
+    "canonical_truth_mutated": false,
+    "source_pdfs_copied_or_moved": false
+  },
+  "gaps": [
+    {
+      "id": "path_mismatch_001",
+      "root_cause": "moved path",
+      "status": "confirmed",
+      "severity": "high",
+      "summary": "The scorecard marks all 146 rows as source_pdf_status=missing because extraction_gold_eval_scorecard._source_pdf_exists checks only PROJECT_ROOT / pdf_path for relative paths.",
+      "evidence": [
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py:_source_pdf_exists",
+        "read-only scorecard packet showed missing_source_pdf_count=146",
+        "project root candidate paths under /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/asx/docs do not contain the fixture PDFs"
+      ],
+      "recommended_next_action": "In a separate safe-extension task, report or reconcile source-route openability separately from project-root-only source_pdf_exists so the UI does not show a false source-PDF blocker.",
+      "action_type": "requires_separate_child_mutation_task",
+      "hard_stops": [
+        "do not copy PDFs into the repo",
+        "do not weaken source-route allowlists",
+        "do not mutate fixture labels"
+      ]
+    },
+    {
+      "id": "source_route_001",
+      "root_cause": "source-route allowlist issue",
+      "status": "not_blocking",
+      "severity": "low",
+      "summary": "The existing source route allowlist includes /data/asx/docs, which resolves on this host to /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs; all 15 fixture PDFs resolved there and had readable PDF headers.",
+      "evidence": [
+        "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py:CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        "financial-engine_v2/backend/app/main.py:/api/extraction-eval/confirmed-metric-coverage/source",
+        "read-only resolver probe resolved 15/15 fixture PDFs through /data/asx/docs"
+      ],
+      "recommended_next_action": "Proceed to a separate confirmed_metric_scoring_gap_safe_extension task from a source-PDF-resolution perspective.",
+      "action_type": "audit_only_findings_support_next_safe_extension",
+      "hard_stops": [
+        "do not edit source-route code in this audit",
+        "keep traversal/unsafe-path/outside-root rejection intact"
+      ]
+    },
+    {
+      "id": "missing_file_001",
+      "root_cause": "missing file",
+      "status": "not_confirmed_for_fixture_sources",
+      "severity": "low",
+      "summary": "No fixture source group was genuinely missing through the active allowlisted source route roots. The missing signal is limited to the project-root candidate path.",
+      "evidence": [
+        "15/15 fixture source paths resolved to existing files under /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+        "all 15 resolved files started with a PDF header"
+      ],
+      "recommended_next_action": "Do not request production data access for these 15 fixture PDFs.",
+      "action_type": "audit_only_no_mutation_needed",
+      "hard_stops": [
+        "do not download or import source PDFs"
+      ]
+    },
+    {
+      "id": "fixture_metadata_001",
+      "root_cause": "fixture metadata incomplete",
+      "status": "confirmed",
+      "severity": "medium",
+      "summary": "Even with PDFs openable, the review packet's conservative precision flags remain broad: source_page_present=103, source_row_present=107, source_table_present=12, precise_source_evidence=0, human_review_required=146.",
+      "evidence": [
+        "confirmed_metric_coverage_review._apply_review_quality_flags",
+        "read-only packet build quality counts"
+      ],
+      "recommended_next_action": "Keep candidate/ambiguous rows excluded. In the next scoring-gap task, report profile scoring separately from operator precision flags and avoid calling broad_or_suspect rows source-precise.",
+      "action_type": "requires_separate_child_mutation_task_if_reporting_behavior_changes",
+      "hard_stops": [
+        "do not promote candidate rows",
+        "do not promote ambiguous rows",
+        "do not treat page-only or prose-only notes as precise table/row evidence"
+      ]
+    },
+    {
+      "id": "ignored_generated_artifact_001",
+      "root_cause": "ignored/generated artifact",
+      "status": "confirmed",
+      "severity": "medium",
+      "summary": "No current reports/extraction_eval review artifact exists in this checkout; generated report artifacts are ignored unless force-added by task-carded audit commits.",
+      "evidence": [
+        "find reports/extraction_eval financial-engine_v2/reports/extraction_eval produced no files",
+        "confirmed_metric_coverage_review.CONFIRMED_COVERAGE_REPORTS_DIR resolves to reports/extraction_eval and currently does not exist"
+      ],
+      "recommended_next_action": "The next scoring-gap task should write bounded report artifacts under its task output directory or explicitly allow reports/extraction_eval if it needs API-latest artifact semantics.",
+      "action_type": "requires_separate_child_mutation_task",
+      "hard_stops": [
+        "do not generate reports/extraction_eval artifacts from this audit unless the task card allows them"
+      ]
+    },
+    {
+      "id": "external_production_001",
+      "root_cause": "external/production-only source",
+      "status": "not_observed_for_fixture_sources",
+      "severity": "low",
+      "summary": "The 15 fixture PDF paths are local relative paths, not external URLs or production-only references.",
+      "evidence": [
+        "all fixture pdf_path values are data/asx/docs/... relative local paths",
+        "source route rejects external URLs by design"
+      ],
+      "recommended_next_action": "No production-data-access approval is needed for the current fixture source PDFs.",
+      "action_type": "audit_only_no_mutation_needed",
+      "hard_stops": [
+        "do not broaden source route to external URLs"
+      ]
+    },
+    {
+      "id": "graphify_001",
+      "root_cause": "graphify artifact missing",
+      "status": "confirmed",
+      "severity": "low",
+      "summary": "graphify-out/GRAPH_REPORT.md and graphify-out/wiki/index.md were not present in this checkout.",
+      "evidence": [
+        "find graphify-out -maxdepth 2 for GRAPH_REPORT.md/wiki/index.md returned no files"
+      ],
+      "recommended_next_action": "Leave graphify context DATA_MISSING unless the user explicitly requests a graph refresh.",
+      "action_type": "audit_only_no_mutation_needed",
+      "hard_stops": [
+        "do not run graphify update from this audit"
+      ]
+    },
+    {
+      "id": "extraction_eval_artifact_001",
+      "root_cause": "extraction_eval artifact missing",
+      "status": "confirmed",
+      "severity": "medium",
+      "summary": "No current reports/extraction_eval artifact exists, so API latest summary/rows would report not_generated until a separate allowed task generates artifacts.",
+      "evidence": [
+        "confirmed_metric_coverage_review.confirmed_metric_coverage_summary returns not_generated when no latest packet exists",
+        "find reports/extraction_eval financial-engine_v2/reports/extraction_eval produced no files"
+      ],
+      "recommended_next_action": "A separate child task should either generate a review packet in an allowed task output directory or explicitly allow reports/extraction_eval writes for API latest-artifact behavior.",
+      "action_type": "requires_separate_child_mutation_task",
+      "hard_stops": [
+        "do not run production extraction",
+        "do not mutate labels or canonical truth"
+      ]
+    },
+    {
+      "id": "data_missing_001",
+      "root_cause": "DATA_MISSING",
+      "status": "confirmed",
+      "severity": "medium",
+      "summary": "The audit did not score extracted payloads and did not prove broad confirmed-metric extraction accuracy.",
+      "evidence": [
+        "task mode is audit_only",
+        "no extraction run was performed",
+        "no extracted_payloads were supplied to build_confirmed_metric_coverage_scorecard"
+      ],
+      "recommended_next_action": "Use a separate confirmed_metric_scoring_gap_safe_extension task to produce a profile-labelled scoring artifact if extracted payloads are available or can be generated safely under that card.",
+      "action_type": "requires_separate_child_mutation_task",
+      "hard_stops": [
+        "do not claim broad metric extraction accuracy from this audit"
+      ]
+    }
+  ]
+}
