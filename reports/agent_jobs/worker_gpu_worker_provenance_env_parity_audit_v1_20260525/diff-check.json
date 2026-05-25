@@ -1,0 +1,56 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/provenance_gap_register.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/worker_runtime_inventory.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+        "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/README.md",
+        "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/status.json",
+        "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/worker_runtime_inventory.json",
+        "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/provenance_gap_register.json",
+        "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

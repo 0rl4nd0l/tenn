@@ -1,0 +1,82 @@
+{
+  "job_id": "worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+  "issue": 58,
+  "services": [
+    {
+      "service": "backend",
+      "compose_lines": "financial-engine_v2/docker-compose.yml:37-50",
+      "git_provenance_env": "present",
+      "worker_role_env": "not_applicable",
+      "model_runtime_env_or_mounts": [
+        "COCKPIT_MODELS_NVME_DIR",
+        "COCKPIT_MODELS_SSD_DIR",
+        "COCKPIT_MODELS_HDD_DIR",
+        "TENN_MODELS_NVME_DIR mount",
+        "TENN_LLMFIT_MODELS_DIR mount",
+        "TENN_COLD_MODELS_DIR mount"
+      ]
+    },
+    {
+      "service": "worker",
+      "compose_lines": "financial-engine_v2/docker-compose.yml:77-104",
+      "git_provenance_env": "missing",
+      "worker_role_env": "missing",
+      "queue_identity": "command includes -Q ingest,embed,score,llm_cpu",
+      "model_runtime_env_or_mounts": [
+        "OLLAMA_EMBED_NUM_GPU"
+      ]
+    },
+    {
+      "service": "gpu_worker",
+      "compose_lines": "financial-engine_v2/docker-compose.yml:106-133",
+      "git_provenance_env": "missing",
+      "worker_role_env": "missing",
+      "queue_identity": "command includes -Q llm_gpu",
+      "model_runtime_env_or_mounts": [
+        "OLLAMA_EMBED_NUM_GPU",
+        "TENN_LLM_GPU_WORKER_CONCURRENCY in command"
+      ]
+    },
+    {
+      "service": "fe_beat",
+      "compose_lines": "financial-engine_v2/docker-compose.yml:135-158",
+      "git_provenance_env": "missing",
+      "worker_role_env": "missing",
+      "queue_identity": "celery beat",
+      "model_runtime_env_or_mounts": [
+        "PYTHONPATH",
+        "BACKEND_APP_ROOT"
+      ]
+    }
+  ],
+  "runtime_identity_surfaces": [
+    {
+      "path": "financial-engine_v2/backend/app/main.py",
+      "lines": "1179-1208",
+      "finding": "Backend startup logs resolved LLM, extraction, embedding model/url and runtime config."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/main.py",
+      "lines": "1758-1765",
+      "finding": "System status resolves and probes chat, extraction, and embedding runtime endpoints/models."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+      "lines": "48-53,695-776",
+      "finding": "Confirmed metric coverage artifacts capture git provenance from TENN_GIT_* env or git command fallback."
+    },
+    {
+      "path": "financial-engine_v2/scripts/run_worker.sh",
+      "lines": "16-61",
+      "finding": "Host worker launcher sets project/data roots and starts Celery but does not export git, worker role, queue, runtime, or model identity."
+    }
+  ],
+  "prior_report_evidence": [
+    {
+      "path": "reports/agent_jobs/runtime_topology_reconciliation_impl_v1_20260524/README.md",
+      "lines": "50-55,81-85",
+      "finding": "Prior report records missing TENN_GIT_* on fe_worker and fe_gpu_worker and recommends a separate approved task."
+    }
+  ],
+  "live_runtime_probe": "not_run_by_design"
+}

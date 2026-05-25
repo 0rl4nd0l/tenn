@@ -1,0 +1,80 @@
+{
+  "job_id": "worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+  "issue": 58,
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+  "lane": "Reporting",
+  "execution_mode": "AUDIT MODE",
+  "collision_risk": "LOW",
+  "target_layer": "runtime identity, worker provenance, and report visibility",
+  "contract_boundary": {
+    "source_changed": false,
+    "config_changed": false,
+    "service_changed": false,
+    "runtime_changed": false,
+    "docker_changed": false,
+    "data_store_changed": false,
+    "live_worker_operation": false
+  },
+  "result": {
+    "backend_git_provenance": "partial_present",
+    "worker_git_provenance_gap": "confirmed",
+    "gpu_worker_git_provenance_gap": "confirmed",
+    "beat_git_provenance_gap": "confirmed",
+    "worker_role_identity_gap": "confirmed",
+    "live_runtime_truth": "DATA_MISSING",
+    "recommended_next_task": "worker_runtime_provenance_env_parity_safe_extension_v1_20260525"
+  },
+  "files_changed": [
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+    "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/README.md",
+    "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/status.json",
+    "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/worker_runtime_inventory.json",
+    "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/provenance_gap_register.json",
+    "reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/diff-check.json"
+  ],
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/worker_runtime_inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/provenance_gap_register.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/worker_gpu_worker_provenance_env_parity_audit_v1_20260525/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md",
+      "result": "passed"
+    }
+  ],
+  "registry_release": {
+    "ok": true,
+    "registry_scope": "shared",
+    "warnings": []
+  },
+  "commit_sha": null
+}

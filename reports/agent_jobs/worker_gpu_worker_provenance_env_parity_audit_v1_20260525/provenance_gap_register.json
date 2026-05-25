@@ -1,0 +1,65 @@
+{
+  "job_id": "worker_gpu_worker_provenance_env_parity_audit_v1_20260525",
+  "issue": 58,
+  "gaps": [
+    {
+      "id": "worker_git_env_parity",
+      "status": "Confirmed",
+      "severity": "medium",
+      "finding": "worker does not receive TENN_GIT_* or TENN_BUILD_TIME env in compose.",
+      "evidence": "financial-engine_v2/docker-compose.yml:77-104"
+    },
+    {
+      "id": "gpu_worker_git_env_parity",
+      "status": "Confirmed",
+      "severity": "medium",
+      "finding": "gpu_worker does not receive TENN_GIT_* or TENN_BUILD_TIME env in compose.",
+      "evidence": "financial-engine_v2/docker-compose.yml:106-133"
+    },
+    {
+      "id": "beat_git_env_parity",
+      "status": "Confirmed",
+      "severity": "low",
+      "finding": "fe_beat does not receive TENN_GIT_* or TENN_BUILD_TIME env in compose.",
+      "evidence": "financial-engine_v2/docker-compose.yml:135-158"
+    },
+    {
+      "id": "worker_role_identity",
+      "status": "Confirmed",
+      "severity": "medium",
+      "finding": "No explicit worker role env was found for backend/worker/gpu_worker/beat parity reporting.",
+      "evidence": "docker-compose environment blocks and run_worker.sh"
+    },
+    {
+      "id": "task_artifact_worker_runtime_identity",
+      "status": "Inferred",
+      "severity": "medium",
+      "finding": "Backend runtime model/url status exists, but generic worker-produced task artifacts do not appear to carry worker role plus runtime model/url provenance consistently.",
+      "evidence": "main.py runtime status surfaces; no matching worker artifact-wide provenance surface found in audit search"
+    },
+    {
+      "id": "live_worker_truth",
+      "status": "DATA_MISSING",
+      "severity": "low",
+      "finding": "Live worker process/container env was not sampled because this was a no-runtime audit.",
+      "evidence": "task hard boundary"
+    }
+  ],
+  "recommended_child_task": {
+    "job_id": "worker_runtime_provenance_env_parity_safe_extension_v1_20260525",
+    "mode": "safe_extension",
+    "allowed_scope": [
+      "financial-engine_v2/docker-compose.yml",
+      "worker startup/report provenance helper if existing",
+      "focused tests or smoke fixture",
+      "docs/report artifacts"
+    ],
+    "hard_boundaries": [
+      "no model routing changes",
+      "no GPU binding changes",
+      "no worker concurrency changes",
+      "no service startup behavior changes",
+      "no canonical financial truth changes"
+    ]
+  }
+}
