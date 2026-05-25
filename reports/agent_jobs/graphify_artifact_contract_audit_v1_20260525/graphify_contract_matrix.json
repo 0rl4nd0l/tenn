@@ -1,0 +1,97 @@
+{
+  "job_id": "graphify_artifact_contract_audit_v1_20260525",
+  "issue": 67,
+  "classification": {
+    "missing_artifacts": "confirmed",
+    "agent_instruction_contract_breach": "confirmed_for_clean_checkout_literal_requirement",
+    "system_contract_breach": "not_confirmed",
+    "root_cause": "stale_or_over_strong_agent_instructions_plus_ignored_external_artifact_expectation"
+  },
+  "expected_paths": [
+    {
+      "path": "graphify-out/GRAPH_REPORT.md",
+      "expected_by": [
+        "AGENTS.md:345",
+        "CLAUDE.md:370"
+      ],
+      "observed_status": "missing"
+    },
+    {
+      "path": "graphify-out/wiki/index.md",
+      "expected_by": [
+        "AGENTS.md:346",
+        "CLAUDE.md:371"
+      ],
+      "observed_status": "missing"
+    }
+  ],
+  "source_references": [
+    {
+      "path": "AGENTS.md",
+      "lines": "340-348",
+      "finding": "Declares graphify-out as present and instructs agents to read GRAPH_REPORT before architecture/codebase answers."
+    },
+    {
+      "path": "CLAUDE.md",
+      "lines": "365-373",
+      "finding": "Repeats the graphify-out presence and read-before-answer rule."
+    },
+    {
+      "path": "docs/architecture/SYSTEM_CONTRACT.md",
+      "lines": "searched",
+      "finding": "No Graphify references were found."
+    },
+    {
+      "path": ".gitignore",
+      "lines": "62-67",
+      "finding": "graphify-out/ is ignored as a large data/model or generated artifact surface."
+    },
+    {
+      "path": "scripts/build_architecture_graph_scope.py",
+      "lines": "1-150",
+      "finding": "Provides a curated architecture scope builder and optional graphify update invocation."
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-18-memory-stabilization-design.md",
+      "lines": "38-40",
+      "finding": "Records a prior graphify command failure because graphify was not installed."
+    }
+  ],
+  "commands": [
+    {
+      "command": "test -e graphify-out; test -f graphify-out/GRAPH_REPORT.md; test -f graphify-out/wiki/index.md",
+      "result": "all expected artifact checks returned missing"
+    },
+    {
+      "command": "git ls-files graphify-out",
+      "result": "no tracked graphify-out files"
+    },
+    {
+      "command": "git log --all --oneline -- graphify-out",
+      "result": "no graphify-out history returned"
+    },
+    {
+      "command": "git check-ignore -v graphify-out/GRAPH_REPORT.md graphify-out/wiki/index.md",
+      "result": "both expected files are ignored by .gitignore:67 graphify-out/"
+    },
+    {
+      "command": "command -v graphify",
+      "result": "no graphify executable found on PATH"
+    },
+    {
+      "command": "python3 scripts/build_architecture_graph_scope.py --output /tmp/tenn-graphify-scope-audit-294544",
+      "result": "scope materialized outside the repo; graphify update was not run"
+    }
+  ],
+  "recommended_next_task": {
+    "type": "docs_safe_extension",
+    "title": "Make Graphify artifact dependency conditional or add approved generation runbook",
+    "allowed_scope": [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/architecture or docs/ops runbook if chosen",
+      "reports/agent_jobs/<child_task>/**"
+    ],
+    "approval_gate": "Required before running graphify update or committing generated graphify-out artifacts."
+  }
+}

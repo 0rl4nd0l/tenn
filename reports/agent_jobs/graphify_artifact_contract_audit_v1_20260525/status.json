@@ -1,0 +1,72 @@
+{
+  "job_id": "graphify_artifact_contract_audit_v1_20260525",
+  "issue": 67,
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+  "lane": "Reporting",
+  "execution_mode": "AUDIT MODE",
+  "collision_risk": "LOW",
+  "target_layer": "agent instruction and report-artifact contract",
+  "contract_boundary": {
+    "backend_changed": false,
+    "cockpit_product_changed": false,
+    "data_contract_changed": false,
+    "financial_truth_changed": false,
+    "provenance_changed": false,
+    "memory_changed": false,
+    "runtime_changed": false
+  },
+  "result": {
+    "missing_artifacts": "confirmed",
+    "agent_instruction_contract_breach": "confirmed_for_clean_checkout_literal_requirement",
+    "system_contract_breach": "not_confirmed",
+    "recommended_next_task": "Make Graphify artifact dependency conditional or add approved generation runbook."
+  },
+  "files_changed": [
+    "docs/agent_tasks/graphify_artifact_contract_audit_v1_20260525.md",
+    "reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/README.md",
+    "reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/status.json",
+    "reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/graphify_contract_matrix.json",
+    "reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/diff-check.json"
+  ],
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/graphify_artifact_contract_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/graphify_artifact_contract_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/graphify_artifact_contract_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release graphify_artifact_contract_audit_v1_20260525",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/graphify_contract_matrix.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/graphify_artifact_contract_audit_v1_20260525/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/graphify_artifact_contract_audit_v1_20260525.md",
+      "result": "passed"
+    }
+  ],
+  "registry_release": {
+    "ok": true,
+    "registry_scope": "shared",
+    "warnings": []
+  },
+  "commit_sha": null
+}
