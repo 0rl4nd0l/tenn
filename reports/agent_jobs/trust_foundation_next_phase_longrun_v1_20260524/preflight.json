@@ -1,0 +1,36 @@
+{
+  "job_id": "trust_foundation_next_phase_longrun_v1_20260524",
+  "canonical": {
+    "path_requested": "/home/l4nd0/tenn",
+    "realpath": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_at_final_resample": "594df2dd19d72d8a047f581e7793204b9d873f7f",
+    "a71a4fbeb447_is_ancestor_of_head": true,
+    "recent_log": [
+      "594df2dd milestone(reporting): document QuantDinger regime failure",
+      "a71a4fbe fix(provenance): tighten live source-label sufficiency",
+      "ba5095ea milestone(reporting): preserve QuantDinger probe task-card blockers",
+      "a6db9760 milestone(evaluation): integrate trust foundation follow-up"
+    ],
+    "status_short_at_final_resample": []
+  },
+  "isolated_worktree": {
+    "path": "/home/l4nd0/tenn-trust-foundation-next-phase-longrun-v1-20260524",
+    "branch": "safe/trust-foundation-next-phase-longrun-v1-20260524",
+    "base_head": "a71a4fbeb4477a3fbe25ffc27c15c9a2e09e52b8",
+    "mode": "isolated_safe_extension"
+  },
+  "registry": {
+    "root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "scope": "shared",
+    "claimed_job": "trust_foundation_next_phase_longrun_v1_20260524",
+    "claim_refreshed_after_task_card_allowed_file_update": true,
+    "final_active_jobs": []
+  },
+  "collision_control": {
+    "initial_canonical_dirty_untracked_task_card": "docs/agent_tasks/strategy_lab_quantdinger_regime_detect_failure_v1_20260524.md",
+    "canonical_status_at_final_resample_clean": true,
+    "work_moved_to_isolated_worktree": true,
+    "overlap_check_passed": true
+  }
+}

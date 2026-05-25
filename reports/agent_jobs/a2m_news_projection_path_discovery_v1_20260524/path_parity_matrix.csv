@@ -1,0 +1,5 @@
+surface,configured_path,exists,readable,contains_a2m,projected_to_cockpit,synced_to_qdrant,retrieval_visible,data_missing_reason
+configured canonical article SQLite,reports/qual_context/news_articles.sqlite,false,false,DATA_MISSING,DATA_MISSING,DATA_MISSING_SOURCE_ABSENT,QDRANT_VISIBLE,configured article SQLite absent at checked live/canonical paths
+configured canonical news context SQLite fallback,reports/qual_context/news.sqlite,false,false,DATA_MISSING,DATA_MISSING,NOT_SOURCE_OF_QDRANT,QDRANT_VISIBLE,documented fallback DB absent; current backend chat news path uses Qdrant news_chunks
+Qdrant news_chunks,http://127.0.0.1:6333/collections/news_chunks,true,true,true,NOT_SQLITE_PROJECTION,true,true,
+Cockpit local state projection,/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db,true,true,PARTIAL_NON_NEWS,true,false,NOT_NEWS_RETRIEVAL,state.db is not the canonical news article/context corpus and does not provide A2M news parity

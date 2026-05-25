@@ -61,6 +61,35 @@ def _inventory() -> dict[str, object]:
     }
 
 
+def _current_audit_inventory() -> dict[str, object]:
+    return {
+        "summary": {
+            "canonical_core_expected_docs": 10,
+            "canonical_core_expected_metric_checks": 24,
+            "expanded_required_expected_docs": 15,
+            "expanded_required_expected_metric_checks": 39,
+            "confirmed_metric_coverage_total_expectations": 146,
+            "confirmed_metric_coverage_scored_expectations": 73,
+            "confirmed_metric_coverage_candidate_count": 70,
+            "confirmed_metric_coverage_ambiguous_count": 3,
+            "confirmed_metric_coverage_unsupported_count": 0,
+        },
+        "metrics": [
+            {"metric_name": "revenue", "classification": "REQUIRED_SCORED"},
+            {"metric_name": "operating_cash_flow", "classification": "REQUIRED_SCORED"},
+            {"metric_name": "net_debt", "classification": "REQUIRED_SCORED"},
+            {"metric_name": "ebit", "classification": "CONFIRMED_UNSCORED"},
+            {
+                "metric_name": "cash_end",
+                "classification": "CONFIRMED_UNSCORED for cash_end; generic cash remains AMBIGUOUS_OR_DERIVED",
+            },
+            {"metric_name": "total_debt", "classification": "EXTRACTOR_OUTPUT_BUT_NOT_GOLD"},
+            {"metric_name": "cash", "classification": "AMBIGUOUS_OR_DERIVED"},
+            {"metric_name": "eps", "classification": "UNSUPPORTED"},
+        ],
+    }
+
+
 def test_scorecards_preserve_profile_boundaries() -> None:
     rows = normalizer.build_scorecards(_inventory())
 
@@ -82,6 +111,34 @@ def test_metric_rows_do_not_turn_unscored_or_unsupported_into_accuracy_claims() 
     assert by_metric["cash_end"]["accuracy_claim"] == "none"
     assert by_metric["free_cash_flow"]["expectation_class"] == "ambiguous_or_derived"
     assert by_metric["ebitda"]["expectation_class"] == "unsupported"
+
+
+def test_current_audit_inventory_shape_normalizes_to_profile_boundaries() -> None:
+    rows = normalizer.build_scorecards(_current_audit_inventory())
+
+    by_profile = {row["scorecard_profile"]: row for row in rows}
+    assert by_profile["canonical_core"]["document_count"] == 10
+    assert by_profile["canonical_core"]["metric_check_count"] == 24
+    assert by_profile["canonical_core"]["eligible_metric_count"] == 3
+    assert by_profile["expanded_required"]["document_count"] == 15
+    assert by_profile["expanded_required"]["metric_check_count"] == 39
+    assert by_profile["confirmed_metric_coverage"]["metric_check_count"] == 146
+    assert by_profile["confirmed_metric_coverage"]["eligible_metric_count"] == 73
+    assert by_profile["confirmed_metric_coverage"]["candidate_count"] == 70
+    assert by_profile["confirmed_metric_coverage"]["ambiguous_count"] == 3
+
+
+def test_current_audit_inventory_metric_rows_remain_non_accuracy_claims() -> None:
+    rows = normalizer.build_metric_rows(_current_audit_inventory())
+    by_metric = {row["metric_name"]: row for row in rows}
+
+    assert by_metric["revenue"]["accuracy_claim"] == "profile_scorecard_boundary_only"
+    assert by_metric["cash_end"]["expectation_class"] == "confirmed_unscored"
+    assert by_metric["cash_end"]["accuracy_claim"] == "none"
+    assert by_metric["total_debt"]["expectation_class"] == "extractor_output_but_not_gold"
+    assert by_metric["total_debt"]["accuracy_claim"] == "none"
+    assert by_metric["cash"]["expectation_class"] == "ambiguous_or_derived"
+    assert by_metric["eps"]["expectation_class"] == "unsupported"
 
 
 def test_write_outputs_builds_valid_eval_spine_manifest_and_csvs(tmp_path: Path) -> None:

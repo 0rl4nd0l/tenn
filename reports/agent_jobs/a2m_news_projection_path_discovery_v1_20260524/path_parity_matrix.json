@@ -1,0 +1,94 @@
+{
+  "generated_at_utc": "2026-05-24T13:19:55Z",
+  "job_id": "a2m_news_projection_path_discovery_v1_20260524",
+  "production_data_access": false,
+  "mutation_allowed": false,
+  "conclusion": "Qdrant has current A2M news chunks, but configured/candidate news SQLite corpus paths are absent; SQLite/projection parity remains DATA_MISSING because there is no local source corpus to compare.",
+  "matrix": [
+    {
+      "surface": "configured canonical article SQLite",
+      "configured_path": "reports/qual_context/news_articles.sqlite",
+      "resolved_paths_checked": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/qual_context/news_articles.sqlite",
+        "/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite"
+      ],
+      "exists": false,
+      "readable": false,
+      "contains_a2m": "DATA_MISSING",
+      "projected_to_cockpit": "DATA_MISSING",
+      "synced_to_qdrant": "DATA_MISSING_SOURCE_ABSENT",
+      "retrieval_visible": "QDRANT_VISIBLE",
+      "data_missing_reason": "The configured article SQLite file was absent at checked live/canonical paths."
+    },
+    {
+      "surface": "configured canonical news context SQLite fallback",
+      "configured_path": "reports/qual_context/news.sqlite",
+      "resolved_paths_checked": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/qual_context/news.sqlite",
+        "/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news.sqlite"
+      ],
+      "exists": false,
+      "readable": false,
+      "contains_a2m": "DATA_MISSING",
+      "projected_to_cockpit": "DATA_MISSING",
+      "synced_to_qdrant": "NOT_SOURCE_OF_QDRANT",
+      "retrieval_visible": "QDRANT_VISIBLE",
+      "data_missing_reason": "The documented fallback DB is absent; current backend chat news path uses Qdrant news_chunks."
+    },
+    {
+      "surface": "Qdrant news_chunks",
+      "configured_path": "http://127.0.0.1:6333/collections/news_chunks",
+      "exists": true,
+      "readable": true,
+      "contains_a2m": true,
+      "projected_to_cockpit": "NOT_SQLITE_PROJECTION",
+      "synced_to_qdrant": true,
+      "retrieval_visible": true,
+      "counts": {
+        "points_count": 22324,
+        "ticker_A2M": 16,
+        "primary_ticker_A2M": 16,
+        "tickers_contains_A2M": 24,
+        "any_A2M": 24,
+        "unique_articles_from_prior_probe": 4
+      },
+      "data_missing_reason": null
+    },
+    {
+      "surface": "Cockpit local state projection",
+      "configured_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+      "exists": true,
+      "readable": true,
+      "contains_a2m": "PARTIAL_NON_NEWS",
+      "projected_to_cockpit": true,
+      "synced_to_qdrant": false,
+      "retrieval_visible": "NOT_NEWS_RETRIEVAL",
+      "counts": {
+        "entity_observations_A2M": 1,
+        "update_events_A2M": 0,
+        "market_update_followups_A2M": 0
+      },
+      "data_missing_reason": "state.db is not the canonical news article/context corpus and does not provide A2M news parity."
+    }
+  ],
+  "classification": {
+    "news_sqlite_moved": "DATA_MISSING",
+    "projection_disabled": "INFERRED_OR_STALE: nightly script includes --refresh-sqlite-fallback, but the fallback file is absent now.",
+    "configured_file_path_stale_or_unmaterialized": true,
+    "runtime_uses_different_mounted_path": "DATA_MISSING: checked known NVMe/HDD/canonical paths only.",
+    "qdrant_populated_from_source_no_longer_present": "LIKELY",
+    "news_projection_obsolete": "POSSIBLE",
+    "checked_paths_wrong": "UNPROVEN"
+  },
+  "no_write_attestation": {
+    "qdrant_writes": false,
+    "news_sqlite_writes": false,
+    "reindex_or_resync": false,
+    "runtime_config_changes": false,
+    "chat_synthesis_calls": false
+  }
+}

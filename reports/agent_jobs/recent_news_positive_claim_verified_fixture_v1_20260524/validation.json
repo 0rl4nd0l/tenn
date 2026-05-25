@@ -1,0 +1,19 @@
+{
+  "job_id": "recent_news_positive_claim_verified_fixture_v1_20260524",
+  "commands": [
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "exit_code": 0,
+      "result": "74 passed in 2.25s"
+    },
+    {
+      "command": "/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/chat_evidence_guard.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_chat_evidence_guard.py financial-engine_v2/backend/tests/test_build_ui_sources.py",
+      "exit_code": 0,
+      "result": "All checks passed"
+    }
+  ],
+  "no_write_validation": {
+    "live_smoke_run": false,
+    "reason": "Focused unit/regression tests covered the source-label path without touching live chat/state or stores."
+  }
+}

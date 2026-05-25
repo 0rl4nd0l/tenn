@@ -1368,3 +1368,107 @@ def test_chat_ui_metadata_summarizes_labels_and_degraded_runtime() -> None:
     assert metadata["claim_verified_source_count"] == 1
     assert "degraded_runtime" in metadata["evidence_labels"]
     assert metadata["source_coverage_status"] == "degraded_runtime"
+
+
+def test_recent_news_event_source_counts_as_claim_verified_for_recent_update() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "hits": [
+                    {
+                        "title": "BHP announces completed transaction",
+                        "url": "https://example.com/bhp-transaction",
+                        "snippet": "BHP announced a completed transaction this week.",
+                        "evidence_labels": ["local_news_context", "claim_verified"],
+                        "published_at": "2026-05-24T00:00:00Z",
+                    }
+                ]
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="BHP latest news update this week was a transaction event.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 1
+    assert metadata["source_coverage_status"] == "claim_verified"
+    assert "insufficient_for_recent_news" not in metadata["evidence_labels"]
+
+
+def test_context_only_recent_news_label_does_not_increment_verified_count() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "hits": [
+                    {
+                        "title": "BHP broad market wrap",
+                        "url": "https://example.com/bhp-market-wrap",
+                        "snippet": "BHP was mentioned in a broad market wrap.",
+                        "evidence_labels": [
+                            "local_news_context",
+                            "claim_verified",
+                            "context_only",
+                        ],
+                        "claim_verified": True,
+                    }
+                ]
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="BHP latest news update this week was caused by an event.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_financial_truth_recent_news_context_does_not_increment_verified_count() -> None:
+    evidence = [
+        {
+            "type": "financial_truth",
+            "details": {
+                "financials": [
+                    {
+                        "ticker": "BHP",
+                        "period_type": "HY",
+                        "period_end": "2026-12-31",
+                        "revenue": 55000,
+                        "source_document_id": "doc-bhp-hy",
+                        "evidence_labels": ["financial_truth", "claim_verified"],
+                    }
+                ]
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="BHP latest update this week was driven by a recent event.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]

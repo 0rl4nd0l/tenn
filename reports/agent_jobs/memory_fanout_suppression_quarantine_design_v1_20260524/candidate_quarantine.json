@@ -1,0 +1,81 @@
+{
+  "generated_at_utc": "2026-05-24T13:19:55Z",
+  "job_id": "memory_fanout_suppression_quarantine_design_v1_20260524",
+  "artifact_type": "report_local_candidate_quarantine_manifest",
+  "mutation_allowed": false,
+  "production_data_access": false,
+  "source_artifacts": [
+    "reports/agent_jobs/memory_live_inventory_readonly_v1_20260524/inventory.json",
+    "reports/agent_jobs/memory_remaining_review_packet_v1_20260520/review_summary.json",
+    "reports/agent_jobs/memory_contamination_root_cause_audit_v1_20260519/surfacing_risk_matrix.json"
+  ],
+  "decision": "operator_review_required_before_any_read_path_suppression_or_store_mutation",
+  "selection_rule": "active company-memory rows grouped by source/source_id with company_count greater than 2 in the read-only inventory artifact",
+  "clusters": [
+    {
+      "candidate_id": "source_fanout_cluster_001",
+      "source": "news:newspaper4k",
+      "source_id": "news:art_e4faef3c4644fe5bb3b66e32",
+      "company_count": 3,
+      "company_ids": ["CSL", "EZZ", "RESMED"],
+      "entry_ids": [1273, 1301, 1310, 1341],
+      "entry_count": 4,
+      "candidate_action": "review_source_then_exact_entry_read_path_suppression_if_confirmed",
+      "confidence": "medium",
+      "false_positive_risk": "medium",
+      "mutation_allowed": false
+    },
+    {
+      "candidate_id": "source_fanout_cluster_002",
+      "source": "news:newspaper4k",
+      "source_id": "news:art_5cf586d2c6303f73e9f52219",
+      "company_count": 4,
+      "company_ids": ["BHP", "EVN", "RIO", "XRO"],
+      "entry_ids": [2340, 2341, 2342, 2343],
+      "entry_count": 4,
+      "candidate_action": "review_source_then_exact_entry_read_path_suppression_if_confirmed",
+      "confidence": "medium",
+      "false_positive_risk": "medium",
+      "mutation_allowed": false
+    },
+    {
+      "candidate_id": "source_fanout_cluster_003",
+      "source": "news:newspaper4k",
+      "source_id": "news:art_9fe432dbf4898336703316b3",
+      "company_count": 4,
+      "company_ids": ["C1X", "CBE", "KAO", "SLB"],
+      "entry_ids": [2364, 2365, 2366, 2367],
+      "entry_count": 4,
+      "candidate_action": "review_source_then_exact_entry_read_path_suppression_if_confirmed",
+      "confidence": "medium",
+      "false_positive_risk": "medium",
+      "mutation_allowed": false
+    },
+    {
+      "candidate_id": "source_fanout_cluster_004",
+      "source": "news:newspaper4k",
+      "source_id": "news:art_c0195feddb42ee1a1f11268d",
+      "company_count": 4,
+      "company_ids": ["CBA", "MIN", "MP1", "XRO"],
+      "entry_ids": [2359, 2360, 2361, 2362, 2363],
+      "entry_count": 5,
+      "candidate_action": "review_source_then_exact_entry_read_path_suppression_if_confirmed",
+      "confidence": "medium",
+      "false_positive_risk": "medium",
+      "mutation_allowed": false
+    }
+  ],
+  "summary": {
+    "candidate_cluster_count": 4,
+    "candidate_entry_count": 17,
+    "active_duplicate_statement_clusters": 0,
+    "live_memory_mutation": false,
+    "read_path_suppression_implemented": false
+  },
+  "data_missing": [
+    "Full source article text and source spans for each candidate row.",
+    "Operator preserve/suppress/expire decisions.",
+    "Backup and checksum proof for any future status mutation task.",
+    "Live route proof was intentionally skipped because memory read routes may emit operational read events."
+  ]
+}

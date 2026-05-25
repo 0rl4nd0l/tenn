@@ -1,0 +1,24 @@
+accuracy_claim,document_count,expectation_class,metric_check_count,metric_name,notes,scorecard_profile
+profile_scorecard_boundary_only,10,required_scored_metric,24,revenue,Metric participates in the named scorecard profile only.,canonical_core
+profile_scorecard_boundary_only,10,required_scored_metric,24,operating_cash_flow,Metric participates in the named scorecard profile only.,canonical_core
+profile_scorecard_boundary_only,10,required_scored_metric,24,net_debt,Metric participates in the named scorecard profile only.,canonical_core
+profile_scorecard_boundary_only,15,required_scored_metric,39,revenue,Metric participates in the named scorecard profile only.,expanded_required
+profile_scorecard_boundary_only,15,required_scored_metric,39,operating_cash_flow,Metric participates in the named scorecard profile only.,expanded_required
+profile_scorecard_boundary_only,15,required_scored_metric,39,net_debt,Metric participates in the named scorecard profile only.,expanded_required
+none,15,confirmed_unscored,0,ebit,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,15,confirmed_unscored,0,np_attributable,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,15,confirmed_unscored,0,investing_cf,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,15,confirmed_unscored,0,financing_cf,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,15,confirmed_unscored,0,capex,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,15,confirmed_unscored,0,cash_end,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,15,confirmed_unscored,0,shares_outstanding,confirmed_unscored and schema_supported_but_not_labelled are not accuracy claims,confirmed_metric_coverage
+none,0,extractor_output_but_not_gold,0,total_debt,Extractor output without current gold-label scoring is not an accuracy claim.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,cash,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,free_cash_flow,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,margins,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,ratios,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,growth_rates,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,segment_metrics,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,ambiguous_or_derived,0,peer_relative_metrics,Ambiguous or derived metrics require a separate definition contract.,confirmed_metric_coverage
+none,0,unsupported,0,ebitda,Unsupported in current runtime/gold scoring semantics.,confirmed_metric_coverage
+none,0,unsupported,0,eps,Unsupported in current runtime/gold scoring semantics.,confirmed_metric_coverage

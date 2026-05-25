@@ -1,0 +1,35 @@
+{
+  "job_id": "a2m_news_projection_path_discovery_v1_20260524",
+  "status": "complete_with_data_missing_classified",
+  "lane": "Query Orchestration",
+  "mode": "audit_read_only_live_discovery",
+  "production_data_access": false,
+  "implemented": false,
+  "validation_result": "PASS_READ_ONLY_WITH_DATA_MISSING",
+  "summary": {
+    "qdrant_news_chunks_reachable": true,
+    "qdrant_news_chunks_points": 22324,
+    "qdrant_any_a2m_points": 24,
+    "canonical_news_articles_sqlite_present": false,
+    "canonical_news_context_sqlite_present": false,
+    "cockpit_state_db_present": true,
+    "cockpit_state_db_a2m_update_events": 0,
+    "retrieval_path_a2m_list_aware": true
+  },
+  "classification": {
+    "entity_linking_gap": false,
+    "qdrant_sync_gap": false,
+    "ranking_gap": false,
+    "sqlite_storage_gap": true,
+    "projection_or_fallback_gap": true,
+    "runtime_path_moved": "DATA_MISSING",
+    "qdrant_source_no_longer_present_at_checked_paths": "LIKELY"
+  },
+  "data_missing": [
+    "Actual source SQLite path if moved outside checked canonical/NVMe/HDD paths.",
+    "Nightly fallback refresh success/failure evidence.",
+    "SQLite-to-Qdrant row parity because source SQLite is absent.",
+    "Live chat synthesis visibility proof intentionally skipped."
+  ],
+  "no_mutation": true
+}

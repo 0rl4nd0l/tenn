@@ -1,0 +1,114 @@
+{
+  "generated_at_utc": "2026-05-24T13:19:55Z",
+  "job_id": "a2m_news_projection_path_discovery_v1_20260524",
+  "checks": {
+    "configured_paths": {
+      "script_defaults": {
+        "DEFAULT_NEWS_ARTICLES_DB": "REPO_ROOT/reports/qual_context/news_articles.sqlite",
+        "DEFAULT_NEWS_CONTEXT_DB": "REPO_ROOT/reports/qual_context/news.sqlite",
+        "source": "scripts/news_pipeline/cli_common.py"
+      },
+      "cockpit_yaml": {
+        "rag.news_context.db_path": "reports/qual_context/news.sqlite",
+        "source": "financial-engine_v2/config/cockpit.yaml"
+      },
+      "news_substrate_doc": {
+        "canonical_news_rag_db": "reports/qual_context/news.sqlite",
+        "source": "docs/architecture/15_news_substrate.md"
+      },
+      "nightly_script": {
+        "refresh_sqlite_fallback_flag_present": true,
+        "source": "financial-engine_v2/scripts/nightly_news.sh"
+      }
+    },
+    "path_stats": [
+      {
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/qual_context/news_articles.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/qual_context/news.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/reports/qual_context/news_articles.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/reports/qual_context/news.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/mnt/hdd-data/home/l4nd0/tenn/reports/qual_context/news.sqlite",
+        "exists": false
+      },
+      {
+        "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/cockpit/state.db",
+        "exists": true,
+        "size": 22253568,
+        "mtime": "2026-05-16 18:29:09.087941088 +1000",
+        "read_mode": "mode=ro&immutable=1",
+        "pragma_query_only": 1,
+        "a2m_counts": {
+          "entity_observations": 1,
+          "update_events": 0,
+          "market_update_followups": 0
+        }
+      }
+    ],
+    "qdrant_read_only": {
+      "url": "http://127.0.0.1:6333",
+      "collection": "news_chunks",
+      "status": "green",
+      "points_count": 22324,
+      "vector_size": 768,
+      "distance": "Cosine",
+      "with_vectors_false_confirmed": true,
+      "counts": {
+        "ticker_A2M": 16,
+        "primary_ticker_A2M": 16,
+        "tickers_contains_A2M": 24,
+        "any_A2M": 24
+      },
+      "sample_articles": [
+        "art_2838ecb1f6db7788f830439e",
+        "art_f3c9e8f4127434214cd36893",
+        "art_62631b4f81acd6fd70efd61c"
+      ]
+    },
+    "retrieval_path_code": {
+      "hybrid_retriever_news_filter_keys": ["ticker", "primary_ticker", "tickers"],
+      "tenn_chat_post_filter_keys": ["ticker", "primary_ticker", "tickers"],
+      "rag_query_news_chunks_filter_keys": ["ticker", "tickers"],
+      "primary_ticker_gap_in_rag_helper": "present_but_low_current_A2M_impact_because A2M-primary articles also have ticker=A2M"
+    }
+  },
+  "no_write_attestation": {
+    "qdrant_count_or_scroll_only": true,
+    "qdrant_with_vectors_false": true,
+    "sqlite_mode_ro_immutable_for_state_db": true,
+    "sqlite_writes": false,
+    "qdrant_writes": false,
+    "news_reindex_or_resync": false
+  }
+}

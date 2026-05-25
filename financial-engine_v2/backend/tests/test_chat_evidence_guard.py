@@ -252,6 +252,31 @@ def test_claim_verified_news_event_satisfies_recent_update_requirement() -> None
     assert RECENT_NEWS_OR_UPDATE not in result["unsupported_claim_families"]
 
 
+def test_claim_verified_recent_news_event_role_satisfies_recent_update_requirement() -> None:
+    result = evaluate_chat_evidence_requirements(
+        answer_text="BHP latest news update this week was a new transaction event.",
+        sources=[
+            {
+                "title": "BHP announces completed transaction",
+                "source_id": "event_source:BHP:2026-05-24:transaction",
+                "kind": "context",
+                "doc_type": "event_note",
+                "snippet": "BHP announced a completed transaction on 2026-05-24.",
+                "source_role_labels": ["recent_news_event"],
+                "evidence_labels": ["claim_verified"],
+                "published_at": "2026-05-24T00:00:00Z",
+                "claim_verified": True,
+            }
+        ],
+    )
+
+    assert RECENT_NEWS_OR_UPDATE in result["claim_families"]
+    assert RECENT_NEWS_EVENT in result["evidence_categories"]
+    assert result["missing_evidence_categories"] == []
+    assert "insufficient_for_recent_news" not in result["evidence_requirement_labels"]
+    assert RECENT_NEWS_OR_UPDATE not in result["unsupported_claim_families"]
+
+
 def test_mixed_context_only_label_blocks_recent_news_event_sufficiency() -> None:
     result = evaluate_chat_evidence_requirements(
         answer_text="BHP latest update this week was caused by a recent event.",

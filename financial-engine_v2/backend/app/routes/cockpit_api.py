@@ -48,6 +48,7 @@ from app.services.cockpit_service import (
 from app.services.chat_evidence_guard import (
     apply_visible_evidence_gap_labels,
     enrich_chat_metadata_with_evidence_guard,
+    evidence_categories_for_source,
 )
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
@@ -3345,6 +3346,37 @@ def _source_label_counts(sources: list[dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
+def _claim_verified_source_count_for_claims(
+    sources: list[dict[str, Any]],
+    metadata: dict[str, Any],
+) -> int:
+    requirements = metadata.get("claim_evidence_requirements")
+    required_sets: list[set[str]] = []
+    if isinstance(requirements, list):
+        for row in requirements:
+            if not isinstance(row, dict):
+                continue
+            required_any = row.get("required_any")
+            if not isinstance(required_any, list):
+                continue
+            required = {str(item).strip() for item in required_any if str(item).strip()}
+            if required:
+                required_sets.append(required)
+
+    if not required_sets:
+        return _source_label_counts(sources).get("claim_verified", 0)
+
+    verified_count = 0
+    for source in sources:
+        labels = _normalize_source_labels(source.get("evidence_labels"))
+        if "claim_verified" not in labels or "context_only" in labels:
+            continue
+        categories = evidence_categories_for_source(source)
+        if any(categories.intersection(required) for required in required_sets):
+            verified_count += 1
+    return verified_count
+
+
 def _evidence_payload_labels(response: Any) -> set[str]:
     labels: set[str] = set()
     for entry in getattr(response, "evidence", None) or []:
@@ -3447,12 +3479,15 @@ def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dic
     metadata["source_label_taxonomy_version"] = SOURCE_LABEL_TAXONOMY_VERSION
     metadata["source_label_counts"] = source_label_counts
     metadata["evidence_labels"] = sorted(evidence_labels)
-    metadata["claim_verified_source_count"] = source_label_counts.get("claim_verified", 0)
     metadata["source_coverage_status"] = _source_coverage_status(evidence_labels, sources)
     metadata = enrich_chat_metadata_with_evidence_guard(
         metadata,
         answer_text=str(getattr(response, "text", "") or ""),
         sources=sources,
+    )
+    metadata["claim_verified_source_count"] = _claim_verified_source_count_for_claims(
+        sources,
+        metadata,
     )
     return _json_safe_mapping(metadata)
 
