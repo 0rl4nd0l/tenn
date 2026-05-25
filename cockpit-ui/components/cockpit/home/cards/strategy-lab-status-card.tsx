@@ -80,8 +80,12 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
     () => payload.artifact_refs.filter((artifact) => artifact.availability === 'available'),
     [payload.artifact_refs],
   );
-  const keyCapabilities = payload.capability_status.slice(0, 4);
+  const keyCapabilities = payload.capability_status.slice(0, 5);
   const quantdinger = payload.quantdinger_status;
+  const verifiedProof = quantdinger.verified_readonly_sandbox;
+  const availableEvidenceArtifacts = verifiedProof.evidence_artifacts.filter(
+    (artifact) => artifact.availability === 'available',
+  );
 
   return (
     <Card className="terminal-panel" data-testid="strategy-lab-status-card">
@@ -94,6 +98,9 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
           <p className="mt-2 text-[13px] text-foreground leading-snug">{payload.headline}</p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-500/10">
+            VERIFIED READ-ONLY SANDBOX PROOF
+          </Badge>
           <Badge variant="outline" className="border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
             HISTORICAL SMOKE PASSED
           </Badge>
@@ -111,7 +118,7 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
             <BoundaryPill label="READ ONLY" active={payload.boundary_flags.read_only} />
             <BoundaryPill label="CURRENT SIDECAR OFFLINE" active={!quantdinger.current_sidecar_available} />
             <BoundaryPill label="NO LIVE TRADING" active={!payload.boundary_flags.live_trading} />
-            <BoundaryPill label="NO PAPER ORDER PLACEMENT" active={!quantdinger.paper_order_placement} />
+            <BoundaryPill label="NO PAPER ORDERS" active={!quantdinger.paper_order_placement} />
             <BoundaryPill label="NO REAL TRANSPORT" active={!payload.boundary_flags.real_transport} />
             <BoundaryPill label="NO STORE WRITES" active={!payload.boundary_flags.store_writes} />
             <BoundaryPill
@@ -122,23 +129,50 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
 
           <div className="rounded-md border border-cyan-500/30 bg-cyan-500/5 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-[10px] font-mono uppercase text-cyan-300">Read-only smoke history</div>
+              <div className="text-[10px] font-mono uppercase text-cyan-300">
+                Verified read-only sandbox proof available
+              </div>
               <div className="text-[10px] font-mono uppercase text-muted-foreground">
-                {quantdinger.last_readonly_sidecar_smoke_review_status}
+                {verifiedProof.review_status}
               </div>
             </div>
             <div className="mt-2 grid gap-1 text-[10px] leading-relaxed text-muted-foreground">
               <div>
                 <span className="font-mono uppercase text-muted-foreground/80">Verdict: </span>
+                {verifiedProof.verdict}
+              </div>
+              <div>
+                <span className="font-mono uppercase text-muted-foreground/80">Historical smoke: </span>
                 {quantdinger.last_readonly_sidecar_smoke}
               </div>
               <div className="break-all">
-                <span className="font-mono uppercase text-muted-foreground/80">Commit: </span>
+                <span className="font-mono uppercase text-muted-foreground/80">Smoke commit: </span>
                 {quantdinger.last_readonly_sidecar_smoke_commit}
               </div>
               <div>
+                <span className="font-mono uppercase text-muted-foreground/80">current_sidecar_available: </span>
+                {String(verifiedProof.current_sidecar_available)}
+              </div>
+              <div className="break-all">
+                <span className="font-mono uppercase text-muted-foreground/80">Report: </span>
+                {verifiedProof.report_path}
+              </div>
+              <div>
                 <span className="font-mono uppercase text-muted-foreground/80">Runtime: </span>
-                {quantdinger.sidecar_runtime_state}
+                {verifiedProof.sidecar_runtime_state}
+              </div>
+              <div>
+                <span className="font-mono uppercase text-muted-foreground/80">Evidence artifacts: </span>
+                {availableEvidenceArtifacts.length}/{verifiedProof.evidence_artifacts.length} available
+              </div>
+              <div className="mt-1 grid max-h-40 gap-1 overflow-auto pr-1">
+                {verifiedProof.evidence_artifacts.map((artifact) => (
+                  <div key={artifact.id} className="break-all">
+                    <span className="font-mono uppercase text-muted-foreground/80">{artifact.label}: </span>
+                    {artifact.path}
+                    <span className="font-mono uppercase text-muted-foreground/80"> [{artifact.availability}]</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

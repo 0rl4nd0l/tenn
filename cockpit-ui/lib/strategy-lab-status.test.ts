@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { GET as getStrategyLabStatusRoute } from '@/app/api/cockpit/strategy-lab/status/route';
 import {
   STRATEGY_LAB_BASELINE_REFS,
+  VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS,
   buildStrategyLabStatusResponse,
   type StrategyLabStatusResponse,
 } from './strategy-lab-status';
@@ -29,8 +30,13 @@ describe('Strategy Lab status contract', () => {
         ...ref,
         availability: 'available',
       })),
+      verifiedReadonlySandboxEvidenceRefs: VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS.map((ref) => ({
+        ...ref,
+        availability: 'available',
+      })),
     });
 
+    expect(payload.headline).toContain('Verified read-only sandbox proof available');
     expect(payload.overall_state).toBe('pending_review_read_only');
     expect(payload.boundary_flags).toMatchObject({
       pending_review: true,
@@ -44,7 +50,7 @@ describe('Strategy Lab status contract', () => {
     });
     expect(payload.capability_status.find((capability) => capability.id === 'real_transport')?.state).toBe('absent');
     expect(payload.capability_status.find((capability) => capability.id === 'trading')?.state).toBe('forbidden');
-    expect(payload.data_missing.join(' ')).toContain('No real QuantDinger sidecar capability');
+    expect(payload.data_missing.join(' ')).toContain('No current QuantDinger sidecar capability');
     expect(payload.quantdinger_status).toMatchObject({
       review_status: 'PENDING_REVIEW',
       read_only: true,
@@ -59,6 +65,14 @@ describe('Strategy Lab status contract', () => {
       last_readonly_sidecar_smoke_commit: '0ee837f7dc0706f1b0ff6d6c900522f4c2b43090',
       sidecar_runtime_state: 'stopped_after_cleanup',
     });
+    expect(payload.quantdinger_status.verified_readonly_sandbox).toMatchObject({
+      verdict: 'VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY',
+      review_status: 'PENDING_REVIEW',
+      current_sidecar_available: false,
+      report_available: 'available',
+      sidecar_runtime_state: 'stopped_after_cleanup',
+    });
+    expect(payload.quantdinger_status.verified_readonly_sandbox.evidence_artifacts).toHaveLength(14);
   });
 
   it('reports artifact availability from the workspace without writing stores', () => {
@@ -66,6 +80,17 @@ describe('Strategy Lab status contract', () => {
     const schemaPath = path.join(workspace, 'docs/strategy_lab/artifact_schema_v1.md');
     mkdirSync(path.dirname(schemaPath), { recursive: true });
     writeFileSync(schemaPath, '# Strategy Lab Artifact Schema\n');
+    const cleanReprobeReadmePath = path.join(
+      workspace,
+      'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/README.md',
+    );
+    const cleanReprobeStatusPath = path.join(
+      workspace,
+      'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
+    );
+    mkdirSync(path.dirname(cleanReprobeReadmePath), { recursive: true });
+    writeFileSync(cleanReprobeReadmePath, '# Clean reprobe\n');
+    writeFileSync(cleanReprobeStatusPath, '{"verdict":"VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY"}\n');
 
     const payload = readStrategyLabStatus({
       now: new Date('2026-05-24T01:00:00.000Z'),
@@ -76,6 +101,17 @@ describe('Strategy Lab status contract', () => {
     expect(payload.artifact_refs.find((ref) => ref.id === 'artifact_schema_doc')?.availability).toBe('available');
     expect(payload.artifact_refs.find((ref) => ref.id === 'backtest_fixture')?.availability).toBe('missing');
     expect(payload.boundary_flags.store_writes).toBe(false);
+    expect(payload.quantdinger_status.verified_readonly_sandbox.report_available).toBe('available');
+    expect(
+      payload.quantdinger_status.verified_readonly_sandbox.evidence_artifacts.find(
+        (artifact) => artifact.id === 'clean_reprobe_status',
+      )?.availability,
+    ).toBe('available');
+    expect(
+      payload.quantdinger_status.verified_readonly_sandbox.evidence_artifacts.find(
+        (artifact) => artifact.id === 'clean_reprobe_cleanup_proof',
+      )?.availability,
+    ).toBe('missing');
   });
 
   it('serves the read-only status route with no-store caching', async () => {
@@ -99,5 +135,7 @@ describe('Strategy Lab status contract', () => {
     expect(payload.boundary_flags.live_trading).toBe(false);
     expect(payload.quantdinger_status.current_sidecar_available).toBe(false);
     expect(payload.quantdinger_status.last_readonly_sidecar_smoke_report_available).toBe(false);
+    expect(payload.quantdinger_status.verified_readonly_sandbox.current_sidecar_available).toBe(false);
+    expect(payload.quantdinger_status.verified_readonly_sandbox.report_available).toBe('missing');
   });
 });

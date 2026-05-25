@@ -48,6 +48,12 @@ describe('Strategy Lab artifacts contract', () => {
     );
     mkdirSync(path.dirname(milestonePath), { recursive: true });
     writeFileSync(milestonePath, '# QuantDinger complete-and-next-phases\n');
+    const cleanReprobeStatusPath = path.join(
+      workspace,
+      'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
+    );
+    mkdirSync(path.dirname(cleanReprobeStatusPath), { recursive: true });
+    writeFileSync(cleanReprobeStatusPath, '{"verdict":"VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY"}\n');
 
     const payload = readStrategyLabArtifacts({
       now: new Date('2026-05-24T02:00:00.000Z'),
@@ -57,6 +63,9 @@ describe('Strategy Lab artifacts contract', () => {
     const helper = payload.artifacts.find((artifact) => artifact.id === 'phase2_helper_backtest');
     const milestone = payload.artifacts.find(
       (artifact) => artifact.id === 'quantdinger_complete_next_phases_historical_milestone',
+    );
+    const verified = payload.artifacts.find(
+      (artifact) => artifact.id === 'quantdinger_verified_readonly_sandbox_proof',
     );
     const smoke = payload.artifacts.find((artifact) => artifact.id === 'quantdinger_readonly_sidecar_smoke_proof');
 
@@ -94,6 +103,14 @@ describe('Strategy Lab artifacts contract', () => {
       current_runtime_available: false,
       paper_order_placement: false,
     });
+    expect(verified).toMatchObject({
+      availability: 'available',
+      historical_status: 'verified_readonly_sandbox_viability',
+      current_runtime_available: false,
+      paper_order_placement: false,
+    });
+    expect(verified?.what_it_proves.join(' ')).toContain('VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY');
+    expect(verified?.what_it_does_not_prove.join(' ')).toContain('current sidecar availability');
     expect(smoke).toMatchObject({
       availability: 'missing',
       historical_status: 'historical_smoke_proof',

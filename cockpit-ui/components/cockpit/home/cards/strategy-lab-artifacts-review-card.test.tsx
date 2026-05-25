@@ -40,6 +40,31 @@ describe('StrategyLabArtifactsReviewCard', () => {
           data_missing: ['live_sidecar_transport'],
         },
         {
+          id: 'quantdinger_verified_readonly_sandbox_proof',
+          label: 'QuantDinger verified read-only sandbox proof',
+          evidence_kind: 'report_evidence',
+          authoritative: false,
+          availability: 'available',
+          source_path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
+          source_report_path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
+          preserved_commit: 'DATA_MISSING',
+          preserved_subject: 'DATA_MISSING',
+          historical_status: 'verified_readonly_sandbox_viability',
+          current_runtime_available: false,
+          paper_order_placement: false,
+          schema_version: 'DATA_MISSING',
+          artifact_id: 'DATA_MISSING',
+          artifact_type: 'report',
+          review_status: 'PENDING_REVIEW',
+          result_status: 'REPORT_ONLY',
+          canonical_financial_truth: false,
+          execution_allowed: false,
+          store_writes: false,
+          what_it_proves: ['The clean re-probe records VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY.'],
+          what_it_does_not_prove: ['It does not prove current sidecar availability.'],
+          data_missing: ['current_sidecar_runtime'],
+        },
+        {
           id: 'phase2_helper_backtest',
           label: 'Phase 2 helper backtest evidence',
           evidence_kind: 'helper_pre_envelope',
@@ -75,13 +100,16 @@ describe('StrategyLabArtifactsReviewCard', () => {
     expect(await screen.findByText('Strategy Lab Artifact Review')).toBeInTheDocument();
     expect(screen.getByText('READ ONLY')).toBeInTheDocument();
     expect(screen.getByText('NO STORE WRITES')).toBeInTheDocument();
+    expect(screen.getByText('NO PAPER ORDERS')).toBeInTheDocument();
     expect(screen.getByText('Backtest artifact fixture')).toBeInTheDocument();
+    expect(screen.getByText('QuantDinger verified read-only sandbox proof')).toBeInTheDocument();
     expect(screen.getByText('Phase 2 helper backtest evidence')).toBeInTheDocument();
     expect(screen.getByText('reports/agent_jobs/source_report')).toBeInTheDocument();
     expect(screen.getByText('helper/pre-envelope')).toBeInTheDocument();
+    expect(screen.getByText('verified read-only sandbox proof')).toBeInTheDocument();
     expect(screen.getByText('historical smoke proof')).toBeInTheDocument();
     expect(screen.getByText('0ee837f7dc0706f1b0ff6d6c900522f4c2b43090')).toBeInTheDocument();
-    expect(screen.getByText('offline')).toBeInTheDocument();
+    expect(screen.getAllByText('offline').length).toBeGreaterThan(0);
     expect(screen.getByText(/It does not prove live QuantDinger transport/)).toBeInTheDocument();
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledWith(

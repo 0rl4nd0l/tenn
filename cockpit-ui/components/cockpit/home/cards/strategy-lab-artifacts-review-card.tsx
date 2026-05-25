@@ -117,6 +117,9 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
           <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/10">
             NO STORE WRITES
           </Badge>
+          <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/10">
+            NO PAPER ORDERS
+          </Badge>
         </div>
       </CardHeader>
 
@@ -251,6 +254,8 @@ function historicalStatusLabel(status: StrategyLabReviewArtifact['historical_sta
       return 'historical partial milestone';
     case 'historical_smoke_proof':
       return 'historical smoke proof';
+    case 'verified_readonly_sandbox_viability':
+      return 'verified read-only sandbox proof';
     case 'DATA_MISSING':
       return 'DATA_MISSING';
   }

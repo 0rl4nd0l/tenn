@@ -19,11 +19,32 @@ export interface StrategyLabArtifactRef extends StrategyLabBaselineRef {
   availability: StrategyLabAvailability;
 }
 
+export interface StrategyLabEvidenceArtifactBaselineRef {
+  id: string;
+  label: string;
+  path: string;
+  summary: string;
+}
+
+export interface StrategyLabEvidenceArtifactRef extends StrategyLabEvidenceArtifactBaselineRef {
+  availability: StrategyLabAvailability;
+}
+
 export interface StrategyLabCapabilityStatus {
   id: string;
   label: string;
   state: 'present_offline' | 'absent' | 'forbidden' | 'data_missing';
   summary: string;
+}
+
+export interface StrategyLabVerifiedReadonlySandboxProof {
+  verdict: 'VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY';
+  review_status: 'PENDING_REVIEW';
+  current_sidecar_available: false;
+  sidecar_runtime_state: 'stopped_after_cleanup';
+  report_path: string;
+  report_available: StrategyLabAvailability;
+  evidence_artifacts: StrategyLabEvidenceArtifactRef[];
 }
 
 export interface StrategyLabQuantDingerStatus {
@@ -41,6 +62,7 @@ export interface StrategyLabQuantDingerStatus {
   last_readonly_sidecar_smoke_report_path: string;
   last_readonly_sidecar_smoke_report_available: false;
   sidecar_runtime_state: 'stopped_after_cleanup';
+  verified_readonly_sandbox: StrategyLabVerifiedReadonlySandboxProof;
   data_missing: string[];
 }
 
@@ -70,6 +92,121 @@ export interface StrategyLabStatusResponse {
   next_safe_actions: string[];
 }
 
+export const VERIFIED_READONLY_SANDBOX_REPORT_PATH =
+  'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/README.md';
+
+export const VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS: StrategyLabEvidenceArtifactBaselineRef[] = [
+  {
+    id: 'clean_reprobe_readme',
+    label: 'Clean re-probe README',
+    path: VERIFIED_READONLY_SANDBOX_REPORT_PATH,
+    summary: 'Human-readable verdict and evidence index for the clean QuantDinger re-probe.',
+  },
+  {
+    id: 'clean_reprobe_status',
+    label: 'Clean re-probe status',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json',
+    summary: 'Machine-readable verdict, current_sidecar_available=false, and no-mutation summary.',
+  },
+  {
+    id: 'clean_reprobe_runtime_proof',
+    label: 'Runtime proof',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/runtime_proof.json',
+    summary: 'Loopback sandbox runtime, read/backtest, regime, denial, revoke, and zero-order evidence.',
+  },
+  {
+    id: 'clean_reprobe_cleanup_proof',
+    label: 'Cleanup proof',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/cleanup_proof.json',
+    summary: 'Proof that containers, volumes, network, image, listeners, and temp sandbox were removed.',
+  },
+  {
+    id: 'clean_reprobe_no_mutation_attestation',
+    label: 'No-mutation attestation',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/no_mutation_attestation.json',
+    summary: 'Attestation that Tenn stores, Strategy Lab status, and current availability were not mutated.',
+  },
+  {
+    id: 'clean_reprobe_validation',
+    label: 'Validation log',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/validation.json',
+    summary: 'Validation command outcomes for the clean re-probe evidence packet.',
+  },
+  {
+    id: 'clean_reprobe_backtest_request',
+    label: 'Backtest request',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/backtest_request.json',
+    summary: 'Sanitized backtest request payload.',
+  },
+  {
+    id: 'clean_reprobe_backtest_final_response',
+    label: 'Backtest final response',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/backtest_final_response.json',
+    summary: 'Sanitized final backtest response body.',
+  },
+  {
+    id: 'clean_reprobe_regime_request',
+    label: 'Regime request',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/regime_request.json',
+    summary: 'Sanitized regime-detect request payload.',
+  },
+  {
+    id: 'clean_reprobe_regime_response',
+    label: 'Regime response',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/regime_response.json',
+    summary: 'Sanitized regime-detect response body.',
+  },
+  {
+    id: 'clean_reprobe_denial_responses',
+    label: 'Denied write/trade probes',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/denial_responses.json',
+    summary: 'Denied W/T scope and order probes.',
+  },
+  {
+    id: 'clean_reprobe_zero_order_proof',
+    label: 'Zero-order proof',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/zero_order_proof.json',
+    summary: 'API and DB order counts before and after the read/backtest probe.',
+  },
+  {
+    id: 'clean_reprobe_revoke_response',
+    label: 'Revoke response',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/revoke_response.json',
+    summary: 'Token revoke response.',
+  },
+  {
+    id: 'clean_reprobe_post_revoke_whoami',
+    label: 'Post-revoke whoami',
+    path: 'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/post_revoke_whoami_response.json',
+    summary: 'Post-revoke request proving the token no longer authenticated.',
+  },
+];
+
+function missingEvidenceRefs(): StrategyLabEvidenceArtifactRef[] {
+  return VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS.map((ref) => ({
+    ...ref,
+    availability: 'missing',
+  }));
+}
+
+function buildVerifiedReadonlySandboxProof(
+  evidenceArtifacts: StrategyLabEvidenceArtifactRef[] = missingEvidenceRefs(),
+): StrategyLabVerifiedReadonlySandboxProof {
+  const reportAvailable =
+    evidenceArtifacts.find((artifact) => artifact.path === VERIFIED_READONLY_SANDBOX_REPORT_PATH)?.availability ??
+    'missing';
+
+  return {
+    verdict: 'VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY',
+    review_status: 'PENDING_REVIEW',
+    current_sidecar_available: false,
+    sidecar_runtime_state: 'stopped_after_cleanup',
+    report_path: VERIFIED_READONLY_SANDBOX_REPORT_PATH,
+    report_available: reportAvailable,
+    evidence_artifacts: evidenceArtifacts,
+  };
+}
+
 export const QUANTDINGER_HISTORICAL_STATUS: StrategyLabQuantDingerStatus = {
   review_status: 'PENDING_REVIEW',
   read_only: true,
@@ -86,9 +223,10 @@ export const QUANTDINGER_HISTORICAL_STATUS: StrategyLabQuantDingerStatus = {
     'reports/agent_jobs/strategy_lab_quantdinger_readonly_sidecar_smoke_exec_v1_20260524/status.json',
   last_readonly_sidecar_smoke_report_available: false,
   sidecar_runtime_state: 'stopped_after_cleanup',
+  verified_readonly_sandbox: buildVerifiedReadonlySandboxProof(),
   data_missing: [
     'The read-only smoke report bundle is preserved at commit 0ee837f7 but is not checked out as files in this worktree.',
-    'No current QuantDinger sidecar runtime was probed under this status route.',
+    'The status route reads persisted repo artifacts only and does not probe current QuantDinger runtime.',
     'No current QuantDinger transport is integrated with Cockpit.',
   ],
 };
@@ -151,6 +289,13 @@ export const STRATEGY_LAB_BASELINE_REFS: StrategyLabBaselineRef[] = [
     summary: 'Offline mock transport lifecycle and blocked-surface coverage.',
   },
   {
+    id: 'verified_readonly_sandbox_report',
+    label: 'Verified read-only sandbox proof',
+    kind: 'report',
+    path: VERIFIED_READONLY_SANDBOX_REPORT_PATH,
+    summary: 'Clean re-probe evidence for verified read-only sandbox viability; current_sidecar_available remains false.',
+  },
+  {
     id: 'phase3g_mergeback_report',
     label: 'Phase 3G mergeback report',
     kind: 'report',
@@ -162,10 +307,14 @@ export const STRATEGY_LAB_BASELINE_REFS: StrategyLabBaselineRef[] = [
 export function buildStrategyLabStatusResponse({
   generatedAt,
   artifactRefs,
+  verifiedReadonlySandboxEvidenceRefs,
 }: {
   generatedAt: string;
   artifactRefs: StrategyLabArtifactRef[];
+  verifiedReadonlySandboxEvidenceRefs?: StrategyLabEvidenceArtifactRef[];
 }): StrategyLabStatusResponse {
+  const verifiedReadonlySandbox = buildVerifiedReadonlySandboxProof(verifiedReadonlySandboxEvidenceRefs);
+
   return {
     ok: true,
     schema_version: 'cockpit_strategy_lab_status_v1',
@@ -175,8 +324,11 @@ export function buildStrategyLabStatusResponse({
     status_route: '/api/cockpit/strategy-lab/status',
     artifact_review_route: '/api/cockpit/strategy-lab/artifacts',
     headline:
-      'Strategy Lab / QuantDinger is visible as read-only pending-review evidence, not live trading functionality.',
-    quantdinger_status: QUANTDINGER_HISTORICAL_STATUS,
+      'Verified read-only sandbox proof available; Strategy Lab / QuantDinger remains pending-review, offline, non-trading evidence.',
+    quantdinger_status: {
+      ...QUANTDINGER_HISTORICAL_STATUS,
+      verified_readonly_sandbox: verifiedReadonlySandbox,
+    },
     artifact_refs: artifactRefs,
     capability_status: [
       {
@@ -184,6 +336,13 @@ export function buildStrategyLabStatusResponse({
         label: 'Cockpit visibility',
         state: 'present_offline',
         summary: 'Home shows a read-only status card backed by repository artifact presence.',
+      },
+      {
+        id: 'verified_readonly_sandbox',
+        label: 'Verified read-only sandbox proof',
+        state: 'present_offline',
+        summary:
+          'Clean re-probe evidence records VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY; current_sidecar_available remains false.',
       },
       {
         id: 'historical_readonly_smoke',
@@ -239,12 +398,12 @@ export function buildStrategyLabStatusResponse({
       production_data_access: false,
     },
     data_missing: [
-      'No real QuantDinger sidecar capability, auth, network transport, retry, timeout, or unavailable behavior has been confirmed.',
+      'No current QuantDinger sidecar capability, auth, network transport, retry, timeout, or unavailable behavior is confirmed by this status route.',
       'No artifact persistence store, review queue, or promotion workflow is implemented in Cockpit.',
       'No evidence-backed parameter_sweep, factor_test, broad risk_report, or portfolio_experiment surface is live.',
     ],
     next_safe_actions: [
-      'Review the pending Strategy Lab artifact fixtures and Phase 3G preservation report.',
+      'Review the clean re-probe evidence artifacts and keep results PENDING_REVIEW.',
       'Use the repo-only artifact review route for existing fixtures and reports.',
       'Keep any future real sidecar smoke isolated, explicitly approved, and non-trading.',
     ],

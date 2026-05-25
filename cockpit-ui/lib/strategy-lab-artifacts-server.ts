@@ -90,10 +90,13 @@ function readReportEvidence(
     ...baseArtifact(source),
     availability: 'available',
     artifact_type: 'report',
-    review_status: 'DATA_MISSING',
-    result_status: 'REPORT_ONLY',
+    review_status: source.review_status ?? 'DATA_MISSING',
+    result_status: source.result_status ?? 'REPORT_ONLY',
     schema_version: 'DATA_MISSING',
     source_report_path: source.source_path,
+    canonical_financial_truth: source.canonical_financial_truth ?? 'DATA_MISSING',
+    execution_allowed: source.execution_allowed ?? 'DATA_MISSING',
+    store_writes: source.store_writes ?? 'DATA_MISSING',
     data_missing: uniqueStrings([...source.data_missing, 'artifact_envelope']),
   };
 }
