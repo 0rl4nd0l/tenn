@@ -928,6 +928,13 @@ function HomeStateBanner({
   message: string;
   signals: CockpitHomeDataMissingSignal[];
 }) {
+  const visibleSignals = signals.slice(0, 3);
+  const hiddenSignalCount = Math.max(signals.length - visibleSignals.length, 0);
+  const signalSummary = [
+    ...visibleSignals.map((signal) => signal.code),
+    hiddenSignalCount > 0 ? `+${hiddenSignalCount} more` : null,
+  ].filter(Boolean).join(' | ');
+
   return (
     <div
       className={cn(
@@ -944,8 +951,8 @@ function HomeStateBanner({
         </div>
         <div className="text-[12px] text-muted-foreground">{message}</div>
         {signals.length > 0 && (
-          <div className="mt-1 text-[10px] font-mono text-muted-foreground">
-            {signals.slice(0, 3).map((signal) => signal.code).join(' | ')}
+          <div className="mt-1 text-[10px] font-mono text-muted-foreground" title={signals.map((signal) => signal.code).join(' | ')}>
+            {signalSummary}
           </div>
         )}
       </div>

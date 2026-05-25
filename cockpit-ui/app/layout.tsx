@@ -6,6 +6,8 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
+const enableVercelAnalytics = process.env.VERCEL === '1' || process.env.ENABLE_VERCEL_ANALYTICS === '1'
+
 export const metadata: Metadata = {
   title: 'Financial Cockpit',
   description: 'Financial analysis workstation - Chat, data operations, verification, news search, and strategy management',
@@ -54,7 +56,7 @@ export default function RootLayout({
             <Toaster />
           </QueryProvider>
         </ThemeProvider>
-        <Analytics />
+        {enableVercelAnalytics ? <Analytics /> : null}
       </body>
     </html>
   )

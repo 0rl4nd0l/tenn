@@ -1,0 +1,56 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/app/layout.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/app/marketplace-capture/page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/home/home-page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/verification/tabs/review-tab-panel.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/verification/verification-sidebar.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/reporting_ui_safe_issue_fixes_v1_20260525.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/reporting_ui_safe_issue_fixes_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/reporting_ui_safe_issue_fixes_v1_20260525.md",
+        "reports/agent_jobs/reporting_ui_safe_issue_fixes_v1_20260525/**",
+        "cockpit-ui/app/layout.tsx",
+        "cockpit-ui/app/marketplace-capture/page.tsx",
+        "cockpit-ui/components/cockpit/verification/tabs/review-tab-panel.tsx",
+        "cockpit-ui/components/cockpit/verification/verification-sidebar.tsx",
+        "cockpit-ui/components/cockpit/home/home-page.tsx"
+      ],
+      "approval_required": false,
+      "job_id": "reporting_ui_safe_issue_fixes_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/reporting_ui_safe_issue_fixes_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

@@ -6,7 +6,6 @@ import { useState, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { ExtractionReviewRunSummary, ExtractionReviewSessionSummary } from '@/lib/cockpit-types'
 
 type VerificationSidebarProps = {
@@ -84,7 +83,7 @@ export function VerificationSidebar({
   }
 
   return (
-    <Card className="flex h-full flex-col border-border/40 bg-muted/10">
+    <Card className="flex h-full min-w-0 flex-col border-border/40 bg-muted/10">
       <CardHeader className="p-4 pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
           <History className="h-4 w-4" />
@@ -92,9 +91,9 @@ export function VerificationSidebar({
         </CardTitle>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 p-0">
-        <ScrollArea className="h-full">
-          <div className="flex flex-col gap-4 p-4">
-            <section>
+        <div className="h-full overflow-y-auto overflow-x-hidden">
+          <div className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-hidden p-4">
+            <section className="min-w-0">
               <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground/80">
                 <Clock className="h-3 w-3" />
                 Recent Companies
@@ -126,7 +125,7 @@ export function VerificationSidebar({
               )}
             </section>
 
-            <section>
+            <section className="min-w-0 max-w-full overflow-hidden">
               <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground/80">
                 <History className="h-3 w-3" />
                 Saved Reviews
@@ -136,22 +135,25 @@ export function VerificationSidebar({
                   No saved reviews yet.
                 </div>
               ) : (
-                <div className="flex flex-col gap-1">
+                <div className="flex w-full min-w-0 max-w-full flex-col gap-1 overflow-hidden">
                   {recentReviewSessions.slice(0, 8).map((session) => (
                     <button
                       key={session.session_id}
-                      className="flex flex-col rounded-md border border-border/40 p-2 text-left transition-colors hover:bg-muted/30"
+                      className="flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-md border border-border/40 p-2 text-left transition-colors hover:bg-muted/30"
                       onClick={() => onSelectSession(session.session_id)}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-mono text-[10px] font-bold">
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <span className="min-w-0 truncate font-mono text-[10px] font-bold">
                           {session.tickers.join(', ') || 'BROAD'}
                         </span>
-                        <Badge variant="outline" className="h-4 px-1 text-[8px]">
+                        <Badge variant="outline" className="h-4 shrink-0 px-1 text-[8px]">
                           {session.item_count ?? session.summary?.total ?? 0} items
                         </Badge>
                       </div>
-                      <span className="mt-1 truncate text-[10px] text-muted-foreground">
+                      <span
+                        className="mt-1 min-w-0 max-w-full truncate text-[10px] text-muted-foreground"
+                        title={session.titles[0] || session.session_id}
+                      >
                         {session.titles[0] || session.session_id}
                       </span>
                     </button>
@@ -253,7 +255,7 @@ export function VerificationSidebar({
               </div>
             </section>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   )
