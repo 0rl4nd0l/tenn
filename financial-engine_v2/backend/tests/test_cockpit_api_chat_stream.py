@@ -279,6 +279,276 @@ def test_cockpit_chat_metadata_marks_price_trend_missing_market_evidence(
     ]
 
 
+def test_cockpit_chat_local_news_only_guard_blocks_filing_synthesis(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text=(
+                    "Here is the latest local news for A2M: the class action "
+                    "settlement and dividend update were lodged with the ASX."
+                ),
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "ticker": "A2M",
+                            "qual_context_news": {
+                                "hits": [
+                                    {
+                                        "title": "A2M infant formula recall uncertainty",
+                                        "source_id": "news:a2m-recall:1",
+                                        "snippet": (
+                                            "A2M was covered in relation to infant "
+                                            "formula recall uncertainty."
+                                        ),
+                                        "published_at": "2026-05-17T22:01:00Z",
+                                        "evidence_labels": [
+                                            "context_only",
+                                            "local_news_context",
+                                        ],
+                                        "claim_verified": False,
+                                    }
+                                ]
+                            },
+                            "docs": [
+                                {
+                                    "title": "A2M dividend update",
+                                    "source_id": "asx:A2M:dividend",
+                                    "doc_type": "asx_announcement",
+                                    "snippet": "A2M lodged a dividend update.",
+                                    "evidence_labels": ["context_only"],
+                                    "claim_verified": False,
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": (
+                "What is the latest local news for A2M? Use local news evidence "
+                "only. If no relevant local_news_context is available, say "
+                "DATA_MISSING."
+            ),
+            "ticker": "A2M",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    assert captured["persist_chat"] is False
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert final_text.startswith("DATA_MISSING / evidence gaps:")
+    assert "context-only and not claim-verified" in final_text
+    assert "A2M infant formula recall uncertainty" in final_text
+    assert "class action" not in final_text.lower()
+    assert "dividend update were lodged" not in final_text.lower()
+    news_source = next(
+        source for source in payload["sources"] if source["source_id"].startswith("news:")
+    )
+    assert "local_news_context" in news_source["evidence_labels"]
+    assert "context_only" in news_source["evidence_labels"]
+    assert news_source["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 1
+    assert metadata["claim_verified_local_news_count"] == 0
+    assert metadata["local_news_only_guard"]["applied"] is True
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_cockpit_chat_local_news_only_guard_blocks_document_only_control(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            return SimpleNamespace(
+                text=(
+                    "COH latest local news includes a substantial holder notice "
+                    "and dividend filing."
+                ),
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "ticker": "COH",
+                            "docs": [
+                                {
+                                    "title": "COH substantial holder notice",
+                                    "source_id": "asx:COH:holder",
+                                    "doc_type": "asx_announcement",
+                                    "snippet": "COH lodged a substantial holder notice.",
+                                    "evidence_labels": ["context_only"],
+                                    "claim_verified": False,
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "What is the latest local news for COH? Use local news evidence only.",
+            "ticker": "COH",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert final_text.startswith("DATA_MISSING / evidence gaps:")
+    assert "no relevant local_news_context" in final_text
+    assert "substantial holder" not in final_text.lower()
+    assert "dividend filing" not in final_text.lower()
+    assert payload["sources"][0]["source_id"] == "asx:COH:holder"
+    assert payload["sources"][0]["claim_verified"] is False
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 0
+    assert metadata["local_news_only_guard"]["applied"] is True
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
+
+
+def test_cockpit_chat_local_news_only_stream_suppresses_unguarded_chunks(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, on_chunk=None, **kwargs):
+            if on_chunk is not None:
+                on_chunk(
+                    "Here is the latest local news for A2M: class action settlement."
+                )
+            return SimpleNamespace(
+                text=(
+                    "Here is the latest local news for A2M: class action "
+                    "settlement from an ASX filing."
+                ),
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "ticker": "A2M",
+                            "qual_context_news": {
+                                "hits": [
+                                    {
+                                        "title": "A2M infant formula recall uncertainty",
+                                        "source_id": "news:a2m-recall:1",
+                                        "snippet": "A2M appeared in a recall context item.",
+                                        "evidence_labels": [
+                                            "context_only",
+                                            "local_news_context",
+                                        ],
+                                        "claim_verified": False,
+                                    }
+                                ]
+                            },
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={
+            "message": "What is the latest local news for A2M? Use local news evidence only.",
+            "ticker": "A2M",
+            "stream": True,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    chunk_events = [event for event in data_events if event.get("type") == "chunk"]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+
+    assert chunk_events == []
+    assert done_events[-1]["data"]["text"].startswith("DATA_MISSING / evidence gaps:")
+    assert "class action" not in done_events[-1]["data"]["text"].lower()
+    assert done_events[-1]["data"]["routing_metadata"]["local_news_only_guard"][
+        "applied"
+    ] is True
+
+
 def test_cockpit_chat_stream_metadata_marks_price_trend_missing_market_evidence(
     monkeypatch,
 ) -> None:
@@ -470,16 +740,20 @@ def test_cockpit_chat_stateless_smoke_non_stream_skips_persistence_and_auto_flag
     assert metadata["source_coverage_status"] == "missing_required_evidence"
     assert "market_data_missing" in metadata["evidence_labels"]
     assert "metric_extraction_missing" in metadata["evidence_labels"]
+    assert "insufficient_for_recent_news" in metadata["evidence_labels"]
     assert "unsupported_or_not_verified" in metadata["evidence_labels"]
     assert metadata["missing_evidence_categories"] == [
         "market_data",
         "metric_extraction",
+        "recent_news",
     ]
     assert metadata["unsupported_claim_families"] == [
-        "market_price_or_technical_trend"
+        "market_price_or_technical_trend",
+        "recent_news_or_update",
     ]
     assert payload["text"].startswith("DATA_MISSING / evidence gaps:")
     assert "metric_extraction_missing: canonical metric" in payload["text"]
+    assert "insufficient_for_recent_news: recent-news or recent-update claims" in payload["text"]
     assert (
         "Context-only company memory (not verified market/technical evidence):"
         in payload["text"]

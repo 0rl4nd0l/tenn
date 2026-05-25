@@ -12,6 +12,7 @@ TARIFF_REGULATORY = "tariff_regulatory"
 LOCAL_HOLDINGS = "local_holdings"
 RECENT_NEWS_OR_UPDATE = "recent_news_or_update"
 RECENT_NEWS_EVENT = "recent_news_event"
+LOCAL_NEWS_ONLY_GUARD_REASON = "local_news_only_insufficient_claim_verified_news"
 
 CLAIM_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     MARKET_PRICE_OR_TECHNICAL_TREND: (
@@ -76,6 +77,13 @@ _MISSING_CANONICAL_FINANCIAL_ROWS_RE = re.compile(
     r"\b(?:no canonical financial rows were returned|no canonical financial rows|"
     r"financial rows (?:were )?(?:not returned|unavailable|missing)|"
     r"no (?:extracted|canonical) financial (?:metrics|rows))\b",
+    re.IGNORECASE,
+)
+_LOCAL_NEWS_ONLY_REQUEST_RE = re.compile(
+    r"\b(?:latest|recent|current|available|local)\s+local\s+news\b|"
+    r"\blocal\s+news\s+evidence\s+only\b|"
+    r"\buse\s+local\s+news\s+evidence\s+only\b|"
+    r"\blocal[_ -]news[_ -]context\b",
     re.IGNORECASE,
 )
 
@@ -437,6 +445,147 @@ def enrich_chat_metadata_with_evidence_guard(
         enriched["sufficient_for_analysis"] = False
 
     return enriched
+
+
+def requires_local_news_only_guard(user_message: str) -> bool:
+    return bool(_LOCAL_NEWS_ONLY_REQUEST_RE.search(str(user_message or "")))
+
+
+def _is_local_news_context_source(source: Mapping[str, Any]) -> bool:
+    labels = _source_labels(source)
+    source_id = _source_value(source, "source_id", "sourceId", "chunk_id").lower()
+    kind = _source_value(source, "kind").lower()
+    doc_type = _source_value(source, "doc_type", "docType", "source_type", "source").lower()
+    if "external_web_context" in labels:
+        return False
+    return (
+        "local_news_context" in labels
+        or source_id.startswith("news:")
+        or kind == "news"
+        or "news" in doc_type
+    )
+
+
+def _is_claim_verified_local_news(source: Mapping[str, Any]) -> bool:
+    labels = _source_labels(source)
+    role_tokens = _source_role_tokens(source)
+    if not _is_local_news_context_source(source):
+        return False
+    if "context_only" in labels:
+        return False
+    return bool(
+        source.get("claim_verified") is True
+        and (
+            "claim_verified" in labels
+            or RECENT_NEWS_EVENT in role_tokens
+            or "news_event" in role_tokens
+        )
+    )
+
+
+def _source_date(source: Mapping[str, Any]) -> str:
+    for key in (
+        "published_at",
+        "publication_date",
+        "date",
+        "as_of",
+        "timestamp",
+        "created_at",
+    ):
+        value = str(source.get(key) or "").strip()
+        if value:
+            return value[:10]
+    return "undated"
+
+
+def _source_title(source: Mapping[str, Any]) -> str:
+    for key in ("title", "source_name", "name", "source_id", "sourceId", "chunk_id"):
+        value = str(source.get(key) or "").strip()
+        if value:
+            return value
+    return "untitled local news context"
+
+
+def _local_news_context_lines(sources: Sequence[Mapping[str, Any]]) -> list[str]:
+    lines: list[str] = []
+    for source in sources[:5]:
+        lines.append(f"- {_source_date(source)} | {_source_title(source)}")
+    return lines
+
+
+def apply_local_news_only_guard(
+    answer_text: str,
+    sources: Sequence[Mapping[str, Any]],
+    metadata: Mapping[str, Any],
+    *,
+    user_message: str,
+) -> tuple[str, dict[str, Any]]:
+    """Prevent non-news context from satisfying local-news-only requests."""
+    text = str(answer_text or "")
+    enriched = dict(metadata)
+    if not requires_local_news_only_guard(user_message):
+        return text, enriched
+
+    local_news_sources = [
+        source for source in sources if _is_local_news_context_source(source)
+    ]
+    verified_local_news_sources = [
+        source for source in local_news_sources if _is_claim_verified_local_news(source)
+    ]
+    if verified_local_news_sources:
+        enriched["local_news_context_count"] = len(local_news_sources)
+        enriched["claim_verified_local_news_count"] = len(verified_local_news_sources)
+        return text, enriched
+
+    labels = set(_string_array(enriched.get("evidence_labels")))
+    labels.update({"insufficient_for_recent_news", "missing_required_evidence"})
+    if local_news_sources:
+        labels.update({"local_news_context", "context_only"})
+    else:
+        labels.add("no_hit")
+    enriched["evidence_labels"] = sorted(labels)
+
+    missing_categories = set(_string_array(enriched.get("missing_evidence_categories")))
+    missing_categories.update(_string_array(enriched.get("missing_categories_after_recovery")))
+    missing_categories.add("recent_news")
+    enriched["missing_evidence_categories"] = sorted(missing_categories)
+    enriched["missing_categories_after_recovery"] = sorted(missing_categories)
+    enriched["local_news_context_count"] = len(local_news_sources)
+    enriched["claim_verified_local_news_count"] = 0
+    enriched["claim_verified_source_count"] = 0
+    enriched["sufficient_for_analysis"] = False
+    enriched["local_news_only_guard"] = {
+        "applied": True,
+        "reason": LOCAL_NEWS_ONLY_GUARD_REASON,
+        "local_news_context_count": len(local_news_sources),
+        "claim_verified_local_news_count": 0,
+    }
+
+    current_status = str(enriched.get("source_coverage_status") or "").strip()
+    if current_status not in {"degraded_runtime", "local_personal_data"}:
+        enriched["source_coverage_status"] = "missing_required_evidence"
+
+    if not local_news_sources:
+        guarded_text = (
+            "DATA_MISSING: no relevant local_news_context was returned for this "
+            "local-news-only request. I will not use ASX filings, documents, "
+            "price data, memory, or operational traces as local news."
+        )
+    else:
+        source_lines = "\n".join(_local_news_context_lines(local_news_sources))
+        guarded_text = (
+            "DATA_MISSING: local_news_context was returned for this "
+            "local-news-only request, but it is context-only and not "
+            "claim-verified. I will not use ASX filings, documents, price data, "
+            "memory, or operational traces as local news."
+        )
+        if source_lines:
+            guarded_text = (
+                f"{guarded_text}\n\n"
+                "Context-only local news sources returned:\n"
+                f"{source_lines}"
+            )
+    return guarded_text, enriched
 
 
 def _metadata_gap_labels(metadata: Mapping[str, Any]) -> list[str]:

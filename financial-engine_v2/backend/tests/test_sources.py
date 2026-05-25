@@ -40,7 +40,10 @@ def test_orchestrator_envelope_source_item_is_cockpit_metadata_compatible() -> N
 
     assert envelope["source_label_taxonomy_version"] == SOURCE_LABEL_TAXONOMY_VERSION
     assert normalized is not None
-    assert normalized["evidence_labels"] == ["financial_truth"]
+    assert normalized["evidence_labels"] == [
+        "financial_truth",
+        "financial_truth_numeric",
+    ]
     assert normalized["claim_verified"] is False
 
 

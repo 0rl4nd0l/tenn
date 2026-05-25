@@ -46,9 +46,11 @@ from app.services.cockpit_service import (
     normalize_chat_routing_policy_preference,
 )
 from app.services.chat_evidence_guard import (
+    apply_local_news_only_guard,
     apply_visible_evidence_gap_labels,
     enrich_chat_metadata_with_evidence_guard,
     evidence_categories_for_source,
+    requires_local_news_only_guard,
 )
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
@@ -9962,6 +9964,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             if stateless_smoke:
                 ui_metadata["stateless_smoke"] = True
                 ui_metadata["chat_persistence"] = "disabled"
+            response.text, ui_metadata = apply_local_news_only_guard(
+                str(response.text or ""),
+                sources,
+                ui_metadata,
+                user_message=payload.message,
+            )
             response.text = apply_visible_evidence_gap_labels(
                 str(response.text or ""),
                 ui_metadata,
@@ -10027,8 +10035,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
         queue = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
+        suppress_stream_chunks = requires_local_news_only_guard(payload.message)
+
         def on_chunk(chunk: str):
             # This runs in the LLM thread (from ChatController)
+            if suppress_stream_chunks:
+                return
             loop.call_soon_threadsafe(
                 queue.put_nowait, {"type": "chunk", "data": {"text": chunk}}
             )
@@ -10071,6 +10083,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 if stateless_smoke:
                     ui_metadata["stateless_smoke"] = True
                     ui_metadata["chat_persistence"] = "disabled"
+                response.text, ui_metadata = apply_local_news_only_guard(
+                    str(response.text or ""),
+                    sources,
+                    ui_metadata,
+                    user_message=payload.message,
+                )
                 response.text = apply_visible_evidence_gap_labels(
                     str(response.text or ""),
                     ui_metadata,

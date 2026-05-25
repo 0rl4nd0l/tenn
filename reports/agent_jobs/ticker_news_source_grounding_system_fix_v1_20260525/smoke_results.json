@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "job_id": "ticker_news_source_grounding_system_fix_v1_20260525",
+  "generated_at": "2026-05-25T06:50:00Z",
+  "scope_note": "Live backend probes were read-only and stateless, but the running backend could not be proven to be serving this isolated worktree. Therefore live chat probes are treated as current-runtime regression evidence, not proof that the changed branch is active.",
+  "runtime": {
+    "listeners_seen": [
+      "127.0.0.1:11434 ollama",
+      "0.0.0.0:6333 qdrant",
+      "0.0.0.0:8000 backend uvicorn",
+      "0.0.0.0:8001 llama-server",
+      "0.0.0.0:3000 next-server"
+    ],
+    "backend_process_cwd_available": false,
+    "backend_process_cwd_error": "Permission denied reading /proc/699172/cwd",
+    "restart_performed": false
+  },
+  "route_smokes": [
+    {
+      "route": "GET /api/cockpit/news/status",
+      "http_status": 200,
+      "classification": "PASS",
+      "key_fields": {
+        "status": "ok",
+        "a2m_news_health.qdrant_retrieval": "ok",
+        "a2m_news_health.canonical_sqlite_projection": "missing",
+        "a2m_news_health.legacy_sqlite_projection": "evidence_present_not_current_consumer",
+        "a2m_news_health.chat_synthesis": "DATA_MISSING",
+        "a2m_news_health.projection_repair": "not_run"
+      }
+    },
+    {
+      "route": "GET /api/cockpit/config",
+      "http_status": 200,
+      "classification": "PASS",
+      "key_fields": {
+        "features.rag": true,
+        "features.web_search": true,
+        "runtime_target": "local",
+        "llm_endpoint": "http://127.0.0.1:8001",
+        "rented_gpu.configured": false
+      }
+    },
+    {
+      "route": "GET /openapi.json",
+      "http_status": 200,
+      "classification": "PASS",
+      "relevant_paths": [
+        "/api/cockpit/chat",
+        "/api/cockpit/chat/attachments/upload",
+        "/api/cockpit/chat/sessions",
+        "/api/cockpit/chat/sessions/{session_id}",
+        "/api/cockpit/config",
+        "/api/cockpit/news/status"
+      ]
+    }
+  ],
+  "live_stateless_chat_canaries_current_runtime": [
+    {
+      "ticker": "A2M",
+      "http_status": 200,
+      "latency_ms": 21043,
+      "source_coverage_status": "context_only",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 1,
+      "classification": "FAIL",
+      "final_text_alignment": "Misattributed class action and dividend filings as latest local news."
+    },
+    {
+      "ticker": "BHP",
+      "http_status": 200,
+      "latency_ms": 23897,
+      "source_coverage_status": "context_only",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 1,
+      "classification": "FAIL",
+      "final_text_alignment": "Misattributed half-year financial results as latest material local news."
+    },
+    {
+      "ticker": "CSL",
+      "http_status": 200,
+      "latency_ms": 15282,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 2,
+      "classification": "FAIL",
+      "final_text_alignment": "Displayed evidence gap prefix, then still described tariff and buy-back filings as local news."
+    },
+    {
+      "ticker": "XRO",
+      "http_status": 200,
+      "latency_ms": 7161,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 2,
+      "classification": "PASS",
+      "final_text_alignment": "Returned DATA_MISSING instead of converting context-only rows into local news claims."
+    },
+    {
+      "ticker": "NST",
+      "http_status": 200,
+      "latency_ms": 24812,
+      "source_coverage_status": "missing_required_evidence",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 1,
+      "classification": "FAIL",
+      "final_text_alignment": "Displayed evidence gap prefix, then still listed filings and price trend as local news context."
+    },
+    {
+      "ticker": "COH",
+      "http_status": 200,
+      "latency_ms": 14501,
+      "source_coverage_status": "no_hit",
+      "claim_verified_source_count": 0,
+      "local_news_context_count": 0,
+      "classification": "FAIL",
+      "final_text_alignment": "No local_news_context, but final text described dividend and substantial holder filings as local news."
+    }
+  ],
+  "changed_code_smoke": {
+    "method": "in_process_fastapi_tests",
+    "classification": "PASS",
+    "evidence": [
+      "test_cockpit_chat_local_news_only_guard_blocks_filing_synthesis",
+      "test_cockpit_chat_local_news_only_guard_blocks_document_only_control",
+      "test_cockpit_chat_local_news_only_stream_suppresses_unguarded_chunks"
+    ],
+    "live_restart_required_for_external_chat_smoke": true,
+    "restart_approval": "not_requested_and_not_performed"
+  }
+}
