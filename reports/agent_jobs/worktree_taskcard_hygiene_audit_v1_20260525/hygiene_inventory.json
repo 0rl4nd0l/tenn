@@ -1,0 +1,126 @@
+{
+  "job_id": "worktree_taskcard_hygiene_audit_v1_20260525",
+  "issue": 64,
+  "classification": {
+    "worktree_count": "high",
+    "prunable_category": "stale_worktree_metadata_missing_gitdir_targets",
+    "branch_count": "high_but_recent_by_committer_date",
+    "loose_taskcard_risk": "confirmed_in_non_audit_worktrees",
+    "ignored_report_visibility_risk": "confirmed",
+    "cleanup_status": "approval_gated_not_performed"
+  },
+  "current_audit_worktree": {
+    "path": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+    "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+    "head_at_evidence_time": "17896fcbbad5",
+    "dirty_task_cards_before_report_write": [
+      "docs/agent_tasks/worktree_taskcard_hygiene_audit_v1_20260525.md"
+    ]
+  },
+  "worktrees": {
+    "count": 221,
+    "prunable_marked_count_from_porcelain": 22,
+    "dry_run_prunable_entries": [
+      "worktrees/tenn-source-page-viewer-default-integration-v1",
+      "worktrees/tenn-home-frontend-wiring-v1-20260513",
+      "worktrees/Maestro1",
+      "worktrees/tenn-memory-cleanup-batch4-approved-20260513",
+      "worktrees/tenn-home-wiring-target-route-dedupe-20260516",
+      "worktrees/CLAUDEMAESTRO1",
+      "worktrees/tenn-baseline-944fd43",
+      "worktrees/tenn-memory-contamination-root-cause-v1-20260516",
+      "worktrees/tenn-memory-cleanup-batch3-20260513",
+      "worktrees/tenn-extraction-runtime-mode-selector-20260516",
+      "worktrees/tenn-cockpit-home-news-snapshot-c0549d7-source-integration",
+      "worktrees/tenn-embedding-sqlite-invariant-contract-fix-v1-20260513",
+      "worktrees/tenn-source-viewer-import-valid",
+      "worktrees/tenn-memory-cleanup-batch3-approved-20260513",
+      "worktrees/tenn-memory-cleanup-batch5-approved-200-20260513",
+      "worktrees/tenn-cockpit-ui-test-drift-20260513",
+      "worktrees/tenn-agent-control-live-data-maintenance-contract-20260513",
+      "worktrees/tenn-api-billing-notice",
+      "worktrees/tenn-metric-coverage-provenance-import-valid",
+      "worktrees/tenn-cockpit-attached-source-runtime-20260516",
+      "worktrees/tenn-verification-clickthrough",
+      "worktrees/tenn-metric-coverage-provenance"
+    ],
+    "dry_run_reason": "gitdir file points to non-existent location",
+    "cleanup_performed": false
+  },
+  "branches": {
+    "local_branch_count": 243,
+    "remote_origin_ref_count": 39,
+    "age_buckets_by_committer_date": {
+      "age_le_7d": 56,
+      "age_8_30d": 155,
+      "age_31_90d": 32,
+      "age_gt_90d": 0,
+      "missing_dates": 0
+    },
+    "oldest_sample": [
+      "2026-04-02 af258c73 vk/3baa-pdf-extraction-a",
+      "2026-04-02 293edfa7 vk/08c6-determine-pdf-me",
+      "2026-04-03 ae70c9ff agent/backend-b525b431",
+      "2026-04-08 f81eef11 agent/task_235bcf6c-a212-4ed3-9b4d-5165c2c0e917",
+      "2026-04-08 95f23c32 agent/task_fb4ca913-53e2-410b-ae35-f7358f25e513"
+    ]
+  },
+  "task_cards": {
+    "tracked_task_card_count": 207,
+    "current_audit_worktree_dirty_task_card_count_before_report_write": 1,
+    "nvme_baseline_untracked_task_cards": [
+      "docs/agent_tasks/a2m_news_projection_canonical_integration_and_status_reporting_v1_20260525.md",
+      "docs/agent_tasks/a2m_news_projection_status_reporting_safe_extension_v1_20260525.md",
+      "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "preserve_worktree_untracked_task_card_count": 14,
+    "preserve_worktree_untracked_task_cards": [
+      "docs/agent_tasks/current_state_collision_runtime_remediation_audit_v1_20260513.md",
+      "docs/agent_tasks/memory_interticker_cleanup_post_verification_v1_20260514.md",
+      "docs/agent_tasks/nvme_hot_dev_base_sync_v1_20260513.md",
+      "docs/agent_tasks/nvme_migration_baseline_reconciliation_audit_only_v1_20260517.md",
+      "docs/agent_tasks/nvme_migration_baseline_reconciliation_v1_20260517.md",
+      "docs/agent_tasks/nvme_runtime_migration_readiness_audit_v1_20260517.md",
+      "docs/agent_tasks/overview_home_audit_closeout_blocker_classification_v1_20260513.md",
+      "docs/agent_tasks/overview_home_wiring_completion_audit_v1_20260513.md",
+      "docs/agent_tasks/preserve_dirty_surface_classification_v1_20260516.md",
+      "docs/agent_tasks/rented_gpu_remote_llamacpp_smoke_v1_20260514.md",
+      "docs/agent_tasks/rented_gpu_runtime_diff_classification_v1_20260514.md",
+      "docs/agent_tasks/repo_hygiene_dirty_worktree_audit_v1_20260519.md",
+      "docs/agent_tasks/runtime_topology_nvme_backend_cockpit_cached_start_v1_20260513.md",
+      "docs/agent_tasks/runtime_topology_nvme_enablement_v1_20260513.md"
+    ],
+    "owner_intent_for_untracked_cards": "DATA_MISSING"
+  },
+  "reports_visibility": {
+    "reports_ignored_by_default": true,
+    "ignore_source": "/mnt/sdb2/home/l4nd0/tenn/.git/info/exclude:31 reports/",
+    "risk": "report artifacts can be invisible to normal git status unless force-added or surfaced by committed registry"
+  },
+  "registry": {
+    "registry_scope": "shared",
+    "check_overlap_result": "passed",
+    "active_jobs_after_claim": [
+      "worktree_taskcard_hygiene_audit_v1_20260525"
+    ],
+    "overlap_risk": "LOW"
+  },
+  "recommended_child_tasks": [
+    {
+      "job_id": "stale_worktree_metadata_prune_approval_v1_20260525",
+      "mode": "approval_gated_cleanup",
+      "scope": "22 dry-run stale worktree metadata entries only after fresh dry run"
+    },
+    {
+      "job_id": "loose_taskcard_preservation_classification_v1_20260525",
+      "mode": "audit_only",
+      "scope": "four NVMe baseline untracked cards and 14 preserve-worktree untracked cards"
+    },
+    {
+      "job_id": "report_visibility_registry_safe_extension_v1_20260525",
+      "mode": "safe_extension",
+      "scope": "committed registry or merge-parking surface for ignored report directories"
+    }
+  ]
+}
