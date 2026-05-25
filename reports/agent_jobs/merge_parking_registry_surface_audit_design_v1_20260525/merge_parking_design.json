@@ -1,0 +1,95 @@
+{
+  "job_id": "merge_parking_registry_surface_audit_design_v1_20260525",
+  "issue": 65,
+  "classification": {
+    "current_merge_parking_surface": "confirmed_absent_for_checked_paths",
+    "formal_committed_protocol": "DATA_MISSING",
+    "recommended_action": "child_safe_extension_to_create_docs_owned_registry_surface"
+  },
+  "checked_paths": [
+    {
+      "path": "docs/agent_registry/merge_parking/REGISTRY.md",
+      "status": "absent"
+    },
+    {
+      "path": "docs/agent_registry/merge_parking/parked/",
+      "status": "absent"
+    },
+    {
+      "path": ".tenn/merge_parking",
+      "status": "absent"
+    },
+    {
+      "path": ".tenn/merge-parking",
+      "status": "absent"
+    },
+    {
+      "path": "reports/merge_parking",
+      "status": "absent"
+    },
+    {
+      "path": "reports/merge-parking",
+      "status": "absent"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "docs/agent_tasks/repo_native_orchestration_readiness_audit_v1_20260524.md",
+      "lines": "28-34",
+      "finding": "Repo-native orchestration readiness scope names merge parking as a desired coordination capability."
+    },
+    {
+      "path": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/README.md",
+      "lines": "90-97",
+      "finding": "Prior ignored report classified docs/agent_registry/merge_parking/REGISTRY.md and parked/ as absent."
+    },
+    {
+      "path": "reports/agent_jobs/post_quantdinger_milestone_dirt_hygiene_audit_v1_20260524/status.json",
+      "lines": "json merge_parking_registry object",
+      "finding": "Prior ignored status JSON classified merge parking registry as DATA_MISSING_NOT_PRESENT."
+    },
+    {
+      "path": ".git/info/exclude",
+      "lines": "31",
+      "finding": "reports/ is ignored, so report-only parking metadata has weak default visibility."
+    }
+  ],
+  "proposed_paths": [
+    "docs/agent_registry/merge_parking/REGISTRY.md",
+    "docs/agent_registry/merge_parking/schema.md",
+    "docs/agent_registry/merge_parking/parked/<job_id>.json"
+  ],
+  "parked_record_schema": {
+    "job_id": "string",
+    "issue_or_pr": "string_or_null",
+    "lane": "Financial Truth | Evaluation | Provenance | Query Orchestration | Memory | Reporting",
+    "owner": "string",
+    "branch": "string",
+    "worktree": "string",
+    "commit_sha": "string_or_null",
+    "task_card": "path",
+    "report_dir": "path",
+    "validation_summary": "string",
+    "merge_status": "parked | superseded | merged | abandoned",
+    "requires_owner_approval": true,
+    "last_verified_at": "iso8601",
+    "notes": "string"
+  },
+  "child_task": {
+    "job_id": "merge_parking_registry_surface_safe_extension_v1_20260525",
+    "mutation_mode": "safe_extension",
+    "allowed_scope": [
+      "docs/agent_registry/merge_parking/REGISTRY.md",
+      "docs/agent_registry/merge_parking/schema.md",
+      "docs/agent_registry/merge_parking/parked/"
+    ],
+    "hard_boundaries": [
+      "no merges",
+      "no rebases",
+      "no cherry-picks",
+      "no cleanup",
+      "no branch or worktree mutation",
+      "no automatic parking of existing work without owner approval"
+    ]
+  }
+}
