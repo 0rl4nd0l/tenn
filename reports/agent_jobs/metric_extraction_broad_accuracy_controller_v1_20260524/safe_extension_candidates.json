@@ -1,0 +1,145 @@
+{
+  "job_id": "metric_extraction_broad_accuracy_controller_v1_20260524",
+  "mode": "audit_only",
+  "child_task_cards_created": [],
+  "reason_no_child_mutation_performed": "Parent controller remained audit-only. The audit found bounded candidates, but source-PDF DATA_MISSING and absence of current extracted-payload scorecards make implementation premature without a separate child task card and overlap check.",
+  "candidates": [
+    {
+      "child_job_id": "metric_extraction_coverage_map_safe_extension_v1_20260524",
+      "lane": "Evaluation",
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "mutation_mode": "safe_extension",
+      "risk": "LOW",
+      "goal": "Improve report-only coverage-map normalization so canonical_core, expanded_required, and confirmed_metric_coverage are always emitted as separate profiles with DATA_MISSING accuracy fields where appropriate.",
+      "candidate_allowed_files": [
+        "docs/agent_tasks/metric_extraction_coverage_map_safe_extension_v1_20260524.md",
+        "scripts/reporting/**",
+        "tests/**",
+        "reports/agent_jobs/metric_extraction_coverage_map_safe_extension_v1_20260524/**"
+      ],
+      "validation": [
+        "python3 scripts/agent_job_contract.py validate docs/agent_tasks/metric_extraction_coverage_map_safe_extension_v1_20260524.md --write-report",
+        "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/metric_extraction_coverage_map_safe_extension_v1_20260524.md",
+        "focused pytest for changed reporting tests",
+        "python -m py_compile for changed scripts",
+        "JSON validation for generated artifacts",
+        "git diff --check",
+        "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/metric_extraction_coverage_map_safe_extension_v1_20260524.md"
+      ],
+      "hard_stops": [
+        "no parser routing changes",
+        "no canonical truth writes",
+        "no scorecard relaxation",
+        "no production data access"
+      ]
+    },
+    {
+      "child_job_id": "confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+      "lane": "Evaluation",
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "mutation_mode": "safe_extension",
+      "risk": "MEDIUM",
+      "goal": "Generate or normalize confirmed-metric coverage review artifacts while preserving candidate/ambiguous/source-missing boundaries and without running production extraction.",
+      "candidate_allowed_files": [
+        "docs/agent_tasks/confirmed_metric_scoring_gap_safe_extension_v1_20260524.md",
+        "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+        "financial-engine_v2/backend/tests/test_confirmed_metric_coverage_review.py",
+        "financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py",
+        "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/**"
+      ],
+      "validation": [
+        "focused pytest for confirmed metric coverage service/API tests",
+        "JSON validation for review artifacts",
+        "git diff --check",
+        "task-card check-diff"
+      ],
+      "hard_stops": [
+        "do not call readiness counts accuracy",
+        "do not mutate canonical labels",
+        "do not write reports/extraction_eval unless explicitly allowed by the child card",
+        "stop if source PDFs remain unresolved and the change depends on PDF openability"
+      ]
+    },
+    {
+      "child_job_id": "appendix5b_gate_floor_status_audit_v1_20260524",
+      "lane": "Evaluation",
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "mutation_mode": "audit_only",
+      "risk": "LOW",
+      "goal": "Rerun the existing Appendix 5B no-regression gate into a child report directory and compare with the current PRM/fifth-doc floor status.",
+      "candidate_allowed_files": [
+        "docs/agent_tasks/appendix5b_gate_floor_status_audit_v1_20260524.md",
+        "reports/agent_jobs/appendix5b_gate_floor_status_audit_v1_20260524/**"
+      ],
+      "validation": [
+        "python3 scripts/run_appendix5b_no_regression_gate.py --output reports/agent_jobs/appendix5b_gate_floor_status_audit_v1_20260524/appendix5b_no_regression_report.json",
+        "python3 scripts/run_extraction_evaluation_gates.py --only appendix5b_prm_no_regression --output reports/agent_jobs/appendix5b_gate_floor_status_audit_v1_20260524/evaluation_gates_report.json",
+        "JSON validation",
+        "git diff --check",
+        "task-card check-diff"
+      ],
+      "hard_stops": [
+        "canonical_write must remain false",
+        "failed_checks must remain empty for promotion language",
+        "no parser routing changes",
+        "no production extraction run"
+      ]
+    },
+    {
+      "child_job_id": "appendix4c_metric_extraction_readiness_audit_v1_20260524",
+      "lane": "Evaluation",
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "mutation_mode": "audit_only",
+      "risk": "LOW",
+      "goal": "Draft the Appendix 4C readiness contract: cash-flow-only fixture expectations, source binding, comparator schema, no-regression gates, and explicit forbidden metrics.",
+      "candidate_allowed_files": [
+        "docs/agent_tasks/appendix4c_metric_extraction_readiness_audit_v1_20260524.md",
+        "reports/agent_jobs/appendix4c_metric_extraction_readiness_audit_v1_20260524/**"
+      ],
+      "validation": [
+        "JSON validation for readiness artifacts",
+        "git diff --check",
+        "task-card check-diff"
+      ],
+      "hard_stops": [
+        "no parser implementation",
+        "no production routing changes",
+        "no canonical writes",
+        "do not infer revenue, NPAT, or net debt from Appendix 4C"
+      ]
+    },
+    {
+      "child_job_id": "confirmed_metric_source_pdf_resolution_audit_v1_20260524",
+      "lane": "Evaluation",
+      "supporting_lanes": [
+        "Provenance"
+      ],
+      "mutation_mode": "audit_only",
+      "risk": "LOW",
+      "goal": "Classify why confirmed metric coverage rows have missing local source PDFs and produce an explicit DATA_MISSING or path-resolution report.",
+      "candidate_allowed_files": [
+        "docs/agent_tasks/confirmed_metric_source_pdf_resolution_audit_v1_20260524.md",
+        "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/**"
+      ],
+      "validation": [
+        "read-only source path audit",
+        "JSON validation",
+        "git diff --check",
+        "task-card check-diff"
+      ],
+      "hard_stops": [
+        "do not copy production PDFs",
+        "do not mutate fixture labels",
+        "do not weaken source-route allowlist"
+      ]
+    }
+  ]
+}

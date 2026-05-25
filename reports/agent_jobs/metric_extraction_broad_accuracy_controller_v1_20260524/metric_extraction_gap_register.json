@@ -1,0 +1,190 @@
+{
+  "job_id": "metric_extraction_broad_accuracy_controller_v1_20260524",
+  "mode": "audit_only",
+  "current_head": "e641db499b14dc53184eff678552b227a88dc573",
+  "gaps": [
+    {
+      "id": "parser_layout_001",
+      "root_cause": "parser/layout",
+      "severity": "high",
+      "status": "confirmed",
+      "summary": "Docling/PyMuPDF layout behavior and table structure can still decide whether the LLM sees the correct table and row ordering.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/docling_extract.py",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py"
+      ],
+      "risk": "Broad scorecards can be inflated or unstable if layout fallback behavior changes without a fixed input tuple.",
+      "safe_next_step": "Keep Docling configuration fixed and score profile-specific artifacts only.",
+      "hard_stop": "Do not replace Docling or alter parser routing under this controller."
+    },
+    {
+      "id": "parser_layout_002",
+      "root_cause": "parser/layout",
+      "severity": "high",
+      "status": "confirmed",
+      "summary": "No deterministic Appendix 4C parser/gate module was found; current support is classifier/comparator-schema level only.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/asx_document_type_classifier.py",
+        "financial-engine_v2/backend/app/services/asx_comparator_artifact_schema.py",
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4c_quarterly_cashflow.json"
+      ],
+      "risk": "Appendix 4C extraction could be overclaimed if metadata classification is mistaken for metric extraction support.",
+      "safe_next_step": "Create a child Appendix 4C readiness audit with cash-flow-only fixture and gate requirements.",
+      "hard_stop": "Do not add 4C parser routing or canonical writes without a separate approved task."
+    },
+    {
+      "id": "table_selection_001",
+      "root_cause": "table selection",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "Current multipass table selection relies on deterministic slot selection before LLM extraction and has separate Appendix 5B handling.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_capability_guards.py"
+      ],
+      "risk": "Summary tables, comparative columns, or cash-flow appendix forms can be selected incorrectly unless gates prove table/row binding.",
+      "safe_next_step": "Require row/table/page evidence in scored artifacts and keep cash-flow forms out of income-statement metric inference.",
+      "hard_stop": "Do not relax table-source requirements to increase apparent coverage."
+    },
+    {
+      "id": "period_001",
+      "root_cause": "period",
+      "severity": "high",
+      "status": "confirmed",
+      "summary": "The evaluator quarantines all metrics on context period mismatch; period selection is a profile-level gate, not a per-metric nicety.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/extraction_eval.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval.py"
+      ],
+      "risk": "A wrong period can make every metric source-backed but financially wrong.",
+      "safe_next_step": "Keep period checks as hard gates for canonical_core and expanded_required runs.",
+      "hard_stop": "Do not score metrics from a payload with period mismatch."
+    },
+    {
+      "id": "currency_unit_001",
+      "root_cause": "currency/unit",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "Current extraction preserves native non-AUD currency rather than applying FX conversion; unit/scale is inferred from table and context.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/extraction_eval.py"
+      ],
+      "risk": "Unit or currency drift can create plausible but wrong magnitude values.",
+      "safe_next_step": "Require currency and scale match in all scored runs; label non-AUD native handling explicitly.",
+      "hard_stop": "Do not add FX conversion or canonical normalization under this controller."
+    },
+    {
+      "id": "sign_001",
+      "root_cause": "sign",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "Cash-flow and capex rows are vulnerable to parenthesis/sign convention ambiguity, especially in Appendix 5B and current-quarter fields.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "reports/agent_jobs/appendix5b_prm_gate_stack_canonical_integration_v1_20260524/appendix5b_no_regression_report.json"
+      ],
+      "risk": "A sign flip can pass surface-level source binding while reversing financial meaning.",
+      "safe_next_step": "Appendix 5B and future 4C gates should retain exact signed-value checks.",
+      "hard_stop": "Do not convert signs for display without preserving scored raw values."
+    },
+    {
+      "id": "source_binding_001",
+      "root_cause": "source binding",
+      "severity": "high",
+      "status": "confirmed",
+      "summary": "Confirmed metric coverage currently has source page/row/table metadata but no local source PDFs resolved in the active data root.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+        "financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py"
+      ],
+      "risk": "Cockpit source-page verification cannot prove local PDF-backed accuracy until PDFs resolve or rows are marked DATA_MISSING.",
+      "safe_next_step": "Run a child audit to resolve or explicitly classify missing source PDFs without copying production data.",
+      "hard_stop": "Do not call rows source-backed/open-verified when the PDF route cannot serve the source."
+    },
+    {
+      "id": "source_binding_002",
+      "root_cause": "source binding",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "Provenance uses structured strings such as source page/detail, derived, prose note, partial, synthetic, or missing.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/provenance.py",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py"
+      ],
+      "risk": "Page-only or prose-only evidence is weaker than table/row binding and must not be labeled equivalent to precise evidence.",
+      "safe_next_step": "Separate precise, derived, low-traceability, and missing provenance in all reports.",
+      "hard_stop": "Do not silently upgrade broad or prose evidence to precise evidence."
+    },
+    {
+      "id": "normalization_001",
+      "root_cause": "normalization",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "An offline normalizer/reporting spine exists, but it preserves missing-current-accuracy as DATA_MISSING rather than generating accuracy.",
+      "evidence_paths": [
+        "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/normalized_manifest.json"
+      ],
+      "risk": "Operators may mistake normalized inventories for accuracy results unless profile labels remain explicit.",
+      "safe_next_step": "Keep normalizer output labels profile-specific and include missing-current-accuracy fields.",
+      "hard_stop": "Do not collapse canonical_core, expanded_required, and confirmed_metric_coverage into one score."
+    },
+    {
+      "id": "scorer_evaluator_001",
+      "root_cause": "scorer/evaluator",
+      "severity": "high",
+      "status": "confirmed",
+      "summary": "Confirmed metric coverage can inventory scored-ready rows, but no current extracted-payload accuracy artifact was found.",
+      "evidence_paths": [
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+        "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/scorecard_proposal.json"
+      ],
+      "risk": "Broad metric accuracy can be claimed without a scorecard if readiness counts are misread as correctness counts.",
+      "safe_next_step": "Feed extracted payloads into the scorer only under a child task with source binding and profile labels.",
+      "hard_stop": "Do not publish broad accuracy from inventory-only artifacts."
+    },
+    {
+      "id": "cockpit_verification_001",
+      "root_cause": "Cockpit verification",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "The confirmed metric coverage tab is review-only and drafts decisions locally; the gold eval tab runs real extraction eval but must keep profile/dataset labels visible.",
+      "evidence_paths": [
+        "cockpit-ui/components/cockpit/verification/tabs/metric-coverage-tab-panel.tsx",
+        "cockpit-ui/components/cockpit/verification/tabs/gold-eval-tab-panel.tsx"
+      ],
+      "risk": "Operator UI can unintentionally imply broader trust than the scorecard proves.",
+      "safe_next_step": "Keep UI wording profile-specific and continue showing candidate/ambiguous/source-missing states.",
+      "hard_stop": "Do not wire draft manual review decisions into canonical labels under this controller."
+    },
+    {
+      "id": "data_missing_001",
+      "root_cause": "DATA_MISSING",
+      "severity": "medium",
+      "status": "confirmed",
+      "summary": "Graphify report/wiki were not present in this checkout.",
+      "evidence_paths": [
+        "graphify-out/GRAPH_REPORT.md",
+        "graphify-out/wiki/index.md"
+      ],
+      "risk": "Architecture graph context could not be used for this audit.",
+      "safe_next_step": "If architecture graph context is required, run a separate explicit graph refresh task.",
+      "hard_stop": "Do not fabricate graph communities or god-node analysis."
+    },
+    {
+      "id": "data_missing_002",
+      "root_cause": "DATA_MISSING",
+      "severity": "high",
+      "status": "confirmed",
+      "summary": "No current generated broad confirmed-coverage accuracy scorecard was found.",
+      "evidence_paths": [
+        "reports/extraction_eval",
+        "financial-engine_v2/reports/extraction_eval"
+      ],
+      "risk": "No broad accuracy claim can be made.",
+      "safe_next_step": "Create a child scorer/report-only task after source evidence is available.",
+      "hard_stop": "Do not claim broad metric extraction accuracy."
+    }
+  ]
+}

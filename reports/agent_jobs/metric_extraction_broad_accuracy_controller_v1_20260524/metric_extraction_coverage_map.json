@@ -1,0 +1,409 @@
+{
+  "job_id": "metric_extraction_broad_accuracy_controller_v1_20260524",
+  "generated_by": "Codex",
+  "mode": "audit_only",
+  "current_head": "e641db499b14dc53184eff678552b227a88dc573",
+  "profile_contract": {
+    "profile_version": "2026-05-05",
+    "accuracy_claim_status": "not_supported_for_broad_metric_extraction",
+    "required_label_rule": "Every score or readiness number must name the exact profile and input tuple.",
+    "profiles": {
+      "canonical_core": {
+        "document_count": 10,
+        "metric_expectation_count": 24,
+        "purpose": "strict narrow no-regression profile over required production metrics",
+        "current_accuracy_result": "DATA_MISSING",
+        "eligible_metric_families": [
+          "revenue",
+          "operating_cash_flow",
+          "net_debt"
+        ]
+      },
+      "expanded_required": {
+        "document_count": 15,
+        "metric_expectation_count": 39,
+        "purpose": "expanded document coverage for the same required production metric families",
+        "current_accuracy_result": "DATA_MISSING",
+        "eligible_metric_families": [
+          "revenue",
+          "operating_cash_flow",
+          "net_debt"
+        ]
+      },
+      "confirmed_metric_coverage": {
+        "fixture_count": 15,
+        "total_metric_expectations": 146,
+        "scored_metric_expectations": 73,
+        "candidate_review_required": 70,
+        "ambiguous": 3,
+        "unsupported": 0,
+        "purpose": "breadth readiness inventory for confirmed and candidate source-backed metric families",
+        "current_accuracy_result": "DATA_MISSING",
+        "extracted_payloads_supplied": false
+      }
+    }
+  },
+  "pipeline_surfaces": {
+    "current_extractor": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "metric_fields": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "investing_cf",
+      "financing_cf",
+      "capex",
+      "cash_end",
+      "net_debt",
+      "shares_outstanding"
+    ],
+    "passes": [
+      "llm_report_context",
+      "deterministic_table_locator",
+      "llm_table_and_narrative_extraction",
+      "deterministic_reconciliation"
+    ],
+    "persisted_financial_row_fields_observed": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "investing_cf",
+      "financing_cf",
+      "capex",
+      "cash_end",
+      "net_debt",
+      "shares_outstanding",
+      "total_equity",
+      "interest_expense"
+    ],
+    "schema_activation": {
+      "pandera_schema_present": true,
+      "live_pipeline_activation": "not_yet_activated_per_schema_comment"
+    },
+    "prohibited_changes_in_this_job": [
+      "parser_routing",
+      "production_extraction_routing",
+      "docling_configuration",
+      "extraction_prompts",
+      "canonical_financial_truth",
+      "database_rows",
+      "qdrant",
+      "memory_stores",
+      "ingestion_or_backfill"
+    ]
+  },
+  "document_type_coverage": {
+    "annual_report": {
+      "current_support": "multipass_extraction_and_real_gold_fixtures",
+      "scorecard_profiles": [
+        "canonical_core",
+        "expanded_required",
+        "confirmed_metric_coverage"
+      ],
+      "known_limitations": [
+        "broad accuracy requires extracted payload scorecard",
+        "source PDF availability blocks local operator verification for confirmed coverage rows"
+      ]
+    },
+    "half_year_report": {
+      "current_support": "multipass_extraction_and_real_gold_fixtures",
+      "scorecard_profiles": [
+        "canonical_core",
+        "expanded_required",
+        "confirmed_metric_coverage"
+      ],
+      "known_limitations": [
+        "period and comparative-column selection remain no-regression gate requirements",
+        "shares_outstanding must remain period-end, not weighted-average"
+      ]
+    },
+    "quarterly_appendix_5b": {
+      "current_support": "multipass_appendix_5b_handling_plus_report_local_deterministic_gate_stack",
+      "latest_observed_gate_artifact": "reports/agent_jobs/appendix5b_prm_gate_stack_canonical_integration_v1_20260524/appendix5b_no_regression_report.json",
+      "gate_status_from_artifact": {
+        "gate_pass": true,
+        "canonical_write": false,
+        "documents_scored": 7,
+        "documents_passed": 5,
+        "documents_failed": 0,
+        "labelled_metric_count": 13,
+        "trusted_metric_count": 13,
+        "exact_match_rate": 1.0,
+        "labelled_metric_coverage": 1.0
+      },
+      "known_limitations": [
+        "fresh gate rerun not performed under parent audit",
+        "must remain sidecar/report-local until explicitly promoted by a separate task"
+      ]
+    },
+    "quarterly_appendix_4c": {
+      "current_support": "classifier_and_comparator_schema_only",
+      "deterministic_parser_found": false,
+      "fixtures_found": [
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4c_quarterly_cashflow.json"
+      ],
+      "known_limitations": [
+        "no dedicated Appendix 4C parser/gate module found",
+        "must not infer revenue, NPAT, or net debt from cash-flow-only forms"
+      ]
+    },
+    "appendix_4d_4e_and_other_asx_announcements": {
+      "current_support": "metadata_classification_and_comparator_schema_surfaces",
+      "known_limitations": [
+        "no dedicated broad metric gate found",
+        "must not become canonical truth without deterministic source-bound scorecards"
+      ]
+    }
+  },
+  "metric_coverage": {
+    "revenue": {
+      "extractor_field": "revenue",
+      "persisted_field": "revenue",
+      "real_gold_status": "required_scored_in_canonical_and_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 2
+      },
+      "known_failure_modes": [
+        "income statement table selection",
+        "period column ambiguity",
+        "unit scale ambiguity",
+        "source PDF missing for local verification"
+      ]
+    },
+    "operating_cash_flow": {
+      "extractor_field": "operating_cf",
+      "persisted_field": "operating_cf",
+      "aliases": [
+        "operating_cash_flow"
+      ],
+      "real_gold_status": "required_scored_in_canonical_and_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 0
+      },
+      "known_failure_modes": [
+        "cash-flow table selection",
+        "sign convention",
+        "quarterly current-period versus year-to-date selection",
+        "source PDF missing for local verification"
+      ]
+    },
+    "net_debt": {
+      "extractor_field": "net_debt",
+      "persisted_field": "net_debt",
+      "real_gold_status": "required_scored_in_canonical_and_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 5,
+        "candidate_review_required": 7,
+        "ambiguous": 3,
+        "expected_null": 6
+      },
+      "known_failure_modes": [
+        "explicit net debt row versus derived debt-minus-cash ambiguity",
+        "borrowings/financial debt/total debt terminology ambiguity",
+        "balance sheet table selection",
+        "source PDF missing for local verification"
+      ]
+    },
+    "ebit": {
+      "extractor_field": "ebit",
+      "persisted_field": "ebit",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 14,
+        "confirmed_scored_ready": 7,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 3
+      },
+      "known_failure_modes": [
+        "EBIT versus EBITDA label confusion",
+        "management-adjusted metric confusion",
+        "source PDF missing for local verification"
+      ]
+    },
+    "np_attributable": {
+      "extractor_field": "np_attributable",
+      "persisted_field": "np_attributable",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 2
+      },
+      "known_failure_modes": [
+        "attributable versus statutory profit ambiguity",
+        "period column ambiguity",
+        "source PDF missing for local verification"
+      ]
+    },
+    "investing_cf": {
+      "extractor_field": "investing_cf",
+      "persisted_field": "investing_cf",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 0
+      },
+      "known_failure_modes": [
+        "cash-flow sign convention",
+        "current-period versus comparative column",
+        "source PDF missing for local verification"
+      ]
+    },
+    "financing_cf": {
+      "extractor_field": "financing_cf",
+      "persisted_field": "financing_cf",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 0
+      },
+      "known_failure_modes": [
+        "cash-flow sign convention",
+        "current-period versus comparative column",
+        "source PDF missing for local verification"
+      ]
+    },
+    "capex": {
+      "extractor_field": "capex",
+      "persisted_field": "capex",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 12,
+        "confirmed_scored_ready": 5,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 0
+      },
+      "known_failure_modes": [
+        "explicit line item versus derived subtotal",
+        "Appendix 5B allowed sub-item sum boundary",
+        "sign convention",
+        "source PDF missing for local verification"
+      ]
+    },
+    "cash_end": {
+      "extractor_field": "cash_end",
+      "persisted_field": "cash_end",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 0
+      },
+      "known_failure_modes": [
+        "cash and cash equivalents wording",
+        "balance sheet versus cash-flow closing cash row",
+        "source PDF missing for local verification"
+      ]
+    },
+    "shares_outstanding": {
+      "extractor_field": "shares_outstanding",
+      "persisted_field": "shares_outstanding",
+      "real_gold_status": "not_required_in_canonical_or_expanded_profiles",
+      "confirmed_metric_coverage": {
+        "total": 15,
+        "confirmed_scored_ready": 8,
+        "candidate_review_required": 7,
+        "ambiguous": 0,
+        "expected_null": 2
+      },
+      "known_failure_modes": [
+        "period-end shares versus weighted-average shares",
+        "notes/prose source rather than table source",
+        "source PDF missing for local verification"
+      ]
+    },
+    "total_debt": {
+      "extractor_field": "intermediate_total_debt",
+      "persisted_field": null,
+      "real_gold_status": "not_scored",
+      "confirmed_metric_coverage": null,
+      "known_failure_modes": [
+        "used as intermediate for net debt derivation risk",
+        "not a current scorecard family"
+      ]
+    },
+    "total_equity": {
+      "extractor_field": null,
+      "persisted_field": "total_equity",
+      "real_gold_status": "not_scored",
+      "confirmed_metric_coverage": null,
+      "known_failure_modes": [
+        "persistence surface observed but not part of current multipass metric fields or scorecard contract"
+      ]
+    },
+    "interest_expense": {
+      "extractor_field": null,
+      "persisted_field": "interest_expense",
+      "real_gold_status": "not_scored",
+      "confirmed_metric_coverage": null,
+      "known_failure_modes": [
+        "persistence surface observed but not part of current multipass metric fields or scorecard contract"
+      ]
+    }
+  },
+  "evidence_quality": {
+    "confirmed_metric_coverage_packet_readonly_probe": {
+      "row_count": 146,
+      "classification_counts": {
+        "CONFIRMED": 73,
+        "CANDIDATE": 70,
+        "AMBIGUOUS": 3
+      },
+      "recommended_action_counts": {
+        "score_in_confirmed": 73,
+        "request_human_review": 70,
+        "exclude_ambiguous": 3
+      },
+      "source_pdf_present": 0,
+      "source_page_present": 103,
+      "source_table_present": 12,
+      "source_row_present": 107,
+      "precise_source_evidence": 0,
+      "broad_or_suspect_source_evidence": 146,
+      "human_review_required": 146
+    },
+    "operator_verification_status": "blocked_for_pdf_opening_until_source_pdfs_resolve_or_are_marked_data_missing",
+    "canonical_truth_mutation": false
+  },
+  "artifact_sources": [
+    "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+    "financial-engine_v2/backend/app/services/provenance.py",
+    "financial-engine_v2/backend/app/main.py",
+    "cockpit-ui/components/cockpit/verification/tabs/metric-coverage-tab-panel.tsx",
+    "cockpit-ui/components/cockpit/verification/tabs/gold-eval-tab-panel.tsx",
+    "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/scorecard_proposal.json",
+    "reports/agent_jobs/gold_metric_coverage_eval_spine_normalizer_v1_20260524/normalized_manifest.json",
+    "reports/agent_jobs/appendix5b_prm_gate_stack_canonical_integration_v1_20260524/appendix5b_no_regression_report.json"
+  ],
+  "data_missing": [
+    "current broad confirmed-coverage extracted-payload scorecard",
+    "current reports/extraction_eval generated artifact",
+    "local source PDFs for confirmed metric coverage rows",
+    "graphify-out/GRAPH_REPORT.md",
+    "fresh parent-card Appendix 5B gate rerun"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/metric_extraction_broad_accuracy_controller_v1_20260524.md",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/README.md",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/status.json",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/metric_extraction_coverage_map.json",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/metric_extraction_gap_register.json",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/safe_extension_candidates.json",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/no_regression_gate_plan.md",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/validation.json",
+        "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "metric_extraction_broad_accuracy_controller_v1_20260524",
+      "lane": "Financial Truth",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/metric_extraction_broad_accuracy_controller_v1_20260524",
+      "owner": "Codex",
+      "primary_lane": "Financial Truth",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation"
+      ],
+      "timeout_seconds": 21600,
+      "title": "Metric Extraction Broad Accuracy Controller v1"
+    },
+    "ok": true
+  }
+}
