@@ -1,0 +1,42 @@
+{
+  "browser_plugin": "absent",
+  "fallback": "regular Playwright",
+  "server": {
+    "url": "http://127.0.0.1:3215/",
+    "command": "COCKPIT_WORKSPACE_ROOT=/home/l4nd0/tenn-cockpit-home-strategy-lab-declutter-v1-20260525 corepack pnpm exec next dev --webpack -H 127.0.0.1 -p 3215"
+  },
+  "desktop": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "page_url": "http://127.0.0.1:3215/",
+    "title": "Financial Cockpit",
+    "not_blank": true,
+    "framework_overlay": false,
+    "compact_status_visible": true,
+    "runtime_offline_visible": true,
+    "execution_disabled_visible": true,
+    "default_artifact_paths_hidden": true,
+    "default_review_rows_hidden": true,
+    "details_button_visible": true,
+    "details_runtime_row_visible_after_click": true,
+    "details_artifact_path_visible_after_click": true,
+    "console_errors_or_warnings": [],
+    "screenshot": "/tmp/cockpit-home-strategy-lab-declutter-1440.png"
+  },
+  "mobile": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "page_url": "http://127.0.0.1:3215/",
+    "title": "Financial Cockpit",
+    "not_blank": true,
+    "framework_overlay": false,
+    "compact_status_visible": true,
+    "default_review_rows_hidden": true,
+    "console_errors_or_warnings": [],
+    "screenshot": "/tmp/cockpit-home-strategy-lab-declutter-mobile.png"
+  }
+}

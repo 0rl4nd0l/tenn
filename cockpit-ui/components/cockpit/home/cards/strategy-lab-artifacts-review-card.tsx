@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FileSearch, Loader2, ShieldAlert } from 'lucide-react';
+import { FileSearch, Loader2, Search, ShieldAlert } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type {
   StrategyLabArtifactsResponse,
@@ -84,6 +85,7 @@ export function StrategyLabArtifactsReviewCard() {
 }
 
 function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLabArtifactsResponse }) {
+  const [showDetails, setShowDetails] = useState(false);
   const workflow = payload.review_workflow;
   const counts = useMemo(() => {
     return payload.artifacts.reduce(
@@ -100,6 +102,8 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
     );
   }, [payload.artifacts]);
   const firstSession = workflow.experiment_sessions[0] ?? null;
+  const availableQueue = workflow.review_queue.filter((item) => item.availability === 'available').length;
+  const blockedQueue = workflow.review_queue.filter((item) => item.decision_state === 'PROMOTION_BLOCKED').length;
 
   return (
     <Card className="terminal-panel" data-testid="strategy-lab-artifacts-review-card">
@@ -110,18 +114,15 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
             Strategy Lab Artifact Review
           </CardTitle>
           <p className="mt-2 text-[12px] text-foreground leading-snug">
-            Repo-only evidence list for existing Strategy Lab artifacts and reports.
+            Compact drilldown for repo-only proof, review queue, experiment envelope, and export packets.
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-500/10">
-            READ ONLY
+            Repo-only
           </Badge>
           <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/10">
-            NO STORE WRITES
-          </Badge>
-          <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/10">
-            NO PAPER ORDERS
+            Pending review
           </Badge>
         </div>
       </CardHeader>
@@ -129,29 +130,57 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
       <CardContent className="p-4 grid gap-4">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           <MetricPill label="available" value={`${counts.available}/${payload.artifacts.length}`} />
-          <MetricPill label="artifact_v1" value={`${counts.authoritative}`} />
-          <MetricPill label="source mode" value="repo-only" />
-          <MetricPill label="review" value="PENDING" />
+          <MetricPill label="review queue" value={`${availableQueue}/${workflow.review_queue.length}`} />
+          <MetricPill label="promotion blocked" value={`${blockedQueue}`} />
+          <MetricPill label="source mode" value={payload.source_mode.replaceAll('_', '-')} />
         </div>
 
-        <ReviewQueuePreview queue={workflow.review_queue} />
-
-        {firstSession ? <ExperimentSessionPreview session={firstSession} /> : null}
-
-        <ExportPacketsPreview packets={workflow.export_packets} />
-
-        <div className="grid gap-3">
-          {payload.artifacts.map((artifact) => (
-            <ArtifactReviewRow key={artifact.id} artifact={artifact} />
-          ))}
-        </div>
-
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
-          <div className="text-[10px] font-mono uppercase text-amber-300">DATA_MISSING</div>
-          <div className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-            {payload.data_missing[0]}
+        <div className="rounded-md border border-border/50 bg-background/40 p-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Detail Surface</div>
+              <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
+                Home keeps the technical registry collapsed. Expand only when reviewing payload refs, fixture rows,
+                export packets, historical smoke internals, or full DATA_MISSING evidence.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-[11px]"
+              aria-expanded={showDetails}
+              aria-controls="strategy-lab-artifact-details"
+              onClick={() => setShowDetails((current) => !current)}
+            >
+              <Search className="w-3.5 h-3.5" />
+              {showDetails ? 'Hide details' : 'View details'}
+            </Button>
           </div>
         </div>
+
+        {showDetails ? (
+          <div id="strategy-lab-artifact-details" data-testid="strategy-lab-artifact-details" className="grid gap-4">
+            <ReviewQueuePreview queue={workflow.review_queue} />
+
+            {firstSession ? <ExperimentSessionPreview session={firstSession} /> : null}
+
+            <ExportPacketsPreview packets={workflow.export_packets} />
+
+            <div className="grid gap-3">
+              {payload.artifacts.map((artifact) => (
+                <ArtifactReviewRow key={artifact.id} artifact={artifact} />
+              ))}
+            </div>
+
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+              <div className="text-[10px] font-mono uppercase text-amber-300">DATA_MISSING</div>
+              <div className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
+                {payload.data_missing[0]}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

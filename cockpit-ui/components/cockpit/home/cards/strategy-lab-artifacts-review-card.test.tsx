@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildStrategyLabArtifactsResponse } from '@/lib/strategy-lab-artifacts';
@@ -190,9 +190,19 @@ describe('StrategyLabArtifactsReviewCard', () => {
     render(<StrategyLabArtifactsReviewCard />);
 
     expect(await screen.findByText('Strategy Lab Artifact Review')).toBeInTheDocument();
-    expect(screen.getByText('READ ONLY')).toBeInTheDocument();
-    expect(screen.getByText('NO STORE WRITES')).toBeInTheDocument();
-    expect(screen.getByText('NO PAPER ORDERS')).toBeInTheDocument();
+    expect(screen.getByText('Repo-only')).toBeInTheDocument();
+    expect(screen.getByText('Pending review')).toBeInTheDocument();
+    expect(screen.getByText('Compact drilldown for repo-only proof, review queue, experiment envelope, and export packets.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View details/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Runtime proof packet')).not.toBeInTheDocument();
+    expect(screen.queryByText('Experiment Session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Risk summary packet')).not.toBeInTheDocument();
+    expect(screen.queryByText('reports/agent_jobs/source_report')).not.toBeInTheDocument();
+    expect(screen.queryByText('NO STORE WRITES')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /View details/i }));
+
+    expect(screen.getByRole('button', { name: /Hide details/i })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Backtest artifact fixture')).toBeInTheDocument();
     expect(screen.getByText('QuantDinger verified read-only sandbox proof')).toBeInTheDocument();
     expect(screen.getByText('Phase 2 helper backtest evidence')).toBeInTheDocument();

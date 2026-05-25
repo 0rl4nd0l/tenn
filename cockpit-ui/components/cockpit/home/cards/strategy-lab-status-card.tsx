@@ -1,11 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Ban, FileCheck2, FlaskConical, Loader2, ShieldAlert } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, Ban, FlaskConical, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { StrategyLabStatusResponse } from '@/lib/strategy-lab-status';
+import {
+  buildStrategyLabHomeSummary,
+  type StrategyLabHomeSummary,
+  type StrategyLabStatusResponse,
+} from '@/lib/strategy-lab-status';
 import { cn } from '@/lib/utils';
 
 type StrategyLabCardState =
@@ -76,16 +81,7 @@ export function StrategyLabStatusCard() {
 }
 
 function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusResponse }) {
-  const availableArtifacts = useMemo(
-    () => payload.artifact_refs.filter((artifact) => artifact.availability === 'available'),
-    [payload.artifact_refs],
-  );
-  const keyCapabilities = payload.capability_status.slice(0, 5);
-  const quantdinger = payload.quantdinger_status;
-  const verifiedProof = quantdinger.verified_readonly_sandbox;
-  const availableEvidenceArtifacts = verifiedProof.evidence_artifacts.filter(
-    (artifact) => artifact.availability === 'available',
-  );
+  const summary = buildStrategyLabHomeSummary(payload);
 
   return (
     <Card className="terminal-panel" data-testid="strategy-lab-status-card">
@@ -93,144 +89,86 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
         <div className="min-w-0">
           <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <FlaskConical className="w-3.5 h-3.5" />
-            Strategy Lab / QuantDinger
+            Strategy Lab
           </CardTitle>
-          <p className="mt-2 text-[13px] text-foreground leading-snug">{payload.headline}</p>
+          <p className="mt-2 text-[13px] text-foreground leading-snug">{summary.valueSummary}</p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-500/10">
-            VERIFIED READ-ONLY SANDBOX PROOF
-          </Badge>
-          <Badge variant="outline" className="border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
-            HISTORICAL SMOKE PASSED
+            Proof verified
           </Badge>
           <Badge variant="outline" className="border-amber-500/40 text-amber-400 bg-amber-500/10">
-            PENDING REVIEW
+            Pending review
           </Badge>
           <Badge variant="outline" className="border-zinc-500/40 text-zinc-300 bg-zinc-500/10">
-            CURRENT SIDECAR OFFLINE
+            Offline
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
-            <BoundaryPill label="READ ONLY" active={payload.boundary_flags.read_only} />
-            <BoundaryPill label="CURRENT SIDECAR OFFLINE" active={!quantdinger.current_sidecar_available} />
-            <BoundaryPill label="NO LIVE TRADING" active={!payload.boundary_flags.live_trading} />
-            <BoundaryPill label="NO PAPER ORDERS" active={!quantdinger.paper_order_placement} />
-            <BoundaryPill label="NO REAL TRANSPORT" active={!payload.boundary_flags.real_transport} />
-            <BoundaryPill label="NO STORE WRITES" active={!payload.boundary_flags.store_writes} />
-            <BoundaryPill
-              label="NO CANONICAL FINANCIAL TRUTH"
-              active={!payload.boundary_flags.canonical_financial_truth}
-            />
+      <CardContent className="p-4 grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="grid gap-4" data-testid="strategy-lab-home-summary">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <StatusMetric label="Status" value={summary.status} tone="emerald" />
+            <StatusMetric label="Current runtime" value={summary.currentRuntime} tone="zinc" />
+            <StatusMetric label="Review state" value={summary.reviewState} tone="amber" />
+            <StatusMetric label="Trading/execution" value={summary.tradingExecution} tone="amber" />
           </div>
 
-          <div className="rounded-md border border-cyan-500/30 bg-cyan-500/5 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-[10px] font-mono uppercase text-cyan-300">
-                Verified read-only sandbox proof available
-              </div>
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">
-                {verifiedProof.review_status}
-              </div>
-            </div>
-            <div className="mt-2 grid gap-1 text-[10px] leading-relaxed text-muted-foreground">
-              <div>
-                <span className="font-mono uppercase text-muted-foreground/80">Verdict: </span>
-                {verifiedProof.verdict}
-              </div>
-              <div>
-                <span className="font-mono uppercase text-muted-foreground/80">Historical smoke: </span>
-                {quantdinger.last_readonly_sidecar_smoke}
-              </div>
-              <div className="break-all">
-                <span className="font-mono uppercase text-muted-foreground/80">Smoke commit: </span>
-                {quantdinger.last_readonly_sidecar_smoke_commit}
-              </div>
-              <div>
-                <span className="font-mono uppercase text-muted-foreground/80">current_sidecar_available: </span>
-                {String(verifiedProof.current_sidecar_available)}
-              </div>
-              <div className="break-all">
-                <span className="font-mono uppercase text-muted-foreground/80">Report: </span>
-                {verifiedProof.report_path}
-              </div>
-              <div>
-                <span className="font-mono uppercase text-muted-foreground/80">Runtime: </span>
-                {verifiedProof.sidecar_runtime_state}
-              </div>
-              <div>
-                <span className="font-mono uppercase text-muted-foreground/80">Evidence artifacts: </span>
-                {availableEvidenceArtifacts.length}/{verifiedProof.evidence_artifacts.length} available
-              </div>
-              <div className="mt-1 grid max-h-40 gap-1 overflow-auto pr-1">
-                {verifiedProof.evidence_artifacts.map((artifact) => (
-                  <div key={artifact.id} className="break-all">
-                    <span className="font-mono uppercase text-muted-foreground/80">{artifact.label}: </span>
-                    {artifact.path}
-                    <span className="font-mono uppercase text-muted-foreground/80"> [{artifact.availability}]</span>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase text-emerald-300">Value</div>
+                  <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    Use as reviewable sandbox evidence only; it does not create a current sidecar or trading surface.
                   </div>
-                ))}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+              <div className="flex items-start gap-2">
+                <Ban className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase text-amber-300">Blocker</div>
+                  <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    {summary.blockerSummary}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-md border border-border/50 bg-background/40 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">Baseline artifacts</div>
-              <div className="text-[10px] font-mono text-cyan-400">
-                {availableArtifacts.length}/{payload.artifact_refs.length} available
-              </div>
-            </div>
-            <div className="mt-3 grid gap-2">
-              {payload.artifact_refs.slice(0, 4).map((artifact) => (
-                <div key={artifact.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-[11px]">
-                  <FileCheck2
-                    className={cn(
-                      'w-3.5 h-3.5',
-                      artifact.availability === 'available' ? 'text-emerald-400' : 'text-muted-foreground',
-                    )}
-                  />
-                  <span className="truncate text-foreground">{artifact.label}</span>
-                  <span
-                    className={cn(
-                      'font-mono uppercase',
-                      artifact.availability === 'available' ? 'text-emerald-400' : 'text-amber-400',
-                    )}
-                  >
-                    {artifact.availability}
-                  </span>
-                </div>
-              ))}
+          <div className="grid gap-2 text-[11px] leading-relaxed text-muted-foreground md:grid-cols-3">
+            <CompactProofCount label="Proof files" available={summary.availableEvidenceCount} total={summary.totalEvidenceCount} />
+            <CompactProofCount label="Baseline artifacts" available={summary.availableArtifactCount} total={summary.totalArtifactCount} />
+            <div className="rounded-md border border-border/50 bg-background/40 p-3">
+              <div className="text-[9px] font-mono uppercase text-muted-foreground">Runtime note</div>
+              <div className="mt-1">Current sidecar runtime is offline; no live transport is integrated.</div>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-3">
-          <div className="rounded-md border border-border/50 bg-background/40 p-3">
-            <div className="text-[10px] font-mono uppercase text-muted-foreground">Capability state</div>
-            <div className="mt-3 grid gap-2">
-              {keyCapabilities.map((capability) => (
-                <div key={capability.id} className="flex items-start gap-2">
-                  <span className={cn('mt-1 w-1.5 h-1.5 rounded-full shrink-0', capabilityDot(capability.state))} />
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-semibold text-foreground">{capability.label}</div>
-                    <div className="text-[10px] leading-relaxed text-muted-foreground">{capability.summary}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-col justify-between gap-3 rounded-md border border-border/50 bg-background/40 p-3">
+          <div>
+            <div className="text-[10px] font-mono uppercase text-muted-foreground">Drilldown</div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              Detailed payload refs, artifact paths, review rows, export packets, and DATA_MISSING lists are kept out
+              of the Home summary.
+            </p>
           </div>
-          <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
-            <Ban className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
-            <div>
-              <div className="text-[10px] font-mono uppercase text-amber-300">DATA_MISSING</div>
-              <div className="text-[11px] text-muted-foreground leading-relaxed">
-                {payload.data_missing[0] ?? 'Strategy Lab evidence is incomplete.'}
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm" className="h-8 text-[11px]">
+              <a href={summary.detailRoute} target="_blank" rel="noreferrer">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                View details
+              </a>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="h-8 text-[11px]">
+              <a href={summary.statusRoute} target="_blank" rel="noreferrer">
+                Open Strategy Lab
+              </a>
+            </Button>
           </div>
         </div>
       </CardContent>
@@ -238,30 +176,49 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
   );
 }
 
-function BoundaryPill({ label, active }: { label: string; active: boolean }) {
+function StatusMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: StrategyLabHomeSummary[keyof Pick<
+    StrategyLabHomeSummary,
+    'status' | 'currentRuntime' | 'reviewState' | 'tradingExecution'
+  >];
+  tone: 'emerald' | 'amber' | 'zinc';
+}) {
   return (
     <div
       className={cn(
-        'min-h-11 rounded-md border px-2.5 py-2 flex items-center text-[9px] font-mono uppercase leading-tight',
-        active
-          ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
-          : 'border-amber-500/30 bg-amber-500/5 text-amber-300',
+        'min-h-16 rounded-md border px-3 py-2',
+        tone === 'emerald' && 'border-emerald-500/30 bg-emerald-500/5',
+        tone === 'amber' && 'border-amber-500/30 bg-amber-500/5',
+        tone === 'zinc' && 'border-zinc-500/30 bg-zinc-500/5',
       )}
     >
-      {label}
+      <div className="text-[9px] font-mono uppercase text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          'mt-1 text-[12px] font-semibold leading-snug',
+          tone === 'emerald' && 'text-emerald-300',
+          tone === 'amber' && 'text-amber-300',
+          tone === 'zinc' && 'text-zinc-300',
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
 
-function capabilityDot(state: StrategyLabStatusResponse['capability_status'][number]['state']) {
-  switch (state) {
-    case 'present_offline':
-      return 'bg-cyan-400';
-    case 'forbidden':
-      return 'bg-amber-400';
-    case 'absent':
-      return 'bg-zinc-500';
-    case 'data_missing':
-      return 'bg-red-400';
-  }
+function CompactProofCount({ label, available, total }: { label: string; available: number; total: number }) {
+  return (
+    <div className="rounded-md border border-border/50 bg-background/40 p-3">
+      <div className="text-[9px] font-mono uppercase text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[12px] font-mono uppercase text-foreground">
+        {available}/{total} available
+      </div>
+    </div>
+  );
 }

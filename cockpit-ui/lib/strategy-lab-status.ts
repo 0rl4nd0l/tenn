@@ -92,6 +92,21 @@ export interface StrategyLabStatusResponse {
   next_safe_actions: string[];
 }
 
+export interface StrategyLabHomeSummary {
+  status: 'Read-only sandbox proof verified';
+  currentRuntime: 'Offline';
+  reviewState: 'Pending review';
+  tradingExecution: 'Disabled';
+  valueSummary: string;
+  blockerSummary: string;
+  detailRoute: StrategyLabStatusResponse['artifact_review_route'];
+  statusRoute: StrategyLabStatusResponse['status_route'];
+  availableArtifactCount: number;
+  totalArtifactCount: number;
+  availableEvidenceCount: number;
+  totalEvidenceCount: number;
+}
+
 export const VERIFIED_READONLY_SANDBOX_REPORT_PATH =
   'reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/README.md';
 
@@ -414,5 +429,30 @@ export function buildStrategyLabStatusResponse({
       'Use the repo-only artifact review route for existing fixtures and reports.',
       'Keep any future real sidecar smoke isolated, explicitly approved, and non-trading.',
     ],
+  };
+}
+
+export function buildStrategyLabHomeSummary(payload: StrategyLabStatusResponse): StrategyLabHomeSummary {
+  const availableArtifactCount = payload.artifact_refs.filter((artifact) => artifact.availability === 'available').length;
+  const evidenceArtifacts = payload.quantdinger_status.verified_readonly_sandbox.evidence_artifacts;
+  const availableEvidenceCount = evidenceArtifacts.filter((artifact) => artifact.availability === 'available').length;
+  const blocker =
+    payload.data_missing[0] ??
+    payload.quantdinger_status.data_missing[0] ??
+    'DATA_MISSING: current sidecar transport and review decision remain unresolved.';
+
+  return {
+    status: 'Read-only sandbox proof verified',
+    currentRuntime: 'Offline',
+    reviewState: 'Pending review',
+    tradingExecution: 'Disabled',
+    valueSummary: 'Repo-backed proof exists for read-only sandbox behavior; QD is not live or executable.',
+    blockerSummary: `DATA_MISSING: ${blocker.replace(/^DATA_MISSING:\s*/i, '')}`,
+    detailRoute: payload.artifact_review_route,
+    statusRoute: payload.status_route,
+    availableArtifactCount,
+    totalArtifactCount: payload.artifact_refs.length,
+    availableEvidenceCount,
+    totalEvidenceCount: evidenceArtifacts.length,
   };
 }

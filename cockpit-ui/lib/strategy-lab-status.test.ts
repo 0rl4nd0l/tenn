@@ -7,6 +7,7 @@ import { GET as getStrategyLabStatusRoute } from '@/app/api/cockpit/strategy-lab
 import {
   STRATEGY_LAB_BASELINE_REFS,
   VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS,
+  buildStrategyLabHomeSummary,
   buildStrategyLabStatusResponse,
   type StrategyLabStatusResponse,
 } from './strategy-lab-status';
@@ -73,6 +74,42 @@ describe('Strategy Lab status contract', () => {
       sidecar_runtime_state: 'stopped_after_cleanup',
     });
     expect(payload.quantdinger_status.verified_readonly_sandbox.evidence_artifacts).toHaveLength(14);
+  });
+
+  it('derives the compact Home summary without promoting forbidden QuantDinger flags', () => {
+    const payload = buildStrategyLabStatusResponse({
+      generatedAt: '2026-05-24T00:00:00.000Z',
+      artifactRefs: STRATEGY_LAB_BASELINE_REFS.map((ref) => ({
+        ...ref,
+        availability: 'available',
+      })),
+      verifiedReadonlySandboxEvidenceRefs: VERIFIED_READONLY_SANDBOX_EVIDENCE_REFS.map((ref) => ({
+        ...ref,
+        availability: 'available',
+      })),
+    });
+
+    const summary = buildStrategyLabHomeSummary(payload);
+
+    expect(summary).toMatchObject({
+      status: 'Read-only sandbox proof verified',
+      currentRuntime: 'Offline',
+      reviewState: 'Pending review',
+      tradingExecution: 'Disabled',
+      detailRoute: '/api/cockpit/strategy-lab/artifacts',
+      statusRoute: '/api/cockpit/strategy-lab/status',
+      availableArtifactCount: 10,
+      totalArtifactCount: 10,
+      availableEvidenceCount: 14,
+      totalEvidenceCount: 14,
+    });
+    expect(summary.valueSummary).toContain('not live or executable');
+    expect(summary.blockerSummary).toContain('DATA_MISSING');
+    expect(payload.quantdinger_status.current_sidecar_available).toBe(false);
+    expect(payload.quantdinger_status.paper_order_placement).toBe(false);
+    expect(payload.quantdinger_status.canonical_financial_truth).toBe(false);
+    expect(payload.boundary_flags.live_trading).toBe(false);
+    expect(payload.boundary_flags.store_writes).toBe(false);
   });
 
   it('reports artifact availability from the workspace without writing stores', () => {
