@@ -1,0 +1,267 @@
+[
+  {
+    "color": "d73a4a",
+    "description": "Something isn't working",
+    "name": "bug"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "codex"
+  },
+  {
+    "color": "0075ca",
+    "description": "Improvements or additions to documentation",
+    "name": "documentation"
+  },
+  {
+    "color": "cfd3d7",
+    "description": "This issue or pull request already exists",
+    "name": "duplicate"
+  },
+  {
+    "color": "a2eeef",
+    "description": "New feature or request",
+    "name": "enhancement"
+  },
+  {
+    "color": "7057ff",
+    "description": "Good for newcomers",
+    "name": "good first issue"
+  },
+  {
+    "color": "008672",
+    "description": "Extra attention is needed",
+    "name": "help wanted"
+  },
+  {
+    "color": "e4e669",
+    "description": "This doesn't seem right",
+    "name": "invalid"
+  },
+  {
+    "color": "006B75",
+    "description": "Lane: Cockpit analyst workflow and UI surfaces.",
+    "name": "lane:cockpit"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "lane:evaluation"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "lane:financial-truth"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "lane:memory"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "lane:provenance"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "lane:query-orchestration"
+  },
+  {
+    "color": "C5DEF5",
+    "description": "Lane: repository hygiene, worktree state, and merge parking.",
+    "name": "lane:repo-hygiene"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "lane:reporting"
+  },
+  {
+    "color": "D93F0B",
+    "description": "Lane: runtime services, local automation, and operations.",
+    "name": "lane:runtime"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "mode:audit"
+  },
+  {
+    "color": "0E8A16",
+    "description": "Mode: implementation work with validation requirements.",
+    "name": "mode:implementation"
+  },
+  {
+    "color": "F9D0C4",
+    "description": "Mode: issue closeout, parking, superseding, or follow-up.",
+    "name": "mode:issue-closeout"
+  },
+  {
+    "color": "D4C5F9",
+    "description": "Mode: review claimed results and closeout evidence.",
+    "name": "mode:result-review"
+  },
+  {
+    "color": "C2E0C6",
+    "description": "Mode: bounded safe extension with explicit hard stops.",
+    "name": "mode:safe-extension"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "priority:p0"
+  },
+  {
+    "color": "D93F0B",
+    "description": "Priority: P1 important near-term work.",
+    "name": "priority:p1"
+  },
+  {
+    "color": "FBCA04",
+    "description": "Priority: P2 normal planned work.",
+    "name": "priority:p2"
+  },
+  {
+    "color": "C2E0C6",
+    "description": "Priority: P3 lower urgency or backlog work.",
+    "name": "priority:p3"
+  },
+  {
+    "color": "d876e3",
+    "description": "Further information is requested",
+    "name": "question"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "risk:high"
+  },
+  {
+    "color": "0E8A16",
+    "description": "Risk: low blast radius and well-contained change.",
+    "name": "risk:low"
+  },
+  {
+    "color": "D93F0B",
+    "description": "Risk: medium blast radius or uncertainty.",
+    "name": "risk:medium"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "seed-regression"
+  },
+  {
+    "color": "B60205",
+    "description": "State: blocked pending evidence, decision, or external state.",
+    "name": "state:blocked"
+  },
+  {
+    "color": "E99695",
+    "description": "State: blocked by missing required data or evidence.",
+    "name": "state:data-missing"
+  },
+  {
+    "color": "0E8A16",
+    "description": "State: audit-only work is complete; no remediation landed.",
+    "name": "state:done-audit-only"
+  },
+  {
+    "color": "0E8A16",
+    "description": "State: root cause remediation landed and validated.",
+    "name": "state:done-remediated"
+  },
+  {
+    "color": "CCCCCC",
+    "description": "State: duplicate of another issue or tracker.",
+    "name": "state:duplicate"
+  },
+  {
+    "color": "FBCA04",
+    "description": "State: follow-up issue, task, or validation is required.",
+    "name": "state:needs-followup"
+  },
+  {
+    "color": "C5DEF5",
+    "description": "State: needs human or reviewer evaluation.",
+    "name": "state:needs-review"
+  },
+  {
+    "color": "D4C5F9",
+    "description": "State: completed or deferred item is parked for merge/review.",
+    "name": "state:parked"
+  },
+  {
+    "color": "0E8A16",
+    "description": "State: ready for scoped execution.",
+    "name": "state:ready"
+  },
+  {
+    "color": "1D76DB",
+    "description": "State: execution is currently in progress.",
+    "name": "state:running"
+  },
+  {
+    "color": "C2E0C6",
+    "description": "State: superseded by another tracker or decision.",
+    "name": "state:superseded"
+  },
+  {
+    "color": "ededed",
+    "description": null,
+    "name": "task:codex-ready"
+  },
+  {
+    "color": "C5DEF5",
+    "description": "Type: automation, scheduler, or local runner work.",
+    "name": "type:automation"
+  },
+  {
+    "color": "D73A4A",
+    "description": "Type: confirmed bug or incorrect behavior.",
+    "name": "type:bug"
+  },
+  {
+    "color": "0052CC",
+    "description": "Type: CI, checks, or automation validation failure.",
+    "name": "type:ci"
+  },
+  {
+    "color": "5319E7",
+    "description": "Type: control-plane, agent, task, or issue-system work.",
+    "name": "type:control-plane"
+  },
+  {
+    "color": "0075CA",
+    "description": "Type: documentation, process, or reporting update.",
+    "name": "type:docs"
+  },
+  {
+    "color": "B60205",
+    "description": "Type: regression seed or recurring failure pattern.",
+    "name": "type:regression-seed"
+  },
+  {
+    "color": "B60205",
+    "description": "Type: security, access, or trust boundary concern.",
+    "name": "type:security"
+  },
+  {
+    "color": "A2EEEF",
+    "description": "Type: usability or analyst workflow friction.",
+    "name": "type:usability"
+  },
+  {
+    "color": "FBCA04",
+    "description": "Type: missing or insufficient validation coverage.",
+    "name": "type:validation-gap"
+  },
+  {
+    "color": "ffffff",
+    "description": "This will not be worked on",
+    "name": "wontfix"
+  }
+]
