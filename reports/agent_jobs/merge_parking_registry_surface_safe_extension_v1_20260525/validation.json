@@ -1,0 +1,49 @@
+{
+  "job_id": "merge_parking_registry_surface_safe_extension_v1_20260525",
+  "validations": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/merge_parking_registry_surface_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/merge_parking_registry_surface_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/merge_parking_registry_surface_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "find docs/agent_registry/merge_parking -maxdepth 3 -type f -printf '%p\\n' | sort",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/merge_parking_registry_surface_safe_extension_v1_20260525/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/merge_parking_registry_surface_safe_extension_v1_20260525/validation.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/merge_parking_registry_surface_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release merge_parking_registry_surface_safe_extension_v1_20260525",
+      "result": "passed"
+    }
+  ],
+  "parked_records_created": 0,
+  "notes": [
+    "The registry surface was created without registering existing work or mutating branches/worktrees."
+  ]
+}
