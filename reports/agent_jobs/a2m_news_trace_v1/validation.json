@@ -1,0 +1,110 @@
+{
+  "job_id": "a2m_news_trace_v1",
+  "generated_at": "2026-05-25T15:18:15+10:00",
+  "issue": 38,
+  "lane": "Query Orchestration",
+  "execution_mode": "audit_only",
+  "current_turn_evidence": {
+    "github_issue_state": "OPEN before closeout",
+    "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+    "pre_closeout_head": "de5545ff4579",
+    "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+    "active_jobs_before_claim": [],
+    "task_card": "docs/agent_tasks/a2m_news_trace_v1.md",
+    "report_path": "reports/agent_jobs/a2m_news_trace_v1/README.md"
+  },
+  "acceptance_status": {
+    "root_cause_narrowed": true,
+    "blast_radius_documented": true,
+    "next_safe_step_bounded": true,
+    "no_alias_bandaid": true,
+    "product_remediation_claimed_by_this_closeout": false,
+    "existing_retrieval_parity_commit_in_history": "fa776ce9"
+  },
+  "current_findings": {
+    "qdrant_news_chunks_point_count": 22324,
+    "a2m_matching_qdrant_chunks": 24,
+    "a2m_unique_articles": 4,
+    "qdrant_collection_point_count_unchanged_in_live_trace": true,
+    "source_sqlite_parity": "DATA_MISSING",
+    "live_chat_synthesis_visibility": "DATA_MISSING"
+  },
+  "source_artifacts_validated": [
+    "reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/a2m_trace_map.json",
+    "reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/blast_radius_candidates.json",
+    "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.json",
+    "reports/agent_jobs/a2m_news_live_trace_readonly_v1_20260524/retrieval_trace.json",
+    "reports/agent_jobs/a2m_news_live_trace_readonly_v1_20260524/qdrant_probe.json",
+    "reports/agent_jobs/a2m_news_live_trace_readonly_v1_20260524/sqlite_inventory.json"
+  ],
+  "mutations_performed": {
+    "reindex_or_resync": false,
+    "news_ingest_or_backfill": false,
+    "sqlite_write": false,
+    "qdrant_write": false,
+    "live_chat_synthesis_call": false,
+    "retrieval_or_ranking_code_changed": false,
+    "source_label_semantics_changed": false,
+    "db_qdrant_news_memory_or_runtime_mutated": false,
+    "services_started_stopped_or_restarted": false
+  },
+  "validation_commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/a2m_news_trace_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_before_claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/a2m_news_trace_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/a2m_news_trace_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/a2m_trace_map.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/a2m_news_trace_entity_linking_blast_radius_audit_v1_20260519/blast_radius_candidates.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524/path_parity_matrix.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/a2m_news_live_trace_readonly_v1_20260524/retrieval_trace.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/a2m_news_live_trace_readonly_v1_20260524/qdrant_probe.json",
+      "result": "passed"
+    },
+    {
+      "command": "git merge-base --is-ancestor fa776ce9 HEAD",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/a2m_news_trace_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release a2m_news_trace_v1",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_after_release"
+    }
+  ],
+  "result": "issue_38_audit_acceptance_met_no_new_product_remediation_claimed"
+}
