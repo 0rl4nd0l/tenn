@@ -1,0 +1,140 @@
+{
+  "job_id": "real_signal_scorecard_manifest_v1",
+  "scorecard_profile": "real_signal_readiness_v1",
+  "rows": [
+    {
+      "id": "actionable_signal_gate",
+      "row_type": "mapping_rule",
+      "outcome_class": "ACTIONABLE_SIGNAL",
+      "input_surface": "source_coverage_status_and_evidence_labels",
+      "required_metadata": [
+        "claim_verified source coverage",
+        "claim family requirements satisfied",
+        "inspectable provenance",
+        "freshness evidence when recent-news freshness is required",
+        "no hard-stop label"
+      ],
+      "hard_stops": [
+        "missing_required_evidence",
+        "unsupported_or_not_verified",
+        "metric_extraction_missing",
+        "market_data_missing",
+        "insufficient_for_recent_news",
+        "degraded_runtime",
+        "unknown_unclassified"
+      ],
+      "do_not_overclaim": "This is a mapping rule, not evidence that any current signal is actionable."
+    },
+    {
+      "id": "news_source_ready_context",
+      "row_type": "mapping_rule",
+      "outcome_class": "INSPECTABLE_CONTEXT",
+      "input_surface": "cockpit-ui/lib/cockpit-news-actionability.ts SOURCE_READY",
+      "required_metadata": [
+        "source URL",
+        "published_at date",
+        "non-stale readiness"
+      ],
+      "hard_stops": [
+        "claim_verified absent",
+        "canonical financial truth absent"
+      ],
+      "do_not_overclaim": "SOURCE_READY proves inspectable context only; it does not verify financial truth."
+    },
+    {
+      "id": "memory_signal_context",
+      "row_type": "mapping_rule",
+      "outcome_class": "INSPECTABLE_CONTEXT",
+      "input_surface": "financial-engine_v2/backend/app/services/memory_signal_router.py",
+      "required_metadata": [
+        "source",
+        "source_id",
+        "confidence",
+        "materiality",
+        "persistence"
+      ],
+      "hard_stops": [
+        "memory signal confidence used as claim verification",
+        "memory context used as financial truth",
+        "route_signals executed during report-local scoring"
+      ],
+      "do_not_overclaim": "Memory signal confidence and materiality are context, not truth."
+    },
+    {
+      "id": "chat_quality_heuristic",
+      "row_type": "mapping_rule",
+      "outcome_class": "WEAK_CONTEXT",
+      "input_surface": "financial-engine_v2/backend/app/services/chat_quality_scorer.py",
+      "required_metadata": [
+        "retrieval_precision",
+        "model_confidence",
+        "session_coherence"
+      ],
+      "hard_stops": [
+        "model confidence used as claim verification",
+        "retrieval score used as financial truth",
+        "DATA_MISSING labels ignored"
+      ],
+      "do_not_overclaim": "Composite chat quality is heuristic and cannot establish Real Signal readiness alone."
+    },
+    {
+      "id": "missing_financial_payloads",
+      "row_type": "mapping_rule",
+      "outcome_class": "DATA_MISSING",
+      "input_surface": "confirmed metric extracted-payload scoring",
+      "required_metadata": [
+        "generated extracted-payload artifacts",
+        "eligible confirmed metric coverage rows",
+        "current score computation"
+      ],
+      "hard_stops": [
+        "generated payload artifacts absent"
+      ],
+      "do_not_overclaim": "Without generated extracted payloads, financial truth score readiness remains DATA_MISSING."
+    },
+    {
+      "id": "unsupported_claim_family",
+      "row_type": "mapping_rule",
+      "outcome_class": "UNSUPPORTED_OR_NOT_VERIFIED",
+      "input_surface": "financial-engine_v2/backend/app/services/chat_evidence_guard.py",
+      "required_metadata": [
+        "detected claim family",
+        "required_any evidence categories",
+        "visible sources"
+      ],
+      "hard_stops": [
+        "required evidence category absent"
+      ],
+      "do_not_overclaim": "Unsupported claim families must remain unsupported even when context exists."
+    },
+    {
+      "id": "degraded_runtime",
+      "row_type": "mapping_rule",
+      "outcome_class": "DEGRADED_RUNTIME",
+      "input_surface": "routing/runtime metadata",
+      "required_metadata": [
+        "degraded_runtime label or provider/search failure"
+      ],
+      "hard_stops": [
+        "runtime/provider/search failure"
+      ],
+      "do_not_overclaim": "Runtime degradation blocks complete readiness assessment."
+    },
+    {
+      "id": "report_local_manifest",
+      "row_type": "artifact_status",
+      "outcome_class": "REVIEW_ONLY",
+      "input_surface": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+      "required_metadata": [
+        "manifest.json",
+        "scorecards.json",
+        "validation.json"
+      ],
+      "hard_stops": [
+        "product remediation claimed",
+        "Cockpit UI display claimed"
+      ],
+      "do_not_overclaim": "This artifact is review-only and report-local."
+    }
+  ]
+}

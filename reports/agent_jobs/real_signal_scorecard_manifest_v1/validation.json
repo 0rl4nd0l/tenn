@@ -1,0 +1,73 @@
+{
+  "job_id": "real_signal_scorecard_manifest_v1",
+  "validation_status": "passed",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_before_claim_active_jobs_empty"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json",
+      "result": "passed"
+    },
+    {
+      "command": "rg -n '\"scorecard_profile\": \"real_signal_readiness_v1\"' reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release real_signal_scorecard_manifest_v1",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_after_release_active_jobs_empty"
+    }
+  ],
+  "pending_commands": [],
+  "data_missing": [
+    "No product Real Signal runtime implementation exists in this branch.",
+    "No Cockpit-visible Real Signal UI was implemented or validated.",
+    "No current generated extracted-payload artifact set exists for confirmed metric payload scoring.",
+    "No live runtime or data-store state was sampled for this report-local slice."
+  ]
+}

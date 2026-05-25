@@ -1,0 +1,19 @@
+{
+  "job_id": "real_signal_scorecard_manifest_v1",
+  "issue": 70,
+  "status": "complete",
+  "registry_status": "released",
+  "lane": "Evaluation",
+  "execution_mode": "SAFE EXTENSION, report-local only",
+  "target_layer": "evaluation and report artifacts",
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "base_head": "cb87a77395e956710969494a6cfe5e0fd19e501e",
+  "released_at": "2026-05-25T05:52:41.406526Z",
+  "result": "report_local_manifest_created_no_product_remediation",
+  "production_data_access": false,
+  "product_remediation_landed": false,
+  "canonical_truth_mutated": false,
+  "source_label_semantics_mutated": false,
+  "runtime_or_store_mutation": false,
+  "validation_status": "passed"
+}

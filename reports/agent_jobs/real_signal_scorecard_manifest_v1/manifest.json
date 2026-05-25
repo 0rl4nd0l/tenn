@@ -1,0 +1,79 @@
+{
+  "job_id": "real_signal_scorecard_manifest_v1",
+  "parent_issue": 54,
+  "github_issue": 70,
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Provenance",
+    "Financial Truth",
+    "Reporting"
+  ],
+  "mode": "safe_extension_report_local",
+  "production_data_access": false,
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "base_head": "cb87a77395e956710969494a6cfe5e0fd19e501e",
+  "output_dir": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+  "task_card": {
+    "path": "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+    "validation_ok": true
+  },
+  "status": "complete",
+  "scorecards": [
+    {
+      "path": "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+      "scorecard_profile": "real_signal_readiness_v1"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/README.md",
+      "role": "parent_audit_report"
+    },
+    {
+      "path": "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/scorecard_proposal.json",
+      "role": "parent_scorecard_proposal"
+    },
+    {
+      "path": "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/gap_register.json",
+      "role": "parent_gap_register"
+    }
+  ],
+  "changed_files": [
+    "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+    "reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md",
+    "reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+    "reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+    "reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+    "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+    "reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json"
+  ],
+  "data_missing": [
+    {
+      "field": "product_runtime_real_signal_scorecard",
+      "code": "DATA_MISSING",
+      "description": "No product Real Signal runtime implementation exists in this branch."
+    },
+    {
+      "field": "cockpit_visible_real_signal_ui",
+      "code": "DATA_MISSING",
+      "description": "No Cockpit-visible Real Signal UI was implemented or validated."
+    },
+    {
+      "field": "confirmed_metric_generated_extracted_payloads",
+      "code": "DATA_MISSING",
+      "description": "No current generated extracted-payload artifact set exists for confirmed metric payload scoring."
+    },
+    {
+      "field": "live_runtime_state",
+      "code": "DATA_MISSING",
+      "description": "No live runtime or data-store state was sampled for this report-local slice."
+    }
+  ],
+  "do_not_overclaim": [
+    "This manifest is report-local and not product remediation.",
+    "Memory context must not become financial truth.",
+    "News SOURCE_READY is inspectable context, not claim verification.",
+    "LLM/model confidence and retrieval scores do not create claim_verified.",
+    "Missing canonical rows or generated extracted payloads must remain DATA_MISSING."
+  ]
+}
