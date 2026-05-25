@@ -1,0 +1,36 @@
+{
+  "duration_seconds": 0.005,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "GET",
+    "params": {},
+    "path": "/api/agent/v1/whoami",
+    "url": "http://127.0.0.1:15080/api/agent/v1/whoami"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": {
+        "agent_name": "tenn-clean-reprobe-rb-v1-20260525",
+        "instruments": [
+          "BTC/USDT"
+        ],
+        "markets": [
+          "Crypto"
+        ],
+        "paper_only": true,
+        "rate_limit_per_min": 60,
+        "scopes": [
+          "B",
+          "R"
+        ],
+        "user_id": 1
+      },
+      "message": "ok"
+    },
+    "http_status": 200
+  }
+}

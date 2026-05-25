@@ -1,0 +1,84 @@
+{
+  "artifact_paths": {
+    "cleanup_proof": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/cleanup_proof.json",
+    "klines_response": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/klines_response.json",
+    "payload_dir": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads",
+    "regime_request": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/regime_request.json",
+    "regime_response": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/regime_response.json",
+    "revoke_response": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/revoke_response.json",
+    "runtime_proof": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/runtime_proof.json",
+    "zero_order_proof": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/payloads/zero_order_proof.json"
+  },
+  "checks": {
+    "candle_counts_persisted": true,
+    "cleanup_proven": true,
+    "current_sidecar_available_remains_false": true,
+    "exact_request_payloads_persisted": true,
+    "no_tenn_mutations": true,
+    "regime_detect_passed_cleanly": true,
+    "response_bodies_persisted": true,
+    "token_revoked": true,
+    "zero_orders_proven": true
+  },
+  "current_sidecar_available_evidence": {
+    "command": [
+      "rg",
+      "-n",
+      "current_sidecar_available",
+      "cockpit-ui/lib/strategy-lab-status.ts",
+      "cockpit-ui/lib/strategy-lab-status.test.ts"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "cockpit-ui/lib/strategy-lab-status.test.ts:52:      current_sidecar_available: false,\ncockpit-ui/lib/strategy-lab-status.test.ts:100:    expect(payload.quantdinger_status.current_sidecar_available).toBe(false);\ncockpit-ui/lib/strategy-lab-status.ts:33:  current_sidecar_available: false;\ncockpit-ui/lib/strategy-lab-status.ts:77:  current_sidecar_available: false,\ncockpit-ui/lib/strategy-lab-status.ts:198:        summary: 'The smoke sidecar was cleaned up; current_sidecar_available remains false.',"
+  },
+  "generated_at": "2026-05-25T01:56:17Z",
+  "git_evidence": {
+    "branch_note": "Local branch was behind origin by one CI workflow commit during closeout; no remote merge was performed inside this runtime proof task.",
+    "status_short_branch": {
+      "command": [
+        "git",
+        "status",
+        "--short",
+        "--branch"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [behind 1]\n?? docs/agent_tasks/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525.md"
+    },
+    "tracked_diff_names": {
+      "command": [
+        "git",
+        "diff",
+        "--name-only"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    }
+  },
+  "job_id": "strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525",
+  "key_evidence": {
+    "cleanup_containers_stdout": "",
+    "cleanup_image_stdout": "",
+    "cleanup_networks_stdout": "",
+    "cleanup_target_ports_stdout": "State  Recv-Q Send-Q               Local Address:Port  Peer Address:PortProcess",
+    "cleanup_temp_sandbox_exists": false,
+    "cleanup_volumes_stdout": "",
+    "db_token_status_after_revoke": "revoked",
+    "klines_count": 120,
+    "paper_orders_after_api_count": 0,
+    "paper_orders_after_db_count": 0,
+    "paper_orders_before_api_count": 0,
+    "paper_orders_before_db_count": 0,
+    "post_revoke_whoami_http_status": 401,
+    "regime": "high_volatility",
+    "regime_confidence": 0.99,
+    "regime_label": "High Volatility",
+    "regime_segments_count": 3,
+    "regime_service_filtered_candle_count": 91,
+    "token_id": 2
+  },
+  "schema_version": 1,
+  "verdict": "VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY"
+}

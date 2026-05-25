@@ -1,0 +1,37 @@
+{
+  "admin_jwt_written_to_artifacts": false,
+  "external_sidecar_mutations_limited_to_temp_sandbox": true,
+  "generated_at": "2026-05-25T01:56:17Z",
+  "git_status_short_branch": {
+    "command": [
+      "git",
+      "status",
+      "--short",
+      "--branch"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [behind 1]\n?? docs/agent_tasks/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525.md"
+  },
+  "job_id": "strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525",
+  "no_tenn_mutations": true,
+  "paper_orders_before_after": {
+    "api_after": 0,
+    "api_before": 0,
+    "db_after": 0,
+    "db_before": 0
+  },
+  "schema_version": 1,
+  "temp_sandbox_removed": true,
+  "tenn_surfaces_not_touched": [
+    "financial-engine_v2 backend data stores",
+    "Qdrant",
+    "news stores",
+    "memory stores",
+    "canonical financial truth",
+    "Tenn parser/routing/runtime/model config",
+    "Strategy Lab UI/status metadata",
+    "current_sidecar_available promotion"
+  ],
+  "token_secrets_written_to_artifacts": false
+}

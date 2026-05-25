@@ -1,0 +1,21 @@
+{
+  "duration_seconds": 0.005,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "GET",
+    "params": {},
+    "path": "/api/agent/v1/portfolio/paper-orders",
+    "url": "http://127.0.0.1:15080/api/agent/v1/portfolio/paper-orders"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": [],
+      "message": "ok"
+    },
+    "http_status": 200
+  }
+}

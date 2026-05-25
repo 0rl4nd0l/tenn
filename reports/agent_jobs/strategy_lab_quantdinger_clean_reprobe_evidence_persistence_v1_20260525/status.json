@@ -1,0 +1,42 @@
+{
+  "admin_jwt_persisted": false,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "candle_counts_persisted": true,
+  "cleanup_proven": true,
+  "current_sidecar_available_remains_false": true,
+  "current_sidecar_available_set_true": false,
+  "exact_request_payload_persisted": true,
+  "execution_mode": "SAFE_EXTENSION",
+  "generated_at": "2026-05-25T02:00:47Z",
+  "job_id": "strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525",
+  "key_counts": {
+    "klines_count": 120,
+    "paper_orders_after_api_count": 0,
+    "paper_orders_after_db_count": 0,
+    "regime_service_filtered_candle_count": 91
+  },
+  "lane": "Evaluation",
+  "live_trading_started": false,
+  "paper_orders_placed": false,
+  "patched_upstream_runtime_used": true,
+  "regime_detect_passed": true,
+  "registry_claim_released": true,
+  "registry_release_status_path": "reports/agent_jobs/strategy_lab_quantdinger_clean_reprobe_evidence_persistence_v1_20260525/status.json",
+  "registry_released_at": "2026-05-25T01:59:57.176250Z",
+  "response_bodies_persisted": true,
+  "runtime_started": true,
+  "schema_version": 1,
+  "strategy_lab_ui_or_status_changed": false,
+  "summary": "Patched QuantDinger loopback sandbox completed health, R/B token, market read, backtest, regime detect, denial probes, zero-order proof, token revoke, and cleanup with exact sanitized payload/response artifacts persisted.",
+  "supporting_lanes": [
+    "Reporting",
+    "Provenance"
+  ],
+  "tenn_product_runtime_changed": false,
+  "tenn_store_writes": false,
+  "token_revoked": true,
+  "token_secret_persisted": false,
+  "verdict": "VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "zero_orders_proven": true
+}

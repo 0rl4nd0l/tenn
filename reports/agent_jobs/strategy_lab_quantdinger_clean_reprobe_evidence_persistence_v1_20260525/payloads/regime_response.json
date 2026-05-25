@@ -1,0 +1,71 @@
+{
+  "duration_seconds": 0.024,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": {
+      "endDate": "2024-03-31",
+      "market": "Crypto",
+      "startDate": "2024-01-01",
+      "symbol": "BTC/USDT",
+      "timeframe": "1D"
+    },
+    "method": "POST",
+    "params": {},
+    "path": "/api/agent/v1/experiments/regime/detect",
+    "url": "http://127.0.0.1:15080/api/agent/v1/experiments/regime/detect"
+  },
+  "response": {
+    "body": {
+      "code": 0,
+      "data": {
+        "confidence": 0.99,
+        "features": {
+          "atrPct": 4.8939,
+          "directionalEfficiency": 0.155,
+          "emaGapPct": 4.3976,
+          "priceChangePct": 61.3416,
+          "realizedVolPct": 21.3828,
+          "volumeRatio": 0.3704
+        },
+        "label": "High Volatility",
+        "market": "Crypto",
+        "regime": "high_volatility",
+        "segments": [
+          {
+            "confidence": 0.99,
+            "endTime": null,
+            "label": "High Volatility",
+            "regime": "high_volatility",
+            "startTime": null
+          },
+          {
+            "confidence": 0.99,
+            "endTime": null,
+            "label": "Bull Trend",
+            "regime": "bull_trend",
+            "startTime": null
+          },
+          {
+            "confidence": 0.99,
+            "endTime": null,
+            "label": "High Volatility",
+            "regime": "high_volatility",
+            "startTime": null
+          }
+        ],
+        "strategyFamilies": [
+          "volatility_breakout",
+          "reduced_risk_trend",
+          "event_drive"
+        ],
+        "symbol": "BTC/USDT",
+        "timeframe": "1D",
+        "version": "market-regime-v1"
+      },
+      "message": "ok"
+    },
+    "http_status": 200
+  }
+}

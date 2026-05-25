@@ -1,0 +1,19 @@
+{
+  "agent_audit_scope_counts": [
+    "B|200|1",
+    "B|202|1",
+    "R|200|10",
+    "R|401|1",
+    "R|403|1",
+    "T|403|2",
+    "W|403|1"
+  ],
+  "agent_jobs_summary": [
+    "backtest|succeeded|1"
+  ],
+  "paper_orders_after_api_count": 0,
+  "paper_orders_after_db_count": 0,
+  "paper_orders_before_api_count": 0,
+  "paper_orders_before_db_count": 0,
+  "token_status_before_revoke": "active"
+}

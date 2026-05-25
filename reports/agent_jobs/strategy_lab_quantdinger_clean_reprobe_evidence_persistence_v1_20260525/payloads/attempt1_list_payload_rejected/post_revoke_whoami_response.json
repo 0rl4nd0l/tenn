@@ -1,0 +1,22 @@
+{
+  "duration_seconds": 0.003,
+  "request": {
+    "headers": {
+      "authorization": "REDACTED"
+    },
+    "json": null,
+    "method": "GET",
+    "params": {},
+    "path": "/api/agent/v1/whoami",
+    "url": "http://127.0.0.1:15080/api/agent/v1/whoami"
+  },
+  "response": {
+    "body": {
+      "code": 401,
+      "details": null,
+      "message": "Token is revoked",
+      "retriable": false
+    },
+    "http_status": 401
+  }
+}
