@@ -1,0 +1,32 @@
+{
+  "active_registry_jobs": [],
+  "broad_branch_merge_safe": false,
+  "canonical_financial_truth": false,
+  "claim_created": false,
+  "claim_failure": [
+    "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md is dirty outside current task card allowed_files",
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md is dirty outside current task card allowed_files"
+  ],
+  "current_sidecar_available": false,
+  "decision": "parked_report_only",
+  "execution_allowed": false,
+  "job_id": "strategy_lab_readonly_subsystem_maturation_review_integrate_v1_20260525",
+  "merge_parking_registry_created": false,
+  "merge_parking_registry_reason": "docs/agent_registry/merge_parking/REGISTRY.md and parked/ are absent; no supported repo-native merge parking path was found",
+  "real_transport": false,
+  "schema_version": "strategy_lab_readonly_subsystem_maturation_review_integrate_status_v1",
+  "single_commit_apply_check": "passed",
+  "source_branch": "safe/strategy-lab-readonly-subsystem-maturation-v1-20260525",
+  "source_commit": "e5e12fe990d1264210237e9d219ec044dd010a71",
+  "source_commit_integrated": false,
+  "source_commit_parent": "af49ede4ceb0e809580efe97754d9f17fbcd3c50",
+  "source_commit_subject": "milestone(strategy-lab): mature readonly review subsystem",
+  "target_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "target_head_after_decision": "c8d605e3de625c9f456edc0f3896b571a68f6b25",
+  "target_head_before_decision": "c8d605e3de625c9f456edc0f3896b571a68f6b25",
+  "target_dirty_blockers": [
+    "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+  ],
+  "updated_at": "2026-05-25T05:37:48Z"
+}
