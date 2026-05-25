@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenn Issue Resolution Reviewer"
+  short_description: "Review Tenn issue resolution quality"
+  default_prompt: "Use $tenn-issue-resolution-reviewer to run bounded root-cause, regression, boundary, provenance, user-value, skeptic, and GitHub backlog-integrity passes before high-risk Tenn closure."
