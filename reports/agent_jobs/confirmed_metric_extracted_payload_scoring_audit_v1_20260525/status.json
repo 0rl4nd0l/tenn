@@ -1,0 +1,21 @@
+{
+  "job_id": "confirmed_metric_extracted_payload_scoring_audit_v1_20260525",
+  "status": "complete",
+  "lane": "Evaluation",
+  "execution_mode": "AUDIT ONLY",
+  "target_layer": "evaluation and report artifact evidence",
+  "result": "DATA_MISSING_for_current_confirmed_metric_extracted_payload_scoring",
+  "files_changed": [
+    "docs/agent_tasks/confirmed_metric_extracted_payload_scoring_audit_v1_20260525.md",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/README.md",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/status.json",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/extracted_payload_inventory.json",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/scoring_availability.json",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/validation.json",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/diff-check.json"
+  ],
+  "production_data_access": false,
+  "production_extraction_run": false,
+  "canonical_truth_mutated": false,
+  "validation_status": "passed"
+}

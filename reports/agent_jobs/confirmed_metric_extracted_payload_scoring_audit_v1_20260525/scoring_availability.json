@@ -1,0 +1,42 @@
+{
+  "job_id": "confirmed_metric_extracted_payload_scoring_audit_v1_20260525",
+  "source_reports": {
+    "source_pdf_resolution": "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/README.md",
+    "scoring_gap_report": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/confirmed_metric_scoring_gap_report.json",
+    "evidence_manifest": "reports/agent_jobs/eval_spine_current_evidence_manifest_audit_v1_20260525/evidence_manifest.json"
+  },
+  "profile_availability": {
+    "confirmed_metric_coverage": {
+      "denominator_status": "available",
+      "fixture_count": 15,
+      "total_expectations": 146,
+      "eligible_scored_ready_rows": 73,
+      "excluded_candidate_rows": 70,
+      "excluded_ambiguous_or_derived_rows": 3,
+      "extracted_payload_artifact_status": "DATA_MISSING",
+      "extracted_payload_accuracy_score_status": "DATA_MISSING",
+      "score_emitted": false,
+      "reason": "No current generated extracted-payload artifact set was found for the confirmed_metric_coverage fixture IDs."
+    },
+    "canonical_core": {
+      "included_in_this_denominator": false,
+      "combined_with_confirmed_metric_coverage": false
+    },
+    "expanded_required": {
+      "included_in_this_denominator": false,
+      "combined_with_confirmed_metric_coverage": false
+    }
+  },
+  "canonical_truth_safety": {
+    "production_extraction_run": false,
+    "candidate_rows_promoted": false,
+    "ambiguous_rows_promoted": false,
+    "canonical_financial_truth_written": false,
+    "fixture_labels_mutated": false,
+    "parser_or_extraction_routing_changed": false,
+    "source_pdfs_mutated": false,
+    "db_qdrant_memory_or_production_data_mutated": false,
+    "broad_accuracy_claim_made": false
+  },
+  "result": "DATA_MISSING_for_current_extracted_payload_scoring"
+}

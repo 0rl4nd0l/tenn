@@ -1,0 +1,74 @@
+{
+  "job_id": "confirmed_metric_extracted_payload_scoring_audit_v1_20260525",
+  "validations": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/confirmed_metric_extracted_payload_scoring_audit_v1_20260525.md",
+      "result": "passed_after_metadata_correction"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_before_claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/confirmed_metric_extracted_payload_scoring_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/confirmed_metric_extracted_payload_scoring_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "find reports -path '*extraction_eval*' -type f",
+      "result": "passed_no_files"
+    },
+    {
+      "command": "find financial-engine_v2 -path '*extraction_eval*' -type f",
+      "result": "passed_synthetic_fixtures_only_no_generated_artifact_dir"
+    },
+    {
+      "command": "python3 artifact inventory using stdlib JSON",
+      "result": "passed_no_generated_confirmed_metric_payload_artifacts_zero_synthetic_id_overlap"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 import app.services.extraction_gold_eval_scorecard",
+      "result": "failed_missing_pydantic_settings_system_python_not_used_for_conclusion"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python",
+      "result": "failed_backend_venv_absent_in_this_worktree"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/validation.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/extracted_payload_inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/scoring_availability.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/confirmed_metric_extracted_payload_scoring_audit_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release confirmed_metric_extracted_payload_scoring_audit_v1_20260525",
+      "result": "passed"
+    }
+  ],
+  "notes": [
+    "The audit conclusion uses existing committed report artifacts and stdlib JSON inventory, not a fresh backend import.",
+    "No production extraction or generated payload scoring was run.",
+    "The final task-card check-diff was rerun after ignored report artifacts were force-staged."
+  ]
+}
