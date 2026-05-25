@@ -1,0 +1,28 @@
+{
+  "job_id": "real_signal_calibrated_scorecard_v1_20260524",
+  "issue": 54,
+  "status": "complete",
+  "registry_status": "released",
+  "lane": "Evaluation",
+  "execution_mode": "AUDIT ONLY",
+  "target_layer": "evaluation and report artifacts",
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "pre_audit_head": "3c817a3672862c1d99a3d877d335dc4527711948",
+  "released_at": "2026-05-25T05:45:59.661214Z",
+  "result": "audit_acceptance_met_no_product_remediation",
+  "files_changed": [
+    "docs/agent_tasks/real_signal_calibrated_scorecard_v1_20260524.md",
+    "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/README.md",
+    "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/status.json",
+    "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/validation.json",
+    "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/scorecard_proposal.json",
+    "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/gap_register.json",
+    "reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/diff-check.json"
+  ],
+  "production_data_access": false,
+  "product_remediation_landed": false,
+  "canonical_truth_mutated": false,
+  "source_label_semantics_mutated": false,
+  "runtime_or_store_mutation": false,
+  "validation_status": "passed"
+}

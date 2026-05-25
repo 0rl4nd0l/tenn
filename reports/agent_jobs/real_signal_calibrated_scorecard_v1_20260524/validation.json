@@ -1,0 +1,68 @@
+{
+  "job_id": "real_signal_calibrated_scorecard_v1_20260524",
+  "validation_status": "passed",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/real_signal_calibrated_scorecard_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_before_claim_active_jobs_empty"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/real_signal_calibrated_scorecard_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/real_signal_calibrated_scorecard_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "rg -n \"Real Signal|real_signal|calibrated scorecard|real_signal_calibrated\" . --glob '!node_modules/**' --glob '!.git/**'",
+      "result": "passed_found_only_issue_exact_task_card_after_creation"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/validation.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/scorecard_proposal.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/gap_register.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/real_signal_calibrated_scorecard_v1_20260524/diff-check.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/real_signal_calibrated_scorecard_v1_20260524.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release real_signal_calibrated_scorecard_v1_20260524",
+      "result": "passed"
+    }
+  ],
+  "pending_commands": [],
+  "data_missing": [
+    "No current product Real Signal runtime scorecard exists in repo evidence.",
+    "No Cockpit-visible scorecard UI was validated or implemented.",
+    "No current generated extracted-payload artifact set exists for confirmed metric payload scoring."
+  ]
+}

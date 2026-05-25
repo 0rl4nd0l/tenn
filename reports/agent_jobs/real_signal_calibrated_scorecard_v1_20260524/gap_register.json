@@ -1,0 +1,45 @@
+{
+  "job_id": "real_signal_calibrated_scorecard_v1_20260524",
+  "gaps": [
+    {
+      "id": "real_signal_named_implementation_missing",
+      "severity": "medium",
+      "surface": "repo/report artifacts",
+      "confirmed_evidence": "rg for Real Signal/real_signal found no existing implementation or issue-exact report before this task card/report bundle.",
+      "impact": "No single calibrated Real Signal scorecard currently separates actionable signals from heuristic-only or DATA_MISSING states.",
+      "recommended_next_step": "Create report-local real_signal_scorecard_manifest_v1."
+    },
+    {
+      "id": "chat_quality_heuristic_without_provenance_gate",
+      "severity": "medium",
+      "surface": "financial-engine_v2/backend/app/services/chat_quality_scorer.py",
+      "confirmed_evidence": "Composite score uses retrieval precision, model confidence, and session coherence weights.",
+      "impact": "A high score could be misread as verified signal quality if surfaced without provenance and DATA_MISSING gates.",
+      "recommended_next_step": "Treat chat quality score as heuristic input only."
+    },
+    {
+      "id": "memory_signal_confidence_not_truth",
+      "severity": "medium",
+      "surface": "financial-engine_v2/backend/app/services/memory_signal_router.py",
+      "confirmed_evidence": "Signals include confidence/materiality/persistence and route_signals can update memory stores.",
+      "impact": "Memory signals can be useful context but must not satisfy claim verification or canonical financial truth.",
+      "recommended_next_step": "Use memory signals only as context in report-local scoring and do not execute route_signals."
+    },
+    {
+      "id": "news_source_ready_not_financial_truth",
+      "severity": "low",
+      "surface": "cockpit-ui/lib/cockpit-news-actionability.ts",
+      "confirmed_evidence": "SOURCE_READY text says inspectable context, not verified financial truth.",
+      "impact": "News readiness can support inspectability/freshness but cannot verify financial metrics.",
+      "recommended_next_step": "Map SOURCE_READY to INSPECTABLE_CONTEXT unless claim verification is separately present."
+    },
+    {
+      "id": "confirmed_metric_current_payload_score_missing",
+      "severity": "medium",
+      "surface": "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/README.md",
+      "confirmed_evidence": "Current confirmed metric extracted-payload score remains DATA_MISSING.",
+      "impact": "Real Signal financial-truth scoring cannot claim extracted-payload accuracy from current artifacts.",
+      "recommended_next_step": "Keep DATA_MISSING until generated extracted-payload artifacts exist."
+    }
+  ]
+}

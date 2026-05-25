@@ -1,0 +1,90 @@
+{
+  "job_id": "real_signal_calibrated_scorecard_v1_20260524",
+  "scorecard_profile": "real_signal_readiness_v1",
+  "mode": "audit_only_design",
+  "production_data_access": false,
+  "outcome_classes": [
+    {
+      "class": "ACTIONABLE_SIGNAL",
+      "meaning": "Required evidence gates pass, claim requirements are satisfied, provenance is inspectable, freshness is proven when relevant, and no hard-stop label is present."
+    },
+    {
+      "class": "INSPECTABLE_CONTEXT",
+      "meaning": "Visible source context is present but does not verify the claim or canonical financial truth."
+    },
+    {
+      "class": "WEAK_CONTEXT",
+      "meaning": "Context exists but is snippet-only, context-only, duplicated, stale, low-specificity, or otherwise insufficient for action."
+    },
+    {
+      "class": "DATA_MISSING",
+      "meaning": "Required query, response, timestamp, extracted metric, market-data, source, payload, route, or validation evidence is absent."
+    },
+    {
+      "class": "UNSUPPORTED_OR_NOT_VERIFIED",
+      "meaning": "A claim family is detected and required evidence is not satisfied."
+    },
+    {
+      "class": "DEGRADED_RUNTIME",
+      "meaning": "Runtime, provider, or search failure prevents complete assessment."
+    },
+    {
+      "class": "REVIEW_ONLY",
+      "meaning": "Audit/report-local row only; not a product remediation claim."
+    }
+  ],
+  "gates": [
+    {
+      "gate": "scorecard_profile_required",
+      "pass_condition": "Every row names real_signal_readiness_v1 or another explicit profile.",
+      "fail_result": "DATA_MISSING"
+    },
+    {
+      "gate": "claim_family_requirements",
+      "pass_condition": "Detected claim families have required visible evidence categories.",
+      "fail_result": "UNSUPPORTED_OR_NOT_VERIFIED"
+    },
+    {
+      "gate": "source_coverage_status",
+      "pass_condition": "Source coverage is claim_verified only when deterministic metadata says so and no hard-stop label is present.",
+      "fail_result": "UNSUPPORTED_OR_NOT_VERIFIED"
+    },
+    {
+      "gate": "financial_truth_support",
+      "pass_condition": "Financial metric claims have canonical extracted metric or financial statement evidence.",
+      "fail_result": "DATA_MISSING"
+    },
+    {
+      "gate": "market_data_support",
+      "pass_condition": "Market price or technical trend claims have market data, price series, or technical indicator evidence.",
+      "fail_result": "DATA_MISSING"
+    },
+    {
+      "gate": "recent_news_freshness",
+      "pass_condition": "Recent-news claims have claim-verified event/news evidence with inspectable source and published_at when freshness is required.",
+      "fail_result": "DATA_MISSING"
+    },
+    {
+      "gate": "runtime_health",
+      "pass_condition": "No degraded runtime/provider/search failure label is present.",
+      "fail_result": "DEGRADED_RUNTIME"
+    },
+    {
+      "gate": "memory_not_truth",
+      "pass_condition": "Memory context can inform review but cannot satisfy financial truth or claim verification.",
+      "fail_result": "INSPECTABLE_CONTEXT"
+    }
+  ],
+  "hard_stops": [
+    "Do not derive claim_verified from model confidence, retrieval score, memory signal confidence, source-ready news, snippet-only context, or unknown_unclassified labels.",
+    "Do not collapse inventory, source openability, route health, model confidence, and current extracted-payload accuracy into one pass rate.",
+    "Do not mutate DB, Qdrant, news, memory, parser routing, extraction prompts, gold labels, runtime, model, or service config while computing the report-local scorecard.",
+    "If canonical financial rows or generated extracted payload artifacts are missing, emit DATA_MISSING."
+  ],
+  "recommended_child_task": {
+    "job_id": "real_signal_scorecard_manifest_v1",
+    "mode": "safe_extension_report_local",
+    "summary": "Create a report-local normalizer that emits real_signal_readiness_v1 rows from existing metadata only.",
+    "allowed_surface": "reports/tests only; no runtime/product/data-store mutation"
+  }
+}
