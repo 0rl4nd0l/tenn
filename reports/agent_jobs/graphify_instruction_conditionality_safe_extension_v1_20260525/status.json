@@ -1,0 +1,20 @@
+{
+  "job_id": "graphify_instruction_conditionality_safe_extension_v1_20260525",
+  "status": "complete",
+  "lane": "Reporting",
+  "execution_mode": "SAFE EXTENSION MODE",
+  "target_layer": "agent instruction and report-artifact contract",
+  "result": "conditional_graphify_instruction_wording_added",
+  "files_changed": [
+    "docs/agent_tasks/graphify_instruction_conditionality_safe_extension_v1_20260525.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "reports/agent_jobs/graphify_instruction_conditionality_safe_extension_v1_20260525/README.md",
+    "reports/agent_jobs/graphify_instruction_conditionality_safe_extension_v1_20260525/status.json",
+    "reports/agent_jobs/graphify_instruction_conditionality_safe_extension_v1_20260525/validation.json",
+    "reports/agent_jobs/graphify_instruction_conditionality_safe_extension_v1_20260525/diff-check.json"
+  ],
+  "graphify_artifacts_created": false,
+  "graphify_update_run": false,
+  "validation_status": "passed"
+}

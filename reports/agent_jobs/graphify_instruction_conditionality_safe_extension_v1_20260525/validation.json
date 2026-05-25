@@ -1,0 +1,66 @@
+{
+  "job_id": "graphify_instruction_conditionality_safe_extension_v1_20260525",
+  "validations": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/graphify_instruction_conditionality_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_before_claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/graphify_instruction_conditionality_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/graphify_instruction_conditionality_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "test -e graphify-out",
+      "result": "missing_expected"
+    },
+    {
+      "command": "test -f graphify-out/GRAPH_REPORT.md",
+      "result": "missing_expected"
+    },
+    {
+      "command": "test -f graphify-out/wiki/index.md",
+      "result": "missing_expected"
+    },
+    {
+      "command": "sed -n '340,352p' AGENTS.md",
+      "result": "passed_conditional_graphify_wording_present"
+    },
+    {
+      "command": "sed -n '365,378p' CLAUDE.md",
+      "result": "passed_conditional_graphify_wording_present"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/graphify_instruction_conditionality_safe_extension_v1_20260525/status.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/graphify_instruction_conditionality_safe_extension_v1_20260525/validation.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/graphify_instruction_conditionality_safe_extension_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release graphify_instruction_conditionality_safe_extension_v1_20260525",
+      "result": "passed"
+    }
+  ],
+  "notes": [
+    "No graphify update command was run.",
+    "No generated graphify-out artifacts were created or committed.",
+    "The final task-card check-diff was rerun after ignored report artifacts were force-staged."
+  ]
+}

@@ -364,10 +364,12 @@ This guide consolidates repo knowledge for Claude without replacing the authorit
 
 ## graphify
 
-This project has a graphify knowledge graph at graphify-out/.
+This project may have a generated graphify knowledge graph at graphify-out/.
+The directory is ignored and may be absent in clean worktrees.
 
 Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure when it exists; if it is absent, report Graphify evidence as DATA_MISSING and continue from current repo evidence
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
 - Do not run `graphify update .` after every milestone or code change
 - Run `graphify update .` at most once per day, or when the user explicitly requests a graph refresh
+- Do not generate or commit graphify-out artifacts without explicit user approval
