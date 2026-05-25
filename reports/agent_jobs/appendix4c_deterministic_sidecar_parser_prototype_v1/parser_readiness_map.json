@@ -1,0 +1,86 @@
+{
+  "job_id": "appendix4c_deterministic_sidecar_parser_prototype_v1",
+  "issue": 57,
+  "decision": "audit_ready_with_child_followup",
+  "readiness": [
+    {
+      "surface": "appendix_4c_document_type_fixture",
+      "status": "ready_for_metadata_classification_only",
+      "evidence": [
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4c_quarterly_cashflow.json",
+        "docs/asx_document_type_fixture_contract.md"
+      ],
+      "notes": "Synthetic fixture identifies Appendix 4C using form, quarterly cash flow, and Rule 4.7B anchors with canonical_write=false."
+    },
+    {
+      "surface": "appendix_4c_forbidden_metric_boundary",
+      "status": "ready_at_schema_test_level",
+      "evidence": [
+        "financial-engine_v2/backend/tests/test_asx_comparator_artifact_schema.py",
+        "docs/asx_comparator_artifact_schema.md"
+      ],
+      "notes": "Comparator schema tests reject revenue, NPAT, and net debt as Appendix 4C candidate metrics."
+    },
+    {
+      "surface": "appendix_4c_comparator_artifact_shape",
+      "status": "ready_for_report_local_candidate_artifacts",
+      "evidence": [
+        "docs/asx_comparator_artifact_schema.md",
+        "financial-engine_v2/backend/tests/test_asx_comparator_artifact_schema.py"
+      ],
+      "notes": "Artifacts are report-only and require canonical_write=false at artifact and candidate levels."
+    },
+    {
+      "surface": "appendix_5b_deterministic_parser_pattern",
+      "status": "pattern_only_do_not_copy_as_4c_implementation",
+      "evidence": [
+        "financial-engine_v2/backend/app/services/asx_appendix5b_parser.py",
+        "financial-engine_v2/backend/tests/test_asx_appendix5b_parser.py"
+      ],
+      "notes": "Appendix 5B parser demonstrates candidate-only table-row parsing, evidence capture, and DATA_MISSING behavior."
+    },
+    {
+      "surface": "appendix_4c_deterministic_parser_module",
+      "status": "DATA_MISSING",
+      "evidence": [
+        "rg --files | rg 'asx_appendix4c|appendix4c|appendix_4c'"
+      ],
+      "notes": "Current file inventory found the task card and classifier fixture but no dedicated Appendix 4C parser module."
+    },
+    {
+      "surface": "real_appendix_4c_structured_table_fixture_corpus",
+      "status": "DATA_MISSING",
+      "evidence": [
+        "financial-engine_v2/backend/tests/fixtures/asx_document_type_classifier/appendix_4c_quarterly_cashflow.json"
+      ],
+      "notes": "The confirmed Appendix 4C fixture is a document-type surrogate, not a real table-row parser fixture corpus."
+    },
+    {
+      "surface": "production_parser_routing",
+      "status": "forbidden_in_this_task",
+      "evidence": [
+        "docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+        "docs/asx_comparator_artifact_schema.md"
+      ],
+      "notes": "No routing changes are authorized by this task card."
+    },
+    {
+      "surface": "canonical_write",
+      "status": "forbidden_until_explicit_future_approval",
+      "evidence": [
+        "docs/asx_document_type_fixture_contract.md",
+        "docs/asx_comparator_artifact_schema.md"
+      ],
+      "notes": "Appendix 4C sidecar outputs must remain candidate/report-local with canonical_write=false."
+    },
+    {
+      "surface": "focused_test_execution",
+      "status": "DATA_MISSING",
+      "evidence": [
+        "command -v pytest exited 1",
+        "command -v pnpm exited 1"
+      ],
+      "notes": "Report-local checks can run, but focused pytest/pnpm validation is unavailable from PATH in this worktree."
+    }
+  ]
+}

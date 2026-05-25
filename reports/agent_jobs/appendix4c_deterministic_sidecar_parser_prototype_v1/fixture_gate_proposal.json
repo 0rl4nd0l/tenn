@@ -1,0 +1,108 @@
+{
+  "job_id": "appendix4c_deterministic_sidecar_parser_prototype_v1",
+  "issue": 57,
+  "parser_contract": {
+    "input": "Already-extracted structured table rows supplied by the caller.",
+    "output": "Report-local comparator artifact candidates only.",
+    "canonical_write": false,
+    "runtime_calls": false,
+    "llm_calls": false,
+    "production_routing": false,
+    "store_writes": false
+  },
+  "document_identity_gate": {
+    "positive_required_anchors": [
+      "Appendix 4C",
+      "Quarterly cash flow report",
+      "Rule 4.7B"
+    ],
+    "negative_conflict_anchors": [
+      "Appendix 5B",
+      "Appendix 4D",
+      "Appendix 4E",
+      "Annual Report",
+      "Preliminary final report"
+    ],
+    "abstain_if": [
+      "Appendix 4C form label is missing",
+      "required quarterly cash-flow title evidence is missing",
+      "Rule 4.7B or equivalent Appendix 4C identity evidence is missing",
+      "conflicting document-type anchors are stronger than Appendix 4C anchors"
+    ]
+  },
+  "candidate_line_item_hypotheses": [
+    {
+      "line_item": "1.1",
+      "candidate_name": "cash_receipts_from_customers",
+      "canonical_metric": null,
+      "status": "review_only_until_metric_contract_exists",
+      "boundary": "Must not be mapped to revenue."
+    },
+    {
+      "line_item": "1.9",
+      "candidate_name": "operating_cf",
+      "canonical_metric": "operating_cf",
+      "status": "candidate_only",
+      "boundary": "Use explicit Appendix 4C current-quarter row value only."
+    },
+    {
+      "line_item": "2.6",
+      "candidate_name": "investing_cf",
+      "canonical_metric": "investing_cf",
+      "status": "candidate_only",
+      "boundary": "Use explicit Appendix 4C current-quarter row value only."
+    },
+    {
+      "line_item": "3.10",
+      "candidate_name": "financing_cf",
+      "canonical_metric": "financing_cf",
+      "status": "candidate_only",
+      "boundary": "Use explicit Appendix 4C current-quarter row value only."
+    },
+    {
+      "line_item": "4.6_or_5.5",
+      "candidate_name": "cash_end",
+      "canonical_metric": "cash_end",
+      "status": "needs_real_fixture_verification",
+      "boundary": "Exact Appendix 4C cash-end line preference must be proven before implementation."
+    }
+  ],
+  "forbidden_candidates": [
+    "revenue",
+    "NPAT",
+    "net debt",
+    "EBIT",
+    "EBITDA",
+    "EPS",
+    "NTA",
+    "dividends",
+    "margins",
+    "segment metrics",
+    "income statement blocks",
+    "balance sheet blocks"
+  ],
+  "data_missing_rules": [
+    "Return DATA_MISSING when a required line is absent.",
+    "Return DATA_MISSING when the current-quarter column cannot be identified.",
+    "Return DATA_MISSING when a row value is blank, dash-only, nil, n/a, or non-numeric.",
+    "Do not substitute year-to-date values for current-quarter values.",
+    "Do not convert missing values to zero.",
+    "Do not infer absent income-statement or balance-sheet metrics from cash-flow rows."
+  ],
+  "promotion_gates": [
+    "Task card lists exact parser, fixture, test, and report files before code work.",
+    "Registry check-overlap is clean for Financial Truth and Evaluation files.",
+    "Appendix 4C classifier positive and negative fixtures pass.",
+    "Comparator artifact validation proves artifact-level and candidate-level canonical_write=false.",
+    "Appendix 4C forbidden metrics remain rejected as candidate values.",
+    "Real Appendix 4C table fixtures cover current-quarter, year-to-date, missing-line, missing-column, and conflicting-document cases.",
+    "Focused tests prove DATA_MISSING is not zero and YTD is not conflated with current quarter.",
+    "Import/routing check proves no production parser routing consumes Appendix 4C sidecar output.",
+    "No DB, Qdrant, news, memory, source PDF, prompt, gold-label, model, runtime, or service config writes occur."
+  ],
+  "next_child_task": {
+    "title": "[Financial Truth] Appendix 4C candidate sidecar parser v1",
+    "summary": "Implement an isolated candidate-only Appendix 4C parser and fixture gate after registry and allowed-file checks are clean.",
+    "must_remain_unwired": true
+  }
+}

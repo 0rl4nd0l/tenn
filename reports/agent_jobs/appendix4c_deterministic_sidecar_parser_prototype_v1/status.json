@@ -1,0 +1,65 @@
+{
+  "job_id": "appendix4c_deterministic_sidecar_parser_prototype_v1",
+  "issue": 57,
+  "agent": "Codex",
+  "lane": "Financial Truth",
+  "mode": "audit_only",
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "head_at_report_write": "17a0226c47c62f873bb920edd9b9ac5a377cbcbb",
+  "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+  "task_card": "docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+  "report_path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/README.md",
+  "decision": "COMPLETED_AUDIT_ONLY_WITH_FOLLOWUP_REQUIRED",
+  "closeout_gate": "COMPLETED_AUDIT_ONLY_WITH_FOLLOWUPS",
+  "product_remediation_landed": false,
+  "parser_prototype_landed": false,
+  "registry": {
+    "scope": "shared",
+    "root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "claimed_at": "2026-05-25T06:17:33.348741Z",
+    "released_at": "2026-05-25T06:18:15.127590Z",
+    "status": "released",
+    "session_id": "l4nd0-System-Product-Name:786916:appendix4c_deterministic_sidecar_parser_prototype_v1"
+  },
+  "acceptance_criteria": {
+    "appendix_4c_scope_bounded": "met",
+    "deterministic_assumptions_documented": "met",
+    "prototype_isolated_and_not_wired": "met_by_not_implementing_code_in_this_high_risk_pass",
+    "evaluation_gates_explicit": "met",
+    "next_child_task_recommended": "met"
+  },
+  "changed_files": [
+    "docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+    "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/README.md",
+    "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/status.json",
+    "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/validation.json",
+    "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/parser_readiness_map.json",
+    "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/fixture_gate_proposal.json",
+    "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/diff-check.json"
+  ],
+  "forbidden_surfaces_touched": false,
+  "hard_boundary_compliance": {
+    "production_parser_routing": "not_touched",
+    "docling_config": "not_touched",
+    "extraction_prompts": "not_touched",
+    "canonical_truth": "not_touched",
+    "source_pdfs": "not_touched",
+    "db_qdrant_news_memory": "not_touched",
+    "production_data": "not_touched",
+    "runtime_model_service_config": "not_touched",
+    "gold_labels": "not_touched"
+  },
+  "data_missing": [
+    "No dedicated Appendix 4C deterministic parser module exists in current repo evidence.",
+    "No real Appendix 4C structured table fixture corpus was verified in this task.",
+    "Exact Appendix 4C line-item map still requires a child prototype task with real fixture evidence.",
+    "Focused pytest could not be run from PATH because pytest is unavailable in this worktree."
+  ],
+  "next_child_task_recommendation": {
+    "title": "[Financial Truth] Appendix 4C candidate sidecar parser v1",
+    "lane": "Financial Truth",
+    "mode": "safe_extension_if_registry_clean",
+    "scope": "Add an isolated candidate-only Appendix 4C sidecar parser and tests/fixtures without production routing or canonical writes."
+  },
+  "updated_at": "2026-05-25T16:19:00+10:00"
+}

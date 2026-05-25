@@ -1,0 +1,60 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/fixture_gate_proposal.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/parser_readiness_map.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+        "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/README.md",
+        "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/status.json",
+        "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/validation.json",
+        "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/parser_readiness_map.json",
+        "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/fixture_gate_proposal.json",
+        "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "appendix4c_deterministic_sidecar_parser_prototype_v1",
+      "lane": "Financial Truth",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

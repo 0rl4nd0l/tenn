@@ -1,0 +1,65 @@
+{
+  "job_id": "appendix4c_deterministic_sidecar_parser_prototype_v1",
+  "issue": 57,
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+      "status": "passed"
+    },
+    {
+      "command": "command -v pytest",
+      "status": "failed_unavailable",
+      "exit_code": 1
+    },
+    {
+      "command": "command -v pnpm",
+      "status": "failed_unavailable",
+      "exit_code": 1
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/status.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/parser_readiness_map.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/fixture_gate_proposal.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/validation.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/appendix4c_deterministic_sidecar_parser_prototype_v1/diff-check.json",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/appendix4c_deterministic_sidecar_parser_prototype_v1.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release appendix4c_deterministic_sidecar_parser_prototype_v1",
+      "status": "passed"
+    }
+  ],
+  "product_tests": {
+    "run": false,
+    "reason": "No product code changed; focused pytest and pnpm were unavailable from PATH."
+  },
+  "validation_result": "passed_with_product_test_data_missing"
+}
