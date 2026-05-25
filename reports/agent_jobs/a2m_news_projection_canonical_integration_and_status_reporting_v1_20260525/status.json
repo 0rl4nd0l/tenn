@@ -5,6 +5,7 @@
   "branch": "migration/clean-runtime-baseline-reconstruct-v1",
   "head_before": "6eb30d3f098849c501d2239a188374bd822d6000",
   "head_after_integration": "226dfc4abb23deafc10e759a554283690ce65e62",
+  "head_after_child_report_commit": "1d8bd3a0",
   "generated_at": "2026-05-25T14:03:15+10:00",
   "integrated_commits": [
     {
@@ -65,6 +66,14 @@
     "cockpit_status_routes": "missing_404",
     "chat_synthesis": "DATA_MISSING",
     "projection_repair": "not_run"
+  },
+  "final_worktree_status": {
+    "tracked_changes": [],
+    "untracked_files": [
+      "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "classification": "preserved_foreign_task_cards_only"
   },
   "forbidden_mutation_performed": false,
   "save_recommendation": "Save to Project Memory: A2M is visible through Qdrant-backed /rag/query according to the integrated read-only smoke; canonical NVMe SQLite projection files are absent; legacy /mnt/sdb2 SQLite is provenance only; Cockpit status routes are missing; chat synthesis remains DATA_MISSING; no projection repair was run."

@@ -115,8 +115,13 @@ isolated worktree remains intact.
 
 ## Final Worktree Status
 
-Expected after committing this controller report and the child report: only the
-two known foreign task cards should remain untracked.
+Observed after integration, controller closeout, and the child report commit:
+only the two known foreign task cards remain untracked.
+
+```text
+?? docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md
+?? docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md
+```
 
 ## Project Memory Save Recommendation
 
