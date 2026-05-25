@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_integration_and_readonly_smoke_controller_v1_20260525",
+  "status": "pass",
+  "commands": [
+    {
+      "name": "preflight_pwd_hostname_date_branch_head_log",
+      "result": "pass"
+    },
+    {
+      "name": "canonical_git_status",
+      "result": "pass_found_two_unrelated_untracked_task_cards"
+    },
+    {
+      "name": "git_worktree_list",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_help",
+      "command": "python3 scripts/agent_job_contract.py --help; validate --help; check-diff --help",
+      "result": "pass"
+    },
+    {
+      "name": "registry_help",
+      "command": "python3 scripts/agent_job_registry.py --help; check-overlap --help; claim --help; release --help",
+      "result": "pass"
+    },
+    {
+      "name": "merge_parking_command_discovery",
+      "command": "rg/find/git config searches for merge parking command syntax",
+      "result": "DATA_MISSING_no_command_found"
+    },
+    {
+      "name": "controller_validate_canonical",
+      "result": "pass"
+    },
+    {
+      "name": "controller_check_overlap_canonical",
+      "result": "blocked_by_unrelated_untracked_task_cards"
+    },
+    {
+      "name": "safe_isolation_worktree",
+      "result": "pass_created_from_6eb30d3f098849c501d2239a188374bd822d6000"
+    },
+    {
+      "name": "controller_validate_isolated",
+      "result": "pass"
+    },
+    {
+      "name": "controller_check_overlap_isolated",
+      "result": "pass"
+    },
+    {
+      "name": "controller_claim",
+      "result": "pass"
+    },
+    {
+      "name": "audit_commit_inspection",
+      "result": "pass_expected_nine_files_only"
+    },
+    {
+      "name": "audit_cherry_pick",
+      "command": "git cherry-pick -x 3eb87220b3834ecd510202118d0c1820d7f9aa36",
+      "result": "pass_created_2d1e810bcb978cc062d5de81d2c6b6198a76b8a4"
+    },
+    {
+      "name": "audit_task_card_validate",
+      "result": "pass"
+    },
+    {
+      "name": "audit_json_validation",
+      "result": "pass"
+    },
+    {
+      "name": "audit_git_diff_check",
+      "command": "git diff --check HEAD~1..HEAD",
+      "result": "pass"
+    },
+    {
+      "name": "smoke_task_card_validate",
+      "result": "pass"
+    },
+    {
+      "name": "smoke_check_overlap",
+      "result": "expected_self_overlap_with_active_controller"
+    },
+    {
+      "name": "smoke_qdrant_readonly",
+      "result": "pass"
+    },
+    {
+      "name": "smoke_sqlite_readonly",
+      "result": "pass"
+    },
+    {
+      "name": "smoke_routes_readonly",
+      "result": "pass"
+    },
+    {
+      "name": "smoke_json_validation",
+      "result": "pass"
+    },
+    {
+      "name": "final_json_validation",
+      "result": "pass"
+    },
+    {
+      "name": "final_git_diff_check",
+      "result": "pass"
+    },
+    {
+      "name": "final_task_card_check_diff",
+      "result": "pass"
+    },
+    {
+      "name": "final_registry_release",
+      "result": "pass"
+    },
+    {
+      "name": "final_registry_list_active",
+      "result": "pass_only_strategy_lab_quantdinger_repeatability_harness_active"
+    }
+  ],
+  "no_forbidden_mutation_observed": true
+}

@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_readonly_smoke_v1_20260525",
+  "generated_at": "2026-05-25T13:45:28+10:00",
+  "rows": [
+    {
+      "evidence_location": "Qdrant",
+      "path_collection_table_route": "news_chunks",
+      "a2m_evidence_present": true,
+      "read_only_proof_command_or_source": "curl GET /collections/news_chunks; curl POST /points/count with A2M ticker/primary_ticker/tickers filters",
+      "current_consumer": "backend /rag/query source=news; Cockpit /rag/query rewrite",
+      "user_visible": "yes",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Canonical SQLite projection",
+      "path_collection_table_route": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite",
+      "a2m_evidence_present": "DATA_MISSING",
+      "read_only_proof_command_or_source": "test -e returned 1",
+      "current_consumer": "local article detail lookup candidate if present",
+      "user_visible": "no",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Canonical SQLite projection",
+      "path_collection_table_route": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite",
+      "a2m_evidence_present": "DATA_MISSING",
+      "read_only_proof_command_or_source": "test -e returned 1; cockpit.yaml still points news_context.db_path at reports/qual_context/news.sqlite",
+      "current_consumer": "SQLite fallback/projection status only; not primary live news search",
+      "user_visible": "no",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Legacy SQLite article DB",
+      "path_collection_table_route": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite tables articles/article_relevance/entity_links",
+      "a2m_evidence_present": true,
+      "read_only_proof_command_or_source": "sqlite3 -readonly with PRAGMA query_only=ON found 7 distinct A2M article_relevance article IDs and 6 primary A2M articles",
+      "current_consumer": "none confirmed in current canonical runtime",
+      "user_visible": "no",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Legacy SQLite context DB",
+      "path_collection_table_route": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite table context_chunks",
+      "a2m_evidence_present": true,
+      "read_only_proof_command_or_source": "sqlite3 -readonly with PRAGMA query_only=ON found 43 ticker-like A2M chunks and 791 combined A2M-like chunks",
+      "current_consumer": "none confirmed in current canonical runtime",
+      "user_visible": "no",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Backend route",
+      "path_collection_table_route": "POST http://127.0.0.1:8000/rag/query source=news ticker=A2M",
+      "a2m_evidence_present": true,
+      "read_only_proof_command_or_source": "curl returned two news results with A2M in ticker fields",
+      "current_consumer": "backend API and Cockpit rewrite",
+      "user_visible": "yes",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Cockpit route",
+      "path_collection_table_route": "POST http://127.0.0.1:3000/rag/query source=news ticker=A2M",
+      "a2m_evidence_present": true,
+      "read_only_proof_command_or_source": "curl returned the same two news results as backend /rag/query",
+      "current_consumer": "cockpit-ui/components/cockpit/news/news-screen.tsx",
+      "user_visible": "yes",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Cockpit status route",
+      "path_collection_table_route": "GET http://127.0.0.1:3000/api/cockpit/news/status",
+      "a2m_evidence_present": "DATA_MISSING",
+      "read_only_proof_command_or_source": "curl returned 404",
+      "current_consumer": "none found",
+      "user_visible": "DATA_MISSING",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Cockpit config route",
+      "path_collection_table_route": "GET http://127.0.0.1:3000/api/cockpit/config",
+      "a2m_evidence_present": "not applicable",
+      "read_only_proof_command_or_source": "curl returned config with features.rag=true and backend_url=http://localhost:8000",
+      "current_consumer": "settings/status UI config",
+      "user_visible": "partial_status_only",
+      "mutation_performed": false
+    },
+    {
+      "evidence_location": "Live chat synthesis",
+      "path_collection_table_route": "Cockpit chat/session path",
+      "a2m_evidence_present": "DATA_MISSING",
+      "read_only_proof_command_or_source": "not invoked because chat/session paths may write state",
+      "current_consumer": "chat UI",
+      "user_visible": "DATA_MISSING",
+      "mutation_performed": false
+    }
+  ]
+}
