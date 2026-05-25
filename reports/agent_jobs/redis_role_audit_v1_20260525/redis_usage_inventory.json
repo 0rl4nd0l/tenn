@@ -1,0 +1,96 @@
+{
+  "job_id": "redis_role_audit_v1_20260525",
+  "issue": 59,
+  "classification": {
+    "required_for": [
+      "Celery mode",
+      "Compose full-stack workers",
+      "queue depth/status when broker state is needed",
+      "Redis-backed router/extraction coordination"
+    ],
+    "optional_or_degraded_for": [
+      "sync task mode",
+      "isolated backend mode without broker-backed ingestion",
+      "extraction activity signaling when file fallback is available"
+    ],
+    "queue_only": false,
+    "cache_like": "partial_transient_runtime_state_only",
+    "canonical_financial_truth_store": false,
+    "disabled_or_stale": "not_confirmed"
+  },
+  "evidence": [
+    {
+      "path": "financial-engine_v2/docker-compose.yml",
+      "lines": "17-20,72-75,101-104,130-133,156-159",
+      "finding": "Compose defines Redis and makes backend/worker/gpu_worker/beat depend on Redis service start."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/core/config.py",
+      "lines": "185-203,254-256,346-353",
+      "finding": "Settings define and normalize redis_url, celery_broker_url, and celery_result_backend for host vs Docker runtime."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/celery_app.py",
+      "lines": "14-17,48-67",
+      "finding": "Celery broker/result backend use Redis-derived settings and configure specialized queues."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/router_state.py",
+      "lines": "249-276,279-303,794-890,975-984",
+      "finding": "Redis is used for queue depths and extraction/GPU-exclusive activity; file fallback exists when Redis is unavailable."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/main.py",
+      "lines": "1276-1305,2112-2148",
+      "finding": "Backend probes Redis connectivity and reports queue status from Redis LLEN."
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "lines": "3874-3970,4792-4822",
+      "finding": "Cockpit health and queue endpoints probe Redis and queue depths."
+    },
+    {
+      "path": "docs/architecture/09_worker_and_celery_contract.md",
+      "lines": "48-69",
+      "finding": "Worker contract documents Redis as Celery broker/result backend and queue-depth probe source."
+    },
+    {
+      "path": "docs/setup/runtime.md",
+      "lines": "8-24",
+      "finding": "Runtime docs list Redis port 6379 as Celery broker/result backend and say to start it when running Celery mode."
+    },
+    {
+      "path": "scripts/check_environment.py",
+      "lines": "159-165",
+      "finding": "Environment check requires Redis/Celery broker only when task_mode is not sync."
+    }
+  ],
+  "risks_and_gaps": [
+    {
+      "status": "Confirmed",
+      "item": "Docs and health surfaces should distinguish Redis-down in Celery mode from Redis-down in sync mode."
+    },
+    {
+      "status": "Confirmed",
+      "item": "Queue status depends on Redis reachability and should not be interpreted as canonical task history."
+    },
+    {
+      "status": "Inferred",
+      "item": "Broker-backed ingestion is unavailable when TASK_MODE=celery and Redis is unreachable."
+    },
+    {
+      "status": "DATA_MISSING",
+      "item": "Live Redis process status was not sampled in this audit."
+    }
+  ],
+  "recommended_child_task": {
+    "job_id": "redis_role_docs_and_health_semantics_v1_20260525",
+    "mode": "safe_extension",
+    "scope": [
+      "docs/setup/runtime.md",
+      "docs/architecture/09_worker_and_celery_contract.md",
+      "docs/architecture/02_runtime_topology.md",
+      "status/health copy or docs only if separately approved"
+    ]
+  }
+}
