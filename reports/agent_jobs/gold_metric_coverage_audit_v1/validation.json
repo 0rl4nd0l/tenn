@@ -1,0 +1,120 @@
+{
+  "job_id": "gold_metric_coverage_audit_v1",
+  "generated_at": "2026-05-25T15:10:37+10:00",
+  "issue": 37,
+  "lane": "Evaluation",
+  "execution_mode": "audit_only",
+  "current_turn_evidence": {
+    "github_issue_state": "OPEN before closeout",
+    "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+    "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525",
+    "active_registry_overlap": false,
+    "non_overlapping_active_job_before_claim": "strategy_lab_readonly_subsystem_maturation_v1_20260525",
+    "active_jobs_after_release": []
+  },
+  "profile_boundaries": {
+    "canonical_core": {
+      "document_count": 10,
+      "metric_checks": 24,
+      "metric_families": [
+        "revenue",
+        "operating_cash_flow",
+        "net_debt"
+      ],
+      "claim": "strict no-regression anchor only"
+    },
+    "expanded_required": {
+      "document_count": 15,
+      "metric_checks": 39,
+      "metric_families": [
+        "revenue",
+        "operating_cash_flow",
+        "net_debt"
+      ],
+      "claim": "current required-subset stability only"
+    },
+    "confirmed_metric_coverage": {
+      "fixture_count": 15,
+      "total_expectations": 146,
+      "eligible_scored_ready_rows": 73,
+      "excluded_candidate_rows": 70,
+      "excluded_ambiguous_or_derived_rows": 3,
+      "extracted_payload_artifact_status": "DATA_MISSING",
+      "extracted_payload_accuracy_score_status": "DATA_MISSING",
+      "claim": "breadth inventory and scoring denominator only"
+    }
+  },
+  "source_artifacts_validated": [
+    "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/corpus_inventory.json",
+    "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/metric_inventory.json",
+    "reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/scorecard_proposal.json",
+    "reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/scoring_availability.json",
+    "reports/agent_jobs/eval_spine_current_evidence_manifest_audit_v1_20260525/evidence_manifest.json"
+  ],
+  "mutations_performed": {
+    "extraction_jobs_run": false,
+    "parser_logic_changed": false,
+    "prompts_changed": false,
+    "gold_labels_changed": false,
+    "scorecard_code_changed": false,
+    "canonical_truth_written": false,
+    "db_qdrant_or_memory_mutated": false,
+    "services_started_stopped_or_restarted": false,
+    "gpu_used": false
+  },
+  "validation_commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/gold_metric_coverage_audit_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_non_overlapping_strategy_lab_job_active"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/gold_metric_coverage_audit_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/gold_metric_coverage_audit_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/corpus_inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/metric_inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/gold_metric_coverage_audit_v1_20260519/scorecard_proposal.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/confirmed_metric_extracted_payload_scoring_audit_v1_20260525/scoring_availability.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/eval_spine_current_evidence_manifest_audit_v1_20260525/evidence_manifest.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/gold_metric_coverage_audit_v1.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release gold_metric_coverage_audit_v1",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed_no_active_jobs_after_release"
+    }
+  ],
+  "result": "issue_37_audit_acceptance_met_no_product_remediation_claimed"
+}
