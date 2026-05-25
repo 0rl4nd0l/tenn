@@ -1,0 +1,89 @@
+{
+  "allowed_files_only": true,
+  "check_diff_status": "pass",
+  "final_changed_file_classification": {
+    "disallowed_files": [],
+    "forbidden_files": [],
+    "report_artifacts": [
+      "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/README.md",
+      "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/status.json",
+      "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/confirmed_metric_scoring_gap_report.json",
+      "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/validation.json",
+      "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/diff-check.json"
+    ],
+    "service_files": [],
+    "task_card": [
+      "docs/agent_tasks/confirmed_metric_scoring_gap_safe_extension_v1_20260524.md"
+    ],
+    "test_files": []
+  },
+  "job_id": "confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+  "note": "reports/ is ignored by shared git info exclude; allowed report artifacts were force-added for commit.",
+  "schema_version": 1,
+  "task_card_check_diff_output": {
+    "changed_files": [
+      {
+        "path": "docs/agent_tasks/confirmed_metric_scoring_gap_safe_extension_v1_20260524.md",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/README.md",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/confirmed_metric_scoring_gap_report.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/diff-check.json",
+        "status": "AM"
+      },
+      {
+        "path": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/status.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/validation.json",
+        "status": "A"
+      }
+    ],
+    "disallowed_files": [],
+    "issues": [],
+    "ok": true,
+    "report_path": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/diff-check.json",
+    "validation": {
+      "issues": [],
+      "metadata": {
+        "allow_audit_code_changes": true,
+        "allow_unapproved_safe_extension": true,
+        "allowed_files": [
+          "docs/agent_tasks/confirmed_metric_scoring_gap_safe_extension_v1_20260524.md",
+          "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+          "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+          "financial-engine_v2/backend/tests/test_confirmed_metric_coverage_review.py",
+          "financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py",
+          "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/README.md",
+          "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/status.json",
+          "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/confirmed_metric_scoring_gap_report.json",
+          "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/validation.json",
+          "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524/diff-check.json"
+        ],
+        "approval_required": false,
+        "job_id": "confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+        "lane": "Evaluation",
+        "mutation_mode": "safe_extension",
+        "output_dir": "reports/agent_jobs/confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+        "owner": "Codex",
+        "primary_lane": "Evaluation",
+        "production_data_access": false,
+        "supporting_lanes": [
+          "Financial Truth",
+          "Provenance"
+        ],
+        "timeout_seconds": 14400,
+        "title": "Confirmed Metric Scoring Gap Safe Extension v1"
+      },
+      "ok": true
+    }
+  }
+}

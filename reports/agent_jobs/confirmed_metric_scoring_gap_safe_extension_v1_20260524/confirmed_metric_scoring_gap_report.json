@@ -1,0 +1,459 @@
+{
+  "canonical_truth_safety": {
+    "ambiguous_rows_promoted": false,
+    "candidate_rows_promoted": false,
+    "canonical_financial_truth_written": false,
+    "db_qdrant_memory_or_production_data_mutated": false,
+    "fixture_labels_mutated": false,
+    "parser_or_extraction_routing_changed": false,
+    "source_pdfs_mutated": false
+  },
+  "denominator_source": {
+    "accuracy_denominator": 73,
+    "accuracy_score_status": "DATA_MISSING",
+    "builder": "app.services.extraction_gold_eval_scorecard.build_confirmed_metric_coverage_scorecard",
+    "denominators_not_combined": true,
+    "eligible_rule": "support_status == scored; source-evidenced, schema-supported, not candidate, not ambiguous",
+    "fixtures_dir": "financial-engine_v2/backend/tests/eval_fixtures",
+    "kind": "current fixture scorecard inventory"
+  },
+  "eligible_scored_ready_rows": 73,
+  "eligible_scored_ready_rows_explanation": "Current scorecard has 73 support_status=scored rows; these are the only rows eligible for a future extracted-payload accuracy score.",
+  "excluded_ambiguous_rows": 3,
+  "excluded_ambiguous_rows_explanation": "Ambiguous/derived rows remain excluded until a separate reviewed-label process resolves ambiguity.",
+  "excluded_candidate_rows": 70,
+  "excluded_candidate_rows_explanation": "Candidate rows remain excluded because they require separate human source-evidence review.",
+  "extracted_payload_score_status": {
+    "no_accuracy_score_emitted": true,
+    "reason": "No extracted payloads were supplied to the confirmed metric coverage scorer in this safe-extension task.",
+    "status": "DATA_MISSING",
+    "status_summary": {
+      "abstain": 0,
+      "correct": 0,
+      "missing": 0,
+      "not_evaluated": 73,
+      "quarantine": 0,
+      "wrong": 0
+    }
+  },
+  "generated_at": "2026-05-25T02:48:47.398117Z",
+  "generated_extraction_eval_artifact_status": {
+    "files": [],
+    "status": "DATA_MISSING"
+  },
+  "graphify_artifact_status": {
+    "files": [],
+    "status": "DATA_MISSING"
+  },
+  "job_id": "confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+  "no_broad_accuracy_claim": true,
+  "per_metric_family_coverage_gap_summary": {
+    "capex": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 5,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 5,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 12,
+      "wrong": 0
+    },
+    "cash_end": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "ebit": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 7,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 7,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 14,
+      "wrong": 0
+    },
+    "financing_cf": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "investing_cf": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "net_debt": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 5,
+      "excluded_ambiguous_or_derived": 3,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 5,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "np_attributable": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "operating_cf": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "revenue": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    },
+    "shares_outstanding": {
+      "abstain": 0,
+      "correct": 0,
+      "eligible_scored_ready": 8,
+      "excluded_ambiguous_or_derived": 0,
+      "excluded_candidate_review_required": 7,
+      "excluded_missing_source_evidence": 0,
+      "excluded_unsupported_schema": 0,
+      "extracted_payload_not_evaluated": 8,
+      "missing": 0,
+      "quarantine": 0,
+      "score_status": "DATA_MISSING",
+      "total_expectations": 15,
+      "wrong": 0
+    }
+  },
+  "profile": "confirmed_metric_coverage",
+  "profile_separation": {
+    "canonical_core": {
+      "document_count": 10,
+      "included_in_this_denominator": false,
+      "metric_checks": 24
+    },
+    "confirmed_metric_coverage": {
+      "eligible_scored_ready_rows": 73,
+      "fixture_count": 15,
+      "included_in_this_denominator": true,
+      "total_expectations": 146
+    },
+    "expanded_required": {
+      "document_count": 15,
+      "included_in_this_denominator": false,
+      "metric_checks": 39
+    }
+  },
+  "rows_or_metric_families_that_remain_DATA_MISSING": [
+    {
+      "eligible_scored_ready_rows": 5,
+      "metric_family": "capex",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "cash_end",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 7,
+      "metric_family": "ebit",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "financing_cf",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "investing_cf",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 5,
+      "metric_family": "net_debt",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "np_attributable",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "operating_cf",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "revenue",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    },
+    {
+      "eligible_scored_ready_rows": 8,
+      "metric_family": "shares_outstanding",
+      "reason": "extracted payloads were not supplied to the confirmed metric coverage scorer"
+    }
+  ],
+  "schema_version": 1,
+  "source_pdf_resolution_status": {
+    "live_http_source_route_proof": "DATA_MISSING",
+    "project_root_fixture_file_existence": {
+      "check": "financial_engine_root / fixture pdf_path",
+      "interpretation": "This is not source-route openability and must not block source-route proof by itself.",
+      "missing_rows": 146,
+      "not_declared_rows": 0,
+      "present_rows": 0,
+      "status": "path_scope_mismatch"
+    },
+    "source_route_openability": {
+      "allowlisted_roots": [
+        "financial-engine_v2/data/asx/docs",
+        "/data/asx/docs"
+      ],
+      "resolver": "app.services.confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path",
+      "rows_openable": 146,
+      "rows_total": 146,
+      "source_groups": [
+        {
+          "fixtures": [
+            "ANZ_H_2025-03-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ANZ/financial_performance/2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/ANZ/financial_performance/2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf"
+        },
+        {
+          "fixtures": [
+            "AZJ_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/AZJ/financial_performance/2026-02-16_half-year-report_db0f7916-58c8-46ee-a06b-9995e2760fe6.pdf"
+        },
+        {
+          "fixtures": [
+            "BHP_A_2021-06-30.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf"
+        },
+        {
+          "fixtures": [
+            "CSL_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/CSL/financial_performance/2026-02-11_csl-statutory-accounts-for-the-half-year-ended-31-december_68834fe5-e2af-4373-a2cb-08f7ad8c0465.pdf"
+        },
+        {
+          "fixtures": [
+            "DXS_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXS/financial_performance/2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/DXS/financial_performance/2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf"
+        },
+        {
+          "fixtures": [
+            "EQR_Q_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+          "row_count": 9,
+          "source_path": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf"
+        },
+        {
+          "fixtures": [
+            "FMG_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FMG/financial_performance/2026-02-25_fy26-half-year-financial-report-and-appendix-4d_910e9da0-debb-4aa4-b524-cad5a69d9aa3.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/FMG/financial_performance/2026-02-25_fy26-half-year-financial-report-and-appendix-4d_910e9da0-debb-4aa4-b524-cad5a69d9aa3.pdf"
+        },
+        {
+          "fixtures": [
+            "GRE_Q_2024-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+          "row_count": 9,
+          "source_path": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf"
+        },
+        {
+          "fixtures": [
+            "MIN_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf"
+        },
+        {
+          "fixtures": [
+            "QBE_H_2025-06-30.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf"
+        },
+        {
+          "fixtures": [
+            "RMS_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf"
+        },
+        {
+          "fixtures": [
+            "SEG_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/SEG/financial_performance/2026-02-18_half-year-fy26-financial-report_5fcfe1d9-6c17-416e-b978-89f109b41145.pdf",
+          "row_count": 8,
+          "source_path": "data/asx/docs/SEG/financial_performance/2026-02-18_half-year-fy26-financial-report_5fcfe1d9-6c17-416e-b978-89f109b41145.pdf"
+        },
+        {
+          "fixtures": [
+            "TCL_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TCL/financial_performance/2026-02-19_transurban-appendix-4d-and-1h26-interim-report_bdcd91dd-98de-46ab-a14d-9468462b8de6.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/TCL/financial_performance/2026-02-19_transurban-appendix-4d-and-1h26-interim-report_bdcd91dd-98de-46ab-a14d-9468462b8de6.pdf"
+        },
+        {
+          "fixtures": [
+            "TLS_H_2025-12-31.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf"
+        },
+        {
+          "fixtures": [
+            "WOW_H_2026-01-04.json"
+          ],
+          "pdf_header_ok": true,
+          "resolution_mode": "source_route_allowlist",
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WOW/financial_performance/2026-02-25_appendix-4d-and-half-year-financial-report_b84a6cde-1fa0-4d11-a86a-0ad1c1fea6b7.pdf",
+          "row_count": 10,
+          "source_path": "data/asx/docs/WOW/financial_performance/2026-02-25_appendix-4d-and-half-year-financial-report_b84a6cde-1fa0-4d11-a86a-0ad1c1fea6b7.pdf"
+        }
+      ],
+      "source_groups_openable": 15,
+      "source_groups_total": 15,
+      "status": "openable"
+    }
+  },
+  "source_status_counts": {
+    "CANDIDATE_REVIEW_REQUIRED": 70,
+    "CONFIRMED_SOURCE_EVIDENCED": 76
+  },
+  "support_counts": {
+    "ambiguous_label": 3,
+    "candidate_review_required": 70,
+    "scored": 73
+  },
+  "total_fixture_rows": 146
+}
