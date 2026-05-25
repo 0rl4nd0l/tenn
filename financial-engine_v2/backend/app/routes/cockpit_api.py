@@ -87,6 +87,7 @@ from app.services.marketplace_requirement_preparation import (
     prepare_requirement_driven_mission,
 )
 from app.services.marketplace_scanner import MarketplaceScanCancelled, MarketplaceScanner
+from app.services.news_health_status import build_a2m_news_health_status
 from app.services.router_state import get_extraction_activity_snapshot
 from app.services.structured_chunking import simple_chunk
 from cockpit.core.config import (
@@ -4033,6 +4034,18 @@ def cockpit_metrics_host() -> dict[str, Any]:
         "response_time_ms": item.response_time_ms,
         "details": item.details or {},
     }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/cockpit/news/status
+# ---------------------------------------------------------------------------
+
+
+@router.get("/news/status")
+def cockpit_news_status() -> dict[str, Any]:
+    """Return the read-only A2M/news status contract without probing or repair."""
+
+    return build_a2m_news_health_status()
 
 
 # ---------------------------------------------------------------------------

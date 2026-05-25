@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "job_id": "status_route_contract_implementation_for_news_health_v1_20260525",
+  "generated_at": "2026-05-25T04:43:00Z",
+  "commands": [
+    {
+      "command": "pwd",
+      "result": "pass",
+      "summary": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 from /home/l4nd0/tenn; isolated worktree later at /home/l4nd0/tenn-status-route-contract-news-health-v1-20260525"
+    },
+    {
+      "command": "hostname && date -Is && git branch --show-current && git rev-parse HEAD && git log --oneline -5",
+      "result": "pass",
+      "summary": "host l4nd0-System-Product-Name; branch migration/clean-runtime-baseline-reconstruct-v1; HEAD af49ede4 before isolation"
+    },
+    {
+      "command": "git status --short --untracked-files=all",
+      "result": "partial",
+      "summary": "Shared checkout had two foreign untracked task cards; isolated worktree started clean except this task card."
+    },
+    {
+      "command": "git worktree list",
+      "result": "pass",
+      "summary": "Large worktree set confirmed; no cleanup/prune performed."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py --help; validate --help; check-diff --help; python3 scripts/agent_job_registry.py --help; check-overlap --help",
+      "result": "pass",
+      "summary": "Contract and registry command syntax verified."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/status_route_contract_implementation_for_news_health_v1_20260525.md",
+      "result": "pass",
+      "summary": "Task card valid before and after exact source/test allowed_files expansion."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "pass",
+      "summary": "Shared registry visible at /mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/status_route_contract_implementation_for_news_health_v1_20260525.md",
+      "result": "partial_then_pass",
+      "summary": "Shared checkout blocked on foreign untracked task cards; isolated worktree passed."
+    },
+    {
+      "command": "git worktree add -b safe/status-route-contract-news-health-v1-20260525 /home/l4nd0/tenn-status-route-contract-news-health-v1-20260525 HEAD",
+      "result": "pass",
+      "summary": "Safe isolated worktree created from af49ede4."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/status_route_contract_implementation_for_news_health_v1_20260525.md",
+      "result": "pass",
+      "summary": "Claim refreshed after allowed_files expansion."
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/news_health_status.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_news_status.py",
+      "result": "pass",
+      "summary": "Touched Python files compile."
+    },
+    {
+      "command": "manual dependency-light Python smoke for build_a2m_news_health_status and route decorator presence",
+      "result": "pass",
+      "summary": "A2M split truth preserved without live probes; route decorator present."
+    },
+    {
+      "command": "uv run --isolated --with ruff==0.15.6 ruff check financial-engine_v2/backend/app/services/news_health_status.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/tests/test_cockpit_news_status.py",
+      "result": "pass",
+      "summary": "All checks passed."
+    },
+    {
+      "command": "uv run --isolated --python 3.11 --with pytest==8.3.3 ... python -m pytest financial-engine_v2/backend/tests/test_cockpit_news_status.py financial-engine_v2/backend/tests/test_route_parity_contract.py",
+      "result": "pass",
+      "summary": "4 passed, 6 warnings. Minimal backend import dependencies included PyMuPDF, pandas, and exchange_calendars."
+    }
+  ],
+  "final_commands": [
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status_route_contract_audit.json >/dev/null",
+      "result": "pass"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status_reporting_gap_register.json >/dev/null",
+      "result": "pass"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/validation.json >/dev/null",
+      "result": "pass"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status.json >/dev/null",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/status_route_contract_implementation_for_news_health_v1_20260525.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release status_route_contract_implementation_for_news_health_v1_20260525",
+      "result": "pass"
+    },
+    {
+      "command": "git commit -m \"milestone(query): add news health status contract\"",
+      "result": "pass",
+      "summary": "Created commit 48400b5015c5b7db95e955cd16e295df83a0fd07 before metadata amend."
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "job_id": "status_route_contract_implementation_for_news_health_v1_20260525",
+  "status": "implemented_validated_committed",
+  "lane": "Query Orchestration",
+  "supporting_lanes": [
+    "Provenance",
+    "Reporting"
+  ],
+  "mode": "audit_first_safe_extension",
+  "production_data_access": false,
+  "branch": "safe/status-route-contract-news-health-v1-20260525",
+  "HEAD_before": "af49ede4ceb0e809580efe97754d9f17fbcd3c50",
+  "HEAD_after": "COMMITTED_SEE_TERMINAL_CLOSEOUT",
+  "registry_status": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "claim": "released",
+    "released_at": "2026-05-25T04:39:12.828753Z",
+    "safe_isolation_used": true,
+    "shared_checkout_blocker": "two foreign untracked task cards outside this job"
+  },
+  "changed_files": [
+    "docs/agent_tasks/status_route_contract_implementation_for_news_health_v1_20260525.md",
+    "financial-engine_v2/backend/app/services/news_health_status.py",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/tests/test_cockpit_news_status.py",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/README.md",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status_route_contract_audit.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/status_reporting_gap_register.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/validation.json",
+    "reports/agent_jobs/status_route_contract_implementation_for_news_health_v1_20260525/diff-check.json"
+  ],
+  "allowed_files_check": {
+    "task_card_validation": "pass",
+    "registry_check_overlap": "pass_in_isolated_worktree",
+    "check_diff": "pass"
+  },
+  "validation": {
+    "py_compile": "pass",
+    "manual_contract_smoke": "pass",
+    "ruff": "pass",
+    "focused_pytest": "pass_4_passed_6_warnings",
+    "json_validation": "pass",
+    "git_diff_check": "pass"
+  },
+  "a2m_news_health_status": {
+    "qdrant_retrieval": "ok",
+    "canonical_sqlite_projection": "missing",
+    "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+    "cockpit_query_route": "ok_via_rag_query",
+    "cockpit_status_routes": "implemented",
+    "chat_synthesis": "DATA_MISSING",
+    "projection_repair": "not_run"
+  },
+  "implementation_status": {
+    "route": "GET /api/cockpit/news/status",
+    "backend_helper": "financial-engine_v2/backend/app/services/news_health_status.py",
+    "retrieval_flow_changed": false,
+    "qdrant_mutation": false,
+    "sqlite_mutation": false,
+    "projection_repair_run": false,
+    "chat_smoke_run": false,
+    "ui_consumer_added": false
+  },
+  "save_recommendation": "Save to Project Memory: A2M/news health now has a backend status contract at GET /api/cockpit/news/status that preserves the split truth: Qdrant-backed /rag/query OK, canonical NVMe SQLite projection missing, legacy /mnt/sdb2 SQLite provenance-only, chat synthesis DATA_MISSING, and projection repair not run."
+}
