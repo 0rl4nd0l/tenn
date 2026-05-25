@@ -247,6 +247,95 @@ def test_agent_format_search_news() -> None:
     assert len(sources) == 1
     assert sources[0]["kind"] == "news"
     assert sources[0]["url"] == "https://news.example.com/bhp"
+    assert sources[0]["claim_verified"] is False
+    assert "context_only" in sources[0]["evidence_labels"]
+
+
+def test_direct_news_search_marks_successful_local_news_claim_verified() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "news_search",
+                "details": {
+                    "hits": [
+                        {
+                            "title": "BHP operational update",
+                            "url": "https://news.example.com/bhp-update",
+                            "snippet": "BHP released an operational update.",
+                            "published_at": "2026-05-24T00:00:00Z",
+                        }
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["kind"] == "news"
+    assert sources[0]["claim_verified"] is True
+    assert "claim_verified" in sources[0]["evidence_labels"]
+    assert "local_news_context" in sources[0]["evidence_labels"]
+    assert "context_only" not in sources[0]["evidence_labels"]
+
+
+def test_agent_search_news_ok_result_marks_local_news_claim_verified() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "ok": True,
+                "hits": [
+                    {
+                        "title": "CSL research update",
+                        "url": "https://news.example.com/csl-research",
+                        "snippet": "CSL shares moved after a research update.",
+                        "published_at": "2026-05-23T00:00:00Z",
+                    }
+                ],
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+    metadata = _build_chat_ui_metadata(
+        SimpleNamespace(
+            text="CSL latest news was a research update.",
+            routing_metadata={},
+            evidence=evidence,
+        ),
+        sources,
+    )
+
+    assert sources[0]["claim_verified"] is True
+    assert "context_only" not in sources[0]["evidence_labels"]
+    assert metadata["claim_verified_source_count"] == 1
+    assert metadata["source_coverage_status"] == "claim_verified"
+
+
+def test_agent_search_news_data_insufficient_hits_stay_context_only() -> None:
+    evidence = [
+        {
+            "tool": "search_news",
+            "result": {
+                "ok": False,
+                "data_insufficient": True,
+                "hits": [
+                    {
+                        "title": "A2M historical wrap",
+                        "url": "https://news.example.com/a2m-wrap",
+                        "snippet": "A2M was mentioned in older historical context.",
+                        "published_at": "2026-04-01T00:00:00Z",
+                    }
+                ],
+            },
+        }
+    ]
+    sources = _build_ui_sources(evidence)
+
+    assert len(sources) == 1
+    assert sources[0]["claim_verified"] is False
+    assert "context_only" in sources[0]["evidence_labels"]
+    assert "local_news_context" in sources[0]["evidence_labels"]
+    assert "claim_verified" not in sources[0]["evidence_labels"]
 
 
 def test_agent_format_search_news_zero_hits_emits_operational_source_item() -> None:

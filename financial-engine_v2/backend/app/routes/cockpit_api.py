@@ -1900,6 +1900,52 @@ def _append_news_no_hit_source(
     )
 
 
+def _news_result_can_claim_verify(
+    result: dict[str, Any],
+    *,
+    require_ok: bool,
+) -> bool:
+    if require_ok and result.get("ok") is not True:
+        return False
+    if result.get("data_insufficient") is True:
+        return False
+    if _tool_result_has_runtime_failure("search_news", result):
+        return False
+    labels = _normalize_source_labels(result.get("evidence_labels"))
+    if labels & {"context_only", "no_hit", "degraded_runtime", "missing_required_evidence"}:
+        return False
+    status = str(result.get("source_coverage_status") or "").strip()
+    return status not in {
+        "context_only",
+        "no_hit",
+        "degraded_runtime",
+        "missing_required_evidence",
+    }
+
+
+def _verified_local_news_hit(raw: dict[str, Any], *, allow_auto_claim: bool) -> dict[str, Any]:
+    enriched = dict(raw)
+    labels = _normalize_source_labels(enriched.get("evidence_labels"))
+    labels.update(_normalize_source_labels(enriched.get("source_labels")))
+    labels.add("local_news_context")
+
+    blocks_claim = bool(
+        labels
+        & {
+            "context_only",
+            "no_hit",
+            "degraded_runtime",
+            "missing_required_evidence",
+        }
+    )
+    if allow_auto_claim and not blocks_claim:
+        labels.add("claim_verified")
+        enriched["claim_verified"] = True
+
+    enriched["evidence_labels"] = sorted(labels)
+    return enriched
+
+
 def _source_id_slug(value: Any, *, fallback: str = "unknown") -> str:
     text = str(value or "").strip().lower()
     text = re.sub(r"[^a-z0-9._:-]+", "-", text).strip("-")
@@ -2266,12 +2312,16 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                 )
 
         elif ev_type == "news_search":
+            can_claim_verify = _news_result_can_claim_verify(details, require_ok=False)
             for row in details.get("hits", []) if isinstance(details.get("hits"), list) else []:
                 if isinstance(row, dict):
                     _append_source_item(
                         items,
                         seen,
-                        row,
+                        _verified_local_news_hit(
+                            row,
+                            allow_auto_claim=can_claim_verify,
+                        ),
                         default_title="News source",
                         kind="news",
                     )
@@ -2443,12 +2493,19 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                 result = _decode_truncated_tool_result(result)
                 if tool_name == "search_news":
                     hits = _dict_rows(result.get("hits"))
+                    can_claim_verify = _news_result_can_claim_verify(
+                        result,
+                        require_ok=True,
+                    )
                     for hit in hits:
                         if isinstance(hit, dict):
                             _append_source_item(
                                 items,
                                 seen,
-                                hit,
+                                _verified_local_news_hit(
+                                    hit,
+                                    allow_auto_claim=can_claim_verify,
+                                ),
                                 default_title="News article",
                                 kind="news",
                             )

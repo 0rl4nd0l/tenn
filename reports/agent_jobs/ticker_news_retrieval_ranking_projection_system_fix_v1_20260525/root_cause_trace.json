@@ -1,0 +1,36 @@
+{
+  "allowed_root_cause_classes": [
+    "3. Qdrant/news.sqlite/direct ticker-news parity gap",
+    "4. Ranking lets broad context dominate news-intent context despite available local news",
+    "6. Source pack assembly drops or misclassifies retrieved local news"
+  ],
+  "decision": "systemic_code_only_fix_implemented",
+  "first_failing_stage_by_ticker": {
+    "A2M": "source_label_semantics_failure",
+    "BHP": "source_label_semantics_failure",
+    "COH": "DATA_MISSING",
+    "CSL": "source_label_semantics_failure",
+    "MIN": "source_label_semantics_failure",
+    "NST": "source_label_semantics_failure",
+    "WOW": "DATA_MISSING",
+    "XRO": "source_label_semantics_failure"
+  },
+  "hard_stop_review": {
+    "runtime_restart_performed": false,
+    "runtime_restart_required_for_live_smoke": true,
+    "source_guard_weakened": false,
+    "store_mutation_required": false
+  },
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_v1_20260525",
+  "not_root_causes": [
+    "No DB/Qdrant/news-store mutation was required.",
+    "No A2M-only alias was needed or added.",
+    "The landed chat_evidence_guard remained intact.",
+    "Canonical SQLite projection remains absent and is reported honestly."
+  ],
+  "primary_root_cause": "Qdrant-backed local news existed for multiple tickers, but ticker-filter parity omitted primary_ticker, candidate breadth/ranking favored broad roundup linked articles, and Cockpit source assembly projected successful local-news hits as context_only rather than claim_verified local_news_context.",
+  "safe_fix": {
+    "ranking": "Add primary_ticker filter parity, widen ticker-scoped Qdrant candidates, boost primary/stored ticker/title matches, penalize broad roundup/large-linked baskets, and prefer candidate-relative recency.",
+    "source_pack": "Only successful direct news/search_news hits become claim_verified local_news_context; context_only, no-hit, data_insufficient, degraded, and missing-required evidence remain unverified."
+  }
+}
