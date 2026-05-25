@@ -1,0 +1,95 @@
+{
+  "generated_at_utc": "2026-05-25T03:35:00Z",
+  "job_id": "a2m_news_projection_path_remediation_v1_20260525",
+  "no_mutation_performed": true,
+  "matrix": [
+    {
+      "evidence_location": "Qdrant",
+      "collection_table_file_route": "news_chunks",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": true,
+      "cockpit_query_projection_can_reach_it": true,
+      "notes": "Current /rag/query source=news and backend chat news paths use Qdrant. A2M count is 24 across ticker, primary_ticker, and tickers filters. Cockpit backend-api news context calls /rag/query."
+    },
+    {
+      "evidence_location": "SQLite",
+      "collection_table_file_route": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite",
+      "a2m_evidence_present": "DATA_MISSING",
+      "reachable_by_current_retrieval_path": false,
+      "cockpit_query_projection_can_reach_it": false,
+      "notes": "Canonical NVMe article DB is absent."
+    },
+    {
+      "evidence_location": "SQLite",
+      "collection_table_file_route": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite",
+      "a2m_evidence_present": "DATA_MISSING",
+      "reachable_by_current_retrieval_path": false,
+      "cockpit_query_projection_can_reach_it": false,
+      "notes": "Canonical NVMe context fallback DB is absent."
+    },
+    {
+      "evidence_location": "SQLite",
+      "collection_table_file_route": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": false,
+      "cockpit_query_projection_can_reach_it": false,
+      "notes": "Legacy article DB has 7 distinct A2M-linked articles, but current canonical route/config does not point here."
+    },
+    {
+      "evidence_location": "SQLite",
+      "collection_table_file_route": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": false,
+      "cockpit_query_projection_can_reach_it": false,
+      "notes": "Legacy context DB has 43 ticker-like A2M chunks. It is not the current canonical DB and was marked degraded/stale in the May 24 summary."
+    },
+    {
+      "evidence_location": "Route",
+      "collection_table_file_route": "POST /rag/query source=news -> app.services.rag.query_news_chunks -> Qdrant news_chunks",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": true,
+      "cockpit_query_projection_can_reach_it": true,
+      "notes": "Backend route is Qdrant-only for news. Its ticker filter checks ticker and tickers, not primary_ticker; current A2M primary articles also have ticker=A2M."
+    },
+    {
+      "evidence_location": "Route",
+      "collection_table_file_route": "app.services.tenn_chat.chat_with_tenn -> HybridRetriever('news_chunks')",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": true,
+      "cockpit_query_projection_can_reach_it": true,
+      "notes": "HybridRetriever news filter checks ticker, primary_ticker, and tickers; post-filter uses the same payload matcher."
+    },
+    {
+      "evidence_location": "Route",
+      "collection_table_file_route": "Cockpit ToolRouter.get_news_context",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": true,
+      "cockpit_query_projection_can_reach_it": true,
+      "notes": "With backend_api_client configured, Cockpit calls backend /rag/query and can reach Qdrant A2M. SQLite fallback path is not the primary path."
+    },
+    {
+      "evidence_location": "Route",
+      "collection_table_file_route": "Cockpit ToolRouter.get_local_news_article",
+      "a2m_evidence_present": "DATA_MISSING",
+      "reachable_by_current_retrieval_path": false,
+      "cockpit_query_projection_can_reach_it": false,
+      "notes": "Local article lookup searches current repo/parent/workspace article DB candidates. The only found article DB is the legacy /mnt/sdb2 path, which this resolver does not include."
+    },
+    {
+      "evidence_location": "Report",
+      "collection_table_file_route": "reports/agent_jobs/a2m_news_projection_path_discovery_v1_20260524",
+      "a2m_evidence_present": true,
+      "reachable_by_current_retrieval_path": true,
+      "cockpit_query_projection_can_reach_it": "PARTIAL",
+      "notes": "Prior audit correctly found Qdrant A2M and canonical SQLite absence for checked paths; this audit adds current evidence that legacy /mnt/sdb2 SQLite files exist but are outside current canonical path."
+    },
+    {
+      "evidence_location": "DATA_MISSING",
+      "collection_table_file_route": "live chat synthesis response",
+      "a2m_evidence_present": "DATA_MISSING",
+      "reachable_by_current_retrieval_path": "DATA_MISSING",
+      "cockpit_query_projection_can_reach_it": "DATA_MISSING",
+      "notes": "Not invoked because live chat can write chat/session or memory state."
+    }
+  ]
+}

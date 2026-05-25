@@ -1,0 +1,115 @@
+{
+  "generated_at_utc": "2026-05-25T03:35:00Z",
+  "job_id": "a2m_news_projection_path_remediation_v1_20260525",
+  "no_mutation_performed": true,
+  "gaps": [
+    {
+      "group": "missing SQLite file",
+      "status": "Confirmed",
+      "impact": "Canonical NVMe article/context projection paths remain DATA_MISSING even though Qdrant has A2M evidence.",
+      "evidence": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news_articles.sqlite absent",
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/qual_context/news.sqlite absent"
+      ],
+      "recommended_remediation": "Add read-only path health smoke; do not materialize or copy DBs without a separate mutation task."
+    },
+    {
+      "group": "moved path",
+      "status": "Confirmed",
+      "impact": "A2M SQLite evidence exists in legacy /mnt/sdb2 but current canonical runtime root does not consume it.",
+      "evidence": [
+        "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite exists and has 7 distinct A2M articles",
+        "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite exists and has 43 ticker-like A2M chunks",
+        "/home/l4nd0/tenn and /home/l4nd0/tenn-runtime resolve to the NVMe clean baseline"
+      ],
+      "recommended_remediation": "Treat legacy DBs as provenance evidence only; pick and approve the canonical runtime source before any data move."
+    },
+    {
+      "group": "disabled projection",
+      "status": "Inferred",
+      "impact": "The current canonical NVMe nightly path did not emit a summary or SQLite fallback, so projection materialization is effectively unavailable there.",
+      "evidence": [
+        "May 25 NVMe nightly log exists with fetch-start lines only",
+        "No May 25 NVMe summary JSON found",
+        "No NVMe news_articles.sqlite or news.sqlite found"
+      ],
+      "recommended_remediation": "Run a read-only nightly-path health check first; any venv/runtime repair is a separate ops mutation task."
+    },
+    {
+      "group": "stale config",
+      "status": "Confirmed",
+      "impact": "Config advertises a SQLite news_context db_path that is absent in the current root and not passed to ToolRouter in backend-api mode.",
+      "evidence": [
+        "financial-engine_v2/config/cockpit.yaml sets rag.news_context.db_path to reports/qual_context/news.sqlite",
+        "Cockpit app/service construct QualContextReader and pass qual_context_news_reader, not news_context_db_path",
+        "QualContextReader calls backend_api_client.rag_query"
+      ],
+      "recommended_remediation": "Add status reporting that distinguishes Qdrant-backed news retrieval from local SQLite fallback availability."
+    },
+    {
+      "group": "stale docs",
+      "status": "Confirmed",
+      "impact": "The news substrate doc still describes Cockpit as reading only reports/qual_context/news.sqlite, while current Cockpit backend-api news context reads backend /rag/query.",
+      "evidence": [
+        "docs/architecture/15_news_substrate.md says Cockpit reads reports/qual_context/news.sqlite",
+        "current Cockpit backend-api path reads /rag/query"
+      ],
+      "recommended_remediation": "Document the current split: Qdrant is primary retrieval, SQLite is fallback/projection artifact whose path health must be reported."
+    },
+    {
+      "group": "obsolete Qdrant source",
+      "status": "Inferred",
+      "impact": "Qdrant contains A2M evidence but not all A2M rows present in the latest discovered legacy SQLite projection.",
+      "evidence": [
+        "Qdrant combined A2M count is 24",
+        "Legacy news.sqlite has art_f249f18234a438ab0f84e6cb with 5 A2M chunks",
+        "Qdrant count for art_f249f18234a438ab0f84e6cb is 0"
+      ],
+      "recommended_remediation": "Do not resync blindly. First produce a read-only parity report over selected article IDs."
+    },
+    {
+      "group": "loader drift",
+      "status": "Confirmed",
+      "impact": "The old SQLite projection and Qdrant collection are not equivalent for A2M.",
+      "evidence": [
+        "Legacy context DB chunk count is 24096",
+        "Qdrant news_chunks point count is 22324",
+        "A2M article art_f249f18234a438ab0f84e6cb exists in SQLite and is absent in Qdrant"
+      ],
+      "recommended_remediation": "Use a read-only loader-target parity check before any repair; require explicit approval for qdrant_only repair, cleanup_stale, or refresh."
+    },
+    {
+      "group": "Cockpit route mismatch",
+      "status": "Confirmed",
+      "impact": "Cockpit news search can reach Qdrant through backend API, but local article detail/fallback expectations cannot reach the only discovered article DB.",
+      "evidence": [
+        "ToolRouter.get_news_context uses backend_api_client.rag_query when available",
+        "ToolRouter.get_local_news_article searches repo-relative candidates and /workspace-reports, not /mnt/sdb2",
+        "current canonical article DB is absent"
+      ],
+      "recommended_remediation": "Report article-detail DB availability separately from news retrieval availability."
+    },
+    {
+      "group": "alias/entity-linking concern",
+      "status": "Not supported",
+      "impact": "No one-off A2M alias patch is justified.",
+      "evidence": [
+        "Qdrant A2M payloads use ticker, primary_ticker, and tickers",
+        "HybridRetriever and Tenn chat filters match ticker, primary_ticker, and tickers",
+        "Legacy SQLite has A2M entity links"
+      ],
+      "recommended_remediation": "No alias/entity-linking change in this task."
+    },
+    {
+      "group": "DATA_MISSING",
+      "status": "Confirmed",
+      "impact": "Cannot claim projection fixed or fully classify live synthesis visibility.",
+      "evidence": [
+        "No current canonical source DB exists",
+        "Live chat synthesis was intentionally not invoked",
+        "No approved canonical DB move/rebuild target exists"
+      ],
+      "recommended_remediation": "Stop at audit and draft a read-only smoke child card."
+    }
+  ]
+}

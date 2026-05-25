@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_path_remediation_v1_20260525",
+  "status": "audit_complete",
+  "lane": "Query Orchestration",
+  "supporting_lanes": [
+    "Provenance",
+    "Reporting"
+  ],
+  "mode": "audit_only",
+  "production_data_access": false,
+  "branch": "audit/a2m-news-projection-path-remediation-v1-20260525",
+  "head": "4b0fb54ecb54de50b1f29bbca044f118b9adf5c4",
+  "worktree": "/home/l4nd0/tenn-a2m-news-projection-path-remediation-v1-20260525",
+  "canonical_start_path": "/home/l4nd0/tenn",
+  "canonical_resolved_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "registry_status": {
+    "scope": "shared",
+    "root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "pre_claim_list_active": "pass_no_active_jobs",
+    "check_overlap": "pass_no_overlap",
+    "claim": "pass",
+    "release": "pass",
+    "released_at": "2026-05-25T03:14:19.249928Z",
+    "final_list_active": "own_job_released_unrelated_active_job_present",
+    "final_active_job_id": "strategy_lab_quantdinger_readonly_transport_progress_v1_20260525",
+    "final_overlap_check": "fails_by_lane_after_unrelated_post_release_job_started"
+  },
+  "safe_isolation_used": true,
+  "safe_isolation_reason": "Canonical checkout had unrelated untracked task-card dirt; parent audit continued in a clean isolated worktree.",
+  "changed_files": [
+    "docs/agent_tasks/a2m_news_projection_path_remediation_v1_20260525.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/news_projection_path_map.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/a2m_evidence_route_matrix.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/projection_gap_register.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/recommended_child_task_card.md",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/validation.json",
+    "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/diff-check.json"
+  ],
+  "validation": {
+    "task_card_validate": "pass",
+    "registry_check_overlap": "pass",
+    "json_validation": "pass",
+    "git_diff_check": "pass",
+    "task_card_check_diff": "pass",
+    "registry_release": "pass",
+    "final_registry_list_active": "pass_own_job_released_unrelated_active_job_present",
+    "final_registry_check_overlap_after_release": "reported_nonblocking_failure_due_unrelated_post_release_query_orchestration_job",
+    "final_git_status": "pass_clean_after_audit_commit"
+  },
+  "qdrant_evidence_status": {
+    "status": "Confirmed",
+    "collection": "news_chunks",
+    "points_count": 22324,
+    "combined_a2m_count": 24,
+    "ticker_a2m_count": 16,
+    "primary_ticker_a2m_count": 16,
+    "tickers_contains_a2m_count": 24,
+    "vectors_returned": false,
+    "reachable_by_current_retrieval": true
+  },
+  "sqlite_projection_status": {
+    "status": "Confirmed projection/path gap",
+    "canonical_news_articles_sqlite": "absent",
+    "canonical_news_sqlite": "absent",
+    "legacy_sdb2_news_articles_sqlite": "present_with_a2m",
+    "legacy_sdb2_news_sqlite": "present_with_a2m",
+    "cockpit_projection_can_reach_legacy_sqlite": false,
+    "notes": "Current backend news retrieval reaches Qdrant; canonical SQLite projection artifacts are absent under the NVMe runtime root."
+  },
+  "root_cause_classification": {
+    "missing_sqlite_file": "Confirmed",
+    "moved_path": "Confirmed",
+    "disabled_projection": "Inferred",
+    "stale_config": "Confirmed",
+    "stale_docs": "Confirmed",
+    "obsolete_qdrant_source": "Inferred",
+    "loader_drift": "Confirmed",
+    "cockpit_route_mismatch": "Confirmed for local article lookup and stale SQLite fallback expectations",
+    "alias_entity_linking_issue": "Not supported",
+    "data_missing": [
+      "Exact May 25 nightly failure reason",
+      "Current sanctioned canonical source DB path",
+      "Full Qdrant-vs-SQLite parity diff"
+    ]
+  },
+  "recommended_next_task": "a2m_news_projection_readonly_smoke_v1_20260525",
+  "save_recommendation": "Save to Project Memory: after the NVMe runtime cutover, A2M/news diagnostics must distinguish Qdrant reachability from canonical SQLite projection materialization and check the legacy /mnt/sdb2 DBs only as provenance candidates.",
+  "forbidden_mutation_performed": false,
+  "final_worktree_status": "clean_after_audit_commit",
+  "updated_at": "2026-05-25T13:14:34+10:00"
+}
