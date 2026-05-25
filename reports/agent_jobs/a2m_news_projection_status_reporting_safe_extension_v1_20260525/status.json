@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_news_projection_status_reporting_safe_extension_v1_20260525",
+  "status": "completed_report_only",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_at_report_time": "226dfc4abb23deafc10e759a554283690ce65e62",
+  "generated_at": "2026-05-25T14:03:15+10:00",
+  "production_data_access": false,
+  "source_artifacts": {
+    "readonly_smoke_matrix": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/a2m_readonly_smoke_matrix.json",
+    "readonly_smoke_status": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+    "audit_gap_register": "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/projection_gap_register.json"
+  },
+  "health": {
+    "qdrant_retrieval": "ok",
+    "canonical_sqlite_projection": "missing",
+    "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+    "cockpit_query_route": "ok_via_rag_query",
+    "cockpit_config_route": "partial_status_only",
+    "cockpit_status_routes": "missing_404",
+    "chat_synthesis": "DATA_MISSING",
+    "projection_repair": "not_run"
+  },
+  "visibility_contract": {
+    "do_not_report": [
+      "A2M missing",
+      "A2M projection fixed",
+      "legacy SQLite is canonical",
+      "chat synthesis proven"
+    ],
+    "report_instead": [
+      "A2M is visible through Qdrant-backed /rag/query according to the integrated read-only smoke",
+      "canonical NVMe SQLite projection files are absent",
+      "legacy /mnt/sdb2 SQLite contains A2M evidence but is provenance only",
+      "chat synthesis remains DATA_MISSING unless separately smoke-tested"
+    ]
+  },
+  "implementation_scope": {
+    "source_files_changed": [],
+    "route_behavior_changed": false,
+    "tests_changed": false,
+    "data_mutation_performed": false,
+    "service_action_performed": false
+  },
+  "registry_status": {
+    "list_active": "one active Reporting hygiene job observed on unrelated files",
+    "check_overlap": "blocked_by_known_foreign_task_cards_only",
+    "claim": "not_claimed_because_dirty_external_task_cards_block_registry_claim",
+    "active_file_overlap": false
+  },
+  "preserved_external_dirty_files": [
+    "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+    "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+  ],
+  "validation": {
+    "task_card_validate": "pass",
+    "json_validation": "pass",
+    "git_diff_check": "pass",
+    "task_card_check_diff": "expected_external_dirty_warning"
+  },
+  "next_recommended_task": "status_route_contract_implementation_for_news_health_v1",
+  "save_recommendation": "Save to Project Memory: A2M route health is split. Qdrant-backed /rag/query was OK in the integrated read-only smoke, canonical NVMe SQLite projection is missing, legacy /mnt/sdb2 SQLite is provenance only, and chat synthesis remains DATA_MISSING."
+}
