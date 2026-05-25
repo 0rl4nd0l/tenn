@@ -1,0 +1,39 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_home_mobile_status_header_wrap_v1_20260525.md",
+        "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/README.md",
+        "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/status.json",
+        "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/diff-check.json",
+        "cockpit-ui/components/cockpit/home/data-health-strip.tsx",
+        "cockpit-ui/components/cockpit/home/market-status-header.tsx"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_home_mobile_status_header_wrap_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

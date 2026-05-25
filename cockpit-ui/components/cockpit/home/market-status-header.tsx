@@ -40,18 +40,18 @@ export function MarketStatusHeader({
   }[systemStatus];
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-background/50 backdrop-blur-sm border-b border-border sticky top-0 z-30">
-      <div className="flex items-center gap-6">
+    <header className="sticky top-0 z-30 flex flex-col gap-3 border-b border-border bg-background/50 px-4 py-3 backdrop-blur-sm md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:gap-6">
         <div className="flex flex-col">
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Workspace</span>
           <span className="text-[15px] font-sans font-bold text-foreground">Cockpit Overview</span>
         </div>
         
-        <div className="h-8 w-[1px] bg-border/50 mx-2" />
+        <div className="mx-2 hidden h-8 w-[1px] bg-border/50 md:block" />
 
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 md:gap-4">
           <div className={cn("flex items-center gap-2 px-3 py-1 rounded border", config.bg, config.color, "border-current/20")}>
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="h-3.5 w-3.5 shrink-0" />
             <span className="text-[11px] font-mono font-bold tracking-wider">{config.label}</span>
           </div>
           <div className="flex flex-col">
@@ -66,7 +66,7 @@ export function MarketStatusHeader({
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-start md:items-end">
           <span className="text-[10px] font-mono text-muted-foreground uppercase">System Status</span>
           <span className={cn("text-[11px] font-mono font-bold flex items-center gap-1.5", statusConfig.color)}>
             <span className={cn("w-1.5 h-1.5 rounded-full", statusConfig.dot)} />

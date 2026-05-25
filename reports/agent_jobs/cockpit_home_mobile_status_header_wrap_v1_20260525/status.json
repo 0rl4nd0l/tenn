@@ -1,0 +1,84 @@
+{
+  "job_id": "cockpit_home_mobile_status_header_wrap_v1_20260525",
+  "issue": 43,
+  "branch": "safe/reporting-ui-safe-issues-v1-20260525",
+  "worktree": "/home/l4nd0/tenn-reporting-ui-safe-issues-v1-20260525",
+  "lane": "Reporting",
+  "execution_mode": "SAFE EXTENSION MODE",
+  "collision_risk": "LOW",
+  "target_layer": "Next.js Cockpit UI presentation layer",
+  "contract_boundary": {
+    "backend_changed": false,
+    "data_contract_changed": false,
+    "financial_truth_changed": false,
+    "provenance_changed": false,
+    "memory_changed": false,
+    "runtime_changed": false
+  },
+  "files_changed": [
+    "cockpit-ui/components/cockpit/home/data-health-strip.tsx",
+    "cockpit-ui/components/cockpit/home/market-status-header.tsx",
+    "docs/agent_tasks/cockpit_home_mobile_status_header_wrap_v1_20260525.md",
+    "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/README.md",
+    "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/diff-check.json",
+    "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/status.json"
+  ],
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_home_mobile_status_header_wrap_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_home_mobile_status_header_wrap_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_home_mobile_status_header_wrap_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm exec eslint components/cockpit/home/data-health-strip.tsx components/cockpit/home/market-status-header.tsx --max-warnings=0",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm exec tsc --noEmit --pretty false",
+      "result": "passed"
+    },
+    {
+      "command": "browser smoke / at 390x844",
+      "result": "passed",
+      "evidence": {
+        "labels_visible": [
+          "System Status",
+          "Backend liveness",
+          "Holdings",
+          "Market movers"
+        ],
+        "critical_off_right": [],
+        "has_horizontal_overflow": false,
+        "scroll_width": 390
+      }
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_home_mobile_status_header_wrap_v1_20260525.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release cockpit_home_mobile_status_header_wrap_v1_20260525",
+      "result": "passed"
+    }
+  ],
+  "registry_release": {
+    "ok": true,
+    "registry_scope": "shared",
+    "status_path": "reports/agent_jobs/cockpit_home_mobile_status_header_wrap_v1_20260525/status.json",
+    "warnings": []
+  },
+  "disallowed_files": [],
+  "commit_sha": null,
+  "commit_sha_note": "Recorded in the issue closeout comment and final agent report after commit stabilization."
+}
