@@ -1,0 +1,192 @@
+{
+  "$id": "https://tenn.local/schemas/merge_parking_entry_schema_v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Validates one merge parking entry, either as Markdown frontmatter or JSON. It is documentation-only and grants no merge permission.",
+  "properties": {
+    "base_head": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "blocked_by": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "changed_files": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "current_head": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "data_missing": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "do_not_merge_before": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "job_id": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "type": "string"
+    },
+    "lane": {
+      "enum": [
+        "Evaluation",
+        "Financial Truth",
+        "Memory",
+        "Provenance",
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "audit_only",
+        "safe_extension",
+        "blocked"
+      ],
+      "type": "string"
+    },
+    "next_agent_must_not": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "next_agent_should": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "output_dir": {
+      "pattern": "^reports/agent_jobs/[A-Za-z0-9_.-]+$",
+      "type": "string"
+    },
+    "parking_id": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "type": "string"
+    },
+    "ready_for_merge": {
+      "type": "boolean"
+    },
+    "report_dir": {
+      "pattern": "^reports/agent_jobs/[A-Za-z0-9_.-]+$",
+      "type": "string"
+    },
+    "review_required": {
+      "additionalProperties": true,
+      "properties": {
+        "gpt": {
+          "const": true,
+          "type": "boolean"
+        },
+        "human": {
+          "const": true,
+          "type": "boolean"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "human",
+        "gpt"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "merge_parking_entry_v1",
+      "type": "string"
+    },
+    "source_branch": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_worktree": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PARKED_READY_FOR_REVIEW",
+        "PARKED_BLOCKED_BY_DEPENDENCY",
+        "PARKED_NEEDS_REBASE",
+        "PARKED_NEEDS_VALIDATION",
+        "PARKED_NEEDS_HUMAN_DECISION",
+        "PARKED_SUPERSEDED",
+        "MERGED",
+        "REJECTED",
+        "ABANDONED"
+      ],
+      "type": "string"
+    },
+    "task_card": {
+      "pattern": "^docs/agent_tasks/[A-Za-z0-9_.-]+\\.md$",
+      "type": "string"
+    },
+    "validation_commands": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "validation_result": {
+      "enum": [
+        "passed",
+        "failed",
+        "partial",
+        "not_run"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "parking_id",
+    "status",
+    "job_id",
+    "lane",
+    "mode",
+    "source_branch",
+    "source_worktree",
+    "base_head",
+    "current_head",
+    "task_card",
+    "report_dir",
+    "output_dir",
+    "changed_files",
+    "validation_commands",
+    "validation_result",
+    "blocked_by",
+    "ready_for_merge",
+    "review_required",
+    "do_not_merge_before",
+    "data_missing",
+    "next_agent_should",
+    "next_agent_must_not"
+  ],
+  "title": "Tenn Merge Parking Entry Schema v1",
+  "type": "object"
+}

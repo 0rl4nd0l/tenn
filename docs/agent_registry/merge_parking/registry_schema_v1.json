@@ -1,0 +1,53 @@
+{
+  "$id": "https://tenn.local/schemas/merge_parking_registry_schema_v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Validates the merge parking registry index frontmatter or JSON. REGISTRY.md remains human-readable and does not imply automation.",
+  "properties": {
+    "active_parking_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "recently_resolved_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "registry_id": {
+      "const": "merge_parking_registry",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "merge_parking_registry_v1",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "frozen",
+        "archived"
+      ],
+      "type": "string"
+    },
+    "updated_at": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "registry_id",
+    "status",
+    "updated_at",
+    "active_parking_count",
+    "recently_resolved_count",
+    "notes"
+  ],
+  "title": "Tenn Merge Parking Registry Index Schema v1",
+  "type": "object"
+}

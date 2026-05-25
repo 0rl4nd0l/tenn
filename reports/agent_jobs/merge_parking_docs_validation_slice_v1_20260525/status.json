@@ -1,0 +1,27 @@
+{
+  "job_id": "merge_parking_docs_validation_slice_v1_20260525",
+  "status": "complete",
+  "lane": "Reporting",
+  "execution_mode": "SAFE EXTENSION",
+  "target_layer": "repo-native merge parking documentation and validation",
+  "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+  "starting_head": "24bab3fc17a0",
+  "result": "merge_parking_docs_validation_slice_added",
+  "files_changed": [
+    "docs/agent_tasks/merge_parking_docs_validation_slice_v1_20260525.md",
+    "docs/agent_registry/merge_parking/README.md",
+    "docs/agent_registry/merge_parking/REGISTRY.md",
+    "docs/agent_registry/merge_parking/_entry_template.md",
+    "docs/agent_registry/merge_parking/merge_parking_entry_schema_v1.json",
+    "docs/agent_registry/merge_parking/registry_schema_v1.json",
+    "scripts/merge_parking_registry.py",
+    "scripts/test_merge_parking_registry.py",
+    "reports/agent_jobs/merge_parking_docs_validation_slice_v1_20260525/README.md",
+    "reports/agent_jobs/merge_parking_docs_validation_slice_v1_20260525/status.json",
+    "reports/agent_jobs/merge_parking_docs_validation_slice_v1_20260525/validation.json",
+    "reports/agent_jobs/merge_parking_docs_validation_slice_v1_20260525/diff-check.json"
+  ],
+  "merge_execution_added": false,
+  "git_ref_mutation_added": false,
+  "validation_status": "passed"
+}
