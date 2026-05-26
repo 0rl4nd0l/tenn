@@ -1,0 +1,137 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/nightly_news_ingest_and_lockup_repair_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/nightly_news_observability_followup_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/nightly_news_ticker_universe_input_repair_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/data/raw/asx_ticker_universe.txt",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/scripts/nightly_news.sh",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/branch_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/github_activity.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/memory_candidates.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/next_day_handoff.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_followup_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_followup_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_ticker_universe_input_repair_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_ticker_universe_input_repair_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/nightly_news_ingest_and_lockup_repair_v1_20260526.md",
+        "docs/agent_tasks/nightly_news_ticker_universe_input_repair_v1_20260526.md",
+        "docs/agent_tasks/nightly_news_observability_followup_v1_20260526.md",
+        "docs/agent_tasks/codex_nightly_lockup_report_v1_20260526.md",
+        "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+        "financial-engine_v2/scripts/nightly_news.sh",
+        "financial-engine_v2/data/raw/asx_ticker_universe.txt",
+        "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/README.md",
+        "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/status.json",
+        "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/validation.json",
+        "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526/diff-check.json",
+        "reports/agent_jobs/nightly_news_ticker_universe_input_repair_v1_20260526/README.md",
+        "reports/agent_jobs/nightly_news_ticker_universe_input_repair_v1_20260526/status.json",
+        "reports/agent_jobs/nightly_news_observability_followup_v1_20260526/README.md",
+        "reports/agent_jobs/nightly_news_observability_followup_v1_20260526/status.json",
+        "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/README.md",
+        "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/status.json",
+        "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/branch_matrix.json",
+        "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/github_activity.json",
+        "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/memory_candidates.md",
+        "reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/next_day_handoff.md",
+        "docs/claude/STATE.md"
+      ],
+      "approval_id": "USER_REQUEST_FIX_ISSUES_112_114_115_20260526",
+      "approval_required": true,
+      "job_id": "nightly_news_ingest_and_lockup_repair_v1_20260526",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/nightly_news_ingest_and_lockup_repair_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_primary_lane": "Runtime",
+      "supporting_lanes": [
+        "Reporting",
+        "Evaluation",
+        "Memory"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

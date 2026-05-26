@@ -1,0 +1,9 @@
+{
+  "canonical_file": "financial-engine_v2/data/raw/asx_ticker_universe.txt",
+  "issue": 114,
+  "production_data_access": false,
+  "sha256": "042b6b799c24ecbcf0c94f73ac94753e90d35f8282cd10205c17a2f7f8479cf9",
+  "status": "fixed_pending_commit",
+  "tickers_count": 375,
+  "validation": "direct fetch dry-run exited 0"
+}

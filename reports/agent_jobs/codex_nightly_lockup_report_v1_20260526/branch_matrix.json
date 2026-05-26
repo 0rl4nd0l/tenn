@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-05-26T18:20:40+10:00",
+  "policy": "classification_only_no_cleanup",
+  "summary": {
+    "worktrees_observed": 246,
+    "prunable_worktrees_observed": 22,
+    "active_current_branch": "migration/clean-runtime-baseline-reconstruct-v1"
+  },
+  "classifications": [
+    {
+      "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "classification": "active_current_worktree",
+      "action": "keep"
+    },
+    {
+      "branch": "audit/automation-topology-reconciliation-v1-20260526",
+      "path": "/home/l4nd0/tenn-automation-topology-reconciliation-v1-20260526",
+      "classification": "active_registry_job",
+      "action": "do_not_touch"
+    },
+    {
+      "branch": "audit/extraction-orchestrator-parallel-safe-progress-v1-20260526",
+      "path": "/home/l4nd0/tenn-extraction-orchestrator-parallel-safe-progress-v1-20260526",
+      "classification": "active_registry_job",
+      "action": "do_not_touch"
+    },
+    {
+      "branch": "multiple",
+      "path": "git worktree list --porcelain",
+      "classification": "needs_dedicated_hygiene_pass",
+      "action": "operator-approved reduction only",
+      "evidence": "246 worktrees observed, 22 prunable entries observed"
+    }
+  ]
+}

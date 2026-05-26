@@ -1,0 +1,14 @@
+{
+  "active_tenn_codex_timers": 7,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "generated_at": "2026-05-26T18:20:40+10:00",
+  "github_issues_created_today": 38,
+  "github_prs_created_today": 0,
+  "job_id": "codex_nightly_lockup_report_v1_20260526",
+  "memory_written": false,
+  "merges_performed": false,
+  "production_data_access": false,
+  "status": "complete",
+  "worktrees_observed": 246,
+  "worktrees_prunable_observed": 22
+}
