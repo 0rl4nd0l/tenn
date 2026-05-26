@@ -15,10 +15,25 @@
   },
   "job_id": "natural_language_local_news_intent_route_v1_20260526",
   "live_smoke": {
-    "notes": "run after integration if backend needs to serve integrated canonical code",
-    "status": "NOT_RUN_YET"
+    "report": "reports/agent_jobs/natural_language_local_news_intent_route_v1_20260526/smoke_results.json",
+    "status": "PASS",
+    "summary": {
+      "data_missing": [
+        "coh_local_news_no_hit_control"
+      ],
+      "fail": [],
+      "partial": [],
+      "pass": [
+        "natural_a2m_latest_local_news",
+        "natural_bhp_latest_local_news",
+        "natural_csl_latest_news_on",
+        "direct_bhp_news_baseline",
+        "strict_bhp_local_news_context_baseline",
+        "sse_natural_bhp_latest_local_news"
+      ]
+    }
   },
-  "phase": "post_fix_pre_integration_validation",
+  "phase": "post_fix_integration_and_smoke_validation",
   "results": [
     {
       "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/natural_language_local_news_intent_route_v1_20260526.md",
@@ -103,6 +118,18 @@
       "name": "architecture_review",
       "notes": ".cursor/rules DATA_MISSING in this checkout; no contract violation found",
       "status": "PASS"
+    },
+    {
+      "command": "stateless POST /api/cockpit/chat smoke matrix after docker compose -f financial-engine_v2/docker-compose.yml restart backend",
+      "name": "live_read_only_smoke",
+      "result": "6 PASS, 1 DATA_MISSING control, 0 partial, 0 fail",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/natural_language_local_news_intent_route_v1_20260526.md --no-write-report",
+      "name": "canonical_final_check_diff",
+      "result": "Only disallowed paths were the two pre-existing untracked task cards named in the prompt; implementation/report files stayed within allowed_files.",
+      "status": "BLOCKED_BY_KNOWN_UNRELATED_DIRT"
     }
   ]
 }

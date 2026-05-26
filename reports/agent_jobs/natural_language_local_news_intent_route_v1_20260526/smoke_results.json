@@ -1,0 +1,606 @@
+{
+  "canonical_head": "389117ca25218e47219045976e53327591f916e9",
+  "classification": "PASS",
+  "pre_restart_probe": {
+    "claim_verified_source_count": 0,
+    "classification": "DATA_MISSING",
+    "conclusion": "running backend was stale and not serving integrated code before restart",
+    "latency_seconds": 22.977,
+    "local_news_context_count": 2,
+    "prompt": "latest local news for BHP",
+    "source_coverage_status": "missing_required_evidence"
+  },
+  "pre_smoke": {
+    "config": {
+      "anthropic_key_configured": true,
+      "backend_url": "http://localhost:8000",
+      "data_root": "/data",
+      "embed_model": "nomic-embed-text",
+      "extract_model": "qwen2.5-14b-instruct",
+      "extraction_active": false,
+      "extraction_active_runs": [],
+      "extraction_activity_expires_in_seconds": 0,
+      "extraction_activity_source": "none",
+      "features": {
+        "db_diagnostics": false,
+        "extraction": true,
+        "rag": true,
+        "session_memory": true,
+        "web_search": true
+      },
+      "git_branch": null,
+      "llm_endpoint": "http://127.0.0.1:8001",
+      "llm_model": "model:qwen3.5-35b-a3b-apex",
+      "profile": "ops",
+      "python_version": "3.11.15",
+      "rented_gpu": {
+        "configured": false,
+        "endpoint": null,
+        "error": "TENN_RENTED_GPU_LLAMACPP_URL is not set",
+        "healthy": false,
+        "models": []
+      },
+      "routing_policy": "api_preferred",
+      "routing_policy_override": "config_default",
+      "routing_policy_source": "config",
+      "runtime_target": "local",
+      "runtime_target_source": "operator_preference"
+    },
+    "news_status": {
+      "a2m_news_health": {
+        "canonical_sqlite_projection": "missing",
+        "chat_synthesis": "DATA_MISSING",
+        "cockpit_query_route": "ok_via_rag_query",
+        "cockpit_status_routes": "implemented",
+        "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+        "projection_repair": "not_run",
+        "qdrant_retrieval": "ok"
+      },
+      "canonical_sqlite_projection_paths": [
+        {
+          "exists": false,
+          "path": "reports/qual_context/news.sqlite"
+        },
+        {
+          "exists": false,
+          "path": "reports/qual_context/news_articles.sqlite"
+        }
+      ],
+      "chat_synthesis": {
+        "reason": "No separate safe chat synthesis smoke was run; chat/session paths may write state.",
+        "status": "DATA_MISSING"
+      },
+      "evidence_reports": {
+        "a2m_canonical_integration": {
+          "exists": false,
+          "path": "reports/agent_jobs/a2m_news_projection_canonical_integration_and_status_reporting_v1_20260525/status.json"
+        },
+        "a2m_projection_path_remediation": {
+          "exists": false,
+          "path": "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/status.json"
+        },
+        "a2m_readonly_smoke": {
+          "exists": false,
+          "path": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json"
+        },
+        "a2m_status_reporting": {
+          "exists": false,
+          "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/status.json"
+        }
+      },
+      "generated_from": "read_only_status_contract",
+      "legacy_sqlite_projection": {
+        "consumer_status": "not_current_consumer",
+        "evidence_scope": "prior_readonly_smoke_and_integrated_reports",
+        "live_legacy_db_read_performed": false,
+        "status": "evidence_present_not_current_consumer"
+      },
+      "live_probe_performed": false,
+      "projection_repair": {
+        "forbidden_here": true,
+        "status": "not_run"
+      },
+      "qdrant_retrieval": {
+        "collection": "news_chunks",
+        "consumer_route": "/rag/query",
+        "evidence_scope": "prior_readonly_smoke_and_integrated_reports",
+        "live_qdrant_probe_performed": false,
+        "status": "ok"
+      },
+      "reporting_contract": {
+        "do_not_report": [
+          "A2M missing",
+          "A2M projection fixed",
+          "legacy SQLite is canonical",
+          "chat synthesis proven"
+        ],
+        "do_report": [
+          "A2M is visible through Qdrant-backed /rag/query according to the integrated read-only smoke.",
+          "Canonical NVMe SQLite projection files are absent.",
+          "Legacy /mnt/sdb2 SQLite has A2M evidence but is provenance-only, not the canonical current consumer.",
+          "Cockpit query route reachability works through /rag/query.",
+          "Cockpit/news health status is represented by /api/cockpit/news/status.",
+          "Projection repair/rebuild has not run and must stay a separate task.",
+          "Chat synthesis remains DATA_MISSING until a separate safe smoke proves it."
+        ]
+      },
+      "routes": {
+        "backend_api_cockpit_news_status": {
+          "route": "GET /api/cockpit/news/status",
+          "status": "implemented"
+        },
+        "backend_api_cockpit_status": {
+          "route": "GET /api/cockpit/status",
+          "status": "missing_not_required_by_this_contract"
+        },
+        "backend_api_news_status": {
+          "route": "GET /api/news/status",
+          "status": "intentionally_absent_in_current_profile"
+        },
+        "backend_rag_query": {
+          "news_source": "Qdrant-backed news_chunks",
+          "route": "POST /rag/query",
+          "status": "implemented"
+        },
+        "next_api_cockpit_news_status": {
+          "route": "GET /api/cockpit/news/status",
+          "status": "available_via_next_api_rewrite_when_backend_is_reachable"
+        },
+        "next_rag_query": {
+          "route": "POST /rag/query",
+          "status": "available_via_next_rewrite"
+        }
+      },
+      "schema_version": 1,
+      "status": "ok"
+    },
+    "openapi_cockpit_paths": [
+      "/api/cockpit/action/execute",
+      "/api/cockpit/action/jobs/{job_id}",
+      "/api/cockpit/action/jobs/{job_id}/stop",
+      "/api/cockpit/action/preview",
+      "/api/cockpit/chat",
+      "/api/cockpit/chat/attachments/upload",
+      "/api/cockpit/chat/sessions",
+      "/api/cockpit/chat/sessions/{session_id}",
+      "/api/cockpit/claims/verify",
+      "/api/cockpit/config",
+      "/api/cockpit/docs",
+      "/api/cockpit/feedback",
+      "/api/cockpit/feedback/flag",
+      "/api/cockpit/feedback/flags",
+      "/api/cockpit/feedback/flags/{report_id}",
+      "/api/cockpit/feedback/flags/{report_id}/resolve",
+      "/api/cockpit/health",
+      "/api/cockpit/holdings",
+      "/api/cockpit/holdings/{holding_id}",
+      "/api/cockpit/home/attention-queue",
+      "/api/cockpit/home/market-movers",
+      "/api/cockpit/home/market-session",
+      "/api/cockpit/home/narrative",
+      "/api/cockpit/home/portfolio",
+      "/api/cockpit/marketplace/alerts",
+      "/api/cockpit/marketplace/alerts/{alert_id}",
+      "/api/cockpit/marketplace/benchmarks/refresh",
+      "/api/cockpit/marketplace/browser-health",
+      "/api/cockpit/marketplace/matches",
+      "/api/cockpit/marketplace/matches/{match_id}",
+      "/api/cockpit/marketplace/matches/{match_id}/benchmark-review",
+      "/api/cockpit/marketplace/matches/{match_id}/feedback",
+      "/api/cockpit/marketplace/missions",
+      "/api/cockpit/marketplace/missions/{mission_id}",
+      "/api/cockpit/marketplace/missions/{mission_id}/link-product",
+      "/api/cockpit/marketplace/price-intelligence/calibrate",
+      "/api/cockpit/marketplace/price-intelligence/normalize",
+      "/api/cockpit/marketplace/price-intelligence/observations",
+      "/api/cockpit/marketplace/price-intelligence/tracked-products",
+      "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}",
+      "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/benchmark-snapshots",
+      "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/ebay-sync",
+      "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/timelines",
+      "/api/cockpit/marketplace/scans",
+      "/api/cockpit/marketplace/scans/{job_id}",
+      "/api/cockpit/matrix",
+      "/api/cockpit/metrics/gpu",
+      "/api/cockpit/metrics/host",
+      "/api/cockpit/models",
+      "/api/cockpit/models/load",
+      "/api/cockpit/news/status",
+      "/api/cockpit/preferences",
+      "/api/cockpit/preferences/route-aliases",
+      "/api/cockpit/preferences/route-aliases/{preference_id}",
+      "/api/cockpit/preferences/route-aliases/{preference_id}/confirm",
+      "/api/cockpit/preferences/route-aliases/{preference_id}/disable",
+      "/api/cockpit/preferences/route-aliases/{preference_id}/reject",
+      "/api/cockpit/prompts/dry-run",
+      "/api/cockpit/prompts/preview",
+      "/api/cockpit/prompts/routes",
+      "/api/cockpit/pulse",
+      "/api/cockpit/queue",
+      "/api/cockpit/thesis-audit",
+      "/api/cockpit/thesis-audit/alerts",
+      "/api/cockpit/thesis-audit/alerts/{alert_id}/status",
+      "/api/cockpit/thesis-audit/coverage",
+      "/api/cockpit/tv/alert",
+      "/api/cockpit/tv/alerts",
+      "/api/cockpit/watchlist",
+      "/api/cockpit/watchlist/{ticker}"
+    ]
+  },
+  "restart": {
+    "backend_started_after_restart": "2026-05-26T05:52:56.685103721Z",
+    "command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
+    "health_after_restart": {
+      "body": {
+        "status": "ok"
+      },
+      "http_status": 200,
+      "route": "GET /api/health"
+    },
+    "performed": true,
+    "services_not_restarted": [
+      "fe_qdrant",
+      "fe_postgres",
+      "fe_worker",
+      "fe_gpu_worker",
+      "Next",
+      "llama-server"
+    ]
+  },
+  "smokes": [
+    {
+      "claim_verified_local_news_count": 4,
+      "claim_verified_source_count": 4,
+      "classification": "PASS",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_seconds": 0.935,
+      "local_news_context_count": 4,
+      "name": "natural_a2m_latest_local_news",
+      "request_body": {
+        "message": "latest local news for A2M",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "A2M",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": true,
+      "route": "POST /api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_ids": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_pack_claim_verified_count": 4,
+      "source_pack_claim_verified_local_news_count": 4,
+      "source_pack_local_news_context_count": 4,
+      "source_titles": [
+        "A2 Milk shares plunge after finding toxins in infant formula",
+        "Closing Bell: ASX whacked by weak corporate updates and A2 Milk recall",
+        "ASX Small Caps Weekly Form Guide",
+        "Lunch Wrap: A2 Milk smashed on US recall, Accent dragged into ASIC probe"
+      ],
+      "text_prefix": "Recent A2M-linked news:\n- A2 Milk shares plunge after finding toxins in infant formula\n  published: 2026-05-03\n  A2 Milk shares plunge after finding toxins in infant formula The news: New Zealand-based infant formula distributor A2 Milk has recalled three batches of its USA label infant formu\n  http"
+    },
+    {
+      "claim_verified_local_news_count": 5,
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_seconds": 0.902,
+      "local_news_context_count": 5,
+      "name": "natural_bhp_latest_local_news",
+      "request_body": {
+        "message": "latest local news for BHP",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "BHP",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": true,
+      "route": "POST /api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_ids": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_pack_claim_verified_count": 5,
+      "source_pack_claim_verified_local_news_count": 5,
+      "source_pack_local_news_context_count": 5,
+      "source_titles": [
+        "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and price these new risks facing ASX mining companies, and this has triggered several ratings and target prices. We review the latest commentary from the experts on the 10 major stocks of the ASX mining sector, as well as their updated ratings and target prices.",
+        "Resources stocks made up most of this week's top performers. The copper price surged to a new record, pushing up shares of copper producers BHP, Capstone Copper (CSC), Greatland Resources (GGP), South32 (S32), Sandfire Resources (SFR) and Rio Tinto (RIO).",
+        "Closing Bell: ASX ressies hop but banks flop amid post-budget blues",
+        "Closing Bell: ASX on the rocks? Not today \u2026 banks and miners bring the punch",
+        "Rise and Shine: Everything you need to know before the ASX opens"
+      ],
+      "text_prefix": "Recent BHP-linked news:\n- The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and"
+    },
+    {
+      "claim_verified_local_news_count": 5,
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_seconds": 0.784,
+      "local_news_context_count": 5,
+      "name": "natural_csl_latest_news_on",
+      "request_body": {
+        "message": "what is the latest news on CSL",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "CSL",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": true,
+      "route": "POST /api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_ids": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_pack_claim_verified_count": 5,
+      "source_pack_claim_verified_local_news_count": 5,
+      "source_pack_local_news_context_count": 5,
+      "source_titles": [
+        "In today's Scan Lists: Arafura Rare Earths (ARU), Codan (CDA), Victory Metals (VTM), Austal (ASB), Bapcor (BAP), Cochlear (COH), CSL (CSL), Cleanaway Waste (CWY), Domino's Pizza (DMP), Harvey Norman (HVN), Pantoro Gold (PNR), SGH (SGH), Stockland (SGP), Supply Network (SNL), Wesfarmers (WES).",
+        "In today's Scan Lists: Altair Minerals (ALR), Decidr AI Industries (DAI), Global X Hydrogen ETF (HGEN), Kingsgate Consolidated (KCN), Predictive Discovery (PDI), Cochlear (COH), CSL (CSL), Clinuvel Pharmaceuticals (CUV), Ebos (EBO), Generation Development (GDG), Harvey Norman (HVN), IDP Education (IEL), Judo Capital (JDO), Nick Scali (NCK), Resmed (RMD).",
+        "In today's Scan Lists: APA (APA), Arafura Rare Earths (ARU), Bluescope Steel (BSL), Codan (CDA), Civmec (CVL), Iluka Resources (ILU), Liontown (LTR), Nickel Industries (NIC), Vaneck MSCI International Value ETF (VLUE), A2 Milk Co. (A2M), Cochlear (COH), CSL (CSL), Catalyst Metals (CYL), Ebos (EBO), Flight Centre (FLT), G8 Education (GEM), IDP Education (IEL), National Australia Bank (NAB), Propel Funeral Partners (PFP), Seek (SEK).",
+        "In today's Scan Lists: Alkane Resources (ALK), Lindian Resources (LIN), Macmahon (MAH), OD6 Metals (OD6), PC Gold (PC2), W.H. Soul Pattinson (SOL), Victory Metals (VTM), Westpac Banking (WBC), Accent Group (AX1), Pexa (PXA), Megaport (MP1), Nuix (NXL), Mayne Pharma (MYX), CSL (CSL), Wisetech Global (WTC), Mirvac (MGR).",
+        "In today's Scan Lists: Brookside Energy (BRK), Beetaloo Energy (BTL), Coles (COL), Cauldron Energy (CXU), Duratec (DUR), ARB (ARB), Austal (ASB), Collins Foods (CKF), Capricorn Metals (CMM), CSL (CSL), Dexus (DXS), Generation Development (GDG), Guzman Y Gomez (GYG), Hub24 (HUB), Harvey Norman (HVN), JB HI-FI (JBH), Megaport (MP1), Sonic Healthcare (SHL), Virgin Australia (VGN), Ventia (VNT), Weebit Nano (WBT)."
+      ],
+      "text_prefix": "Recent CSL-linked news:\n- In today's Scan Lists: Arafura Rare Earths (ARU), Codan (CDA), Victory Metals (VTM), Austal (ASB), Bapcor (BAP), Cochlear (COH), CSL (CSL), Cleanaway Waste (CWY), Domino's Pizza (DMP), Harvey Norman (HVN), Pantoro Gold (PNR), SGH (SGH), Stockland (SGP), Supply Network (SNL)"
+    },
+    {
+      "claim_verified_local_news_count": 0,
+      "claim_verified_source_count": 0,
+      "classification": "DATA_MISSING",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": false,
+      "guarded_data_missing": true,
+      "http_status": 200,
+      "latency_seconds": 1.179,
+      "local_news_context_count": 0,
+      "name": "coh_local_news_no_hit_control",
+      "request_body": {
+        "message": "latest local news for COH",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "COH",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": false,
+      "route": "POST /api/cockpit/chat",
+      "source_coverage_status": "missing_required_evidence",
+      "source_ids": [
+        "search_news:no_hits:coh"
+      ],
+      "source_kinds": [
+        "context"
+      ],
+      "source_labels": [
+        "context_only",
+        "no_hit",
+        "operational_trace"
+      ],
+      "source_pack_claim_verified_count": 0,
+      "source_pack_claim_verified_local_news_count": 0,
+      "source_pack_local_news_context_count": 0,
+      "source_titles": [
+        "News search: no hits for COH"
+      ],
+      "text_prefix": "DATA_MISSING / evidence gaps:\n- insufficient_for_recent_news: recent-news or recent-update claims need actual claim-verified news/event evidence; price, filing, local-news-context, context-only, and numeric financial-truth context are not enough.\n- missing_required_evidence: required evidence is abs"
+    },
+    {
+      "claim_verified_local_news_count": 5,
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_seconds": 0.338,
+      "local_news_context_count": 5,
+      "name": "direct_bhp_news_baseline",
+      "request_body": {
+        "message": "news for BHP",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "BHP",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": true,
+      "route": "POST /api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_ids": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_pack_claim_verified_count": 5,
+      "source_pack_claim_verified_local_news_count": 5,
+      "source_pack_local_news_context_count": 5,
+      "source_titles": [
+        "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and price these new risks facing ASX mining companies, and this has triggered several ratings and target prices. We review the latest commentary from the experts on the 10 major stocks of the ASX mining sector, as well as their updated ratings and target prices.",
+        "Resources stocks made up most of this week's top performers. The copper price surged to a new record, pushing up shares of copper producers BHP, Capstone Copper (CSC), Greatland Resources (GGP), South32 (S32), Sandfire Resources (SFR) and Rio Tinto (RIO).",
+        "Closing Bell: ASX ressies hop but banks flop amid post-budget blues",
+        "Closing Bell: ASX on the rocks? Not today \u2026 banks and miners bring the punch",
+        "Rise and Shine: Everything you need to know before the ASX opens"
+      ],
+      "text_prefix": "Recent BHP-linked news:\n- The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and"
+    },
+    {
+      "claim_verified_local_news_count": 5,
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_seconds": 0.338,
+      "local_news_context_count": 5,
+      "name": "strict_bhp_local_news_context_baseline",
+      "request_body": {
+        "message": "Use only local_news_context for BHP",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "BHP",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": true,
+      "route": "POST /api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_ids": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_pack_claim_verified_count": 5,
+      "source_pack_claim_verified_local_news_count": 5,
+      "source_pack_local_news_context_count": 5,
+      "source_titles": [
+        "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and price these new risks facing ASX mining companies, and this has triggered several ratings and target prices. We review the latest commentary from the experts on the 10 major stocks of the ASX mining sector, as well as their updated ratings and target prices.",
+        "Resources stocks made up most of this week's top performers. The copper price surged to a new record, pushing up shares of copper producers BHP, Capstone Copper (CSC), Greatland Resources (GGP), South32 (S32), Sandfire Resources (SFR) and Rio Tinto (RIO).",
+        "Closing Bell: ASX ressies hop but banks flop amid post-budget blues",
+        "Closing Bell: ASX on the rocks? Not today \u2026 banks and miners bring the punch",
+        "Rise and Shine: Everything you need to know before the ASX opens"
+      ],
+      "text_prefix": "Recent BHP-linked news:\n- The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and"
+    },
+    {
+      "claim_verified_local_news_count": 5,
+      "claim_verified_source_count": 5,
+      "classification": "PASS",
+      "degraded_runtime_schema_warnings": null,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_seconds": 0.337,
+      "local_news_context_count": 5,
+      "name": "sse_natural_bhp_latest_local_news",
+      "request_body": {
+        "message": "latest local news for BHP",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": true,
+        "ticker": "BHP",
+        "web_search": false
+      },
+      "retrieved_local_news_in_source_pack": true,
+      "route": "POST /api/cockpit/chat SSE",
+      "source_coverage_status": "claim_verified",
+      "source_ids": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "source_kinds": [
+        "news"
+      ],
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "source_pack_claim_verified_count": 5,
+      "source_pack_claim_verified_local_news_count": 5,
+      "source_pack_local_news_context_count": 5,
+      "source_titles": [
+        "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and price these new risks facing ASX mining companies, and this has triggered several ratings and target prices. We review the latest commentary from the experts on the 10 major stocks of the ASX mining sector, as well as their updated ratings and target prices.",
+        "Resources stocks made up most of this week's top performers. The copper price surged to a new record, pushing up shares of copper producers BHP, Capstone Copper (CSC), Greatland Resources (GGP), South32 (S32), Sandfire Resources (SFR) and Rio Tinto (RIO).",
+        "Closing Bell: ASX ressies hop but banks flop amid post-budget blues",
+        "Closing Bell: ASX on the rocks? Not today \u2026 banks and miners bring the punch",
+        "Rise and Shine: Everything you need to know before the ASX opens"
+      ],
+      "sse_event_counts": {
+        "chunk": 0,
+        "done": 1,
+        "status": 3
+      },
+      "text_prefix": "Recent BHP-linked news:\n- The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump\u2019s Liberation Day speech and accompanying \u201creciprocal\u201d tariffs. The major brokers and research houses have had time to understand and"
+    }
+  ],
+  "summary": {
+    "data_missing": [
+      "coh_local_news_no_hit_control"
+    ],
+    "fail": [],
+    "partial": [],
+    "pass": [
+      "natural_a2m_latest_local_news",
+      "natural_bhp_latest_local_news",
+      "natural_csl_latest_news_on",
+      "direct_bhp_news_baseline",
+      "strict_bhp_local_news_context_baseline",
+      "sse_natural_bhp_latest_local_news"
+    ]
+  }
+}
