@@ -1,0 +1,88 @@
+{
+  "classification": "MERGED_AND_VALIDATED",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/strict_local_news_context_claim_verified_route_v1_20260526.md",
+      "result": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed; no active jobs before claim",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/strict_local_news_context_claim_verified_route_v1_20260526.md",
+      "result": "passed; no overlap",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/strict_local_news_context_claim_verified_route_v1_20260526.md",
+      "result": "passed; registry claim active",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/cockpit/core/chat.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run --python 3.10 ruff check financial-engine_v2/cockpit/core/chat.py financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "environment-only failure: uv environment did not expose ruff",
+      "exit_code": 2
+    },
+    {
+      "command": "uv run --python 3.10 pytest financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py -q",
+      "result": "environment-only failure: uv environment did not expose pytest",
+      "exit_code": 2
+    },
+    {
+      "command": "uv run --python 3.10 pytest financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py -q",
+      "result": "environment-only failure: uv environment did not expose pytest",
+      "exit_code": 2
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/ruff check financial-engine_v2/cockpit/core/chat.py financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "result": "passed; All checks passed",
+      "exit_code": 0
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py -q",
+      "result": "passed; 36 passed, 38 subtests passed",
+      "exit_code": 0
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py -q",
+      "result": "passed; 64 passed",
+      "exit_code": 0
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "result": "passed; 58 passed",
+      "exit_code": 0
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py -q",
+      "result": "passed; 23 passed",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/strict_local_news_context_claim_verified_route_v1_20260526.md --no-write-report",
+      "result": "passed; disallowed_files empty",
+      "exit_code": 0
+    }
+  ],
+  "guard_status": {
+    "chat_evidence_guard_changed": false,
+    "local_news_honesty_guard_weakened": false,
+    "context_only_rows_still_unverified": true,
+    "no_hit_rows_still_unverified": true,
+    "degraded_rows_still_unverified": true
+  },
+  "validation_overall": "passed"
+}
