@@ -1907,6 +1907,10 @@ class ChatController:
         r"^\s*(?:latest\s+)?(?:news(?:\s+for)?\s+(?P<prefix>[A-Za-z0-9]{2,5})|(?P<suffix>[A-Za-z0-9]{2,5})\s+news)\s*[?!.]*\s*$",
         re.IGNORECASE,
     )
+    _STRICT_LOCAL_NEWS_CONTEXT_RE = re.compile(
+        r"\blocal[_ -]news[_ -]context\b",
+        re.IGNORECASE,
+    )
     _DIRECT_FILESTATS_RE = re.compile(
         r"^\s*(?:(?P<ticker_prefix>[A-Za-z0-9]{1,10})\s+filestats?|filestats?\s+(?P<ticker_suffix>[A-Za-z0-9]{1,10}))\s*[?!.]*\s*$",
         re.IGNORECASE,
@@ -1935,7 +1939,11 @@ class ChatController:
     ) -> ChatResponse | None:
         if ticker is None:
             return None
-        if not self._DIRECT_NEWS_RE.fullmatch(message.strip()):
+        stripped_message = message.strip()
+        if not (
+            self._DIRECT_NEWS_RE.fullmatch(stripped_message)
+            or self._STRICT_LOCAL_NEWS_CONTEXT_RE.search(stripped_message)
+        ):
             return None
 
         try:

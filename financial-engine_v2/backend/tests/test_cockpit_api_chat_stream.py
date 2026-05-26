@@ -279,6 +279,153 @@ def test_cockpit_chat_metadata_marks_price_trend_missing_market_evidence(
     ]
 
 
+def test_cockpit_chat_local_news_only_accepts_verified_news_shortcircuit(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            return SimpleNamespace(
+                text=(
+                    "Recent BHP-linked news:\n"
+                    "- BHP local news update\n"
+                    "  published: 2026-05-24"
+                ),
+                evidence=[
+                    {
+                        "type": "news_search",
+                        "details": {
+                            "ticker": "BHP",
+                            "hits": [
+                                {
+                                    "title": "BHP local news update",
+                                    "source_id": "news:bhp-local-news",
+                                    "url": "https://news.example.com/bhp-local-news",
+                                    "snippet": "BHP was covered in local market news.",
+                                    "published_at": "2026-05-24T03:00:00Z",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "Use only local_news_context for BHP",
+            "ticker": "BHP",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert not final_text.startswith("DATA_MISSING")
+    assert "BHP local news update" in final_text
+    source = payload["sources"][0]
+    assert source["source_id"] == "news:bhp-local-news"
+    assert source["kind"] == "news"
+    assert source["claim_verified"] is True
+    assert "claim_verified" in source["evidence_labels"]
+    assert "local_news_context" in source["evidence_labels"]
+    assert "context_only" not in source["evidence_labels"]
+    assert metadata["source_coverage_status"] == "claim_verified"
+    assert metadata["claim_verified_source_count"] == 1
+    assert metadata["local_news_context_count"] == 1
+    assert metadata["claim_verified_local_news_count"] == 1
+
+
+def test_cockpit_chat_local_news_only_news_shortcircuit_no_hit_stays_data_missing(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            return SimpleNamespace(
+                text=(
+                    "I couldn't find recent indexed news for COH. That is not "
+                    "evidence there is no news."
+                ),
+                evidence=[
+                    {
+                        "type": "news_search",
+                        "details": {
+                            "ticker": "COH",
+                            "hits": [],
+                            "data_insufficient": True,
+                        },
+                    }
+                ],
+                action_preview={
+                    "action_id": "daily_news_ingest",
+                    "args": {"tickers": "COH", "since_hours": 24},
+                },
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "Use only local_news_context for COH",
+            "ticker": "COH",
+            "stream": False,
+            "rag": True,
+            "web_search": False,
+            "stateless_smoke": True,
+        },
+        headers={"X-Tenn-Stateless-Smoke": "1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    metadata = payload["routing_metadata"]
+    final_text = payload["text"]
+    assert final_text.startswith("DATA_MISSING / evidence gaps:")
+    assert "no relevant local_news_context" in final_text
+    assert payload["sources"][0]["source_id"] == "search_news:no_hits:coh"
+    assert payload["sources"][0]["claim_verified"] is False
+    assert "no_hit" in payload["sources"][0]["evidence_labels"]
+    assert metadata["source_coverage_status"] == "missing_required_evidence"
+    assert metadata["claim_verified_source_count"] == 0
+    assert metadata["local_news_context_count"] == 0
+    assert metadata["claim_verified_local_news_count"] == 0
+
+
 def test_cockpit_chat_local_news_only_guard_blocks_filing_synthesis(
     monkeypatch,
 ) -> None:

@@ -177,6 +177,33 @@ class ChatTickerDetectionTests(unittest.TestCase):
             ticker="BHP",
         )
 
+    def test_strict_local_news_context_prompt_uses_news_shortcircuit(self) -> None:
+        self.controller.tool_router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "BHP local news update",
+                    "published_at": "2026-05-24T03:00:00Z",
+                    "url": "https://example.com/bhp-local-news",
+                    "text": "BHP was covered in local market news.",
+                }
+            ],
+        }
+
+        response = self.controller.build_chat_response(
+            "Use only local_news_context for BHP", prior_ticker=None
+        )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertIn("Recent BHP-linked news:", response.text)
+        self.assertIn("BHP local news update", response.text)
+        self.controller.tool_router.get_news_context.assert_called_once_with(
+            query="BHP",
+            top_k=5,
+            ticker="BHP",
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_ticker_leading_price_prompt_hits_price_fast_path(self) -> None:
         self.controller.tool_router.get_price_context_for_window.return_value = {
             "price": {
