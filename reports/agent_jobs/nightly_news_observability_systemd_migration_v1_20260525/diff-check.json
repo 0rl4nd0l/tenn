@@ -1,0 +1,274 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/automation_topology_reconciliation_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/llama_server_8001_ownership_provenance_audit_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/long_running_issue_resolution_batch_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/nightly_news_observability_systemd_migration_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/registry_readonly_no_lock_integration_review_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/closeout_comment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/data_missing.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/diff-check.json",
+      "status": "AM"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/evidence.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/finding_classification.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/reviewer_verdict.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/validation_summary.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/closeout_comment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/data_missing.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/evidence.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/finding_classification.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/reviewer_verdict.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/validation_summary.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/branch_parking_map.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/data_missing.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/diff-check.json",
+      "status": "AM"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/followup_map.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/issue_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/validation_summary.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/closeout_comment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/data_missing.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/evidence.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/finding_classification.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/reviewer_verdict.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/validation_summary.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/data_missing.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/evidence.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/finding_classification.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/reviewer_verdict.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/status_comment.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/validation_summary.md",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/long_running_issue_resolution_batch_v1_20260526.md",
+        "docs/agent_tasks/automation_topology_reconciliation_v1_20260525.md",
+        "docs/agent_tasks/nightly_news_observability_systemd_migration_v1_20260525.md",
+        "docs/agent_tasks/llama_server_8001_ownership_provenance_audit_v1_20260525.md",
+        "docs/agent_tasks/registry_readonly_no_lock_integration_review_v1_20260526.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/README.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/status.json",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/issue_matrix.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/followup_map.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/branch_parking_map.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/validation_summary.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/data_missing.md",
+        "reports/agent_jobs/long_running_issue_resolution_batch_v1_20260526/diff-check.json",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/README.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/status.json",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/evidence.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/finding_classification.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/reviewer_verdict.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/closeout_comment.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/validation_summary.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/data_missing.md",
+        "reports/agent_jobs/automation_topology_reconciliation_v1_20260525/diff-check.json",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/README.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/status.json",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/evidence.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/finding_classification.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/reviewer_verdict.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/closeout_comment.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/validation_summary.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/data_missing.md",
+        "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525/diff-check.json",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/README.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/status.json",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/evidence.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/finding_classification.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/reviewer_verdict.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/closeout_comment.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/validation_summary.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/data_missing.md",
+        "reports/agent_jobs/llama_server_8001_ownership_provenance_audit_v1_20260525/diff-check.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/README.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/status.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/evidence.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/finding_classification.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/reviewer_verdict.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/status_comment.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/validation_summary.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/data_missing.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "nightly_news_observability_systemd_migration_v1_20260525",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/nightly_news_observability_systemd_migration_v1_20260525",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Runtime",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

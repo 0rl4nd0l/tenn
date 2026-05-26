@@ -1,0 +1,25 @@
+{
+  "issue": 81,
+  "job_id": "nightly_news_observability_systemd_migration_v1_20260525",
+  "mode": "audit_only",
+  "lane": "Reporting",
+  "decision": "completed_audit_only_with_followups",
+  "closed": true,
+  "closed_as": "state:done-audit-only",
+  "followups_created": [
+    112
+  ],
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "validation_summary": [
+    "task card validate PASS",
+    "registry overlap PASS",
+    "read-only evidence commands PASS",
+    "duplicate search PASS"
+  ],
+  "data_missing": [
+    "GitHub Project field schema/access not checked",
+    "Exact fetch failure cause absent from current artifacts"
+  ],
+  "verdict": "PASS_WITH_FOLLOWUPS"
+}

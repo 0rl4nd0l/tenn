@@ -1,0 +1,32 @@
+{
+  "job_id": "long_running_issue_resolution_batch_v1_20260526",
+  "mode": "supervised_issue_resolution",
+  "primary_lane": "Reporting",
+  "issues_reviewed": 4,
+  "issues_completed": 3,
+  "issues_closed_remediated": 0,
+  "issues_closed_audit_only": 3,
+  "issues_left_open": 1,
+  "followup_issues_created": 3,
+  "branch_review_issues_created": 0,
+  "parked_items": 1,
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "validation_summary": [
+    "preflight repo/GitHub/protocol/template checks PASS",
+    "task cards validated before evidence/report writes",
+    "registry fallback list-active PASS; read-only list-active DATA_MISSING",
+    "registry claim PASS",
+    "read-only issue evidence collected",
+    "follow-up issues #111, #112, #113 created"
+  ],
+  "DATA_MISSING": [
+    "list-active --read-only unavailable in active baseline",
+    "GitHub Project field schema/access not checked",
+    "nightly-news exact fetch failure cause absent",
+    "llama-server :8001 definitive launcher beyond PPID 996 unresolved",
+    "nvidia-smi memory/process details unavailable",
+    "registry source branch remote freshness/CI not checked"
+  ],
+  "verdict": "PARTIAL"
+}

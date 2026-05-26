@@ -1,0 +1,27 @@
+{
+  "issue": 82,
+  "job_id": "llama_server_8001_ownership_provenance_audit_v1_20260525",
+  "mode": "audit_only",
+  "lane": "Reporting",
+  "decision": "completed_audit_only_with_followups",
+  "closed": true,
+  "closed_as": "state:done-audit-only",
+  "followups_created": [
+    113
+  ],
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "validation_summary": [
+    "task card validate PASS",
+    "registry overlap PASS",
+    "read-only evidence commands PASS",
+    "gpu guard exited 0 with warnings",
+    "duplicate search PASS"
+  ],
+  "data_missing": [
+    "GitHub Project field schema/access not checked",
+    "Definitive launcher/owner beyond PPID 996 unresolved",
+    "nvidia-smi memory/process details unavailable"
+  ],
+  "verdict": "PASS_WITH_FOLLOWUPS"
+}
