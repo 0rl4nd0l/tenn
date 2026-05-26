@@ -1,0 +1,63 @@
+{
+  "job_id": "untracked_task_card_preservation_classification_v1_20260526",
+  "github_issue": 94,
+  "status": "PASS_CLASSIFICATION_COMPLETE",
+  "agent": "Codex",
+  "primary_lane_requested": "Repo Hygiene",
+  "validator_lane": "Evaluation",
+  "supporting_lanes": [
+    "Reporting",
+    "Evaluation"
+  ],
+  "execution_mode": "audit_first_preservation_classification",
+  "production_data_access": false,
+  "github_mutation_performed": false,
+  "repo": {
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "61723bdca4ea30ce404d606cec63e47b9cb739b3"
+  },
+  "registry": {
+    "root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "scope": "shared",
+    "claim_created": true,
+    "claim_released": "active_record_already_absent_before_release_command",
+    "final_active_jobs": []
+  },
+  "targets": [
+    {
+      "path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "classification": "valid uncommitted artifact to commit",
+      "next_action": "commit/preserve under a scoped artifact-preservation task with matching report bundle"
+    },
+    {
+      "path": "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+      "classification": "valid uncommitted artifact to commit",
+      "next_action": "commit/preserve under a scoped artifact-preservation task with matching report bundle"
+    }
+  ],
+  "out_of_scope_dirty_context": [
+    "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+  ],
+  "destructive_git_action_performed": false,
+  "product_runtime_data_mutation_performed": false,
+  "data_missing": [
+    "No committed artifact-preservation task currently exists for these two exact task cards and report bundles."
+  ],
+  "validation": {
+    "json_validation": "PASS",
+    "task_card_validate": "PASS",
+    "registry_list_active": "PASS",
+    "registry_check_overlap": "PASS",
+    "git_diff_check": "PASS",
+    "task_card_check_diff": "PASS",
+    "target_hashes_unchanged": "PASS",
+    "final_git_status": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "?? docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+      "?? docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "?? docs/agent_tasks/untracked_task_card_preservation_classification_v1_20260526.md"
+    ]
+  },
+  "updated_at": "2026-05-26T06:45:32Z"
+}

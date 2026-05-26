@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+  "status": "runtime_smoke_complete",
+  "result": "PARTIAL",
+  "lane": "Query Orchestration",
+  "supporting_lanes": [
+    "Runtime/Performance",
+    "Provenance",
+    "Reporting",
+    "Evaluation",
+    "Repo Hygiene"
+  ],
+  "mode": "audit_only_runtime_restart_approved",
+  "production_data_access": false,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "80284a1560373de0302e5d4f2c4b87be705aa985",
+  "required_commit": "c8d605e3de625c9f456edc0f3896b571a68f6b25",
+  "required_commit_is_ancestor_of_head": true,
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "task_card": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+  "registry": {
+    "list_active_ok": true,
+    "active_jobs": [
+      {
+        "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json",
+        "age_seconds": 66.978,
+        "agent": "Codex",
+        "allowed_files": [
+          "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+          "reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md",
+          "reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+          "reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+          "reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+          "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+          "reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json"
+        ],
+        "approval_required": false,
+        "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+        "claimed_at": "2026-05-25T05:50:51.189369Z",
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "heartbeat_at": "2026-05-25T05:50:51.189369Z",
+        "hostname": "l4nd0-System-Product-Name",
+        "job_id": "real_signal_scorecard_manifest_v1",
+        "lane": "Evaluation",
+        "last_seen_at": "2026-05-25T05:50:51.189369Z",
+        "mutation_mode": "safe_extension",
+        "output_dir": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+        "owner": "Codex",
+        "pid": 694934,
+        "production_data_access": false,
+        "schema_version": 1,
+        "session_id": "l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1",
+        "stale": false,
+        "stale_after_seconds": 1800,
+        "started_at": "2026-05-25T05:50:51.189369Z",
+        "status": "active",
+        "task_card": "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+        "task_card_sha256": "389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf",
+        "timeout_seconds": 3600,
+        "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+      }
+    ],
+    "check_overlap_ok": true,
+    "check_overlap_issues": [],
+    "active_query_orchestration_overlap": [],
+    "final_list_active_ok": true,
+    "final_active_jobs": []
+  },
+  "runtime_action": {
+    "performed": true,
+    "approved_scope": "reload/restart fe_backend only",
+    "least_disruptive_method": "Docker Compose service restart for backend only; no image rebuild and no dependency service restart command",
+    "command": "docker compose restart backend",
+    "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+    "result": {
+      "cmd": [
+        "docker",
+        "compose",
+        "restart",
+        "backend"
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": " Container fe_backend  Restarting\n Container fe_backend  Started\n",
+      "elapsed_seconds": 1.275
+    },
+    "forbidden_runtime_actions_performed": false,
+    "service_statuses_after": [
+      {
+        "name": "fe_backend",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T05:51:59.686426623Z",
+        "pid": 699172,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_worker",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:18.706349617Z",
+        "pid": 3925013,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_gpu_worker",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:18.707458848Z",
+        "pid": 3925019,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_postgres",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:13.106694535Z",
+        "pid": 3924467,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_qdrant",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:13.103564039Z",
+        "pid": 3924451,
+        "restart_count": 0
+      }
+    ]
+  },
+  "route_activation": {
+    "pre_reload_openapi_has_news_status": false,
+    "pre_reload_news_status_http_status": 404,
+    "post_reload_openapi_has_news_status": true,
+    "post_reload_news_status_http_status": 200,
+    "news_status_activated": true
+  },
+  "chat": {
+    "result": "PARTIAL",
+    "source_metadata_and_final_synthesis_text_agree": false,
+    "probe_summaries": [
+      {
+        "name": "30s_general_a2m_probe_after_reload",
+        "http_status": 200,
+        "elapsed_seconds": 15.104,
+        "latency_ms": 15095,
+        "source_coverage_status": "context_only",
+        "claim_verified_source_count": 0,
+        "local_news_context_count": 1,
+        "source_label_counts": {
+          "context_only": 5,
+          "local_news_context": 1,
+          "operational_trace": 1,
+          "unknown_unclassified": 3
+        },
+        "classification": "PARTIAL_sources_present_final_text_not_aligned",
+        "final_text_alignment": {
+          "mentions_returned_local_news_topic": false,
+          "mentions_document_context_as_news_risk": true,
+          "local_news_title_text": "a2 milk shares plunge after finding toxins in infant formula",
+          "agrees_with_local_news_context": false
+        }
+      },
+      {
+        "name": "30s_news_only_a2m_probe_after_reload",
+        "http_status": 200,
+        "elapsed_seconds": 11.554,
+        "latency_ms": 11550,
+        "source_coverage_status": "context_only",
+        "claim_verified_source_count": 0,
+        "local_news_context_count": 1,
+        "source_label_counts": {
+          "context_only": 5,
+          "local_news_context": 1,
+          "operational_trace": 1,
+          "unknown_unclassified": 3
+        },
+        "classification": "PARTIAL_sources_present_final_text_not_aligned",
+        "final_text_alignment": {
+          "mentions_returned_local_news_topic": false,
+          "mentions_document_context_as_news_risk": true,
+          "local_news_title_text": "a2 milk shares plunge after finding toxins in infant formula",
+          "agrees_with_local_news_context": false
+        }
+      }
+    ]
+  },
+  "runtime_log_degradation": {
+    "cockpit_announcement_context_missing_table_error_persists": true
+  },
+  "changed_files": [
+    "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json",
+    "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json"
+  ],
+  "forbidden_mutation_performed": false,
+  "no_mutation_attestation": {
+    "code_changes": false,
+    "db_qdrant_news_store_mutation": false,
+    "reindex_resync_backfill_projection_repair": false,
+    "parser_routing_changes": false,
+    "canonical_financial_truth_writes": false,
+    "tenn_memory_writes": false,
+    "runtime_model_gpu_config_edits": false,
+    "llama_server_qdrant_postgres_next_or_unrelated_service_restart": false,
+    "source_label_ranking_synthesis_prompt_ui_fixes": false,
+    "foreign_task_cards_touched": false,
+    "allowed_runtime_action": "docker compose restart backend"
+  },
+  "next_recommended_task": "source-grounding trace if synthesis still misattributes sources; runtime/schema audit if missing table persists",
+  "save_recommendation": "Save to Project Memory: Reloading only fe_backend with docker compose restart backend activated /api/cockpit/news/status after c8d605e3 landed; pre-reload OpenAPI lacked the route and returned 404, post-reload OpenAPI included it and GET returned 200. A2M stateless chat still remained PARTIAL because source metadata exposed local_news_context with zero claim-verified sources while final synthesis text did not cleanly align to the local news source. Missing cockpit_announcement_context table errors should be checked by a runtime/schema audit if they persist in logs.",
+  "validation": {
+    "json_validation": {
+      "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json": "pass",
+      "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json": "pass",
+      "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json": "pass"
+    },
+    "task_card_validate_returncode": 0,
+    "git_diff_check_returncode": 0,
+    "task_card_check_diff_returncode": 0,
+    "task_card_check_diff_ok": true,
+    "task_card_check_diff_issues": [],
+    "final_registry_list_active_ok": true,
+    "final_active_jobs": [],
+    "final_git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+    ]
+  },
+  "initial_manual_preflight": {
+    "source": "manual preflight commands before runtime collection script",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "3a18475b91a325baccd22a3daf07237dc1d3d18b",
+    "git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "?? docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "?? docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "registry_list_active": {
+      "ok": true,
+      "active_jobs": []
+    },
+    "registry_check_overlap": {
+      "ok": false,
+      "issues": [
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md is dirty outside current task card allowed_files"
+        }
+      ]
+    },
+    "foreign_untracked_task_cards_recorded_and_not_touched": [
+      "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "hard_stop_evaluation": "No active Query Orchestration job was present; the overlap was known foreign untracked task-card dirt and was not touched."
+  },
+  "head_transition_during_audit_window": {
+    "observed": true,
+    "from_initial_manual_preflight_head": "3a18475b91a325baccd22a3daf07237dc1d3d18b",
+    "to_runtime_collection_head": "80284a1560373de0302e5d4f2c4b87be705aa985",
+    "to_final_head": "80284a1560373de0302e5d4f2c4b87be705aa985",
+    "current_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "current_head_subject": "milestone(repo-hygiene): preserve dirty task-card blockers",
+    "interpretation": "The branch advanced during the audit window via unrelated repo-hygiene preservation. This audit did not clean, stage, or commit the foreign task cards."
+  }
+}

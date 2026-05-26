@@ -1,0 +1,2526 @@
+{
+  "schema_version": 1,
+  "job_id": "a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+  "generated_at": "2026-05-25T15:51:58+10:00",
+  "mode": "audit_only_runtime_restart_approved",
+  "risk": "medium_operational_backend_restart",
+  "task_card": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+  "preflight": {
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "80284a1560373de0302e5d4f2c4b87be705aa985",
+    "head_commit": [
+      "80284a1560373de0302e5d4f2c4b87be705aa985",
+      "2026-05-25 15:50:54 +1000",
+      "milestone(repo-hygiene): preserve dirty task-card blockers"
+    ],
+    "required_commit": [
+      "c8d605e3de625c9f456edc0f3896b571a68f6b25",
+      "2026-05-25 15:15:01 +1000",
+      "milestone(query): add news health status contract"
+    ],
+    "required_commit_is_ancestor_of_head": true,
+    "git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+    ],
+    "git_worktree_list": [
+      "/mnt/sdb2/home/l4nd0/tenn                                                                          c102f3f2 [preserve/dirty-work-20260430T065748Z]",
+      "/home/l4nd0/CLAUDEMAESTRO1                                                                         f52a7ef9 [CLAUDEMAESTRO1] prunable",
+      "/home/l4nd0/Maestro1                                                                               79d325f5 [Maestro1] prunable",
+      "/home/l4nd0/tenn-a2m-chat-synthesis-smoke-v1-20260525                                              c8d605e3 [safe/a2m-chat-synthesis-smoke-v1-20260525]",
+      "/home/l4nd0/tenn-a2m-news-projection-controller-v1-20260525                                        b47d0497 [safe/a2m-news-projection-integration-readonly-smoke-controller-v1-20260525]",
+      "/home/l4nd0/tenn-a2m-news-projection-path-remediation-v1-20260525                                  3eb87220 [audit/a2m-news-projection-path-remediation-v1-20260525]",
+      "/home/l4nd0/tenn-a2m-news-trace-audit-v1-20260519                                                  0b8c4d94 [audit/a2m-news-trace-entity-linking-v1-20260519]",
+      "/home/l4nd0/tenn-a2m-runtime-activation-chat-timeout-audit-v1-20260525                             c8d605e3 [audit/a2m-runtime-activation-chat-timeout-v1-20260525]",
+      "/home/l4nd0/tenn-appendix5b-10x-approved-gate-v1-20260517                                          970779b4 [safe/appendix5b-10x-approved-gate-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-10x-candidate-artifact-v1-20260517                                     7f7ada15 [safe/appendix5b-10x-candidate-artifact-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-10x-no-regression-suite-v1-20260517                                    ae2dfd81 [safe/appendix5b-10x-no-regression-suite-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-alt-gre-pdf-run-v1-20260516                                            370583e4 [safe/appendix5b-alt-gre-pdf-run-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-broader-corpus-gate-v1-20260516                                        f4332173 [safe/appendix5b-broader-corpus-gate-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-candidate-artifact-runner-v1-20260516                                  6411ccb5 [safe/appendix5b-candidate-artifact-runner-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-candidate-scorer-v1-20260516                                           9996010f [safe/appendix5b-candidate-scorer-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-cash-end-line-preference-v1-20260516                                   3c5e21d5 [safe/appendix5b-cash-end-line-preference-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-confirmed-fixture-artifacts-v1-20260516                                f2387eac [safe/appendix5b-confirmed-fixture-artifacts-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-confirmed-label-importer-v1-20260516                                   4123b4d8 [safe/appendix5b-confirmed-label-importer-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-deterministic-parser-v1-20260516                                       8991cbfd [safe/appendix5b-deterministic-parser-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-expanded-gate-after-reconciliation-v1-20260517                         86d9a50e [safe/appendix5b-expanded-gate-after-reconciliation-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-full-gold-folder-harvest-v1-20260517                                   6b9ee98f [safe/appendix5b-full-gold-folder-harvest-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-gold-folder-label-expansion-v1-20260516                                accae277 [safe/appendix5b-gold-folder-label-expansion-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-gre-sep-investing-cf-fix-v1-20260517                                   ca00e214 [safe/appendix5b-gre-sep-investing-cf-fix-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-label-review-packet-v1-20260516                                        e850ff87 [safe/appendix5b-label-review-packet-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-parser-current-v1-20260516                                             5f9f0ede [integrate/appendix5b-parser-current-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-prm-gate-stack-canonical-integration-v1-20260524                       c5e3f7c5 [integrate/appendix5b-prm-gate-stack-canonical-integration-v1-20260524]",
+      "/home/l4nd0/tenn-appendix5b-real-docling-run-v1-20260516                                           69745dc5 [safe/appendix5b-real-docling-run-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-real-table-manifest-v1-20260516                                        03f6e11d [safe/appendix5b-real-table-manifest-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-recurring-gate-integration-v1-20260517                                 5d08ee34 [safe/appendix5b-recurring-gate-integration-v1-20260517]",
+      "/home/l4nd0/tenn-appendix5b-scale-header-propagation-v1-20260516                                   4bff6cdc [safe/appendix5b-scale-header-propagation-v1-20260516]",
+      "/home/l4nd0/tenn-appendix5b-supplemental-review-packet-v1-20260517                                 24c14b0f [safe/appendix5b-supplemental-review-packet-v1-20260517]",
+      "/home/l4nd0/tenn-asx-appendix5b-sidecar-gate-report-v1-20260521                                    d33d0c54 [audit/asx-appendix5b-sidecar-gate-report-v1-20260521]",
+      "/home/l4nd0/tenn-asx-appendix5b-sidecar-parser-v1-20260521                                         dcbf7244 [safe/asx-appendix5b-sidecar-parser-v1-20260521]",
+      "/home/l4nd0/tenn-asx-deterministic-extraction-audit-v1-20260519                                    0b8c4d94 [audit/asx-deterministic-extraction-extension-v1-20260519]",
+      "/home/l4nd0/tenn-asx-document-type-fixture-contract-v1-20260520                                    5239513b [safe/asx-document-type-fixture-contract-v1-20260520]",
+      "/home/l4nd0/tenn-backend-chat-evidence-guard-v1-20260524                                           4021a1a9 [safe/backend-chat-evidence-guard-v1-20260524]",
+      "/home/l4nd0/tenn-backend-companies-model-import-integration-v1-20260516                            a7549aa2 [safe/backend-companies-model-import-integration-v1-20260516]",
+      "/home/l4nd0/tenn-backend-models-companies-import-validity-v1-20260513                              2cc0f718 [codex/backend-models-companies-import-validity-v1-20260513]",
+      "/home/l4nd0/tenn-backend-reload-csl-stateless-smoke-v1-20260524                                    f79a71dd [runtime/backend-reload-csl-stateless-smoke-v1-20260524]",
+      "/home/l4nd0/tenn-cockpit-attached-source-handoff-preserve-candidate-v1-20260516                    972eeb11 [safe/cockpit-attached-source-handoff-preserve-candidate-v1-20260516]",
+      "/home/l4nd0/tenn-cockpit-attached-source-handoff-v1-20260516                                       ea9b1b5e [safe/cockpit-attached-source-handoff-v1-20260516]",
+      "/home/l4nd0/tenn-cockpit-chat-control-prompt-guard-v1-20260519                                     2e73de32 [safe/cockpit-chat-control-prompt-guard-v1-20260519]",
+      "/home/l4nd0/tenn-cockpit-chat-stateless-smoke-harness-integrate-v1-20260524                        8c2406d4 [integrate/cockpit-chat-stateless-smoke-harness-v1-20260524]",
+      "/home/l4nd0/tenn-cockpit-chat-stateless-smoke-harness-v1-20260524                                  f3f76b0e [safe/cockpit-chat-stateless-smoke-harness-v1-20260524]",
+      "/home/l4nd0/tenn-cockpit-chat-visible-evidence-gap-labels-v1-20260524                              62b8c6e0 [safe/cockpit-chat-visible-evidence-gap-labels-v1-20260524]",
+      "/home/l4nd0/tenn-cockpit-current-news-missing-discipline-v1-20260517                               155141f6 [safe/cockpit-current-news-missing-discipline-v1-20260517]",
+      "/home/l4nd0/tenn-cockpit-feature-honesty-audit-v1-20260521                                         731ee197 [audit/cockpit-feature-honesty-v1-20260521]",
+      "/home/l4nd0/tenn-cockpit-home-actionability-v1-20260522                                            1bf59cf4 [safe/cockpit-home-actionability-v1-20260522]",
+      "/home/l4nd0/tenn-cockpit-next-theme-hydration-v1-20260522                                          8729c732 [safe/cockpit-next-theme-hydration-v1-20260522]",
+      "/home/l4nd0/tenn-cockpit-referent-missing-source-guard-v1-20260517                                 8bc223b8 [safe/cockpit-referent-missing-source-guard-v1-20260517]",
+      "/home/l4nd0/tenn-cockpit-source-grounding-semantics-v1-20260517                                    c3adb8af [safe/cockpit-source-grounding-semantics-v1-20260517]",
+      "/home/l4nd0/tenn-cockpit-tool-source-trace-recall-v1-20260517                                      1ec0ed9a [safe/cockpit-tool-source-trace-recall-v1-20260517]",
+      "/home/l4nd0/tenn-cockpit-ui-overnight-orchestrator-v1-20260521                                     2348eddb [safe/cockpit-ui-overnight-orchestrator-v1-20260521]",
+      "/home/l4nd0/tenn-cockpit-ui-usefulness-current-head-v1-20260521                                    7a8c872f [integrate/cockpit-ui-usefulness-current-head-v1-20260521]",
+      "/home/l4nd0/tenn-cockpit-ui-usefulness-integrate-v1-20260521                                       26173376 [integrate/cockpit-ui-usefulness-integrate-v1-20260521]",
+      "/home/l4nd0/tenn-cockpit-ui-usefulness-v1-20260525                                                 82bd8f72 [codex/cockpit-ui-usefulness-vertical-slice-v1-20260525]",
+      "/home/l4nd0/tenn-cockpit-ui-usefulness-vertical-slice-v1-20260521                                  8c855190 [safe/cockpit-ui-usefulness-vertical-slice-v1-20260521]",
+      "/home/l4nd0/tenn-codex-automations-v1-20260516                                                     31d5c80b [safe/codex-automated-audit-runners-v1-20260516]",
+      "/home/l4nd0/tenn-confirmed-metric-scoring-gap-safe-extension-v1-20260524                           4289f159 [safe/confirmed_metric_scoring_gap_safe_extension_v1_20260524]",
+      "/home/l4nd0/tenn-docling-native-crash-runtime-probe-v1-20260516                                    1ac0c47e [safe/docling-native-crash-runtime-probe-v1-20260516]",
+      "/home/l4nd0/tenn-docling-page-batch-batch-eval-v1-20260516                                         ed402657 [safe/docling-page-batch-batch-eval-v1-20260516]",
+      "/home/l4nd0/tenn-docling-page-batch-comparator-v1-20260516                                         47336a0e [safe/docling-page-batch-comparator-v1-20260516]",
+      "/home/l4nd0/tenn-eval-spine-curated-ingestion-v2-20260521                                          b3341825 [safe/eval-spine-curated-ingestion-v2-20260521]",
+      "/home/l4nd0/tenn-evaluation-spine-duckdb-audit-v1-20260520                                         669bff1c [audit/evaluation-spine-duckdb-schema-v1-20260520]",
+      "/home/l4nd0/tenn-extraction-architecture-map-v1-20260516                                           9aeaf6a3 [safe/extraction-architecture-map-v1-20260516]",
+      "/home/l4nd0/tenn-extraction-runtime-mode-selector-integration-v1-20260516                          1fe8a030 [safe/extraction-runtime-mode-selector-integration-v1-20260516]",
+      "/home/l4nd0/tenn-fast-dev-storage-v1                                                               6c6748fe [migration/clean-runtime-baseline-20260517]",
+      "/home/l4nd0/tenn-gold-folder-confirmed-source-audit-v1-20260516                                    d88fd9c0 [safe/gold-folder-confirmed-source-audit-v1-20260516]",
+      "/home/l4nd0/tenn-gold-metric-coverage-audit-v1-20260516                                            7182e2f8 [safe/gold-metric-coverage-audit-v1-20260516]",
+      "/home/l4nd0/tenn-m40-8001-validation-v1                                                            6111b8fd [work/m40-8001-validation-v1-20260517]",
+      "/home/l4nd0/tenn-memory-ambiguous-linked-ticker-identity-v1-20260516                               b4db78dd [safe/memory-ambiguous-linked-ticker-identity-v1-20260516]",
+      "/home/l4nd0/tenn-memory-anthropic-answer-path-smoke-v1-20260516                                    110c3939 [safe/memory-anthropic-answer-path-smoke-v1-20260516]",
+      "/home/l4nd0/tenn-memory-chat-company-context-routing-nvme-v1-20260517                              d082a603 [integrate/memory-chat-company-context-routing-nvme-v1-20260517]",
+      "/home/l4nd0/tenn-memory-chat-company-context-routing-v1-20260517                                   dc3cd6b1 [safe/memory-chat-company-context-routing-v1-20260517]",
+      "/home/l4nd0/tenn-memory-cleanup-batch5-approved-200-20260514                                       fe4c940d [safe/memory-interticker-cleanup-batch5-approved-200-20260514]",
+      "/home/l4nd0/tenn-memory-cleanup-batch6-approved-163-20260514                                       ea535056 [safe/memory-interticker-cleanup-batch6-approved-163-20260514]",
+      "/home/l4nd0/tenn-memory-companies-signal-routing-stack-v1-20260516                                 b4d530c2 [integrate/memory-companies-signal-routing-stack-v1-20260516]",
+      "/home/l4nd0/tenn-memory-contamination-root-cause-audit-v1-20260519                                 2e73de32 [audit/memory-contamination-root-cause-audit-v1-20260519]",
+      "/home/l4nd0/tenn-memory-integrity-audit-guard-v1-20260516                                          69168518 [safe/memory-integrity-audit-guard-v1-20260516]",
+      "/home/l4nd0/tenn-memory-integrity-validation-company-v1-20260516                                   d3cbf8ab [safe/memory-integrity-validation-company-v1-20260516]",
+      "/home/l4nd0/tenn-memory-integrity-validation-gate-v1-20260516                                      9999ff45 [safe/memory-integrity-validation-gate-v1-20260516]",
+      "/home/l4nd0/tenn-memory-live-context-root-resolution-nvme-v1-20260516                              f6153625 [safe/memory-live-context-root-resolution-nvme-v1-20260516]",
+      "/home/l4nd0/tenn-memory-live-context-root-resolution-v1-20260516                                   b0f26d67 [safe/memory-live-context-root-resolution-v1-20260516]",
+      "/home/l4nd0/tenn-memory-live-integration-v1-20260516                                               5cb71fe5 [integration/memory-contamination-root-cause-v1-20260516]",
+      "/home/l4nd0/tenn-memory-live-inventory-readonly-v1-20260519                                        0b8c4d94 [audit/memory-live-inventory-readonly-v1-20260519]",
+      "/home/l4nd0/tenn-memory-live-row-audit-v1-20260516                                                 79c54640 [audit/memory-live-row-audit-v1-20260516]",
+      "/home/l4nd0/tenn-memory-market-be-linked-ticker-cleanup-v1-20260516                                09789991 [safe/memory-market-be-linked-ticker-cleanup-v1-20260516]",
+      "/home/l4nd0/tenn-memory-market-linked-ticker-canonical-reconcile-v1-20260516                       ed6d8cd6 [audit/memory-market-linked-ticker-canonical-reconcile-v1-20260516]",
+      "/home/l4nd0/tenn-memory-market-linked-ticker-cleanup-v1-20260516                                   e1e79ff6 [safe/memory-market-linked-ticker-cleanup-v1-20260516]",
+      "/home/l4nd0/tenn-memory-market-unsupported-linked-ticker-cleanup-v1-20260516                       b45f494f [safe/memory-market-unsupported-linked-ticker-cleanup-v1-20260516]",
+      "/home/l4nd0/tenn-memory-memo-signal-routing-remedy-v1-20260516                                     88790507 [safe/memory-memo-signal-routing-remedy-v1-20260516]",
+      "/home/l4nd0/tenn-memory-news-memo-signal-routing-fixture-integration-v1-20260516                   3f5a0e43 [safe/memory-news-memo-signal-routing-fixture-integration-v1-20260516]",
+      "/home/l4nd0/tenn-memory-nvme-fastdev-context-root-v1-20260517                                      f22a9ae8 [integrate/memory-nvme-fastdev-context-root-v1-20260517]",
+      "/home/l4nd0/tenn-memory-operator-review-prep-v2-20260521                                           945b75ff [audit/memory-operator-review-prep-v2-20260521]",
+      "/home/l4nd0/tenn-memory-remaining-write-paths-v1-20260516                                          c106852a [safe/memory-remaining-write-paths-v1-20260516]",
+      "/home/l4nd0/tenn-memory-research-root-host-data-preference-v1-20260516                             d0e0571f [safe/memory-research-root-host-data-preference-v1-20260516]",
+      "/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v1-20260516                       fc345ed6 [safe/memory-runtime-path-status-preserve-integration-v1-20260516]",
+      "/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v2-20260516                       d4b4bc1c [safe/memory-runtime-path-status-preserve-integration-v2-20260516]",
+      "/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v3-20260516                       0524e9a8 [safe/memory-runtime-path-status-preserve-integration-v3-20260516]",
+      "/home/l4nd0/tenn-memory-runtime-path-status-v1-20260516                                            7e3a3ff1 [safe/memory-runtime-path-status-v1-20260516]",
+      "/home/l4nd0/tenn-memory-stale-fallback-research-memory-quarantine-v1-20260516                      ccbe4790 [safe/memory-stale-fallback-research-memory-quarantine-v1-20260516]",
+      "/home/l4nd0/tenn-memory-validation-gate-isolation-v1-20260516                                      80f71c50 [safe/memory-validation-gate-isolation-v1-20260516]",
+      "/home/l4nd0/tenn-merge-parking-docs-validation-slice-v1-20260524                                   de3f1f56 [safe/merge-parking-docs-validation-slice-v1-20260524]",
+      "/home/l4nd0/tenn-news-downstream-sync-fallback-repair-v1-20260515                                  9eae8791 [safe/news-downstream-sync-fallback-repair-v1-20260515]",
+      "/home/l4nd0/tenn-news-loader-ollama-url-hardening-v1-20260515                                      a1802c75 [safe/news-loader-ollama-url-hardening-v1-20260515]",
+      "/home/l4nd0/tenn-news-retrieval-parity-a2m-v1-20260520                                             29ca3134 [safe/news-retrieval-parity-a2m-v1-20260520]",
+      "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1                                                80284a15 [migration/clean-runtime-baseline-reconstruct-v1]",
+      "/home/l4nd0/tenn-nvme-live-preserve-20260516                                                       b0f26d67 [runtime/nvme-live-preserve-20260516]",
+      "/home/l4nd0/tenn-overview-news-commentary-approval-v1-20260516                                     5551d28a [codex/overview-news-commentary-approval-v1-20260516]",
+      "/home/l4nd0/tenn-post-nvme-next-work-orchestrator-v1-20260521                                      b475758d [orchestrate/post-nvme-next-work-v1-20260521]",
+      "/home/l4nd0/tenn-pr39-ci-fix-20260525                                                              9940a9a7 (detached HEAD)",
+      "/home/l4nd0/tenn-process-document-rag-guardrails-audit-v1-20260514                                 1a7e2ae6 [audit/process-document-rag-guardrails-v1-20260514]",
+      "/home/l4nd0/tenn-process-document-rag-guardrails-fixture-fix-v1-20260515                           5037f385 [safe/process-document-rag-guardrails-fixture-fix-v1-20260515]",
+      "/home/l4nd0/tenn-qdlab-repeatability-review-path-v1-20260525                                       faef3084 [safe/strategy-lab-quantdinger-repeatability-review-path-v1-20260525]",
+      "/home/l4nd0/tenn-quantdinger-repeatability-harness-v1-20260525                                     0e280006 [safe/strategy-lab-quantdinger-repeatability-harness-v1-20260525]",
+      "/home/l4nd0/tenn-query-eval-integration-readiness-v1-20260516                                      20079a01 [audit/query-eval-integration-readiness-v1-20260516]",
+      "/home/l4nd0/tenn-query-legacy-chat-envelope-current-readiness-v1-20260516                          0524e9a8 [audit/query-legacy-chat-envelope-current-readiness-v1-20260516]",
+      "/home/l4nd0/tenn-query-news-loader-ollama-hardening-integration-v1-20260516                        90c60755 [safe/query-news-loader-ollama-hardening-integration-v1-20260516]",
+      "/home/l4nd0/tenn-rented-gpu-runtime-port-v1-20260514                                               5da86ab3 [safe/rented-gpu-runtime-port-v1-20260514]",
+      "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525                                                   cb87a773 [audit/repo-hygiene-safe-audits-v1-20260525]",
+      "/home/l4nd0/tenn-repo-native-goal-schema-slice-v1-20260524                                         1fc51bad [safe/repo-native-goal-schema-slice-v1-20260524]",
+      "/home/l4nd0/tenn-repo-native-goal-schema-slice-v1-20260524-clean-codex                             cf825692 [safe/repo-native-goal-schema-slice-v1-20260524-clean-codex]",
+      "/home/l4nd0/tenn-reporting-ui-safe-issues-v1-20260525                                              27001ec0 [safe/reporting-ui-safe-issues-v1-20260525]",
+      "/home/l4nd0/tenn-sloppy-fix-manual-only-main-pr-v1-20260521                                        163697c9 [safe/sloppy-fix-manual-only-main-pr-v1-20260521]",
+      "/home/l4nd0/tenn-sloppy-fix-manual-only-v1-20260521                                                4a616423 [safe/sloppy-fix-manual-only-v1-20260521]",
+      "/home/l4nd0/tenn-smoke-sync-mode-gate-v1-20260516                                                  3944aafb [safe/smoke-sync-mode-gate-v1-20260516]",
+      "/home/l4nd0/tenn-smoke-sync-mode-gate-v2-20260516                                                  08fa2402 [safe/smoke-sync-mode-gate-v2-20260516]",
+      "/home/l4nd0/tenn-stateless-chat-memory-read-suppression-v1-20260524                                8ec2e731 [safe/stateless-chat-memory-read-suppression-v1-20260524]",
+      "/home/l4nd0/tenn-status-route-contract-news-health-v1-20260525                                     923e010a [safe/status-route-contract-news-health-v1-20260525]",
+      "/home/l4nd0/tenn-strategy-lab-artifact-review-value-layer-v1-20260524                              0141021b [safe/strategy-lab-artifact-review-value-layer-v1-20260524]",
+      "/home/l4nd0/tenn-strategy-lab-artifact-schema-phase2-v1-20260520                                   6c6748fe [safe/strategy-lab-artifact-schema-phase2-v1-20260520]",
+      "/home/l4nd0/tenn-strategy-lab-mocked-adapter-design-phase3-v1-20260520                             6c6748fe [safe/strategy-lab-mocked-adapter-design-phase3-v1-20260520]",
+      "/home/l4nd0/tenn-strategy-lab-mocked-adapter-tests-phase3b-reconciled-v1-20260521                  76042591 [safe/strategy-lab-mocked-adapter-tests-phase3b-reconciled-v1-20260521]",
+      "/home/l4nd0/tenn-strategy-lab-offline-mock-transport-phase3c-v1-20260521                           76042591 [safe/strategy-lab-offline-mock-transport-phase3c-v1-20260521]",
+      "/home/l4nd0/tenn-strategy-lab-phase3g-isolated-rerun-v1-20260522                                   6d8ecff8 [safe/strategy-lab-phase3g-isolated-rerun-v1-20260522]",
+      "/home/l4nd0/tenn-strategy-lab-phase3g-mergeback-v1-20260524                                        e170f6b2 [safe/strategy-lab-phase3g-mergeback-v1-20260524]",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-fit-audit-v1-20260520                                    6c6748fe [audit/strategy-lab-quantdinger-fit-audit-v1-20260520]",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520                               6c6748fe [audit/strategy-lab-quantdinger-phase1-sandbox-v1-20260520]",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521                       6c6748fe [audit/strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521]",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-readonly-sidecar-online-v1-20260524                      8c2406d4 [audit/strategy-lab-quantdinger-readonly-sidecar-online-v1-20260524]",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-readonly-sidecar-smoke-exec-v1-20260524                  0ee837f7 [audit/strategy-lab-quantdinger-readonly-sidecar-smoke-exec-v1-20260524]",
+      "/home/l4nd0/tenn-strategy-lab-quantdinger-readonly-transport-progress-v1-20260525                  2c1b77db [safe/strategy-lab-quantdinger-readonly-transport-progress-v1-20260525]",
+      "/home/l4nd0/tenn-strategy-lab-readonly-subsystem-maturation-v1-20260525                            e5e12fe9 [safe/strategy-lab-readonly-subsystem-maturation-v1-20260525]",
+      "/home/l4nd0/tenn-strategy-lab-schema-lineage-reconciliation-v1-20260521                            76042591 [audit/strategy-lab-schema-lineage-reconciliation-v1-20260521]",
+      "/home/l4nd0/tenn-strategy-lab-verified-readonly-status-v1-20260525                                 be44dd84 [codex/strategy-lab-verified-readonly-status-v1-20260525]",
+      "/home/l4nd0/tenn-task-card-dirt-hygiene-v1-20260524                                                97b1dc4b [safe/task-card-dirt-hygiene-v1-20260524]",
+      "/home/l4nd0/tenn-trust-foundation-followup-implementation-controller-v1-20260524                   f83e8c9a [safe/trust-foundation-followup-implementation-controller-v1-20260524]",
+      "/home/l4nd0/tenn-trust-foundation-followup-integrate-canonical-v1-20260524                         a6db9760 [integrate/trust-foundation-followup-canonical-v1-20260524]",
+      "/home/l4nd0/tenn-trust-foundation-next-phase-longrun-v1-20260524                                   f18fdc2d [safe/trust-foundation-next-phase-longrun-v1-20260524]",
+      "/home/l4nd0/tenn-trust-foundation-parallel-push-v1-20260524                                        72c6d95c [safe/trust-foundation-parallel-push-v1-20260524]",
+      "/home/l4nd0/tenn-unattended-safe-batch-v1-20260514                                                 03f794d2 [audit/unattended-safe-batch-v1-20260514]",
+      "/home/l4nd0/tenn-workday-checkin-protocol-v1-20260521                                              7a8c872f [safe/codex-workday-checkin-protocol-v1-20260521]",
+      "/home/l4nd0/tenn-youtube-transcript-ie-20260516                                                    355ae4d5 [codex/youtube-transcript-ie-20260516]",
+      "/mnt/hdd-data/home/l4nd0/tenn-agent-control-live-data-maintenance-contract-20260513                42695aa8 [codex/agent-control-live-data-maintenance-contract-v1-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-cockpit-home-news-snapshot-c0549d7-source-integration                d2cb42de [codex/cockpit-home-news-snapshot-c0549d7-source-integration-20260512] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-cockpit-ui-test-drift-20260513                                       842bd2a6 [codex/cockpit-ui-test-drift-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-embedding-sqlite-invariant-contract-fix-v1-20260513                  cc73f66d [codex/embedding-sqlite-invariant-contract-fix-v1-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-extraction-runtime-mode-selector-20260516                            8aaaf324 [codex/extraction-runtime-mode-selector-20260516] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-home-frontend-wiring-v1-20260513                                     c67ddece [codex/home-frontend-wiring-v1-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-home-wiring-target-route-dedupe-20260516                             3af92d50 [codex/home-wiring-target-route-dedupe-20260516] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch3-20260513                                       4cc702ca [safe/memory-interticker-cleanup-batch3-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch3-approved-20260513                              ed0623b8 [safe/memory-interticker-cleanup-batch3-approved-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch4-approved-20260513                              62fbaf35 [safe/memory-interticker-cleanup-batch4-approved-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-memory-cleanup-batch5-approved-200-20260513                          5a119f03 [safe/memory-interticker-cleanup-batch5-approved-200-20260513] prunable",
+      "/mnt/hdd-data/home/l4nd0/tenn-memory-contamination-root-cause-v1-20260516                          5cb71fe5 [audit/memory-contamination-root-cause-v1-20260516] prunable",
+      "/mnt/sdb2/home/l4nd0/tenn-ab-isolation-20260421                                                    ae86d6a8 [audit/ab-isolation-real-gold-cap-timeout]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-auth-design-before-chatgpt-20260507                            e387e9c6 [audit/tenn-agent-mcp-auth-design-before-chatgpt-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-connector-dry-run-plan-20260507                                dd903ca5 [audit/tenn-agent-mcp-connector-dry-run-plan-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-http-adapter-v0-20260507                                       e387e9c6 [safe/tenn-agent-mcp-http-adapter-v0-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-smoke-20260507                                     dd903ca5 [audit/tenn-agent-mcp-oauth-local-smoke-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-v1-20260507                                        dd903ca5 [safe/tenn-agent-mcp-oauth-local-v1-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-audit-scaffold-20260507                                     9911b9d0 [safe/tenn-agent-mcp-v0-audit-scaffold-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-clean-integration-20260507                                  dfd3014f [safe/tenn-agent-mcp-v0-clean-integration-20260507]",
+      "/mnt/sdb2/home/l4nd0/tenn-backend-import-validity-companies-model-v1                               19763997 [codex/backend-import-validity-companies-model-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-bounded-closure                                                          850d4523 [bounded/contract-closure-chat-provenance]",
+      "/mnt/sdb2/home/l4nd0/tenn-canonical10-import                                                       5405802b [repair/canonical10-import-valid]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-audit-v1                                                4f9736ce [audit/cockpit-home-backend-bff-contract-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-route-integrate                                         53b60a71 [integrate/cockpit-home-bff-route-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-route-v1                                                c00ee6b3 [safe/cockpit-home-bff-route-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-integration-final                                      3d49c9d2 [integrate/cockpit-home-live-wiring-and-sidebar-fix]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1                                              bae8b8fe [safe/cockpit-home-live-wiring-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508                                       c0549d75 [integrate/cockpit-home-news-snapshot-v1-20260508]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508                                   c0549d75 [codex/cockpit-home-news-snapshot-v1-20260508]",
+      "/mnt/sdb2/home/l4nd0/tenn-cockpit-shell-sidebar-nested-button-fix-v1                               b573e0d2 [codex/cockpit-shell-sidebar-nested-button-fix-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-anthropic-routing                                                  dfdb41ca [codex/anthropic-extraction-routing]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c1-extraction-quality-gap-audit              29ec35d3 [cloud/c1-extraction-quality-gap-audit-20260421-122136]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c2-cockpit-routing-regression-tests          de8aaa23 [cloud/c2-cockpit-routing-regression-tests-20260421-122136]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c3-extraction-truth-real-gold-eval           65eda921 [cloud/c3-extraction-truth-real-gold-eval-20260421-122136]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c4-system-contract-conformance-matrix        088f6e64 [cloud/c4-system-contract-conformance-matrix-20260421-122136]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c5-multipass-extraction-performance-profile  9919e49a [cloud/c5-multipass-extraction-performance-profile-20260421-122136]",
+      "/mnt/sdb2/home/l4nd0/tenn-codex-youtube-selection-20260504                                         c64dcbc3 [fix/codex-youtube-selection-auto-20260504]",
+      "/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421                                            49a5d34a [audit/eval-instrumentation-bounded-20260421]",
+      "/mnt/sdb2/home/l4nd0/tenn-g006-legacy-api-chat-audit                                               9defaed5 [audit/query-legacy-api-chat-taxonomy-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-holdings-intent-routing-v1                                               b7807cac [feature/holdings-intent-routing-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-holdings-intent-routing-v1-integration-review                            94c1f88c [integration/holdings-intent-routing-v1-review]",
+      "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-compat-v1                                           9fc3d158 [safe/query-legacy-chat-envelope-compat-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-integrate                                           bcdb57dc [integrate/query-legacy-chat-envelope-compat-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-merge-v1                                            d86321f7 [integrate/query-legacy-chat-envelope-merge-into-preserve-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-refresh-candidate-v1                                487edc1a [integrate/query-legacy-chat-envelope-refresh-candidate-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-refresh-candidate-v2                                0423e033 [integrate/query-legacy-chat-envelope-refresh-candidate-v2]",
+      "/mnt/sdb2/home/l4nd0/tenn-main-reconcile                                                           2944b117 [main]",
+      "/mnt/sdb2/home/l4nd0/tenn-marketplace-integration-20260430                                         e20017b1 [integrate/marketplace-from-baseline-20260430]",
+      "/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-contract-v1                                    a8062e65 [safe/marketplace-match-recency-contract-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-ui-v1                                          9b4c0b76 [safe/marketplace-match-recency-ui-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-marketplace-recency-current-target-v1                                    047c7b66 [integrate/marketplace-recency-current-target-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-marketplace-recency-integration-v1                                       e1fe995a [integrate/marketplace-recency-integration-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-marketplace-scanner-instrumentation-v1                                   17ca8e37 [safe/marketplace-scanner-instrumentation-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-integration-v1                   3dda92a4 [codex/news-memo-env-gated-fallback-provenance-integration-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-v1                               ebae6133 [codex/news-memo-env-gated-fallback-provenance-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-news-memo-signal-routing-candidate-fixture-v1                            0e5e7df9 [codex/news-memo-signal-routing-candidate-fixture-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-preserve-chat-source-label-integrate                                     77ce4600 [integrate/preserve-chat-envelope-source-label-20260506]",
+      "/mnt/sdb2/home/l4nd0/tenn-shared-router-strict-eval-gate-v1                                        570ea570 [codex/shared-router-strict-eval-acceptance-gate-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate                                           4f9736ce [codex/source-label-998d68e-clean-integration-20260506]",
+      "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate-retry                                     52f2b755 [codex/source-label-998d68e-clean-integration-retry-20260506]",
+      "/mnt/sdb2/home/l4nd0/tenn-source-label-equivalence-audit                                           998d68ee [work/source-label-equivalence-audit]",
+      "/mnt/sdb2/home/l4nd0/tenn-source-label-v1a                                                         5034e477 [work/source-label-v1a]",
+      "/mnt/sdb2/home/l4nd0/tenn-source-page-viewer-import-repair-integration-v1                          b72596a6 [codex/source-page-viewer-import-repair-integration-v1]",
+      "/mnt/sdb2/home/l4nd0/tenn-stabilization-baseline-20260430T065748Z                                  5d6ed585 [stabilize/integration-baseline-20260430T065748Z]",
+      "/tmp/tenn-api-billing-notice                                                                       b85e896e (detached HEAD) prunable",
+      "/tmp/tenn-baseline-944fd43                                                                         944fd43e (detached HEAD) prunable",
+      "/tmp/tenn-cockpit-attached-source-runtime-20260516                                                 87650b08 [smoke/cockpit-attached-source-runtime-20260516] prunable",
+      "/tmp/tenn-metric-coverage-provenance                                                               26434264 (detached HEAD) prunable",
+      "/tmp/tenn-metric-coverage-provenance-import-valid                                                  d177c430 [codex/metric-coverage-provenance-import-valid-20260506] prunable",
+      "/tmp/tenn-source-page-viewer-default-integration-v1                                                ce0692a6 [codex/verification-source-page-viewer-default-integration-v1] prunable",
+      "/tmp/tenn-source-viewer-import-valid                                                               5b00fa5f [integration/verification-source-page-viewer-import-valid-v1] prunable",
+      "/tmp/tenn-verification-clickthrough                                                                a2451226 [codex/verification-clickthrough-v1] prunable"
+    ],
+    "task_card_validate": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_contract.py",
+        "validate",
+        "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"issues\": [],\n  \"metadata\": {\n    \"allow_audit_code_changes\": true,\n    \"allowed_files\": [\n      \"docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/**\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json\"\n    ],\n    \"allowed_runtime_action\": [\n      \"reload/restart fe_backend only, using the least disruptive project-standard method discovered from repo/docker compose context\"\n    ],\n    \"approval_required\": true,\n    \"job_id\": \"a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n    \"lane\": \"Query Orchestration\",\n    \"mutation_mode\": \"audit_only\",\n    \"output_dir\": \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n    \"owner\": \"Codex\",\n    \"production_data_access\": false,\n    \"runtime_approval_scope\": \"reload/restart fe_backend only\",\n    \"supporting_lanes\": [\n      \"Runtime/Performance\",\n      \"Provenance\",\n      \"Reporting\",\n      \"Evaluation\",\n      \"Repo Hygiene\"\n    ],\n    \"timeout_seconds\": 7200\n  },\n  \"ok\": true\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.053,
+      "json": {
+        "issues": [],
+        "metadata": {
+          "allow_audit_code_changes": true,
+          "allowed_files": [
+            "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/**",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json"
+          ],
+          "allowed_runtime_action": [
+            "reload/restart fe_backend only, using the least disruptive project-standard method discovered from repo/docker compose context"
+          ],
+          "approval_required": true,
+          "job_id": "a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+          "lane": "Query Orchestration",
+          "mutation_mode": "audit_only",
+          "output_dir": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+          "owner": "Codex",
+          "production_data_access": false,
+          "runtime_approval_scope": "reload/restart fe_backend only",
+          "supporting_lanes": [
+            "Runtime/Performance",
+            "Provenance",
+            "Reporting",
+            "Evaluation",
+            "Repo Hygiene"
+          ],
+          "timeout_seconds": 7200
+        },
+        "ok": true
+      }
+    },
+    "registry_list_active": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active",
+        "--repo-root",
+        "."
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json\",\n      \"age_seconds\": 66.978,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json\"\n      ],\n      \"approval_required\": false,\n      \"branch\": \"audit/repo-hygiene-safe-audits-v1-20260525\",\n      \"claimed_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"real_signal_scorecard_manifest_v1\",\n      \"lane\": \"Evaluation\",\n      \"last_seen_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/real_signal_scorecard_manifest_v1\",\n      \"owner\": \"Codex\",\n      \"pid\": 694934,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n      \"task_card_sha256\": \"389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf\",\n      \"timeout_seconds\": 3600,\n      \"worktree\": \"/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"ok\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.137,
+      "json": {
+        "active_jobs": [
+          {
+            "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json",
+            "age_seconds": 66.978,
+            "agent": "Codex",
+            "allowed_files": [
+              "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json"
+            ],
+            "approval_required": false,
+            "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+            "claimed_at": "2026-05-25T05:50:51.189369Z",
+            "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+            "heartbeat_at": "2026-05-25T05:50:51.189369Z",
+            "hostname": "l4nd0-System-Product-Name",
+            "job_id": "real_signal_scorecard_manifest_v1",
+            "lane": "Evaluation",
+            "last_seen_at": "2026-05-25T05:50:51.189369Z",
+            "mutation_mode": "safe_extension",
+            "output_dir": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+            "owner": "Codex",
+            "pid": 694934,
+            "production_data_access": false,
+            "schema_version": 1,
+            "session_id": "l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1",
+            "stale": false,
+            "stale_after_seconds": 1800,
+            "started_at": "2026-05-25T05:50:51.189369Z",
+            "status": "active",
+            "task_card": "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+            "task_card_sha256": "389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf",
+            "timeout_seconds": 3600,
+            "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+          }
+        ],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "ok": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "warnings": []
+      }
+    },
+    "registry_check_overlap": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "check-overlap",
+        "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+        "--repo-root",
+        "."
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json\",\n      \"age_seconds\": 67.179,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json\"\n      ],\n      \"approval_required\": false,\n      \"branch\": \"audit/repo-hygiene-safe-audits-v1-20260525\",\n      \"claimed_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"real_signal_scorecard_manifest_v1\",\n      \"lane\": \"Evaluation\",\n      \"last_seen_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/real_signal_scorecard_manifest_v1\",\n      \"owner\": \"Codex\",\n      \"pid\": 694934,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n      \"task_card_sha256\": \"389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf\",\n      \"timeout_seconds\": 3600,\n      \"worktree\": \"/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"issues\": [],\n  \"job_id\": \"a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n  \"lane\": \"Query Orchestration\",\n  \"ok\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"task_card\": \"docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.153,
+      "json": {
+        "active_jobs": [
+          {
+            "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json",
+            "age_seconds": 67.179,
+            "agent": "Codex",
+            "allowed_files": [
+              "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json"
+            ],
+            "approval_required": false,
+            "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+            "claimed_at": "2026-05-25T05:50:51.189369Z",
+            "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+            "heartbeat_at": "2026-05-25T05:50:51.189369Z",
+            "hostname": "l4nd0-System-Product-Name",
+            "job_id": "real_signal_scorecard_manifest_v1",
+            "lane": "Evaluation",
+            "last_seen_at": "2026-05-25T05:50:51.189369Z",
+            "mutation_mode": "safe_extension",
+            "output_dir": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+            "owner": "Codex",
+            "pid": 694934,
+            "production_data_access": false,
+            "schema_version": 1,
+            "session_id": "l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1",
+            "stale": false,
+            "stale_after_seconds": 1800,
+            "started_at": "2026-05-25T05:50:51.189369Z",
+            "status": "active",
+            "task_card": "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+            "task_card_sha256": "389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf",
+            "timeout_seconds": 3600,
+            "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+          }
+        ],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "issues": [],
+        "job_id": "a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+        "lane": "Query Orchestration",
+        "ok": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "task_card": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+        "warnings": []
+      }
+    },
+    "active_query_orchestration_overlap": [],
+    "foreign_untracked_task_cards": [],
+    "proceed_despite_check_overlap_false_reason": null
+  },
+  "pre_reload": {
+    "fe_backend": {
+      "id": "7a900608342eff2d76c2248f3e1840b4e88abb8843dee61a93f6e5c3c646a269",
+      "short_id": "7a900608342e",
+      "name": "fe_backend",
+      "image": "financial-engine_v2-backend",
+      "created": "2026-05-25T01:50:11.860898793Z",
+      "state": {
+        "status": "running",
+        "running": true,
+        "pid": 4027487,
+        "started_at": "2026-05-25T01:50:13.780139217Z",
+        "finished_at": "0001-01-01T00:00:00Z",
+        "restart_count": 0
+      },
+      "cmd": [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ],
+      "labels": {
+        "com.docker.compose.project.config_files": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/docker-compose.yml",
+        "com.docker.compose.project.environment_file": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker",
+        "com.docker.compose.project.working_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+        "com.docker.compose.service": "backend",
+        "com.docker.compose.version": "2.37.1"
+      },
+      "selected_env": {
+        "TENN_GIT_BRANCH": "migration/clean-runtime-baseline-reconstruct-v1",
+        "COCKPIT_LLM_PROFILE": "ops",
+        "DATABASE_URL": "postgresql+psycopg://fe:***@127.0.0.1:5432/fe",
+        "LLM_URL": "http://127.0.0.1:8001",
+        "TENN_BUILD_TIME": "2026-05-25T01:50:08Z",
+        "TENN_GIT_HEAD": "ed31b2d4a76de0fc404089746d280b1e9ef4716b",
+        "TENN_GIT_HEAD_SHORT": "ed31b2d4a76d",
+        "TENN_GIT_STATUS_LINE_COUNT": "1",
+        "TENN_GIT_DIRTY": "true",
+        "DATA_ROOT": "./data",
+        "PORT": "8000",
+        "QDRANT_URL": "http://127.0.0.1:6333",
+        "LLAMACPP_URL": "http://127.0.0.1:8001"
+      },
+      "selected_mounts": [
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+          "destination": "/workspace-reports",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/config",
+          "destination": "/config",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+          "destination": "/workspace/reports",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+          "destination": "/workspace",
+          "rw": false,
+          "mode": "ro"
+        },
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+          "destination": "/data",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit",
+          "destination": "/app/cockpit",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend",
+          "destination": "/app",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+          "destination": "/reports",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/shared",
+          "destination": "/app/shared",
+          "rw": true,
+          "mode": "rw"
+        }
+      ]
+    },
+    "health": {
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/cockpit/health",
+      "timeout_seconds": 5,
+      "http_status": 200,
+      "elapsed_seconds": 0.036,
+      "body_keys": [
+        "services",
+        "status"
+      ],
+      "body": {
+        "status": "healthy",
+        "services": [
+          {
+            "name": "backend",
+            "status": "healthy",
+            "endpoint": "http://localhost:8000",
+            "response_time_ms": null,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "llamacpp",
+            "status": "healthy",
+            "endpoint": "http://127.0.0.1:8001",
+            "response_time_ms": 7.0,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "ollama",
+            "status": "healthy",
+            "endpoint": "http://127.0.0.1:11434",
+            "response_time_ms": 12.0,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "qdrant",
+            "status": "healthy",
+            "endpoint": "http://127.0.0.1:6333",
+            "response_time_ms": 6.9,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "redis",
+            "status": "healthy",
+            "endpoint": "redis://127.0.0.1:6379/0",
+            "response_time_ms": 0.1,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "gpu",
+            "status": "unknown",
+            "endpoint": null,
+            "response_time_ms": null,
+            "error": "nvidia-smi not installed",
+            "details": null
+          },
+          {
+            "name": "host",
+            "status": "healthy",
+            "endpoint": null,
+            "response_time_ms": 7.3,
+            "error": null,
+            "details": {
+              "cpu": {
+                "core_count": 6,
+                "logical_count": 12,
+                "load_1m": 1.47,
+                "load_5m": 1.14,
+                "load_15m": 1.15,
+                "normalized_load_percent": 12.3
+              },
+              "memory": {
+                "total_gib": 31.26,
+                "used_gib": 6.99,
+                "available_gib": 24.27,
+                "used_percent": 22.4,
+                "swap_total_gib": 10.0,
+                "swap_used_gib": 1.23,
+                "swap_used_percent": 12.3
+              },
+              "disks": [
+                {
+                  "mount": "/workspace",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/data",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/scripts",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/app",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/workspace-reports",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/config",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/reports",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/models/ssd",
+                  "total_gib": 99.63,
+                  "used_gib": 33.61,
+                  "used_percent": 35.6
+                },
+                {
+                  "mount": "/models/nvme",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/models/hdd",
+                  "total_gib": 457.38,
+                  "used_gib": 228.0,
+                  "used_percent": 52.5
+                },
+                {
+                  "mount": "/app/shared",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/workspace/reports",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/app/cockpit",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/etc/resolv.conf",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/etc/hostname",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/etc/hosts",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/data/marketindex/pdfs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/data/benchmark/pdfs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/data/asx/docs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/data/extraction_gold_real/pdfs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                }
+              ],
+              "top_processes": [
+                {
+                  "pid": 1,
+                  "command_name": "uvicorn",
+                  "command": "/usr/local/bin/python3.11 /usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000",
+                  "cpu_percent": 0.1,
+                  "mem_percent": 1.75,
+                  "rss_mib": 561.1
+                },
+                {
+                  "pid": 1223,
+                  "command_name": "chrome_crashpad",
+                  "command": "chrome_crashpad",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1225,
+                  "command_name": "chrome_crashpad",
+                  "command": "chrome_crashpad",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1228,
+                  "command_name": "chrome",
+                  "command": "chrome",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1229,
+                  "command_name": "chrome",
+                  "command": "chrome",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1445,
+                  "command_name": "chrome_crashpad",
+                  "command": "chrome_crashpad",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1447,
+                  "command_name": "chrome_crashpad",
+                  "command": "chrome_crashpad",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1450,
+                  "command_name": "chrome",
+                  "command": "chrome",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1451,
+                  "command_name": "chrome",
+                  "command": "chrome",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                },
+                {
+                  "pid": 1768,
+                  "command_name": "chrome_crashpad",
+                  "command": "chrome_crashpad",
+                  "cpu_percent": 0.0,
+                  "mem_percent": 0.0,
+                  "rss_mib": 0.0
+                }
+              ]
+            }
+          },
+          {
+            "name": "cockpit_service",
+            "status": "healthy",
+            "endpoint": null,
+            "response_time_ms": 0.0,
+            "error": null,
+            "details": null
+          }
+        ]
+      }
+    },
+    "config": {
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/cockpit/config",
+      "timeout_seconds": 5,
+      "http_status": 200,
+      "elapsed_seconds": 0.034,
+      "body_summary": {
+        "profile": "ops",
+        "llm_model": "model:qwen3.5-35b-a3b-apex",
+        "llm_endpoint": "http://127.0.0.1:8001",
+        "routing_policy": "api_preferred",
+        "runtime_target": "local",
+        "features": {
+          "web_search": true,
+          "rag": true,
+          "extraction": true,
+          "session_memory": true,
+          "db_diagnostics": false
+        },
+        "git_branch": null,
+        "data_root": "/data",
+        "backend_url": "http://localhost:8000"
+      },
+      "body_keys": [
+        "anthropic_key_configured",
+        "backend_url",
+        "data_root",
+        "embed_model",
+        "extract_model",
+        "extraction_active",
+        "extraction_active_runs",
+        "extraction_activity_expires_in_seconds",
+        "extraction_activity_source",
+        "features",
+        "git_branch",
+        "llm_endpoint",
+        "llm_model",
+        "profile",
+        "python_version",
+        "rented_gpu",
+        "routing_policy",
+        "routing_policy_override",
+        "routing_policy_source",
+        "runtime_target",
+        "runtime_target_source"
+      ]
+    },
+    "news_status": {
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/cockpit/news/status",
+      "timeout_seconds": 5,
+      "http_status": 404,
+      "elapsed_seconds": 0.002,
+      "body_keys": [
+        "detail"
+      ],
+      "body": {
+        "detail": "Not Found"
+      }
+    },
+    "openapi": {
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/openapi.json",
+        "timeout_seconds": 8,
+        "http_status": 200,
+        "elapsed_seconds": 0.007
+      },
+      "path_count": 149,
+      "relevant_paths": [
+        "/api/chat",
+        "/api/cockpit/action/execute",
+        "/api/cockpit/action/jobs/{job_id}",
+        "/api/cockpit/action/jobs/{job_id}/stop",
+        "/api/cockpit/action/preview",
+        "/api/cockpit/chat",
+        "/api/cockpit/chat/attachments/upload",
+        "/api/cockpit/chat/sessions",
+        "/api/cockpit/chat/sessions/{session_id}",
+        "/api/cockpit/claims/verify",
+        "/api/cockpit/config",
+        "/api/cockpit/docs",
+        "/api/cockpit/feedback",
+        "/api/cockpit/feedback/flag",
+        "/api/cockpit/feedback/flags",
+        "/api/cockpit/feedback/flags/{report_id}",
+        "/api/cockpit/feedback/flags/{report_id}/resolve",
+        "/api/cockpit/health",
+        "/api/cockpit/holdings",
+        "/api/cockpit/holdings/{holding_id}",
+        "/api/cockpit/home/attention-queue",
+        "/api/cockpit/home/market-movers",
+        "/api/cockpit/home/market-session",
+        "/api/cockpit/home/narrative",
+        "/api/cockpit/home/portfolio",
+        "/api/cockpit/marketplace/alerts",
+        "/api/cockpit/marketplace/alerts/{alert_id}",
+        "/api/cockpit/marketplace/benchmarks/refresh",
+        "/api/cockpit/marketplace/browser-health",
+        "/api/cockpit/marketplace/matches",
+        "/api/cockpit/marketplace/matches/{match_id}",
+        "/api/cockpit/marketplace/matches/{match_id}/benchmark-review",
+        "/api/cockpit/marketplace/matches/{match_id}/feedback",
+        "/api/cockpit/marketplace/missions",
+        "/api/cockpit/marketplace/missions/{mission_id}",
+        "/api/cockpit/marketplace/missions/{mission_id}/link-product",
+        "/api/cockpit/marketplace/price-intelligence/calibrate",
+        "/api/cockpit/marketplace/price-intelligence/normalize",
+        "/api/cockpit/marketplace/price-intelligence/observations",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/benchmark-snapshots",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/ebay-sync",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/timelines",
+        "/api/cockpit/marketplace/scans",
+        "/api/cockpit/marketplace/scans/{job_id}",
+        "/api/cockpit/matrix",
+        "/api/cockpit/metrics/gpu",
+        "/api/cockpit/metrics/host",
+        "/api/cockpit/models",
+        "/api/cockpit/models/load",
+        "/api/cockpit/preferences",
+        "/api/cockpit/preferences/route-aliases",
+        "/api/cockpit/preferences/route-aliases/{preference_id}",
+        "/api/cockpit/preferences/route-aliases/{preference_id}/confirm",
+        "/api/cockpit/preferences/route-aliases/{preference_id}/disable",
+        "/api/cockpit/preferences/route-aliases/{preference_id}/reject",
+        "/api/cockpit/prompts/dry-run",
+        "/api/cockpit/prompts/preview",
+        "/api/cockpit/prompts/routes",
+        "/api/cockpit/pulse",
+        "/api/cockpit/queue",
+        "/api/cockpit/thesis-audit",
+        "/api/cockpit/thesis-audit/alerts",
+        "/api/cockpit/thesis-audit/alerts/{alert_id}/status",
+        "/api/cockpit/thesis-audit/coverage",
+        "/api/cockpit/tv/alert",
+        "/api/cockpit/tv/alerts",
+        "/api/cockpit/watchlist",
+        "/api/cockpit/watchlist/{ticker}",
+        "/chat",
+        "/rag/query"
+      ],
+      "has_api_cockpit_news_status": false,
+      "has_api_news_status": false,
+      "chat_schema_contains_stateless_smoke": true
+    }
+  },
+  "runtime_action": {
+    "performed": true,
+    "approved_scope": "reload/restart fe_backend only",
+    "least_disruptive_method": "Docker Compose service restart for backend only; no image rebuild and no dependency service restart command",
+    "command": "docker compose restart backend",
+    "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+    "result": {
+      "cmd": [
+        "docker",
+        "compose",
+        "restart",
+        "backend"
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": " Container fe_backend  Restarting\n Container fe_backend  Started\n",
+      "elapsed_seconds": 1.275
+    },
+    "forbidden_runtime_actions_performed": false,
+    "service_statuses_after": [
+      {
+        "name": "fe_backend",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T05:51:59.686426623Z",
+        "pid": 699172,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_worker",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:18.706349617Z",
+        "pid": 3925013,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_gpu_worker",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:18.707458848Z",
+        "pid": 3925019,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_postgres",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:13.106694535Z",
+        "pid": 3924467,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_qdrant",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:13.103564039Z",
+        "pid": 3924451,
+        "restart_count": 0
+      }
+    ]
+  },
+  "post_reload": {
+    "health_wait_attempts": [
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/cockpit/health",
+        "timeout_seconds": 3,
+        "elapsed_seconds": 0.0,
+        "error_type": "URLError",
+        "error": "<urlopen error [Errno 111] Connection refused>",
+        "body_text_preview": null
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/cockpit/health",
+        "timeout_seconds": 3,
+        "elapsed_seconds": 0.0,
+        "error_type": "URLError",
+        "error": "<urlopen error [Errno 111] Connection refused>",
+        "body_text_preview": null
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/cockpit/health",
+        "timeout_seconds": 3,
+        "elapsed_seconds": 0.0,
+        "error_type": "URLError",
+        "error": "<urlopen error [Errno 111] Connection refused>",
+        "body_text_preview": null
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/cockpit/health",
+        "timeout_seconds": 3,
+        "http_status": 200,
+        "elapsed_seconds": 0.056,
+        "body_keys": [
+          "services",
+          "status"
+        ],
+        "body": {
+          "status": "healthy",
+          "services": [
+            {
+              "name": "backend",
+              "status": "healthy",
+              "endpoint": "http://localhost:8000",
+              "response_time_ms": null,
+              "error": null,
+              "details": null
+            },
+            {
+              "name": "llamacpp",
+              "status": "healthy",
+              "endpoint": "http://127.0.0.1:8001",
+              "response_time_ms": 9.8,
+              "error": null,
+              "details": null
+            },
+            {
+              "name": "ollama",
+              "status": "healthy",
+              "endpoint": "http://127.0.0.1:11434",
+              "response_time_ms": 8.0,
+              "error": null,
+              "details": null
+            },
+            {
+              "name": "qdrant",
+              "status": "healthy",
+              "endpoint": "http://127.0.0.1:6333",
+              "response_time_ms": 7.4,
+              "error": null,
+              "details": null
+            },
+            {
+              "name": "redis",
+              "status": "healthy",
+              "endpoint": "redis://127.0.0.1:6379/0",
+              "response_time_ms": 0.1,
+              "error": null,
+              "details": null
+            },
+            {
+              "name": "gpu",
+              "status": "unknown",
+              "endpoint": null,
+              "response_time_ms": null,
+              "error": "nvidia-smi not installed",
+              "details": null
+            },
+            {
+              "name": "host",
+              "status": "healthy",
+              "endpoint": null,
+              "response_time_ms": 1.5,
+              "error": null,
+              "details": {
+                "cpu": {
+                  "core_count": 6,
+                  "logical_count": 12,
+                  "load_1m": 1.44,
+                  "load_5m": 1.14,
+                  "load_15m": 1.15,
+                  "normalized_load_percent": 12.0
+                },
+                "memory": {
+                  "total_gib": 31.26,
+                  "used_gib": 6.76,
+                  "available_gib": 24.5,
+                  "used_percent": 21.6,
+                  "swap_total_gib": 10.0,
+                  "swap_used_gib": 1.23,
+                  "swap_used_percent": 12.3
+                },
+                "disks": [
+                  {
+                    "mount": "/scripts",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/data",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/config",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/workspace-reports",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/app",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/reports",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/workspace",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/models/ssd",
+                    "total_gib": 99.63,
+                    "used_gib": 33.61,
+                    "used_percent": 35.6
+                  },
+                  {
+                    "mount": "/app/shared",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/models/hdd",
+                    "total_gib": 457.38,
+                    "used_gib": 228.0,
+                    "used_percent": 52.5
+                  },
+                  {
+                    "mount": "/app/cockpit",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/workspace/reports",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/models/nvme",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/etc/resolv.conf",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/etc/hostname",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/etc/hosts",
+                    "total_gib": 457.38,
+                    "used_gib": 308.59,
+                    "used_percent": 71.1
+                  },
+                  {
+                    "mount": "/data/extraction_gold_real/pdfs",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/data/marketindex/pdfs",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/data/benchmark/pdfs",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  },
+                  {
+                    "mount": "/data/asx/docs",
+                    "total_gib": 1876.71,
+                    "used_gib": 209.21,
+                    "used_percent": 11.7
+                  }
+                ],
+                "top_processes": [
+                  {
+                    "pid": 1,
+                    "command_name": "uvicorn",
+                    "command": "/usr/local/bin/python3.11 /usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000",
+                    "cpu_percent": 0.0,
+                    "mem_percent": 0.98,
+                    "rss_mib": 312.2
+                  }
+                ]
+              }
+            },
+            {
+              "name": "cockpit_service",
+              "status": "healthy",
+              "endpoint": null,
+              "response_time_ms": 12.0,
+              "error": null,
+              "details": null
+            }
+          ]
+        }
+      }
+    ],
+    "fe_backend": {
+      "id": "7a900608342eff2d76c2248f3e1840b4e88abb8843dee61a93f6e5c3c646a269",
+      "short_id": "7a900608342e",
+      "name": "fe_backend",
+      "image": "financial-engine_v2-backend",
+      "created": "2026-05-25T01:50:11.860898793Z",
+      "state": {
+        "status": "running",
+        "running": true,
+        "pid": 699172,
+        "started_at": "2026-05-25T05:51:59.686426623Z",
+        "finished_at": "2026-05-25T05:51:59.647282155Z",
+        "restart_count": 0
+      },
+      "cmd": [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ],
+      "labels": {
+        "com.docker.compose.project.config_files": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/docker-compose.yml",
+        "com.docker.compose.project.environment_file": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.env.docker",
+        "com.docker.compose.project.working_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+        "com.docker.compose.service": "backend",
+        "com.docker.compose.version": "2.37.1"
+      },
+      "selected_env": {
+        "TENN_GIT_BRANCH": "migration/clean-runtime-baseline-reconstruct-v1",
+        "COCKPIT_LLM_PROFILE": "ops",
+        "DATABASE_URL": "postgresql+psycopg://fe:***@127.0.0.1:5432/fe",
+        "LLM_URL": "http://127.0.0.1:8001",
+        "TENN_BUILD_TIME": "2026-05-25T01:50:08Z",
+        "TENN_GIT_HEAD": "ed31b2d4a76de0fc404089746d280b1e9ef4716b",
+        "TENN_GIT_HEAD_SHORT": "ed31b2d4a76d",
+        "TENN_GIT_STATUS_LINE_COUNT": "1",
+        "TENN_GIT_DIRTY": "true",
+        "DATA_ROOT": "./data",
+        "PORT": "8000",
+        "QDRANT_URL": "http://127.0.0.1:6333",
+        "LLAMACPP_URL": "http://127.0.0.1:8001"
+      },
+      "selected_mounts": [
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+          "destination": "/reports",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/shared",
+          "destination": "/app/shared",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+          "destination": "/workspace-reports",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/config",
+          "destination": "/config",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports",
+          "destination": "/workspace/reports",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+          "destination": "/workspace",
+          "rw": false,
+          "mode": "ro"
+        },
+        {
+          "source": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data",
+          "destination": "/data",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit",
+          "destination": "/app/cockpit",
+          "rw": true,
+          "mode": "rw"
+        },
+        {
+          "source": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend",
+          "destination": "/app",
+          "rw": true,
+          "mode": "rw"
+        }
+      ]
+    },
+    "health": {
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/cockpit/health",
+      "timeout_seconds": 5,
+      "http_status": 200,
+      "elapsed_seconds": 0.026,
+      "body_keys": [
+        "services",
+        "status"
+      ],
+      "body": {
+        "status": "healthy",
+        "services": [
+          {
+            "name": "backend",
+            "status": "healthy",
+            "endpoint": "http://localhost:8000",
+            "response_time_ms": null,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "llamacpp",
+            "status": "healthy",
+            "endpoint": "http://127.0.0.1:8001",
+            "response_time_ms": 7.0,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "ollama",
+            "status": "healthy",
+            "endpoint": "http://127.0.0.1:11434",
+            "response_time_ms": 6.5,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "qdrant",
+            "status": "healthy",
+            "endpoint": "http://127.0.0.1:6333",
+            "response_time_ms": 9.1,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "redis",
+            "status": "healthy",
+            "endpoint": "redis://127.0.0.1:6379/0",
+            "response_time_ms": 0.1,
+            "error": null,
+            "details": null
+          },
+          {
+            "name": "gpu",
+            "status": "unknown",
+            "endpoint": null,
+            "response_time_ms": null,
+            "error": "nvidia-smi not installed",
+            "details": null
+          },
+          {
+            "name": "host",
+            "status": "healthy",
+            "endpoint": null,
+            "response_time_ms": 1.3,
+            "error": null,
+            "details": {
+              "cpu": {
+                "core_count": 6,
+                "logical_count": 12,
+                "load_1m": 1.44,
+                "load_5m": 1.14,
+                "load_15m": 1.15,
+                "normalized_load_percent": 12.0
+              },
+              "memory": {
+                "total_gib": 31.26,
+                "used_gib": 6.76,
+                "available_gib": 24.5,
+                "used_percent": 21.6,
+                "swap_total_gib": 10.0,
+                "swap_used_gib": 1.23,
+                "swap_used_percent": 12.3
+              },
+              "disks": [
+                {
+                  "mount": "/scripts",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/data",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/config",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/workspace-reports",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/app",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/reports",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/workspace",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/models/ssd",
+                  "total_gib": 99.63,
+                  "used_gib": 33.61,
+                  "used_percent": 35.6
+                },
+                {
+                  "mount": "/app/shared",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/models/hdd",
+                  "total_gib": 457.38,
+                  "used_gib": 228.0,
+                  "used_percent": 52.5
+                },
+                {
+                  "mount": "/app/cockpit",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/workspace/reports",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/models/nvme",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/etc/resolv.conf",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/etc/hostname",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/etc/hosts",
+                  "total_gib": 457.38,
+                  "used_gib": 308.59,
+                  "used_percent": 71.1
+                },
+                {
+                  "mount": "/data/extraction_gold_real/pdfs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/data/marketindex/pdfs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/data/benchmark/pdfs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                },
+                {
+                  "mount": "/data/asx/docs",
+                  "total_gib": 1876.71,
+                  "used_gib": 209.21,
+                  "used_percent": 11.7
+                }
+              ],
+              "top_processes": [
+                {
+                  "pid": 1,
+                  "command_name": "uvicorn",
+                  "command": "/usr/local/bin/python3.11 /usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000",
+                  "cpu_percent": 89.4,
+                  "mem_percent": 0.98,
+                  "rss_mib": 313.8
+                }
+              ]
+            }
+          },
+          {
+            "name": "cockpit_service",
+            "status": "healthy",
+            "endpoint": null,
+            "response_time_ms": 0.0,
+            "error": null,
+            "details": null
+          }
+        ]
+      }
+    },
+    "config": {
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/cockpit/config",
+      "timeout_seconds": 5,
+      "http_status": 200,
+      "elapsed_seconds": 0.016,
+      "body_summary": {
+        "profile": "ops",
+        "llm_model": "model:qwen3.5-35b-a3b-apex",
+        "llm_endpoint": "http://127.0.0.1:8001",
+        "routing_policy": "api_preferred",
+        "runtime_target": "local",
+        "features": {
+          "web_search": true,
+          "rag": true,
+          "extraction": true,
+          "session_memory": true,
+          "db_diagnostics": false
+        },
+        "git_branch": null,
+        "data_root": "/data",
+        "backend_url": "http://localhost:8000"
+      },
+      "body_keys": [
+        "anthropic_key_configured",
+        "backend_url",
+        "data_root",
+        "embed_model",
+        "extract_model",
+        "extraction_active",
+        "extraction_active_runs",
+        "extraction_activity_expires_in_seconds",
+        "extraction_activity_source",
+        "features",
+        "git_branch",
+        "llm_endpoint",
+        "llm_model",
+        "profile",
+        "python_version",
+        "rented_gpu",
+        "routing_policy",
+        "routing_policy_override",
+        "routing_policy_source",
+        "runtime_target",
+        "runtime_target_source"
+      ]
+    },
+    "openapi": {
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/openapi.json",
+        "timeout_seconds": 8,
+        "http_status": 200,
+        "elapsed_seconds": 0.231
+      },
+      "path_count": 150,
+      "relevant_paths": [
+        "/api/chat",
+        "/api/cockpit/action/execute",
+        "/api/cockpit/action/jobs/{job_id}",
+        "/api/cockpit/action/jobs/{job_id}/stop",
+        "/api/cockpit/action/preview",
+        "/api/cockpit/chat",
+        "/api/cockpit/chat/attachments/upload",
+        "/api/cockpit/chat/sessions",
+        "/api/cockpit/chat/sessions/{session_id}",
+        "/api/cockpit/claims/verify",
+        "/api/cockpit/config",
+        "/api/cockpit/docs",
+        "/api/cockpit/feedback",
+        "/api/cockpit/feedback/flag",
+        "/api/cockpit/feedback/flags",
+        "/api/cockpit/feedback/flags/{report_id}",
+        "/api/cockpit/feedback/flags/{report_id}/resolve",
+        "/api/cockpit/health",
+        "/api/cockpit/holdings",
+        "/api/cockpit/holdings/{holding_id}",
+        "/api/cockpit/home/attention-queue",
+        "/api/cockpit/home/market-movers",
+        "/api/cockpit/home/market-session",
+        "/api/cockpit/home/narrative",
+        "/api/cockpit/home/portfolio",
+        "/api/cockpit/marketplace/alerts",
+        "/api/cockpit/marketplace/alerts/{alert_id}",
+        "/api/cockpit/marketplace/benchmarks/refresh",
+        "/api/cockpit/marketplace/browser-health",
+        "/api/cockpit/marketplace/matches",
+        "/api/cockpit/marketplace/matches/{match_id}",
+        "/api/cockpit/marketplace/matches/{match_id}/benchmark-review",
+        "/api/cockpit/marketplace/matches/{match_id}/feedback",
+        "/api/cockpit/marketplace/missions",
+        "/api/cockpit/marketplace/missions/{mission_id}",
+        "/api/cockpit/marketplace/missions/{mission_id}/link-product",
+        "/api/cockpit/marketplace/price-intelligence/calibrate",
+        "/api/cockpit/marketplace/price-intelligence/normalize",
+        "/api/cockpit/marketplace/price-intelligence/observations",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/benchmark-snapshots",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/ebay-sync",
+        "/api/cockpit/marketplace/price-intelligence/tracked-products/{tracked_product_id}/timelines",
+        "/api/cockpit/marketplace/scans",
+        "/api/cockpit/marketplace/scans/{job_id}",
+        "/api/cockpit/matrix",
+        "/api/cockpit/metrics/gpu",
+        "/api/cockpit/metrics/host",
+        "/api/cockpit/models",
+        "/api/cockpit/models/load",
+        "/api/cockpit/news/status",
+        "/api/cockpit/preferences",
+        "/api/cockpit/preferences/route-aliases",
+        "/api/cockpit/preferences/route-aliases/{preference_id}",
+        "/api/cockpit/preferences/route-aliases/{preference_id}/confirm",
+        "/api/cockpit/preferences/route-aliases/{preference_id}/disable",
+        "/api/cockpit/preferences/route-aliases/{preference_id}/reject",
+        "/api/cockpit/prompts/dry-run",
+        "/api/cockpit/prompts/preview",
+        "/api/cockpit/prompts/routes",
+        "/api/cockpit/pulse",
+        "/api/cockpit/queue",
+        "/api/cockpit/thesis-audit",
+        "/api/cockpit/thesis-audit/alerts",
+        "/api/cockpit/thesis-audit/alerts/{alert_id}/status",
+        "/api/cockpit/thesis-audit/coverage",
+        "/api/cockpit/tv/alert",
+        "/api/cockpit/tv/alerts",
+        "/api/cockpit/watchlist",
+        "/api/cockpit/watchlist/{ticker}",
+        "/chat",
+        "/rag/query"
+      ],
+      "has_api_cockpit_news_status": true,
+      "has_api_news_status": false,
+      "chat_schema_contains_stateless_smoke": true
+    },
+    "news_status": {
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/cockpit/news/status",
+      "timeout_seconds": 10,
+      "http_status": 200,
+      "elapsed_seconds": 0.002,
+      "body_keys": [
+        "a2m_news_health",
+        "canonical_sqlite_projection_paths",
+        "chat_synthesis",
+        "evidence_reports",
+        "generated_from",
+        "legacy_sqlite_projection",
+        "live_probe_performed",
+        "projection_repair",
+        "qdrant_retrieval",
+        "reporting_contract",
+        "routes",
+        "schema_version",
+        "status"
+      ],
+      "body": {
+        "schema_version": 1,
+        "status": "ok",
+        "generated_from": "read_only_status_contract",
+        "live_probe_performed": false,
+        "a2m_news_health": {
+          "qdrant_retrieval": "ok",
+          "canonical_sqlite_projection": "missing",
+          "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+          "cockpit_query_route": "ok_via_rag_query",
+          "cockpit_status_routes": "implemented",
+          "chat_synthesis": "DATA_MISSING",
+          "projection_repair": "not_run"
+        },
+        "canonical_sqlite_projection_paths": [
+          {
+            "path": "reports/qual_context/news.sqlite",
+            "exists": false
+          },
+          {
+            "path": "reports/qual_context/news_articles.sqlite",
+            "exists": false
+          }
+        ],
+        "legacy_sqlite_projection": {
+          "status": "evidence_present_not_current_consumer",
+          "consumer_status": "not_current_consumer",
+          "evidence_scope": "prior_readonly_smoke_and_integrated_reports",
+          "live_legacy_db_read_performed": false
+        },
+        "qdrant_retrieval": {
+          "status": "ok",
+          "consumer_route": "/rag/query",
+          "collection": "news_chunks",
+          "evidence_scope": "prior_readonly_smoke_and_integrated_reports",
+          "live_qdrant_probe_performed": false
+        },
+        "routes": {
+          "backend_rag_query": {
+            "route": "POST /rag/query",
+            "status": "implemented",
+            "news_source": "Qdrant-backed news_chunks"
+          },
+          "backend_api_cockpit_news_status": {
+            "route": "GET /api/cockpit/news/status",
+            "status": "implemented"
+          },
+          "backend_api_news_status": {
+            "route": "GET /api/news/status",
+            "status": "intentionally_absent_in_current_profile"
+          },
+          "backend_api_cockpit_status": {
+            "route": "GET /api/cockpit/status",
+            "status": "missing_not_required_by_this_contract"
+          },
+          "next_rag_query": {
+            "route": "POST /rag/query",
+            "status": "available_via_next_rewrite"
+          },
+          "next_api_cockpit_news_status": {
+            "route": "GET /api/cockpit/news/status",
+            "status": "available_via_next_api_rewrite_when_backend_is_reachable"
+          }
+        },
+        "chat_synthesis": {
+          "status": "DATA_MISSING",
+          "reason": "No separate safe chat synthesis smoke was run; chat/session paths may write state."
+        },
+        "projection_repair": {
+          "status": "not_run",
+          "forbidden_here": true
+        },
+        "evidence_reports": {
+          "a2m_projection_path_remediation": {
+            "path": "reports/agent_jobs/a2m_news_projection_path_remediation_v1_20260525/status.json",
+            "exists": false
+          },
+          "a2m_readonly_smoke": {
+            "path": "reports/agent_jobs/a2m_news_projection_readonly_smoke_v1_20260525/status.json",
+            "exists": false
+          },
+          "a2m_canonical_integration": {
+            "path": "reports/agent_jobs/a2m_news_projection_canonical_integration_and_status_reporting_v1_20260525/status.json",
+            "exists": false
+          },
+          "a2m_status_reporting": {
+            "path": "reports/agent_jobs/a2m_news_projection_status_reporting_safe_extension_v1_20260525/status.json",
+            "exists": false
+          }
+        },
+        "reporting_contract": {
+          "do_report": [
+            "A2M is visible through Qdrant-backed /rag/query according to the integrated read-only smoke.",
+            "Canonical NVMe SQLite projection files are absent.",
+            "Legacy /mnt/sdb2 SQLite has A2M evidence but is provenance-only, not the canonical current consumer.",
+            "Cockpit query route reachability works through /rag/query.",
+            "Cockpit/news health status is represented by /api/cockpit/news/status.",
+            "Projection repair/rebuild has not run and must stay a separate task.",
+            "Chat synthesis remains DATA_MISSING until a separate safe smoke proves it."
+          ],
+          "do_not_report": [
+            "A2M missing",
+            "A2M projection fixed",
+            "legacy SQLite is canonical",
+            "chat synthesis proven"
+          ]
+        }
+      }
+    }
+  },
+  "stateless_chat_probes": [
+    {
+      "name": "30s_general_a2m_probe_after_reload",
+      "request_body": {
+        "message": "A2M latest local news evidence. One sentence. If evidence is missing or degraded, say so.",
+        "ticker": "A2M",
+        "stream": false,
+        "stateless_smoke": true,
+        "rag": true,
+        "web_search": false
+      },
+      "route": "POST /api/cockpit/chat",
+      "headers": {
+        "X-Tenn-Stateless-Smoke": "1"
+      },
+      "timeout_seconds": 30,
+      "http": {
+        "http_status": 200,
+        "elapsed_seconds": 15.104,
+        "body_bytes": 5327
+      },
+      "latency_ms": 15095,
+      "chat_persistence": "disabled",
+      "stateless_smoke": true,
+      "source_coverage_status": "context_only",
+      "claim_verified_source_count": 0,
+      "source_label_counts": {
+        "context_only": 5,
+        "local_news_context": 1,
+        "operational_trace": 1,
+        "unknown_unclassified": 3
+      },
+      "local_news_context_count": 1,
+      "local_news_source_titles": [
+        "A2 Milk shares plunge after finding toxins in infant formula"
+      ],
+      "sources_summary": [
+        {
+          "title": "A2 Milk shares plunge after finding toxins in infant formula",
+          "kind": "rag",
+          "evidence_labels": [
+            "context_only",
+            "local_news_context"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-05-03T22:52:00Z",
+          "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303"
+        },
+        {
+          "title": "Notification of cessation of securities - A2M",
+          "kind": "document",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-04-09T00:00:00Z",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03080594"
+        },
+        {
+          "title": "In principle agreement to settle shareholder class action",
+          "kind": "document",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-04-07T00:00:00Z",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03079792"
+        },
+        {
+          "title": "Update - Dividend/Distribution - A2M",
+          "kind": "document",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-03-26T00:00:00Z",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03075995"
+        },
+        {
+          "title": "A2M price data",
+          "kind": "context",
+          "evidence_labels": [
+            "context_only",
+            "operational_trace"
+          ],
+          "claim_verified": false,
+          "published_at": null,
+          "url": null
+        }
+      ],
+      "answer_text": "A2M announced an in-principle agreement to settle its shareholder class action proceedings and confirmed that its recent dividend will be unimputed and fully franked.\n\nWhile these two developments are the dominant news catalysts, the current evidence does not contain extracted financial metrics (such as revenue, NPAT, or specific dividend amounts), so a quantitative assessment of their impact on the share price or balance sheet cannot be made at this time. The company is currently trading in a bearish price regime, which adds context to how the market might react to the settlement and dividend details once the full financial implications are released.",
+      "final_text_alignment": {
+        "mentions_returned_local_news_topic": false,
+        "mentions_document_context_as_news_risk": true,
+        "local_news_title_text": "a2 milk shares plunge after finding toxins in infant formula",
+        "agrees_with_local_news_context": false
+      },
+      "classification": "PARTIAL_sources_present_final_text_not_aligned"
+    },
+    {
+      "name": "30s_news_only_a2m_probe_after_reload",
+      "request_body": {
+        "message": "Use only A2M local news context. One sentence: what does the returned local news evidence say? If there is no local_news_context source, say DATA_MISSING.",
+        "ticker": "A2M",
+        "stream": false,
+        "stateless_smoke": true,
+        "rag": true,
+        "web_search": false
+      },
+      "route": "POST /api/cockpit/chat",
+      "headers": {
+        "X-Tenn-Stateless-Smoke": "1"
+      },
+      "timeout_seconds": 30,
+      "http": {
+        "http_status": 200,
+        "elapsed_seconds": 11.554,
+        "body_bytes": 4681
+      },
+      "latency_ms": 11550,
+      "chat_persistence": "disabled",
+      "stateless_smoke": true,
+      "source_coverage_status": "context_only",
+      "claim_verified_source_count": 0,
+      "source_label_counts": {
+        "context_only": 5,
+        "local_news_context": 1,
+        "operational_trace": 1,
+        "unknown_unclassified": 3
+      },
+      "local_news_context_count": 1,
+      "local_news_source_titles": [
+        "A2 Milk shares plunge after finding toxins in infant formula"
+      ],
+      "sources_summary": [
+        {
+          "title": "A2 Milk shares plunge after finding toxins in infant formula",
+          "kind": "rag",
+          "evidence_labels": [
+            "context_only",
+            "local_news_context"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-05-03T22:52:00Z",
+          "url": "https://capitalbrief.com/briefing/a2-milk-recalls-products-in-the-us-over-toxin-concerns-22d4932a-cab1-49eb-818e-0c71d1825303"
+        },
+        {
+          "title": "Notification of cessation of securities - A2M",
+          "kind": "document",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-04-09T00:00:00Z",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03080594"
+        },
+        {
+          "title": "In principle agreement to settle shareholder class action",
+          "kind": "document",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-04-07T00:00:00Z",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03079792"
+        },
+        {
+          "title": "Update - Dividend/Distribution - A2M",
+          "kind": "document",
+          "evidence_labels": [
+            "context_only",
+            "unknown_unclassified"
+          ],
+          "claim_verified": false,
+          "published_at": "2026-03-26T00:00:00Z",
+          "url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03075995"
+        },
+        {
+          "title": "A2M price data",
+          "kind": "context",
+          "evidence_labels": [
+            "context_only",
+            "operational_trace"
+          ],
+          "claim_verified": false,
+          "published_at": null,
+          "url": null
+        }
+      ],
+      "answer_text": "The local news evidence confirms that A2M has reached an in-principle agreement to settle its shareholder class action proceedings and clarified that its recent dividend will be unimputed and fully franked.",
+      "final_text_alignment": {
+        "mentions_returned_local_news_topic": false,
+        "mentions_document_context_as_news_risk": true,
+        "local_news_title_text": "a2 milk shares plunge after finding toxins in infant formula",
+        "agrees_with_local_news_context": false
+      },
+      "classification": "PARTIAL_sources_present_final_text_not_aligned"
+    }
+  ],
+  "runtime_log_evidence": {
+    "command": [
+      "docker",
+      "logs",
+      "--since",
+      "2026-05-25T05:51:59.686426623Z",
+      "fe_backend"
+    ],
+    "returncode": 0,
+    "cockpit_announcement_context_missing_table_seen": true,
+    "news_status_log_lines": [
+      "INFO:     127.0.0.1:52568 - \"GET /api/cockpit/news/status HTTP/1.1\" 200 OK"
+    ],
+    "chat_log_lines": [
+      "INFO:     127.0.0.1:52580 - \"POST /api/cockpit/chat HTTP/1.1\" 200 OK",
+      "INFO:     127.0.0.1:57136 - \"POST /api/cockpit/chat HTTP/1.1\" 200 OK"
+    ],
+    "missing_table_lines": [
+      "Query failed: (psycopg.errors.UndefinedTable) relation \"cockpit_announcement_context\" does not exist",
+      "LINE 3:         FROM cockpit_announcement_context",
+      "        FROM cockpit_announcement_context"
+    ],
+    "stderr_tail": "/usr/local/lib/python3.11/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field \"model_override\" in RealGoldEvalRequest has conflict with protected namespace \"model_\".\n\nYou may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.\n  warnings.warn(\nINFO:     Started server process [1]\nINFO:     Waiting for application startup.\nbackend.session_memory: OpenViking config not found \u2014 running stateless. To enable: copy config/openviking/backend.ov.conf.example to ~/.openviking/backend.ov.conf, fill in local LLM endpoints, then restart. Or set OPENVIKING_CONFIG_FILE=/path/to/your.ov.conf\nINFO:     Application startup complete.\nINFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)\ncockpit.session_memory: OpenViking config not found \u2014 running stateless. To enable: copy config/openviking/cockpit.ov.conf.example to ~/.openviking/cockpit.ov.conf, fill in local LLM endpoints, then restart cockpit. Or set OPENVIKING_CONFIG_FILE=/path/to/your.ov.conf\nQuery failed: (psycopg.errors.UndefinedTable) relation \"cockpit_announcement_context\" does not exist\nLINE 3:         FROM cockpit_announcement_context\n                     ^\n[SQL: \n        SELECT document_id, ticker, published_at, title, pdf_path, excerpt, updated_at\n        FROM cockpit_announcement_context\n        WHERE ticker = %(ticker)s\n        ORDER BY published_at DESC\n        LIMIT %(limit)s\n    ]\n[parameters: {'ticker': 'A2M', 'limit': 10}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  "classification": {
+    "news_status_activated": true,
+    "pre_reload_news_status_http_status": 404,
+    "pre_reload_openapi_has_news_status": false,
+    "post_reload_news_status_http_status": 200,
+    "post_reload_openapi_has_news_status": true,
+    "a2m_chat_result_after_reload": "PARTIAL",
+    "source_metadata_and_final_synthesis_text_agree": false,
+    "cockpit_announcement_context_missing_table_error_persists": true
+  },
+  "recommended_next_task": "source-grounding trace if synthesis still misattributes sources; runtime/schema audit if missing table persists",
+  "overall_result": "runtime_smoke_complete",
+  "no_mutation_attestation": {
+    "code_changes": false,
+    "db_qdrant_news_store_mutation": false,
+    "reindex_resync_backfill_projection_repair": false,
+    "parser_routing_changes": false,
+    "canonical_financial_truth_writes": false,
+    "tenn_memory_writes": false,
+    "runtime_model_gpu_config_edits": false,
+    "llama_server_qdrant_postgres_next_or_unrelated_service_restart": false,
+    "source_label_ranking_synthesis_prompt_ui_fixes": false,
+    "foreign_task_cards_touched": false,
+    "allowed_runtime_action": "docker compose restart backend"
+  },
+  "final_snapshots_before_report_write": {
+    "registry_list_active": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active",
+        "--repo-root",
+        "."
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json\",\n      \"age_seconds\": 99.687,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json\"\n      ],\n      \"approval_required\": false,\n      \"branch\": \"audit/repo-hygiene-safe-audits-v1-20260525\",\n      \"claimed_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"real_signal_scorecard_manifest_v1\",\n      \"lane\": \"Evaluation\",\n      \"last_seen_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/real_signal_scorecard_manifest_v1\",\n      \"owner\": \"Codex\",\n      \"pid\": 694934,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n      \"task_card_sha256\": \"389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf\",\n      \"timeout_seconds\": 3600,\n      \"worktree\": \"/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"ok\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.137,
+      "json": {
+        "active_jobs": [
+          {
+            "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json",
+            "age_seconds": 99.687,
+            "agent": "Codex",
+            "allowed_files": [
+              "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json"
+            ],
+            "approval_required": false,
+            "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+            "claimed_at": "2026-05-25T05:50:51.189369Z",
+            "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+            "heartbeat_at": "2026-05-25T05:50:51.189369Z",
+            "hostname": "l4nd0-System-Product-Name",
+            "job_id": "real_signal_scorecard_manifest_v1",
+            "lane": "Evaluation",
+            "last_seen_at": "2026-05-25T05:50:51.189369Z",
+            "mutation_mode": "safe_extension",
+            "output_dir": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+            "owner": "Codex",
+            "pid": 694934,
+            "production_data_access": false,
+            "schema_version": 1,
+            "session_id": "l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1",
+            "stale": false,
+            "stale_after_seconds": 1800,
+            "started_at": "2026-05-25T05:50:51.189369Z",
+            "status": "active",
+            "task_card": "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+            "task_card_sha256": "389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf",
+            "timeout_seconds": 3600,
+            "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+          }
+        ],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "ok": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "warnings": []
+      }
+    },
+    "git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+    ]
+  },
+  "validation": {
+    "json_validation": {
+      "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json": "pass",
+      "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json": "pass",
+      "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json": "pass"
+    },
+    "task_card_validate": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_contract.py",
+        "validate",
+        "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"issues\": [],\n  \"metadata\": {\n    \"allow_audit_code_changes\": true,\n    \"allowed_files\": [\n      \"docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/**\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json\",\n      \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json\"\n    ],\n    \"allowed_runtime_action\": [\n      \"reload/restart fe_backend only, using the least disruptive project-standard method discovered from repo/docker compose context\"\n    ],\n    \"approval_required\": true,\n    \"job_id\": \"a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n    \"lane\": \"Query Orchestration\",\n    \"mutation_mode\": \"audit_only\",\n    \"output_dir\": \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n    \"owner\": \"Codex\",\n    \"production_data_access\": false,\n    \"runtime_approval_scope\": \"reload/restart fe_backend only\",\n    \"supporting_lanes\": [\n      \"Runtime/Performance\",\n      \"Provenance\",\n      \"Reporting\",\n      \"Evaluation\",\n      \"Repo Hygiene\"\n    ],\n    \"timeout_seconds\": 7200\n  },\n  \"ok\": true\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.059,
+      "json": {
+        "issues": [],
+        "metadata": {
+          "allow_audit_code_changes": true,
+          "allowed_files": [
+            "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/**",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json",
+            "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json"
+          ],
+          "allowed_runtime_action": [
+            "reload/restart fe_backend only, using the least disruptive project-standard method discovered from repo/docker compose context"
+          ],
+          "approval_required": true,
+          "job_id": "a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+          "lane": "Query Orchestration",
+          "mutation_mode": "audit_only",
+          "output_dir": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+          "owner": "Codex",
+          "production_data_access": false,
+          "runtime_approval_scope": "reload/restart fe_backend only",
+          "supporting_lanes": [
+            "Runtime/Performance",
+            "Provenance",
+            "Reporting",
+            "Evaluation",
+            "Repo Hygiene"
+          ],
+          "timeout_seconds": 7200
+        },
+        "ok": true
+      }
+    },
+    "git_diff_check": {
+      "cmd": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "elapsed_seconds": 0.006
+    },
+    "task_card_check_diff": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_contract.py",
+        "check-diff",
+        "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"changed_files\": [\n    {\n      \"path\": \"docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md\",\n      \"status\": \"??\"\n    }\n  ],\n  \"disallowed_files\": [],\n  \"issues\": [],\n  \"ok\": true,\n  \"report_path\": \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json\",\n  \"validation\": {\n    \"issues\": [],\n    \"metadata\": {\n      \"allow_audit_code_changes\": true,\n      \"allowed_files\": [\n        \"docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md\",\n        \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/**\",\n        \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md\",\n        \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json\",\n        \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json\",\n        \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json\"\n      ],\n      \"allowed_runtime_action\": [\n        \"reload/restart fe_backend only, using the least disruptive project-standard method discovered from repo/docker compose context\"\n      ],\n      \"approval_required\": true,\n      \"job_id\": \"a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n      \"lane\": \"Query Orchestration\",\n      \"mutation_mode\": \"audit_only\",\n      \"output_dir\": \"reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525\",\n      \"owner\": \"Codex\",\n      \"production_data_access\": false,\n      \"runtime_approval_scope\": \"reload/restart fe_backend only\",\n      \"supporting_lanes\": [\n        \"Runtime/Performance\",\n        \"Provenance\",\n        \"Reporting\",\n        \"Evaluation\",\n        \"Repo Hygiene\"\n      ],\n      \"timeout_seconds\": 7200\n    },\n    \"ok\": true\n  }\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.068,
+      "json": {
+        "changed_files": [
+          {
+            "path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+            "status": "??"
+          }
+        ],
+        "disallowed_files": [],
+        "issues": [],
+        "ok": true,
+        "report_path": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json",
+        "validation": {
+          "issues": [],
+          "metadata": {
+            "allow_audit_code_changes": true,
+            "allowed_files": [
+              "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+              "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/**",
+              "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md",
+              "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+              "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json",
+              "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json"
+            ],
+            "allowed_runtime_action": [
+              "reload/restart fe_backend only, using the least disruptive project-standard method discovered from repo/docker compose context"
+            ],
+            "approval_required": true,
+            "job_id": "a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+            "lane": "Query Orchestration",
+            "mutation_mode": "audit_only",
+            "output_dir": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+            "owner": "Codex",
+            "production_data_access": false,
+            "runtime_approval_scope": "reload/restart fe_backend only",
+            "supporting_lanes": [
+              "Runtime/Performance",
+              "Provenance",
+              "Reporting",
+              "Evaluation",
+              "Repo Hygiene"
+            ],
+            "timeout_seconds": 7200
+          },
+          "ok": true
+        }
+      }
+    },
+    "final_registry_list_active": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active",
+        "--repo-root",
+        "."
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json\",\n      \"age_seconds\": 99.978,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json\",\n        \"reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json\"\n      ],\n      \"approval_required\": false,\n      \"branch\": \"audit/repo-hygiene-safe-audits-v1-20260525\",\n      \"claimed_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"real_signal_scorecard_manifest_v1\",\n      \"lane\": \"Evaluation\",\n      \"last_seen_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/real_signal_scorecard_manifest_v1\",\n      \"owner\": \"Codex\",\n      \"pid\": 694934,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-05-25T05:50:51.189369Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/real_signal_scorecard_manifest_v1.md\",\n      \"task_card_sha256\": \"389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf\",\n      \"timeout_seconds\": 3600,\n      \"worktree\": \"/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"ok\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "elapsed_seconds": 0.138,
+      "json": {
+        "active_jobs": [
+          {
+            "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/real_signal_scorecard_manifest_v1.json",
+            "age_seconds": 99.978,
+            "agent": "Codex",
+            "allowed_files": [
+              "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/README.md",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/status.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/validation.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/manifest.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/scorecards.json",
+              "reports/agent_jobs/real_signal_scorecard_manifest_v1/diff-check.json"
+            ],
+            "approval_required": false,
+            "branch": "audit/repo-hygiene-safe-audits-v1-20260525",
+            "claimed_at": "2026-05-25T05:50:51.189369Z",
+            "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+            "heartbeat_at": "2026-05-25T05:50:51.189369Z",
+            "hostname": "l4nd0-System-Product-Name",
+            "job_id": "real_signal_scorecard_manifest_v1",
+            "lane": "Evaluation",
+            "last_seen_at": "2026-05-25T05:50:51.189369Z",
+            "mutation_mode": "safe_extension",
+            "output_dir": "reports/agent_jobs/real_signal_scorecard_manifest_v1",
+            "owner": "Codex",
+            "pid": 694934,
+            "production_data_access": false,
+            "schema_version": 1,
+            "session_id": "l4nd0-System-Product-Name:694934:real_signal_scorecard_manifest_v1",
+            "stale": false,
+            "stale_after_seconds": 1800,
+            "started_at": "2026-05-25T05:50:51.189369Z",
+            "status": "active",
+            "task_card": "docs/agent_tasks/real_signal_scorecard_manifest_v1.md",
+            "task_card_sha256": "389882fb9c3a7265f30c4828e35e56b68db9355996571b238f3f028a16e2cdcf",
+            "timeout_seconds": 3600,
+            "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+          }
+        ],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "ok": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "warnings": []
+      }
+    },
+    "final_git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+    ]
+  },
+  "initial_manual_preflight": {
+    "source": "manual preflight commands before runtime collection script",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "3a18475b91a325baccd22a3daf07237dc1d3d18b",
+    "git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "?? docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "?? docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "registry_list_active": {
+      "ok": true,
+      "active_jobs": []
+    },
+    "registry_check_overlap": {
+      "ok": false,
+      "issues": [
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md is dirty outside current task card allowed_files"
+        },
+        {
+          "field": "changed_files",
+          "message": "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md is dirty outside current task card allowed_files"
+        }
+      ]
+    },
+    "foreign_untracked_task_cards_recorded_and_not_touched": [
+      "docs/agent_tasks/full_system_local_repo_system_audit_v1_20260525.md",
+      "docs/agent_tasks/worker_gpu_worker_provenance_env_parity_audit_v1_20260525.md"
+    ],
+    "hard_stop_evaluation": "No active Query Orchestration job was present; the overlap was known foreign untracked task-card dirt and was not touched."
+  },
+  "head_transition_during_audit_window": {
+    "observed": true,
+    "from_initial_manual_preflight_head": "3a18475b91a325baccd22a3daf07237dc1d3d18b",
+    "to_runtime_collection_head": "80284a1560373de0302e5d4f2c4b87be705aa985",
+    "to_final_head": "80284a1560373de0302e5d4f2c4b87be705aa985",
+    "current_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "current_head_subject": "milestone(repo-hygiene): preserve dirty task-card blockers",
+    "interpretation": "The branch advanced during the audit window via unrelated repo-hygiene preservation. This audit did not clean, stage, or commit the foreign task cards."
+  },
+  "final_snapshots_after_report_update": {
+    "registry_list_active": {
+      "cmd": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active",
+        "--repo-root",
+        "."
+      ],
+      "cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "returncode": 0,
+      "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"ok\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "json": {
+        "active_jobs": [],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "ok": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "warnings": []
+      }
+    },
+    "git_status_short_untracked_all": [
+      "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md"
+    ],
+    "service_statuses": [
+      {
+        "name": "fe_backend",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T05:51:59.686426623Z",
+        "pid": 699172,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_worker",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:18.706349617Z",
+        "pid": 3925013,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_gpu_worker",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:18.707458848Z",
+        "pid": 3925019,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_postgres",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:13.106694535Z",
+        "pid": 3924467,
+        "restart_count": 0
+      },
+      {
+        "name": "fe_qdrant",
+        "status": "running",
+        "running": true,
+        "started_at": "2026-05-25T01:25:13.103564039Z",
+        "pid": 3924451,
+        "restart_count": 0
+      }
+    ]
+  }
+}

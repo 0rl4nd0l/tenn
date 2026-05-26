@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-05-26T06:41:24Z",
+  "repo": {
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "61723bdca4ea30ce404d606cec63e47b9cb739b3",
+    "worktree_list_entry": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 61723bdc [migration/clean-runtime-baseline-reconstruct-v1]"
+  },
+  "git_status_short_untracked_all_at_inventory": [
+    "?? docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+    "?? docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+    "?? docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+    "?? docs/agent_tasks/untracked_task_card_preservation_classification_v1_20260526.md"
+  ],
+  "git_ignore_evidence": [
+    {
+      "path": "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/status.json",
+      "ignored_by": "/mnt/sdb2/home/l4nd0/tenn/.git/info/exclude:31:reports/"
+    },
+    {
+      "path": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+      "ignored_by": "/mnt/sdb2/home/l4nd0/tenn/.git/info/exclude:31:reports/"
+    }
+  ],
+  "target_task_cards": [
+    {
+      "path": "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "sha256": "64962317b609358f80dde057fe44338d74de329a2f3f0152cc01513f5ac8d97a",
+      "git_tracked": false,
+      "validate_returncode": 0,
+      "matching_report_dir": "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525",
+      "matching_report_files": [
+        "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/README.md",
+        "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/status.json",
+        "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/runtime_reload_trace.json",
+        "reports/agent_jobs/a2m_backend_reload_news_status_activation_smoke_v1_20260525/diff-check.json"
+      ]
+    },
+    {
+      "path": "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md",
+      "sha256": "371720ddf81fb850d26ee44476aae26a03d4ab2f40288c3f95bee161d8cf0e73",
+      "git_tracked": false,
+      "validate_returncode": 0,
+      "matching_report_dir": "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525",
+      "matching_report_files": [
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/README.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/status.json",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/issue_drafts.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/duplicate_check.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/data_missing.md",
+        "reports/agent_jobs/automation_audit_issue_preservation_v1_20260525/diff-check.json"
+      ]
+    }
+  ],
+  "out_of_scope_dirty_task_cards": [
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "sha256": "44032109b04a0bd9dd7c67ab751cc2145b913365fb3b0c951644dcf3300d860a",
+      "reason": "current dirty context from prior issue-management task; not a target of issue 94"
+    }
+  ],
+  "current_job_artifacts": [
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/README.md",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/status.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/classification_matrix.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/duplicate_search_matrix.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/artifact_inventory.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/validation_results.json",
+    "reports/agent_jobs/untracked_task_card_preservation_classification_v1_20260526/diff-check.json"
+  ]
+}

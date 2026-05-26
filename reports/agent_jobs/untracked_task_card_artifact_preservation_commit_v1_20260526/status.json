@@ -1,0 +1,53 @@
+{
+  "job_id": "untracked_task_card_artifact_preservation_commit_v1_20260526",
+  "status": "PASS_COMMITTED_AND_RELEASED",
+  "agent": "Codex",
+  "primary_lane_requested": "Repo Hygiene",
+  "validator_lane": "Evaluation",
+  "supporting_lanes": [
+    "Reporting",
+    "Evaluation"
+  ],
+  "execution_mode": "scoped_artifact_preservation_commit",
+  "production_data_access": false,
+  "repo": {
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "base_head": "61723bdca4ea30ce404d606cec63e47b9cb739b3",
+    "commit_subject": "milestone(repo-hygiene): preserve untracked task-card artifacts"
+  },
+  "registry": {
+    "root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "scope": "shared",
+    "claim_created": true,
+    "released": true,
+    "released_at": "2026-05-26T06:56:43.260057Z",
+    "final_active_jobs": []
+  },
+  "commit_scope": {
+    "preserve_issue_94_target_cards": true,
+    "preserve_issue_94_classification_artifacts": true,
+    "preserve_this_closeout": true,
+    "dirty_context_only_not_committed": [
+      "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md"
+    ]
+  },
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_list_active": "PASS",
+    "registry_check_overlap": "PASS",
+    "registry_claim": "PASS",
+    "json_validation": "PASS",
+    "git_diff_check": "PASS",
+    "task_card_check_diff": "PASS",
+    "staged_file_inspection": "PASS",
+    "git_diff_cached_check": "PASS",
+    "post_commit_check_diff_no_write_report": "PASS",
+    "registry_release": "PASS",
+    "final_registry_list_active": "PASS"
+  },
+  "destructive_git_action_performed": false,
+  "github_mutation_performed": false,
+  "product_runtime_data_mutation_performed": false,
+  "updated_at": "2026-05-26T06:57:00Z"
+}
