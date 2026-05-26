@@ -1,11 +1,232 @@
 {
-  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525",
-  "live_smoke_ran": false,
-  "reason": "pending canonical fast-forward and backend serving-code check",
-  "results": [],
-  "runtime_restart": {
-    "command": null,
-    "performed": false
+  "backend": {
+    "container": "fe_backend",
+    "health_after_restart": {
+      "api_health": {
+        "status": "ok"
+      },
+      "cockpit_health": "healthy"
+    },
+    "mounted_worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend -> /app",
+    "openapi_relevant_paths": [
+      "/api/cockpit/news/status",
+      "/api/cockpit/chat/attachments/upload",
+      "/api/cockpit/chat/sessions",
+      "/api/cockpit/chat/sessions/{session_id}",
+      "/api/cockpit/chat",
+      "/rag/query"
+    ],
+    "post_restart_started_at": "2026-05-26T02:06:53.889065839Z",
+    "pre_restart_started_at": "2026-05-25T07:21:02.938270672Z",
+    "serves_integrated_code_after_restart": true
   },
-  "status": "PENDING"
+  "config": {
+    "backend_url": "http://localhost:8000",
+    "data_root": "/data",
+    "llm_model": "model:qwen3.5-35b-a3b-apex",
+    "profile": "ops",
+    "routing_policy": "api_preferred",
+    "runtime_target": "local"
+  },
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525",
+  "live_smoke_ran": true,
+  "news_status_before_smoke": {
+    "a2m_news_health": {
+      "canonical_sqlite_projection": "missing",
+      "chat_synthesis": "DATA_MISSING",
+      "cockpit_query_route": "ok_via_rag_query",
+      "cockpit_status_routes": "implemented",
+      "legacy_sqlite_projection": "evidence_present_not_current_consumer",
+      "projection_repair": "not_run",
+      "qdrant_retrieval": "ok"
+    },
+    "generated_from": "read_only_status_contract",
+    "live_probe_performed": false,
+    "status": "ok"
+  },
+  "results": [
+    {
+      "classification": "PASS",
+      "claim_verified_source_count": 4,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_ms": 952,
+      "local_news_context_sources": 4,
+      "local_news_titles": [
+        "A2 Milk shares plunge after finding toxins in infant formula",
+        "Closing Bell: ASX whacked by weak corporate updates and A2 Milk recall",
+        "ASX Small Caps Weekly Form Guide"
+      ],
+      "request_body": {
+        "message": "news for A2M",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "A2M",
+        "web_search": false
+      },
+      "route": "/api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "ticker": "A2M",
+      "verified_local_news_sources": 4
+    },
+    {
+      "classification": "PASS",
+      "claim_verified_source_count": 5,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_ms": 954,
+      "local_news_context_sources": 5,
+      "local_news_titles": [
+        "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump's Liberation Day speech and accompanying reciprocal tariffs.",
+        "Resources stocks made up most of this week's top performers.",
+        "Closing Bell: ASX ressies hop but banks flop amid post-budget blues"
+      ],
+      "request_body": {
+        "message": "news for BHP",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "BHP",
+        "web_search": false
+      },
+      "route": "/api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "ticker": "BHP",
+      "verified_local_news_sources": 5
+    },
+    {
+      "classification": "PASS",
+      "claim_verified_source_count": 5,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_ms": 818,
+      "local_news_context_sources": 5,
+      "local_news_titles": [
+        "In today's Scan Lists: Arafura Rare Earths (ARU), Codan (CDA), Victory Metals (VTM), Austal (ASB), Bapcor (BAP), Cochlear (COH), CSL (CSL), Cleanaway Waste (CWY), Domino's Pizza (DMP), Harvey Norman (HVN), Pantoro Gold (PNR), SGH (SGH), Stockland (SGP), Supply Network (SNL), Wesfarmers (WES).",
+        "In today's Scan Lists: Altair Minerals (ALR), Decidr AI Industries (DAI), Global X Hydrogen ETF (HGEN), Kingsgate Consolidated (KCN), Predictive Discovery (PDI), Cochlear (COH), CSL (CSL), Clinuvel Pharmaceuticals (CUV), Ebos (EBO), Generation Development (GDG), Harvey Norman (HVN), IDP Education (IEL), Judo Capital (JDO), Nick Scali (NCK), Resmed (RMD).",
+        "In today's Scan Lists: APA (APA), Arafura Rare Earths (ARU), Bluescope Steel (BSL), Codan (CDA), Civmec (CVL), Iluka Resources (ILU), Liontown (LTR), Nickel Industries (NIC), Vaneck MSCI International Value ETF (VLUE), A2 Milk Co. (A2M), Cochlear (COH), CSL (CSL), Catalyst Metals (CYL), Ebos (EBO), Flight Centre (FLT), G8 Education (GEM), IDP Education (IEL), National Australia Bank (NAB), Propel Funeral Partners (PFP), Seek (SEK)."
+      ],
+      "request_body": {
+        "message": "news for CSL",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "CSL",
+        "web_search": false
+      },
+      "route": "/api/cockpit/chat",
+      "source_coverage_status": "claim_verified",
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "ticker": "CSL",
+      "verified_local_news_sources": 5
+    },
+    {
+      "classification": "DATA_MISSING",
+      "claim_verified_source_count": 0,
+      "documents_filings_price_context_separate": true,
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_ms": 1419,
+      "local_news_context_sources": 0,
+      "local_news_titles": [],
+      "request_body": {
+        "message": "news for COH",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": false,
+        "ticker": "COH",
+        "web_search": false
+      },
+      "route": "/api/cockpit/chat",
+      "source_coverage_status": "no_hit",
+      "source_labels": [
+        "context_only",
+        "no_hit",
+        "operational_trace"
+      ],
+      "ticker": "COH",
+      "verified_local_news_sources": 0
+    },
+    {
+      "classification": "PASS",
+      "claim_verified_source_count": 5,
+      "documents_filings_price_context_separate": true,
+      "event_count": 5,
+      "event_types": [
+        "status",
+        "status",
+        "status",
+        "sources",
+        "done"
+      ],
+      "final_text_aligns_with_local_news_context": true,
+      "guarded_data_missing": false,
+      "http_status": 200,
+      "latency_ms": 1022,
+      "local_news_context_sources": 5,
+      "local_news_titles": [
+        "The share prices of ASX mining companies like BHP, RIO, FMG, MIN, CIA IGO, LTR, PLS, SFR, and S32 have tumbled in the wake of President Trump's Liberation Day speech and accompanying reciprocal tariffs.",
+        "Resources stocks made up most of this week's top performers.",
+        "Closing Bell: ASX ressies hop but banks flop amid post-budget blues"
+      ],
+      "request_body": {
+        "message": "news for BHP",
+        "rag": true,
+        "stateless_smoke": true,
+        "stream": true,
+        "ticker": "BHP",
+        "web_search": false
+      },
+      "route": "/api/cockpit/chat SSE",
+      "source_coverage_status": "claim_verified",
+      "source_labels": [
+        "claim_verified",
+        "local_news_context"
+      ],
+      "ticker": "BHP",
+      "verified_local_news_sources": 5
+    }
+  ],
+  "runtime_restart": {
+    "command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
+    "performed": true,
+    "services_restarted": [
+      "fe_backend"
+    ]
+  },
+  "schema_warnings": [
+    "cockpit_announcement_context table is absent; strict local-news prompts that route through broader context logged UndefinedTable warnings for A2M/BHP/CSL/COH.",
+    "OpenViking config was absent, so backend/cockpit session memory reported stateless mode.",
+    "Existing pydantic protected namespace warning for RealGoldEvalRequest.model_override."
+  ],
+  "status": "PASS_WITH_RECORDED_RESIDUAL_RISK",
+  "strict_local_news_guard_probe": {
+    "classification": "RESIDUAL_RISK",
+    "observed": "Prompts phrased as 'Use only local_news_context...' retrieved local-news rows for A2M/BHP/CSL but kept them context_only, so the honesty guard returned DATA_MISSING. Direct 'news for TICKER' news-intent probes passed.",
+    "tickers": [
+      "A2M",
+      "BHP",
+      "CSL",
+      "COH"
+    ]
+  }
 }

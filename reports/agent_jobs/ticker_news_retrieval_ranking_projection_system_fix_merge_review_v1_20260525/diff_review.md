@@ -41,5 +41,7 @@ continue through the guard as unverified evidence gaps.
 - `NST` still has a residual relevance-quality risk where a broad linked
   resources article can rank above older primary NST evidence.
 - Canonical SQLite news projection remains absent by design and was not repaired.
-- Live endpoint behavior still requires backend serving-code smoke after
-  canonical is updated.
+- Broader strict prompts phrased as `Use only local_news_context...` still
+  routed through context-only evidence in live smoke and remained guarded as
+  `DATA_MISSING`; direct news-intent probes (`news for TICKER`) passed with
+  claim-verified local-news sources.

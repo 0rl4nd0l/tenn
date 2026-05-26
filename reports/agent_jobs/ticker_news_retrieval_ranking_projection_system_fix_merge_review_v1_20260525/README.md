@@ -73,15 +73,43 @@ No blocking merge-review findings.
 
 ## Live Smoke
 
-Pending. The next step is to fast-forward canonical to the integration branch,
-confirm whether the running backend serves the integrated canonical code, restart
-only `fe_backend` if needed, and run the approved read-only changed-code smoke.
+Canonical was fast-forwarded to `8f2980e917bb46277096a681dc11493cfedde707`.
+The running backend was a non-reloading uvicorn process started before that
+fast-forward, so I restarted only the Compose `backend` service:
+
+`docker compose -f financial-engine_v2/docker-compose.yml restart backend`
+
+Post-restart health passed, and no Postgres, Qdrant, worker, GPU worker,
+llama-server, Next, image rebuild, env/config, volume, DB, Qdrant, or news-store
+mutation was performed.
+
+Changed-code smoke results:
+
+- `news for A2M`: PASS, `claim_verified_source_count=4`,
+  `source_coverage_status=claim_verified`, labels
+  `claim_verified` + `local_news_context`.
+- `news for BHP`: PASS, `claim_verified_source_count=5`,
+  `source_coverage_status=claim_verified`, labels
+  `claim_verified` + `local_news_context`.
+- `news for CSL`: PASS, `claim_verified_source_count=5`,
+  `source_coverage_status=claim_verified`, labels
+  `claim_verified` + `local_news_context`.
+- `news for COH`: DATA_MISSING/no-hit control, `claim_verified_source_count=0`,
+  labels `context_only`, `no_hit`, `operational_trace`.
+- SSE `news for BHP`: PASS, done event returned
+  `claim_verified_source_count=5` with local-news sources.
+
+Residual risk recorded: stricter prompts phrased as `Use only
+local_news_context...` retrieved local-news rows for A2M/BHP/CSL but still kept
+them `context_only`, so the honesty guard returned `DATA_MISSING`. I did not
+implement a second fix in this merge-review task because the prompt forbids new
+retrieval/ranking work outside direct cherry-pick conflict resolution.
 
 ## Forbidden Mutation Attestation
 
-No forbidden mutation has occurred in the merge review or validation phase. The
-upcoming smoke is limited to read-only HTTP probes plus a backend-only restart
-if required to make `fe_backend` serve the integrated canonical code.
+No forbidden mutation occurred. The only runtime action was restarting
+`fe_backend` with the command above so the already-integrated canonical code was
+served.
 
 ## Project Memory Save Recommendation
 

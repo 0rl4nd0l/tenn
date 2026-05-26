@@ -1,9 +1,9 @@
 {
   "agent": "Codex",
   "canonical_branch": "migration/clean-runtime-baseline-reconstruct-v1",
-  "canonical_head_after": null,
+  "canonical_head_after_initial_fast_forward": "8f2980e917bb46277096a681dc11493cfedde707",
   "canonical_head_before": "9326c200ff187032b934ff9a33bf53e8a6f96181",
-  "classification": "MERGE_REVIEW_VALIDATION_PASSED_SMOKE_PENDING",
+  "classification": "MERGED_AND_VALIDATED",
   "forbidden_mutation_attestation": {
     "a2m_only_hardcoding": false,
     "canonical_financial_truth_writes": false,
@@ -26,10 +26,10 @@
   "parked_source_commit": "9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
   "registry_status": "active_claim",
   "runtime_restart": {
-    "command": null,
-    "performed": false
+    "command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
+    "performed": true
   },
-  "smoke_status": "pending",
-  "updated_at": "2026-05-26T12:03:14+10:00",
+  "smoke_status": "PASS_WITH_RECORDED_RESIDUAL_RISK",
+  "updated_at": "2026-05-26T12:10:00+10:00",
   "validation_status": "PASS"
 }

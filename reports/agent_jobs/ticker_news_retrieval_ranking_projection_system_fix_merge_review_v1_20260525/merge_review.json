@@ -38,7 +38,7 @@
     "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/status.json",
     "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/validation_results.json"
   ],
-  "classification": "MERGE_REVIEW_VALIDATION_PASSED_SMOKE_PENDING",
+  "classification": "MERGED_AND_VALIDATED",
   "created_at": "2026-05-26T12:03:14+10:00",
   "foreign_task_cards": {
     "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md": {
@@ -69,6 +69,17 @@
     "claim_status": "active",
     "check_overlap": "PASS",
     "list_active": "this_job_only"
+  },
+  "smoke": {
+    "backend_restart_command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
+    "direct_news_intent": "PASS",
+    "non_a2m_tickers_improved": [
+      "BHP",
+      "CSL"
+    ],
+    "no_local_news_control": "COH no_hit / DATA_MISSING class",
+    "sse_smoke": "PASS",
+    "strict_local_news_guard_prompt": "RESIDUAL_RISK_CONTEXT_ONLY_DATA_MISSING"
   },
   "target_drift_review": {
     "base": "173a8750caa4602e5791ee072673db17e708c5d3",
