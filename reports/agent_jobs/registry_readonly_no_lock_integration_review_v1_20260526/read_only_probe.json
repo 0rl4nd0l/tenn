@@ -1,0 +1,28 @@
+{
+  "issue": 85,
+  "active_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "active_integration_commit": "c0113f11da37110b79d76ff37f9593f858e491e5",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "read_only_command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+  "read_only_observed": {
+    "ok": true,
+    "read_only": true,
+    "lock_acquired": false,
+    "active_jobs": [
+      "registry_readonly_no_lock_integration_review_v1_20260526"
+    ]
+  },
+  "snapshot_probe": {
+    "registry_snapshot_diff_status": 0,
+    "registry_snapshot_unchanged": true,
+    "lock_exists_before": false,
+    "lock_exists_after": false,
+    "registry_file_content_or_mtime_changed": false
+  },
+  "default_list_active_observed": {
+    "ok": true,
+    "read_only": false,
+    "lock_acquired": true
+  },
+  "verdict": "PASS"
+}

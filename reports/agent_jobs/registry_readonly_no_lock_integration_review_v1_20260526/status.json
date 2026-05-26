@@ -1,0 +1,48 @@
+{
+  "issue": 85,
+  "job_id": "registry_readonly_no_lock_integration_review_v1_20260526",
+  "result": "PASS",
+  "decision": "INTEGRATED",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "5a902c7e84aabc103914145de0feec569dd5efec",
+  "active_integration_commit": "c0113f11da37110b79d76ff37f9593f858e491e5",
+  "source_commit": "af69c6fef20070f06d3b57594c9847d2ba98448a",
+  "source_branch": "safe/registry-readonly-no-lock-list-active-v1-20260525",
+  "mode": "result_review_integration",
+  "primary_lane": "Repo Hygiene",
+  "supporting_lanes": [
+    "Reporting",
+    "Evaluation"
+  ],
+  "root_cause_verdict": "ROOT_CAUSE_FIXED",
+  "closeout_verdict": "READY_TO_CLOSE",
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "forbidden_surface_attestation": {
+    "product_backend_frontend_runtime_data_files_changed": false,
+    "db_qdrant_news_memory_mutation": false,
+    "canonical_financial_truth_mutation": false,
+    "parser_routing_extraction_prompt_gold_label_mutation": false,
+    "model_runtime_gpu_service_config_mutation": false,
+    "branch_cleanup_delete_prune_reset_stash_rebase_merge": false,
+    "unrelated_dirty_work_cleanup": false
+  },
+  "validation_summary": {
+    "task_card_validate": "PASS",
+    "source_scope_review": "PASS",
+    "preintegration_missing_read_only_confirmed": "PASS",
+    "no_blocking_same_lane_registry_jobs": "PASS",
+    "exact_cherry_pick": "PASS",
+    "registry_help": "PASS",
+    "list_active_help": "PASS",
+    "list_active_read_only_live": "PASS",
+    "read_only_no_lock_no_mutation_probe": "PASS",
+    "default_list_active_backward_compatible": "PASS",
+    "focused_registry_pytest": "PASS: 16 passed, 1 warning",
+    "git_diff_check": "PASS"
+  },
+  "data_missing": [
+    "The source branch safe/registry-readonly-no-lock-list-active-v1-20260525 exists locally but was not advertised by origin during ls-remote.",
+    "The final report commit hash is recorded in the GitHub closeout comment and final response because this report is part of that commit."
+  ]
+}
