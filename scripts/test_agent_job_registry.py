@@ -107,6 +107,16 @@ def active_record_path(repo: Path, job_id: str) -> Path:
     return registry.resolve_registry_location(repo).root / "active" / f"{job_id}.json"
 
 
+def registry_file_snapshot(root: Path) -> dict[str, tuple[int, bytes]]:
+    if not root.exists():
+        return {}
+    return {
+        path.relative_to(root).as_posix(): (path.stat().st_mtime_ns, path.read_bytes())
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
 def test_env_registry_root_overrides_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = git_repo(tmp_path / "repo")
     env_root = tmp_path / "env-registry"
@@ -170,10 +180,52 @@ def test_list_active_includes_registry_metadata(tmp_path: Path) -> None:
 
     assert completed.returncode == 0
     assert payload["ok"] is True
+    assert payload["read_only"] is False
+    assert payload["lock_acquired"] is True
     assert payload["registry_root"]
     assert payload["registry_scope"] == "shared"
     assert payload["repo_root"] == str(repo.resolve())
     assert payload["git_common_dir"]
+
+
+def test_list_active_read_only_does_not_create_registry_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    env_root = tmp_path / "missing-registry-root"
+    monkeypatch.setenv("TENN_AGENT_REGISTRY_ROOT", str(env_root))
+
+    completed, payload = run_registry(repo, "list-active", "--read-only")
+
+    assert completed.returncode == 0
+    assert payload["ok"] is True
+    assert payload["read_only"] is True
+    assert payload["lock_acquired"] is False
+    assert payload["active_jobs"] == []
+    assert not env_root.exists()
+
+
+def test_list_active_read_only_reads_existing_records_without_mutating_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = git_repo(tmp_path / "repo")
+    env_root = tmp_path / "shared-registry"
+    monkeypatch.setenv("TENN_AGENT_REGISTRY_ROOT", str(env_root))
+    claim = registry.claim_task_card(repo / "docs" / "agent_tasks" / "job-a.md", repo_root=repo)
+    assert claim["ok"] is True
+    before = registry_file_snapshot(env_root)
+
+    completed, payload = run_registry(repo, "list-active", "--read-only")
+
+    assert completed.returncode == 0
+    assert payload["ok"] is True
+    assert payload["read_only"] is True
+    assert payload["lock_acquired"] is False
+    assert [job["job_id"] for job in payload["active_jobs"]] == ["job-a"]
+    assert registry_file_snapshot(env_root) == before
+    assert not (env_root / ".lock").exists()
 
 
 def test_linked_worktrees_see_same_active_job(tmp_path: Path) -> None:

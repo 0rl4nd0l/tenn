@@ -496,13 +496,19 @@ def list_active_jobs(
     repo_root: Path | None = None,
     now: datetime | None = None,
     stale_after_seconds: int | None = None,
+    read_only: bool = False,
 ) -> dict[str, Any]:
     location = resolve_registry_location(repo_root)
     root = location.repo_root
     current = _coerce_now(now)
     fallback_stale_after = _configured_stale_after(override=stale_after_seconds)
-    with RegistryLock(location.root):
+
+    if read_only:
         jobs, warnings = _load_active_jobs(location.root, root)
+    else:
+        with RegistryLock(location.root):
+            jobs, warnings = _load_active_jobs(location.root, root)
+
     active = [
         _job_summary(
             job,
@@ -524,6 +530,8 @@ def list_active_jobs(
     return {
         "ok": True,
         **location.metadata(),
+        "read_only": read_only,
+        "lock_acquired": not read_only,
         "active_jobs": active,
         "warnings": [issue.to_dict() for issue in [*location.warnings, *warnings, *stale_warnings]],
     }
@@ -913,6 +921,11 @@ def _build_parser() -> argparse.ArgumentParser:
     list_active = sub.add_parser("list-active", help="list active Tenn dev-agent jobs")
     list_active.add_argument("--repo-root", type=Path, default=Path.cwd())
     list_active.add_argument("--stale-after-seconds", type=int)
+    list_active.add_argument(
+        "--read-only",
+        action="store_true",
+        help="read active jobs without acquiring or creating a registry lock",
+    )
 
     claim = sub.add_parser("claim", help="claim a task card lane/files")
     claim.add_argument("task_card", type=Path)
@@ -943,7 +956,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "list-active":
-            result = list_active_jobs(repo_root=args.repo_root, stale_after_seconds=args.stale_after_seconds)
+            result = list_active_jobs(
+                repo_root=args.repo_root,
+                stale_after_seconds=args.stale_after_seconds,
+                read_only=args.read_only,
+            )
         elif args.command == "claim":
             result = claim_task_card(
                 args.task_card,
