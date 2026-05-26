@@ -1,0 +1,11 @@
+{
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525",
+  "live_smoke_ran": false,
+  "reason": "pending canonical fast-forward and backend serving-code check",
+  "results": [],
+  "runtime_restart": {
+    "command": null,
+    "performed": false
+  },
+  "status": "PENDING"
+}

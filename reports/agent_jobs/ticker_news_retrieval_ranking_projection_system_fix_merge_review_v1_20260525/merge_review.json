@@ -1,0 +1,79 @@
+{
+  "architecture_review": {
+    "a2m_only_hardcoding": false,
+    "canonical_financial_truth_writes": false,
+    "chat_evidence_guard_changed": false,
+    "db_mutation": false,
+    "local_news_honesty_guard_weakened": false,
+    "news_store_mutation": false,
+    "parser_routing": false,
+    "qdrant_mutation": false,
+    "reindex_resync_backfill_projection_repair": false,
+    "runtime_model_gpu_config_edits": false,
+    "source_label_masking": false,
+    "tenn_memory_writes": false
+  },
+  "canonical": {
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_before": "9326c200ff187032b934ff9a33bf53e8a6f96181",
+    "known_unrelated_untracked_task_cards": [
+      "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md",
+      "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md"
+    ],
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "changed_files": [
+    "docs/agent_tasks/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525.md",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/app/services/rag.py",
+    "financial-engine_v2/backend/tests/test_build_ui_sources.py",
+    "financial-engine_v2/backend/tests/test_rag_news_query.py",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/README.md",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/diff_review.md",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/news_path_map.md",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/post_fix_smoke_results.json",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/post_fix_ticker_matrix.json",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/pre_fix_ticker_matrix.json",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/root_cause_trace.json",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/status.json",
+    "reports/agent_jobs/ticker_news_retrieval_ranking_projection_system_fix_v1_20260525/validation_results.json"
+  ],
+  "classification": "MERGE_REVIEW_VALIDATION_PASSED_SMOKE_PENDING",
+  "created_at": "2026-05-26T12:03:14+10:00",
+  "foreign_task_cards": {
+    "docs/agent_tasks/a2m_backend_reload_news_status_activation_smoke_v1_20260525.md": {
+      "classification": "unrelated_untracked_foreign_task_card",
+      "lane": "Query Orchestration",
+      "touched": false
+    },
+    "docs/agent_tasks/automation_audit_issue_preservation_v1_20260525.md": {
+      "classification": "unrelated_untracked_foreign_task_card",
+      "lane": "Reporting",
+      "touched": false
+    }
+  },
+  "integration": {
+    "branch": "integrate/ticker-news-retrieval-ranking-projection-merge-review-v1-20260525",
+    "commit": "d0ec32437ac517fe4d512990a00437d1043f297a",
+    "method": "git cherry-pick -x 9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
+    "worktree": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-merge-review-v1-20260525"
+  },
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525",
+  "parked_source": {
+    "branch": "safe/ticker-news-retrieval-ranking-projection-system-fix-v1-20260525",
+    "commit": "9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
+    "status": "clean",
+    "worktree": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-system-fix-v1-20260525"
+  },
+  "registry": {
+    "claim_status": "active",
+    "check_overlap": "PASS",
+    "list_active": "this_job_only"
+  },
+  "target_drift_review": {
+    "base": "173a8750caa4602e5791ee072673db17e708c5d3",
+    "drift_touched_parked_code_files": false,
+    "merge_tree_conflicts": false,
+    "source_grounding_guard_descendant": true
+  }
+}

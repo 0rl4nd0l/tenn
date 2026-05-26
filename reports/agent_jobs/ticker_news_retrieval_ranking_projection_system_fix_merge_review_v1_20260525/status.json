@@ -1,0 +1,35 @@
+{
+  "agent": "Codex",
+  "canonical_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "canonical_head_after": null,
+  "canonical_head_before": "9326c200ff187032b934ff9a33bf53e8a6f96181",
+  "classification": "MERGE_REVIEW_VALIDATION_PASSED_SMOKE_PENDING",
+  "forbidden_mutation_attestation": {
+    "a2m_only_hardcoding": false,
+    "canonical_financial_truth_writes": false,
+    "db_mutation": false,
+    "local_news_honesty_guard_weakened": false,
+    "news_store_mutation": false,
+    "parser_routing": false,
+    "qdrant_mutation": false,
+    "reindex_resync_backfill_projection_repair": false,
+    "runtime_model_gpu_config_edits": false,
+    "source_label_masking": false,
+    "tenn_memory_writes": false
+  },
+  "integration_branch": "integrate/ticker-news-retrieval-ranking-projection-merge-review-v1-20260525",
+  "integration_commit": "d0ec32437ac517fe4d512990a00437d1043f297a",
+  "job_id": "ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525",
+  "lane": "Query Orchestration",
+  "local_news_honesty_guard_intact": true,
+  "merge_method": "git cherry-pick -x 9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
+  "parked_source_commit": "9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
+  "registry_status": "active_claim",
+  "runtime_restart": {
+    "command": null,
+    "performed": false
+  },
+  "smoke_status": "pending",
+  "updated_at": "2026-05-26T12:03:14+10:00",
+  "validation_status": "PASS"
+}
