@@ -14,7 +14,7 @@ Reason:
 
 Current evidence:
 - Branch: `codex/long-running-issue-resolution-batch-v1-20260526`
-- HEAD: `<filled in live GitHub comment after report commit>`
+- HEAD: `c72ff35f11fe`
 - Report: `reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/`
 
 Next safe step:

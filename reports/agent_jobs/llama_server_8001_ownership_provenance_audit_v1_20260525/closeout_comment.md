@@ -13,7 +13,7 @@ Branch:
 `codex/long-running-issue-resolution-batch-v1-20260526`
 
 HEAD / commit:
-`<filled in live GitHub comment after report commit>`
+`c72ff35f11fe`
 
 Task card:
 `docs/agent_tasks/llama_server_8001_ownership_provenance_audit_v1_20260525.md`

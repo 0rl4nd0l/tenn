@@ -18,7 +18,10 @@
     "registry fallback list-active PASS; read-only list-active DATA_MISSING",
     "registry claim PASS",
     "read-only issue evidence collected",
-    "follow-up issues #111, #112, #113 created"
+    "follow-up issues #111, #112, #113 created",
+    "GitHub comments posted for #79, #81, #82, and #85",
+    "issues #79, #81, and #82 closed audit-only",
+    "issue #85 left open with status comment"
   ],
   "DATA_MISSING": [
     "list-active --read-only unavailable in active baseline",
