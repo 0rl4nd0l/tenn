@@ -1,0 +1,102 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/registry_readonly_no_lock_integration_review_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/registry_readonly_no_lock_list_active_v1_20260525.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/github_closeout.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/read_only_probe.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/source_inspection.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/agent_job_registry.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_agent_job_registry.py",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/registry_readonly_no_lock_integration_review_v1_20260526.md",
+        "docs/agent_tasks/registry_readonly_no_lock_list_active_v1_20260525.md",
+        "scripts/agent_job_registry.py",
+        "scripts/test_agent_job_registry.py",
+        "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/README.md",
+        "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/status.json",
+        "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/validation.json",
+        "reports/agent_jobs/registry_readonly_no_lock_list_active_v1_20260525/diff-check.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/README.md",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/status.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/validation.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/source_inspection.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/read_only_probe.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/diff-check.json",
+        "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526/github_closeout.md"
+      ],
+      "approval_required": false,
+      "job_id": "registry_readonly_no_lock_integration_review_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/registry_readonly_no_lock_integration_review_v1_20260526",
+      "owner": "Codex",
+      "primary_lane": "Repo Hygiene",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Registry read-only no-lock list-active integration review"
+    },
+    "ok": true
+  }
+}
