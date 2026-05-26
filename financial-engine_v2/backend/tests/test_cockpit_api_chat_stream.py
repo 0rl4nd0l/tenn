@@ -279,7 +279,7 @@ def test_cockpit_chat_metadata_marks_price_trend_missing_market_evidence(
     ]
 
 
-def test_cockpit_chat_local_news_only_accepts_verified_news_shortcircuit(
+def test_cockpit_chat_local_news_only_accepts_verified_news_shortcircuit_prompts(
     monkeypatch,
 ) -> None:
     class FakeService:
@@ -325,36 +325,40 @@ def test_cockpit_chat_local_news_only_accepts_verified_news_shortcircuit(
     app.include_router(router, prefix="/api/cockpit")
     client = TestClient(app)
 
-    response = client.post(
-        "/api/cockpit/chat",
-        json={
-            "message": "Use only local_news_context for BHP",
-            "ticker": "BHP",
-            "stream": False,
-            "rag": True,
-            "web_search": False,
-            "stateless_smoke": True,
-        },
-        headers={"X-Tenn-Stateless-Smoke": "1"},
-    )
+    for message in (
+        "Use only local_news_context for BHP",
+        "latest local news for BHP",
+    ):
+        response = client.post(
+            "/api/cockpit/chat",
+            json={
+                "message": message,
+                "ticker": "BHP",
+                "stream": False,
+                "rag": True,
+                "web_search": False,
+                "stateless_smoke": True,
+            },
+            headers={"X-Tenn-Stateless-Smoke": "1"},
+        )
 
-    assert response.status_code == 200
-    payload = response.json()["data"]
-    metadata = payload["routing_metadata"]
-    final_text = payload["text"]
-    assert not final_text.startswith("DATA_MISSING")
-    assert "BHP local news update" in final_text
-    source = payload["sources"][0]
-    assert source["source_id"] == "news:bhp-local-news"
-    assert source["kind"] == "news"
-    assert source["claim_verified"] is True
-    assert "claim_verified" in source["evidence_labels"]
-    assert "local_news_context" in source["evidence_labels"]
-    assert "context_only" not in source["evidence_labels"]
-    assert metadata["source_coverage_status"] == "claim_verified"
-    assert metadata["claim_verified_source_count"] == 1
-    assert metadata["local_news_context_count"] == 1
-    assert metadata["claim_verified_local_news_count"] == 1
+        assert response.status_code == 200
+        payload = response.json()["data"]
+        metadata = payload["routing_metadata"]
+        final_text = payload["text"]
+        assert not final_text.startswith("DATA_MISSING")
+        assert "BHP local news update" in final_text
+        source = payload["sources"][0]
+        assert source["source_id"] == "news:bhp-local-news"
+        assert source["kind"] == "news"
+        assert source["claim_verified"] is True
+        assert "claim_verified" in source["evidence_labels"]
+        assert "local_news_context" in source["evidence_labels"]
+        assert "context_only" not in source["evidence_labels"]
+        assert metadata["source_coverage_status"] == "claim_verified"
+        assert metadata["claim_verified_source_count"] == 1
+        assert metadata["local_news_context_count"] == 1
+        assert metadata["claim_verified_local_news_count"] == 1
 
 
 def test_cockpit_chat_local_news_only_news_shortcircuit_no_hit_stays_data_missing(

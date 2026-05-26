@@ -1,0 +1,108 @@
+{
+  "forbidden_mutation_attestation": {
+    "canonical_financial_truth_write": false,
+    "chat_evidence_guard_weakening": false,
+    "db_mutation": false,
+    "migration": false,
+    "news_store_mutation": false,
+    "parser_routing": false,
+    "qdrant_mutation": false,
+    "reindex_resync_backfill_projection_repair": false,
+    "runtime_model_gpu_config_edit": false,
+    "source_label_masking": false,
+    "tenn_memory_write": false,
+    "ticker_specific_alias_hardcoding": false
+  },
+  "job_id": "natural_language_local_news_intent_route_v1_20260526",
+  "live_smoke": {
+    "notes": "run after integration if backend needs to serve integrated canonical code",
+    "status": "NOT_RUN_YET"
+  },
+  "phase": "post_fix_pre_integration_validation",
+  "results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/natural_language_local_news_intent_route_v1_20260526.md",
+      "name": "task_card_validate",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "name": "registry_list_active",
+      "notes": "only this job active after claim",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/natural_language_local_news_intent_route_v1_20260526.md",
+      "name": "registry_check_overlap",
+      "status": "PASS"
+    },
+    {
+      "command": "jq empty pre_fix_intent_matrix.json root_cause_trace.json post_fix_intent_matrix.json status.json",
+      "name": "json_artifacts",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m py_compile financial-engine_v2/cockpit/core/chat.py financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "name": "py_compile",
+      "status": "PASS"
+    },
+    {
+      "command": "ruff check financial-engine_v2/cockpit/core/chat.py financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py",
+      "name": "ruff",
+      "status": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py -q",
+      "name": "chat_ticker_detection_tests",
+      "result": "38 passed, 48 subtests passed in 0.50s",
+      "status": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py -q",
+      "name": "cockpit_chat_stream_tests",
+      "result": "64 passed in 6.57s",
+      "status": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_build_ui_sources.py -q",
+      "name": "build_ui_sources_tests",
+      "result": "58 passed in 2.08s",
+      "status": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_chat_evidence_guard.py -q",
+      "name": "chat_evidence_guard_tests",
+      "result": "23 passed in 0.11s",
+      "status": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_cockpit_news_status.py -q",
+      "name": "cockpit_news_status_tests",
+      "result": "2 passed, 5 warnings in 3.04s",
+      "status": "PASS"
+    },
+    {
+      "command": "pytest financial-engine_v2/backend/tests/test_sources.py -q",
+      "name": "sources_tests",
+      "result": "3 passed in 1.90s",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "name": "git_diff_check",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/natural_language_local_news_intent_route_v1_20260526.md --no-write-report",
+      "name": "task_card_check_diff",
+      "notes": "pre-report-force-add pass; final pass recorded separately before commit",
+      "status": "PASS"
+    },
+    {
+      "command": "manual review using SYSTEM_CONTRACT.md and diff_review.md",
+      "name": "architecture_review",
+      "notes": ".cursor/rules DATA_MISSING in this checkout; no contract violation found",
+      "status": "PASS"
+    }
+  ]
+}

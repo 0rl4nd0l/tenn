@@ -1911,6 +1911,20 @@ class ChatController:
         r"\blocal[_ -]news[_ -]context\b",
         re.IGNORECASE,
     )
+    _NATURAL_TICKER_NEWS_RE = re.compile(
+        r"\b(?:latest|recent|current|newest|today'?s?|show\s+me|any|"
+        r"what(?:'s|\s+is)?|give\s+me|find|list)\b[\w\s'/-]{0,80}\bnews\b"
+        r"|\b(?:local|company)\s+news\b"
+        r"|\bnews\s+(?:for|on|about|regarding)\b",
+        re.IGNORECASE,
+    )
+    _NEWS_SHORTCIRCUIT_EXCLUSION_RE = re.compile(
+        r"\b(?:appendix\s*4[bcde]?|appendix|4c|4d|4e|filing|document|"
+        r"announcement|annual\s+report|half[-\s]?year|quarterly|results?|"
+        r"financial\s+performance|financials?|valuation|share\s+price|price|"
+        r"cash\s+flow|revenue|ebitda|profit|balance\s+sheet|candlestick|chart)\b",
+        re.IGNORECASE,
+    )
     _DIRECT_FILESTATS_RE = re.compile(
         r"^\s*(?:(?P<ticker_prefix>[A-Za-z0-9]{1,10})\s+filestats?|filestats?\s+(?P<ticker_suffix>[A-Za-z0-9]{1,10}))\s*[?!.]*\s*$",
         re.IGNORECASE,
@@ -1943,6 +1957,7 @@ class ChatController:
         if not (
             self._DIRECT_NEWS_RE.fullmatch(stripped_message)
             or self._STRICT_LOCAL_NEWS_CONTEXT_RE.search(stripped_message)
+            or self._should_use_natural_ticker_news_shortcircuit(stripped_message)
         ):
             return None
 
@@ -2026,6 +2041,16 @@ class ChatController:
             ],
             mode=ResponseMode.FAST,
         )
+
+    def _should_use_natural_ticker_news_shortcircuit(self, message: str) -> bool:
+        text = str(message or "").strip()
+        if not text or not re.search(r"\bnews\b", text, re.IGNORECASE):
+            return False
+        if self._is_global_news_request(text):
+            return False
+        if self._NEWS_SHORTCIRCUIT_EXCLUSION_RE.search(text):
+            return False
+        return bool(self._NATURAL_TICKER_NEWS_RE.search(text))
 
     @classmethod
     def _extract_explicit_web_search_query(cls, message: str) -> str | None:

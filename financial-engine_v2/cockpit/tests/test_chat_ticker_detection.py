@@ -204,6 +204,68 @@ class ChatTickerDetectionTests(unittest.TestCase):
         )
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_natural_local_news_prompts_use_news_shortcircuit(self) -> None:
+        prompts = [
+            ("latest local news for A2M", "A2M"),
+            ("latest local news for BHP", "BHP"),
+            ("what is the latest news on CSL", "CSL"),
+            ("recent local news for BHP", "BHP"),
+            ("show me local news for A2M", "A2M"),
+            ("any recent company news for CSL", "CSL"),
+        ]
+        self.controller.tool_router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "Local news update",
+                    "published_at": "2026-05-24T03:00:00Z",
+                    "url": "https://example.com/local-news",
+                    "text": "The company was covered in local market news.",
+                }
+            ],
+        }
+
+        for prompt, ticker in prompts:
+            with self.subTest(prompt=prompt):
+                self.controller.tool_router.get_news_context.reset_mock()
+                self.controller.ollama_client.chat.reset_mock()
+
+                response = self.controller.build_chat_response(
+                    prompt, prior_ticker=None
+                )
+
+                self.assertEqual(response.mode, ResponseMode.FAST)
+                self.assertIn(f"Recent {ticker}-linked news:", response.text)
+                self.assertIn("Local news update", response.text)
+                self.controller.tool_router.get_news_context.assert_called_once_with(
+                    query=ticker,
+                    top_k=5,
+                    ticker=ticker,
+                )
+                self.controller.ollama_client.chat.assert_not_called()
+
+    def test_natural_news_shortcircuit_does_not_capture_non_news_controls(
+        self,
+    ) -> None:
+        prompts = [
+            "summarise BHP financial performance",
+            "latest Appendix 4C for XRO",
+            "BHP share price news",
+            "latest on BHP",
+        ]
+
+        for prompt in prompts:
+            with self.subTest(prompt=prompt):
+                ticker, _ = self.controller._resolve_ticker_context(
+                    prompt, prior_ticker=None
+                )
+                self.controller.tool_router.get_news_context.reset_mock()
+
+                response = self.controller._try_news_shortcircuit(prompt, ticker)
+
+                self.assertIsNone(response)
+                self.controller.tool_router.get_news_context.assert_not_called()
+
     def test_ticker_leading_price_prompt_hits_price_fast_path(self) -> None:
         self.controller.tool_router.get_price_context_for_window.return_value = {
             "price": {

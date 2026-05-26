@@ -1,0 +1,41 @@
+{
+  "classification": "IMPLEMENTATION_REQUIRED",
+  "evidence": [
+    {
+      "file": "financial-engine_v2/cockpit/core/chat.py",
+      "finding": "_DIRECT_NEWS_RE accepts only optional latest + news-for/ticker-news forms; _try_news_shortcircuit returns None unless that direct regex or literal local_news_context matches.",
+      "lines": "1906-1947"
+    },
+    {
+      "file": "reports/agent_jobs/natural_language_local_news_intent_route_v1_20260526/pre_fix_intent_matrix.json",
+      "finding": "All six positive natural-language local-news prompts detect a ticker but fail to use the direct ticker-news short-circuit; direct news and strict local_news_context baselines pass."
+    },
+    {
+      "file": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "finding": "When ChatController emits news_search evidence, backend source-pack assembly already turns successful local-news hits into local_news_context and claim_verified unless no-hit/context-only/degraded labels block verification.",
+      "lines": "1903-1946, 2314-2329"
+    }
+  ],
+  "failure_stage": "direct ticker-news short-circuit only handles direct news wording and literal local_news_context wording",
+  "implementation_decision": {
+    "must_not_change": [
+      "chat_evidence_guard.py semantics",
+      "backend source-label honesty",
+      "DB/Qdrant/news-store contents",
+      "filing/document/financial/price intent routing",
+      "ticker-specific aliases"
+    ],
+    "proceed": true,
+    "scope": "Extend generic local/news intent detection in cockpit/core/chat.py so ticker-bearing natural-language local-news prompts reuse _try_news_shortcircuit's existing get_news_context source-pack path."
+  },
+  "job_id": "natural_language_local_news_intent_route_v1_20260526",
+  "phase": "root_cause",
+  "rejected_causes": [
+    "ticker detection miss: rejected because A2M/BHP/CSL/XRO ticker detection succeeds in the pre-fix matrix",
+    "backend claim-verification missing: rejected because direct/strict baselines and cockpit_api news_search source assembly are already claim-verified for successful local news",
+    "COH storage absence: rejected as a control, not the positive-prompt root cause",
+    "SSE/non-stream divergence: not indicated at the routing predicate stage; validate after fix",
+    "ticker-specific alias gap: rejected because failures reproduce across A2M, BHP, and CSL prompt shapes"
+  ],
+  "root_cause": "natural-language local-news intent is not accepted by the existing ticker-news short-circuit predicate"
+}
