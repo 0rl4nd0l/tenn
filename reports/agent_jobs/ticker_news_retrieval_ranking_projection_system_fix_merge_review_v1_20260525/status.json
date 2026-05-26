@@ -24,12 +24,18 @@
   "local_news_honesty_guard_intact": true,
   "merge_method": "git cherry-pick -x 9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
   "parked_source_commit": "9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
-  "registry_status": "active_claim",
+  "registry": {
+    "active_record_removed": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/ticker_news_retrieval_ranking_projection_system_fix_merge_review_v1_20260525.json",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "released_at": "2026-05-26T02:13:46.481804Z",
+    "status": "released"
+  },
   "runtime_restart": {
     "command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
     "performed": true
   },
   "smoke_status": "PASS_WITH_RECORDED_RESIDUAL_RISK",
-  "updated_at": "2026-05-26T12:10:00+10:00",
+  "updated_at": "2026-05-26T12:14:00+10:00",
   "validation_status": "PASS"
 }

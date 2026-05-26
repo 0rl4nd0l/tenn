@@ -61,7 +61,8 @@ No blocking merge-review findings.
 
 - Merge-review task-card validate: PASS.
 - Parked task-card validate: PASS.
-- Registry list/check-overlap: PASS, active claim is this job only.
+- Registry list/check-overlap: PASS; claim was released after smoke/report
+  completion and active jobs list returned empty.
 - JSON validation for parked report artifacts: PASS.
 - `py_compile` for changed backend Python files: PASS.
 - Ruff for changed backend files/tests: PASS.

@@ -66,9 +66,10 @@
     "worktree": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-system-fix-v1-20260525"
   },
   "registry": {
-    "claim_status": "active",
+    "claim_status": "released",
     "check_overlap": "PASS",
-    "list_active": "this_job_only"
+    "list_active_after_release": "empty",
+    "released_at": "2026-05-26T02:13:46.481804Z"
   },
   "smoke": {
     "backend_restart_command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend",
