@@ -25,6 +25,12 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
+
 
 POSITIVE_LEXICON: dict[str, float] = {
     "beat estimates": 1.8,
@@ -2765,7 +2771,7 @@ def store_sqlite(
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Build advisory-only news sentiment feature aggregates.")
-    ap.add_argument("--news-db", default="reports/qual_context/news.sqlite", help="Input news SQLite path")
+    ap.add_argument("--news-db", default=str(DEFAULT_NEWS_CONTEXT_DB), help="Input news SQLite path")
     ap.add_argument("--out-json", default="reports/news_sentiment_features.json", help="Output summary JSON path")
     ap.add_argument("--out-csv", default="reports/news_sentiment_features.csv", help="Output ticker CSV path")
     ap.add_argument(
@@ -2812,7 +2818,7 @@ def main() -> int:
     if as_of_date is None:
         raise ValueError(f"Invalid --as-of-date: {args.as_of_date}")
 
-    source_db = Path(args.news_db).expanduser()
+    source_db = resolve_path(args.news_db)
     out_json = Path(args.out_json).expanduser()
     out_csv = Path(args.out_csv).expanduser()
     out_sqlite = Path(args.out_sqlite).expanduser()

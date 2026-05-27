@@ -72,12 +72,10 @@ def sync_news_qdrant(
     since_hours: int = 4,
 ) -> dict:
     """Sync recent news chunks from SQLite into Qdrant."""
+    from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB
     from load_news_to_qdrant import sync_news_to_qdrant  # noqa: F401
 
-    _db_path = db_path or os.environ.get(
-        "NEWS_ARTICLES_DB",
-        str(Path(SCRIPTS_DIR).parents[0] / "reports" / "qual_context" / "news_articles.sqlite"),
-    )
+    _db_path = db_path or os.environ.get("NEWS_ARTICLES_DB", str(DEFAULT_NEWS_ARTICLES_DB))
     _qdrant_url = qdrant_url or os.environ.get("QDRANT_URL", "http://qdrant:6333")
     _since: int | None = int(since_hours) if int(since_hours) > 0 else None
 

@@ -17,9 +17,16 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
-DEFAULT_NEWS_SQLITE = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
-DEFAULT_BASELINE_JSON = REPO_ROOT / "reports" / "qual_context" / "news_baseline.json"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import (  # noqa: E402
+    DEFAULT_NEWS_BASELINE_JSON,
+    DEFAULT_NEWS_CONTEXT_DB,
+    resolve_path,
+)
+
+DEFAULT_NEWS_SQLITE = DEFAULT_NEWS_CONTEXT_DB
 
 
 SAMPLE_SIZE = 500  # stable sample size for content-sensitive hashes
@@ -139,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = ap.parse_args(argv)
 
-    db_path = Path(args.db).expanduser().resolve()
+    db_path = resolve_path(args.db)
     if not db_path.exists():
         print(f"[detect_news_context_drift] DB not found: {db_path}", file=sys.stderr)
         return 2
@@ -156,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     actual = _snapshot_db(db_path, news_only=args.news_only)
     actual["corpus_hash"] = _corpus_hash(actual["by_corpus"])
 
-    baseline_path = Path(args.baseline).expanduser().resolve() if args.baseline else DEFAULT_BASELINE_JSON
+    baseline_path = resolve_path(args.baseline) if args.baseline else DEFAULT_NEWS_BASELINE_JSON
 
     if args.save_baseline:
         baseline_path.parent.mkdir(parents=True, exist_ok=True)

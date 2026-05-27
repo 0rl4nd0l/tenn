@@ -17,7 +17,12 @@ from typing import Any, Dict, List, Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_NEWS_ARTICLES_DB = REPO_ROOT / "reports" / "qual_context" / "news_articles.sqlite"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB  # noqa: E402
+
 DEFAULT_TICKERS_FILE = REPO_ROOT / "financial-engine_v2" / "data" / "raw" / "asx_ticker_universe.txt"
 DEFAULT_FULL_HISTORY_SCRIPT = REPO_ROOT / "financial-engine_v2" / "scripts" / "full_history_ticker_sync.py"
 DEFAULT_FULL_HISTORY_HEALTH_JSON = REPO_ROOT / "reports" / "research_engine_health.json"

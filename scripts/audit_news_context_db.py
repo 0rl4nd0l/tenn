@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 import build_qualitative_context_db as ctx
 import build_news_context_db as news_ctx
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path
 
 
 AU_HINT_RE = re.compile(r"\b(asx|australia|australian|rba|asic|apra|aud)\b", re.IGNORECASE)
@@ -300,7 +301,7 @@ def build_report(
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Audit news context SQLite corpus quality.")
-    ap.add_argument("--db", default="reports/qual_context/news.sqlite", help="Path to context SQLite DB")
+    ap.add_argument("--db", default=str(DEFAULT_NEWS_CONTEXT_DB), help="Path to context SQLite DB")
     ap.add_argument("--corpus-filter", default="", help="Optional corpus filter")
     ap.add_argument("--doc-type-filter", default="", help="Optional doc_type filter")
     ap.add_argument("--top-n", type=int, default=20, help="Top-N values in distributions")
@@ -317,7 +318,7 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    db_path = Path(args.db).expanduser().resolve()
+    db_path = resolve_path(args.db)
     if not db_path.exists():
         print(f"DB path not found: {db_path}")
         return 2

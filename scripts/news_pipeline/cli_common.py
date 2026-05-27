@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
@@ -9,14 +10,42 @@ from .providers import EodhdProvider, GdeltProvider, Newspaper4kProvider, RssPro
 from .utils import load_ticker_universe
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+SHARED_PACKAGE_ROOT = REPO_ROOT / "financial-engine_v2"
+if str(SHARED_PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SHARED_PACKAGE_ROOT))
+
+from shared.news_artifacts import (  # noqa: E402
+    default_news_articles_db,
+    default_news_context_db,
+    default_news_runs_root,
+    resolve_news_artifact_root,
+)
+
 DEFAULT_TICKER_UNIVERSE = REPO_ROOT / "financial-engine_v2" / "data" / "raw" / "asx_ticker_universe.txt"
 DEFAULT_IDENTITY_MAP = REPO_ROOT / "financial-engine_v2" / "config" / "ticker_identity_map.json"
-DEFAULT_NEWS_ARTICLES_DB = REPO_ROOT / "reports" / "qual_context" / "news_articles.sqlite"
-DEFAULT_NEWS_CONTEXT_DB = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
 DEFAULT_EODHD_CAPTURE_DIR = REPO_ROOT / "reports" / "provider_captures" / "eodhd"
 DEFAULT_WORLDMONITOR_CAPTURE_PATH = REPO_ROOT / "reports" / "provider_captures" / "worldmonitor" / "api-cache.json"
 DEFAULT_WORLDMONITOR_THEATER_MAP_PATH = REPO_ROOT / "financial-engine_v2" / "config" / "worldmonitor_theater_ticker_map.json"
-DEFAULT_NEWS_RUNS_DIR = REPO_ROOT / "reports" / "qual_context" / "news_runs"
+DEFAULT_NEWS_ARTIFACT_ROOT, DEFAULT_NEWS_ARTIFACT_ROOT_SOURCE = resolve_news_artifact_root(repo_root=REPO_ROOT)
+DEFAULT_NEWS_ARTICLES_DB = default_news_articles_db(DEFAULT_NEWS_ARTIFACT_ROOT)
+DEFAULT_NEWS_CONTEXT_DB = default_news_context_db(DEFAULT_NEWS_ARTIFACT_ROOT)
+DEFAULT_NEWS_RUNS_DIR = default_news_runs_root(DEFAULT_NEWS_ARTIFACT_ROOT)
+DEFAULT_NEWS_BASELINE_JSON = DEFAULT_NEWS_ARTIFACT_ROOT / "news_baseline.json"
+
+
+def describe_news_artifact_paths(
+    *,
+    news_articles_db: Path | None = None,
+    news_context_db: Path | None = None,
+    news_runs_root: Path | None = None,
+) -> Dict[str, str]:
+    return {
+        "news_artifact_root": str(DEFAULT_NEWS_ARTIFACT_ROOT),
+        "news_artifact_root_source": DEFAULT_NEWS_ARTIFACT_ROOT_SOURCE,
+        "news_articles_db": str(news_articles_db or DEFAULT_NEWS_ARTICLES_DB),
+        "news_context_db": str(news_context_db or DEFAULT_NEWS_CONTEXT_DB),
+        "news_runs_root": str(news_runs_root or DEFAULT_NEWS_RUNS_DIR),
+    }
 
 
 def _has_capture_payload_files(capture_dir: Path | None) -> bool:
@@ -204,7 +233,10 @@ def add_common_provider_args(ap: argparse.ArgumentParser) -> None:
     ap.add_argument(
         "--news-articles-db",
         default=str(DEFAULT_NEWS_ARTICLES_DB),
-        help="Canonical article DB path",
+        help=(
+            "Canonical article DB path. Defaults under TENN_NEWS_ARTIFACT_ROOT, "
+            "then live report mounts, then repo-local reports/qual_context."
+        ),
     )
     ap.add_argument(
         "--tickers-file",

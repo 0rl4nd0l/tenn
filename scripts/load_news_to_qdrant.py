@@ -40,7 +40,12 @@ OLLAMA_URL_SOURCE_DEFAULT = "default"
 
 logger = logging.getLogger(__name__)
 
-from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, DEFAULT_NEWS_CONTEXT_DB  # noqa: E402
+from news_pipeline.cli_common import (  # noqa: E402
+    DEFAULT_NEWS_ARTICLES_DB,
+    DEFAULT_NEWS_CONTEXT_DB,
+    describe_news_artifact_paths,
+    resolve_path,
+)
 from news_pipeline.utils import now_utc_iso, parse_datetime_utc  # noqa: E402
 
 DEFAULT_NEWS_MEMO_MAX_ARTICLE_CHARS = 5000
@@ -1906,16 +1911,22 @@ def main() -> int:
     dispatch_memos = not bool(args.no_dispatch_memos)
     if bool(args.qdrant_only):
         dispatch_memos = False
+    db_path = str(resolve_path(args.db_path))
+    news_context_db = str(resolve_path(args.news_context_db))
     summary: Dict[str, Any] = {
         "generated_at_utc": now_utc_iso(),
-        "provider": latest_provider_run_summary(args.db_path),
+        "paths": describe_news_artifact_paths(
+            news_articles_db=Path(db_path),
+            news_context_db=Path(news_context_db),
+        ),
+        "provider": latest_provider_run_summary(db_path),
         "qdrant_sync": {"status": "not_run"},
         "sqlite_fallback": {"status": "not_run"},
         "memo_extraction": {"status": "not_run"},
     }
     try:
         stats = sync_news_to_qdrant(
-            db_path=args.db_path,
+            db_path=db_path,
             qdrant_url=args.qdrant_url,
             collection=args.collection,
             batch_size=int(args.batch_size),
@@ -1944,8 +1955,8 @@ def main() -> int:
         )
         if bool(args.refresh_sqlite_fallback):
             summary["sqlite_fallback"] = refresh_news_sqlite_fallback(
-                articles_db_path=args.db_path,
-                context_db_path=args.news_context_db,
+                articles_db_path=db_path,
+                context_db_path=news_context_db,
                 lane=args.fallback_lane,
                 window_start_utc=window_start_utc,
             )

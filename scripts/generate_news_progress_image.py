@@ -7,6 +7,12 @@ from pathlib import Path
 from datetime import datetime, timezone
 import sys
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, resolve_path  # noqa: E402
+
 def get_stats(db_path):
     if not Path(db_path).exists():
         return None
@@ -95,13 +101,13 @@ def take_screenshot(url, output_path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", default="reports/qual_context/news_articles.sqlite")
+    parser.add_argument("--db", default=str(DEFAULT_NEWS_ARTICLES_DB))
     parser.add_argument("--out-md", default="reports/news_progress.md")
     parser.add_argument("--out-img", default="reports/news_progress.png")
     parser.add_argument("--url", default="http://localhost:8081/operations")
     args = parser.parse_args()
     
-    stats = get_stats(args.db)
+    stats = get_stats(resolve_path(args.db))
     md = generate_markdown(stats)
     
     Path(args.out_md).parent.mkdir(parents=True, exist_ok=True)

@@ -21,8 +21,12 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
-DEFAULT_NEWS_SQLITE = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
+
+DEFAULT_NEWS_SQLITE = DEFAULT_NEWS_CONTEXT_DB
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -44,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = ap.parse_args(argv)
 
-    db_path = Path(args.db).expanduser().resolve()
+    db_path = resolve_path(args.db)
     if not db_path.exists():
         print(f"[verify_news_context_db] DB not found: {db_path}", file=sys.stderr)
         return 2

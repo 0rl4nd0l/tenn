@@ -18,6 +18,7 @@ def _make_router(repo_root: Path) -> ToolRouter:
 
 def test_get_local_news_article_reads_body_from_workspace_reports(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
     workspace_root = tmp_path / "workspace"
     engine_root = workspace_root / "financial-engine_v2"
@@ -60,6 +61,7 @@ def test_get_local_news_article_reads_body_from_workspace_reports(
     finally:
         conn.close()
 
+    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", str(db_dir))
     router = _make_router(engine_root)
     result = router.get_local_news_article(
         "https://kalkinemedia.com/nz/news/market-updates"

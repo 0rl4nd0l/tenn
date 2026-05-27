@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import PROJECT_ROOT
+from shared.news_artifacts import resolve_news_artifact_root
 
 
 A2M_NEWS_HEALTH_STATUS: dict[str, str] = {
@@ -38,8 +39,8 @@ STATIC_DO_REPORT = (
 )
 
 CANONICAL_SQLITE_PROJECTION_PATHS = (
-    "reports/qual_context/news.sqlite",
-    "reports/qual_context/news_articles.sqlite",
+    "news.sqlite",
+    "news_articles.sqlite",
 )
 
 EVIDENCE_REPORT_PATHS = {
@@ -71,17 +72,22 @@ def _default_workspace_root() -> Path:
     return PROJECT_ROOT.parent.resolve()
 
 
-def _path_status(workspace_root: Path, relative_path: str) -> dict[str, Any]:
-    path = workspace_root / relative_path
+def _default_news_artifact_root(workspace_root: Path) -> tuple[Path, str]:
+    return resolve_news_artifact_root(workspace_root=workspace_root)
+
+
+def _path_status(news_artifact_root: Path, relative_path: str) -> dict[str, Any]:
+    path = news_artifact_root / relative_path
     return {
         "path": relative_path,
+        "absolute_path": str(path),
         "exists": path.exists(),
     }
 
 
-def _canonical_sqlite_status(workspace_root: Path) -> tuple[str, list[dict[str, Any]]]:
+def _canonical_sqlite_status(news_artifact_root: Path) -> tuple[str, list[dict[str, Any]]]:
     paths = [
-        _path_status(workspace_root, relative_path)
+        _path_status(news_artifact_root, relative_path)
         for relative_path in CANONICAL_SQLITE_PROJECTION_PATHS
     ]
     existing_count = sum(1 for item in paths if item["exists"])
@@ -106,7 +112,12 @@ def build_a2m_news_health_status(workspace_root: Path | None = None) -> dict[str
     """Build a read-only A2M/news status payload without live data mutation."""
 
     root = (workspace_root or _default_workspace_root()).resolve()
-    canonical_status, canonical_paths = _canonical_sqlite_status(root)
+    if workspace_root is not None:
+        news_artifact_root = (root / "reports" / "qual_context").resolve()
+        news_artifact_root_source = "workspace_root_argument"
+    else:
+        news_artifact_root, news_artifact_root_source = _default_news_artifact_root(root)
+    canonical_status, canonical_paths = _canonical_sqlite_status(news_artifact_root)
     health = dict(A2M_NEWS_HEALTH_STATUS)
     health["canonical_sqlite_projection"] = canonical_status
 
@@ -116,6 +127,10 @@ def build_a2m_news_health_status(workspace_root: Path | None = None) -> dict[str
         "generated_from": "read_only_status_contract",
         "live_probe_performed": False,
         "a2m_news_health": health,
+        "news_artifact_root": {
+            "path": str(news_artifact_root),
+            "source": news_artifact_root_source,
+        },
         "canonical_sqlite_projection_paths": canonical_paths,
         "legacy_sqlite_projection": {
             "status": "evidence_present_not_current_consumer",

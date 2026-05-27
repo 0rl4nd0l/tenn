@@ -41,6 +41,7 @@ services:
       COCKPIT_MODELS_HDD_DIR: /models/hdd
       COCKPIT_SHARED_SCRIPTS_ROOT: /workspace/scripts
       COCKPIT_WORKSPACE_ROOT: /workspace
+      TENN_NEWS_ARTIFACT_ROOT: /workspace-reports/qual_context
       TENN_GIT_HEAD: ${TENN_GIT_HEAD:-}
       TENN_GIT_HEAD_SHORT: ${TENN_GIT_HEAD_SHORT:-}
       TENN_GIT_BRANCH: ${TENN_GIT_BRANCH:-}
@@ -85,6 +86,7 @@ services:
       - ${TENN_SECRETS_ENV_FILE:-/home/l4nd0/.config/tenn/tenn-secrets.env}
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      TENN_NEWS_ARTIFACT_ROOT: /reports/qual_context
       OLLAMA_EMBED_NUM_GPU: ${OLLAMA_EMBED_NUM_GPU:-0}
     dns:
       - 1.1.1.1
@@ -93,6 +95,8 @@ services:
     volumes:
       - ./backend:/app
       - ./shared:/app/shared
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/reports
+      - /mnt/tenn-nvme2/tenn/financial-engine_v2/reports:/workspace-reports
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data:/data
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs:/data/asx/docs:ro
       - /mnt/tenn-nvme2/tenn/financial-engine_v2/data/extraction_gold_real/pdfs:/data/extraction_gold_real/pdfs:ro

@@ -11,6 +11,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cockpit.core.types import ToolResult
+from shared.news_artifacts import (
+    LIVE_NEWS_ARTIFACT_ROOT_CANDIDATES,
+    NEWS_ARTICLES_DB_ENV,
+    NEWS_ARTIFACT_ROOT_ENV,
+    NEWS_CONTEXT_DB_ENV,
+    env_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,16 +79,62 @@ class ToolRouter:
         self._excerpt_cache: dict[str, tuple[float, str]] = {}
 
     def _resolve_news_articles_db_path(self) -> Path | None:
-        candidates = [
-            self.repo_root / "reports" / "qual_context" / "news_articles.sqlite",
+        env_root = env_path(NEWS_ARTIFACT_ROOT_ENV)
+        candidates: list[Path | None] = [
+            env_path(NEWS_ARTICLES_DB_ENV),
+            (env_root / "news_articles.sqlite") if env_root is not None else None,
+            *[
+                root / "news_articles.sqlite"
+                for root in LIVE_NEWS_ARTIFACT_ROOT_CANDIDATES
+            ],
             self.repo_root.parent / "reports" / "qual_context" / "news_articles.sqlite",
-            Path("/workspace-reports") / "qual_context" / "news_articles.sqlite",
+            self.repo_root / "reports" / "qual_context" / "news_articles.sqlite",
         ]
         for candidate in candidates:
+            if candidate is None:
+                continue
             path = candidate.expanduser().resolve()
             if path.exists() and path.is_file():
                 return path
         return None
+
+    def _resolve_news_context_db_path(self) -> Path | None:
+        configured_raw = str(self.news_context_db_path or "").strip()
+        env_root = env_path(NEWS_ARTIFACT_ROOT_ENV)
+        configured = Path(configured_raw).expanduser() if configured_raw else None
+        configured_is_news_default = (
+            configured is not None
+            and configured.as_posix().endswith("reports/qual_context/news.sqlite")
+        )
+        candidates: list[Path | None] = []
+        if configured is not None and configured.is_absolute():
+            candidates.append(configured)
+        if not configured_raw or configured_is_news_default:
+            candidates.extend(
+                [
+                    env_path(NEWS_CONTEXT_DB_ENV),
+                    (env_root / "news.sqlite") if env_root is not None else None,
+                    *[
+                        root / "news.sqlite"
+                        for root in LIVE_NEWS_ARTIFACT_ROOT_CANDIDATES
+                    ],
+                ]
+            )
+        if configured is not None and not configured.is_absolute():
+            candidates.extend(
+                [
+                    Path.cwd() / configured,
+                    self.repo_root.parent / configured,
+                    self.repo_root / configured,
+                ]
+            )
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            path = candidate.expanduser().resolve()
+            if path.exists() and path.is_file():
+                return path
+        return configured.expanduser().resolve() if configured is not None else None
 
     def get_local_news_article(self, url: str) -> dict[str, Any]:
         target = str(url or "").strip()
@@ -939,8 +992,8 @@ class ToolRouter:
         import json as _json
         import sqlite3 as _sqlite3
 
-        db = Path(self.news_context_db_path).expanduser().resolve()
-        if not db.exists():
+        db = self._resolve_news_context_db_path()
+        if db is None or not db.exists():
             return {
                 "ok": False,
                 "hits": [],

@@ -27,6 +27,18 @@ if [[ "${NIGHTLY_NEWS_DRY_RUN:-0}" == "1" ]]; then
   DRY_RUN="true"
 fi
 TICKERS_FILE="${NEWS_TICKERS_FILE:-${TENN_ROOT}/financial-engine_v2/data/raw/asx_ticker_universe.txt}"
+if [[ -n "${TENN_NEWS_ARTIFACT_ROOT:-}" ]]; then
+  NEWS_ARTIFACT_ROOT="${TENN_NEWS_ARTIFACT_ROOT}"
+elif [[ -d "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context" ]]; then
+  NEWS_ARTIFACT_ROOT="/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context"
+else
+  NEWS_ARTIFACT_ROOT="${TENN_ROOT}/reports/qual_context"
+fi
+NEWS_ARTICLES_DB="${TENN_NEWS_ARTICLES_DB:-${NEWS_ARTIFACT_ROOT}/news_articles.sqlite}"
+NEWS_CONTEXT_DB="${TENN_NEWS_CONTEXT_DB:-${NEWS_ARTIFACT_ROOT}/news.sqlite}"
+NEWS_RUNS_ROOT="${TENN_NEWS_RUNS_ROOT:-${NEWS_ARTIFACT_ROOT}/news_runs}"
+export TENN_NEWS_ARTIFACT_ROOT="${NEWS_ARTIFACT_ROOT}"
+mkdir -p "${NEWS_ARTIFACT_ROOT}" "${NEWS_RUNS_ROOT}"
 
 write_status_json() {
   local exit_code="$1"
@@ -53,6 +65,10 @@ write_status_json() {
   export NIGHTLY_NEWS_SUMMARY_FILE="${SUMMARY_FILE}"
   export NIGHTLY_NEWS_MEMO_BACKFILL_SUMMARY_FILE="${MEMO_BACKFILL_SUMMARY_FILE}"
   export NIGHTLY_NEWS_TICKERS_FILE="${TICKERS_FILE}"
+  export NIGHTLY_NEWS_ARTIFACT_ROOT="${NEWS_ARTIFACT_ROOT}"
+  export NIGHTLY_NEWS_ARTICLES_DB="${NEWS_ARTICLES_DB}"
+  export NIGHTLY_NEWS_CONTEXT_DB="${NEWS_CONTEXT_DB}"
+  export NIGHTLY_NEWS_RUNS_ROOT="${NEWS_RUNS_ROOT}"
   export NIGHTLY_NEWS_TENN_ROOT="${TENN_ROOT}"
   export NIGHTLY_NEWS_VENV="${VENV:-}"
   export NIGHTLY_NEWS_BACKEND_VENV="${BACKEND_VENV:-}"
@@ -96,6 +112,10 @@ payload = {
     "paths": {
         "tenn_root": env("NIGHTLY_NEWS_TENN_ROOT"),
         "ticker_universe": env("NIGHTLY_NEWS_TICKERS_FILE"),
+        "news_artifact_root": env("NIGHTLY_NEWS_ARTIFACT_ROOT"),
+        "news_articles_db": env("NIGHTLY_NEWS_ARTICLES_DB"),
+        "news_context_db": env("NIGHTLY_NEWS_CONTEXT_DB"),
+        "news_runs_root": env("NIGHTLY_NEWS_RUNS_ROOT"),
         "log": env("NIGHTLY_NEWS_LOG_FILE"),
         "status_json": env("NIGHTLY_NEWS_STATUS_FILE"),
         "sync_summary_json": summary_file,
@@ -189,6 +209,10 @@ echo "[nightly_news] started_at=${RUN_STARTED_AT}"
 echo "[nightly_news] log_file=${LOG_FILE}"
 echo "[nightly_news] status_json=${STATUS_FILE}"
 echo "[nightly_news] ticker_universe=${TICKERS_FILE}"
+echo "[nightly_news] news_artifact_root=${NEWS_ARTIFACT_ROOT}"
+echo "[nightly_news] news_articles_db=${NEWS_ARTICLES_DB}"
+echo "[nightly_news] news_context_db=${NEWS_CONTEXT_DB}"
+echo "[nightly_news] news_runs_root=${NEWS_RUNS_ROOT}"
 echo "[nightly_news] phase=fetch python=$(command -v python3) venv=${VENV} dry_run=${DRY_RUN}"
 
 CURRENT_PHASE="fetch"
@@ -197,6 +221,8 @@ FETCH_ARGS=(
     --since-hours 36
     --lane high_precision
     --tickers-file "${TICKERS_FILE}"
+    --news-articles-db "${NEWS_ARTICLES_DB}"
+    --news-runs-root "${NEWS_RUNS_ROOT}"
 )
 if [[ "${DRY_RUN}" == "true" ]]; then
   FETCH_ARGS+=(--dry-run)
@@ -230,6 +256,8 @@ else
     # for explicit bounded wait diagnostics.
     SYNC_ARGS=(
       --since-hours 36
+      --db-path "${NEWS_ARTICLES_DB}"
+      --news-context-db "${NEWS_CONTEXT_DB}"
       --refresh-sqlite-fallback
       --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
       --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
@@ -277,6 +305,7 @@ else
       echo "[nightly_news] phase=memo_backfill started_at=$(date -Iseconds)"
       BACKFILL_ARGS=(
         --since-hours 36
+        --db-path "${NEWS_ARTICLES_DB}"
         --limit 0
         --wait-for-memos
         --dispatch-batch-size "${NEWS_MEMO_DISPATCH_BATCH_SIZE:-25}"

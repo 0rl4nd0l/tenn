@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Any
 
 from cockpit.core.types import ActionSpec
+from shared.news_artifacts import (
+    default_news_articles_db,
+    default_news_context_db,
+    default_news_runs_root,
+    resolve_news_artifact_root,
+)
 
 
 VISIBLE_ACTION_IDS: tuple[str, ...] = (
@@ -101,6 +107,10 @@ class ActionRegistry:
                 if candidate.exists():
                     return str(candidate)
             return str(fallback.resolve())
+
+        self.news_artifact_root, _ = resolve_news_artifact_root(
+            workspace_root=self.workspace_root
+        )
 
         self._actions: dict[str, ActionSpec] = {
             "full_history": ActionSpec(
@@ -471,6 +481,8 @@ class ActionRegistry:
                     "{lane}",
                     "--max-tickers",
                     "{max_tickers}",
+                    "--news-articles-db",
+                    "{news_articles_db}",
                     "--news-runs-root",
                     "{news_runs_root}",
                 ],
@@ -479,6 +491,7 @@ class ActionRegistry:
                     "since_hours": int,
                     "lane": str,
                     "max_tickers": int,
+                    "news_articles_db": str,
                     "news_runs_root": str,
                     "asx_wide": bool,
                     "tickers": str,
@@ -511,6 +524,8 @@ class ActionRegistry:
                     "{max_days}",
                     "--max-tickers",
                     "{max_tickers}",
+                    "--news-articles-db",
+                    "{news_articles_db}",
                     "--news-runs-root",
                     "{news_runs_root}",
                 ],
@@ -522,6 +537,7 @@ class ActionRegistry:
                     "run_id": str,
                     "max_days": int,
                     "max_tickers": int,
+                    "news_articles_db": str,
                     "news_runs_root": str,
                     "no_resume": bool,
                     "asx_wide": bool,
@@ -543,6 +559,8 @@ class ActionRegistry:
                     _resolve_shared_script("load_news_to_qdrant.py"),
                     "--db-path",
                     "{db_path}",
+                    "--news-context-db",
+                    "{news_context_db}",
                     "--qdrant-url",
                     "{qdrant_url}",
                     "--collection",
@@ -554,6 +572,7 @@ class ActionRegistry:
                 ],
                 arg_schema={
                     "db_path": str,
+                    "news_context_db": str,
                     "qdrant_url": str,
                     "collection": str,
                     "batch_size": int,
@@ -1251,15 +1270,12 @@ class ActionRegistry:
             "metric_extraction_report",
             f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json",
         )
-        out.setdefault(
-            "db_path",
-            str(
-                self.workspace_root
-                / "reports"
-                / "qual_context"
-                / "news_articles.sqlite"
-            ),
-        )
+        news_articles_db = default_news_articles_db(self.news_artifact_root)
+        news_context_db = default_news_context_db(self.news_artifact_root)
+        news_runs_root = default_news_runs_root(self.news_artifact_root)
+        out.setdefault("news_articles_db", str(news_articles_db))
+        out.setdefault("news_context_db", str(news_context_db))
+        out.setdefault("db_path", str(news_articles_db))
         out.setdefault("qdrant_url", "http://localhost:6333")
         out.setdefault("collection", "news_chunks")
         out.setdefault("batch_size", 64)
@@ -1270,10 +1286,7 @@ class ActionRegistry:
             out.setdefault("since_hours", 24)
         else:
             out.setdefault("since_hours", 36)
-        out.setdefault(
-            "news_runs_root",
-            str(self.workspace_root / "reports" / "qual_context" / "news_runs"),
-        )
+        out.setdefault("news_runs_root", str(news_runs_root))
         out.setdefault("provider", "gdelt")
         out.setdefault("from_day", "2026-01-01")
         out.setdefault("to_day", today)

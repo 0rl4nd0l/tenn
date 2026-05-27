@@ -18,6 +18,7 @@ from news_pipeline.cli_common import (  # noqa: E402
     add_common_gdelt_args,
     add_common_provider_args,
     build_provider,
+    describe_news_artifact_paths,
     gdelt_kwargs_from_args,
     load_tickers,
     parse_ticker_list,
@@ -101,6 +102,10 @@ def main(argv: list[str] | None = None) -> int:
             "providers": providers,
             "since_hours": int(args.since_hours),
             "lane": str(args.lane),
+            "paths": describe_news_artifact_paths(
+                news_articles_db=news_articles_db,
+                news_runs_root=runs_root,
+            ),
             "news_articles_db": str(news_articles_db),
             "news_runs_root": str(runs_root),
             "asx_wide": asx_wide,
@@ -187,6 +192,10 @@ def main(argv: list[str] | None = None) -> int:
 
         payload = {
             "mode": "daily",
+            "paths": describe_news_artifact_paths(
+                news_articles_db=news_articles_db,
+                news_runs_root=runs_root,
+            ),
             "news_articles_db": str(news_articles_db),
             "providers": providers,
             "runs": runs,

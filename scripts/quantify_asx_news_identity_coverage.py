@@ -20,7 +20,13 @@ from urllib.parse import urlparse
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_NEWS_DB = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
+
+DEFAULT_NEWS_DB = DEFAULT_NEWS_CONTEXT_DB
 DEFAULT_OUT_JSON = REPO_ROOT / "reports" / "analysis" / "asx_identity_coverage_baseline.json"
 DEFAULT_CORPUS = "news"
 DEFAULT_IDENTITY_MAP = "config/ticker_identity_map.json"
@@ -67,6 +73,8 @@ def _resolve_path(raw: str, *, prefer_repo_root: bool = False) -> Path:
     path = Path(str(raw or "").strip()).expanduser()
     if path.is_absolute():
         return path.resolve()
+    if str(path).startswith("reports/qual_context/news"):
+        return resolve_path(str(path))
     if prefer_repo_root:
         return (REPO_ROOT / path).resolve()
     cwd_candidate = (Path.cwd() / path).resolve()

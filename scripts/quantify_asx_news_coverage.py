@@ -15,6 +15,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Set
 from urllib.parse import urlparse
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from news_pipeline.cli_common import DEFAULT_NEWS_CONTEXT_DB, resolve_path  # noqa: E402
+
 
 ASX_TICKER_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])([A-Z][A-Z0-9]{0,11})(?:\.AX)?(?![A-Za-z0-9])")
 ASX_KEYWORD_RE = re.compile(r"\bASX\b")
@@ -225,13 +231,13 @@ def build_coverage_report(
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Quantify ASX news coverage in context_chunks SQLite corpora.")
-    ap.add_argument("--news-db-path", default="reports/qual_context/news.sqlite", help="Path to news SQLite DB")
+    ap.add_argument("--news-db-path", default=str(DEFAULT_NEWS_CONTEXT_DB), help="Path to news SQLite DB")
     ap.add_argument("--corpus", default="news", help="Corpus label to quantify")
     ap.add_argument("--asx-tickers-file", required=True, help="TXT file with one ASX ticker per line")
     ap.add_argument("--out-json", default="reports/analysis/asx_coverage_baseline.json", help="Output JSON path")
     args = ap.parse_args()
 
-    db_path = Path(args.news_db_path).expanduser().resolve()
+    db_path = resolve_path(args.news_db_path)
     if not db_path.exists():
         print(f"News DB path not found: {db_path}", file=sys.stderr)
         return 2
