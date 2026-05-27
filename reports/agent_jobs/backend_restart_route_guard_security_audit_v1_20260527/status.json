@@ -1,54 +1,41 @@
 {
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/backend_restart_route_guard_security_audit_v1_20260527.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/backend_restart_route_guard_security_audit_v1_20260527.md",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/README.md",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/status.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/control_surface_inventory.md",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/control_surface_inventory.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/route_guard_decision.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/follow_up_issue_body.md",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/follow_up_issue_readback.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/github_readback.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/validation.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/diff-check.json",
+    "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/issue_55_closeout_comment.md",
+    "cockpit-ui/app/api/cockpit/restart/route.ts",
+    "cockpit-ui/lib/api-client.ts",
+    "cockpit-ui/lib/restart-route-guard.test.ts"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-05-27T04:29:23.331744Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-27T04:29:23.331744Z",
   "job_id": "backend_restart_route_guard_security_audit_v1_20260527",
-  "generated_at": "2026-05-27T14:36:34+10:00",
-  "mode": "audit_first/safe_extension",
-  "status": "complete",
-  "repo": {
-    "root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
-    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
-    "head_start": "c901da5737340485ee9b76bac423e43fe15db4ab",
-    "remote": "https://github.com/0rl4nd0l/tenn.git",
-    "initial_status": "clean"
-  },
-  "registry": {
-    "initial_active_jobs": [],
-    "claimed": true,
-    "claim_refreshed_after_task_card_allowlist_update": true,
-    "collision": false
-  },
-  "github": {
-    "issue_55_initial_state": "OPEN",
-    "issue_55_final_state": "CLOSED",
-    "issue_55_closeout_comment_url": "https://github.com/0rl4nd0l/tenn/issues/55#issuecomment-4551336361",
-    "issue_55_final_state_label": "state:done-remediated",
-    "issue_51_adjacent_state": "OPEN",
-    "follow_up_issue": 121,
-    "follow_up_issue_url": "https://github.com/0rl4nd0l/tenn/issues/121",
-    "project_mutation": false,
-    "pr_mutation": false
-  },
-  "classification": {
-    "issue_55": "ROOT_CAUSE_FIXED",
-    "worker_decision": "NEEDS_SAFE_EXTENSION_IMPLEMENTED",
-    "reviewer_verdict": "PASS_CLOSEOUT",
-    "implementation_commit": "49c6e98e"
-  },
-  "validations": {
-    "task_card_validate": "PASS",
-    "registry_check_overlap": "PASS",
-    "focused_restart_route_vitest": "PASS",
-    "focused_restart_route_and_api_client_vitest": "PASS",
-    "typescript_no_emit": "PASS",
-    "json_parse_report_artifacts": "PASS",
-    "task_card_check_diff": "PASS",
-    "git_diff_check": "PASS",
-    "github_issue_55_readback": "PASS"
-  },
-  "forbidden_surfaces_mutated": false,
-  "runtime_actions_triggered": false,
-  "data_missing": [
-    "Current live listener binding was not re-probed.",
-    "GitHub Projects fields were not inspected or mutated.",
-    "Broader Cockpit action-control route remediation is deferred to #121."
-  ]
+  "lane": "Reporting",
+  "last_seen_at": "2026-05-27T04:37:54.853798Z",
+  "output_dir": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-27T04:37:54.853798Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3799098:backend_restart_route_guard_security_audit_v1_20260527",
+  "started_at": "2026-05-27T04:29:23.331744Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/backend_restart_route_guard_security_audit_v1_20260527.md",
+  "updated_at": "2026-05-27T04:37:54.853798Z",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
 }

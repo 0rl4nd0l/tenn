@@ -1,21 +1,24 @@
 {
   "changed_files": [
     {
-      "path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/route_guard_decision.json",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/status.json",
       "status": "M"
     },
     {
-      "path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/validation.json",
+      "path": "scripts/load_news_to_qdrant.py",
       "status": "M"
     }
   ],
-  "disallowed_files": [],
-  "issues": [],
-  "ok": true,
+  "disallowed_files": [
+    "scripts/load_news_to_qdrant.py"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "scripts/load_news_to_qdrant.py is outside allowed_files"
+    }
+  ],
+  "ok": false,
   "report_path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/diff-check.json",
   "validation": {
     "issues": [],
