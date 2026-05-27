@@ -1157,7 +1157,7 @@ def _upsert_financial_rows(db, doc, structured):
         row.currency = structured.get("currency") or None
         financial_rows_written = 1
 
-    _upsert_risk_note(db, doc, structured, allow_empty=True)
+    _upsert_risk_note(db, doc, structured, allow_empty=False)
     # NOTE: caller is responsible for db.commit() — do not commit here so that
     # ExtractionRun and financial rows are written in a single atomic transaction.
     return financial_rows_written

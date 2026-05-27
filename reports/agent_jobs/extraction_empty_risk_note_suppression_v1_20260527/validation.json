@@ -1,0 +1,50 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_empty_risk_note_suppression_v1_20260527.md",
+      "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/README.md",
+      "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/status.json",
+      "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/validation.json",
+      "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/diff-check.json",
+      "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/github_issue_96_comment.md",
+      "reports/agent_jobs/extraction_canary_scale_gate_and_side_effect_audit_v1_20260527/README.md",
+      "reports/agent_jobs/extraction_canary_scale_gate_and_side_effect_audit_v1_20260527/status.json",
+      "financial-engine_v2/backend/app/services/pipeline.py",
+      "financial-engine_v2/backend/app/models/asx_financials.py",
+      "financial-engine_v2/backend/tests/test_extraction_scale_gate.py",
+      "financial-engine_v2/backend/tests/test_pipeline_stages.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/architecture/12_evaluation_and_drift_monitoring.md"
+    ],
+    "allowed_repo_files": [
+      "docs/agent_tasks/extraction_empty_risk_note_suppression_v1_20260527.md",
+      "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527/**",
+      "reports/agent_jobs/extraction_canary_scale_gate_and_side_effect_audit_v1_20260527/**",
+      "financial-engine_v2/backend/app/services/pipeline.py",
+      "financial-engine_v2/backend/app/models/asx_financials.py",
+      "financial-engine_v2/backend/tests/test_extraction_scale_gate.py",
+      "financial-engine_v2/backend/tests/test_extraction*.py",
+      "financial-engine_v2/backend/tests/test_pipeline*.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/architecture/12_evaluation_and_drift_monitoring.md"
+    ],
+    "approval_required": false,
+    "github_mutation_allowed": "issue_comment_only",
+    "job_id": "extraction_empty_risk_note_suppression_v1_20260527",
+    "lane": "Provenance",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/extraction_empty_risk_note_suppression_v1_20260527",
+    "owner": "Codex",
+    "production_data_access": false,
+    "related_issue": 96,
+    "supporting_lanes": [
+      "Financial Truth",
+      "Evaluation",
+      "Query Orchestration"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}

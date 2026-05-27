@@ -1,0 +1,100 @@
+{
+  "artifact_type": "extraction_canary_scale_gate_and_side_effect_audit_status_v2",
+  "generated_at": "2026-05-27T08:42:00Z",
+  "job_id": "extraction_canary_scale_gate_and_side_effect_audit_v1_20260527",
+  "related_issue": 96,
+  "lane": "Financial Truth",
+  "supporting_lanes": [
+    "Evaluation",
+    "Provenance",
+    "Query Orchestration"
+  ],
+  "verdict": "blocked_before_second_canary_batch",
+  "broad_backfill_run": false,
+  "second_canary_batch_submitted": false,
+  "production_db_writes": false,
+  "direct_sql_mutation": false,
+  "qdrant_news_memory_mutation": false,
+  "service_restarts": false,
+  "parser_routing_changes": false,
+  "prompt_changes": false,
+  "gold_label_mutation": false,
+  "source_pdf_edits": false,
+  "schema_migrations": false,
+  "repo": {
+    "worktree": "/home/l4nd0/tenn-extraction-canary-scale-gate-side-effect-audit-v1-20260527",
+    "branch": "audit/extraction-canary-scale-gate-side-effect-audit-v1-20260527",
+    "head": "d85a8876594ac7f0a4389e0044d2597f1b2ae4e0",
+    "remote": "https://github.com/0rl4nd0l/tenn.git",
+    "isolated_worktree_used": true
+  },
+  "task_card": {
+    "path": "docs/agent_tasks/extraction_canary_scale_gate_and_side_effect_audit_v1_20260527.md",
+    "validation_ok": true,
+    "mutation_mode": "audit_only",
+    "claim_ok": true,
+    "release_ok": true
+  },
+  "pls_scale_unknown": {
+    "root_cause_classification": "source_document_candidate_mismatch_advisory_without_financial_table_or_unit",
+    "scale_unknown_due_to_source_table_unit_missing": true,
+    "scale_unknown_due_to_parser_not_carrying_unit": false,
+    "scale_unknown_due_to_pymupdf_text_loss": false,
+    "scale_unknown_due_to_metric_normalization_refusal": true,
+    "scale_unknown_due_to_document_type_table_mismatch": true,
+    "missing_contract_rule": "upstream advisory-only candidate filter",
+    "abstained_safely": true,
+    "financial_rows_written": 0,
+    "qdrant_points_written": 0,
+    "risk_note_row_present": false
+  },
+  "bhp": {
+    "row_status": "ok_low_confidence",
+    "ok_low_confidence_reason": "non_aud_currency:USD_no_fx_policy",
+    "evidence_reviewed": true,
+    "row_acceptable_for_canary_progression_if_native_usd_warning_is_operator_accepted": true,
+    "financial_rows_written": 1,
+    "risk_note_empty_row_created": true
+  },
+  "asx_risk_note_side_effect": {
+    "classification": "bug_low_immediate_truth_contamination_risk",
+    "root_cause": "_upsert_financial_rows calls _upsert_risk_note with allow_empty=True while risk_note_written is computed from narrative content",
+    "production_fix_made": false,
+    "production_fix_blocked_by_allowlist": true,
+    "recommended_fix": "with explicit allowlist expansion, prevent ASXRiskNote creation when no narrative content exists"
+  },
+  "safe_extension": {
+    "made": true,
+    "type": "test_only",
+    "files": [
+      "financial-engine_v2/backend/tests/test_extraction_scale_gate.py"
+    ],
+    "production_code_changed": false
+  },
+  "second_canary_batch": {
+    "status": "blocked",
+    "needs_approval": true,
+    "blockers": [
+      "PLS was an advisory-only false-positive candidate",
+      "empty ASXRiskNote side effect needs approved narrow fix or explicit acceptance before broader canary"
+    ]
+  },
+  "data_missing": [
+    "No broad audit of orders 3-10 for advisory-only filings was run.",
+    "The empty-risk-note production fix was not applied because pipeline.py is outside the allowed files.",
+    ".cursor/rules architecture rule files are absent in this worktree."
+  ],
+  "validation_summary": {
+    "focused_pytest": "pass_3_tests",
+    "py_compile": "pass",
+    "ruff": "pass",
+    "json_validation": "pass",
+    "git_diff_check": "pass",
+    "task_card_check_diff": "pass",
+    "source_pdfs_staged": false,
+    "registry_release": "pass",
+    "final_list_active": "pass_no_active_jobs",
+    "github_issue_comment": "https://github.com/0rl4nd0l/tenn/issues/96#issuecomment-4552883625"
+  },
+  "project_memory_save_recommendation": "Save that #96 first canary retry remains blocked before a second canary batch: PLS was an advisory-only false-positive candidate that correctly failed validation_gate:scale_unknown without financial truth writes, and BHP exposed an empty ASXRiskNote side effect rooted in pipeline.py that needs explicit allowlist expansion for a production fix."
+}
