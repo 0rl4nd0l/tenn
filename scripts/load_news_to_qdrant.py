@@ -31,6 +31,12 @@ if str(BACKEND_ROOT) not in sys.path:
 NEWS_CHUNKS_MODEL_FILE = (
     REPO_ROOT / "financial-engine_v2" / "reports" / "news_chunks_embedding_model.txt"
 )
+DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
+OLLAMA_URL_ENV = "OLLAMA_URL"
+OLLAMA_URL_SOURCE_CLI = "cli"
+OLLAMA_URL_SOURCE_ENV = "env"
+OLLAMA_URL_SOURCE_SETTINGS = "settings"
+OLLAMA_URL_SOURCE_DEFAULT = "default"
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +171,53 @@ def _normalize_memo_ticker_candidate(value: Any) -> str:
     if cleaned != raw or not re.fullmatch(r"[A-Z0-9][A-Z0-9.]{0,6}", cleaned):
         return ""
     return cleaned
+
+
+def _require_http_url(candidate: str, *, source_label: str) -> str:
+    if candidate.startswith("http://") or candidate.startswith("https://"):
+        return candidate
+    raise ValueError(f"Invalid {source_label}. Expected a http:// or https:// URL.")
+
+
+def resolve_ollama_url(
+    *,
+    cli_url: str | None,
+    settings_url: str | None,
+) -> tuple[str, str]:
+    """
+    Resolve Ollama base URL with explicit precedence.
+
+    Empty settings values are treated as missing so local jobs can fall back to
+    the canonical host default. Explicit CLI/env/settings values must be valid
+    URLs and fail fast if malformed.
+    """
+
+    if cli_url is not None:
+        candidate = str(cli_url or "").strip()
+        if not candidate:
+            raise ValueError(
+                "Invalid --ollama-url. Expected a non-empty http:// or https:// value."
+            )
+        return _require_http_url(
+            candidate,
+            source_label="--ollama-url",
+        ), OLLAMA_URL_SOURCE_CLI
+
+    env_url = os.getenv(OLLAMA_URL_ENV, "").strip()
+    if env_url:
+        return _require_http_url(
+            env_url,
+            source_label=OLLAMA_URL_ENV,
+        ), OLLAMA_URL_SOURCE_ENV
+
+    settings_candidate = str(settings_url or "").strip()
+    if settings_candidate:
+        return _require_http_url(
+            settings_candidate,
+            source_label="configured settings.ollama_url",
+        ), OLLAMA_URL_SOURCE_SETTINGS
+
+    return DEFAULT_OLLAMA_URL, OLLAMA_URL_SOURCE_DEFAULT
 
 
 def _memo_exchange_ticker_candidates(text: str) -> list[str]:
@@ -1428,6 +1481,23 @@ def sync_news_to_qdrant(
     if cleanup_stale and since_hours is not None and int(since_hours) > 0:
         raise ValueError("--cleanup-stale requires a full target (--since-hours 0)")
 
+    settings_ollama_url: str | None = None
+    if embed_model is None or ollama_url is None:
+        try:
+            from app.core.config import settings
+
+            embed_model = embed_model or str(
+                getattr(settings, "embed_model", "nomic-embed-text")
+            )
+            settings_ollama_url = str(getattr(settings, "ollama_url", "") or "")
+        except Exception:
+            embed_model = embed_model or "nomic-embed-text"
+    embed_model = str(embed_model or "nomic-embed-text")
+    ollama_url, ollama_url_source = resolve_ollama_url(
+        cli_url=ollama_url,
+        settings_url=settings_ollama_url,
+    )
+
     target = build_news_projection_target(db_path, since_hours=since_hours)
     articles = list(target["articles"])
     target_points = list(target["points"])
@@ -1438,6 +1508,8 @@ def sync_news_to_qdrant(
         "deleted": 0,
         "dry_run": bool(dry_run),
         "qdrant_only": bool(qdrant_only),
+        "ollama_url": ollama_url,
+        "ollama_url_source": ollama_url_source,
     }
     if target_contract_report or dry_run or qdrant_only or cleanup_stale:
         stats["target_contract_report"] = target["report"]
@@ -1485,20 +1557,6 @@ def sync_news_to_qdrant(
 
     if client is None:
         raise RuntimeError("Qdrant client unavailable")
-
-    if embed_model is None or ollama_url is None:
-        try:
-            from app.core.config import settings
-
-            embed_model = embed_model or str(
-                getattr(settings, "embed_model", "nomic-embed-text")
-            )
-            ollama_url = ollama_url or str(
-                getattr(settings, "ollama_url", "http://localhost:11434")
-            )
-        except Exception:
-            embed_model = embed_model or "nomic-embed-text"
-            ollama_url = ollama_url or "http://localhost:11434"
 
     if embed_texts_fn is None:
         from app.services.ollama import ollama_embed
@@ -1750,6 +1808,14 @@ def main() -> int:
         help="Optional path for a nightly sync summary JSON artifact",
     )
     ap.add_argument(
+        "--ollama-url",
+        default=None,
+        help=(
+            "Ollama base URL; overrides OLLAMA_URL, settings.ollama_url, then "
+            "http://127.0.0.1:11434"
+        ),
+    )
+    ap.add_argument(
         "--memo-diagnostics-path",
         default="",
         help=(
@@ -1859,6 +1925,7 @@ def main() -> int:
             cleanup_stale=bool(args.cleanup_stale),
             qdrant_only=bool(args.qdrant_only),
             target_contract_report=bool(args.target_contract_report),
+            ollama_url=args.ollama_url,
             memo_diagnostics_path=args.memo_diagnostics_path or None,
             memo_wait_for_completion=bool(args.wait_for_memos),
             memo_wait_timeout_seconds=float(args.memo_wait_timeout_seconds),
