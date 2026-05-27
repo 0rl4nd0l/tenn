@@ -1,0 +1,592 @@
+[
+  {
+    "cluster_id": "C01",
+    "title": "Backend architecture invariant failures: sqlite3 imports, random uuid4, and vector IDs",
+    "representative_failures": [
+      "test_architecture_invariants.py::test_no_sqlite_usage_in_backend_runtime",
+      "test_architecture_invariants.py::test_no_uuid4_usage_inside_process_document",
+      "test_architecture_invariants.py::test_vector_ids_use_document_id_and_chunk_index",
+      "test_architecture_invariants.py::test_process_document_integration_vector_id_and_payload",
+      "test_cursor_rule_compliance.py::test_no_sqlite3_in_runtime",
+      "test_cursor_rule_compliance.py::test_no_random_uuid_generation_in_pipeline"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Evaluation / Backend Architecture / Repo Hygiene",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+      "financial-engine_v2/backend/tests/test_cursor_rule_compliance.py",
+      "financial-engine_v2/backend/app/services/user_thesis_memory.py",
+      "financial-engine_v2/backend/app/services/company_memory.py",
+      "financial-engine_v2/backend/app/services/ops_store.py",
+      "financial-engine_v2/backend/app/services/marketplace_price_intelligence.py",
+      "financial-engine_v2/backend/app/services/market_memory.py",
+      "financial-engine_v2/backend/app/services/response_feedback.py",
+      "financial-engine_v2/backend/app/api/context.py",
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/app/services/pipeline.py"
+    ],
+    "classification": "architecture_invariant_policy_mismatch",
+    "evidence": [
+      "Run 26439822448 log reports forbidden sqlite3 imports in backend runtime services and cockpit_api.py.",
+      "Run 26439822448 log reports uuid.uuid4() forbidden in multiple runtime files, including pipeline.py and cockpit_api.py.",
+      "Vector tests captured no Qdrant upsert points and expected deterministic document_id:chunk_index IDs.",
+      ".cursor/rules files are absent in the current checkout; equivalent invariants are mirrored by backend tests and docs/architecture/06_embeddings_and_vector_store.md.",
+      "docs/architecture/22_memory_ownership_map.md documents SQLite-backed qualitative/operational memory stores, so the child task should reconcile the broad sqlite runtime ban with current memory architecture rather than blindly removing every sqlite use."
+    ],
+    "baseline_vs_pr_status": "mixed",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Reconcile backend sqlite3/uuid4/vector invariant failures for PR #39",
+    "proposed_child_task_lane": "Evaluation",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_architecture_invariant_reconciliation_v1.md",
+      "reports/agent_jobs/pr39_architecture_invariant_reconciliation_v1/**",
+      "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+      "financial-engine_v2/backend/tests/test_cursor_rule_compliance.py",
+      "financial-engine_v2/backend/app/services/pipeline.py",
+      "financial-engine_v2/backend/app/services/user_thesis_memory.py",
+      "financial-engine_v2/backend/app/services/company_memory.py",
+      "financial-engine_v2/backend/app/services/ops_store.py",
+      "financial-engine_v2/backend/app/services/marketplace_price_intelligence.py",
+      "financial-engine_v2/backend/app/services/market_memory.py",
+      "financial-engine_v2/backend/app/services/response_feedback.py",
+      "financial-engine_v2/backend/app/api/context.py",
+      "financial-engine_v2/backend/app/routes/cockpit_api.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_architecture_invariants.py financial-engine_v2/backend/tests/test_cursor_rule_compliance.py -q",
+      "ruff check changed backend files",
+      "architecture-check against docs/architecture/SYSTEM_CONTRACT.md, docs/architecture/06_embeddings_and_vector_store.md, docs/architecture/10_failure_model.md, and docs/architecture/22_memory_ownership_map.md"
+    ],
+    "forbidden_surfaces": [
+      "production DB/Qdrant/news/memory",
+      "canonical financial truth",
+      "parser routing",
+      "extraction prompts",
+      "gold labels",
+      "runtime/model/GPU/service config",
+      "invariant relaxation without explicit migration approval",
+      "removing documented memory-store ownership without a separate migration"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C02",
+    "title": "Cockpit chat/session controller constructor contract drift around llm_client",
+    "representative_failures": [
+      "test_cockpit_conversation_continuity.py::test_chat_stream_rewrites_compare_them_when_referents_are_clear",
+      "test_cockpit_service_session_threads.py::test_chat_stream_uses_session_thread_and_persists_turns",
+      "test_cockpit_service_session_threads.py::test_chat_stream_records_response_mode_in_turn_diagnostics"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/app/services/cockpit_service.py",
+      "financial-engine_v2/backend/tests/test_cockpit_service_session_threads.py",
+      "financial-engine_v2/backend/tests/test_cockpit_conversation_continuity.py"
+    ],
+    "classification": "dependency_or_api_drift",
+    "evidence": [
+      "Run 26439822448 shows 15 failures where monkeypatched controller builders or lambdas received unexpected keyword argument llm_client.",
+      "Local git diff between PR base and head shows these failing service/test files were not changed in PR #39."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Align Cockpit chat controller test doubles with llm_client contract",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_cockpit_chat_controller_contract_v1.md",
+      "reports/agent_jobs/pr39_cockpit_chat_controller_contract_v1/**",
+      "financial-engine_v2/backend/app/services/cockpit_service.py",
+      "financial-engine_v2/backend/tests/test_cockpit_service_session_threads.py",
+      "financial-engine_v2/backend/tests/test_cockpit_conversation_continuity.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_cockpit_service_session_threads.py financial-engine_v2/backend/tests/test_cockpit_conversation_continuity.py -q"
+    ],
+    "forbidden_surfaces": [
+      "runtime/model/GPU/service config",
+      "broad router rewrites",
+      "test-only masking without proving chat_stream behavior"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C03",
+    "title": "Cockpit subagent spawn tests assume an event loop in MainThread",
+    "representative_failures": [
+      "test_subagents.py::test_spawn_researcher_runs",
+      "test_subagents.py::test_spawn_auditor_runs",
+      "test_subagents.py::test_spawn_returns_failure_on_llm_error"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "financial-engine_v2/cockpit/core/agent/subagents.py",
+      "financial-engine_v2/cockpit/tests/test_subagents.py",
+      "financial-engine_v2/backend/requirements-dev.txt"
+    ],
+    "classification": "dependency_or_api_drift",
+    "evidence": [
+      "Run 26439822448 reports RuntimeError: There is no current event loop in thread 'MainThread' for 14 test_subagents.py cases.",
+      "PR #39 adds backend requirements-dev install in CI and requirements-dev includes pytest-asyncio>=0.24.0."
+    ],
+    "baseline_vs_pr_status": "mixed",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Make Cockpit subagent event-loop contract explicit under pytest-asyncio",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_cockpit_subagent_event_loop_v1.md",
+      "reports/agent_jobs/pr39_cockpit_subagent_event_loop_v1/**",
+      "financial-engine_v2/cockpit/core/agent/subagents.py",
+      "financial-engine_v2/cockpit/tests/test_subagents.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/cockpit/tests/test_subagents.py -q"
+    ],
+    "forbidden_surfaces": [
+      "runtime/model/GPU/service config",
+      "live local LLM or memory store mutation",
+      "broad async framework rewrite"
+    ],
+    "risk": "MEDIUM"
+  },
+  {
+    "cluster_id": "C04",
+    "title": "Streaming subprocess helper tests omit required job_id",
+    "representative_failures": [
+      "TestStreamingSubprocess::test_output_reaches_file_before_process_exits",
+      "TestStreamingSubprocess::test_progress_callback_fires",
+      "TestStreamingSubprocess::test_timeout_kills_process",
+      "TestStreamingSubprocess::test_stderr_captured_to_file",
+      "TestStreamingSubprocess::test_nonzero_exit_code_preserved"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Repo Hygiene",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/tests/test_streaming_subprocess.py"
+    ],
+    "classification": "dependency_or_api_drift",
+    "evidence": [
+      "Run 26439822448 shows _run_action_subprocess_streaming() missing one required keyword-only argument: job_id in five tests.",
+      "Both PR base and PR head have job_id as a keyword-only parameter; the test contract appears stale rather than newly introduced by this PR diff."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Align streaming subprocess helper tests with required job_id",
+    "proposed_child_task_lane": "Repo Hygiene",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_streaming_subprocess_job_id_contract_v1.md",
+      "reports/agent_jobs/pr39_streaming_subprocess_job_id_contract_v1/**",
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/tests/test_streaming_subprocess.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_streaming_subprocess.py -q"
+    ],
+    "forbidden_surfaces": [
+      "live subprocess action execution outside tests",
+      "runtime/service config",
+      "broad action framework rewrite"
+    ],
+    "risk": "MEDIUM"
+  },
+  {
+    "cluster_id": "C05",
+    "title": "load_news_to_qdrant Ollama URL API drift",
+    "representative_failures": [
+      "test_load_news_to_qdrant.py::test_resolve_ollama_url_prefers_cli",
+      "test_load_news_to_qdrant.py::test_resolve_ollama_url_uses_env_when_cli_missing",
+      "test_load_news_to_qdrant.py::test_resolve_ollama_url_defaults_when_settings_empty",
+      "test_load_news_to_qdrant.py::test_resolve_ollama_url_rejects_invalid_url",
+      "test_load_news_to_qdrant.py::test_sync_news_to_qdrant_records_ollama_url_source_in_stats"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "scripts/load_news_to_qdrant.py",
+      "financial-engine_v2/backend/tests/test_load_news_to_qdrant.py"
+    ],
+    "classification": "dependency_or_api_drift",
+    "evidence": [
+      "Run 26439822448 reports module scripts.load_news_to_qdrant has no attribute resolve_ollama_url and stats missing ollama_url.",
+      "Current local HEAD 730eb0d8 has later commit milestone(news): repair nightly sync ollama url resolution, but GitHub PR #39 head remains 8635833b."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Verify or carry Ollama URL loader repair into PR #39 before rerun",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_news_loader_ollama_url_contract_v1.md",
+      "reports/agent_jobs/pr39_news_loader_ollama_url_contract_v1/**",
+      "scripts/load_news_to_qdrant.py",
+      "financial-engine_v2/backend/tests/test_load_news_to_qdrant.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_load_news_to_qdrant.py -q",
+      "no live news sync, no Qdrant mutation"
+    ],
+    "forbidden_surfaces": [
+      "production news store",
+      "Qdrant mutation",
+      "runtime/model/GPU/service config",
+      "live nightly sync"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C06",
+    "title": "Marketplace benchmark and scanner expectation drift from time-sensitive fixtures",
+    "representative_failures": [
+      "test_cockpit_marketplace_api.py::test_marketplace_mission_link_product_and_value_context",
+      "test_cockpit_marketplace_api.py::test_requirement_match_value_context_honors_resale_candidate_metadata",
+      "test_marketplace_price_intelligence.py::test_benchmark_rollup_freshness_and_confidence_states",
+      "test_marketplace_price_intelligence.py::test_match_value_assessment_uses_latest_snapshot_without_changing_match_score",
+      "test_marketplace_scanner.py::test_requirement_scanner_flags_under_market_resale_candidate"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Evaluation",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/app/services/marketplace_price_intelligence.py",
+      "financial-engine_v2/backend/app/services/marketplace_scanner.py",
+      "financial-engine_v2/backend/tests/test_marketplace_price_intelligence.py",
+      "financial-engine_v2/backend/tests/test_marketplace_scanner.py",
+      "financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py"
+    ],
+    "classification": "test_drift",
+    "evidence": [
+      "Run 26439822448 shows expected scored but actual stale_benchmark and expected rollup count 5 but actual 0.",
+      "Local tests seed observed_at values around 2026-04-20 through 2026-04-24; the failing run executed on 2026-05-26."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Stabilize marketplace benchmark fixtures against wall-clock drift",
+    "proposed_child_task_lane": "Evaluation",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_marketplace_time_stable_fixtures_v1.md",
+      "reports/agent_jobs/pr39_marketplace_time_stable_fixtures_v1/**",
+      "financial-engine_v2/backend/app/services/marketplace_price_intelligence.py",
+      "financial-engine_v2/backend/app/services/marketplace_scanner.py",
+      "financial-engine_v2/backend/tests/test_marketplace_price_intelligence.py",
+      "financial-engine_v2/backend/tests/test_marketplace_scanner.py",
+      "financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_marketplace_price_intelligence.py financial-engine_v2/backend/tests/test_marketplace_scanner.py financial-engine_v2/backend/tests/test_cockpit_marketplace_api.py -q"
+    ],
+    "forbidden_surfaces": [
+      "canonical financial truth",
+      "production marketplace data",
+      "test expectation relaxation that hides stale benchmark behavior"
+    ],
+    "risk": "MEDIUM"
+  },
+  {
+    "cluster_id": "C07",
+    "title": "Cockpit agent stress tests expect old answer/action semantics after grounding guard changes",
+    "representative_failures": [
+      "test_agent_stress.py::TestMalformedJsonHandling::test_agent_loop_handles_malformed_json",
+      "test_agent_stress.py::TestRapidSequentialMessages::test_rapid_sequential_messages",
+      "test_agent_stress.py::TestMultipleToolCallSequences::test_action_proposal_run_analysis_maps_to_executable_action_id",
+      "test_cockpit_chat_changes.py::test_hybrid_router_integrates_with_agent_loop"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "financial-engine_v2/cockpit/core/agent/agent_loop.py",
+      "financial-engine_v2/cockpit/core/agent/hybrid_router.py",
+      "financial-engine_v2/cockpit/tests/test_agent_stress.py",
+      "financial-engine_v2/cockpit/tests/test_cockpit_chat_changes.py"
+    ],
+    "classification": "test_drift",
+    "evidence": [
+      "Run 26439822448 shows expected '$0M' or '55B' answers replaced by grounding refusals such as unsupported_financial_claim and ask-to-fetch-data text.",
+      "One action proposal test has action_preview is None when tool execution is unavailable."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Reconcile Cockpit stress expectations with grounded refusal and action-preview behavior",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_cockpit_agent_stress_grounding_contract_v1.md",
+      "reports/agent_jobs/pr39_cockpit_agent_stress_grounding_contract_v1/**",
+      "financial-engine_v2/cockpit/core/agent/agent_loop.py",
+      "financial-engine_v2/cockpit/core/agent/hybrid_router.py",
+      "financial-engine_v2/cockpit/tests/test_agent_stress.py",
+      "financial-engine_v2/cockpit/tests/test_cockpit_chat_changes.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/cockpit/tests/test_agent_stress.py financial-engine_v2/cockpit/tests/test_cockpit_chat_changes.py -q"
+    ],
+    "forbidden_surfaces": [
+      "financial truth loosening",
+      "grounding guard removal",
+      "live tool execution",
+      "runtime/model/GPU/service config"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C08",
+    "title": "Hybrid router policy and stream callback contract changes",
+    "representative_failures": [
+      "test_router_edge_cases.py::TestForceBackendOverridesPolicy::test_force_local_with_api_only_policy_uses_local",
+      "test_router_edge_cases.py::TestForceBackendOverridesPolicy::test_force_local_api_only_policy_no_local_client_raises",
+      "test_router_edge_cases.py::TestChatOnChunkPassthrough::test_chat_passes_on_chunk_to_local_client"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "financial-engine_v2/cockpit/core/agent/hybrid_router.py",
+      "financial-engine_v2/cockpit/tests/test_router_edge_cases.py"
+    ],
+    "classification": "product_regression",
+    "evidence": [
+      "Run 26439822448 shows force_backend='local' under api_only now raises Local LLM routing is disabled by api_only policy.",
+      "The stream callback assertion sees a wrapped callback instead of the original MagicMock identity."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Decide HybridRouter force-local and on_chunk wrapper contract",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_hybrid_router_policy_contract_v1.md",
+      "reports/agent_jobs/pr39_hybrid_router_policy_contract_v1/**",
+      "financial-engine_v2/cockpit/core/agent/hybrid_router.py",
+      "financial-engine_v2/cockpit/tests/test_router_edge_cases.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/cockpit/tests/test_router_edge_cases.py -q"
+    ],
+    "forbidden_surfaces": [
+      "runtime/model/GPU/service config",
+      "silent fallback routing",
+      "API-vs-local routing policy changes without explicit contract"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C09",
+    "title": "Memo extractor signal routing records no company-memory signals",
+    "representative_failures": [
+      "test_memo_extractors_signal_routing.py::test_news_extractor_can_store_and_route_signals",
+      "test_memo_extractors_signal_routing.py::test_news_extract_and_store_routes_signals_by_default"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Memory",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/tests/test_memo_extractors_signal_routing.py",
+      "financial-engine_v2/backend/app/services/company_memory.py",
+      "financial-engine_v2/backend/app/services/memory_events.py",
+      "scripts/backfill_missing_news_memos.py"
+    ],
+    "classification": "product_regression",
+    "evidence": [
+      "Run 26439822448 shows both memo signal routing tests got 0 stored/routed company-memory signals while expecting at least one."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Restore or re-contract memo extractor signal routing in isolated tests",
+    "proposed_child_task_lane": "Memory",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_memo_signal_routing_contract_v1.md",
+      "reports/agent_jobs/pr39_memo_signal_routing_contract_v1/**",
+      "financial-engine_v2/backend/tests/test_memo_extractors_signal_routing.py",
+      "financial-engine_v2/backend/app/services/company_memory.py",
+      "financial-engine_v2/backend/app/services/memory_events.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_memo_extractors_signal_routing.py -q",
+      "no production memory store mutation"
+    ],
+    "forbidden_surfaces": [
+      "production memory stores",
+      "production news stores",
+      "canonical financial truth",
+      "broad memory migration"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C10",
+    "title": "Preferences API response shape includes chat_runtime_target",
+    "representative_failures": [
+      "test_cockpit_api_preferences.py::test_preferences_defaults_and_patch_round_trip"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/tests/test_cockpit_api_preferences.py"
+    ],
+    "classification": "dependency_or_api_drift",
+    "evidence": [
+      "Run 26439822448 shows response dict contains extra chat_runtime_target='local' compared to expected preferences payload."
+    ],
+    "baseline_vs_pr_status": "DATA_MISSING",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Settle Cockpit preferences chat_runtime_target API contract",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_cockpit_preferences_runtime_target_contract_v1.md",
+      "reports/agent_jobs/pr39_cockpit_preferences_runtime_target_contract_v1/**",
+      "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "financial-engine_v2/backend/tests/test_cockpit_api_preferences.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_cockpit_api_preferences.py -q"
+    ],
+    "forbidden_surfaces": [
+      "runtime/model/GPU/service config",
+      "frontend behavior change without API contract update"
+    ],
+    "risk": "MEDIUM"
+  },
+  {
+    "cluster_id": "C11",
+    "title": "Real-gold 10X PDF asset missing in CI checkout",
+    "representative_failures": [
+      "test_extraction_gold_eval.py::test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Evaluation",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "financial-engine_v2/data/asx/docs/10X/financial_performance/",
+      "reports/agent_jobs/confirmed_metric_source_pdf_resolution_audit_v1_20260524/**"
+    ],
+    "classification": "missing_asset",
+    "evidence": [
+      "Run 26439822448 reports missing file data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf.",
+      "The required PDF asset was absent from the CI checkout at PR head."
+    ],
+    "baseline_vs_pr_status": "inherited",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Resolve missing real-gold PDF asset path or fixture contract for PR #39",
+    "proposed_child_task_lane": "Evaluation",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_real_gold_pdf_asset_resolution_v1.md",
+      "reports/agent_jobs/pr39_real_gold_pdf_asset_resolution_v1/**",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "financial-engine_v2/data/asx/docs/10X/financial_performance/**"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_extraction_gold_eval.py -q",
+      "asset provenance check before adding or relocating any PDF"
+    ],
+    "forbidden_surfaces": [
+      "gold label mutation without provenance review",
+      "canonical financial truth",
+      "parser routing",
+      "extraction prompts"
+    ],
+    "risk": "HIGH"
+  },
+  {
+    "cluster_id": "C12",
+    "title": "Process-document API test depends on live Redis/Celery",
+    "representative_failures": [
+      "test_process_document_api.py::test_process_document_api_passes_method_and_strict_flag"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Repo Hygiene",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/tests/test_process_document_api.py",
+      "financial-engine_v2/backend/app/api/routes.py",
+      "financial-engine_v2/backend/app/worker_tasks.py",
+      ".github/workflows/ci.yml"
+    ],
+    "classification": "ci_environment_dependency",
+    "evidence": [
+      "Run 26439822448 reports kombu.exceptions.OperationalError connecting to 127.0.0.1:6379, connection refused.",
+      "CI workflow .github/workflows/ci.yml does not define a Redis service for lint-and-test."
+    ],
+    "baseline_vs_pr_status": "mixed",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Isolate process-document API test from live Redis or declare CI Redis service",
+    "proposed_child_task_lane": "Repo Hygiene",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_process_document_api_ci_dependency_v1.md",
+      "reports/agent_jobs/pr39_process_document_api_ci_dependency_v1/**",
+      "financial-engine_v2/backend/tests/test_process_document_api.py",
+      "financial-engine_v2/backend/app/api/routes.py",
+      "financial-engine_v2/backend/app/worker_tasks.py",
+      ".github/workflows/ci.yml"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_process_document_api.py -q",
+      "CI dry-read of workflow service requirements; do not run live worker"
+    ],
+    "forbidden_surfaces": [
+      "production Redis/Celery",
+      "production DB",
+      "runtime service config outside CI/test contract"
+    ],
+    "risk": "MEDIUM"
+  },
+  {
+    "cluster_id": "C13",
+    "title": "Query orchestrator marks analysis sufficient despite missing financial rows",
+    "representative_failures": [
+      "test_query_orchestrator.py::test_company_analysis_keeps_announcement_context_when_financial_rows_missing"
+    ],
+    "failing_tests_or_steps": [
+      "Pytest (backend + cockpit)"
+    ],
+    "likely_owner_lane": "Query Orchestration",
+    "likely_file_surfaces": [
+      "financial-engine_v2/backend/tests/test_query_orchestrator.py",
+      "financial-engine_v2/backend/app/services/query_orchestrator.py",
+      "financial-engine_v2/backend/app/services/rag.py"
+    ],
+    "classification": "product_regression",
+    "evidence": [
+      "Run 26439822448 shows OrchestratedQueryResult for PPT has sufficient_for_analysis=True while expected False and is_speculative=True with remaining financials category."
+    ],
+    "baseline_vs_pr_status": "DATA_MISSING",
+    "recommended_action": "child_task_card",
+    "proposed_child_task_title": "[CI] Restore query sufficiency guard when only announcement/news context is available",
+    "proposed_child_task_lane": "Query Orchestration",
+    "proposed_child_allowed_files": [
+      "docs/agent_tasks/pr39_query_sufficiency_guard_v1.md",
+      "reports/agent_jobs/pr39_query_sufficiency_guard_v1/**",
+      "financial-engine_v2/backend/tests/test_query_orchestrator.py",
+      "financial-engine_v2/backend/app/services/query_orchestrator.py",
+      "financial-engine_v2/backend/app/services/rag.py"
+    ],
+    "proposed_child_validation": [
+      "pytest -c pytest.ini financial-engine_v2/backend/tests/test_query_orchestrator.py -q"
+    ],
+    "forbidden_surfaces": [
+      "canonical financial truth",
+      "parser routing",
+      "source-label relaxation",
+      "production data mutation"
+    ],
+    "risk": "HIGH"
+  }
+]

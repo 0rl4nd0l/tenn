@@ -1,0 +1,83 @@
+[
+  {
+    "path": "docs/agent_tasks/pr39_ci_split_audit_preservation_review_v1_20260527.md",
+    "status": "untracked",
+    "likely_lane": "Repo Hygiene / Reporting",
+    "likely_owner_job": "pr39_ci_split_audit_preservation_review_v1_20260527",
+    "evidence": "Current job task card created under this task allowlist and visible as ?? in git status.",
+    "safe_to_touch_by_this_job": true,
+    "recommendation": "Keep as this job artifact; validate with this task-card contract."
+  },
+  {
+    "path": "reports/agent_jobs/pr39_ci_split_audit_preservation_review_v1_20260527/",
+    "status": "ignored",
+    "likely_lane": "Repo Hygiene / Reporting",
+    "likely_owner_job": "pr39_ci_split_audit_preservation_review_v1_20260527",
+    "evidence": "Current job output directory under allowed_files; report paths are ignored by default repo rules.",
+    "safe_to_touch_by_this_job": true,
+    "recommendation": "Keep report-local; preserve under a later approved commit or parking task if requested."
+  },
+  {
+    "path": "docs/agent_tasks/pr39_lint_and_test_failure_cluster_split_v1_20260526.md",
+    "status": "untracked",
+    "likely_lane": "PR39 audit-owned / Evaluation",
+    "likely_owner_job": "pr39_lint_and_test_failure_cluster_split_v1_20260526",
+    "evidence": "Prior issue #105 task card exists and is visible as ?? in current git status; git ls-files did not show it as tracked.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Preserve untouched; include in a separate approved preservation or parking task."
+  },
+  {
+    "path": "reports/agent_jobs/pr39_lint_and_test_failure_cluster_split_v1_20260526/",
+    "status": "ignored",
+    "likely_lane": "PR39 audit-owned / Evaluation",
+    "likely_owner_job": "pr39_lint_and_test_failure_cluster_split_v1_20260526",
+    "evidence": "Prior report directory exists, required files are present, JSON parses, and git status --ignored reports the directory as ignored.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Do not edit in this job; preserve or park under a separate approved task."
+  },
+  {
+    "path": "financial-engine_v2/backend/app/services/news_health_status.py",
+    "status": "modified",
+    "likely_lane": "likely unrelated news/runtime automation",
+    "likely_owner_job": "DATA_MISSING",
+    "evidence": "Observed as dirty outside this task allowlist in registry check-overlap output; not present in the later settled default git status.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Leave untouched; wait for owning job or operator to clear/preserve."
+  },
+  {
+    "path": "financial-engine_v2/cockpit/core/actions.py",
+    "status": "modified",
+    "likely_lane": "likely unrelated Cockpit/runtime",
+    "likely_owner_job": "DATA_MISSING",
+    "evidence": "Observed as modified in initial preflight and registry check-overlap output; not present in the later settled default git status.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Leave untouched; wait for owning job or operator to clear/preserve."
+  },
+  {
+    "path": "financial-engine_v2/cockpit/core/tools.py",
+    "status": "modified",
+    "likely_lane": "likely unrelated Cockpit/runtime",
+    "likely_owner_job": "DATA_MISSING",
+    "evidence": "Observed as modified in initial preflight and registry check-overlap output; not present in the later settled default git status.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Leave untouched; wait for owning job or operator to clear/preserve."
+  },
+  {
+    "path": "financial-engine_v2/shared/news_artifacts.py",
+    "status": "untracked",
+    "likely_lane": "likely unrelated news/runtime automation",
+    "likely_owner_job": "DATA_MISSING",
+    "evidence": "Observed as untracked in initial preflight and registry check-overlap output; not present in the later settled default git status.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Leave untouched; wait for owning job or operator to clear/preserve."
+  },
+  {
+    "path": "scripts/news_pipeline/cli_common.py",
+    "status": "modified",
+    "likely_lane": "likely unrelated news/runtime automation",
+    "likely_owner_job": "DATA_MISSING",
+    "evidence": "Observed as modified in initial preflight and registry check-overlap output; not present in the later settled default git status.",
+    "safe_to_touch_by_this_job": false,
+    "recommendation": "Leave untouched; wait for owning job or operator to clear/preserve."
+  }
+]

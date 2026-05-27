@@ -1,0 +1,82 @@
+{
+  "job_id": "pr39_ci_audit_artifact_preservation_v1_20260527",
+  "mode": "AUDIT_FIRST / SAFE PRESERVATION ONLY",
+  "requested_primary_lane": "Repo Hygiene",
+  "validator_lane": "Evaluation",
+  "supporting_lanes": [
+    "Evaluation",
+    "Reporting"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "c275e3c857cadd8c88491b38c13a3af6debe2539",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "registry_status": {
+    "list_active_read_only": "ok_empty",
+    "check_overlap": "ok",
+    "claim": "ok",
+    "release": "ok",
+    "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/pr39_ci_audit_artifact_preservation_v1_20260527.json",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "prior_audit_artifact_status": {
+    "task_card": "present_untracked_before_preservation",
+    "report_dir": "present_ignored_before_preservation",
+    "required_artifacts_present": true,
+    "task_card_validate": "passed",
+    "json_parse": "passed",
+    "cluster_count": 13,
+    "verdict": "NOT_MERGE_READY / PARKING_RECOMMENDED / KEEP_DRAFT",
+    "safe_to_commit_under_this_task": true
+  },
+  "preservation_review_artifact_status": {
+    "task_card": "present_untracked_before_preservation",
+    "report_dir": "present_ignored_before_preservation",
+    "required_artifacts_present": true,
+    "task_card_validate": "passed",
+    "json_parse": "passed",
+    "accepted_prior_audit_as_evidence": true,
+    "safe_to_commit_under_this_task": true
+  },
+  "preservation_action": "COMMITTED_ALLOWED_ARTIFACTS",
+  "github_mutation": false,
+  "production_data_access": false,
+  "issue_105_status": {
+    "number": 105,
+    "state": "OPEN",
+    "title": "[CI] Split PR #39 lint-and-test failure clusters after closed CI audit",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/105",
+    "recommendation": "stay_open"
+  },
+  "pr39_status": {
+    "number": 39,
+    "state": "OPEN",
+    "draft": true,
+    "merged_at": null,
+    "merge_state": "UNSTABLE",
+    "mergeable": "MERGEABLE",
+    "head_sha": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+    "lint_and_test_run": {
+      "run_id": 26439822448,
+      "job_id": 77831209696,
+      "conclusion": "failure"
+    },
+    "scan_run": {
+      "run_id": 26439822445,
+      "job_id": 77831209694,
+      "conclusion": "success"
+    },
+    "recommendation": "stay_draft_not_merge_ready"
+  },
+  "reports_git_visibility": {
+    "ignored_by": "/mnt/sdb2/home/l4nd0/tenn/.git/info/exclude:31:reports/",
+    "git_add_force_required": true,
+    "git_add_force_allowed_by_task_card": true
+  },
+  "merge_parking": {
+    "entries_written": false,
+    "reason": "docs/agent_registry/merge_parking is absent and this task card does not allow creating it; clean artifact commit path is available"
+  },
+  "recommendation": "Keep issue #105 open, keep PR #39 draft/not merge-ready, preserve these artifacts as the scoped commit, then start C01 architecture invariant reconciliation.",
+  "project_memory_save_recommendation": "RECOMMENDED"
+}
