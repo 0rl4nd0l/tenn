@@ -1,0 +1,173 @@
+{
+  "candidate_decisions": [
+    {
+      "candidate": "Classify and preserve two unrelated untracked task cards",
+      "classification": "REPO_CONTROL_RISK",
+      "created_issue": 94,
+      "duplicate_verdict": "new_distinct_tracker",
+      "reason": "Searches found adjacent closed repo-hygiene trackers, but no open or closed issue/PR covering these two exact persistent untracked task-card filenames and the required preservation-classification task."
+    },
+    {
+      "candidate": "Audit Cockpit source drawer semantics for context-only and degraded evidence",
+      "classification": "TRUST_RISK",
+      "created_issue": 95,
+      "duplicate_verdict": "new_distinct_tracker",
+      "reason": "#71 covers source-label fixture matrix coverage and #87 covers a specific A2M chat evidence-envelope gap; neither directly tracks UI/source-drawer rendering semantics."
+    }
+  ],
+  "exact_pre_create_checks": [
+    {
+      "candidate": "untracked task-card preservation",
+      "queries": [
+        "\"Classify and preserve two unrelated untracked task cards\" OR \"untracked_task_card_preservation_classification_v1_20260526\" OR \"a2m_backend_reload_news_status_activation_smoke_v1_20260525\" OR \"automation_audit_issue_preservation_v1_20260525\""
+      ],
+      "result": "no exact duplicate issue or PR found before creation"
+    },
+    {
+      "candidate": "source drawer semantics audit",
+      "queries": [
+        "\"[Reporting] Audit Cockpit source drawer semantics for context-only and degraded evidence\"",
+        "\"cockpit_source_drawer_semantics_audit_v1_20260526\"",
+        "\"cockpit_source_drawer_semantics_audit_v1_20260526\" OR \"Audit Cockpit source drawer semantics\""
+      ],
+      "result": "no exact duplicate issue or PR found before creation"
+    }
+  ],
+  "searches": [
+    {
+      "term": "untracked task cards",
+      "issues": [
+        "#64 closed adjacent worktree/loose task-card hygiene audit",
+        "#69 closed adjacent repo-native goal schema slice",
+        "#75 closed adjacent branch hygiene visibility slice"
+      ],
+      "prs": [],
+      "verdict": "adjacent_not_duplicate"
+    },
+    {
+      "term": "a2m_backend_reload_news_status_activation_smoke",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "automation_audit_issue_preservation",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "MILESTONE NOT COMMITTED task cards",
+      "issues": [
+        "#73 open broad financial-truth parent tracker",
+        "#88 open memory system fitness audit"
+      ],
+      "prs": [],
+      "verdict": "irrelevant_broad_matches"
+    },
+    {
+      "term": "check-diff untracked task cards",
+      "issues": [
+        "#64 closed adjacent worktree/loose task-card hygiene audit",
+        "#69 closed adjacent repo-native goal schema slice",
+        "#75 closed adjacent branch hygiene visibility slice"
+      ],
+      "prs": [],
+      "verdict": "adjacent_not_duplicate"
+    },
+    {
+      "term": "worktree task-card hygiene",
+      "issues": [
+        "#78 open agent markdown/Codex repo documentation refresh",
+        "#79 open automation topology reconciliation audit",
+        "#64 closed worktree and loose task-card hygiene audit",
+        "#75 closed branch hygiene visibility slice"
+      ],
+      "prs": [],
+      "verdict": "adjacent_not_duplicate"
+    },
+    {
+      "term": "source drawer semantics",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "source-backed UI source drawer",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "context_only source-backed",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "no-hit degraded source drawer",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "source label UI context_only",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "claim_verified source drawer",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_duplicate"
+    },
+    {
+      "term": "source label fixture matrix",
+      "issues": [
+        "#71 open source label fixture matrix",
+        "#56 closed source label fixture expansion",
+        "#37 closed gold metric coverage audit",
+        "#38 closed A2M news trace and retrieval blast-radius audit"
+      ],
+      "prs": [],
+      "verdict": "adjacent_not_duplicate_for_ui_drawer_semantics"
+    },
+    {
+      "term": "cockpit_announcement_context",
+      "issues": [
+        "#84 open cockpit_announcement_context runtime schema audit"
+      ],
+      "prs": [],
+      "verdict": "covered"
+    },
+    {
+      "term": "news projection materialization parity",
+      "issues": [
+        "#83 open news projection materialization/parity repair planning"
+      ],
+      "prs": [],
+      "verdict": "covered"
+    },
+    {
+      "term": "A2M recall visible evidence",
+      "issues": [
+        "#87 open A2M recall chat visible evidence gap"
+      ],
+      "prs": [],
+      "verdict": "covered"
+    },
+    {
+      "term": "natural language local news intent",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_issue_created_landed_and_validated"
+    },
+    {
+      "term": "latest local news BHP",
+      "issues": [],
+      "prs": [],
+      "verdict": "no_issue_created_landed_and_validated"
+    }
+  ]
+}

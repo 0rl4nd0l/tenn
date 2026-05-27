@@ -1,0 +1,68 @@
+[
+  {
+    "item": "news projection/materialization/parity repair planning",
+    "reason": "Already covered by open issue #83.",
+    "result": "skipped_existing_tracker",
+    "tracker": "https://github.com/0rl4nd0l/tenn/issues/83"
+  },
+  {
+    "item": "cockpit_announcement_context runtime schema audit",
+    "reason": "Already covered by open issue #84.",
+    "result": "skipped_existing_tracker",
+    "tracker": "https://github.com/0rl4nd0l/tenn/issues/84"
+  },
+  {
+    "item": "A2M recall visible evidence / DATA_MISSING evidence-envelope gap",
+    "reason": "Already covered by open issue #87.",
+    "result": "skipped_existing_tracker",
+    "tracker": "https://github.com/0rl4nd0l/tenn/issues/87"
+  },
+  {
+    "item": "memory system fitness audit",
+    "reason": "Already covered by open issue #88.",
+    "result": "skipped_existing_tracker",
+    "tracker": "https://github.com/0rl4nd0l/tenn/issues/88"
+  },
+  {
+    "item": "source label fixture matrix",
+    "reason": "Open issue #71 is adjacent fixture coverage, not a duplicate of source-drawer rendering semantics.",
+    "result": "adjacent_not_duplicate",
+    "tracker": "https://github.com/0rl4nd0l/tenn/issues/71"
+  },
+  {
+    "item": "status/news-health route contract",
+    "reason": "Known landed and validated; no retroactive open issue created.",
+    "result": "skipped_landed_validated",
+    "tracker": null
+  },
+  {
+    "item": "ticker-universe local-news/source-grounding honesty guard",
+    "reason": "Known landed and validated; no retroactive open issue created.",
+    "result": "skipped_landed_validated",
+    "tracker": null
+  },
+  {
+    "item": "ticker-news retrieval/ranking/source-pack handoff",
+    "reason": "Known landed and validated; no retroactive open issue created.",
+    "result": "skipped_landed_validated",
+    "tracker": null
+  },
+  {
+    "item": "strict literal local_news_context route",
+    "reason": "Known landed and validated; no retroactive open issue created.",
+    "result": "skipped_landed_validated",
+    "tracker": null
+  },
+  {
+    "item": "natural-language local-news intent route",
+    "reason": "Known landed and validated at canonical HEAD 61723bdca4ea30ce404d606cec63e47b9cb739b3; no retroactive open issue created.",
+    "result": "skipped_landed_validated",
+    "tracker": null
+  },
+  {
+    "item": "Project Memory /save",
+    "reason": "User directed that this belongs in Project Memory consolidation, not GitHub issues.",
+    "result": "skipped_project_memory_only",
+    "tracker": null
+  }
+]

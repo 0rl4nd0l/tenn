@@ -1,0 +1,61 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/loose_task_card_classification_v1_20260526.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [
+    "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/loose_task_card_classification_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/loose_task_card_classification_v1_20260526.md",
+        "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+        "docs/agent_tasks/codex_nightly_lockup_report_v1_20260526.md",
+        "reports/agent_jobs/loose_task_card_classification_v1_20260526/README.md",
+        "reports/agent_jobs/loose_task_card_classification_v1_20260526/status.json",
+        "reports/agent_jobs/loose_task_card_classification_v1_20260526/classification_matrix.md",
+        "reports/agent_jobs/loose_task_card_classification_v1_20260526/diff-check.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/README.md",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/status.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/duplicate_search_matrix.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/created_issues.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/skipped_items.json",
+        "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "loose_task_card_classification_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/loose_task_card_classification_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "labels": [
+      "lane:repo-hygiene",
+      "lane:reporting",
+      "mode:audit",
+      "priority:p1",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane"
+    ],
+    "milestone": "M0 - Control Plane Hardening",
+    "number": 94,
+    "reason": "No open/closed issue or PR covered the two exact persistent untracked task-card filenames and preservation-classification path.",
+    "state": "OPEN",
+    "title": "[Repo Hygiene] Classify and preserve two unrelated untracked task cards",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/94"
+  },
+  {
+    "labels": [
+      "lane:reporting",
+      "lane:provenance",
+      "lane:query-orchestration",
+      "mode:audit",
+      "priority:p1",
+      "risk:medium",
+      "state:ready",
+      "type:validation-gap"
+    ],
+    "milestone": "M1 - Trust / Provenance Foundation",
+    "number": 95,
+    "reason": "No open/closed issue or PR directly covered UI/source-drawer rendering semantics for context-only, no-hit, degraded, DATA_MISSING, unknown, memory-context, or external-web-context states.",
+    "state": "OPEN",
+    "title": "[Reporting] Audit Cockpit source drawer semantics for context-only and degraded evidence",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/95"
+  }
+]
