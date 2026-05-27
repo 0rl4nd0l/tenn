@@ -3,14 +3,6 @@
     {
       "path": "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md",
       "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/loose_task_card_classification_v1_20260526.md",
-      "status": "??"
     }
   ],
   "disallowed_files": [
