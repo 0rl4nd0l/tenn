@@ -1,20 +1,16 @@
 {
   "changed_files": [
     {
-      "path": "cockpit-ui/app/api/cockpit/restart/route.ts",
+      "path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/route_guard_decision.json",
       "status": "M"
     },
     {
-      "path": "cockpit-ui/lib/api-client.ts",
+      "path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/status.json",
       "status": "M"
     },
     {
-      "path": "cockpit-ui/lib/restart-route-guard.test.ts",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/backend_restart_route_guard_security_audit_v1_20260527.md",
-      "status": "??"
+      "path": "reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/validation.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

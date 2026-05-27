@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-27T14:30:25+10:00",
+  "generated_at": "2026-05-27T14:36:34+10:00",
   "validation": {
     "preflight_repo_state": "PASS",
     "registry_list_active_read_only_initial": "PASS",
@@ -16,7 +16,13 @@
     "static_guard_readback": "PASS",
     "follow_up_duplicate_search": "PASS_NO_DUPLICATE_FOUND",
     "follow_up_issue_created": "PASS",
-    "git_diff_check_pre_report": "PASS"
+    "git_diff_check_pre_report": "PASS",
+    "json_parse_report_artifacts_final": "PASS",
+    "task_card_check_diff_final": "PASS",
+    "github_issue_55_comment": "PASS",
+    "github_issue_55_label_update": "PASS",
+    "github_issue_55_close": "PASS",
+    "github_issue_55_readback": "PASS"
   },
   "commands": [
     {
@@ -48,6 +54,19 @@
     {
       "cmd": "git diff --check",
       "result": "PASS"
+    },
+    {
+      "cmd": "jq empty reports/agent_jobs/backend_restart_route_guard_security_audit_v1_20260527/*.json",
+      "result": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/backend_restart_route_guard_security_audit_v1_20260527.md",
+      "result": "PASS"
+    },
+    {
+      "cmd": "gh issue view 55 --json number,title,state,labels,milestone,url,comments",
+      "result": "PASS",
+      "details": "Issue #55 read back CLOSED with state:done-remediated"
     }
   ],
   "non_final_attempts": [
@@ -55,6 +74,11 @@
       "cmd": "corepack pnpm --dir cockpit-ui test -- lib/restart-route-guard.test.ts",
       "result": "FAIL_NOT_FINAL_VALIDATION",
       "reason": "The package script expanded into the broader configured Vitest suite. It exposed an initial CJS mock issue in the new test, then unrelated existing Home/Marketplace failures. The focused pnpm exec Vitest runs passed after the mock fix."
+    },
+    {
+      "cmd": "gh issue close 55 --reason completed",
+      "result": "FAIL_NOT_FINAL_VALIDATION",
+      "reason": "This installed gh version does not support the --reason flag for issue close. The issue was closed successfully with gh issue close 55."
     }
   ],
   "resolution_review": {
@@ -62,12 +86,12 @@
     "issue": 55,
     "worker_decision": "NEEDS_SAFE_EXTENSION_IMPLEMENTED",
     "reviewer_verdict": "PASS_CLOSEOUT",
-    "closed": false,
+    "closed": true,
     "follow_up": "#121",
     "data_missing": [
       "Live listener binding not re-probed.",
       "GitHub Projects fields not inspected or mutated."
     ],
-    "next_action": "commit implementation/report bundle, then comment and close #55"
+    "next_action": "final report commit and registry release"
   }
 }

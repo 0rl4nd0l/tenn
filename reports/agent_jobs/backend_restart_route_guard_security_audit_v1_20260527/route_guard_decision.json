@@ -1,10 +1,12 @@
 {
-  "generated_at": "2026-05-27T14:30:25+10:00",
+  "generated_at": "2026-05-27T14:36:34+10:00",
   "issue": 55,
   "classification": "ROOT_CAUSE_FIXED",
   "worker_decision": "NEEDS_SAFE_EXTENSION_IMPLEMENTED",
   "reviewer_verdict": "PASS_CLOSEOUT",
   "root_cause_verdict": "ROOT_CAUSE_FIXED_FOR_DIRECT_RESTART_ROUTE",
+  "implementation_commit": "49c6e98e",
+  "issue_55_final_state": "CLOSED",
   "implementation_gate": {
     "exact_route_identified": true,
     "minimal_additive_change": true,
