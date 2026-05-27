@@ -1,0 +1,84 @@
+{
+  "job_id": "remaining_loose_issue_task_cards_classification_v1_20260527",
+  "generated_at": "2026-05-27T13:05:41+10:00",
+  "mode": "audit_only/preservation_decision",
+  "status": "classification_complete",
+  "repo": {
+    "root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_before_classification": "8297db8e50a767cb4baa10eeb32cd964253f28a2",
+    "remote": "https://github.com/0rl4nd0l/tenn.git",
+    "ahead_of_origin_before_classification": 5,
+    "dirty_files_before_classification": []
+  },
+  "registry": {
+    "read_only": true,
+    "active_jobs": []
+  },
+  "classifications": [
+    {
+      "path": "docs/agent_tasks/github_issue_backlog_audit_v1_20260526.md",
+      "job_id": "github_issue_backlog_audit_v1_20260526",
+      "classification": "ALREADY_COMPLETED",
+      "preservation_state": "ALREADY_PRESERVED",
+      "preservation_commit": "8297db8e50a767cb4baa10eeb32cd964253f28a2",
+      "output_dir": "reports/agent_jobs/github_issue_backlog_audit_v1_20260526",
+      "live_github_evidence": [
+        {
+          "number": 106,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Normalize raw Jam-captured GitHub issues into Tenn issue contract"
+        },
+        {
+          "number": 115,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Add report-only Codex nightly lock-up audit"
+        }
+      ],
+      "preserve_now": false,
+      "delete_now": false
+    },
+    {
+      "path": "docs/agent_tasks/github_outstanding_issue_creation_v1_20260526.md",
+      "job_id": "github_outstanding_issue_creation_v1_20260526",
+      "classification": "ALREADY_COMPLETED",
+      "preservation_state": "ALREADY_PRESERVED",
+      "preservation_commit": "2c83ff77",
+      "output_dir": "reports/agent_jobs/github_outstanding_issue_creation_v1_20260526",
+      "live_github_evidence": [
+        {
+          "number": 94,
+          "state": "OPEN",
+          "title": "[Repo Hygiene] Classify and preserve two unrelated untracked task cards"
+        },
+        {
+          "number": 95,
+          "state": "OPEN",
+          "title": "[Reporting] Audit Cockpit source drawer semantics for context-only and degraded evidence"
+        }
+      ],
+      "preserve_now": false,
+      "delete_now": false
+    }
+  ],
+  "validation": {
+    "target_task_card_validate": "PASS",
+    "target_task_card_check_diff_no_write_report": "PASS",
+    "target_json_parse": "PASS",
+    "live_github_issue_lookup": "PASS",
+    "classification_task_card_validate": "PASS",
+    "classification_check_diff": "PASS_EXPECTED",
+    "git_diff_check": "PASS",
+    "final_registry_read_only": "PENDING",
+    "final_git_status": "PENDING"
+  },
+  "recommended_next_issue": {
+    "number": 106,
+    "title": "[Repo Hygiene] Normalize raw Jam-captured GitHub issues into Tenn issue contract",
+    "reason": "Top ranked next issue in the preserved backlog audit; M0 control-plane cleanup before broader issue closeout."
+  },
+  "data_missing": [
+    "Remote durability is not proven because the branch is ahead of origin by 5 before this classification report commit.",
+    "GitHub Project fields were not inspected or mutated."
+  ]
+}
