@@ -4,16 +4,19 @@ docling_extract.py — Structured PDF extraction with table preservation and cac
 Replaces text_extract.py (flat PyMuPDF text) with docling's layout model,
 which preserves 2D table structure (row labels + column values aligned).
 
-Cache: {pdf_path}.docling.json (alongside the PDF, keyed by mtime).
+Cache: data_root/reports/extraction_cache/docling_extract/*.json, keyed by
+source path and source file metadata so source PDFs remain read-only inputs.
 Fallback: PyMuPDF flat text if docling fails (image PDFs, timeouts).
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import multiprocessing as mp
 import os
+import re
 import tempfile
 import threading
 import time
@@ -26,6 +29,8 @@ from typing import Any, Callable, Optional
 import importlib.metadata
 
 import fitz  # PyMuPDF — fallback only
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +51,7 @@ DOCLING_PAGE_BATCH_PROFILE_PATH_ENV = "DOCLING_PAGE_BATCH_PROFILE_PATH"
 DOCLING_PAGE_BATCH_PROFILE_TARGET_ENV = "DOCLING_PAGE_BATCH_PROFILE_TARGET"
 DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE_ENV = "DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE"
 DOCLING_PAGE_BATCH_PROFILE_DEFAULT_BATCH_SIZE = 8
+DOCLING_EXTRACT_CACHE_DIR = "docling_extract"
 
 
 class ExtractionTimeoutError(Exception):
@@ -142,6 +148,46 @@ def _get_page_count_fast(pdf_path: str) -> int:
             return len(doc)
     except Exception:
         return 0
+
+
+def _extract_cache_root() -> Path:
+    data_root = Path(settings.data_root).expanduser().resolve()
+    root = (
+        data_root / "reports" / "extraction_cache" / DOCLING_EXTRACT_CACHE_DIR
+    ).resolve()
+    root.relative_to(data_root)
+    return root
+
+
+def _safe_cache_label(pdf_path: str) -> str:
+    label = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(pdf_path).name).strip("._")
+    return label[:96] or "document"
+
+
+def _cache_key_material(pdf_path: str) -> str:
+    source_path = Path(pdf_path).expanduser()
+    resolved = str(source_path.resolve(strict=False))
+    try:
+        stat = source_path.stat()
+    except OSError:
+        return f"path={resolved}"
+    return f"path={resolved}\0size={stat.st_size}\0mtime_ns={stat.st_mtime_ns}"
+
+
+def _cache_path_for_pdf(pdf_path: str, cache_suffix: str) -> Path:
+    if cache_suffix not in {".docling.json", ".pymupdf.json"}:
+        raise ValueError(f"unsupported extraction cache suffix: {cache_suffix}")
+    root = _extract_cache_root()
+    digest = hashlib.sha256(_cache_key_material(pdf_path).encode("utf-8")).hexdigest()
+    candidate = (
+        root / f"{digest}-{_safe_cache_label(pdf_path)}{cache_suffix}"
+    ).resolve()
+    candidate.relative_to(root)
+    return candidate
+
+
+def _pymupdf_cache_path(pdf_path: str) -> Path:
+    return _cache_path_for_pdf(pdf_path, ".pymupdf.json")
 
 
 def _compute_docling_timeout(page_count: int, *, strict_backend: bool = False) -> int:
@@ -472,7 +518,7 @@ def extract_structured(
 
     # Cache check (works for both backends)
     cache_suffix = ".docling.json" if chosen == "docling" else ".pymupdf.json"
-    cache_path = Path(pdf_path + cache_suffix)
+    cache_path = _cache_path_for_pdf(pdf_path, cache_suffix)
     pdf_mtime = os.path.getmtime(pdf_path)
     actual_pdf_page_count = _get_page_count_fast(pdf_path)
 
@@ -495,7 +541,7 @@ def extract_structured(
                             f"docling strict backend rejected garbled cached output for {pdf_path}"
                         )
                     result = _extract_pymupdf(pdf_path)
-                    _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+                    _save_cache(_pymupdf_cache_path(pdf_path), result)
                     return result
                 logger.info(
                     "Using cached %s extraction for %s",
@@ -523,7 +569,7 @@ def extract_structured(
                 page_count,
             )
             result = _extract_pymupdf(pdf_path)
-            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            _save_cache(_pymupdf_cache_path(pdf_path), result)
             return result
         timeout = _compute_docling_timeout(page_count, strict_backend=strict_backend)
         if timeout != DOCLING_TIMEOUT_SECONDS:
@@ -543,7 +589,7 @@ def extract_structured(
                     pdf_path,
                 )
                 result = _extract_pymupdf(pdf_path)
-                _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+                _save_cache(_pymupdf_cache_path(pdf_path), result)
                 return result
             return result
         except (TimeoutError, ExtractionTimeoutError) as te:
@@ -557,7 +603,7 @@ def extract_structured(
                 pdf_path,
             )
             result = _extract_pymupdf(pdf_path)
-            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            _save_cache(_pymupdf_cache_path(pdf_path), result)
             return result
         except Exception as e:
             logger.error("docling failed for %s: %s", pdf_path, e)
@@ -568,7 +614,7 @@ def extract_structured(
                 pdf_path,
             )
             result = _extract_pymupdf(pdf_path)
-            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            _save_cache(_pymupdf_cache_path(pdf_path), result)
             return result
     else:
         logger.info("PyMuPDF extraction: %s", pdf_path)
@@ -858,6 +904,7 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
         ],
         "sections": doc.sections,
     }
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
 

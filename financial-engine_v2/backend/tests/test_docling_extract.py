@@ -16,6 +16,17 @@ from app.services.docling_extract import (
 )
 
 
+@pytest.fixture(autouse=True)
+def isolated_extract_cache_root(tmp_path, monkeypatch):
+    monkeypatch.setattr(docling_extract.settings, "data_root", str(tmp_path / "data"))
+
+
+def _test_cache_path(pdf_path: Path, cache_suffix: str) -> Path:
+    cache_path = docling_extract._cache_path_for_pdf(str(pdf_path), cache_suffix)
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    return cache_path
+
+
 def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
     pdf_path = tmp_path / "report.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 test")
@@ -34,7 +45,7 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
         page_count=3,
         docling_version=docling_extract.DOCLING_VERSION,
     )
-    cache_path = Path(str(pdf_path) + ".docling.json")
+    cache_path = _test_cache_path(pdf_path, ".docling.json")
     docling_extract._save_cache(cache_path, cached_doc)
     pdf_mtime = pdf_path.stat().st_mtime
     os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
@@ -55,7 +66,7 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
 def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypatch):
     pdf_path = tmp_path / "report.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 test")
-    cache_path = Path(str(pdf_path) + ".docling.json")
+    cache_path = _test_cache_path(pdf_path, ".docling.json")
     cache_path.write_text("{not valid json", encoding="utf-8")
     pdf_mtime = pdf_path.stat().st_mtime
     os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
@@ -105,7 +116,7 @@ def test_extract_structured_reextracts_when_docling_cache_is_truncated(
         page_count=6,
         docling_version=docling_extract.DOCLING_VERSION,
     )
-    cache_path = Path(str(pdf_path) + ".docling.json")
+    cache_path = _test_cache_path(pdf_path, ".docling.json")
     docling_extract._save_cache(cache_path, stale_doc)
     pdf_mtime = pdf_path.stat().st_mtime
     os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
@@ -164,7 +175,7 @@ def test_extract_structured_reextracts_when_cache_pdf_page_metadata_mismatches(
         source_pdf_page_count=41,
         docling_version=docling_extract.DOCLING_VERSION,
     )
-    cache_path = Path(str(pdf_path) + ".docling.json")
+    cache_path = _test_cache_path(pdf_path, ".docling.json")
     docling_extract._save_cache(cache_path, stale_doc)
     pdf_mtime = pdf_path.stat().st_mtime
     os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
@@ -220,6 +231,79 @@ def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(
     loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == fallback_doc
+
+
+def test_pymupdf_fallback_cache_uses_data_root_when_source_dir_read_only(
+    tmp_path, monkeypatch
+):
+    source_dir = tmp_path / "readonly-source"
+    source_dir.mkdir()
+    pdf_path = source_dir / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    fallback_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "Fallback text", "page": 1}],
+        extraction_method="pymupdf_fallback",
+        page_count=1,
+    )
+
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_docling_with_timeout",
+        lambda path, timeout=120: (_ for _ in ()).throw(
+            TimeoutError("docling timeout")
+        ),
+    )
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: fallback_doc)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+
+    source_dir.chmod(0o555)
+    try:
+        loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
+    finally:
+        source_dir.chmod(0o755)
+
+    cache_path = docling_extract._pymupdf_cache_path(str(pdf_path))
+    source_sidecar = Path(str(pdf_path) + ".pymupdf.json")
+    assert loaded == fallback_doc
+    assert cache_path.exists()
+    assert cache_path.relative_to(docling_extract._extract_cache_root())
+    assert not source_sidecar.exists()
+
+
+def test_pymupdf_backend_cache_does_not_create_source_pdf_sidecar(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    pymupdf_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "PyMuPDF text", "page": 1}],
+        extraction_method="pymupdf",
+        page_count=1,
+    )
+
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: pymupdf_doc)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="pymupdf")
+
+    cache_path = docling_extract._pymupdf_cache_path(str(pdf_path))
+    assert loaded == pymupdf_doc
+    assert cache_path.exists()
+    assert cache_path.relative_to(docling_extract._extract_cache_root())
+    assert not Path(str(pdf_path) + ".pymupdf.json").exists()
+
+
+def test_extraction_cache_path_cannot_escape_cache_root(tmp_path):
+    cache_path = docling_extract._cache_path_for_pdf(
+        str(tmp_path / ".." / "source" / "report.pdf"),
+        ".pymupdf.json",
+    )
+
+    assert cache_path.relative_to(docling_extract._extract_cache_root())
 
 
 def test_extract_structured_preempts_docling_for_large_pdf(tmp_path, monkeypatch):

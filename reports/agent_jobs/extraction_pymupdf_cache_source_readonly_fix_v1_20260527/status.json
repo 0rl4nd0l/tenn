@@ -1,0 +1,94 @@
+{
+  "artifact_type": "extraction_pymupdf_cache_source_readonly_fix_status_v1",
+  "branch": "safe/extraction-pymupdf-cache-source-readonly-fix-v1-20260527",
+  "canary_or_backfill_run": false,
+  "canonical_truth_writes": false,
+  "data_missing": [
+    "reports/agent_jobs/extraction_primary_canary_run_v1_20260527/README.md was missing in this isolated worktree; sibling worktree report was read as supporting evidence",
+    ".cursor/rules/* architecture-check rule files are missing in this worktree",
+    "live backend loaded code version was not checked because service restart/runtime mutation is forbidden"
+  ],
+  "db_writes": false,
+  "files_changed": [
+    "docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md",
+    "financial-engine_v2/backend/app/services/docling_extract.py",
+    "financial-engine_v2/backend/tests/test_docling_extract.py",
+    "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/README.md",
+    "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/diff-check.json",
+    "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/github_issue_96_comment.md",
+    "reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/status.json"
+  ],
+  "generated_at": "2026-05-27T05:37:24Z",
+  "head_at_report_generation": "c275e3c857cadd8c88491b38c13a3af6debe2539",
+  "issue": 96,
+  "job_id": "extraction_pymupdf_cache_source_readonly_fix_v1_20260527",
+  "lane": "Financial Truth",
+  "memory_news_qdrant_writes": false,
+  "mode": "SAFE_EXTENSION",
+  "new_cache_path_behavior": {
+    "cache_root": "<settings.data_root>/reports/extraction_cache/docling_extract/",
+    "deterministic_key_material": [
+      "resolved source path",
+      "source file size when stat is available",
+      "source file mtime_ns when stat is available"
+    ],
+    "escape_guard": "resolved cache path must be relative to resolved cache root",
+    "source_pdf_sidecar_writes": false
+  },
+  "production_data_access": false,
+  "registry": {
+    "claim": "claimed during implementation",
+    "final_list_active": "unrelated active job pr39_ci_audit_artifact_preservation_v1_20260527 appeared after release; no file overlap with this task",
+    "release": "released",
+    "released_at": "2026-05-27T05:37:03.346095Z",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "root_cause": "PyMuPDF fallback cache used Path(pdf_path + '.pymupdf.json'), which writes beside source PDFs under read-only /data/asx/docs.",
+  "runtime_model_gpu_config_changes": false,
+  "source_pdf_edits": false,
+  "task_card": "docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md",
+  "tests": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_docling_extract.py -q",
+      "result": "PASS: 17 passed in 0.25s on final repeat; earlier run passed 17 in 0.28s"
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/docling_extract.py financial-engine_v2/backend/tests/test_docling_extract.py",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/docling_extract.py financial-engine_v2/backend/tests/test_docling_extract.py",
+      "result": "PASS: All checks passed!"
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_pymupdf_cache_source_readonly_fix_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_pymupdf_cache_source_readonly_fix_v1_20260527/diff-check.json >/dev/null",
+      "result": "PASS"
+    },
+    {
+      "command": "git status --short -- '*.pdf' && git diff --cached --name-only -- '*.pdf'",
+      "result": "PASS: no PDF paths staged"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release extraction_pymupdf_cache_source_readonly_fix_v1_20260527 --repo-root . && python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "result": "PASS: this job released; final list-active shows unrelated PR39 Evaluation job with no file overlap"
+    }
+  ],
+  "worktree": "/home/l4nd0/tenn-extraction-pymupdf-cache-source-readonly-fix-v1-20260527"
+}
