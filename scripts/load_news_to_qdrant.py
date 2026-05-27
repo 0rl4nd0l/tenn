@@ -1460,6 +1460,7 @@ def sync_news_to_qdrant(
     dispatch_memos: bool = True,
     cleanup_stale: bool = False,
     qdrant_only: bool = False,
+    skip_clean_upserts: bool = False,
     target_contract_report: bool = False,
     qdrant_client: Any | None = None,
     embed_texts_fn: Callable[[List[str]], List[List[float]]] | None = None,
@@ -1513,6 +1514,7 @@ def sync_news_to_qdrant(
         "deleted": 0,
         "dry_run": bool(dry_run),
         "qdrant_only": bool(qdrant_only),
+        "skip_clean_upserts": bool(skip_clean_upserts),
         "ollama_url": ollama_url,
         "ollama_url_source": ollama_url_source,
     }
@@ -1521,7 +1523,13 @@ def sync_news_to_qdrant(
 
     client = qdrant_client
     current_payloads: Dict[str, Dict[str, Any]] = {}
-    needs_diff = dry_run or qdrant_only or cleanup_stale or target_contract_report
+    needs_diff = (
+        dry_run
+        or qdrant_only
+        or cleanup_stale
+        or target_contract_report
+        or skip_clean_upserts
+    )
     if needs_diff or target_points:
         if client is None:
             try:
@@ -1665,7 +1673,7 @@ def sync_news_to_qdrant(
     total_upserted = 0
     batch: List[Dict[str, Any]] = []
     points_for_upsert = target_points
-    if qdrant_only:
+    if qdrant_only or skip_clean_upserts:
         if not current_payloads and "qdrant_diff" not in stats:
             diff, current_payloads = _build_qdrant_diff(
                 client=client,
@@ -1675,7 +1683,8 @@ def sync_news_to_qdrant(
             )
             stats["qdrant_diff"] = diff
         if stats.get("qdrant_diff", {}).get("status") != "available":
-            raise RuntimeError("Qdrant diff is required for --qdrant-only repair")
+            reason = "--qdrant-only repair" if qdrant_only else "--skip-clean-upserts"
+            raise RuntimeError(f"Qdrant diff is required for {reason}")
         repair_ids = _repair_point_ids(target_points, current_payloads)
         points_for_upsert = [
             point for point in target_points if str(point["id"]) in repair_ids
@@ -1880,6 +1889,14 @@ def main() -> int:
         help="Run Qdrant projection repair only; disables memo dispatch and SQLite fallback rebuild",
     )
     ap.add_argument(
+        "--skip-clean-upserts",
+        action="store_true",
+        help=(
+            "Use Qdrant payload diff to embed/upsert only missing or drifted "
+            "chunks; clean existing chunks are left untouched"
+        ),
+    )
+    ap.add_argument(
         "--target-contract-report",
         action="store_true",
         help="Include loader-eligible target counts and Qdrant diff details in the JSON output",
@@ -1935,6 +1952,7 @@ def main() -> int:
             dispatch_memos=dispatch_memos,
             cleanup_stale=bool(args.cleanup_stale),
             qdrant_only=bool(args.qdrant_only),
+            skip_clean_upserts=bool(args.skip_clean_upserts),
             target_contract_report=bool(args.target_contract_report),
             ollama_url=args.ollama_url,
             memo_diagnostics_path=args.memo_diagnostics_path or None,

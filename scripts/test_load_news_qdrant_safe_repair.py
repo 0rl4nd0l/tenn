@@ -240,6 +240,71 @@ class NewsQdrantSafeRepairTests(unittest.TestCase):
             self.assertEqual(len(fake_client.upserted), 1)
             self.assertEqual(stats["memo_extraction"]["status"], "skipped")
 
+    def test_skip_clean_upserts_leaves_matching_qdrant_points_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news_articles.sqlite"
+            _create_articles_db(db_path, [{"article_id": "clean-art"}])
+            target = build_news_projection_target(db_path)
+            expected_point = target["points"][0]
+            fake_client = FakeQdrantClient(
+                {str(expected_point["id"]): expected_point["payload"]}
+            )
+
+            stats = sync_news_to_qdrant(
+                str(db_path),
+                qdrant_client=fake_client,
+                embed_texts_fn=_embed_texts,
+                upsert_points_fn=_upsert_points,
+                delete_points_fn=_delete_points,
+                ensure_collection_fn=_ensure_collection,
+                get_vector_config_fn=_vector_config,
+                memo_dispatch_fn=_raise_if_memo_dispatched,
+                dispatch_memos=False,
+                skip_clean_upserts=True,
+                write_model_marker=False,
+            )
+
+            self.assertTrue(stats["skip_clean_upserts"])
+            self.assertEqual(stats["qdrant_diff"]["missing_expected_chunks"], 0)
+            self.assertEqual(stats["qdrant_diff"]["payload_drift_chunks"], 0)
+            self.assertEqual(stats["repair_candidate_chunks"], 0)
+            self.assertEqual(stats["upserted"], 0)
+            self.assertEqual(fake_client.upserted, [])
+            self.assertEqual(stats["memo_extraction"]["status"], "skipped")
+
+    def test_skip_clean_upserts_repairs_payload_drift_only(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news_articles.sqlite"
+            _create_articles_db(db_path, [{"article_id": "drift-art"}])
+            target = build_news_projection_target(db_path)
+            expected_point = target["points"][0]
+            drifted_payload = dict(expected_point["payload"])
+            drifted_payload["title"] = "Old title"
+            fake_client = FakeQdrantClient({str(expected_point["id"]): drifted_payload})
+
+            stats = sync_news_to_qdrant(
+                str(db_path),
+                qdrant_client=fake_client,
+                embed_texts_fn=_embed_texts,
+                upsert_points_fn=_upsert_points,
+                delete_points_fn=_delete_points,
+                ensure_collection_fn=_ensure_collection,
+                get_vector_config_fn=_vector_config,
+                memo_dispatch_fn=_raise_if_memo_dispatched,
+                dispatch_memos=False,
+                skip_clean_upserts=True,
+                write_model_marker=False,
+            )
+
+            self.assertEqual(stats["qdrant_diff"]["payload_drift_chunks"], 1)
+            self.assertEqual(stats["repair_candidate_chunks"], 1)
+            self.assertEqual(stats["upserted"], 1)
+            self.assertEqual(len(fake_client.upserted), 1)
+            self.assertEqual(
+                fake_client.points[str(expected_point["id"])]["title"],
+                expected_point["payload"]["title"],
+            )
+
     def test_explicit_memo_diagnostics_path_reaches_default_dispatch(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "news_articles.sqlite"

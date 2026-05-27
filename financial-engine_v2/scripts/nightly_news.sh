@@ -264,6 +264,7 @@ else
       --db-path "${NEWS_ARTICLES_DB}"
       --news-context-db "${NEWS_CONTEXT_DB}"
       --refresh-sqlite-fallback
+      --skip-clean-upserts
       --memo-diagnostics-path "${MEMO_DIAGNOSTICS_PATH}"
       --memo-max-article-chars "${NEWS_MEMO_MAX_ARTICLE_CHARS:-5000}"
       --summary-json "${SUMMARY_FILE}"
