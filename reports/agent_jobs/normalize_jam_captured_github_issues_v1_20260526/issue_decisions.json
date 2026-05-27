@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-05-27T13:49:32+10:00",
+  "decisions": [
+    {
+      "issue": 40,
+      "classification": "DATA_MISSING",
+      "action": "body_labels_milestone_updated",
+      "task_card": "docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260526.md",
+      "report_path": "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260526/",
+      "links": [
+        83,
+        104,
+        107,
+        116
+      ]
+    },
+    {
+      "issue": 41,
+      "classification": "DATA_MISSING",
+      "action": "body_labels_milestone_updated",
+      "task_card": "docs/agent_tasks/home_data_missing_jam_triage_v1_20260526.md",
+      "report_path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/",
+      "links": [
+        86,
+        116,
+        83,
+        114
+      ]
+    },
+    {
+      "issue": 53,
+      "classification": "NORMALIZED_IN_PLACE",
+      "action": "body_labels_milestone_updated",
+      "task_card": "docs/agent_tasks/cockpit_accessible_form_controls_audit_v1_20260526.md",
+      "report_path": "reports/agent_jobs/cockpit_accessible_form_controls_audit_v1_20260526/",
+      "links": []
+    },
+    {
+      "issue": 55,
+      "classification": "NORMALIZED_IN_PLACE",
+      "action": "body_labels_milestone_updated",
+      "task_card": "docs/agent_tasks/cockpit_restart_route_guard_audit_v1_20260526.md",
+      "report_path": "reports/agent_jobs/cockpit_restart_route_guard_audit_v1_20260526/",
+      "links": [
+        51
+      ]
+    },
+    {
+      "issue": 61,
+      "classification": "NORMALIZED_IN_PLACE",
+      "action": "body_labels_milestone_updated",
+      "task_card": "docs/agent_tasks/cockpit_llama_server_gpu_default_visibility_v1_20260526.md",
+      "report_path": "reports/agent_jobs/cockpit_llama_server_gpu_default_visibility_v1_20260526/",
+      "links": [
+        90,
+        113
+      ]
+    },
+    {
+      "issue": 106,
+      "classification": "COMPLETED_WITH_EVIDENCE",
+      "action": "closeout_comment_state_label_and_close",
+      "links": [
+        40,
+        41,
+        53,
+        55,
+        61
+      ]
+    }
+  ]
+}

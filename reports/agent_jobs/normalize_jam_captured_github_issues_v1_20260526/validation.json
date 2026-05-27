@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-05-27T13:49:32+10:00",
+  "validation": {
+    "preflight_repo_state": "PASS",
+    "registry_list_active_read_only_initial": "PASS",
+    "issue_106_read": "PASS",
+    "target_issues_read": "PASS",
+    "jam_evidence_check": "PASS_WITH_DATA_MISSING",
+    "duplicate_searches": "PASS",
+    "task_card_validate": "PASS",
+    "registry_check_overlap": "PASS",
+    "registry_claim": "PASS",
+    "github_issue_edits": "PASS",
+    "github_readback": "PASS",
+    "json_parse": "PASS",
+    "task_card_check_diff": "PASS",
+    "git_diff_check": "PASS",
+    "registry_release": "PASS",
+    "final_registry_read_only": "PASS",
+    "final_git_status_precommit": "PASS_SCOPED_DIRTY_ONLY"
+  },
+  "notes": [
+    "Jam console retrieval for #40 returned HTTP 404.",
+    "Jam #41 had no processed console/network payloads.",
+    "HEAD moved from 60db8e068f6c8f6d30ed4cbaaac1f9c8260379f9 to 82e62c3f86c395d69190a511eacb92648081ed73 during the task; no overlapping files were touched by this task.",
+    "Final registry read-only showed active extraction_terminal_state_live_candidate_export_v1_20260527 only; no overlap with this report bundle.",
+    "Final precommit git status showed only docs/agent_tasks/normalize_jam_captured_github_issues_v1_20260526.md in normal status; reports are ignored and staged with git add -f."
+  ]
+}

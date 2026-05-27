@@ -1,0 +1,109 @@
+{
+  "generated_at": "2026-05-27T13:49:32+10:00",
+  "issues": [
+    {
+      "number": 40,
+      "state": "OPEN",
+      "title": "failure to request a search",
+      "milestone": "M3 \u2014 Query + Memory Integrity",
+      "labels": [
+        "lane:query-orchestration",
+        "lane:provenance",
+        "lane:reporting",
+        "mode:audit",
+        "priority:p2",
+        "risk:medium",
+        "state:data-missing",
+        "state:needs-review",
+        "type:validation-gap",
+        "type:usability"
+      ],
+      "body_marker": "Tenn Issue Contract Normalization"
+    },
+    {
+      "number": 41,
+      "state": "OPEN",
+      "title": "missing data",
+      "milestone": "M5 \u2014 Cockpit Analyst Workflow",
+      "labels": [
+        "lane:cockpit",
+        "lane:reporting",
+        "mode:audit",
+        "priority:p1",
+        "risk:medium",
+        "state:data-missing",
+        "state:needs-review",
+        "type:bug",
+        "type:validation-gap"
+      ],
+      "body_marker": "Tenn Issue Contract Normalization"
+    },
+    {
+      "number": 53,
+      "state": "OPEN",
+      "title": "Production Cockpit forms rely on placeholders and unlabeled icon controls",
+      "milestone": "M5 \u2014 Cockpit Analyst Workflow",
+      "labels": [
+        "lane:cockpit",
+        "lane:reporting",
+        "mode:audit",
+        "priority:p2",
+        "risk:medium",
+        "state:ready",
+        "type:usability",
+        "type:validation-gap"
+      ],
+      "body_marker": "Tenn Issue Contract Normalization"
+    },
+    {
+      "number": 55,
+      "state": "OPEN",
+      "title": "Cockpit backend restart route has no local auth or CSRF guard while frontend is LAN-bound",
+      "milestone": "M6 \u2014 Runtime / Local Automation",
+      "labels": [
+        "lane:reporting",
+        "lane:runtime",
+        "mode:audit",
+        "priority:p1",
+        "risk:high",
+        "state:ready",
+        "type:control-plane",
+        "type:security"
+      ],
+      "body_marker": "Tenn Issue Contract Normalization"
+    },
+    {
+      "number": 61,
+      "state": "OPEN",
+      "title": "Cockpit should default visible GPU to the llama-server GPU",
+      "milestone": "M6 \u2014 Runtime / Local Automation",
+      "labels": [
+        "lane:reporting",
+        "lane:runtime",
+        "mode:audit",
+        "priority:p1",
+        "risk:medium",
+        "state:ready",
+        "type:bug",
+        "type:usability"
+      ],
+      "body_marker": "Tenn Issue Contract Normalization"
+    },
+    {
+      "number": 106,
+      "state": "CLOSED",
+      "title": "[Repo Hygiene] Normalize raw Jam-captured GitHub issues into Tenn issue contract",
+      "milestone": "M0 \u2014 Control Plane Hardening",
+      "labels": [
+        "lane:repo-hygiene",
+        "lane:reporting",
+        "mode:audit",
+        "priority:p1",
+        "risk:medium",
+        "state:done-remediated",
+        "type:control-plane"
+      ],
+      "closeout_comment": "https://github.com/0rl4nd0l/tenn/issues/106#issuecomment-4551047417"
+    }
+  ]
+}
