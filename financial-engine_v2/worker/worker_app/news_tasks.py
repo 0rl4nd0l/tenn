@@ -21,19 +21,44 @@ from .celery_app import celery  # noqa: E402
 
 
 @celery.task(name="run_daily_news_pipeline")
-def run_daily_news_pipeline(since_hours: int = 36, providers: str = "newspaper4k") -> dict:
+def run_daily_news_pipeline(
+    since_hours: int = 36,
+    providers: str = "newspaper4k",
+    source_profile: str = "daily",
+) -> dict:
     """Run the daily news provider fetch pipeline.
 
     Default provider changed from eodhd,gdelt → newspaper4k (2026-03-27).
     Reason: eodhd and gdelt produce low-quality results for ASX news.
-    newspaper4k scrapes 54 AU finance sources (AFR, Stockhead, MarketIndex,
-    SMH, ABC, The Australian, etc.) with Scrapling/Playwright fallback.
+    The daily newspaper4k profile is bounded RSS-only. Use source_profile="broad"
+    for the full AU finance crawl with browser-capable sources.
 
     To use legacy providers (not recommended):
         run_daily_news_pipeline.delay(providers="eodhd,gdelt")
     """
     import fetch_daily_news as pipeline  # noqa: F401
-    result = pipeline.main(["--since-hours", str(since_hours), "--providers", providers])
+    source_profile = str(source_profile or "daily").strip().lower()
+    args = [
+        "--since-hours",
+        str(since_hours),
+        "--providers",
+        providers,
+        "--newspaper4k-source-profile",
+        source_profile,
+    ]
+    if source_profile == "daily":
+        args.extend(
+            [
+                "--newspaper4k-max-articles-per-source",
+                "15",
+                "--newspaper4k-max-total-articles",
+                "60",
+                "--newspaper4k-request-timeout-seconds",
+                "10",
+                "--newspaper4k-no-playwright",
+            ]
+        )
+    result = pipeline.main(args)
     return {"exit_code": result}
 
 

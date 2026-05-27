@@ -223,6 +223,11 @@ FETCH_ARGS=(
     --tickers-file "${TICKERS_FILE}"
     --news-articles-db "${NEWS_ARTICLES_DB}"
     --news-runs-root "${NEWS_RUNS_ROOT}"
+    --newspaper4k-source-profile daily
+    --newspaper4k-max-articles-per-source 15
+    --newspaper4k-max-total-articles 60
+    --newspaper4k-request-timeout-seconds 10
+    --newspaper4k-no-playwright
 )
 if [[ "${DRY_RUN}" == "true" ]]; then
   FETCH_ARGS+=(--dry-run)

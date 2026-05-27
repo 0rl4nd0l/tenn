@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import urllib.error
 import urllib.parse
+from types import SimpleNamespace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,51 @@ CLI_COMMON = importlib.import_module("news_pipeline.cli_common")
 
 
 class ProviderTests(unittest.TestCase):
+    def test_newspaper4k_defaults_to_bounded_daily_profile(self):
+        provider = NEWSPAPER4K.Newspaper4kProvider()
+        self.assertEqual(provider.source_profile, "daily")
+        self.assertEqual(
+            provider.sources_file.name, "sources_au_finance_rss_only.txt"
+        )
+        self.assertEqual(provider.max_articles_per_source, 15)
+        self.assertEqual(provider.max_total_articles, 60)
+        self.assertEqual(provider.request_timeout_seconds, 10)
+        self.assertTrue(provider.no_playwright)
+        settings = CLI_COMMON.provider_settings(provider)
+        self.assertEqual(settings["source_profile"], "daily")
+        self.assertEqual(settings["sources_file"], str(provider.sources_file))
+
+    def test_build_provider_can_select_broad_newspaper4k_profile(self):
+        with tempfile.TemporaryDirectory() as td:
+            provider = CLI_COMMON.build_provider(
+                provider_name="newspaper4k",
+                eodhd_api_key="",
+                eodhd_capture_dir=Path(td),
+                allow_missing_eodhd_captures=False,
+                newspaper4k_kwargs={
+                    "source_profile": "broad",
+                    "max_total_articles": 12,
+                    "request_timeout_seconds": 7,
+                },
+            )
+        self.assertEqual(provider.source_profile, "broad")
+        self.assertEqual(provider.sources_file.name, "sources_all_au_finance.txt")
+        self.assertEqual(provider.max_total_articles, 12)
+        self.assertEqual(provider.request_timeout_seconds, 7)
+        self.assertFalse(provider.no_playwright)
+
+    def test_newspaper4k_cli_kwargs_default_daily_disables_playwright(self):
+        kwargs = CLI_COMMON.newspaper4k_kwargs_from_args(SimpleNamespace())
+        self.assertEqual(kwargs["source_profile"], "daily")
+        self.assertTrue(kwargs["no_playwright"])
+
+    def test_newspaper4k_cli_kwargs_broad_keeps_playwright_available(self):
+        kwargs = CLI_COMMON.newspaper4k_kwargs_from_args(
+            SimpleNamespace(newspaper4k_source_profile="broad")
+        )
+        self.assertEqual(kwargs["source_profile"], "broad")
+        self.assertFalse(kwargs["no_playwright"])
+
     def test_newspaper4k_batches_source_rows_while_preserving_fetch_window_list(self):
         class Source:
             def __init__(self, url: str) -> None:

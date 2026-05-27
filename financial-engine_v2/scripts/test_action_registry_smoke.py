@@ -107,6 +107,22 @@ class TestActionRegistrySmoke(unittest.TestCase):
         self.assertNotIn("eodhd,gdelt", preview.command)
         idx = preview.command.index("--since-hours")
         self.assertEqual(preview.command[idx + 1], "24")
+        profile_idx = preview.command.index("--newspaper4k-source-profile")
+        self.assertEqual(preview.command[profile_idx + 1], "daily")
+        total_idx = preview.command.index("--newspaper4k-max-total-articles")
+        self.assertEqual(preview.command[total_idx + 1], "60")
+        timeout_idx = preview.command.index("--newspaper4k-request-timeout-seconds")
+        self.assertEqual(preview.command[timeout_idx + 1], "10")
+        self.assertIn("--newspaper4k-no-playwright", preview.command)
+
+    def test_daily_news_ingest_broad_profile_keeps_browser_crawl_explicit(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        preview = reg.preview(
+            "daily_news_ingest", {"newspaper4k_source_profile": "broad"}
+        )
+        profile_idx = preview.command.index("--newspaper4k-source-profile")
+        self.assertEqual(preview.command[profile_idx + 1], "broad")
+        self.assertNotIn("--newspaper4k-no-playwright", preview.command)
 
     def test_build_preview_does_not_crash(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)

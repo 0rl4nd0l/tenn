@@ -11,7 +11,12 @@ from ..utils import canonicalize_url, normalize_space, parse_datetime_utc, sha1_
 from .base import ParseResult, ProviderClient
 
 INTEGRATION_DIR = Path(__file__).resolve().parents[3] / "integrations" / "newspaper4k_au"
-DEFAULT_SOURCES_FILE = INTEGRATION_DIR / "sources_all_au_finance.txt"
+NEWSPAPER4K_SOURCE_PROFILES = {
+    "daily": INTEGRATION_DIR / "sources_au_finance_rss_only.txt",
+    "broad": INTEGRATION_DIR / "sources_all_au_finance.txt",
+}
+DEFAULT_SOURCE_PROFILE = "daily"
+DEFAULT_SOURCES_FILE = NEWSPAPER4K_SOURCE_PROFILES[DEFAULT_SOURCE_PROFILE]
 
 # Domains whose URL shapes don't match the generic article-URL heuristics
 # (e.g. 2-segment paths like /news/slug) but are known article publishers.
@@ -46,6 +51,22 @@ DEFAULT_PLAYWRIGHT_DOMAINS = [
 _collector = None
 
 
+def resolve_sources_file(
+    *, source_profile: str = DEFAULT_SOURCE_PROFILE, sources_file: Path | None = None
+) -> Path:
+    if sources_file is not None:
+        return Path(sources_file).expanduser().resolve()
+    profile = str(source_profile or DEFAULT_SOURCE_PROFILE).strip().lower()
+    try:
+        return NEWSPAPER4K_SOURCE_PROFILES[profile].expanduser().resolve()
+    except KeyError as exc:
+        choices = ", ".join(sorted(NEWSPAPER4K_SOURCE_PROFILES))
+        raise ValueError(
+            f"Unsupported newspaper4k source profile {source_profile!r}; "
+            f"expected one of: {choices}"
+        ) from exc
+
+
 def _import_collector():
     global _collector
     if _collector is not None:
@@ -64,20 +85,26 @@ class Newspaper4kProvider(ProviderClient):
     def __init__(
         self,
         *,
+        source_profile: str = DEFAULT_SOURCE_PROFILE,
         sources_file: Path | None = None,
-        max_articles_per_source: int = 30,
-        max_total_articles: int = 300,
+        max_articles_per_source: int = 15,
+        max_total_articles: int = 60,
         min_text_chars: int = 200,
         min_keyword_hits: int = 0,
-        request_timeout_seconds: int = 20,
+        request_timeout_seconds: int = 10,
         sleep_seconds: float = 0.5,
         finance_url_gate: bool = False,
         raw_html_dir: Path | None = None,
         http_cookie: str = "",
         playwright_domains: Sequence[str] | None = DEFAULT_PLAYWRIGHT_DOMAINS,
-        no_playwright: bool = False,
+        no_playwright: bool | None = None,
     ) -> None:
-        self.sources_file = Path(sources_file or DEFAULT_SOURCES_FILE).expanduser().resolve()
+        self.source_profile = (
+            str(source_profile or DEFAULT_SOURCE_PROFILE).strip().lower()
+        )
+        self.sources_file = resolve_sources_file(
+            source_profile=self.source_profile, sources_file=sources_file
+        )
         self.max_articles_per_source = int(max(1, max_articles_per_source))
         self.max_total_articles = int(max(1, max_total_articles))
         self.min_text_chars = int(max(1, min_text_chars))
@@ -87,11 +114,29 @@ class Newspaper4kProvider(ProviderClient):
         self.finance_url_gate = bool(finance_url_gate)
         self.raw_html_dir = Path(raw_html_dir).expanduser().resolve() if raw_html_dir else None
         self.http_cookie = str(http_cookie or "")
-        self.no_playwright = bool(no_playwright)
-        if no_playwright:
+        self.no_playwright = (
+            self.source_profile == DEFAULT_SOURCE_PROFILE and sources_file is None
+            if no_playwright is None
+            else bool(no_playwright)
+        )
+        if self.no_playwright:
             self.playwright_domains: list[str] | None = None
         else:
             self.playwright_domains = list(playwright_domains) if playwright_domains else None
+        setattr(
+            self,
+            "_tenn_provider_settings",
+            {
+                "provider": self.name,
+                "source_profile": self.source_profile,
+                "sources_file": str(self.sources_file),
+                "max_articles_per_source": int(self.max_articles_per_source),
+                "max_total_articles": int(self.max_total_articles),
+                "request_timeout_seconds": int(self.request_timeout_seconds),
+                "sleep_seconds": float(self.sleep_seconds),
+                "no_playwright": bool(self.no_playwright),
+            },
+        )
 
     def fetch_window(
         self,

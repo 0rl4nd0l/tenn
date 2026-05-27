@@ -485,6 +485,14 @@ class ActionRegistry:
                     "{news_articles_db}",
                     "--news-runs-root",
                     "{news_runs_root}",
+                    "--newspaper4k-source-profile",
+                    "{newspaper4k_source_profile}",
+                    "--newspaper4k-max-articles-per-source",
+                    "{newspaper4k_max_articles_per_source}",
+                    "--newspaper4k-max-total-articles",
+                    "{newspaper4k_max_total_articles}",
+                    "--newspaper4k-request-timeout-seconds",
+                    "{newspaper4k_request_timeout_seconds}",
                 ],
                 arg_schema={
                     "providers": str,
@@ -496,6 +504,11 @@ class ActionRegistry:
                     "asx_wide": bool,
                     "tickers": str,
                     "auto_live_when_capture_missing": bool,
+                    "newspaper4k_source_profile": str,
+                    "newspaper4k_max_articles_per_source": int,
+                    "newspaper4k_max_total_articles": int,
+                    "newspaper4k_request_timeout_seconds": int,
+                    "newspaper4k_no_playwright": bool,
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
@@ -870,6 +883,8 @@ class ActionRegistry:
                 command.extend(["--tickers", tickers_raw])
             if normalized.get("auto_live_when_capture_missing"):
                 command.append("--auto-live-when-capture-missing")
+            if normalized.get("newspaper4k_no_playwright"):
+                command.append("--newspaper4k-no-playwright")
         if action_id == "historical_news_ingest":
             if normalized.get("no_resume"):
                 command.append("--no-resume")
@@ -1280,6 +1295,18 @@ class ActionRegistry:
         out.setdefault("collection", "news_chunks")
         out.setdefault("batch_size", 64)
         out.setdefault("providers", "newspaper4k")
+        if spec.id == "daily_news_ingest":
+            profile = (
+                str(out.get("newspaper4k_source_profile") or "daily")
+                .strip()
+                .lower()
+            )
+            out["newspaper4k_source_profile"] = profile
+            out.setdefault("newspaper4k_max_articles_per_source", 15)
+            out.setdefault("newspaper4k_max_total_articles", 60)
+            out.setdefault("newspaper4k_request_timeout_seconds", 10)
+            if "newspaper4k_no_playwright" not in out:
+                out["newspaper4k_no_playwright"] = profile == "daily"
         if spec.id == "load_news_to_qdrant":
             out.setdefault("since_hours", 0)
         elif spec.id == "daily_news_ingest":
