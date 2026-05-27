@@ -872,6 +872,13 @@ export async function getQueueStatus(): Promise<QueueStatus> {
 export async function restartBackend(): Promise<RestartBackendResponse> {
   return apiFetch<RestartBackendResponse>('/api/cockpit/restart', {
     method: 'POST',
+    headers: {
+      'X-Cockpit-Restart-Intent': 'restart-backend',
+    },
+    body: JSON.stringify({
+      intent: 'restart-backend',
+      confirmation: 'RESTART BACKEND',
+    }),
   })
 }
 

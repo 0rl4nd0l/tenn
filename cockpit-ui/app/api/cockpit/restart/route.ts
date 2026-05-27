@@ -11,8 +11,141 @@ const backendRoot = path.join(repoRoot, 'financial-engine_v2')
 const restartScript = path.join(backendRoot, 'scripts', 'run_local_backend.sh')
 const localVenvBin = path.join(backendRoot, '.venv', 'bin')
 const restartTimeoutMs = 30_000
+const restartIntent = 'restart-backend'
+const restartConfirmation = 'RESTART BACKEND'
+const restartIntentHeader = 'x-cockpit-restart-intent'
+const remoteRestartTokenHeader = 'x-cockpit-restart-token'
 
 export const runtime = 'nodejs'
+
+type RestartGuardResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string }
+
+function denyRestart(status: number, code: string, message: string): RestartGuardResult {
+  return { ok: false, status, code, message }
+}
+
+function normalizeHostname(value: string | null): string {
+  const raw = String(value || '').trim().toLowerCase()
+  if (!raw) return ''
+  if (raw.startsWith('[')) {
+    const end = raw.indexOf(']')
+    return end > 0 ? raw.slice(1, end) : raw
+  }
+  if (raw === '::1' || raw.includes('::')) return raw
+  return raw.split(':')[0] || raw
+}
+
+function requestHostname(request: Request): string {
+  const hostHeader = request.headers.get('host')
+  if (hostHeader) return normalizeHostname(hostHeader)
+  try {
+    return normalizeHostname(new URL(request.url).hostname)
+  } catch {
+    return ''
+  }
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname)
+  return normalized === 'localhost' || normalized === '::1' || normalized.startsWith('127.')
+}
+
+function requestOrigin(request: Request): string | null {
+  try {
+    return new URL(request.url).origin
+  } catch {
+    return null
+  }
+}
+
+function sameOriginIfPresent(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  if (!origin) return true
+  const expectedOrigin = requestOrigin(request)
+  if (!expectedOrigin) return false
+  try {
+    return new URL(origin).origin === expectedOrigin
+  } catch {
+    return false
+  }
+}
+
+function hasRemoteRestartToken(request: Request): boolean {
+  const allowRemote = String(process.env.COCKPIT_RESTART_ALLOW_REMOTE || '').trim() === '1'
+  const configuredToken = String(process.env.COCKPIT_RESTART_TOKEN || '').trim()
+  if (!allowRemote || !configuredToken) return false
+  return request.headers.get(remoteRestartTokenHeader)?.trim() === configuredToken
+}
+
+async function validateRestartRequest(request: Request): Promise<RestartGuardResult> {
+  const hostname = requestHostname(request)
+  if (!isLoopbackHostname(hostname) && !hasRemoteRestartToken(request)) {
+    return denyRestart(
+      403,
+      'non_loopback_restart_denied',
+      'Backend restart is only allowed from loopback by default.',
+    )
+  }
+
+  if (!sameOriginIfPresent(request)) {
+    return denyRestart(
+      403,
+      'cross_origin_restart_denied',
+      'Backend restart requests must be same-origin.',
+    )
+  }
+
+  const fetchSite = String(request.headers.get('sec-fetch-site') || '').trim().toLowerCase()
+  if (fetchSite === 'cross-site') {
+    return denyRestart(
+      403,
+      'cross_site_restart_denied',
+      'Cross-site backend restart requests are not allowed.',
+    )
+  }
+
+  const contentType = String(request.headers.get('content-type') || '').toLowerCase()
+  if (!contentType.includes('application/json')) {
+    return denyRestart(
+      415,
+      'restart_json_required',
+      'Backend restart requests must use application/json.',
+    )
+  }
+
+  const headerIntent = String(request.headers.get(restartIntentHeader) || '').trim()
+  if (headerIntent !== restartIntent) {
+    return denyRestart(
+      403,
+      'restart_intent_header_required',
+      'Backend restart requests must include an explicit restart intent header.',
+    )
+  }
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return denyRestart(
+      400,
+      'restart_json_invalid',
+      'Backend restart request body must be valid JSON.',
+    )
+  }
+
+  const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
+  if (payload.intent !== restartIntent || payload.confirmation !== restartConfirmation) {
+    return denyRestart(
+      403,
+      'restart_confirmation_required',
+      'Backend restart requests must include the explicit restart confirmation.',
+    )
+  }
+
+  return { ok: true }
+}
 
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms))
@@ -79,7 +212,20 @@ function startBackend(): void {
   child.unref()
 }
 
-export async function POST(): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
+  const guard = await validateRestartRequest(request)
+  if (!guard.ok) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'Backend restart denied',
+        code: guard.code,
+        detail: guard.message,
+      },
+      { status: guard.status },
+    )
+  }
+
   try {
     await access(restartScript)
   } catch {

@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-05-27T14:30:25+10:00",
+  "validation": {
+    "preflight_repo_state": "PASS",
+    "registry_list_active_read_only_initial": "PASS",
+    "issue_55_read": "PASS",
+    "issue_51_read": "PASS",
+    "restart_control_route_search": "PASS",
+    "task_card_validate_initial": "PASS",
+    "registry_check_overlap_initial": "PASS",
+    "registry_claim": "PASS",
+    "implementation_gate": "PASS",
+    "focused_restart_route_vitest": "PASS",
+    "focused_restart_route_and_api_client_vitest": "PASS",
+    "typescript_no_emit": "PASS",
+    "static_guard_readback": "PASS",
+    "follow_up_duplicate_search": "PASS_NO_DUPLICATE_FOUND",
+    "follow_up_issue_created": "PASS",
+    "git_diff_check_pre_report": "PASS"
+  },
+  "commands": [
+    {
+      "cmd": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/backend_restart_route_guard_security_audit_v1_20260527.md",
+      "result": "PASS"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/backend_restart_route_guard_security_audit_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "cmd": "corepack pnpm --dir cockpit-ui exec vitest run lib/restart-route-guard.test.ts",
+      "result": "PASS",
+      "details": "1 test file passed, 5 tests passed"
+    },
+    {
+      "cmd": "corepack pnpm --dir cockpit-ui exec vitest run lib/restart-route-guard.test.ts lib/api-client.test.ts",
+      "result": "PASS",
+      "details": "2 test files passed, 7 tests passed"
+    },
+    {
+      "cmd": "corepack pnpm --dir cockpit-ui exec tsc --noEmit --pretty false",
+      "result": "PASS"
+    },
+    {
+      "cmd": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "non_final_attempts": [
+    {
+      "cmd": "corepack pnpm --dir cockpit-ui test -- lib/restart-route-guard.test.ts",
+      "result": "FAIL_NOT_FINAL_VALIDATION",
+      "reason": "The package script expanded into the broader configured Vitest suite. It exposed an initial CJS mock issue in the new test, then unrelated existing Home/Marketplace failures. The focused pnpm exec Vitest runs passed after the mock fix."
+    }
+  ],
+  "resolution_review": {
+    "lane": "Security / Boundary",
+    "issue": 55,
+    "worker_decision": "NEEDS_SAFE_EXTENSION_IMPLEMENTED",
+    "reviewer_verdict": "PASS_CLOSEOUT",
+    "closed": false,
+    "follow_up": "#121",
+    "data_missing": [
+      "Live listener binding not re-probed.",
+      "GitHub Projects fields not inspected or mutated."
+    ],
+    "next_action": "commit implementation/report bundle, then comment and close #55"
+  }
+}

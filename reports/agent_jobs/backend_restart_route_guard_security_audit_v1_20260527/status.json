@@ -1,0 +1,47 @@
+{
+  "job_id": "backend_restart_route_guard_security_audit_v1_20260527",
+  "generated_at": "2026-05-27T14:30:25+10:00",
+  "mode": "audit_first/safe_extension",
+  "status": "implementation_validated_closeout_pending_commit",
+  "repo": {
+    "root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_start": "c901da5737340485ee9b76bac423e43fe15db4ab",
+    "remote": "https://github.com/0rl4nd0l/tenn.git",
+    "initial_status": "clean"
+  },
+  "registry": {
+    "initial_active_jobs": [],
+    "claimed": true,
+    "claim_refreshed_after_task_card_allowlist_update": true,
+    "collision": false
+  },
+  "github": {
+    "issue_55_initial_state": "OPEN",
+    "issue_51_adjacent_state": "OPEN",
+    "follow_up_issue": 121,
+    "follow_up_issue_url": "https://github.com/0rl4nd0l/tenn/issues/121",
+    "project_mutation": false,
+    "pr_mutation": false
+  },
+  "classification": {
+    "issue_55": "ROOT_CAUSE_FIXED",
+    "worker_decision": "NEEDS_SAFE_EXTENSION_IMPLEMENTED",
+    "reviewer_verdict": "PASS_CLOSEOUT"
+  },
+  "validations": {
+    "task_card_validate": "PASS",
+    "registry_check_overlap": "PASS",
+    "focused_restart_route_vitest": "PASS",
+    "focused_restart_route_and_api_client_vitest": "PASS",
+    "typescript_no_emit": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "forbidden_surfaces_mutated": false,
+  "runtime_actions_triggered": false,
+  "data_missing": [
+    "Current live listener binding was not re-probed.",
+    "GitHub Projects fields were not inspected or mutated.",
+    "Broader Cockpit action-control route remediation is deferred to #121."
+  ]
+}
