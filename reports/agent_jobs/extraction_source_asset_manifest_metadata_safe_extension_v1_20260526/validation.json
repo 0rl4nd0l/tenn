@@ -1,0 +1,62 @@
+{
+  "artifact_type": "agent_job_validation_v1",
+  "job_id": "extraction_source_asset_manifest_metadata_safe_extension_v1_20260526",
+  "results": {
+    "baseline_overlap_check": {
+      "result": "FAIL_EXPECTED_DIRT",
+      "detail": "Baseline checkout had two pre-existing untracked GitHub task cards outside this job allowlist; implementation moved to isolated worktree."
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    "json_manifest": {
+      "command": "python3 -m json.tool financial-engine_v2/backend/tests/eval_source_assets/confirmed_metric_coverage_source_assets.json",
+      "result": "PASS"
+    },
+    "json_resolution_sample": {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/source_asset_resolution_sample.json",
+      "result": "PASS"
+    },
+    "py_compile": {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "PASS"
+    },
+    "pytest_focused": {
+      "command": "uv run --python 3.10 --with pytest --with pydantic-settings==2.6.1 --with pydantic==2.9.2 python -m pytest financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py -q",
+      "result": "PASS: 10 passed, 1 warning in 0.13s"
+    },
+    "raw_pdf_staging_check": {
+      "command": "git status --short --untracked-files=all | rg \"\\\\.pdf$\"",
+      "result": "PASS: no matches"
+    },
+    "registry_claim": {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_release": {
+      "command": "python3 scripts/agent_job_registry.py release extraction_source_asset_manifest_metadata_safe_extension_v1_20260526 --repo-root .",
+      "result": "PASS"
+    },
+    "registry_check_overlap_isolated": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_list_active": {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS"
+    },
+    "ruff": {
+      "command": "uv run --python 3.10 --with ruff ruff check financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "PASS"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "task_card_validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md",
+      "result": "PASS"
+    }
+  }
+}

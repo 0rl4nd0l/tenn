@@ -1,0 +1,37 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_contract_parity_guard_v1_20260526.md",
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/README.md",
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/status.json",
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/metric_contract_parity_matrix.json",
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/validation.json",
+      "financial-engine_v2/backend/app/models/asx_financials.py",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+      "financial-engine_v2/backend/app/services/extraction_eval.py",
+      "financial-engine_v2/backend/app/services/confirmed_metric_coverage_review.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "financial-engine_v2/backend/tests/test_extraction_eval.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/architecture/12_evaluation_and_drift_monitoring.md"
+    ],
+    "approval_required": false,
+    "job_id": "extraction_contract_parity_guard_v1_20260526",
+    "lane": "Financial Truth",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation"
+    ],
+    "timeout_seconds": 3600
+  },
+  "ok": true
+}

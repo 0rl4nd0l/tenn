@@ -1,0 +1,71 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "branch": "safe/extraction-contract-parity-guard-v1-20260526",
+  "confirmed": [
+    "#98 now has a report-local/test-only metric contract parity guard.",
+    "total_equity and interest_expense are classified as persisted_only.",
+    "debt_borrowings maps to internal total_debt and is classified as internal_only.",
+    "eps and dividends are planned, finance_costs is ambiguous_requires_policy, and total_assets is unsupported.",
+    "The generated matrix asserts persisted-only and broad-catalogue families are not silently promoted."
+  ],
+  "data_missing": [
+    "Approved total_equity policy and fixtures.",
+    "Approved interest_expense versus finance_costs policy and fixtures.",
+    "Approved EPS/dividend contracts.",
+    "Approved actual extracted payloads for broad confirmed coverage scoring.",
+    "#99 durable source asset manifest/resolver.",
+    ".cursor/rules architecture-check files in this checkout.",
+    "graphify-out/GRAPH_REPORT.md in this checkout."
+  ],
+  "generated_at": "2026-05-27T00:53:11Z",
+  "head_at_report_write": "3725591cf76ec1a56428a476e23dbd1ebc4050fc",
+  "inferred": [
+    "#97 broader scorecard use should consume this guard before scoring expanded metric families.",
+    "finance_costs may map to interest_expense only after semantic policy approval."
+  ],
+  "issue": "#98",
+  "job_id": "extraction_contract_parity_guard_v1_20260526",
+  "lane": "Financial Truth",
+  "matrix_artifact": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/metric_contract_parity_matrix.json",
+  "mode": "safe_extension_report_local_test_only",
+  "registry": {
+    "claim": "succeeded",
+    "overlap_check": "passed",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "release": "succeeded",
+    "released_at": "2026-05-27T00:53:11.002646Z",
+    "status": "released"
+  },
+  "remaining_blockers": [
+    "Metric-family policy and expected-null fixtures before expanded canonical support.",
+    "Evaluator mappings and thresholds for any newly approved metric family.",
+    "Approved actual payloads before broad payload scoring.",
+    "#99 source reviewability work."
+  ],
+  "speculative": [
+    "finance_costs may be promoted as an alias only if policy proves the source semantics match interest_expense."
+  ],
+  "status": "implemented_validated_released",
+  "supporting_lanes": [
+    "Evaluation"
+  ],
+  "task_card": "docs/agent_tasks/extraction_contract_parity_guard_v1_20260526.md",
+  "validation": {
+    "artifact_generation": "PASS",
+    "check_diff": "PASS",
+    "check_overlap": "PASS",
+    "git_diff_cached_check": "PASS",
+    "git_diff_check_before_report": "PASS",
+    "json_tool_diff_check": "PASS",
+    "json_tool_metric_matrix": "PASS",
+    "json_tool_status": "PASS",
+    "py_compile": "PASS",
+    "pytest_focused": "PASS: 10 passed, 1 warning in 0.75s with sqlalchemy included; final rerun 10 passed, 1 warning in 0.30s",
+    "pytest_initial_without_sqlalchemy": "FAIL: 5 failed, 5 passed because ephemeral uv env lacked SQLAlchemy",
+    "registry_release": "PASS",
+    "ruff": "PASS",
+    "task_card_validate": "PASS"
+  },
+  "worktree": "/home/l4nd0/tenn-extraction-contract-parity-guard-v1-20260526"
+}

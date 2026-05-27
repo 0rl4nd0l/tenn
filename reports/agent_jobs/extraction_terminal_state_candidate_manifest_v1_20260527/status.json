@@ -1,0 +1,152 @@
+{
+  "artifact_summary": {
+    "artifact_type": "terminal_extraction_candidate_manifest_v1",
+    "broad_backfill_authorized": false,
+    "candidate_rows_are_live_backlog": false,
+    "candidate_rows_are_synthetic_schema_probes": true,
+    "manifest_scope": "report_local_schema_proof_prior_audit_context_only",
+    "production_data_access": false,
+    "total_document_count": 9
+  },
+  "base_head": "8f87683c87306267d8280704bf6a0116f4183096",
+  "branch": "safe/extraction-terminal-state-candidate-manifest-v1-20260527",
+  "changed_files": [
+    "docs/agent_tasks/extraction_terminal_state_candidate_manifest_v1_20260527.md",
+    "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+    "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/README.md",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/status.json",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/terminal_extraction_candidate_manifest.json",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/terminal_extraction_candidate_manifest.csv",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/validation.json",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/diff-check.json"
+  ],
+  "confirmed": [
+    "#96 now has an executable report-local terminal-state manifest contract.",
+    "Source reviewability is separate from extraction correctness.",
+    "Payload scoreability is separate from terminal extraction state.",
+    "No broad extraction/backfill or production/canonical mutation was performed."
+  ],
+  "data_missing": [
+    "document-level live DB candidate list",
+    "live stale/failed/skipped/queued/no-run split",
+    "live ok-without-row anomaly list",
+    "current queue/scheduler ownership for backlog documents",
+    "source asset links for production backlog documents",
+    "approved actual extracted payloads for broad #97 scorecard use"
+  ],
+  "dependencies": {
+    "97": "Payload correctness scorecard remains separate and requires actual extracted payloads.",
+    "98": "Metric-family contract parity remains separate and gates expanded metrics.",
+    "99": "Source asset reviewability remains separate and does not count as metric correctness."
+  },
+  "final_git_status_at_report_write": "all changed files are allowlisted and staged for milestone commit",
+  "generated_artifacts": [
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/README.md",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/status.json",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/terminal_extraction_candidate_manifest.json",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/terminal_extraction_candidate_manifest.csv",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/validation.json",
+    "reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/diff-check.json"
+  ],
+  "github_issue_comment": "https://github.com/0rl4nd0l/tenn/issues/96#issuecomment-4550583408",
+  "inferred": [
+    "Prior audit aggregate implies 1,152 missing-host-file candidates among documents lacking handled current-version extraction.",
+    "The 2,602 existing-file aggregate is the likely first review pool after document-level read-only export."
+  ],
+  "issue_96_advancement": "Moves #96 from aggregate audit-only evidence to a tested report-local terminal-state manifest contract; does not authorize runtime coverage/backfill.",
+  "job_id": "extraction_terminal_state_candidate_manifest_v1_20260527",
+  "lane": "Query Orchestration",
+  "mode": "safe_extension_report_local_manifest_only",
+  "operator_approval_required_for_next_step": true,
+  "project_memory_save_recommendation": "Save that #96 now has a report-local terminal candidate manifest contract, but the live candidate list remains DATA_MISSING because production data access was false.",
+  "registry": {
+    "claim": "PASS",
+    "overlap_check": "PASS",
+    "post_release_active_jobs": [],
+    "pre_claim_active_jobs": [],
+    "release": "PASS",
+    "root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "scope": "shared"
+  },
+  "related_issue": 96,
+  "remaining_blockers_before_canary_or_backfill": [
+    "operator-approved read-only document-level metadata export",
+    "source asset reviewability links for each candidate",
+    "queue/scheduler ownership check",
+    "bounded canary approval and limits",
+    "#97 actual payloads and thresholds",
+    "#98 expanded metric-family policy",
+    "explicit operator approval before any execution"
+  ],
+  "risk": "MEDIUM",
+  "schema_version": 1,
+  "speculative": [
+    "Retry priority between stale, failed/parser-error, and never-scheduled rows cannot be ranked without live read-only metadata."
+  ],
+  "supporting_lanes": [
+    "Evaluation",
+    "Financial Truth",
+    "Provenance"
+  ],
+  "task_card": "docs/agent_tasks/extraction_terminal_state_candidate_manifest_v1_20260527.md",
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_terminal_state_candidate_manifest_v1_20260527.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS no active jobs before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_terminal_state_candidate_manifest_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_terminal_state_candidate_manifest_v1_20260527.md --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "PASS"
+    },
+    {
+      "command": "uv run --python 3.10 --with pytest --with pydantic-settings==2.6.1 --with pydantic==2.9.2 python -m pytest financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py -q",
+      "result": "PASS 14 passed, 1 warning in 0.14s"
+    },
+    {
+      "command": "uv run --python 3.10 --with ruff ruff check financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_terminal_state_candidate_manifest_v1_20260527/terminal_extraction_candidate_manifest.json",
+      "result": "PASS"
+    },
+    {
+      "command": "git status --short --untracked-files=all | rg -i '\\.pdf'",
+      "result": "PASS no PDF paths"
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_terminal_state_candidate_manifest_v1_20260527.md --repo-root .",
+      "result": "PASS no disallowed files"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release extraction_terminal_state_candidate_manifest_v1_20260527 --repo-root .",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS no active jobs after release"
+    },
+    {
+      "command": "gh issue comment 96 --repo 0rl4nd0l/tenn --body <summary>",
+      "result": "PASS https://github.com/0rl4nd0l/tenn/issues/96#issuecomment-4550583408"
+    }
+  ],
+  "worktree": "/home/l4nd0/tenn-extraction-terminal-state-candidate-manifest-v1-20260527"
+}
