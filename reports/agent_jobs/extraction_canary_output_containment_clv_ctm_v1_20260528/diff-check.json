@@ -1,0 +1,48 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_canary_output_containment_clv_ctm_v1_20260528.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_canary_output_containment_clv_ctm_v1_20260528.md",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/README.md",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/status.json",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/containment_ledger.json",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/pre_mutation_inventory.json",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/post_containment_verification.json",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/diff-check.json"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/extraction_canary_output_containment_clv_ctm_v1_20260528.md",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/**"
+      ],
+      "approval_required": true,
+      "job_id": "extraction_canary_output_containment_clv_ctm_v1_20260528",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528",
+      "owner": "Codex",
+      "production_data_access": false,
+      "production_data_access_requested": true,
+      "related_issue": 96,
+      "requested_mutation_mode": "controlled_containment_minimal_mutation",
+      "supporting_lanes": [
+        "Provenance",
+        "Evaluation",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 14400,
+      "user_authorized_live_state_mutation": true
+    },
+    "ok": true
+  }
+}

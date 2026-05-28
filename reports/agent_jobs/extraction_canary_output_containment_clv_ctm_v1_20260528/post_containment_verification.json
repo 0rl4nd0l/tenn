@@ -1,0 +1,132 @@
+{
+  "api_financial_truth_surfaces": {
+    "CLV": {
+      "company_dump_ok": true,
+      "company_dump_summary": {
+        "announcement_context_count": 4,
+        "docs_count": 4,
+        "financials_count": 0,
+        "latest_snapshot_present": false,
+        "low_confidence_count": 0
+      },
+      "company_dump_target_rows": [],
+      "legacy_financials_ok": true,
+      "legacy_financials_target_rows": [],
+      "ticker_context_ok": true,
+      "ticker_context_summary": {
+        "announcement_context_count": 4,
+        "docs_count": 4,
+        "financials_count": 0,
+        "latest_snapshot_present": false,
+        "low_confidence_count": 0
+      },
+      "ticker_context_target_rows": [],
+      "urls": {
+        "company_dump": "http://127.0.0.1:8000/api/context/company_dump?ticker=CLV",
+        "legacy_financials": "http://127.0.0.1:8000/api/financials?ticker=CLV",
+        "ticker_context": "http://127.0.0.1:8000/api/context/ticker?ticker=CLV",
+        "verification": "http://127.0.0.1:8000/api/context/verification?ticker=CLV&low_confidence_threshold=0.4"
+      },
+      "verification_ok": true,
+      "verification_target_rows": []
+    },
+    "CTM": {
+      "company_dump_ok": true,
+      "company_dump_summary": {
+        "announcement_context_count": 6,
+        "docs_count": 7,
+        "financials_count": 0,
+        "latest_snapshot_present": false,
+        "low_confidence_count": 0
+      },
+      "company_dump_target_rows": [],
+      "legacy_financials_ok": true,
+      "legacy_financials_target_rows": [],
+      "ticker_context_ok": true,
+      "ticker_context_summary": {
+        "announcement_context_count": 6,
+        "docs_count": 7,
+        "financials_count": 0,
+        "latest_snapshot_present": false,
+        "low_confidence_count": 0
+      },
+      "ticker_context_target_rows": [],
+      "urls": {
+        "company_dump": "http://127.0.0.1:8000/api/context/company_dump?ticker=CTM",
+        "legacy_financials": "http://127.0.0.1:8000/api/financials?ticker=CTM",
+        "ticker_context": "http://127.0.0.1:8000/api/context/ticker?ticker=CTM",
+        "verification": "http://127.0.0.1:8000/api/context/verification?ticker=CTM&low_confidence_threshold=0.4"
+      },
+      "verification_ok": true,
+      "verification_target_rows": []
+    }
+  },
+  "artifact_type": "extraction_canary_output_containment_post_verification_v1",
+  "database": {
+    "related_records_not_deleted": {
+      "documents_remaining": 2,
+      "extraction_runs_remaining": 2,
+      "risk_notes_remaining": 1
+    },
+    "remaining_exact_target_row_count": 0,
+    "remaining_exact_target_rows": [],
+    "remaining_same_ticker_period_type_row_count": 0,
+    "remaining_same_ticker_period_type_rows": []
+  },
+  "forbidden_actions_observed": {
+    "backfill_run": false,
+    "canary_run": false,
+    "extraction_run": false,
+    "extraction_run_delete": false,
+    "gold_label_mutation": false,
+    "parser_prompt_runtime_config_mutation": false,
+    "schema_migration": false,
+    "service_restart": false,
+    "source_document_delete": false
+  },
+  "generated_at_utc": "2026-05-28T07:59:28.465982+00:00",
+  "provider_probe_updated_at_utc": "2026-05-28T08:00:18.117160+00:00",
+  "qdrant": {
+    "collection": "asx_docs",
+    "retrieve_deleted_point_ids_response_status": "ok",
+    "retrieved_deleted_point_id_count": 0,
+    "scroll_by_document_id": {
+      "035c6758-7aed-41a6-9e84-ad154125d431": {
+        "count": 0,
+        "points": []
+      },
+      "da9f9ea5-6596-464f-af14-5acf12f9b050": {
+        "count": 0,
+        "points": []
+      }
+    }
+  },
+  "query_orchestrator_financial_truth_provider_probe": {
+    "CLV": {
+      "announcement_context_count": 4,
+      "docs_count": 4,
+      "financials_count": 0,
+      "items_count": 0,
+      "latest_snapshot_present": false,
+      "ok": true,
+      "status": "ok",
+      "target_rows": []
+    },
+    "CTM": {
+      "announcement_context_count": 6,
+      "docs_count": 7,
+      "financials_count": 0,
+      "items_count": 0,
+      "latest_snapshot_present": false,
+      "ok": true,
+      "status": "ok",
+      "target_rows": []
+    }
+  },
+  "retrieval_path_result": {
+    "deleted_point_ids_retrievable": 0,
+    "matching_document_points_remaining": 0,
+    "reason_semantic_rag_generation_not_run": "Avoided chat/RAG generation and embedding calls; direct Qdrant document-id scroll plus point-id retrieve proves matching document points are absent from asx_docs retrieval storage.",
+    "semantic_rag_generation_run": false
+  }
+}
