@@ -1,35 +1,34 @@
 {
-  "job_id": "extraction_bhp_canary_gold_fixture_v1_20260529",
-  "status": "validated",
-  "lane": "Evaluation",
-  "supporting_lanes": [
-    "Financial Truth",
-    "Provenance"
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_bhp_canary_gold_fixture_v1_20260529.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/extraction_bhp_canary_gold_fixture_v1_20260529.md",
+    "financial-engine_v2/backend/tests/fixtures/extraction_gold/bhp_a_2025-06-30_canary_regression.json",
+    "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+    "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/README.md",
+    "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/source_verification.json",
+    "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/status.json",
+    "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/diff-check.json",
+    "docs/claude/STATE.md"
   ],
   "branch": "safe/extraction-bhp-canary-gold-fixture-v1-20260529",
-  "worktree": "/home/l4nd0/tenn-extraction-bhp-canary-gold-fixture-v1-20260529",
-  "related_issue": 96,
-  "runtime_or_datastore_mutation_performed": false,
-  "canary_or_backfill_run": false,
-  "source_pdf_mutation_performed": false,
-  "github_mutation_performed": false,
-  "validation": {
-    "task_card_validate": "passed",
-    "registry_overlap_check": "passed",
-    "registry_claim": "passed",
-    "fixture_json": "passed",
-    "py_compile": "passed",
-    "focused_pytest_excluding_preexisting_10x_asset_check": "passed: 24 passed, 1 deselected",
-    "ruff": "passed",
-    "scorecard_cli_smoke": "passed",
-    "git_diff_check": "passed",
-    "task_card_check_diff": "passed",
-    "added_source_binary_check": "passed: none",
-    "added_lines_sensitive_scan": "passed: no hits",
-    "full_test_file": "known pre-existing failure: missing 10X real-gold source path; reproduced on unchanged baseline e2029835"
-  },
-  "remaining_blockers": [
-    "Runtime reload and AAU-only canary still require exact operator approval phrase.",
-    "Full test_extraction_gold_eval.py still has pre-existing 10X source asset path failure outside this task."
-  ]
+  "claimed_at": "2026-05-29T09:36:03.407093Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-29T09:36:03.407093Z",
+  "job_id": "extraction_bhp_canary_gold_fixture_v1_20260529",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-29T09:42:44.525426Z",
+  "output_dir": "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-29T09:42:44.525426Z",
+  "repo_root": "/home/l4nd0/tenn-extraction-bhp-canary-gold-fixture-v1-20260529",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3772045:extraction_bhp_canary_gold_fixture_v1_20260529",
+  "started_at": "2026-05-29T09:36:03.407093Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/extraction_bhp_canary_gold_fixture_v1_20260529.md",
+  "updated_at": "2026-05-29T09:42:44.525426Z",
+  "worktree": "/home/l4nd0/tenn-extraction-bhp-canary-gold-fixture-v1-20260529"
 }
