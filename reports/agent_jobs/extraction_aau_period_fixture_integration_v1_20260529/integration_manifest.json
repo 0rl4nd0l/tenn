@@ -1,0 +1,38 @@
+{
+  "artifact_type": "extraction_aau_period_fixture_integration_manifest_v1",
+  "job_id": "extraction_aau_period_fixture_integration_v1_20260529",
+  "branch": "safe/extraction-aau-integrated-baseline-v1-20260529",
+  "worktree": "/home/l4nd0/tenn-extraction-aau-integration-v1-20260529",
+  "base_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "d55a515376e2bd065be9c94843d07ccca06f99f2",
+  "source_commits": [
+    {
+      "commit": "cb496fc1",
+      "subject": "milestone(extraction): harden explicit period-end semantics"
+    },
+    {
+      "commit": "eb6ba6a5",
+      "subject": "milestone(extraction): record period-semantics claim release"
+    },
+    {
+      "commit": "365bbef7",
+      "subject": "milestone(extraction): capture AAU canary failure fixture"
+    },
+    {
+      "commit": "1be18324",
+      "subject": "milestone(extraction): record AAU fixture claim release"
+    }
+  ],
+  "integration_method": "git cherry-pick -n for source commits, with docs/claude/STATE.md conflict resolved by preserving both AAU session notes",
+  "conflicts": [
+    {
+      "path": "docs/claude/STATE.md",
+      "resolution": "preserved both the AAU missing-period-end hardening note and the AAU canary-failure fixture note"
+    }
+  ],
+  "runtime_or_datastore_mutation": false,
+  "canary_run": false,
+  "broad_backfill_run": false,
+  "source_pdf_mutated": false,
+  "github_mutation": false
+}
