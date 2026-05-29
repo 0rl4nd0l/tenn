@@ -40,4 +40,14 @@ Forbidden and not performed in this task:
 
 ## Result
 
-Pending until the final push and remote-head verification complete.
+Published branch:
+
+- Branch: `safe/extraction-bhp-canary-gold-fixture-v1-20260529`
+- Local head at first push: `f355c384345d8aa11541dcb347dd069b48dcae11`
+- Remote head after first push:
+  `f355c384345d8aa11541dcb347dd069b48dcae11`
+- Remote ref:
+  `refs/heads/safe/extraction-bhp-canary-gold-fixture-v1-20260529`
+
+The task still requires a final push after registry release metadata is
+committed so the remote branch includes this publish report's released status.
