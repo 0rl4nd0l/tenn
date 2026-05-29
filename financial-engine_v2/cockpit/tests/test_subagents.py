@@ -79,7 +79,7 @@ def test_subagent_type_is_str_enum():
 
 
 def test_spawn_researcher_runs(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(agent_type=SubAgentType.RESEARCHER, task="Analyze BHP revenue trends", ticker="BHP")
     )
     assert result.success
@@ -88,7 +88,7 @@ def test_spawn_researcher_runs(spawner):
 
 
 def test_spawn_auditor_runs(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(agent_type=SubAgentType.AUDITOR, task="Audit MIN cashflow statement")
     )
     assert result.success
@@ -96,7 +96,7 @@ def test_spawn_auditor_runs(spawner):
 
 
 def test_spawn_comparator_runs(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(agent_type=SubAgentType.COMPARATOR, task="Compare BHP vs RIO revenue")
     )
     assert result.success
@@ -104,7 +104,7 @@ def test_spawn_comparator_runs(spawner):
 
 
 def test_spawn_pipeline_runner_runs(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(agent_type=SubAgentType.PIPELINE_RUNNER, task="Run extraction for CSL")
     )
     assert result.success
@@ -112,7 +112,7 @@ def test_spawn_pipeline_runner_runs(spawner):
 
 
 def test_spawn_records_duration(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(agent_type=SubAgentType.RESEARCHER, task="quick task")
     )
     assert result.duration_ms >= 0
@@ -120,7 +120,7 @@ def test_spawn_records_duration(spawner):
 
 def test_spawn_with_string_agent_type(spawner):
     """Spawn must also accept a plain string for agent_type."""
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(agent_type="researcher", task="string type test")
     )
     assert result.success
@@ -133,7 +133,7 @@ def test_spawn_with_string_agent_type(spawner):
 
 
 def test_max_spawn_depth_blocks_recursive(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.RESEARCHER, "nested task", ticker="CSL", spawn_depth=2)
     )
     assert not result.success
@@ -142,7 +142,7 @@ def test_max_spawn_depth_blocks_recursive(spawner):
 
 def test_spawn_depth_1_is_blocked(spawner):
     """depth=1 is the first sub-level — must be blocked to prevent recursive spawning."""
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.AUDITOR, "sub-task", spawn_depth=1)
     )
     assert not result.success
@@ -150,7 +150,7 @@ def test_spawn_depth_1_is_blocked(spawner):
 
 
 def test_spawn_depth_0_is_allowed(spawner):
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.RESEARCHER, "top-level task", spawn_depth=0)
     )
     assert result.success
@@ -164,7 +164,7 @@ def test_spawn_depth_0_is_allowed(spawner):
 def test_spawn_respects_timeout():
     slow_llm = make_mock_llm(delay=10.0)  # 10-second response
     slow_spawner = SubAgentSpawner(llm_client=slow_llm, timeout_seconds=0.1)
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         slow_spawner.spawn(SubAgentType.RESEARCHER, "slow task")
     )
     assert not result.success
@@ -182,7 +182,7 @@ def test_spawn_writes_to_memory_when_provided(tmp_path):
     llm = make_mock_llm(response="BHP revenue is $55B")
     spawner = SubAgentSpawner(llm_client=llm, memory_store=store)
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.RESEARCHER, "research BHP", ticker="BHP")
     )
     assert result.success
@@ -192,7 +192,7 @@ def test_spawn_writes_to_memory_when_provided(tmp_path):
 
 def test_spawn_without_memory_does_not_raise(spawner):
     """No memory_store — must succeed without writing anything."""
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.RESEARCHER, "no memory test", ticker="CBA")
     )
     assert result.success
@@ -205,7 +205,7 @@ def test_spawn_with_memory_no_ticker_does_not_write(tmp_path):
     llm = make_mock_llm(response="some finding")
     spawner = SubAgentSpawner(llm_client=llm, memory_store=store)
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.RESEARCHER, "task without ticker")
     )
     assert result.success
@@ -269,7 +269,7 @@ def test_spawn_returns_failure_on_llm_error():
     failing_llm.chat.side_effect = RuntimeError("llama.cpp connection refused")
 
     spawner = SubAgentSpawner(llm_client=failing_llm)
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         spawner.spawn(SubAgentType.RESEARCHER, "task that will fail")
     )
     assert not result.success

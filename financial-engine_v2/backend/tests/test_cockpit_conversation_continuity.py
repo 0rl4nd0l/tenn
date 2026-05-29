@@ -109,7 +109,7 @@ def test_chat_stream_rewrites_compare_them_when_referents_are_clear(tmp_path) ->
                 routing_metadata={"source": "cockpit"},
             )
 
-    service._build_chat_controller = lambda thread_id: FakeController()
+    service._build_chat_controller = lambda thread_id, **_kwargs: FakeController()
 
     response = service.chat_stream("compare them", session_id="session-compare")
 

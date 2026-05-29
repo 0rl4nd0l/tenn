@@ -37,6 +37,7 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
         "api_default_enabled": False,
         "marketplace_prefer_cloud_routing": False,
         "chat_routing_policy_override": "config_default",
+        "chat_runtime_target": "local",
     }
 
     patched = client.patch(
@@ -52,6 +53,7 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
         "api_default_enabled": True,
         "marketplace_prefer_cloud_routing": True,
         "chat_routing_policy_override": "local_preferred",
+        "chat_runtime_target": "local",
     }
 
     after = client.get("/api/cockpit/preferences")
@@ -60,6 +62,7 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
         "api_default_enabled": True,
         "marketplace_prefer_cloud_routing": True,
         "chat_routing_policy_override": "local_preferred",
+        "chat_runtime_target": "local",
     }
 
 
