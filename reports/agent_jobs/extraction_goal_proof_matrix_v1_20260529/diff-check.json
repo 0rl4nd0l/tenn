@@ -1,12 +1,8 @@
 {
   "changed_files": [
     {
-      "path": "docs/claude/STATE.md",
+      "path": "reports/agent_jobs/extraction_goal_proof_matrix_v1_20260529/status.json",
       "status": "M"
-    },
-    {
-      "path": "docs/agent_tasks/extraction_goal_proof_matrix_v1_20260529.md",
-      "status": "??"
     }
   ],
   "disallowed_files": [],
