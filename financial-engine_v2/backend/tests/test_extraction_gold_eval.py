@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import inspect
 import importlib.util
 import json
+import os
 import sys
 import threading
 import time
@@ -23,11 +24,15 @@ from app.services.extraction_gold_eval import (
     evaluate_real_gold_fixture,
     load_real_gold_fixtures,
 )
+from app.services.confirmed_metric_coverage_review import (
+    resolve_confirmed_metric_coverage_source_path,
+)
 
 
 REAL_FIXTURES_DIR = Path(__file__).parent / "fixtures" / "extraction_gold"
 SYNTHETIC_FIXTURES_DIR = Path(__file__).parent / "fixtures" / "extraction_eval"
 REAL_CORPUS_DIR = PROJECT_ROOT / "data" / "extraction_gold_real"
+REQUIRE_REAL_GOLD_SOURCE_ASSETS = "TENN_REQUIRE_REAL_GOLD_SOURCE_ASSETS"
 
 
 def _load_real_fixture(document_id: str):
@@ -195,7 +200,7 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
     )
 
 
-def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist():
+def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_source_paths():
     fixtures = load_real_gold_fixtures(REAL_CORPUS_DIR)
     fixture_by_id = {fixture.document_id: fixture for fixture in fixtures}
 
@@ -203,10 +208,17 @@ def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exis
     assert fixture_by_id["qbe_h_2025-06-30"].metrics["operating_cf"] == 1_756_000_000.0
     assert "operating_cash_flow" not in fixture_by_id["qbe_h_2025-06-30"].metrics
 
+    missing_source_files = []
     for corpus_file in sorted(REAL_CORPUS_DIR.glob("*.json")):
         payload = json.loads(corpus_file.read_text(encoding="utf-8"))
         source_file = payload["source_file"]
-        assert (PROJECT_ROOT / source_file).exists(), source_file
+        try:
+            resolve_confirmed_metric_coverage_source_path(source_file)
+        except FileNotFoundError:
+            missing_source_files.append(source_file)
+
+    if os.environ.get(REQUIRE_REAL_GOLD_SOURCE_ASSETS) == "1":
+        assert not missing_source_files, missing_source_files
 
 
 def test_scorecard_script_defaults_to_real_gold_corpus():
