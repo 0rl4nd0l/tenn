@@ -318,6 +318,105 @@ class TestGetTickerContext:
         default = sig.parameters["low_confidence_threshold"].default
         assert default.default == 0.4
 
+    def test_financial_rows_surface_latest_persistable_extraction_status(self):
+        """Persisted metrics carry the source run status that can write rows."""
+        db = MagicMock()
+        seen_financial_query = {"value": False}
+
+        def fake_execute(sql_text, params=None):
+            sql_str = str(sql_text)
+            result_mock = MagicMock()
+            rows = []
+            if "FROM asx_periodic_financials f" in sql_str:
+                assert "FROM extraction_runs r" in sql_str
+                assert "r.status IN ('ok', 'ok_low_confidence')" in sql_str
+                assert "AS extraction_status" in sql_str
+                assert "AS extraction_run_id" in sql_str
+                seen_financial_query["value"] = True
+                rows = [
+                    {
+                        "ticker": "BHP",
+                        "period_end": "2025-12-31",
+                        "period_type": "A",
+                        "revenue": "1000",
+                        "ebit": "100",
+                        "np_attributable": "50",
+                        "operating_cf": "90",
+                        "investing_cf": None,
+                        "financing_cf": None,
+                        "capex": None,
+                        "cash_end": None,
+                        "net_debt": None,
+                        "shares_outstanding": None,
+                        "confidence_metrics": 0.92,
+                        "source_document_id": "doc-1",
+                        "extraction_status": "ok_low_confidence",
+                        "extraction_run_id": "run-1",
+                    }
+                ]
+            result_mock.__iter__ = lambda self: iter(
+                [MagicMock(_mapping=row) for row in rows]
+            )
+            return result_mock
+
+        db.execute = fake_execute
+
+        result = get_ticker_context(ticker="BHP", db=db)
+
+        assert seen_financial_query["value"] is True
+        assert result["financials"][0]["extraction_status"] == "ok_low_confidence"
+        assert result["financials"][0]["extraction_run_id"] == "run-1"
+        assert result["latest_financial_snapshot"]["extraction_status"] == (
+            "ok_low_confidence"
+        )
+
+    def test_low_confidence_financials_include_ok_low_confidence_status(self):
+        """High-confidence native-currency rows stay visible via extraction status."""
+        db = MagicMock()
+        low_confidence_sql = {"value": ""}
+
+        def fake_execute(sql_text, params=None):
+            sql_str = str(sql_text)
+            result_mock = MagicMock()
+            rows = []
+            if "AS low_confidence_reason" in sql_str:
+                low_confidence_sql["value"] = sql_str
+                rows = [
+                    {
+                        "ticker": "BHP",
+                        "period_end": "2025-06-30",
+                        "period_type": "A",
+                        "confidence_metrics": 0.94,
+                        "source_document_id": "doc-usd",
+                        "extraction_status": "ok_low_confidence",
+                        "extraction_run_id": "run-usd",
+                        "low_confidence_reason": "extraction_run_ok_low_confidence",
+                    }
+                ]
+            result_mock.__iter__ = lambda self: iter(
+                [MagicMock(_mapping=row) for row in rows]
+            )
+            return result_mock
+
+        db.execute = fake_execute
+
+        result = get_ticker_context(ticker="BHP", db=db)
+
+        assert "ok_low_confidence" in low_confidence_sql["value"]
+        assert "r.status IN ('ok', 'ok_low_confidence')" in low_confidence_sql["value"]
+        assert result["low_confidence_financials"] == [
+            {
+                "ticker": "BHP",
+                "period_end": "2025-06-30",
+                "period_type": "A",
+                "confidence_metrics": 0.94,
+                "source_document_id": "doc-usd",
+                "extraction_status": "ok_low_confidence",
+                "extraction_run_id": "run-usd",
+                "low_confidence_reason": "extraction_run_ok_low_confidence",
+            }
+        ]
+
 
 # ---------------------------------------------------------------------------
 # GET /api/context/company_dump
@@ -1102,3 +1201,40 @@ class TestGetVerificationContext:
         sig = inspect.signature(get_verification_context)
         default = sig.parameters["low_confidence_threshold"].default
         assert default.default == 0.4
+
+    def test_without_ticker_includes_ok_low_confidence_status(self):
+        db = MagicMock()
+        low_confidence_sql = {"value": ""}
+
+        def fake_execute(sql_text, params=None):
+            sql_str = str(sql_text)
+            result_mock = MagicMock()
+            rows = []
+            if "AS low_confidence_reason" in sql_str:
+                low_confidence_sql["value"] = sql_str
+                rows = [
+                    {
+                        "ticker": "BHP",
+                        "period_end": "2025-06-30",
+                        "period_type": "A",
+                        "confidence_metrics": 0.94,
+                        "source_document_id": "doc-usd",
+                        "extraction_status": "ok_low_confidence",
+                        "extraction_run_id": "run-usd",
+                        "low_confidence_reason": "extraction_run_ok_low_confidence",
+                    }
+                ]
+            result_mock.__iter__ = lambda self: iter(
+                [MagicMock(_mapping=row) for row in rows]
+            )
+            return result_mock
+
+        db.execute = fake_execute
+
+        result = get_verification_context(ticker=None, db=db)
+
+        assert "ok_low_confidence" in low_confidence_sql["value"]
+        assert "r.status IN ('ok', 'ok_low_confidence')" in low_confidence_sql["value"]
+        assert result["low_confidence_financials"][0]["low_confidence_reason"] == (
+            "extraction_run_ok_low_confidence"
+        )

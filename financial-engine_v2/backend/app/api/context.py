@@ -138,6 +138,29 @@ def _run_query(
         return [], str(exc)
 
 
+_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL = """
+(
+    SELECT r.status
+    FROM extraction_runs r
+    WHERE r.document_id = f.source_document_id
+      AND r.status IN ('ok', 'ok_low_confidence')
+    ORDER BY r.created_at DESC
+    LIMIT 1
+)
+"""
+
+_LATEST_PERSISTABLE_SOURCE_EXTRACTION_RUN_ID_SQL = """
+(
+    SELECT CAST(r.run_id AS TEXT)
+    FROM extraction_runs r
+    WHERE r.document_id = f.source_document_id
+      AND r.status IN ('ok', 'ok_low_confidence')
+    ORDER BY r.created_at DESC
+    LIMIT 1
+)
+"""
+
+
 def _is_missing_table_error(error: str | None) -> bool:
     lowered = str(error or "").lower()
     return (
@@ -1430,13 +1453,17 @@ def get_ticker_context(
     # --- financials (matches DbReader.get_financials) ---
     financials, err = _run_query(
         db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
+        f"""
+        SELECT f.ticker, f.period_end, f.period_type, f.revenue, f.ebit,
+               f.np_attributable, f.operating_cf, f.investing_cf,
+               f.financing_cf, f.capex, f.cash_end, f.net_debt,
+               f.shares_outstanding, f.confidence_metrics,
+               f.source_document_id,
+               {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} AS extraction_status,
+               {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_RUN_ID_SQL} AS extraction_run_id
+        FROM asx_periodic_financials f
+        WHERE f.ticker = :ticker
+        ORDER BY f.period_end DESC
         LIMIT :limit
     """,
         {"ticker": ticker, "limit": financials_limit},
@@ -1447,13 +1474,17 @@ def get_ticker_context(
     # --- latest_financial_snapshot (matches DbReader.get_latest_financial_snapshot) ---
     snapshot_rows, err = _run_query(
         db,
-        """
-        SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
-               operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
-               shares_outstanding, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE ticker = :ticker
-        ORDER BY period_end DESC
+        f"""
+        SELECT f.ticker, f.period_end, f.period_type, f.revenue, f.ebit,
+               f.np_attributable, f.operating_cf, f.investing_cf,
+               f.financing_cf, f.capex, f.cash_end, f.net_debt,
+               f.shares_outstanding, f.confidence_metrics,
+               f.source_document_id,
+               {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} AS extraction_status,
+               {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_RUN_ID_SQL} AS extraction_run_id
+        FROM asx_periodic_financials f
+        WHERE f.ticker = :ticker
+        ORDER BY f.period_end DESC
         LIMIT 1
     """,
         {"ticker": ticker},
@@ -1508,12 +1539,35 @@ def get_ticker_context(
     # --- low_confidence_financials (matches DbReader.get_low_confidence_financials with ticker) ---
     low_confidence_financials, err = _run_query(
         db,
-        """
-        SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-        FROM asx_periodic_financials
-        WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-          AND ticker = :ticker
-        ORDER BY confidence_metrics ASC
+        f"""
+        SELECT f.ticker, f.period_end, f.period_type, f.confidence_metrics,
+               f.source_document_id,
+               {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} AS extraction_status,
+               {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_RUN_ID_SQL} AS extraction_run_id,
+               CASE
+                   WHEN f.confidence_metrics IS NOT NULL
+                        AND f.confidence_metrics < :threshold
+                       THEN 'metric_confidence_below_threshold'
+                   WHEN {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} = 'ok_low_confidence'
+                       THEN 'extraction_run_ok_low_confidence'
+                   ELSE 'unknown'
+               END AS low_confidence_reason
+        FROM asx_periodic_financials f
+        WHERE f.ticker = :ticker
+          AND (
+              (f.confidence_metrics IS NOT NULL AND f.confidence_metrics < :threshold)
+              OR {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} = 'ok_low_confidence'
+          )
+        ORDER BY
+            CASE
+                WHEN f.confidence_metrics IS NOT NULL
+                     AND f.confidence_metrics < :threshold
+                    THEN 0
+                ELSE 1
+            END ASC,
+            CASE WHEN f.confidence_metrics IS NULL THEN 1 ELSE 0 END ASC,
+            f.confidence_metrics ASC,
+            f.period_end DESC
         LIMIT :limit
     """,
         {
@@ -1754,12 +1808,35 @@ def _build_verification_context(
     if ticker:
         low_conf, err = _run_query(
             db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-              AND ticker = :ticker
-            ORDER BY confidence_metrics ASC
+            f"""
+            SELECT f.ticker, f.period_end, f.period_type, f.confidence_metrics,
+                   f.source_document_id,
+                   {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} AS extraction_status,
+                   {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_RUN_ID_SQL} AS extraction_run_id,
+                   CASE
+                       WHEN f.confidence_metrics IS NOT NULL
+                            AND f.confidence_metrics < :threshold
+                           THEN 'metric_confidence_below_threshold'
+                       WHEN {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} = 'ok_low_confidence'
+                           THEN 'extraction_run_ok_low_confidence'
+                       ELSE 'unknown'
+                   END AS low_confidence_reason
+            FROM asx_periodic_financials f
+            WHERE f.ticker = :ticker
+              AND (
+                  (f.confidence_metrics IS NOT NULL AND f.confidence_metrics < :threshold)
+                  OR {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} = 'ok_low_confidence'
+              )
+            ORDER BY
+                CASE
+                    WHEN f.confidence_metrics IS NOT NULL
+                         AND f.confidence_metrics < :threshold
+                        THEN 0
+                    ELSE 1
+                END ASC,
+                CASE WHEN f.confidence_metrics IS NULL THEN 1 ELSE 0 END ASC,
+                f.confidence_metrics ASC,
+                f.period_end DESC
             LIMIT :limit
         """,
             {
@@ -1771,11 +1848,32 @@ def _build_verification_context(
     else:
         low_conf, err = _run_query(
             db,
-            """
-            SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
-            FROM asx_periodic_financials
-            WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
-            ORDER BY confidence_metrics ASC
+            f"""
+            SELECT f.ticker, f.period_end, f.period_type, f.confidence_metrics,
+                   f.source_document_id,
+                   {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} AS extraction_status,
+                   {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_RUN_ID_SQL} AS extraction_run_id,
+                   CASE
+                       WHEN f.confidence_metrics IS NOT NULL
+                            AND f.confidence_metrics < :threshold
+                           THEN 'metric_confidence_below_threshold'
+                       WHEN {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} = 'ok_low_confidence'
+                           THEN 'extraction_run_ok_low_confidence'
+                       ELSE 'unknown'
+                   END AS low_confidence_reason
+            FROM asx_periodic_financials f
+            WHERE (f.confidence_metrics IS NOT NULL AND f.confidence_metrics < :threshold)
+               OR {_LATEST_PERSISTABLE_SOURCE_EXTRACTION_STATUS_SQL} = 'ok_low_confidence'
+            ORDER BY
+                CASE
+                    WHEN f.confidence_metrics IS NOT NULL
+                         AND f.confidence_metrics < :threshold
+                        THEN 0
+                    ELSE 1
+                END ASC,
+                CASE WHEN f.confidence_metrics IS NULL THEN 1 ELSE 0 END ASC,
+                f.confidence_metrics ASC,
+                f.period_end DESC
             LIMIT :limit
         """,
             {"threshold": low_confidence_threshold, "limit": low_confidence_limit},

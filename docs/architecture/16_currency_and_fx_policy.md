@@ -28,11 +28,16 @@ The `ok_low_confidence` status is **not a failure**. Metrics are persisted to `a
 |----------|-------------------------------|
 | `_upsert_financial_rows` | No effect — both `ok` and `ok_low_confidence` trigger upsert |
 | `ExtractionRun.status` | Recorded verbatim; visible in logs and DB |
-| RAG / chat / analysis services | **No effect** — none of these branch on extraction status |
-| `/financials` API endpoint | **No effect** — returns metrics regardless of status |
+| Backend context APIs | Include latest persistable `extraction_status`, `extraction_run_id`, and low-confidence reason fields so downstream consumers can see the native/no-FX truth marker |
+| RAG / chat / analysis services | Must treat backend context `ok_low_confidence` rows as review-visible native/no-FX facts, not cross-currency comparable facts |
+| `/financials` API endpoint | No effect — returns metrics regardless of status |
 | `currency` column | Populated from Pass 1 result for all statuses |
 
-Programmatic behavior is identical between `ok` and `ok_low_confidence`. The distinction is operator-visible only.
+Canonical row persistence is identical between `ok` and `ok_low_confidence`.
+Backend context and verification surfaces are not identical: rows sourced from a
+latest persistable `ok_low_confidence` extraction run are included in
+`low_confidence_financials` even when `confidence_metrics` is above the numeric
+threshold.
 
 ---
 
@@ -63,6 +68,13 @@ Until FX conversion is implemented:
 - **Non-AUD metrics cannot be directly compared with AUD peers.** A USD-denominated BHP revenue figure and an AUD-denominated RMS revenue figure are not on the same scale.
 - The `currency` column on `asx_periodic_financials` identifies which currency a row uses. Filter or convert before cross-company analysis.
 - The `extraction_status` column on `extraction_runs` identifies which runs produced non-AUD results (status = `ok_low_confidence`).
+- `GET /api/context/ticker` financial rows include the latest persistable source
+  extraction run status and run id when available. Failed follow-up runs are
+  still visible through `extraction_failures`, but they do not describe the
+  already-persisted financial row.
+- `GET /api/context/ticker` and `GET /api/context/verification`
+  `low_confidence_financials` include both numeric-threshold rows and rows whose
+  latest persistable source extraction run has `status='ok_low_confidence'`.
 
 ---
 

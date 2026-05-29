@@ -86,6 +86,24 @@ Every gate artifact reports `canonical_write_allowed: false` and
 eligible for operator review; it is not approval to run a canary or persist
 financial truth.
 
+## Low-confidence financial truth surfacing
+
+`ok_low_confidence` is a persisted extraction-run status, not an alternate
+financial value. Canonical financial rows remain stored as extracted native
+values, but backend context surfaces must preserve the status marker:
+
+- `GET /api/context/ticker` financial rows expose the latest persistable source
+  extraction run status and run id when available.
+- `low_confidence_financials` includes rows with `confidence_metrics` below the
+  configured threshold and rows whose latest persistable source extraction run is
+  `ok_low_confidence`.
+- `low_confidence_reason` distinguishes `metric_confidence_below_threshold` from
+  `extraction_run_ok_low_confidence`.
+
+This prevents native-currency/no-FX rows from being silently presented as fully
+comparable AUD facts while still preserving the backend as the single source of
+truth.
+
 ## Source document classification
 
 Source-document classification is deterministic and source-metadata only:
