@@ -1,6 +1,6 @@
 {
   "job_id": "extraction_metric_truth_policy_v1_20260529",
-  "status": "implemented_validated_with_known_external_asset_gap",
+  "status": "implemented_validated_released_with_known_external_asset_gap",
   "lane": "Financial Truth",
   "mutation_mode": "safe_extension",
   "production_data_access": false,
@@ -8,6 +8,12 @@
   "backfill_run": false,
   "datastore_mutation": false,
   "source_pdf_mutation": false,
+  "registry_release": {
+    "released": true,
+    "released_at": "2026-05-29T06:46:22.961865Z",
+    "registry_scope": "shared",
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
   "implemented": [
     "source_document_classification_v1",
     "scale_policy_v1_plain_dollar_units",
@@ -24,7 +30,9 @@
     "json_tool",
     "ruff",
     "focused_pytest_15_passed",
-    "scoped_pytest_224_passed_1_deselected"
+    "scoped_pytest_224_passed_1_deselected",
+    "registry_release",
+    "registry_list_active_empty"
   ],
   "known_validation_gap": {
     "test": "test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist",
