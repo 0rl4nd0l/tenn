@@ -1,20 +1,12 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_aau_runtime_reload_canary_approval_packet_v1_20260529.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_aau_runtime_reload_canary_approval_packet_v1_20260529/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_aau_runtime_reload_canary_approval_packet_v1_20260529/reload_canary_approval_packet.json",
-      "status": "A"
+      "path": "reports/agent_jobs/extraction_aau_runtime_reload_canary_approval_packet_v1_20260529/diff-check.json",
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_aau_runtime_reload_canary_approval_packet_v1_20260529/status.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
