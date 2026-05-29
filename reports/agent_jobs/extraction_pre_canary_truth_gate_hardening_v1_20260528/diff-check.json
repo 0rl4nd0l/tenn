@@ -1,0 +1,83 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_pre_canary_truth_gate_hardening_v1_20260528.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/architecture/12_evaluation_and_drift_monitoring.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/extraction/metric_extraction_contract.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_pre_canary_truth_gate_hardening_v1_20260528.md",
+        "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/README.md",
+        "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/status.json",
+        "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/diff-check.json",
+        "reports/agent_jobs/extraction_second_canary_failure_taxonomy_audit_v1_20260527/**",
+        "reports/agent_jobs/extraction_canary_output_exposure_audit_clv_ctm_v1_20260527/**",
+        "reports/agent_jobs/extraction_canary_output_containment_clv_ctm_v1_20260528/**",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/app/services/pipeline.py",
+        "financial-engine_v2/backend/app/services/pipeline_service.py",
+        "financial-engine_v2/backend/app/services/extraction_eval.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/app/models/asx_financials.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "financial-engine_v2/backend/tests/test_extraction*.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval*.py",
+        "financial-engine_v2/backend/tests/test_pipeline*.py",
+        "docs/extraction/metric_extraction_contract.md",
+        "docs/architecture/12_evaluation_and_drift_monitoring.md"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_pre_canary_truth_gate_hardening_v1_20260528",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "audit_first_narrow_pre_persistence_guard_hardening",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

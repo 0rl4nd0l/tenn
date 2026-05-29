@@ -205,6 +205,22 @@ Rules:
 - Do not infer, reconcile, or derive missing values in this corpus.
 - Keep the pilot in the existing corpus path; do not create a second gold location.
 
+### Pre-canary truth gates
+
+Before another #96 canary batch, live extraction includes narrow
+pre-persistence guards for source-bound truth failures seen in the second
+bounded canary:
+
+- advisory-only announcements are failed before metric extraction;
+- EBITDA evidence cannot populate canonical `ebit`;
+- explicit source-unit values in row evidence must agree with normalized metric
+  magnitude;
+- explicit source-period evidence must agree with extracted `period_type`.
+
+These guards do not correct values, infer period type, mutate gold labels, or
+change parser routing. A failed gate prevents both canonical financial-row
+persistence and downstream `asx_docs` chunk embedding for that document.
+
 ### Base eval run
 
 The canonical local runner is:

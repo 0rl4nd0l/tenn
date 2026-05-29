@@ -1859,6 +1859,75 @@ _SHARE_NOTE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_ADVISORY_ONLY_DOCUMENT_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bquarterly\s+report\s+advisory\b", re.IGNORECASE),
+    re.compile(r"\bappendix\s+4[cd]\s+advisory\b", re.IGNORECASE),
+)
+
+_SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
+    (
+        "A",
+        "annual_report_title",
+        re.compile(r"\bannual\s+report\b", re.IGNORECASE),
+    ),
+    (
+        "A",
+        "year_ended_source_phrase",
+        re.compile(r"(?<!half[-\s])\byear\s+ended\b", re.IGNORECASE),
+    ),
+    (
+        "H",
+        "half_year_source_phrase",
+        re.compile(r"\bhalf[-\s]?year\b", re.IGNORECASE),
+    ),
+    (
+        "H",
+        "six_months_ended_source_phrase",
+        re.compile(r"\b(?:six|6)\s+months?\s+ended\b", re.IGNORECASE),
+    ),
+    (
+        "H",
+        "appendix_4d_source_phrase",
+        re.compile(r"\bappendix\s+4d\b", re.IGNORECASE),
+    ),
+    (
+        "Q",
+        "appendix_4c_source_phrase",
+        re.compile(r"\bappendix\s+4c\b", re.IGNORECASE),
+    ),
+    (
+        "Q",
+        "quarterly_source_phrase",
+        re.compile(r"\bquarterly\s+(?:cash\s+flow|activities|report)\b", re.IGNORECASE),
+    ),
+)
+
+_EXPLICIT_SOURCE_UNIT_VALUE_RE = re.compile(
+    r"(?<![A-Za-z0-9])"
+    r"(?:AUD\s*)?(?:A\$|\$A|\$)?\s*"
+    r"\(?(-?\d+(?:,\d{3})*(?:\.\d+)?)\)?\s*"
+    r"(million|millions|m|billion|billions|bn|b)\b",
+    re.IGNORECASE,
+)
+
+_SOURCE_UNIT_MULTIPLIERS = {
+    "m": 1_000_000,
+    "million": 1_000_000,
+    "millions": 1_000_000,
+    "b": 1_000_000_000,
+    "bn": 1_000_000_000,
+    "billion": 1_000_000_000,
+    "billions": 1_000_000_000,
+}
+
+_EBIT_LABEL_BLOCKERS = (
+    "ebitda",
+    "earnings before interest tax depreciation",
+    "earnings before interest, tax, depreciation",
+    "earnings before interest and tax depreciation",
+    "earnings before interest, taxes, depreciation",
+)
+
 
 def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]:
     """Scan prose sections for share count mentions.
@@ -1901,6 +1970,53 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
                 return value, provenance
 
     return None, ""
+
+
+def _combined_source_text(*values: Any) -> str:
+    parts: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            if value.strip():
+                parts.append(value.strip())
+        elif isinstance(value, (list, tuple, set)):
+            parts.extend(str(item).strip() for item in value if str(item).strip())
+        elif value is not None:
+            text = str(value).strip()
+            if text:
+                parts.append(text)
+    return " ".join(parts)
+
+
+def _is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _ADVISORY_ONLY_DOCUMENT_PATTERNS)
+
+
+def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str, Any]:
+    """
+    Detect explicit source-period wording without changing the extracted period.
+
+    This is a contradiction guard only: ambiguous/multiple source-period signals are
+    left reportable but non-blocking so the gate does not infer a corrected period.
+    """
+    text = _combined_source_text(title, first_page_text)
+    hits: list[dict[str, str]] = []
+    for period_type, reason, pattern in _SOURCE_PERIOD_PATTERNS:
+        if pattern.search(text):
+            hits.append({"period_type": period_type, "reason": reason})
+
+    seen_types = sorted({hit["period_type"] for hit in hits})
+    if len(seen_types) == 1:
+        return {
+            "period_type": seen_types[0],
+            "reason": hits[0]["reason"],
+            "hits": hits,
+        }
+    if len(seen_types) > 1:
+        return {"period_type": None, "reason": "ambiguous", "hits": hits}
+    return {"period_type": None, "reason": "not_detected", "hits": []}
 
 
 # ---------------------------------------------------------------------------
@@ -2404,6 +2520,8 @@ def _run_pass4_reconciler(
     return {
         "period_type": pass1_result.get("report_type"),
         "period_end": pass1_result.get("period_end"),
+        "source_period_type": pass1_result.get("_source_period_type"),
+        "source_period_evidence": pass1_result.get("_source_period_evidence"),
         "metrics": merged_metrics,
         "row_refs": row_refs,
         "thinking": thinking_map,
@@ -2513,6 +2631,92 @@ def _validate_scale(payload: dict) -> str:
 SANITY_CAP = 500_000_000_000  # $500B
 
 
+def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    return _combined_source_text(
+        row_refs.get(metric_name),
+        provenance.get(metric_name),
+    )
+
+
+def _metric_label_mismatch(payload: dict) -> tuple[str, str] | None:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    if metrics.get("ebit") is None:
+        return None
+    evidence = _normalise_evidence_row_ref(_payload_metric_source_text(payload, "ebit"))
+    if not evidence:
+        return None
+    compact = evidence.replace(",", "")
+    if any(blocker in compact for blocker in _EBIT_LABEL_BLOCKERS):
+        return "ebit", "ebitda"
+    return None
+
+
+def _explicit_unit_values_from_text(text: str) -> list[float]:
+    values: list[float] = []
+    for match in _EXPLICIT_SOURCE_UNIT_VALUE_RE.finditer(text or ""):
+        raw_value = match.group(1).replace(",", "")
+        unit = match.group(2).lower()
+        multiplier = _SOURCE_UNIT_MULTIPLIERS.get(unit)
+        if multiplier is None:
+            continue
+        try:
+            values.append(abs(float(raw_value)) * multiplier)
+        except (TypeError, ValueError):
+            continue
+    return values
+
+
+def _within_relative_tolerance(actual: float, expected: float, tolerance: float) -> bool:
+    if expected == 0:
+        return abs(actual) <= tolerance
+    return abs(actual - expected) / abs(expected) <= tolerance
+
+
+def _source_unit_value_mismatch(payload: dict) -> tuple[str, float, float] | None:
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    for metric_name, actual_raw in metrics.items():
+        if actual_raw is None:
+            continue
+        try:
+            actual = abs(float(actual_raw))
+        except (TypeError, ValueError):
+            continue
+        source_values = _explicit_unit_values_from_text(
+            _payload_metric_source_text(payload, metric_name)
+        )
+        source_values = [value for value in source_values if value > 0]
+        if not source_values:
+            continue
+        if any(
+            _within_relative_tolerance(actual, expected, 0.05)
+            for expected in source_values
+        ):
+            continue
+        for expected in source_values:
+            ratio = max(actual / expected, expected / actual) if actual else float("inf")
+            if ratio >= 100:
+                return metric_name, actual, expected
+    return None
+
+
+def _period_source_mismatch(payload: dict) -> tuple[str, str, str] | None:
+    source_period_type = str(payload.get("source_period_type") or "").strip()
+    period_type = str(payload.get("period_type") or "").strip()
+    if source_period_type not in {"A", "H", "Q"} or period_type not in {"A", "H", "Q"}:
+        return None
+    if source_period_type == period_type:
+        return None
+    evidence = payload.get("source_period_evidence")
+    reason = ""
+    if isinstance(evidence, dict):
+        reason = str(evidence.get("reason") or "").strip()
+    return period_type, source_period_type, reason or "explicit_source_period"
+
+
 def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     """
     Validate the reconciled payload before DB upsert.
@@ -2543,6 +2747,32 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
         return "failed", "validation_gate:scale_unknown"
 
     metrics = payload.get("metrics", {})
+    mismatch = _metric_label_mismatch(payload)
+    if mismatch is not None:
+        metric_name, source_label = mismatch
+        return (
+            "failed",
+            f"validation_gate:metric_label_mismatch:{metric_name}:{source_label}",
+        )
+
+    source_unit_mismatch = _source_unit_value_mismatch(payload)
+    if source_unit_mismatch is not None:
+        metric_name, actual, expected = source_unit_mismatch
+        return (
+            "failed",
+            "validation_gate:source_unit_value_mismatch:"
+            f"{metric_name}:actual={actual:g}:source_unit={expected:g}",
+        )
+
+    period_mismatch = _period_source_mismatch(payload)
+    if period_mismatch is not None:
+        period_type, source_period_type, reason = period_mismatch
+        return (
+            "failed",
+            "validation_gate:period_source_mismatch:"
+            f"payload={period_type}:source={source_period_type}:{reason}",
+        )
+
     non_null = [v for v in metrics.values() if v is not None]
     # Quarterly Appendix 5B filings are structurally limited to cash-flow metrics;
     # they never contain income-statement or balance-sheet rows.  A minimum of 1
@@ -2700,6 +2930,22 @@ def run_multipass_extraction(
     first_page_text = " ".join(s["text"] for s in first_page_sections)
     title = doc_metadata.get("title", "")
 
+    source_period_evidence = _detect_source_period_evidence(title, first_page_text)
+    if _is_advisory_only_document(title, first_page_text):
+        error = "validation_gate:advisory_only_document"
+        logger.warning(
+            "advisory-only document blocked before metric extraction: title=%r",
+            title,
+        )
+        null_payload["source_period_evidence"] = source_period_evidence
+        null_payload["source_document_gate"] = "advisory_only_document"
+        return MultipassResult(
+            status="failed",
+            payload=null_payload,
+            sections=structured_doc.sections,
+            error=error,
+        )
+
     if observer is not None:
         observer.emit("pass1_classifier", "running", "Running pass 1 classifier.")
     try:
@@ -2743,6 +2989,8 @@ def run_multipass_extraction(
         )
     if observer is not None:
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
+    pass1["_source_period_evidence"] = source_period_evidence
+    pass1["_source_period_type"] = source_period_evidence.get("period_type")
 
     # Table-header scale detection is always authoritative — ASX filings print scale
     # explicitly in column headers ($'000, A$M, etc.) which is more reliable than
