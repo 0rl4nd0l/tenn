@@ -1,0 +1,158 @@
+{
+  "artifact_type": "extraction_third_canary_runtime_readiness_refresh_v2",
+  "job_id": "extraction_third_canary_runtime_readiness_refresh_v2_20260529",
+  "generated_at": "2026-05-29T12:46:14Z",
+  "generated_by": "Codex",
+  "related_issue": 96,
+  "branch": "audit/extraction-runtime-readiness-refresh-v2-20260529",
+  "worktree": "/home/l4nd0/tenn-extraction-runtime-readiness-refresh-v2-20260529",
+  "target_baseline_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "target_head": "7ee06fbdad5f954056981769eef3ba25bee86480",
+  "target_head_subject": "milestone(extraction): block third canary on runtime preflight",
+  "target_head_commit_time": "2026-05-29T22:28:00+10:00",
+  "prior_approval_phrase_received": "APPROVE #96 THIRD CANARY extraction_third_canary_approval_packet_refresh_v1_20260529",
+  "runtime_reload_authorized_by_prior_phrase": false,
+  "runtime_reload_performed": false,
+  "canary_run": false,
+  "document_posts_performed": [],
+  "broad_backfill_run": false,
+  "db_writes_performed": false,
+  "direct_sql_or_qdrant_mutation_performed": false,
+  "source_pdf_mutation_performed": false,
+  "runtime_service_model_gpu_changes_performed": false,
+  "packet_verdict": {
+    "status": "BLOCKED_BEFORE_CANARY",
+    "reason": "Current GPU health is not cleanly verifiable and live backend/worker/gpu_worker loaded code cannot be proven current without a reload that the prior third-canary phrase did not authorize."
+  },
+  "current_read_only_evidence": {
+    "api_health": {
+      "endpoint": "GET http://127.0.0.1:8000/api/health",
+      "response": {
+        "status": "ok"
+      }
+    },
+    "queue_status": {
+      "endpoint": "GET http://127.0.0.1:8000/api/queue/status",
+      "response": {
+        "redis_connected": true,
+        "queues": {
+          "ingest": 0,
+          "embed": 0,
+          "score": 0,
+          "llm_gpu": 0,
+          "llm_cpu": 0
+        },
+        "total_queued": 0
+      }
+    },
+    "gpu_process_guard_check": {
+      "command": "scripts/gpu_process_guard.sh --check",
+      "exit_code": 0,
+      "warnings": [
+        "nvidia-smi query failed (exit 255): nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits",
+        "nvidia-smi query failed (exit 255): nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits",
+        "nvidia-smi query failed (exit 255): nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits"
+      ],
+      "sufficient_for_canary": false,
+      "reason": "The guard did not hard-fail, but it could not query nvidia-smi, so GPU/VRAM health is DATA_MISSING."
+    },
+    "direct_nvidia_smi": {
+      "command": "nvidia-smi",
+      "exit_code": 255,
+      "stderr": "Unable to determine the device handle for GPU0000:25:00.0: Unknown Error",
+      "sufficient_for_canary": false
+    },
+    "current_runtime_containers": [
+      {
+        "container": "fe_backend",
+        "service": "backend",
+        "state": "running",
+        "started_at": "2026-05-27T10:45:40.592004537Z",
+        "command": [
+          "uvicorn",
+          "app.main:app",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8000"
+        ]
+      },
+      {
+        "container": "fe_worker",
+        "service": "worker",
+        "state": "running",
+        "started_at": "2026-05-27T10:45:42.410745023Z",
+        "command": [
+          "celery",
+          "-A",
+          "app.celery_app.celery",
+          "worker",
+          "--loglevel=INFO",
+          "-Q",
+          "ingest,embed,score,llm_cpu"
+        ]
+      },
+      {
+        "container": "fe_gpu_worker",
+        "service": "gpu_worker",
+        "state": "running",
+        "started_at": "2026-05-27T10:45:42.444213793Z",
+        "command": [
+          "celery",
+          "-A",
+          "app.celery_app.celery",
+          "worker",
+          "--loglevel=INFO",
+          "--concurrency=1",
+          "-Q",
+          "llm_gpu"
+        ]
+      }
+    ],
+    "current_loaded_code_verdict": {
+      "status": "DATA_MISSING",
+      "sufficient_for_canary": false,
+      "reason": "Long-running backend and Celery worker imports cannot be proven current without a service reload."
+    }
+  },
+  "approved_third_canary_packet_left_unexecuted": {
+    "packet_path": "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+    "approval_phrase": "APPROVE #96 THIRD CANARY extraction_third_canary_approval_packet_refresh_v1_20260529",
+    "approved_document_ids": [
+      "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "035c6758-7aed-41a6-9e84-ad154125d431"
+    ],
+    "document_posts_performed_by_this_task": []
+  },
+  "blocking_gates": [
+    {
+      "gate": "gpu_health",
+      "decision": "block_before_canary",
+      "reason": "Direct nvidia-smi fails with the GPU handle error, so GPU/VRAM health is not cleanly verifiable."
+    },
+    {
+      "gate": "loaded_worker_code_current",
+      "decision": "block_before_canary",
+      "reason": "The live backend and workers require a reload before loaded Python imports can be proven current."
+    },
+    {
+      "gate": "reload_authorization",
+      "decision": "block_before_canary",
+      "reason": "The received third-canary approval phrase did not authorize a service reload."
+    }
+  ],
+  "data_missing": [
+    "clean direct GPU/VRAM proof",
+    "live loaded-code proof for backend, worker, and gpu_worker",
+    "explicit approval for a bounded runtime reload after GPU health is clean",
+    "clean approval-required runtime execution task card",
+    "future actual payloads and #97 scorecard results",
+    "full graduation evidence for broad accurate extraction"
+  ],
+  "next_safe_step": "Restore clean GPU health first. Then create a new approval-required runtime execution task that explicitly authorizes restarting only backend, worker, and gpu_worker; proves post-reload loaded code; rechecks queues, source paths, and GPU health; and submits at most one document at a time through POST /api/process/document/{document_id}."
+}
