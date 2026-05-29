@@ -40,4 +40,21 @@ Already passed on this branch:
 
 ## Result
 
-Pending until draft PR creation and verification complete.
+Draft PR created and verified:
+
+- PR: https://github.com/0rl4nd0l/tenn/pull/127
+- Number: 127
+- Title: `[codex] capture BHP canary eval regression`
+- State: `OPEN`
+- Draft: `true`
+- Head branch: `safe/extraction-bhp-canary-gold-fixture-v1-20260529`
+- Base branch: `migration/clean-runtime-baseline-reconstruct-v1`
+
+Branch head at PR verification:
+
+- Local: `b02f94df96d93b40d110bf35f21dca3f4c27fc8f`
+- Remote: `b02f94df96d93b40d110bf35f21dca3f4c27fc8f`
+
+Remaining blocker before any AAU/runtime canary continuation:
+
+`APPROVE #96 RUNTIME RELOAD AND AAU CANARY extraction_aau_runtime_reload_canary_approval_packet_v1_20260529`
