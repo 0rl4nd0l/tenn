@@ -1,0 +1,31 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_pr129_base_sync_after_canary_preflight_v1_20260529.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/extraction_pr129_base_sync_after_canary_preflight_v1_20260529.md",
+    "reports/agent_jobs/extraction_pr129_base_sync_after_canary_preflight_v1_20260529/**",
+    "docs/agent_tasks/extraction_third_canary_runtime_preflight_v1_20260529.md",
+    "reports/agent_jobs/extraction_third_canary_runtime_preflight_v1_20260529/**",
+    "docs/claude/STATE.md"
+  ],
+  "branch": "safe/extraction-real-gold-corpus-baseline-v1-20260529",
+  "claimed_at": "2026-05-29T12:29:41.431147Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-29T12:29:41.431147Z",
+  "job_id": "extraction_pr129_base_sync_after_canary_preflight_v1_20260529",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-29T12:32:11.128091Z",
+  "output_dir": "reports/agent_jobs/extraction_pr129_base_sync_after_canary_preflight_v1_20260529",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-29T12:32:11.128091Z",
+  "repo_root": "/home/l4nd0/tenn-extraction-real-gold-corpus-baseline-v1-20260529",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:107332:extraction_pr129_base_sync_after_canary_preflight_v1_20260529",
+  "started_at": "2026-05-29T12:29:41.431147Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/extraction_pr129_base_sync_after_canary_preflight_v1_20260529.md",
+  "updated_at": "2026-05-29T12:32:11.128091Z",
+  "worktree": "/home/l4nd0/tenn-extraction-real-gold-corpus-baseline-v1-20260529"
+}

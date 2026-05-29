@@ -1,0 +1,95 @@
+{
+  "artifact_type": "extraction_third_canary_runtime_preflight_v1",
+  "job_id": "extraction_third_canary_runtime_preflight_v1_20260529",
+  "generated_at": "2026-05-29T12:22:50Z",
+  "related_issue": 96,
+  "approval_phrase_received": "APPROVE #96 THIRD CANARY extraction_third_canary_approval_packet_refresh_v1_20260529",
+  "approval_packet": "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+  "verdict": "blocked_before_canary",
+  "canary_run": false,
+  "document_posts_performed": [],
+  "broad_backfill_run": false,
+  "service_restart_performed": false,
+  "direct_sql_or_qdrant_mutation_performed": false,
+  "source_pdf_mutation_performed": false,
+  "approved_document_ids": [
+    "508fc892-ae88-45ec-981f-cd9e124c8375",
+    "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+    "aacc4c29-3089-48cf-8b82-8004134f9387",
+    "0ed0104f-f29a-4068-8ff7-370f14fead98",
+    "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+    "da9f9ea5-6596-464f-af14-5acf12f9b050",
+    "035c6758-7aed-41a6-9e84-ad154125d431"
+  ],
+  "passed_gates": {
+    "backend_health": {
+      "command": "curl -m 5 -sS http://127.0.0.1:8000/api/health",
+      "result": "{\"status\":\"ok\"}"
+    },
+    "runtime_path": {
+      "tenn_runtime_symlink": "/home/l4nd0/tenn-runtime -> /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+      "head": "e2029835efbd2eb6425f089d703841eb20625bf7"
+    },
+    "source_paths": [
+      {"order": 1, "ticker": "AAU", "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375", "exists": true, "size_bytes": 1804699},
+      {"order": 2, "ticker": "ATM", "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025", "exists": true, "size_bytes": 4094864},
+      {"order": 3, "ticker": "AM5", "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387", "exists": true, "size_bytes": 1368198},
+      {"order": 4, "ticker": "AQX", "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98", "exists": true, "size_bytes": 2521397},
+      {"order": 5, "ticker": "CRS", "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032", "exists": true, "size_bytes": 1383745},
+      {"order": 6, "ticker": "CLV", "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050", "exists": true, "size_bytes": 232373},
+      {"order": 7, "ticker": "CTM", "document_id": "035c6758-7aed-41a6-9e84-ad154125d431", "exists": true, "size_bytes": 1761954}
+    ],
+    "source_sidecars": {
+      "command": "find /data/asx/docs/{AAU,ATM,AM5,AQX,CRS,CLV,CTM} -name '*.pdf.pymupdf.json' -o -name '*.docling.json'",
+      "found": []
+    },
+    "container_source_hashes_match_checkout": {
+      "multipass_extraction.py": "db7bc55a7eb1925eb2617f5e6d110d278ad063667d53ab608063e45597351935",
+      "docling_extract.py": "ca6d324dface9be8160f33a60efb700f2f05d5e0d9ca0f36f8e51eda24cb7a52",
+      "pipeline.py": "6f871ecb63f80bd0fa61fe99ec6e462c1df48e5f467cc68c100df53834b4692e",
+      "worker_tasks.py": "97a02b3941351037c18e895cea4a5bd850c870a7e7394943ae1a576977e4822d"
+    }
+  },
+  "blocking_gates": [
+    {
+      "gate": "gpu_health",
+      "command": "nvidia-smi",
+      "result": "Unable to determine the device handle for GPU0000:25:00.0: Unknown Error",
+      "decision": "block_before_canary"
+    },
+    {
+      "gate": "loaded_worker_code_current",
+      "evidence": {
+        "containers": [
+          {"name": "fe_backend", "started_at": "2026-05-27T10:45:40.592004537Z"},
+          {"name": "fe_worker", "started_at": "2026-05-27T10:45:42.410745023Z"},
+          {"name": "fe_gpu_worker", "started_at": "2026-05-27T10:45:42.444213793Z"}
+        ],
+        "current_head": "e2029835efbd2eb6425f089d703841eb20625bf7",
+        "current_head_commit_time": "2026-05-29T18:49:39+10:00",
+        "multipass_extraction_mtime": "2026-05-29T18:52:10.385064996+10:00"
+      },
+      "result": "source bind mount is current, but long-running Python process imports cannot be proven current without reload",
+      "decision": "block_before_canary"
+    },
+    {
+      "gate": "approval_packet_restart_abort_condition",
+      "result": "proving current loaded code would require backend/worker/gpu_worker reload, and the packet aborts if service restart is required",
+      "decision": "block_before_canary"
+    },
+    {
+      "gate": "task_card_overlap_claim",
+      "result": "registry check-overlap and claim failed because docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md is dirty outside this task card allowed_files",
+      "decision": "block_before_canary"
+    }
+  ],
+  "data_missing": [
+    "clean GPU process and VRAM proof",
+    "live loaded-code proof for backend, worker, and gpu_worker",
+    "approved-document queue/orphan proof beyond the stale /api/ops/jobs/active list",
+    "explicit approval for runtime reload plus canary execution",
+    "clean task-card overlap and claim state"
+  ],
+  "next_safe_step": "Request explicit runtime-reload approval covering backend, worker, and gpu_worker, then rerun GPU, loaded-code, queue, source-path, task-card claim, and one-document-at-a-time canary gates."
+}
