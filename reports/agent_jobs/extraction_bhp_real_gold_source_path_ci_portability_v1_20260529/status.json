@@ -1,11 +1,11 @@
 {
   "artifact_type": "extraction_bhp_real_gold_source_path_ci_portability_status_v1",
   "job_id": "extraction_bhp_real_gold_source_path_ci_portability_v1_20260529",
-  "updated_at": "2026-05-29T10:34:22Z",
+  "updated_at": "2026-05-29T10:37:41.086022Z",
   "branch": "safe/extraction-bhp-canary-gold-fixture-v1-20260529",
   "related_pr": 127,
   "related_issue": 96,
-  "status": "validation_passed_pending_commit",
+  "status": "released",
   "ci_failure_addressed": "financial-engine_v2/backend/tests/test_extraction_gold_eval.py::test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist FileNotFoundError DATA_MISSING source PDF not found",
   "default_source_asset_requirement": "allowlisted path resolution required; host-local file presence optional",
   "strict_source_asset_requirement": "TENN_REQUIRE_REAL_GOLD_SOURCE_ASSETS=1 requires all source files to exist",
@@ -23,6 +23,12 @@
     "git_diff_check": "passed",
     "task_card_check_diff": "passed",
     "code_review": "passed_no_findings"
+  },
+  "registry_release": {
+    "released_at": "2026-05-29T10:37:41.086022Z",
+    "active_record_removed": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
   },
   "remaining_ci_context": {
     "pr_128_source_path_failure_removed": true,
