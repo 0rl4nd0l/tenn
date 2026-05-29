@@ -90,6 +90,7 @@ SCALE_MULTIPLIERS = {
     "thousands": 1_000,
     "millions": 1_000_000,
     "billions": 1_000_000_000,
+    "trillions": 1_000_000_000_000,
     "units": 1,
     "unknown": 1,
 }
@@ -152,12 +153,17 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
     # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
     (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
+    (
+        r"(?:(?<!\w)RP\.?\s*trillions?\b|\bIDR\s*trillions?\b|"
+        r"\brupiah\s*trillions?\b|\btrillions?\s+of\s+(?:rupiah|IDR)\b)",
+        "trillions",
+    ),
 ]
 
 _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:A\$|\$A|\$|AUD(?:\s+dollars?)?)"
-    r"(?!\s*(?:'?\d{3}|0{3}|[mMbB]\b|bn\b|millions?\b|billions?\b))"
+    r"(?!\s*(?:'?\d{3}|0{3}|[mMbB]\b|bn\b|millions?\b|billions?\b|trillions?\b))"
     r"(?=\s|$|\)|,|;|:)",
     _re.IGNORECASE,
 )
@@ -197,6 +203,8 @@ _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     (r"(?:(?<!\w)(?:NZ\$|\$NZ)|\b(?:NZD|NEW\s+ZEALAND\s+DOLLARS?)\b)", "NZD"),
     # CNY/CNH markers: CNY, CNH, RMB, yuan, renminbi (all word-bounded; no symbol in use)
     (r"\b(?:CNY|CNH|RMB|YUAN|RENMINBI)\b", "CNY"),
+    # Indonesian rupiah markers: IDR, Rp, rupiah.
+    (r"(?:(?<!\w)RP\.?(?!\w)|\b(?:IDR|RUPIAH|INDONESIAN\s+RUPIAH)\b)", "IDR"),
 ]
 
 _ROW_LEVEL_CURRENCY_CONTEXT_HINTS: tuple[str, ...] = (
@@ -370,7 +378,7 @@ Given the document title and first-page text, extract:
 - report_type: one of "A" (annual), "H" (half-year), "Q" (quarterly), or null
 - period_end: the period end date as "YYYY-MM-DD", or null
 - currency: three-letter currency code (e.g. "AUD"), or null
-- scale: one of "thousands", "millions", "billions", "units", or "unknown"
+- scale: one of "thousands", "millions", "billions", "trillions", "units", or "unknown"
 - classifier_confidence: float 0.0-1.0 (how confident you are in the above)
 
 Schema:
@@ -378,7 +386,7 @@ Schema:
   "report_type": "A|H|Q|null",
   "period_end": "YYYY-MM-DD|null",
   "currency": "AUD|USD|...|null",
-  "scale": "thousands|millions|billions|units|unknown",
+  "scale": "thousands|millions|billions|trillions|units|unknown",
   "classifier_confidence": 0.0
 }}
 
@@ -1392,6 +1400,7 @@ def _extract_single_table(
         markdown = _table_to_markdown(table, max_rows=row_cap)
     if not markdown:
         return None
+    sanity_cap = _native_currency_sanity_cap(pass1_result.get("currency"))
 
     def _build_prompt(table_markdown: str) -> str:
         return bundle.pass3a.format(
@@ -1435,15 +1444,16 @@ def _extract_single_table(
                     scaled = raw_float * effective_multiplier
                     if (
                         effective_multiplier > 1
-                        and abs(scaled) > SANITY_CAP
-                        and abs(raw_float) <= SANITY_CAP
+                        and abs(scaled) > sanity_cap
+                        and abs(raw_float) <= sanity_cap
                     ):
                         logger.warning(
-                            "LLM pre-scaled %s for %s: raw=%s, scaled=%s exceeds cap — using raw value",
+                            "LLM pre-scaled %s for %s: raw=%s, scaled=%s exceeds native cap %s — using raw value",
                             metric_name,
                             table_type,
                             raw_float,
                             scaled,
+                            sanity_cap,
                         )
                         scaled = raw_float
                     if table_type == "net_debt_note" and metric_name == "net_debt":
@@ -1966,9 +1976,10 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
 
 _EXPLICIT_SOURCE_UNIT_VALUE_RE = re.compile(
     r"(?<![A-Za-z0-9])"
-    r"(?:AUD\s*)?(?:A\$|\$A|\$)?\s*"
+    r"(?:AUD|USD|IDR)?\s*"
+    r"(?:A\$|\$A|US\$|\$US|RP\.?|\$)?\s*"
     r"\(?(-?\d+(?:,\d{3})*(?:\.\d+)?)\)?\s*"
-    r"(million|millions|m|billion|billions|bn|b)\b",
+    r"(million|millions|m|billion|billions|bn|b|trillion|trillions)\b",
     re.IGNORECASE,
 )
 
@@ -1980,6 +1991,8 @@ _SOURCE_UNIT_MULTIPLIERS = {
     "bn": 1_000_000_000,
     "billion": 1_000_000_000,
     "billions": 1_000_000_000,
+    "trillion": 1_000_000_000_000,
+    "trillions": 1_000_000_000_000,
 }
 
 _EBIT_LABEL_BLOCKERS = (
@@ -2671,7 +2684,27 @@ _SCALE_VALIDATION_THRESHOLDS: dict[str, dict[str, float]] = {
 }
 
 # Over-scale threshold: values above $500B are almost certainly over-multiplied
-_OVERSCALE_THRESHOLD = 500_000_000_000  # $500B
+# for AUD-like currencies. High-denomination native currencies need explicit
+# source-unit support and a currency-specific cap; this does not perform FX
+# conversion or rewrite extracted values.
+_DEFAULT_NATIVE_SANITY_CAP = 500_000_000_000  # $500B
+_HIGH_DENOMINATION_NATIVE_SANITY_CAPS = {
+    "IDR": 10_000_000_000_000_000,  # Rp10 quadrillion
+}
+
+
+def _normalize_currency_code(raw: Any) -> str:
+    if not raw or str(raw).strip().lower() == "null":
+        return "AUD"
+    return str(raw).strip().upper()
+
+
+def _native_currency_sanity_cap(raw_currency: Any) -> int:
+    currency = _normalize_currency_code(raw_currency)
+    return _HIGH_DENOMINATION_NATIVE_SANITY_CAPS.get(
+        currency,
+        _DEFAULT_NATIVE_SANITY_CAP,
+    )
 
 
 def _validate_scale(payload: dict) -> str:
@@ -2688,18 +2721,22 @@ def _validate_scale(payload: dict) -> str:
     """
     metrics = payload.get("metrics", {})
     period_type = payload.get("period_type", "A")
+    currency = _normalize_currency_code(payload.get("currency"))
+    sanity_cap = _native_currency_sanity_cap(currency)
     thresholds = _SCALE_VALIDATION_THRESHOLDS.get(
         period_type, _SCALE_VALIDATION_THRESHOLDS["A"]
     )
 
     # Check for over-scaled values
     for m, v in metrics.items():
-        if v is not None and abs(v) > _OVERSCALE_THRESHOLD:
+        if v is not None and abs(v) > sanity_cap:
             logger.warning(
-                "scale_validation: SUSPECT_OVERSCALED — %s=%s exceeds $500B cap "
-                "(period_type=%s, period_end=%s)",
+                "scale_validation: SUSPECT_OVERSCALED — %s=%s exceeds native "
+                "currency cap %s (currency=%s, period_type=%s, period_end=%s)",
                 m,
                 v,
+                sanity_cap,
+                currency,
                 period_type,
                 payload.get("period_end"),
             )
@@ -2737,9 +2774,6 @@ def _validate_scale(payload: dict) -> str:
 # ---------------------------------------------------------------------------
 # Validation Gate
 # ---------------------------------------------------------------------------
-
-SANITY_CAP = 500_000_000_000  # $500B
-
 
 def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
     row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
@@ -2893,8 +2927,9 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     if len(non_null) < min_metrics:
         return "failed", f"validation_gate:insufficient_metrics:{len(non_null)}"
 
+    sanity_cap = _native_currency_sanity_cap(payload.get("currency"))
     for m, v in metrics.items():
-        if v is not None and abs(v) > SANITY_CAP:
+        if v is not None and abs(v) > sanity_cap:
             return "failed", f"validation_gate:sanity_cap_exceeded:{m}={v}"
 
     confidence = payload.get("confidence_metrics", 0.0)
@@ -2905,11 +2940,7 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     # Flag as ok_low_confidence so consumers know to treat values with caution,
     # but only after all quality gates pass — non-AUD must not bypass them.
     # A warning was already emitted at ingestion time in run_multipass_extraction.
-    _raw_currency = payload.get("currency")
-    # LLMs sometimes return the literal string "null" instead of JSON null.
-    if not _raw_currency or str(_raw_currency).strip().lower() == "null":
-        _raw_currency = "AUD"
-    _currency = str(_raw_currency).upper()
+    _currency = _normalize_currency_code(payload.get("currency"))
     if _currency != "AUD":
         logger.warning(
             "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",

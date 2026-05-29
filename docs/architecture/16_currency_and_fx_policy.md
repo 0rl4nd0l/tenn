@@ -36,6 +36,26 @@ Programmatic behavior is identical between `ok` and `ok_low_confidence`. The dis
 
 ---
 
+## High-denomination native currencies
+
+Source-explicit Indonesian rupiah table units are handled as native currency,
+not converted:
+
+- `Rp`, `IDR`, and `rupiah` table markers resolve to `currency=IDR`.
+- Explicit `Rp`/`IDR`/rupiah `trillion` or `trillions` table units resolve to
+  `scale=trillions`.
+- Pass 3a multiplies raw table values by `1_000_000_000_000`.
+- `_validate_gate` still returns `ok_low_confidence` after hard gates pass.
+- Source-unit row evidence such as `Rp 12.5 trillion` must agree with the
+  normalized metric value; 100x or larger disagreement fails.
+
+The AUD-like `$500B` sanity cap is not applied to IDR native values because it
+would reject valid high-denomination rupiah facts. IDR instead uses a loose
+native-currency cap only to catch extreme over-scaling. This is not FX
+conversion and does not make IDR rows comparable with AUD peers.
+
+---
+
 ## What downstream consumers must assume
 
 Until FX conversion is implemented:

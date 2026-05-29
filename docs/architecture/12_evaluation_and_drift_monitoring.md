@@ -220,6 +220,9 @@ bounded canary:
 - explicit source-period evidence must agree with extracted `period_type`.
 - plain dollar statement columns are treated as `units`, while currency remains
   separate and `unknown` scale still fails.
+- source-explicit IDR/Rp trillion table units are treated as native rupiah
+  `trillions`, with no FX conversion and with non-AUD rows still marked
+  `ok_low_confidence` after hard gates pass.
 
 These guards do not correct values, infer period type, mutate gold labels, or
 change parser routing. A failed gate prevents both canonical financial-row

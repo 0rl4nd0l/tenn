@@ -118,6 +118,51 @@ def test_validate_gate_accepts_matching_source_period():
     assert error is None
 
 
+def test_validate_gate_accepts_source_explicit_idr_trillion_native_values():
+    """IDR trillion native values are low-confidence non-AUD, not AUD cap failures."""
+    from app.services.multipass_extraction import _validate_gate, _validate_scale
+
+    payload = _good_payload(period_type="A", scale="trillions", currency="IDR")
+    payload["metrics"]["revenue"] = 12_500_000_000_000
+    payload["metrics"]["ebit"] = 2_400_000_000_000
+    payload["metrics"]["np_attributable"] = 1_100_000_000_000
+    payload["row_refs"] = {
+        "revenue": "Revenue Rp 12.5 trillion",
+        "ebit": "Operating profit Rp 2.4 trillion",
+        "np_attributable": "NPAT Rp 1.1 trillion",
+    }
+    payload["scale_validation"] = _validate_scale(payload)
+
+    status, error = _validate_gate(payload)
+
+    assert payload["scale_validation"] == "pass"
+    assert status == "ok_low_confidence"
+    assert error is None
+
+
+def test_validate_gate_blocks_rp_trillion_source_unit_mismatch():
+    """A Rp 12.5 trillion row must not persist as Rp 12.5 quadrillion."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="A", scale="trillions", currency="IDR")
+    payload["metrics"]["revenue"] = 12_500_000_000_000_000
+    payload["metrics"]["ebit"] = 2_400_000_000_000
+    payload["metrics"]["np_attributable"] = 1_100_000_000_000
+    payload["row_refs"] = {
+        "revenue": "Revenue Rp 12.5 trillion",
+        "ebit": "Operating profit Rp 2.4 trillion",
+        "np_attributable": "NPAT Rp 1.1 trillion",
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:source_unit_value_mismatch:"
+        "revenue:actual=1.25e+16:source_unit=1.25e+13"
+    )
+
+
 def test_source_period_evidence_detects_annual_and_ambiguous_cases():
     """Source-period detection is contradiction-only and leaves ambiguity non-blocking."""
     from app.services.multipass_extraction import _detect_source_period_evidence

@@ -858,6 +858,94 @@ def test_wtc_like_appendix_row_usd_m_detects_usd_millions():
     assert _detect_scale_from_tables([table]) == "millions"
 
 
+def test_idr_rupiah_trillion_headers_detect_native_currency_and_scale():
+    """Explicit Rp trillion table units must resolve IDR and trillions."""
+    from app.services.multipass_extraction import (
+        _detect_currency_from_tables,
+        _detect_scale_from_tables,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Consolidated statement of profit or loss",
+        headers=["Metric", "2025 Rp trillion", "2024 Rp trillion"],
+        rows=[["Revenue", "12.5", "10.1"], ["Operating profit", "2.4", "2.0"]],
+    )
+
+    assert _detect_currency_from_tables([table]) == "IDR"
+    assert _detect_scale_from_tables([table]) == "trillions"
+
+
+def test_generic_trillion_mention_without_rupiah_marker_stays_unknown_scale():
+    """Trillion support is not a broad verbal-scale upgrade."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Market opportunity summary",
+        headers=["Metric", "Current period"],
+        rows=[["Addressable market", "One trillion dollars"], ["Revenue", "12.5"]],
+    )
+
+    assert _detect_scale_from_tables([table]) == "unknown"
+
+
+def test_pass3a_applies_idr_trillion_scale_without_aud_cap_fallback():
+    """Source-explicit IDR trillion values are native units, not AUD-scale errors."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=3,
+        caption="Consolidated statement of profit or loss",
+        headers=["Metric", "2025 Rp trillion"],
+        rows=[
+            ["Revenue", "12.5"],
+            ["Operating profit", "2.4"],
+            ["Net profit attributable to owners", "1.1"],
+        ],
+    )
+    labelled = {
+        "income_statement": table,
+        "cashflow_statement": None,
+        "balance_sheet": None,
+        "net_debt_note": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2025-12-31",
+        "currency": "IDR",
+        "scale": "trillions",
+    }
+    mock_raw = {
+        "revenue": 12.5,
+        "ebit": 2.4,
+        "np_attributable": 1.1,
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "revenue": "Revenue",
+            "ebit": "Operating profit",
+            "np_attributable": "Net profit attributable to owners",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=mock_raw,
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["revenue"] == 12_500_000_000_000
+    assert results[0]["ebit"] == 2_400_000_000_000
+    assert results[0]["np_attributable"] == 1_100_000_000_000
+
+
 def test_explicit_usd_m_header_wins_over_later_aud_note_markers():
     """A source-unit header should beat unrelated AUD mentions in later note tables."""
     from app.services.multipass_extraction import _detect_currency_from_tables

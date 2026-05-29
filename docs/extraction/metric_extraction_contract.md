@@ -108,14 +108,18 @@ Extractor payload metric values are normalized absolute values before
 persistence. The policy order is:
 
 1. Explicit scaled table units win: `$'000`, `$000`, `thousands`, `$m`, `A$M`,
-   `millions`, and `billions` map to their deterministic multipliers.
+   `millions`, `billions`, and `trillions` map to their deterministic
+   multipliers.
 2. Plain dollar table columns such as `2025 $` map to `units`; currency remains
    a separate context field.
 3. `unknown` scale fails before persistence.
 4. Explicit row evidence such as `$44.1 million` must agree with the normalized
    payload magnitude; 100x or larger disagreement fails.
-5. Non-AUD or nonstandard verbal-scale cases remain conservative. They are not
-   broadly normalized unless an explicit source-bound policy and tests exist.
+5. Source-explicit IDR/Rp trillion table units are accepted as native rupiah
+   values, with `currency=IDR`, `scale=trillions`, and no FX conversion.
+6. Other non-AUD or nonstandard verbal-scale cases remain conservative. They
+   are not broadly normalized unless an explicit source-bound policy and tests
+   exist.
 
 This policy never rewrites values to make them pass. It only accepts, fails, or
 marks a lower-confidence result after the hard gates pass.
