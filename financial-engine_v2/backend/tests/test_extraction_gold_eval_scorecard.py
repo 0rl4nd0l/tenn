@@ -873,6 +873,82 @@ def test_terminal_extraction_candidate_distinguishes_missing_asset_from_no_run()
     )
 
 
+def test_terminal_candidate_manifest_excludes_advisory_only_documents():
+    manifest = build_terminal_extraction_candidate_manifest(
+        [
+            {
+                "document_id": "advisory_doc",
+                "ticker": "PLS",
+                "title": "March 2026 Quarterly Activities Report Advisory",
+                "pdf_path": "data/asx/docs/PLS/advisory.pdf",
+                "host_file_exists": True,
+                "has_current_terminal_run": False,
+            },
+            {
+                "document_id": "financial_doc",
+                "ticker": "BHP",
+                "title": "Annual Report",
+                "pdf_path": "data/asx/docs/BHP/annual.pdf",
+                "host_file_exists": True,
+                "has_current_terminal_run": False,
+            },
+        ],
+        current_extractor_version="docling_multipass_v1",
+        generated_at="2026-05-29T00:00:00Z",
+    )
+
+    candidate_ids = {row["document_id"] for row in manifest["candidates"]}
+    assert candidate_ids == {"financial_doc"}
+    assert manifest["total_input_document_count"] == 2
+    assert manifest["total_document_count"] == 2
+    assert manifest["candidate_document_count"] == 1
+    assert manifest["excluded_document_count"] == 1
+    assert manifest["exclusion_reason_counts"] == {"advisory_only_document": 1}
+    assert manifest["recommended_action_counts"][
+        TerminalExtractionRecommendedAction.CANARY_CANDIDATE.value
+    ] == 1
+
+    excluded = manifest["excluded_candidates"][0]
+    assert excluded["document_id"] == "advisory_doc"
+    assert excluded["exclusion_reason"] == "advisory_only_document"
+    assert excluded["quarantine_reason"] == "advisory_only_document"
+    assert (
+        excluded["recommended_action"]
+        == "exclude_from_canary_candidate_manifest"
+    )
+    assert excluded["broad_backfill_authorized"] is False
+
+
+def test_terminal_candidate_manifest_excludes_first_page_advisory_text():
+    manifest = build_terminal_extraction_candidate_manifest(
+        [
+            {
+                "document_id": "advisory_from_text",
+                "ticker": "SFR",
+                "title": "Market Update",
+                "first_page_text": "Quarterly Report Advisory",
+                "pdf_path": "data/asx/docs/SFR/advisory.pdf",
+                "host_file_exists": True,
+                "has_current_terminal_run": False,
+            }
+        ],
+        current_extractor_version="docling_multipass_v1",
+        generated_at="2026-05-29T00:00:00Z",
+    )
+
+    assert manifest["candidates"] == []
+    assert manifest["excluded_candidates"][0]["document_id"] == "advisory_from_text"
+    assert manifest["excluded_candidates"][0]["source_document_gate"] == (
+        "advisory_only_document"
+    )
+    assert manifest["candidate_class_counts"][
+        TerminalExtractionCandidateClass.FILE_EXISTS_NO_CURRENT_TERMINAL_RUN.value
+    ] == 0
+    assert manifest["recommended_action_counts"][
+        TerminalExtractionRecommendedAction.CANARY_CANDIDATE.value
+    ] == 0
+
+
 def test_terminal_manifest_does_not_imply_extraction_correctness():
     manifest = build_terminal_extraction_candidate_manifest(
         [
