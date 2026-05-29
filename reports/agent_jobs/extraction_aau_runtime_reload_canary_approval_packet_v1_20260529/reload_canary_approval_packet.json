@@ -1,0 +1,241 @@
+{
+  "artifact_type": "extraction_aau_runtime_reload_canary_approval_packet_v1",
+  "job_id": "extraction_aau_runtime_reload_canary_approval_packet_v1_20260529",
+  "generated_at": "2026-05-29T09:10:57Z",
+  "generated_by": "Codex",
+  "related_issue": 96,
+  "branch": "audit/extraction-aau-runtime-reload-canary-approval-packet-v1-20260529",
+  "worktree": "/home/l4nd0/tenn-aau-runtime-reload-canary-approval-packet-v1-20260529",
+  "target_baseline_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "target_baseline_remote_ref": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "target_head": "e2029835efbd2eb6425f089d703841eb20625bf7",
+  "target_head_subject": "milestone(extraction): record AAU integration claim release",
+  "target_head_commit_time": "2026-05-29T18:49:39+10:00",
+  "operator_approval_phrase": "APPROVE #96 RUNTIME RELOAD AND AAU CANARY extraction_aau_runtime_reload_canary_approval_packet_v1_20260529",
+  "approval_required_before_runtime_mutation": true,
+  "runtime_reload_authorized_by_this_packet": false,
+  "canary_run_by_this_packet": false,
+  "packet_verdict": {
+    "status": "READY_FOR_OPERATOR_APPROVAL",
+    "reason": "The prior AAU-only retry is blocked on live loaded-code proof. This packet defines the exact bounded runtime reload and AAU-only canary scope for a later approval-required execution task."
+  },
+  "current_read_only_evidence": {
+    "task_card_validated": true,
+    "registry_claimed": true,
+    "registry_overlap_check_ok": true,
+    "compose_services_seen": [
+      "redis",
+      "postgres",
+      "qdrant",
+      "worker",
+      "backend",
+      "fe_beat",
+      "gpu_worker"
+    ],
+    "target_remote_head": "e2029835efbd2eb6425f089d703841eb20625bf7",
+    "target_head_is_ancestor_of_remote_head": true,
+    "api_health": {
+      "endpoint": "GET http://127.0.0.1:8000/api/health",
+      "response": {
+        "status": "ok"
+      }
+    },
+    "queue_status": {
+      "endpoint": "GET http://127.0.0.1:8000/api/queue/status",
+      "response": {
+        "redis_connected": true,
+        "queues": {
+          "ingest": 0,
+          "embed": 0,
+          "score": 0,
+          "llm_gpu": 0,
+          "llm_cpu": 0
+        },
+        "total_queued": 0
+      }
+    },
+    "gpu_process_guard_check": {
+      "command": "scripts/gpu_process_guard.sh --check",
+      "exit_code": 0,
+      "warnings": [
+        "nvidia-smi query failed with exit 255"
+      ]
+    },
+    "current_runtime_containers": [
+      {
+        "container": "fe_backend",
+        "service": "backend",
+        "state": "running",
+        "started_at": "2026-05-27T10:45:40.592004537Z",
+        "command": [
+          "uvicorn",
+          "app.main:app",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8000"
+        ]
+      },
+      {
+        "container": "fe_worker",
+        "service": "worker",
+        "state": "running",
+        "started_at": "2026-05-27T10:45:42.410745023Z",
+        "command": [
+          "celery",
+          "-A",
+          "app.celery_app.celery",
+          "worker",
+          "--loglevel=INFO",
+          "-Q",
+          "ingest,embed,score,llm_cpu"
+        ]
+      },
+      {
+        "container": "fe_gpu_worker",
+        "service": "gpu_worker",
+        "state": "running",
+        "started_at": "2026-05-27T10:45:42.444213793Z",
+        "command": [
+          "celery",
+          "-A",
+          "app.celery_app.celery",
+          "worker",
+          "--loglevel=INFO",
+          "--concurrency=1",
+          "-Q",
+          "llm_gpu"
+        ]
+      }
+    ],
+    "current_loaded_code_verdict": {
+      "status": "DATA_MISSING",
+      "sufficient_for_canary": false,
+      "reason": "The current backend and worker containers started before target_head was integrated. Fresh docker exec imports do not prove the long-running uvicorn or Celery worker processes have loaded target_head code."
+    },
+    "aau_source_pdf": {
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "ticker": "AAU",
+      "path": "/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+      "size_bytes": 1804699,
+      "mtime": "2026-04-11 03:28:04.273180423 +1000"
+    },
+    "baseline_worktree_status": {
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+      "unrelated_dirt": [
+        "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md"
+      ]
+    }
+  },
+  "future_runtime_scope": {
+    "purpose": "Load target_head code into the existing backend API and Celery workers before retrying AAU alone.",
+    "reload_services_only": [
+      "backend",
+      "worker",
+      "gpu_worker"
+    ],
+    "container_names_expected": [
+      "fe_backend",
+      "fe_worker",
+      "fe_gpu_worker"
+    ],
+    "candidate_reload_command": "docker compose -f financial-engine_v2/docker-compose.yml restart backend worker gpu_worker",
+    "forbidden_services": [
+      "postgres",
+      "qdrant",
+      "redis",
+      "fe_beat",
+      "llama-server",
+      "ollama",
+      "next/frontend"
+    ],
+    "forbidden_actions": [
+      "docker compose up --build",
+      "docker compose down",
+      "database migration",
+      "direct SQL update",
+      "Qdrant mutation",
+      "Redis purge",
+      "source PDF write",
+      "parser routing change",
+      "prompt change",
+      "schema change",
+      "model or GPU configuration change",
+      "Cockpit UI change",
+      "GitHub issue mutation"
+    ],
+    "no_rebuild": true,
+    "no_config_change": true,
+    "no_data_service_restart": true
+  },
+  "future_canary_scope": {
+    "submit_one_document_only": true,
+    "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+    "ticker": "AAU",
+    "route": "POST /api/process/document/{document_id}",
+    "request_url": "http://127.0.0.1:8000/api/process/document/508fc892-ae88-45ec-981f-cd9e124c8375",
+    "payload": {
+      "method": "auto",
+      "strict_method": false
+    },
+    "do_not_submit": [
+      "ATM",
+      "AM5",
+      "AQX",
+      "CRS",
+      "CLV",
+      "CTM"
+    ],
+    "continue_remaining_third_canary_only_if": [
+      "AAU finishes with an accepted extraction gate",
+      "AAU review/run artifacts show no new hard gate failure",
+      "A separate approval or task card covers the remaining candidates"
+    ]
+  },
+  "pre_execution_gates_for_later_task": [
+    "Exact operator approval phrase is present in the user message.",
+    "Create, validate, and claim a new approval-required runtime execution task card.",
+    "Read SYSTEM_CONTRACT.md and restate the layer/invariant check before runtime mutation.",
+    "Confirm no active overlapping Financial Truth, Extraction, Runtime/Performance, Evaluation, or Provenance job owns the runtime or AAU files.",
+    "Confirm target baseline branch and remote are at target_head or a descendant containing target_head.",
+    "Review dirty state in the target worktree and preserve unrelated Query Orchestration task-card dirt.",
+    "Run scripts/gpu_process_guard.sh --check before reload; abort on exit code 1 or 2.",
+    "Confirm GET /api/health is ok before reload.",
+    "Confirm GET /api/queue/status shows total_queued=0 before reload.",
+    "Restart only backend, worker, and gpu_worker services.",
+    "After reload, inspect fe_backend, fe_worker, and fe_gpu_worker start times; each must be after the approval time and after target_head was present in the mounted worktree.",
+    "After reload, confirm GET /api/health is ok.",
+    "After reload, confirm GET /api/queue/status shows total_queued=0.",
+    "After reload, run scripts/gpu_process_guard.sh --check again before canary submission.",
+    "Prove loaded-code sufficiency for the long-running worker path: fe_gpu_worker must have restarted after target_head and worker logs must show the restarted worker is ready.",
+    "Confirm the AAU source PDF path exists and size remains 1804699 bytes before submission.",
+    "Submit AAU alone through POST /api/process/document/508fc892-ae88-45ec-981f-cd9e124c8375 with method=auto and strict_method=false.",
+    "Capture the route response, run_id, task_id, queue name, poll status, and logs.",
+    "Stop immediately after AAU result. Do not submit ATM, AM5, AQX, CRS, CLV, or CTM in the same immediate execution unless a separate approval explicitly reopens them.",
+    "Run post-AAU read-only validation/reporting only; do not directly repair persisted rows or source files."
+  ],
+  "abort_conditions_for_later_task": [
+    "Approval phrase is absent, misspelled, or belongs to a different packet.",
+    "Any planned command would restart postgres, qdrant, redis, fe_beat, llama/model services, or frontend.",
+    "The reload path requires rebuild, image pull, config change, migration, or environment change.",
+    "Any active overlapping extraction/backfill/runtime job appears.",
+    "GET /api/queue/status is nonzero before reload or before AAU submission.",
+    "scripts/gpu_process_guard.sh --check returns exit code 1 or 2.",
+    "Post-reload backend health is not ok.",
+    "Post-reload worker readiness or loaded-code evidence remains DATA_MISSING.",
+    "AAU source PDF is missing, size differs, or requires source staging repair.",
+    "The AAU route returns a parser routing, schema, source-document, or validation-gate failure that needs code or data repair.",
+    "Any non-AAU document would be submitted.",
+    "Any direct DB, Qdrant, Redis, news, memory, source-PDF, Cockpit UI, parser, prompt, schema, runtime/model/GPU, or GitHub mutation becomes necessary."
+  ],
+  "commands_intentionally_not_run": [
+    "docker compose -f financial-engine_v2/docker-compose.yml restart backend worker gpu_worker",
+    "curl -X POST http://127.0.0.1:8000/api/process/document/508fc892-ae88-45ec-981f-cd9e124c8375",
+    "any broad extraction, backfill, SQL, Qdrant, Redis, news, memory, source-PDF, Cockpit UI, parser, prompt, schema, model, GPU, or GitHub mutation"
+  ],
+  "next_safe_operator_action": {
+    "required_phrase": "APPROVE #96 RUNTIME RELOAD AND AAU CANARY extraction_aau_runtime_reload_canary_approval_packet_v1_20260529",
+    "effect_if_given": "Authorize a later bounded runtime task to restart only backend, worker, and gpu_worker; prove loaded code; submit AAU alone; and stop before all remaining canary candidates."
+  }
+}
