@@ -1,0 +1,203 @@
+{
+  "artifact_type": "extraction_goal_proof_matrix_v1",
+  "generated_at": "2026-05-29T11:02:16Z",
+  "worktree": "/home/l4nd0/tenn-extraction-goal-proof-matrix-v1-20260529",
+  "branch": "safe/extraction-goal-proof-matrix-v1-20260529",
+  "baseline_branch_audited": "migration/clean-runtime-baseline-reconstruct-v1",
+  "baseline_head_audited": "e2029835efbd2eb6425f089d703841eb20625bf7",
+  "goal_status": "not_complete",
+  "runtime_or_canary_executed": false,
+  "datastore_or_source_mutation": false,
+  "objective_items": [
+    {
+      "id": 1,
+      "objective": "Preserve and publish the current truth-gate patch",
+      "status": "proven_for_baseline_partial_for_pr_hygiene",
+      "evidence": [
+        "Baseline log contains 5788b18a59e45624016c274d21b5d547cfc894d9 milestone(extraction): guard pre-canary truth persistence.",
+        "reports/agent_jobs/extraction_pre_canary_truth_gate_hardening_v1_20260528/status.json status=completed_validated_released.",
+        "Focused current baseline validation covering pre-canary gates passed in the 227-test guardrail run."
+      ],
+      "remaining_gap": "Draft PR #125 is still open and has stale failing CI, including the old real-gold source-path assertion; baseline publication is proven, PR hygiene is not clean."
+    },
+    {
+      "id": 2,
+      "objective": "Move advisory blocking upstream into candidate selection",
+      "status": "proven_for_current_baseline_scope",
+      "evidence": [
+        "Baseline log contains a64d2295e6900b7ca310483ced707b4d20827722 milestone(extraction): exclude advisory canary candidates.",
+        "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/status.json status=released.",
+        "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/README.md excludes PLS and SFR as advisory_only_document."
+      ],
+      "remaining_gap": "Draft PR #126 still has stale CI including the old source-path assertion; candidate-selection behavior itself is present in the baseline evidence."
+    },
+    {
+      "id": 3,
+      "objective": "Formalize source document classification",
+      "status": "proven_for_reported_classes",
+      "evidence": [
+        "docs/extraction/metric_extraction_contract.md defines financial_report, advisory_only_document, and unknown_document.",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py covers source-document classification and advisory pre-LLM blocking.",
+        "Current baseline guardrail validation passed 227 tests including pre-canary source-document classification coverage."
+      ],
+      "remaining_gap": "No live canary proof yet that current runtime loaded code enforces classification on fresh production-like submissions."
+    },
+    {
+      "id": 4,
+      "objective": "Implement Scale Policy V1",
+      "status": "proven_for_documented_scale_policy_scope",
+      "evidence": [
+        "Baseline log contains 26ca0c4a0e017837b02b969a6a0bf5617eae566c milestone(extraction): support explicit rupiah trillion units.",
+        "docs/extraction/metric_extraction_contract.md documents Scale Policy V1.",
+        "Current baseline guardrail validation passed 227 tests including multipass scale and IDR/Rp trillion coverage."
+      ],
+      "remaining_gap": "No broad post-policy canary payload scorecard exists yet for all future candidate documents."
+    },
+    {
+      "id": 5,
+      "objective": "Harden Metric Ontology",
+      "status": "partial",
+      "evidence": [
+        "docs/extraction/metric_extraction_contract.md documents Metric Ontology V1.",
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/status.json status=implemented_validated_released.",
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/metric_contract_parity_matrix.json parses as JSON.",
+        "Current baseline guardrail validation passed 227 tests including test_metric_ontology_bridge.py."
+      ],
+      "remaining_gap": "GitHub issue #98 remains OPEN: Align persisted metric schema with extractor contract. Current evidence proves report-local contract parity and ontology bridge behavior, not full persisted-schema graduation."
+    },
+    {
+      "id": 6,
+      "objective": "Harden Period Semantics",
+      "status": "proven_for_aau_missing_period_regression",
+      "evidence": [
+        "Baseline log contains c45f8f573a519acf45d480dfb7e63b951c016f0a milestone(extraction): integrate AAU period fix and fixture.",
+        "Baseline log contains e2029835efbd2eb6425f089d703841eb20625bf7 milestone(extraction): record AAU integration claim release.",
+        "reports/agent_jobs/extraction_aau_period_fixture_integration_v1_20260529/status.json status=released.",
+        "Current baseline guardrail validation passed 227 tests including multipass period semantics coverage."
+      ],
+      "remaining_gap": "No approved live rerun has proven the current runtime serves this code on the AAU canary document."
+    },
+    {
+      "id": 7,
+      "objective": "Build a real-gold/eval corpus from canary failures",
+      "status": "partial",
+      "evidence": [
+        "Baseline includes AAU fixture integration evidence via reports/agent_jobs/extraction_aau_canary_failure_gold_fixture_v1_20260529/status.json status=released.",
+        "Remote branch safe/extraction-bhp-canary-gold-fixture-v1-20260529 exists at fc16f2e7760e68bc7674c7af73895db899809937.",
+        "Remote branch safe/extraction-real-gold-source-path-validation-baseline-v1-20260529 exists at 5395d9fb318d2c706dab7e269435aea88a88278b.",
+        "Current baseline targeted test for test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist fails on the 10X source-path host-local PDF assumption."
+      ],
+      "remaining_gap": "Real-gold source-path portability is published on a branch but not present in the audited baseline HEAD. PRs #127 and #128 remain open and broad CI still fails on unrelated suites."
+    },
+    {
+      "id": 8,
+      "objective": "Add pre-persistence scorecard gates",
+      "status": "proven_for_report_local_gate_scope",
+      "evidence": [
+        "Baseline log contains 4750888235564e935d5f7663e6dc168445077ff7 milestone(extraction): add pre-persistence scorecard gate.",
+        "reports/agent_jobs/extraction_pre_persistence_scorecard_gate_v1_20260529/status.json status=released.",
+        "reports/agent_jobs/extraction_pre_persistence_scorecard_gate_v1_20260529/pre_persistence_scorecard_gate_sample.json parses as JSON.",
+        "Current baseline guardrail validation passed 227 tests including test_extraction_gold_eval_scorecard.py."
+      ],
+      "remaining_gap": "The gate is report-local and explicitly does not authorize canonical writes or broad backfill; actual future canary payloads still need to be scored."
+    },
+    {
+      "id": 9,
+      "objective": "Run a third canary only under approval",
+      "status": "not_run_current_approval_required",
+      "evidence": [
+        "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/README.md states the packet does not approve execution.",
+        "The same README requires exact future approval string before execution.",
+        "This proof-matrix task ran no runtime reload, no POST /api/process/document, and no canary."
+      ],
+      "remaining_gap": "A future runtime task card with exact operator approval and immediate pre-run gates is still required before any third canary execution."
+    },
+    {
+      "id": 10,
+      "objective": "Graduate to full accurate extraction",
+      "status": "unproven",
+      "evidence": [
+        "Current issue #96 remains OPEN.",
+        "Current issue #97 remains OPEN.",
+        "Current issue #98 remains OPEN.",
+        "Current issue #99 remains OPEN.",
+        "Open extraction PRs #125, #126, #127, and #128 still show failing lint-and-test checks.",
+        "No current evidence was found for a completed approved third canary plus passing actual-payload scorecard and graduation gate."
+      ],
+      "remaining_gap": "Needs approved canary execution, actual payload scorecard results, ontology/source-asset review, CI/PR hygiene, and broad graduation evidence across the intended extraction scope."
+    }
+  ],
+  "current_validation": {
+    "guardrail_ontology_scorecard_multipass_pytest": "227 passed in 2.36s",
+    "baseline_real_gold_source_path_targeted_pytest": "1 failed on missing repo-local 10X source PDF path",
+    "json_artifacts_checked": [
+      "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+      "reports/agent_jobs/extraction_pre_persistence_scorecard_gate_v1_20260529/pre_persistence_scorecard_gate_sample.json",
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/metric_contract_parity_matrix.json"
+    ]
+  },
+  "open_github_state": {
+    "issues": [
+      {
+        "number": 96,
+        "state": "OPEN",
+        "title": "[Query Orchestration] Most PDF-path documents lack terminal extraction"
+      },
+      {
+        "number": 97,
+        "state": "OPEN",
+        "title": "[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage"
+      },
+      {
+        "number": 98,
+        "state": "OPEN",
+        "title": "[Financial Truth] Align persisted metric schema with extractor contract"
+      },
+      {
+        "number": 99,
+        "state": "OPEN",
+        "title": "[Provenance] Make real-gold source PDFs reviewable without committing raw filings"
+      }
+    ],
+    "prs": [
+      {
+        "number": 125,
+        "state": "OPEN",
+        "is_draft": true,
+        "head": "contain/extraction-canary-output-containment-clv-ctm-v1-20260528",
+        "lint_and_test": "FAILURE",
+        "scan": "SUCCESS"
+      },
+      {
+        "number": 126,
+        "state": "OPEN",
+        "is_draft": true,
+        "head": "contain/extraction-canary-advisory-selection-v1-20260529",
+        "lint_and_test": "FAILURE",
+        "scan": "SUCCESS"
+      },
+      {
+        "number": 127,
+        "state": "OPEN",
+        "is_draft": true,
+        "head": "safe/extraction-bhp-canary-gold-fixture-v1-20260529",
+        "lint_and_test": "FAILURE",
+        "scan": "SUCCESS"
+      },
+      {
+        "number": 128,
+        "state": "OPEN",
+        "is_draft": true,
+        "head": "safe/extraction-real-gold-source-path-resolver-v1-20260529",
+        "lint_and_test": "FAILURE",
+        "scan": "SUCCESS"
+      }
+    ]
+  },
+  "next_safe_steps": [
+    "Do not mark the full goal complete.",
+    "Keep canary execution gated until exact approval is provided in a fresh runtime task card.",
+    "Either update/supersede stale extraction PRs #125/#126/#127/#128 or land the source-path portability branch into the integration baseline before treating real-gold CI as clean.",
+    "After approval, run the seven-document third canary one document at a time and immediately score actual payloads through the #97 pre-persistence gate."
+  ]
+}

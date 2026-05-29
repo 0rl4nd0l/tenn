@@ -1,0 +1,28 @@
+{
+  "artifact_type": "extraction_goal_proof_matrix_status_v1",
+  "generated_at": "2026-05-29T11:02:16Z",
+  "job_id": "extraction_goal_proof_matrix_v1_20260529",
+  "status": "implemented_pending_release",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Query Orchestration",
+    "Provenance"
+  ],
+  "owner": "Codex",
+  "branch": "safe/extraction-goal-proof-matrix-v1-20260529",
+  "worktree": "/home/l4nd0/tenn-extraction-goal-proof-matrix-v1-20260529",
+  "baseline_head_audited": "e2029835efbd2eb6425f089d703841eb20625bf7",
+  "goal_status": "not_complete",
+  "runtime_or_canary_executed": false,
+  "datastore_or_source_mutation": false,
+  "validation": {
+    "task_card_validate": "passed",
+    "task_card_overlap": "passed",
+    "task_card_claim": "passed",
+    "guardrail_ontology_scorecard_multipass_pytest": "227 passed in 2.36s",
+    "baseline_real_gold_source_path_targeted_pytest": "expected_failure_missing_repo_local_10x_source_pdf",
+    "json_artifacts": "passed"
+  },
+  "next_safe_step": "Update or supersede stale extraction PRs, or wait for exact approval before creating a runtime canary task card."
+}
