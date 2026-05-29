@@ -212,14 +212,31 @@ pre-persistence guards for source-bound truth failures seen in the second
 bounded canary:
 
 - advisory-only announcements are failed before metric extraction;
+- advisory-only announcements are excluded from the terminal canary candidate
+  manifest before normal candidate classification;
 - EBITDA evidence cannot populate canonical `ebit`;
 - explicit source-unit values in row evidence must agree with normalized metric
   magnitude;
 - explicit source-period evidence must agree with extracted `period_type`.
+- plain dollar statement columns are treated as `units`, while currency remains
+  separate and `unknown` scale still fails.
 
 These guards do not correct values, infer period type, mutate gold labels, or
 change parser routing. A failed gate prevents both canonical financial-row
 persistence and downstream `asx_docs` chunk embedding for that document.
+
+### Metric truth policy regressions
+
+The test-only real-gold fixtures include CLV/CTM canary regressions verified
+from local rendered source PDFs. They are evaluation artifacts only:
+
+- CLV locks the million-value and EBITDA-vs-EBIT failure class.
+- CTM locks annual period-type semantics and raw-dollar scale handling.
+
+Period context checks include both `period_end` and `period_type`. Metric
+contract parity reports include `metric_ontology_v1` so unsupported,
+ambiguous, persisted-only, and internal-only metric families remain visible
+without becoming canonical truth.
 
 ### Base eval run
 

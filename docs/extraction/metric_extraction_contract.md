@@ -38,6 +38,7 @@ This intentionally treats wrong/implausible values as worse than abstention.
 
 Fixtures are marked `quarantine` when any checked context field mismatches:
 - `period_end`
+- `period_type`
 - `currency`
 - `scale`
 
@@ -57,6 +58,64 @@ Qdrant persistence. These gates fail the extraction instead of correcting values
 - Explicit source-period evidence, for example annual `year ended` wording, must
   agree with the payload `period_type`. Ambiguous source-period evidence is
   diagnostic only and does not infer a corrected period.
+
+## Source document classification
+
+Source-document classification is deterministic and source-metadata only:
+
+- `financial_report`: explicit annual, half-year, quarterly, or appendix
+  financial-report evidence is present. The document may proceed through normal
+  extraction and validation gates.
+- `advisory_only_document`: advisory-only announcements such as quarterly report
+  advisories are excluded before candidate-manifest inclusion and blocked before
+  metric extraction.
+- `unknown_document`: classification evidence is insufficient. The document is
+  not automatically promoted; normal period, scale, confidence, metric, and
+  provenance gates still decide whether extraction can persist.
+
+Classification does not infer financial facts or correct payload fields.
+
+## Scale Policy V1
+
+Extractor payload metric values are normalized absolute values before
+persistence. The policy order is:
+
+1. Explicit scaled table units win: `$'000`, `$000`, `thousands`, `$m`, `A$M`,
+   `millions`, and `billions` map to their deterministic multipliers.
+2. Plain dollar table columns such as `2025 $` map to `units`; currency remains
+   a separate context field.
+3. `unknown` scale fails before persistence.
+4. Explicit row evidence such as `$44.1 million` must agree with the normalized
+   payload magnitude; 100x or larger disagreement fails.
+5. Non-AUD or nonstandard verbal-scale cases remain conservative. They are not
+   broadly normalized unless an explicit source-bound policy and tests exist.
+
+This policy never rewrites values to make them pass. It only accepts, fails, or
+marks a lower-confidence result after the hard gates pass.
+
+## Metric Ontology V1
+
+The canonical extractor ontology is `metric_ontology_v1`. Supported canonical
+fields are the current `METRIC_FIELDS` set:
+
+- `revenue`
+- `ebit`
+- `np_attributable`
+- `operating_cf`
+- `investing_cf`
+- `financing_cf`
+- `capex`
+- `cash_end`
+- `net_debt`
+- `shares_outstanding`
+
+Eval aliases such as `operating_cash_flow -> operating_cf` are scorecard-only
+normalizations. Unsupported, ambiguous, persisted-only, and internal-only metric
+families are reportable but are not canonical-use allowed without a separate
+policy change.
+
+`ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
+populate canonical `ebit`.
 
 ## Non-goals
 
@@ -88,6 +147,7 @@ Output is a stable JSON object with keys including:
 - `abstained_count`
 - `quarantined_count`
 - `period_correctness_summary`
+- `period_type_correctness_summary`
 - `currency_correctness_summary`
 - `scale_correctness_summary`
 - `fixture_summaries`
@@ -105,8 +165,8 @@ a trust outcome using deterministic rules:
 - `trusted`: context matches and every required metric is `correct`.
 - `abstain`: context matches and at least one required metric is `wrong`, `missing`,
   or `abstain`.
-- `quarantine`: any context mismatch (`period_end`, `currency`, or `scale`), in which case
-  every metric is marked `quarantine`.
+- `quarantine`: any context mismatch (`period_end`, `period_type`, `currency`, or
+  `scale`), in which case every metric is marked `quarantine`.
 
 For real fixtures, `missing` means a required metric in the fixture is not present in
 `metrics` in the extraction payload. It is **not** treated as `abstain`; `abstain`
@@ -212,3 +272,16 @@ Example of a clean non-contradictory interpretation:
   context mismatch.
 - Missing fixtures or missing output keys are evaluated in the same deterministic,
   non-LLM fixture flow.
+
+### Canary regression fixtures
+
+The test-only real-gold fixture directory includes source-verified CLV and CTM
+canary regression fixtures. They lock in these behaviors:
+
+- CLV `$44.1 million` revenue must not score as `$44.1 billion`, and EBITDA must
+  not score as canonical `ebit`.
+- CTM's source cash-flow table is annual and uses raw dollar units; a half-year
+  `millions` payload is quarantined by period/scale context.
+
+These fixtures do not authorize a canary, backfill, database write, Qdrant
+write, source-PDF mutation, or production gold-label mutation.

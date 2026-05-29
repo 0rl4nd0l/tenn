@@ -177,6 +177,18 @@ def test_period_and_scale_mismatch_are_enforced_in_context_validation():
     assert set(mismatch.context_mismatches) == {"period_end", "scale"}
 
 
+def test_period_type_mismatch_is_enforced_in_context_validation():
+    payload = _payload(period_type="H", metrics={"revenue": 1_500_000})
+    mismatch = evaluate_fixture(
+        _load_fixture("correct_ok"), payload["metrics"], payload
+    )
+    assert mismatch.context_ok is False
+    assert mismatch.context_mismatches == ["period_type"]
+    assert all(
+        metric.status == MetricEvalStatus.QUARANTINE for metric in mismatch.metrics
+    )
+
+
 def test_scoring_prefers_abstain_over_wrong_for_aggregate_metrics():
     payload = _payload(
         metrics={
@@ -283,6 +295,12 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
         "expected_count": 16,
         "matched_count": 15,
         "mismatched_count": 1,
+        "missing_count": 0,
+    }
+    assert scorecard["period_type_correctness_summary"] == {
+        "expected_count": 16,
+        "matched_count": 16,
+        "mismatched_count": 0,
         "missing_count": 0,
     }
     assert scorecard["currency_correctness_summary"] == {

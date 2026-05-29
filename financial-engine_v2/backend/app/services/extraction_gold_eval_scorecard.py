@@ -32,11 +32,12 @@ from app.services.extraction_eval import (
 from app.services.multipass_extraction import (
     EXTRACTOR_VERSION,
     METRIC_FIELDS,
-    is_advisory_only_document,
+    classify_source_document,
 )
 
 
 PROFILE_VERSION = "2026-05-05"
+METRIC_ONTOLOGY_VERSION = "metric_ontology_v1"
 
 CANONICAL_CORE_DOC_IDS = (
     "bhp_a_2021-06-30_difficult",
@@ -423,6 +424,7 @@ def metric_mapping_table() -> list[dict[str, Any]]:
         schema_supported = canonical_field in METRIC_FIELDS
         rows.append(
             {
+                "ontology_version": METRIC_ONTOLOGY_VERSION,
                 "fixture_name": fixture_name,
                 "canonical_field": canonical_field,
                 "schema_supported": schema_supported,
@@ -522,6 +524,7 @@ def build_metric_contract_parity_matrix(
     return {
         "artifact_type": METRIC_CONTRACT_ARTIFACT_TYPE,
         "profile_version": PROFILE_VERSION,
+        "metric_ontology_version": METRIC_ONTOLOGY_VERSION,
         "diagnostic_only": True,
         "canonical_promotion_allowed": False,
         "sources": {
@@ -1358,7 +1361,8 @@ def _terminal_extraction_exclusion(
 ) -> dict[str, Any] | None:
     title = _terminal_advisory_title(record)
     first_page_text = _terminal_advisory_first_page_text(record)
-    if not is_advisory_only_document(title, first_page_text):
+    source_classification = classify_source_document(title, first_page_text)
+    if source_classification.extraction_candidate_allowed:
         return None
 
     return {
@@ -1376,9 +1380,10 @@ def _terminal_extraction_exclusion(
         "pdf_path": _first_nonempty(record, "pdf_path", "source_file"),
         "title": title,
         "current_extractor_version": current_extractor_version,
-        "exclusion_reason": "advisory_only_document",
-        "quarantine_reason": "advisory_only_document",
-        "source_document_gate": "advisory_only_document",
+        "exclusion_reason": source_classification.reason,
+        "quarantine_reason": source_classification.reason,
+        "source_document_gate": source_classification.reason,
+        "source_document_classification": source_classification.to_dict(),
         "recommended_action": "exclude_from_canary_candidate_manifest",
         "required_preconditions": [
             "manifest_is_report_local_only",
@@ -2314,10 +2319,10 @@ def _payload_result(
     actual_value = _actual_metric_value(actual_payload, expectation)
     evidence_available = _metric_has_evidence(actual_payload, expectation)
 
-    if "period_end" in context_mismatches:
+    if any(item in context_mismatches for item in ("period_end", "period_type")):
         return (
             PayloadScoreStatus.WRONG_PERIOD,
-            "Actual payload period_end does not match expected period",
+            "Actual payload period_end or period_type does not match expected period",
             actual_value,
             evidence_available,
         )

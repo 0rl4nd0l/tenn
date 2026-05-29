@@ -313,6 +313,9 @@ def build_fixture_scorecard(
 
     total_metric_expectations = sum(v["metric_count"] for v in fixture_summaries)
     period_summary = _build_context_summary(fixtures, fixture_payloads, "period_end")
+    period_type_summary = _build_context_summary(
+        fixtures, fixture_payloads, "period_type"
+    )
     currency_summary = _build_context_summary(fixtures, fixture_payloads, "currency")
     scale_summary = _build_context_summary(fixtures, fixture_payloads, "scale")
     provenance_summary = summarize_provenance_summaries(
@@ -328,6 +331,7 @@ def build_fixture_scorecard(
         "abstained_count": status_counts["abstain"],
         "quarantined_count": status_counts["quarantine"],
         "period_correctness_summary": period_summary,
+        "period_type_correctness_summary": period_type_summary,
         "currency_correctness_summary": currency_summary,
         "scale_correctness_summary": scale_summary,
         "provenance_summary": provenance_summary,
@@ -602,6 +606,7 @@ def _status_reason(
 def _validate_context(context: FixtureContext, payload: dict[str, Any]) -> list[str]:
     checks = {
         "period_end": (context.period_end, str_or_none(payload.get("period_end"))),
+        "period_type": (context.period_type, str_or_none(payload.get("period_type"))),
         "currency": (context.currency, str_or_none(payload.get("currency"))),
         "scale": (context.scale, str_or_none(payload.get("scale"))),
     }

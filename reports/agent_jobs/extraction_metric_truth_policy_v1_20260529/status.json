@@ -1,0 +1,39 @@
+{
+  "job_id": "extraction_metric_truth_policy_v1_20260529",
+  "status": "implemented_validated_with_known_external_asset_gap",
+  "lane": "Financial Truth",
+  "mutation_mode": "safe_extension",
+  "production_data_access": false,
+  "canary_run": false,
+  "backfill_run": false,
+  "datastore_mutation": false,
+  "source_pdf_mutation": false,
+  "implemented": [
+    "source_document_classification_v1",
+    "scale_policy_v1_plain_dollar_units",
+    "metric_ontology_v1_reporting",
+    "period_type_context_semantics",
+    "clv_ctm_real_gold_regression_fixtures"
+  ],
+  "validation_passed": [
+    "task_card_validate",
+    "registry_overlap_check",
+    "registry_claim",
+    "task_card_check_diff",
+    "py_compile",
+    "json_tool",
+    "ruff",
+    "focused_pytest_15_passed",
+    "scoped_pytest_224_passed_1_deselected"
+  ],
+  "known_validation_gap": {
+    "test": "test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist",
+    "reason": "10X canonical corpus source PDF is missing from repo-relative financial-engine_v2/data/asx/docs path but present under /data/asx/docs; source PDF copying/committing was forbidden"
+  },
+  "remaining_blockers": [
+    "third_canary_requires_explicit_approval",
+    "non_aud_rp_trillion_policy_unresolved",
+    "global_ok_low_confidence_surface_policy_report_only",
+    "full_accuracy_graduation_requires_approved_canary_and_broader_accuracy_evidence"
+  ]
+}

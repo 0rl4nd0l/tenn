@@ -95,6 +95,41 @@ def _real_payloads() -> dict[str, dict]:
                 "capex": 494.4,
             },
         },
+        "clv_h_2026-01-31_canary_regression": {
+            "period_type": "H",
+            "period_end": "2026-01-31",
+            "currency": "AUD",
+            "scale": "millions",
+            "source_document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "provenance": {
+                "revenue": "income_statement:page_1:1H revenue of $44.1 million",
+                "np_attributable": "income_statement:page_1:NPAT $4.2 million",
+            },
+            "metrics": {
+                "revenue": 44_100_000,
+                "ebit": None,
+                "np_attributable": 4_200_000,
+            },
+        },
+        "ctm_a_2025-12-31_canary_regression": {
+            "period_type": "A",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "units",
+            "source_document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+            "provenance": {
+                "operating_cf": "cashflow_statement:page_27:Net cash used in operating activities",
+                "investing_cf": "cashflow_statement:page_27:Net cash used in investing activities",
+                "financing_cf": "cashflow_statement:page_27:Net cash from financing activities",
+                "cash_end": "cashflow_statement:page_27:Cash and cash equivalents at 31 December",
+            },
+            "metrics": {
+                "operating_cf": -13_225_929,
+                "investing_cf": -2_167_611,
+                "financing_cf": 22_024_529,
+                "cash_end": 24_577_181,
+            },
+        },
     }
 
 
@@ -107,6 +142,8 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
         "real_abstain_missing_metric",
         "real_quarantine_currency_mismatch",
         "viva_fy2025_regression",
+        "clv_h_2026-01-31_canary_regression",
+        "ctm_a_2025-12-31_canary_regression",
     }
 
     assert (
@@ -119,6 +156,14 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
     assert (
         fixture_by_id["real_quarantine_currency_mismatch"].expected_trust
         == RealTrustOutcome.QUARANTINE
+    )
+    assert (
+        fixture_by_id["clv_h_2026-01-31_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
+    )
+    assert (
+        fixture_by_id["ctm_a_2025-12-31_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
     )
 
 
@@ -219,11 +264,57 @@ def test_real_gold_abstain_documents_can_be_wrong_or_missing_noncontradictory():
     assert wrong_eval.metrics[0].status == MetricEvalStatus.WRONG
 
 
+def test_canary_failure_regression_payloads_are_not_trusted():
+    clv_bad_payload = {
+        "period_type": "H",
+        "period_end": "2026-01-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 44_100_000_000,
+            "ebit": 6_900_000_000,
+            "np_attributable": 4_200_000_000,
+        },
+    }
+    clv_eval = evaluate_real_gold_fixture(
+        _load_real_fixture("clv_h_2026-01-31_canary_regression"),
+        clv_bad_payload,
+    )
+    assert clv_eval.trust == RealTrustOutcome.ABSTAIN
+    assert set(clv_eval.trust_triggers) == {
+        "revenue:wrong",
+        "ebit:wrong",
+        "np_attributable:wrong",
+    }
+
+    ctm_bad_payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+        "metrics": {
+            "operating_cf": -13_225_929,
+            "investing_cf": -2_167_611,
+            "financing_cf": 22_024_529,
+            "cash_end": 24_577_181,
+        },
+    }
+    ctm_eval = evaluate_real_gold_fixture(
+        _load_real_fixture("ctm_a_2025-12-31_canary_regression"),
+        ctm_bad_payload,
+    )
+    assert ctm_eval.trust == RealTrustOutcome.QUARANTINE
+    assert ctm_eval.trust_triggers == [
+        "context_mismatch:period_type",
+        "context_mismatch:scale",
+    ]
+
+
 def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
     scorecard = build_real_gold_scorecard(REAL_FIXTURES_DIR, _real_payloads())
     synthetic_scorecard = build_fixture_scorecard(SYNTHETIC_FIXTURES_DIR, {})
 
-    assert scorecard["trusted_count"] == 2
+    assert scorecard["trusted_count"] == 4
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
     assert all("document_id" in entry for entry in scorecard["fixture_summaries"])
@@ -235,6 +326,8 @@ def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
         "real_abstain_missing_metric": ["net_debt:missing"],
         "real_quarantine_currency_mismatch": ["context_mismatch:currency"],
         "viva_fy2025_regression": [],
+        "clv_h_2026-01-31_canary_regression": [],
+        "ctm_a_2025-12-31_canary_regression": [],
     }
     for entry in scorecard["fixture_summaries"]:
         assert entry["trust_triggers"] == expected_triggers[entry["document_id"]]
@@ -272,10 +365,10 @@ def test_real_gold_scorecard_reports_provenance_diagnostics_without_changing_tru
         entry["document_id"]: entry for entry in scorecard["fixture_summaries"]
     }
 
-    assert scorecard["trusted_count"] == 2
+    assert scorecard["trusted_count"] == 4
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
-    assert scorecard["provenance_summary"]["available_fixture_count"] == 4
+    assert scorecard["provenance_summary"]["available_fixture_count"] == 6
     assert scorecard["provenance_summary"]["fixture_with_issues_count"] == 1
     assert scorecard["provenance_summary"]["status"] == "issues_detected"
 

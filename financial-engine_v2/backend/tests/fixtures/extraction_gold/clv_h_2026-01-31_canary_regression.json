@@ -1,0 +1,25 @@
+{
+  "_source": "Hand-verified from rendered local source PDF page 1: revenue is $44.1 million, NPAT is $4.2 million, and the $6.9 million source label is EBITDA, not EBIT. Source period text says six months ended 31 January 2026.",
+  "_verification": "hand-verified-rendered-pdf",
+  "_verification_confidence": "high",
+  "document_id": "clv_h_2026-01-31_canary_regression",
+  "ticker": "CLV",
+  "source_file": "/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+  "period_type": "H",
+  "period_end": "2026-01-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 44100000,
+    "ebit": null,
+    "np_attributable": 4200000
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "np_attributable": 0.01
+  },
+  "notes": {
+    "ebit": "Expected null because the source line is explicitly EBITDA, not EBIT."
+  },
+  "expected_trust": "trusted"
+}

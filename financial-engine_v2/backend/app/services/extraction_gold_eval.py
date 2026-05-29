@@ -10,8 +10,8 @@ Trust semantics are deterministic and intentionally transparent:
 - `trusted`: context matches and every required metric is `correct`.
 - `abstain`: context matches but at least one required metric is
   `wrong`, `missing`, or `abstain`.
-- `quarantine`: any context field mismatch. All metrics for that fixture are marked
-  `quarantine`.
+- `quarantine`: any context field mismatch (`period_end`, `period_type`,
+  `currency`, or `scale`). All metrics for that fixture are marked `quarantine`.
 
 For this pilot, real fixtures use required metrics only (no optional list), so a
 required metric that is absent from extracted output is scored as `missing` (not

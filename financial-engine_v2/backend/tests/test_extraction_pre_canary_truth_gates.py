@@ -136,6 +136,27 @@ def test_source_period_evidence_detects_annual_and_ambiguous_cases():
     assert ambiguous["reason"] == "ambiguous"
 
 
+def test_source_document_classification_formalizes_advisory_and_report_cases():
+    """Source classification exposes policy without weakening existing gates."""
+    from app.services.multipass_extraction import classify_source_document
+
+    advisory = classify_source_document(
+        "March 2026 Quarterly Activities Report Advisory",
+        "",
+    )
+    assert advisory.document_class == "advisory_only_document"
+    assert advisory.extraction_candidate_allowed is False
+    assert advisory.canary_candidate_allowed is False
+
+    report = classify_source_document(
+        "Financial Report 31 December 2025",
+        "For the year ended 31 December 2025.",
+    )
+    assert report.document_class == "financial_report"
+    assert report.extraction_candidate_allowed is True
+    assert report.canary_candidate_allowed is True
+
+
 def test_run_multipass_blocks_advisory_only_document_before_llm():
     """Quarterly report advisory documents must fail before metric extraction."""
     from app.services.multipass_extraction import run_multipass_extraction
@@ -163,3 +184,6 @@ def test_run_multipass_blocks_advisory_only_document_before_llm():
     assert result.status == "failed"
     assert result.error == "validation_gate:advisory_only_document"
     assert result.payload["source_document_gate"] == "advisory_only_document"
+    assert result.payload["source_document_classification"]["document_class"] == (
+        "advisory_only_document"
+    )

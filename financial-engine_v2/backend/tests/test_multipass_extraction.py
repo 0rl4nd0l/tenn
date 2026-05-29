@@ -899,6 +899,42 @@ def test_unknown_scale_without_valid_unit_header_remains_unknown():
     assert _detect_scale_from_tables([table]) == "unknown"
 
 
+def test_plain_aud_dollar_statement_header_detects_units_scale():
+    """Scale Policy V1 treats plain AUD dollar columns as raw units."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=27,
+        caption="Consolidated Statement of Cash Flows",
+        headers=["", "Notes", "2025 $", "2024 $"],
+        rows=[
+            ["Net cash used in operating activities", "14", "(13,225,929)", ""],
+            ["Net cash used in investing activities", "", "(2,167,611)", ""],
+            ["Cash and cash equivalents at 31 December", "13", "24,577,181", ""],
+        ],
+    )
+
+    assert _detect_scale_from_tables([table]) == "units"
+
+
+def test_plain_dollar_units_do_not_override_explicit_thousands_header():
+    """Explicit scaled table units remain higher priority than raw-dollar hints."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=2,
+        caption="Statement of Cash Flows",
+        headers=["", "2025 $'000", "2024 $"],
+        rows=[
+            ["Net cash used in operating activities", "(13,225)", "(15,675)"],
+        ],
+    )
+
+    assert _detect_scale_from_tables([table]) == "thousands"
+
+
 def test_usd_million_detection_ignores_usd_m_and_a_prose():
     """The USD M extension must not treat M&A prose as a million-unit marker."""
     from app.services.multipass_extraction import _detect_scale_from_tables

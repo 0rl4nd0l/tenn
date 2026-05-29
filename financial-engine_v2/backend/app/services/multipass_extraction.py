@@ -94,6 +94,21 @@ SCALE_MULTIPLIERS = {
     "unknown": 1,
 }
 
+SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
+    "financial_report": (
+        "Source metadata has explicit annual, half-year, quarterly, or appendix "
+        "financial-report evidence and may proceed through normal extraction gates."
+    ),
+    "advisory_only_document": (
+        "Source metadata identifies an advisory-only announcement; it must not "
+        "enter canary selection or metric extraction."
+    ),
+    "unknown_document": (
+        "Source metadata is insufficient to classify the document; normal "
+        "downstream gates still decide whether extraction is safe."
+    ),
+}
+
 
 @dataclass
 class MultipassResult:
@@ -101,6 +116,28 @@ class MultipassResult:
     payload: dict  # matches _upsert_financial_rows contract
     sections: list[dict]  # prose sections for Qdrant chunking
     error: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class SourceDocumentClassification:
+    document_class: str
+    extraction_candidate_allowed: bool
+    canary_candidate_allowed: bool
+    reason: str
+    evidence: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "document_class": self.document_class,
+            "extraction_candidate_allowed": self.extraction_candidate_allowed,
+            "canary_candidate_allowed": self.canary_candidate_allowed,
+            "reason": self.reason,
+            "evidence": list(self.evidence),
+            "definition": SOURCE_DOCUMENT_CLASS_DEFINITIONS.get(
+                self.document_class,
+                SOURCE_DOCUMENT_CLASS_DEFINITIONS["unknown_document"],
+            ),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +153,14 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
     (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
 ]
+
+_RAW_DOLLAR_UNIT_RE = _re.compile(
+    r"(?<![A-Za-z0-9])"
+    r"(?:A\$|\$A|\$|AUD(?:\s+dollars?)?)"
+    r"(?!\s*(?:'?\d{3}|0{3}|[mMbB]\b|bn\b|millions?\b|billions?\b))"
+    r"(?=\s|$|\)|,|;|:)",
+    _re.IGNORECASE,
+)
 
 _MILLION_UNIT_BOUNDARY = r"(?=\s|$|\)|%|,|;|:)"
 _EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
@@ -265,6 +310,20 @@ def _detect_scale_from_tables(tables) -> str:
 
         if _explicit_currency_million_hits(" ".join(surfaces)):
             return "millions"
+
+    # Scale Policy V1: a plain currency/$ column unit is an explicit raw-dollar
+    # table unit, not "unknown". This is intentionally checked after all
+    # thousands/millions/billions patterns so scaled columns still win.
+    for table in tables[:15]:
+        surfaces: list[str] = []
+        if table.headers:
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if getattr(table, "caption", None):
+            surfaces.append(str(table.caption))
+        for row in (table.rows or [])[:3]:
+            surfaces.append(" ".join(str(cell) for cell in row))
+        if _RAW_DOLLAR_UNIT_RE.search(" ".join(surfaces)):
+            return "units"
     return "unknown"
 
 
@@ -2026,6 +2085,47 @@ def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str
     return {"period_type": None, "reason": "not_detected", "hits": []}
 
 
+def classify_source_document(
+    title: Any,
+    first_page_text: Any,
+) -> SourceDocumentClassification:
+    """Classify source-document eligibility without inferring financial truth."""
+
+    text = _combined_source_text(title, first_page_text)
+    if is_advisory_only_document(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="advisory_only_document",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="advisory_only_document",
+            evidence=["advisory_only_pattern"],
+        )
+
+    period_evidence = _detect_source_period_evidence(title, first_page_text)
+    if period_evidence.get("period_type") in {"A", "H", "Q"}:
+        return SourceDocumentClassification(
+            document_class="financial_report",
+            extraction_candidate_allowed=True,
+            canary_candidate_allowed=True,
+            reason=str(period_evidence.get("reason") or "source_period_evidence"),
+            evidence=[
+                str(hit.get("reason") or hit.get("period_type") or "")
+                for hit in period_evidence.get("hits", [])
+                if isinstance(hit, dict)
+            ],
+        )
+
+    return SourceDocumentClassification(
+        document_class="unknown_document",
+        extraction_candidate_allowed=True,
+        canary_candidate_allowed=True,
+        reason="missing_explicit_source_document_classification"
+        if not text
+        else str(period_evidence.get("reason") or "unknown_document"),
+        evidence=[],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Pass 4 — Reconciler (deterministic)
 # ---------------------------------------------------------------------------
@@ -2529,6 +2629,9 @@ def _run_pass4_reconciler(
         "period_end": pass1_result.get("period_end"),
         "source_period_type": pass1_result.get("_source_period_type"),
         "source_period_evidence": pass1_result.get("_source_period_evidence"),
+        "source_document_classification": pass1_result.get(
+            "_source_document_classification"
+        ),
         "metrics": merged_metrics,
         "row_refs": row_refs,
         "thinking": thinking_map,
@@ -2938,14 +3041,19 @@ def run_multipass_extraction(
     title = doc_metadata.get("title", "")
 
     source_period_evidence = _detect_source_period_evidence(title, first_page_text)
-    if _is_advisory_only_document(title, first_page_text):
-        error = "validation_gate:advisory_only_document"
+    source_document_classification = classify_source_document(title, first_page_text)
+    if not source_document_classification.extraction_candidate_allowed:
+        error = f"validation_gate:{source_document_classification.reason}"
         logger.warning(
-            "advisory-only document blocked before metric extraction: title=%r",
+            "source document blocked before metric extraction: title=%r class=%s",
             title,
+            source_document_classification.document_class,
         )
         null_payload["source_period_evidence"] = source_period_evidence
-        null_payload["source_document_gate"] = "advisory_only_document"
+        null_payload["source_document_classification"] = (
+            source_document_classification.to_dict()
+        )
+        null_payload["source_document_gate"] = source_document_classification.reason
         return MultipassResult(
             status="failed",
             payload=null_payload,
@@ -2998,6 +3106,7 @@ def run_multipass_extraction(
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
     pass1["_source_period_evidence"] = source_period_evidence
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
+    pass1["_source_document_classification"] = source_document_classification.to_dict()
 
     # Table-header scale detection is always authoritative — ASX filings print scale
     # explicitly in column headers ($'000, A$M, etc.) which is more reliable than

@@ -94,6 +94,7 @@ def test_metric_name_mapping_is_deterministic_and_schema_supported():
     rows = {row["fixture_name"]: row for row in metric_mapping_table()}
 
     assert rows["revenue"]["canonical_field"] == "revenue"
+    assert rows["revenue"]["ontology_version"] == "metric_ontology_v1"
     assert rows["operating_cash_flow"]["canonical_field"] == "operating_cf"
     assert rows["operating_cf"]["canonical_field"] == "operating_cf"
     assert rows["shares_outstanding"]["canonical_field"] == "shares_outstanding"
@@ -292,6 +293,7 @@ def test_metric_contract_parity_classifies_persisted_only_fields(tmp_path):
     matrix = _empty_contract_matrix(tmp_path)
     rows = _contract_rows(matrix)
 
+    assert matrix["metric_ontology_version"] == "metric_ontology_v1"
     assert rows["total_equity"]["status"] == MetricContractStatus.PERSISTED_ONLY.value
     assert rows["total_equity"]["persisted"] is True
     assert rows["total_equity"]["extractor_supported"] is False
@@ -471,6 +473,14 @@ def test_confirmed_payload_scorecard_separates_period_unit_and_evidence(tmp_path
         ),
     )
     _write_fixture(
+        fixtures_dir / "wrong_period_type.json",
+        _base_fixture(
+            document_id="wrong_period_type_doc",
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+        ),
+    )
+    _write_fixture(
         fixtures_dir / "missing_evidence.json",
         _base_fixture(
             document_id="missing_evidence_doc",
@@ -498,6 +508,14 @@ def test_confirmed_payload_scorecard_separates_period_unit_and_evidence(tmp_path
                 "metrics": {"revenue": 100.0},
                 "evidence": {"revenue": {"page": 1}},
             },
+            "wrong_period_type_doc": {
+                "period_type": "A",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
             "missing_evidence_doc": {
                 "period_type": "H",
                 "period_end": "2025-12-31",
@@ -515,6 +533,9 @@ def test_confirmed_payload_scorecard_separates_period_unit_and_evidence(tmp_path
     )
     assert by_doc["wrong_scale_doc"]["result_class"] == (
         PayloadScoreStatus.WRONG_UNIT_CURRENCY_SCALE.value
+    )
+    assert by_doc["wrong_period_type_doc"]["result_class"] == (
+        PayloadScoreStatus.WRONG_PERIOD.value
     )
     assert by_doc["missing_evidence_doc"]["result_class"] == (
         PayloadScoreStatus.MISSING_EVIDENCE.value
@@ -912,6 +933,9 @@ def test_terminal_candidate_manifest_excludes_advisory_only_documents():
     assert excluded["document_id"] == "advisory_doc"
     assert excluded["exclusion_reason"] == "advisory_only_document"
     assert excluded["quarantine_reason"] == "advisory_only_document"
+    assert excluded["source_document_classification"]["document_class"] == (
+        "advisory_only_document"
+    )
     assert (
         excluded["recommended_action"]
         == "exclude_from_canary_candidate_manifest"
