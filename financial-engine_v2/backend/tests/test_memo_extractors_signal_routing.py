@@ -133,6 +133,7 @@ def test_news_extractor_can_store_and_route_signals(tmp_path: Path) -> None:
         article_text="placeholder",
         provider="afr",
         published_at="2026-04-09T10:00:00+00:00",
+        candidate_tickers=["BHP"],
         company_memory_store=company_store,
         market_memory_store=market_store,
     )
@@ -163,6 +164,7 @@ def test_news_extract_and_store_routes_signals_by_default(tmp_path: Path) -> Non
         article_text="placeholder",
         provider="afr",
         published_at="2026-04-09T10:00:00+00:00",
+        candidate_tickers=["BHP"],
         company_memory_store=company_store,
         market_memory_store=market_store,
     )

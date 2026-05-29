@@ -12,7 +12,7 @@ from cockpit.core.agent.memory.store import MemoryStore
 @pytest.fixture
 def mock_llm():
     client = MagicMock()
-    client.chat.return_value = '{"type": "response", "content": "BHP revenue was $55B"}'
+    client.chat.return_value = '{"type": "response", "content": "router integration ok"}'
     client.model = "test-model"
     return client
 
@@ -39,8 +39,8 @@ def test_hybrid_router_integrates_with_agent_loop(router, tmp_memory):
             return self._r.complete(msgs).text
 
     loop = AgentLoop(llm_client=_RouterAsClient(router))
-    result = loop.run("What is BHP's revenue?")
-    assert "55B" in result.text
+    result = loop.run("Reply with the router integration phrase.")
+    assert "router integration ok" in result.text
     assert result.iterations_used >= 1
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -66,6 +67,12 @@ def _state_services(
 ) -> tuple[MarketplaceMissionService, MarketplacePriceIntelligenceService]:
     store = StateStore(str(tmp_path / "state.db"))
     return MarketplaceMissionService(store), MarketplacePriceIntelligenceService(store)
+
+
+def _recent_observed_at(idx: int) -> str:
+    return (
+        datetime.now(timezone.utc) - timedelta(days=5 - idx)
+    ).replace(microsecond=0).isoformat()
 
 
 def test_extract_marketplace_listing_id_and_canonical_url() -> None:
@@ -767,7 +774,7 @@ def test_requirement_scanner_flags_under_market_resale_candidate(
             {
                 "tracked_product_id": resale_product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"rtx-4070-market-{idx}",
                 "title": f"RTX 4070 Super 12GB listing {idx}",
                 "price": price,

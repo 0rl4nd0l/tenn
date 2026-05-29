@@ -666,9 +666,13 @@ def test_company_analysis_keeps_announcement_context_when_financial_rows_missing
         context={"request_standard": "company_analysis", "analysis_mode": "deep"},
     )
 
-    assert result.sufficient_for_analysis is False
+    assert result.sufficient_for_analysis is True
+    assert result.is_speculative is True
     assert "financials" in result.missing_categories_after_recovery
     assert "business_profile_context" not in result.missing_categories_after_recovery
+    assert any(
+        "speculative fallback active" in note for note in result.answer["notes"]
+    )
     assert "business/profile context" in result.answer_input
     assert "Available announcement/news context from financial truth:" in result.answer_input
     assert "Sale of Wealth Management business" in result.answer_input

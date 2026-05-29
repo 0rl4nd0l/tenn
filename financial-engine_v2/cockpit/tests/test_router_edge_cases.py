@@ -182,13 +182,13 @@ class TestAllFourPoliciesWithBothClients:
 
 
 class TestForceBackendOverridesPolicy:
-    def test_force_local_with_api_only_policy_uses_local(self):
+    def test_force_local_with_api_only_policy_is_blocked(self):
         local = _local_client()
         api = _api_client_chat_only()
         router = HybridRouter(llm_client=local, api_client=api, policy="api_only")
-        resp = router.complete(_MSG1, force_backend="local")
-        assert resp.source == "local"
-        local.chat.assert_called_once()
+        with pytest.raises(RuntimeError, match="Local LLM routing is disabled"):
+            router.complete(_MSG1, force_backend="local")
+        local.chat.assert_not_called()
         api.chat.assert_not_called()
 
     def test_force_api_with_local_only_policy_uses_api(self):
@@ -208,7 +208,7 @@ class TestForceBackendOverridesPolicy:
     def test_force_local_api_only_policy_no_local_client_raises(self):
         api = _api_client_chat_only()
         router = HybridRouter(api_client=api, policy="api_only")
-        with pytest.raises(RuntimeError, match="No local LLM client"):
+        with pytest.raises(RuntimeError, match="Local LLM routing is disabled"):
             router.complete(_MSG1, force_backend="local")
 
 
@@ -428,7 +428,11 @@ class TestChatOnChunkPassthrough:
         router.chat(prompt="hello", on_chunk=callback)
 
         kw = local.chat.call_args.kwargs
-        assert kw.get("on_chunk") is callback
+        wrapped = kw.get("on_chunk")
+        assert callable(wrapped)
+        assert wrapped is not callback
+        wrapped("hello")
+        callback.assert_called_once_with("hello")
 
     def test_chat_passes_on_chunk_to_api_chat_fallback(self):
         api = _api_client_chat_only()
