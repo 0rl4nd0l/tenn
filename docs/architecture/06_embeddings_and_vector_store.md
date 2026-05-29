@@ -32,6 +32,16 @@ and then executed through an OpenAI-compatible `/v1/embeddings` API path.
 - payload validation remains strict for `asx_docs`
 - vector IDs remain deterministic under the broader system contract
 
+The SQLite prohibition for this layer means: do not use SQLite as a vector
+store, canonical financial-truth store, embedding cache of record, or hidden
+runtime retrieval fallback. It does not ban explicitly documented SQLite-backed
+qualitative memory, operational state, feedback, or news-projection stores; see
+`22_memory_ownership_map.md`.
+
+Vector/chunk IDs must be deterministic `document_id:chunk_index` strings.
+Operational/task/session IDs are outside the vector ID contract, provided they
+do not become vector IDs, canonical financial IDs, or reproducibility keys.
+
 ## Runtime guards
 
 The backend uses these guard surfaces:

@@ -1,6 +1,6 @@
 # Memory Ownership Map (Phase 0/1)
 
-Last updated: 2026-04-21
+Last updated: 2026-05-27
 
 | Surface | Logical role | Primary writers | Primary readers | Retention | Authority class |
 |---|---|---|---|---|---|
@@ -11,6 +11,7 @@ Last updated: 2026-04-21
 | `~/.openviking/...` session store | Session/recency + semantic recall | Cockpit conversation/session layer | Cockpit chat loop | Medium-term | Working/session memory |
 | `cockpit_state.db` | Operational state (jobs, watch tasks, UI state) | Cockpit runtime | Cockpit runtime/UI | Durable | Operational (not reasoning memory) |
 | `reports/cockpit/feedback/*` + feedback tables | Feedback capture | Cockpit feedback capture flows | Cockpit feedback/triage flows | Durable | Operational feedback (not memory) |
+| Cockpit marketplace SQLite tables | Marketplace operational/product state | Cockpit marketplace flows | Cockpit marketplace UI/API | Durable | Operational (not financial truth) |
 | `reports/*`, `exports/*`, analyst notes | Workspace artifacts | Analysts/agents | Analysts/agents | Durable | Workspace/non-authoritative |
 | Qdrant semantic stores (`asx_docs`, `news_chunks`, `commentary_chunks`) | Semantic retrieval aid | Ingestion/indexing pipelines | RAG query endpoints + contextual retrieval | Durable | Retrieval index (not truth memory) |
 
@@ -26,3 +27,15 @@ Last updated: 2026-04-21
 - Read traces and write traces are emitted to:
   - `reports/research_memory/memory_read_events.jsonl`
   - `reports/research_memory/memory_write_events.jsonl`
+
+## Architecture Invariant Interpretation
+
+- SQLite is permitted only for the documented qualitative memory, operational
+  state, feedback, marketplace-operational, and workspace/news projection
+  stores listed in this ownership map or their dedicated architecture docs.
+- SQLite is not permitted as canonical financial truth, as an embedding/vector
+  store, or as a hidden fallback for Qdrant-backed retrieval.
+- Random IDs may be used for operational task, session, feedback, proposal, or
+  event records when those IDs are not vector IDs, canonical financial IDs, or
+  reproducibility keys.
+- Vector IDs remain deterministic and must use `document_id:chunk_index`.
