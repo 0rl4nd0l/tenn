@@ -153,6 +153,18 @@ class PayloadScoreStatus(str, Enum):
     NOT_EVALUATED_NO_ACTUAL = "not_evaluated_no_actual_payload"
 
 
+PRE_PERSISTENCE_SCORECARD_GATE_VERSION = "pre_persistence_scorecard_gate_v1"
+_PRE_PERSISTENCE_ALLOWED_RESULT_CLASSES = (
+    PayloadScoreStatus.PRESENT_CORRECT.value,
+    PayloadScoreStatus.UNSUPPORTED_CORRECTLY_ABSTAINED.value,
+)
+_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES = tuple(
+    status.value
+    for status in PayloadScoreStatus
+    if status.value not in _PRE_PERSISTENCE_ALLOWED_RESULT_CLASSES
+)
+
+
 class MetricContractStatus(str, Enum):
     SUPPORTED = "supported"
     EXTRACTOR_SUPPORTED = "extractor_supported"
@@ -709,6 +721,106 @@ def build_confirmed_metric_payload_scorecard(
             "mutated_canonical_truth": False,
             "mutated_gold_labels": False,
             "mutated_db_qdrant_news_memory": False,
+        },
+    }
+
+
+def build_pre_persistence_scorecard_gate(
+    scorecard: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Summarize whether a report-local payload scorecard blocks promotion.
+
+    The gate is an evaluation-readiness artifact. It never grants canonical
+    write permission and never runs extraction.
+    """
+
+    rows = [
+        row
+        for row in scorecard.get("metric_results", [])
+        if isinstance(row, Mapping)
+    ]
+    result_class_summary = _gate_result_class_summary(scorecard, rows)
+    actual_payload_supplied = scorecard.get("actual_payload_supplied") is True
+    scored_metric_expectations = _safe_int(
+        scorecard.get("scored_metric_expectations")
+    )
+    blocking_result_counts = {
+        result_class: result_class_summary.get(result_class, 0)
+        for result_class in _PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES
+        if result_class_summary.get(result_class, 0) > 0
+    }
+
+    blockers: list[dict[str, Any]] = []
+    if not actual_payload_supplied:
+        blockers.append(
+            {
+                "code": "actual_payload_not_supplied",
+                "count": 1,
+                "policy": "pre-persistence gate requires actual extracted payloads",
+            }
+        )
+    if scored_metric_expectations <= 0:
+        blockers.append(
+            {
+                "code": "no_scoreable_metric_expectations",
+                "count": 1,
+                "policy": "pre-persistence gate cannot pass without scoreable metrics",
+            }
+        )
+    if not rows:
+        blockers.append(
+            {
+                "code": "metric_results_missing",
+                "count": 1,
+                "policy": "pre-persistence gate requires metric result rows",
+            }
+        )
+    for result_class, count in blocking_result_counts.items():
+        blockers.append(
+            {
+                "code": result_class,
+                "count": count,
+                "policy": "result class blocks pre-persistence promotion",
+            }
+        )
+
+    gate_passed = not blockers
+    return {
+        "artifact_type": PRE_PERSISTENCE_SCORECARD_GATE_VERSION,
+        "gate_version": PRE_PERSISTENCE_SCORECARD_GATE_VERSION,
+        "input_artifact_type": scorecard.get("artifact_type"),
+        "profile": scorecard.get("profile"),
+        "scorecard_scope": scorecard.get("scorecard_scope"),
+        "gate_status": "pass" if gate_passed else "fail",
+        "passed": gate_passed,
+        "decision": "operator_review_eligible" if gate_passed else "blocked",
+        "operator_approval_required_for_canary": True,
+        "canonical_write_allowed": False,
+        "broad_backfill_authorized": False,
+        "actual_payload_supplied": actual_payload_supplied,
+        "actual_payload_document_count": _safe_int(
+            scorecard.get("actual_payload_document_count")
+        ),
+        "metric_result_count": len(rows),
+        "total_metric_expectations": _safe_int(
+            scorecard.get("total_metric_expectations")
+        ),
+        "scored_metric_expectations": scored_metric_expectations,
+        "allowed_result_classes": list(_PRE_PERSISTENCE_ALLOWED_RESULT_CLASSES),
+        "blocking_result_classes": list(_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES),
+        "result_class_summary": result_class_summary,
+        "blocking_result_class_summary": blocking_result_counts,
+        "allowed_noncanonical_abstention_count": result_class_summary.get(
+            PayloadScoreStatus.UNSUPPORTED_CORRECTLY_ABSTAINED.value, 0
+        ),
+        "blockers": blockers,
+        "blocking_examples": _gate_blocking_examples(rows),
+        "policy_assertions": {
+            "runs_extraction": False,
+            "mutates_canonical_truth": False,
+            "mutates_gold_labels": False,
+            "mutates_db_qdrant_news_memory": False,
+            "source_openability_is_correctness": False,
         },
     }
 
@@ -2513,6 +2625,63 @@ def _payload_result_class_summary(rows: Iterable[Mapping[str, Any]]) -> dict[str
         result_class = str(row.get("result_class") or "")
         counts[result_class] = counts.get(result_class, 0) + 1
     return counts
+
+
+def _gate_result_class_summary(
+    scorecard: Mapping[str, Any],
+    rows: Iterable[Mapping[str, Any]],
+) -> dict[str, int]:
+    row_counts = _payload_result_class_summary(rows)
+    if sum(row_counts.values()) > 0:
+        return row_counts
+
+    raw_summary = scorecard.get("result_class_summary")
+    if isinstance(raw_summary, Mapping):
+        counts = {status.value: 0 for status in PayloadScoreStatus}
+        for key, raw_count in raw_summary.items():
+            counts[str(key)] = _safe_int(raw_count)
+        return counts
+    return _payload_result_class_summary(rows)
+
+
+def _safe_int(raw: Any) -> int:
+    if isinstance(raw, bool):
+        return 0
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, float):
+        return int(raw)
+    if isinstance(raw, str):
+        try:
+            return int(raw)
+        except ValueError:
+            return 0
+    return 0
+
+
+def _gate_blocking_examples(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    examples: list[dict[str, Any]] = []
+    blocking_classes = set(_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES)
+    for row in rows:
+        result_class = str(row.get("result_class") or "")
+        if result_class not in blocking_classes:
+            continue
+        examples.append(
+            {
+                "document_id": row.get("document_id"),
+                "metric_name": row.get("metric_name"),
+                "canonical_field": row.get("canonical_field"),
+                "result_class": result_class,
+                "reason": row.get("reason"),
+            }
+        )
+        if len(examples) >= limit:
+            break
+    return examples
 
 
 def _source_pdf_summary(expectations: Iterable[CoverageExpectation]) -> dict[str, int]:

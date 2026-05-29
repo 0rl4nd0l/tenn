@@ -238,6 +238,24 @@ contract parity reports include `metric_ontology_v1` so unsupported,
 ambiguous, persisted-only, and internal-only metric families remain visible
 without becoming canonical truth.
 
+### Pre-persistence scorecard gate
+
+The confirmed metric payload scorecard now has a deterministic
+`pre_persistence_scorecard_gate_v1` wrapper. It is evaluation-only and consumes
+pre-supplied actual payloads; it does not run extraction, write canonical
+financial rows, mutate labels, or authorize broad backfill.
+
+The gate passes only when actual payloads were supplied and all result classes
+are either `present_correct` or the policy-allowed noncanonical
+`unsupported_correctly_abstained`. It fails on wrong value, wrong period, wrong
+unit/currency/scale, missing expected metric, missing evidence, ambiguous
+quarantine, missing actual payloads, or missing scorecard metric rows.
+
+Every gate artifact keeps `canonical_write_allowed: false` and
+`broad_backfill_authorized: false`. A pass means the payload scorecard can move
+to operator review; it is not canary approval and does not change persistence
+behavior.
+
 ### Base eval run
 
 The canonical local runner is:

@@ -11,6 +11,7 @@ from app.services.extraction_gold_eval_scorecard import (
     TerminalExtractionRecommendedAction,
     build_confirmed_metric_coverage_scorecard,
     build_confirmed_metric_payload_scorecard,
+    build_pre_persistence_scorecard_gate,
     build_terminal_extraction_candidate_manifest,
     build_metric_contract_parity_matrix,
     classify_terminal_extraction_candidate,
@@ -594,6 +595,200 @@ def test_confirmed_payload_scorecard_abstains_or_quarantines_unscored_labels(tmp
     assert by_doc["ambiguous_doc"]["result_class"] == (
         PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value
     )
+
+
+def test_pre_persistence_scorecard_gate_passes_correct_and_allowed_abstention(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(fixtures_dir / "confirmed.json", _base_fixture())
+    _write_fixture(
+        fixtures_dir / "unsupported.json",
+        _base_fixture(
+            document_id="unsupported_doc",
+            metrics={"ebitda": 200.0},
+            expected_nulls=[],
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {
+                    "revenue": 100.0,
+                    "operating_cf": 25.0,
+                    "net_debt": None,
+                },
+                "evidence": {
+                    "revenue": {"page": 1},
+                    "operating_cf": {"page": 1},
+                },
+            },
+            "unsupported_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {},
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+
+    assert gate["artifact_type"] == "pre_persistence_scorecard_gate_v1"
+    assert gate["gate_status"] == "pass"
+    assert gate["decision"] == "operator_review_eligible"
+    assert gate["canonical_write_allowed"] is False
+    assert gate["broad_backfill_authorized"] is False
+    assert gate["operator_approval_required_for_canary"] is True
+    assert gate["allowed_noncanonical_abstention_count"] == 1
+    assert gate["blockers"] == []
+    assert gate["blocking_examples"] == []
+
+
+def test_pre_persistence_scorecard_gate_blocks_bad_and_missing_actuals(tmp_path):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "wrong_value.json",
+        _base_fixture(
+            document_id="wrong_value_doc",
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+        ),
+    )
+    _write_fixture(
+        fixtures_dir / "wrong_period.json",
+        _base_fixture(
+            document_id="wrong_period_doc",
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+        ),
+    )
+    _write_fixture(
+        fixtures_dir / "missing_actual.json",
+        _base_fixture(
+            document_id="missing_actual_doc",
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+        ),
+    )
+    _write_fixture(
+        fixtures_dir / "ambiguous.json",
+        _base_fixture(
+            document_id="ambiguous_doc",
+            metrics={"capex": -10.0},
+            expected_nulls=[],
+            notes={"capex": "Capex convention unresolved for this fixture."},
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "wrong_value_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 90.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
+            "wrong_period_doc": {
+                "period_type": "A",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
+            "ambiguous_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"capex": -10.0},
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert gate["gate_status"] == "fail"
+    assert gate["decision"] == "blocked"
+    assert gate["canonical_write_allowed"] is False
+    assert gate["broad_backfill_authorized"] is False
+    assert blockers[PayloadScoreStatus.PRESENT_WRONG_VALUE.value] == 1
+    assert blockers[PayloadScoreStatus.WRONG_PERIOD.value] == 1
+    assert blockers[PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value] == 1
+    assert blockers[PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value] == 1
+    assert {example["document_id"] for example in gate["blocking_examples"]} == {
+        "ambiguous_doc",
+        "missing_actual_doc",
+        "wrong_period_doc",
+        "wrong_value_doc",
+    }
+
+
+def test_pre_persistence_scorecard_gate_blocks_without_actual_payloads(tmp_path):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "confirmed.json",
+        _base_fixture(metrics={"revenue": 100.0}, expected_nulls=[]),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        financial_engine_root=tmp_path,
+    )
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert gate["gate_status"] == "fail"
+    assert gate["actual_payload_supplied"] is False
+    assert blockers["actual_payload_not_supplied"] == 1
+    assert blockers[PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value] == 1
+
+
+def test_pre_persistence_scorecard_gate_blocks_summary_without_metric_rows():
+    scorecard = {
+        "artifact_type": "confirmed_metric_payload_scorecard_v1",
+        "profile": "confirmed_metric_coverage",
+        "scorecard_scope": "report_local_actual_payloads_only",
+        "actual_payload_supplied": True,
+        "actual_payload_document_count": 1,
+        "scored_metric_expectations": 1,
+        "total_metric_expectations": 1,
+        "result_class_summary": {PayloadScoreStatus.PRESENT_CORRECT.value: 1},
+    }
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert gate["gate_status"] == "fail"
+    assert gate["metric_result_count"] == 0
+    assert blockers["metric_results_missing"] == 1
 
 
 def test_committed_source_asset_manifest_is_metadata_only():

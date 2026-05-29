@@ -59,6 +59,33 @@ Qdrant persistence. These gates fail the extraction instead of correcting values
   agree with the payload `period_type`. Ambiguous source-period evidence is
   diagnostic only and does not infer a corrected period.
 
+## Pre-persistence scorecard gate
+
+`build_pre_persistence_scorecard_gate()` turns a report-local confirmed metric
+payload scorecard into a deterministic readiness artifact. It does not run
+extraction and does not authorize canonical writes or broad backfills.
+
+The gate passes only when actual payloads were supplied and the scorecard has no
+blocking result classes. `present_correct` is accepted. The only accepted
+noncanonical abstention is `unsupported_correctly_abstained`, which keeps
+unsupported metrics out of canonical use.
+
+The gate fails on:
+
+- `missing_expected_metric`
+- `present_wrong_value`
+- `wrong_unit_currency_scale`
+- `wrong_period`
+- `missing_evidence`
+- `ambiguous_quarantined`
+- `not_evaluated_no_actual_payload`
+- missing scorecard metric rows
+
+Every gate artifact reports `canonical_write_allowed: false` and
+`broad_backfill_authorized: false`. A passing gate means the payload scorecard is
+eligible for operator review; it is not approval to run a canary or persist
+financial truth.
+
 ## Source document classification
 
 Source-document classification is deterministic and source-metadata only:
