@@ -1,20 +1,12 @@
 {
   "changed_files": [
     {
-      "path": "docs/claude/STATE.md",
+      "path": "reports/agent_jobs/extraction_pr129_ci_test_harness_first_slice_v1_20260529/diff-check.json",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/tests/test_cockpit_service_session_threads.py",
+      "path": "reports/agent_jobs/extraction_pr129_ci_test_harness_first_slice_v1_20260529/status.json",
       "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_streaming_subprocess.py",
-      "status": "M"
-    },
-    {
-      "path": "docs/agent_tasks/extraction_pr129_ci_test_harness_first_slice_v1_20260529.md",
-      "status": "??"
     }
   ],
   "disallowed_files": [],
