@@ -35,4 +35,21 @@ Already passed on this branch:
 
 ## Result
 
-Pending until draft PR creation and verification complete.
+Draft PR created and verified:
+
+- PR: https://github.com/0rl4nd0l/tenn/pull/128
+- Number: 128
+- Title: `[codex] resolve real-gold source path validation`
+- State: `OPEN`
+- Draft: `true`
+- Head branch: `safe/extraction-real-gold-source-path-resolver-v1-20260529`
+- Base branch: `migration/clean-runtime-baseline-reconstruct-v1`
+
+Branch head at PR verification:
+
+- Local: `751790ce1fc3990d45bc1fddbeb2b189430f91ef`
+- Remote: `751790ce1fc3990d45bc1fddbeb2b189430f91ef`
+
+Remaining blocker before any AAU/runtime canary continuation:
+
+`APPROVE #96 RUNTIME RELOAD AND AAU CANARY extraction_aau_runtime_reload_canary_approval_packet_v1_20260529`
