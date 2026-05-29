@@ -43,6 +43,21 @@ Fixtures are marked `quarantine` when any checked context field mismatches:
 
 When quarantined, all metrics in that fixture are excluded from aggregate scoring.
 
+## Pre-persistence truth gates
+
+The live extractor has conservative source-bound gates before canonical row or
+Qdrant persistence. These gates fail the extraction instead of correcting values:
+
+- Advisory-only document titles such as `Quarterly Report Advisory` are blocked
+  before metric extraction.
+- `ebit` is blocked when the row evidence is explicitly EBITDA rather than EBIT.
+- Explicit source-unit values in row evidence, for example `$44.1 million`, must
+  be within tolerance of the normalized metric value; 100x or larger
+  over/under-scale mismatches are blocked.
+- Explicit source-period evidence, for example annual `year ended` wording, must
+  agree with the payload `period_type`. Ambiguous source-period evidence is
+  diagnostic only and does not infer a corrected period.
+
 ## Non-goals
 
 - No DB writes, no embedding calls, no retrieval.
