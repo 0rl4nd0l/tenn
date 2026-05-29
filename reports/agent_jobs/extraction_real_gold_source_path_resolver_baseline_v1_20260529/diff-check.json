@@ -1,28 +1,8 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_real_gold_source_path_resolver_baseline_v1_20260529.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/claude/STATE.md",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_baseline_v1_20260529/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_baseline_v1_20260529/diff-check.json",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_baseline_v1_20260529/status.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
