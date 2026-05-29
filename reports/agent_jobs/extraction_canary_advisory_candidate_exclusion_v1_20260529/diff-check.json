@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_canary_advisory_candidate_exclusion_v1_20260529.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_canary_advisory_candidate_exclusion_v1_20260529.md",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/README.md",
+        "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/status.json",
+        "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_canary_advisory_candidate_exclusion_v1_20260529",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_canary_advisory_candidate_exclusion_v1_20260529",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance",
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

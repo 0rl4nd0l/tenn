@@ -1860,7 +1860,10 @@ _SHARE_NOTE_RE = re.compile(
 )
 
 _ADVISORY_ONLY_DOCUMENT_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\bquarterly\s+report\s+advisory\b", re.IGNORECASE),
+    re.compile(
+        r"\bquarterly\s+(?:activities\s+)?report\s+advisory\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bappendix\s+4[cd]\s+advisory\b", re.IGNORECASE),
 )
 
@@ -1987,11 +1990,15 @@ def _combined_source_text(*values: Any) -> str:
     return " ".join(parts)
 
 
-def _is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
+def is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
     text = _combined_source_text(title, first_page_text)
     if not text:
         return False
     return any(pattern.search(text) for pattern in _ADVISORY_ONLY_DOCUMENT_PATTERNS)
+
+
+def _is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
+    return is_advisory_only_document(title, first_page_text)
 
 
 def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str, Any]:

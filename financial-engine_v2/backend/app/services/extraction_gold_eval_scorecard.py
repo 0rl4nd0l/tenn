@@ -29,7 +29,11 @@ from app.services.extraction_eval import (
     evaluate_fixture,
     str_or_none,
 )
-from app.services.multipass_extraction import EXTRACTOR_VERSION, METRIC_FIELDS
+from app.services.multipass_extraction import (
+    EXTRACTOR_VERSION,
+    METRIC_FIELDS,
+    is_advisory_only_document,
+)
 
 
 PROFILE_VERSION = "2026-05-05"
@@ -233,6 +237,13 @@ TERMINAL_EXTRACTION_RECOMMENDED_ACTION_DEFINITIONS = {
     ),
     TerminalExtractionRecommendedAction.BLOCKED_MISSING_ASSET.value: (
         "Blocked until source asset availability is repaired or reviewed."
+    ),
+}
+
+TERMINAL_EXTRACTION_EXCLUSION_REASON_DEFINITIONS = {
+    "advisory_only_document": (
+        "Document metadata indicates an advisory-only announcement, so it is "
+        "quarantined before canary candidate inclusion."
     ),
 }
 
@@ -868,13 +879,22 @@ def build_terminal_extraction_candidate_manifest(
     and it does not score extraction correctness.
     """
 
-    rows = [
-        classify_terminal_extraction_candidate(
+    rows: list[dict[str, Any]] = []
+    excluded_rows: list[dict[str, Any]] = []
+    for record in records:
+        exclusion = _terminal_extraction_exclusion(
             record,
             current_extractor_version=current_extractor_version,
         )
-        for record in records
-    ]
+        if exclusion is not None:
+            excluded_rows.append(exclusion)
+            continue
+        rows.append(
+            classify_terminal_extraction_candidate(
+                record,
+                current_extractor_version=current_extractor_version,
+            )
+        )
     class_counts = {status.value: 0 for status in TerminalExtractionCandidateClass}
     action_counts = {action.value: 0 for action in TerminalExtractionRecommendedAction}
     for row in rows:
@@ -882,6 +902,10 @@ def build_terminal_extraction_candidate_manifest(
         action = str(row.get("recommended_action") or "")
         class_counts[row_class] = class_counts.get(row_class, 0) + 1
         action_counts[action] = action_counts.get(action, 0) + 1
+    exclusion_reason_counts: dict[str, int] = {}
+    for row in excluded_rows:
+        reason = str(row.get("exclusion_reason") or "")
+        exclusion_reason_counts[reason] = exclusion_reason_counts.get(reason, 0) + 1
 
     if generated_at is None:
         generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -901,7 +925,14 @@ def build_terminal_extraction_candidate_manifest(
         "input_sources": list(input_sources or []),
         "context": dict(context or {}),
         "data_missing": list(data_missing or []),
-        "total_document_count": len(rows),
+        "total_input_document_count": len(rows) + len(excluded_rows),
+        "total_document_count": len(rows) + len(excluded_rows),
+        "candidate_document_count": len(rows),
+        "excluded_document_count": len(excluded_rows),
+        "exclusion_reason_counts": dict(sorted(exclusion_reason_counts.items())),
+        "exclusion_reason_definitions": dict(
+            sorted(TERMINAL_EXTRACTION_EXCLUSION_REASON_DEFINITIONS.items())
+        ),
         "candidate_class_counts": dict(sorted(class_counts.items())),
         "recommended_action_counts": dict(sorted(action_counts.items())),
         "candidate_class_definitions": dict(
@@ -910,6 +941,7 @@ def build_terminal_extraction_candidate_manifest(
         "recommended_action_definitions": dict(
             sorted(TERMINAL_EXTRACTION_RECOMMENDED_ACTION_DEFINITIONS.items())
         ),
+        "excluded_candidates": excluded_rows,
         "candidates": rows,
     }
 
@@ -1316,6 +1348,103 @@ def _terminal_has_financial_rows(record: Mapping[str, Any]) -> bool | None:
         text = str(value or "").strip()
         if text.isdigit():
             return int(text) > 0
+    return None
+
+
+def _terminal_extraction_exclusion(
+    record: Mapping[str, Any],
+    *,
+    current_extractor_version: str,
+) -> dict[str, Any] | None:
+    title = _terminal_advisory_title(record)
+    first_page_text = _terminal_advisory_first_page_text(record)
+    if not is_advisory_only_document(title, first_page_text):
+        return None
+
+    return {
+        "document_id": _string_or_none(record.get("document_id")),
+        "ticker": _string_or_none(record.get("ticker")),
+        "filing_document_type": _first_nonempty(
+            record,
+            "filing_document_type",
+            "document_type",
+            "filing_type",
+            "doc_type",
+            "doc_class",
+            "doc_subtype",
+        ),
+        "pdf_path": _first_nonempty(record, "pdf_path", "source_file"),
+        "title": title,
+        "current_extractor_version": current_extractor_version,
+        "exclusion_reason": "advisory_only_document",
+        "quarantine_reason": "advisory_only_document",
+        "source_document_gate": "advisory_only_document",
+        "recommended_action": "exclude_from_canary_candidate_manifest",
+        "required_preconditions": [
+            "manifest_is_report_local_only",
+            "broad_backfill_not_authorized",
+            "do_not_submit_to_canary_from_this_manifest",
+            "operator_review_required_before_any_extraction_decision",
+        ],
+        "reason_detail": (
+            "Title or first-page metadata matched the shared advisory-only "
+            "document gate."
+        ),
+        "source_reviewability_only": True,
+        "source_openability_counts_as_metric_correctness": False,
+        "terminal_state_counts_as_metric_correctness": False,
+        "payload_scoreability_counts_as_terminal_state": False,
+        "broad_backfill_authorized": False,
+    }
+
+
+def _terminal_advisory_title(record: Mapping[str, Any]) -> str | None:
+    return _first_nonempty(
+        record,
+        "title",
+        "announcement_title",
+        "document_title",
+        "headline",
+        "name",
+    )
+
+
+def _terminal_advisory_first_page_text(record: Mapping[str, Any]) -> str | None:
+    direct = _first_nonempty(
+        record,
+        "first_page_text",
+        "first_page",
+        "source_text",
+        "document_text",
+        "text",
+        "description",
+    )
+    if direct is not None:
+        return direct
+
+    sections = record.get("sections")
+    if not isinstance(sections, list):
+        return None
+
+    page_text: list[str] = []
+    fallback_text: list[str] = []
+    for section in sections:
+        if not isinstance(section, Mapping):
+            continue
+        text = _string_or_none(section.get("text"))
+        if text is None:
+            continue
+        fallback_text.append(text)
+        page = section.get("page")
+        if isinstance(page, bool):
+            continue
+        if isinstance(page, (int, float)) and page <= 1:
+            page_text.append(text)
+
+    if page_text:
+        return " ".join(page_text)
+    if fallback_text:
+        return " ".join(fallback_text[:3])
     return None
 
 
