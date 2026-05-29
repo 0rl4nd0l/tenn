@@ -1,0 +1,31 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_real_gold_source_path_ci_portability_v1_20260529.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/extraction_real_gold_source_path_ci_portability_v1_20260529.md",
+    "reports/agent_jobs/extraction_real_gold_source_path_ci_portability_v1_20260529/README.md",
+    "reports/agent_jobs/extraction_real_gold_source_path_ci_portability_v1_20260529/status.json",
+    "reports/agent_jobs/extraction_real_gold_source_path_ci_portability_v1_20260529/diff-check.json",
+    "docs/claude/STATE.md",
+    "financial-engine_v2/backend/tests/test_extraction_gold_eval.py"
+  ],
+  "branch": "safe/extraction-real-gold-source-path-resolver-v1-20260529",
+  "claimed_at": "2026-05-29T10:21:04.313564Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-29T10:21:04.313564Z",
+  "job_id": "extraction_real_gold_source_path_ci_portability_v1_20260529",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-05-29T10:21:04.313564Z",
+  "output_dir": "reports/agent_jobs/extraction_real_gold_source_path_ci_portability_v1_20260529",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-extraction-real-gold-source-path-resolver-v1-20260529",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:3909548:extraction_real_gold_source_path_ci_portability_v1_20260529",
+  "started_at": "2026-05-29T10:21:04.313564Z",
+  "status": "active",
+  "task_card": "docs/agent_tasks/extraction_real_gold_source_path_ci_portability_v1_20260529.md",
+  "updated_at": "2026-05-29T10:21:04.313564Z",
+  "worktree": "/home/l4nd0/tenn-extraction-real-gold-source-path-resolver-v1-20260529"
+}
