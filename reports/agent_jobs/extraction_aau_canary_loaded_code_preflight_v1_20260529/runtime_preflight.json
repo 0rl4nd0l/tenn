@@ -1,0 +1,125 @@
+{
+  "artifact_type": "extraction_aau_canary_loaded_code_preflight_v1",
+  "job_id": "extraction_aau_canary_loaded_code_preflight_v1_20260529",
+  "generated_at": "2026-05-29T08:59:43Z",
+  "branch": "audit/extraction-aau-canary-loaded-code-preflight-v1-20260529",
+  "worktree": "/home/l4nd0/tenn-aau-canary-loaded-code-preflight-v1-20260529",
+  "baseline_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "target_head": "e2029835efbd2eb6425f089d703841eb20625bf7",
+  "target_head_subject": "milestone(extraction): record AAU integration claim release",
+  "approval_packet": "extraction_third_canary_approval_packet_refresh_v1_20260529",
+  "approval_phrase_recorded": "APPROVE #96 THIRD CANARY extraction_third_canary_approval_packet_refresh_v1_20260529",
+  "candidate": {
+    "ticker": "AAU",
+    "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+    "source_pdf": "/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+    "source_pdf_exists": true,
+    "source_pdf_size_bytes": 1804699
+  },
+  "canary_submission": {
+    "submitted": false,
+    "reason": "approved packet loaded-code gate not satisfied",
+    "route_used": null,
+    "run_id": null,
+    "task_id": null
+  },
+  "health": {
+    "api_health": "ok",
+    "cockpit_health_status": "healthy",
+    "queue_status": {
+      "redis_connected": true,
+      "queues": {
+        "ingest": 0,
+        "embed": 0,
+        "score": 0,
+        "llm_gpu": 0,
+        "llm_cpu": 0
+      },
+      "total_queued": 0
+    },
+    "gpu_process_guard_exit": 0,
+    "gpu_process_guard_warning": "nvidia-smi query failed with exit 255; guard still exited 0"
+  },
+  "container_processes": [
+    {
+      "name": "fe_backend",
+      "pid": 911605,
+      "started_at": "2026-05-27T10:45:40.592004537Z",
+      "command": "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    },
+    {
+      "name": "fe_worker",
+      "pid": 911751,
+      "started_at": "2026-05-27T10:45:42.410745023Z",
+      "command": "celery -A app.celery_app.celery worker --loglevel=INFO -Q ingest,embed,score,llm_cpu"
+    },
+    {
+      "name": "fe_gpu_worker",
+      "pid": 911784,
+      "started_at": "2026-05-27T10:45:42.444213793Z",
+      "command": "celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu"
+    }
+  ],
+  "code_mount_evidence": {
+    "backend_mounts_workspace": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1 -> /workspace",
+    "backend_mounts_app": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend -> /app",
+    "new_backend_python_import_period_end_helper": true,
+    "new_backend_python_import_period_type_candidates": true,
+    "new_gpu_worker_python_import_period_end_helper": true,
+    "new_gpu_worker_python_import_period_type_candidates": true,
+    "task_mode": "celery"
+  },
+  "loaded_code_verdict": {
+    "status": "DATA_MISSING",
+    "sufficient_for_canary": false,
+    "explanation": "A fresh python import inside the container sees the mounted updated files, but the long-running backend and Celery worker processes started on 2026-05-27 before the 2026-05-29 AAU integration commits. The approved route runs in celery mode, and the llm_gpu worker imports app.worker_tasks and app.services.pipeline at worker startup. Current evidence does not prove the running worker process reloaded the integrated multipass_extraction module."
+  },
+  "approval_packet_gate_results": [
+    {
+      "gate": "exact operator approval phrase recorded",
+      "status": "pass"
+    },
+    {
+      "gate": "new approval-required runtime task card validated and claimed",
+      "status": "not_applicable",
+      "reason": "this task is a report-only preflight and did not submit runtime work"
+    },
+    {
+      "gate": "registry has no overlapping extraction/backfill/runtime job",
+      "status": "pass",
+      "detail": "only unrelated stale Query Orchestration audit job was active"
+    },
+    {
+      "gate": "scripts/gpu_process_guard.sh --check exits 0",
+      "status": "pass_with_warning"
+    },
+    {
+      "gate": "backend /api/health is ok",
+      "status": "pass"
+    },
+    {
+      "gate": "live backend and worker loaded code is current HEAD or documented descendant",
+      "status": "fail",
+      "detail": "running backend and worker processes predate target integration commits"
+    },
+    {
+      "gate": "each approved source path still exists",
+      "status": "pass_for_aau"
+    },
+    {
+      "gate": "no approved document is queued/running/orphaned",
+      "status": "partial",
+      "detail": "queues are empty; no live DB terminal-state query was performed because production_data_access is false"
+    },
+    {
+      "gate": "route is exactly POST /api/process/document/{document_id}",
+      "status": "not_executed"
+    }
+  ],
+  "abort_condition_triggered": {
+    "condition": "service restart, parser routing change, prompt change, or schema change is required",
+    "triggered": true,
+    "detail": "A service reload or restart is required to prove the worker loaded e2029835; this task and the approval packet did not authorize that restart."
+  },
+  "next_safe_step": "Request explicit approval for a runtime reload/restart or provide another current loaded-code proof path; after that, create a new approval-required runtime task card and submit AAU alone."
+}
