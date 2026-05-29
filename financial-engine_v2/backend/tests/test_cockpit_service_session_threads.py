@@ -23,8 +23,9 @@ def test_normalize_cockpit_artifact_dirs_maps_relative_reports_to_data_root() ->
 
     _normalize_cockpit_artifact_dirs(cfg, data_root="/data")
 
-    assert cfg["reports"]["dir"] == "/data/reports"
-    assert cfg["exports"]["dir"] == "/data/reports/analysis"
+    data_root = Path("/data").resolve()
+    assert cfg["reports"]["dir"] == str(data_root / "reports")
+    assert cfg["exports"]["dir"] == str(data_root / "reports" / "analysis")
 
 
 def test_normalize_cockpit_artifact_dirs_preserves_absolute_paths() -> None:
@@ -217,7 +218,7 @@ def test_chat_stream_uses_session_thread_and_persists_turns() -> None:
     captured: dict[str, object] = {}
     controller = _FakeController("Here is the summary.")
 
-    def _build_chat_controller(thread_id: str):
+    def _build_chat_controller(thread_id: str, **_kwargs):
         captured["thread_id"] = thread_id
         return controller
 
@@ -247,7 +248,7 @@ def test_chat_stream_passes_attached_sources_to_controller() -> None:
     _prime_service(service)
     service.state_store = _FakeStateStore()
     controller = _FakeController("Attached source answer.")
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     response = CockpitService.chat_stream(
         service,
@@ -315,7 +316,7 @@ def test_chat_stream_seeds_recent_youtube_options_between_session_controllers() 
 
     selection_controller = _SelectionController()
     controllers = iter([_RecentVideosController(), selection_controller])
-    service._build_chat_controller = lambda _thread_id: next(controllers)  # type: ignore[method-assign]
+    service._build_chat_controller = lambda _thread_id, **_kwargs: next(controllers)  # type: ignore[method-assign]
 
     CockpitService.chat_stream(
         service,
@@ -370,7 +371,9 @@ def test_chat_stream_clears_recent_youtube_options_after_empty_lookup() -> None:
                 ],
             )
 
-    service._build_chat_controller = lambda _thread_id: _EmptyRecentVideosController()  # type: ignore[method-assign]
+    service._build_chat_controller = (
+        lambda _thread_id, **_kwargs: _EmptyRecentVideosController()
+    )  # type: ignore[method-assign]
 
     CockpitService.chat_stream(
         service,
@@ -387,7 +390,7 @@ def test_chat_stream_defaults_blank_session_to_global_thread() -> None:
     service.state_store = _FakeStateStore()
     controller = _FakeController("Hello")
     service.chat_controller = controller
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     response = CockpitService.chat_stream(
         service,
@@ -408,7 +411,7 @@ def test_chat_stream_populates_model_metadata_even_when_controller_omits_it() ->
     service.state_store = _FakeStateStore()
     service.llm_client = _FakeLlmClient("model:gpt-oss-20b")
     controller = _FakeController("No evidence available.")
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     response = CockpitService.chat_stream(
         service,
@@ -441,7 +444,7 @@ def test_chat_stream_uses_last_attempt_route_when_controller_metadata_is_empty()
             "routing_reason": "force:api",
         }
     )
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     response = CockpitService.chat_stream(
         service,
@@ -463,7 +466,7 @@ def test_chat_stream_applies_api_default_backend_side_to_plain_turn() -> None:
     service.state_store = _FakeStateStore({"api_default_enabled": "true"})
     service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
     controller = _FakeController("API default routed.")
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
     statuses: list[str] = []
 
     response = CockpitService.chat_stream(
@@ -486,7 +489,7 @@ def test_chat_stream_api_default_overrides_local_prefix_before_controller() -> N
     service.state_store = _FakeStateStore({"api_default_enabled": "true"})
     service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
     controller = _FakeController("Local prefix overridden.")
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     CockpitService.chat_stream(
         service,
@@ -503,7 +506,7 @@ def test_chat_stream_api_default_preserves_non_routing_slash_commands() -> None:
     service.state_store = _FakeStateStore({"api_default_enabled": "true"})
     service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
     controller = _FakeController("Sources listed.")
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
     statuses: list[str] = []
 
     CockpitService.chat_stream(
@@ -538,7 +541,7 @@ def test_chat_stream_marks_anthropic_credit_error_as_provider_error() -> None:
             "routing_reason": "force:api",
         }
     )
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
     statuses: list[str] = []
 
     response = CockpitService.chat_stream(
@@ -562,7 +565,7 @@ def test_chat_stream_emits_model_switch_status_events() -> None:
     service.state_store = _FakeStateStore()
     service.llm_client = _FakeLlmClient("model:gpt-oss-20b")
     controller = _FakeController("Switch completed.")
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     statuses: list[str] = []
     response = CockpitService.chat_stream(
@@ -592,7 +595,7 @@ def test_chat_stream_skips_local_model_switch_when_turn_will_route_to_api() -> N
             "routing_reason": "extraction_active",
         }
     )
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     statuses: list[str] = []
     response = CockpitService.chat_stream(
@@ -621,7 +624,7 @@ def test_chat_stream_records_response_mode_in_turn_diagnostics() -> None:
         mode="deep_analysis",
         prompt="prompt excerpt",
     )
-    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    service._build_chat_controller = lambda thread_id, **_kwargs: controller  # type: ignore[method-assign]
 
     response = CockpitService.chat_stream(
         service,
