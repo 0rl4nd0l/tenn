@@ -1,11 +1,7 @@
 {
   "changed_files": [
     {
-      "path": "docs/claude/STATE.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_draft_pr_v1_20260529/README.md",
+      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_draft_pr_v1_20260529/status.json",
       "status": "M"
     }
   ],
