@@ -1,0 +1,54 @@
+{
+  "artifact_type": "extraction_bhp_canary_gold_fixture_source_verification_v1",
+  "job_id": "extraction_bhp_canary_gold_fixture_v1_20260529",
+  "generated_at": "2026-05-29T09:45:00Z",
+  "document_id": "2fa98e79-9d34-4cc6-9977-bfc8e9b7eeb7",
+  "ticker": "BHP",
+  "source_pdf": "/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_2fa98e79-9d34-4cc6-9977-bfc8e9b7eeb7.pdf",
+  "curated_real_gold_source_pdf": "/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+  "source_pdf_sha256": "39e139174313295df56143a3cbd2c704eeb9783bdffb4706a083706d6b5a490a",
+  "curated_real_gold_source_pdf_sha256": "39e139174313295df56143a3cbd2c704eeb9783bdffb4706a083706d6b5a490a",
+  "byte_identical_to_curated_real_gold_source": true,
+  "pdfinfo": {
+    "pages": 238,
+    "file_size_bytes": 15541285,
+    "pdf_version": "1.7",
+    "encrypted_copy": false,
+    "encrypted_print": true
+  },
+  "verified_context": {
+    "period_type": "A",
+    "period_end": "2025-06-30",
+    "currency": "USD",
+    "scale": "millions"
+  },
+  "verified_metrics": {
+    "revenue": {
+      "source_value": "51,262",
+      "normalized_value": 51262000000,
+      "evidence": "BHP Appendix 4E front matter and annual report text show US$ Million Revenue 51,262 for the 2025 period."
+    },
+    "operating_cf": {
+      "source_value": "18,692",
+      "normalized_value": 18692000000,
+      "evidence": "PDF text shows Net operating cash flows 18,692."
+    },
+    "net_debt": {
+      "source_value": "12,924",
+      "normalized_value": 12924000000,
+      "evidence": "PDF text shows Net debt 12,924."
+    }
+  },
+  "observed_canary_payload_classification": {
+    "source": "reports/agent_jobs/extraction_primary_canary_retry_after_cache_fix_v1_20260527/canary_results.json and extraction_canary_scale_gate_and_side_effect_audit_v1_20260527/audit_evidence.json",
+    "observed_revenue": 55658000000,
+    "expected_revenue": 51262000000,
+    "trust_outcome_expected_by_new_regression_test": "abstain",
+    "trust_triggers_expected_by_new_regression_test": [
+      "revenue:wrong"
+    ]
+  },
+  "runtime_or_datastore_mutation_performed": false,
+  "source_pdf_mutation_performed": false,
+  "github_mutation_performed": false
+}

@@ -1,0 +1,35 @@
+{
+  "job_id": "extraction_bhp_canary_gold_fixture_v1_20260529",
+  "status": "validated",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Provenance"
+  ],
+  "branch": "safe/extraction-bhp-canary-gold-fixture-v1-20260529",
+  "worktree": "/home/l4nd0/tenn-extraction-bhp-canary-gold-fixture-v1-20260529",
+  "related_issue": 96,
+  "runtime_or_datastore_mutation_performed": false,
+  "canary_or_backfill_run": false,
+  "source_pdf_mutation_performed": false,
+  "github_mutation_performed": false,
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_overlap_check": "passed",
+    "registry_claim": "passed",
+    "fixture_json": "passed",
+    "py_compile": "passed",
+    "focused_pytest_excluding_preexisting_10x_asset_check": "passed: 24 passed, 1 deselected",
+    "ruff": "passed",
+    "scorecard_cli_smoke": "passed",
+    "git_diff_check": "passed",
+    "task_card_check_diff": "passed",
+    "added_source_binary_check": "passed: none",
+    "added_lines_sensitive_scan": "passed: no hits",
+    "full_test_file": "known pre-existing failure: missing 10X real-gold source path; reproduced on unchanged baseline e2029835"
+  },
+  "remaining_blockers": [
+    "Runtime reload and AAU-only canary still require exact operator approval phrase.",
+    "Full test_extraction_gold_eval.py still has pre-existing 10X source asset path failure outside this task."
+  ]
+}

@@ -95,6 +95,23 @@ def _real_payloads() -> dict[str, dict]:
                 "capex": 494.4,
             },
         },
+        "bhp_a_2025-06-30_canary_regression": {
+            "period_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "USD",
+            "scale": "millions",
+            "source_document_id": "2fa98e79-9d34-4cc6-9977-bfc8e9b7eeb7",
+            "provenance": {
+                "revenue": "income_statement:page_1:Revenue 51,262",
+                "operating_cf": "cashflow_statement:page_1:Net operating cash flows 18,692",
+                "net_debt": "ofr:page_1:Net debt 12,924",
+            },
+            "metrics": {
+                "revenue": 51_262_000_000,
+                "operating_cf": 18_692_000_000,
+                "net_debt": 12_924_000_000,
+            },
+        },
         "clv_h_2026-01-31_canary_regression": {
             "period_type": "H",
             "period_end": "2026-01-31",
@@ -165,6 +182,7 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
         "real_abstain_missing_metric",
         "real_quarantine_currency_mismatch",
         "viva_fy2025_regression",
+        "bhp_a_2025-06-30_canary_regression",
         "clv_h_2026-01-31_canary_regression",
         "ctm_a_2025-12-31_canary_regression",
         "aau_a_2025-12-31_canary_regression",
@@ -191,6 +209,10 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
     )
     assert (
         fixture_by_id["aau_a_2025-12-31_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
+    )
+    assert (
+        fixture_by_id["bhp_a_2025-06-30_canary_regression"].expected_trust
         == RealTrustOutcome.TRUSTED
     )
 
@@ -358,6 +380,30 @@ def test_canary_failure_regression_payloads_are_not_trusted():
     assert aau_eval.trust == RealTrustOutcome.QUARANTINE
     assert aau_eval.trust_triggers == ["context_mismatch:period_end"]
 
+    bhp_bad_payload = {
+        "period_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+        "metrics": {
+            "revenue": 55_658_000_000,
+            "ebit": 17_537_000_000,
+            "np_attributable": 7_897_000_000,
+            "operating_cf": 18_692_000_000,
+            "investing_cf": -13_350_000_000,
+            "financing_cf": -5_971_000_000,
+            "capex": -9_398_000_000,
+            "cash_end": 11_893_000_000,
+            "net_debt": 12_924_000_000,
+        },
+    }
+    bhp_eval = evaluate_real_gold_fixture(
+        _load_real_fixture("bhp_a_2025-06-30_canary_regression"),
+        bhp_bad_payload,
+    )
+    assert bhp_eval.trust == RealTrustOutcome.ABSTAIN
+    assert bhp_eval.trust_triggers == ["revenue:wrong"]
+
 
 def test_aau_canary_regression_fixture_trusts_source_backed_payload():
     evaluation = evaluate_real_gold_fixture(
@@ -380,11 +426,29 @@ def test_aau_canary_regression_fixture_trusts_source_backed_payload():
     assert all(metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics)
 
 
+def test_bhp_canary_regression_fixture_trusts_source_backed_payload():
+    evaluation = evaluate_real_gold_fixture(
+        _load_real_fixture("bhp_a_2025-06-30_canary_regression"),
+        _real_payloads()["bhp_a_2025-06-30_canary_regression"],
+    )
+
+    assert evaluation.context_ok is True
+    assert evaluation.trust == RealTrustOutcome.TRUSTED
+    assert evaluation.trust_matches_expected is True
+    assert evaluation.trust_triggers == []
+    assert {metric.metric for metric in evaluation.metrics} == {
+        "revenue",
+        "operating_cf",
+        "net_debt",
+    }
+    assert all(metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics)
+
+
 def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
     scorecard = build_real_gold_scorecard(REAL_FIXTURES_DIR, _real_payloads())
     synthetic_scorecard = build_fixture_scorecard(SYNTHETIC_FIXTURES_DIR, {})
 
-    assert scorecard["trusted_count"] == 5
+    assert scorecard["trusted_count"] == 6
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
     assert all("document_id" in entry for entry in scorecard["fixture_summaries"])
@@ -396,6 +460,7 @@ def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
         "real_abstain_missing_metric": ["net_debt:missing"],
         "real_quarantine_currency_mismatch": ["context_mismatch:currency"],
         "viva_fy2025_regression": [],
+        "bhp_a_2025-06-30_canary_regression": [],
         "clv_h_2026-01-31_canary_regression": [],
         "ctm_a_2025-12-31_canary_regression": [],
         "aau_a_2025-12-31_canary_regression": [],
@@ -436,10 +501,10 @@ def test_real_gold_scorecard_reports_provenance_diagnostics_without_changing_tru
         entry["document_id"]: entry for entry in scorecard["fixture_summaries"]
     }
 
-    assert scorecard["trusted_count"] == 5
+    assert scorecard["trusted_count"] == 6
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
-    assert scorecard["provenance_summary"]["available_fixture_count"] == 7
+    assert scorecard["provenance_summary"]["available_fixture_count"] == 8
     assert scorecard["provenance_summary"]["fixture_with_issues_count"] == 1
     assert scorecard["provenance_summary"]["status"] == "issues_detected"
 

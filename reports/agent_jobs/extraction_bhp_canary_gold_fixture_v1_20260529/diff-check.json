@@ -1,0 +1,55 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_bhp_canary_gold_fixture_v1_20260529.md",
+      "status": "??"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/fixtures/extraction_gold/bhp_a_2025-06-30_canary_regression.json",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_bhp_canary_gold_fixture_v1_20260529.md",
+        "financial-engine_v2/backend/tests/fixtures/extraction_gold/bhp_a_2025-06-30_canary_regression.json",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+        "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/README.md",
+        "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/source_verification.json",
+        "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/status.json",
+        "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529/diff-check.json",
+        "docs/claude/STATE.md"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_bhp_canary_gold_fixture_v1_20260529",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_bhp_canary_gold_fixture_v1_20260529",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Provenance"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
