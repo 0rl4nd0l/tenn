@@ -15,6 +15,9 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app import main as main_app
+from app.services.confirmed_metric_coverage_review import (
+    resolve_confirmed_metric_coverage_source_path,
+)
 from app.services.extraction_eval import MetricEvalStatus
 from app.services.extraction_eval import build_fixture_scorecard
 from app.services.extraction_gold_eval import (
@@ -228,7 +231,7 @@ def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exis
     for corpus_file in sorted(REAL_CORPUS_DIR.glob("*.json")):
         payload = json.loads(corpus_file.read_text(encoding="utf-8"))
         source_file = payload["source_file"]
-        assert (PROJECT_ROOT / source_file).exists(), source_file
+        assert resolve_confirmed_metric_coverage_source_path(source_file).is_file()
 
 
 def test_scorecard_script_defaults_to_real_gold_corpus():
