@@ -63,7 +63,7 @@ stopped before any `POST /api/process/document/...` call.
 - JSON validation: passed.
 - `git diff --check`: passed.
 - Task-card `check-diff`: passed.
-- Registry release: pending final closeout.
+- Registry release: passed.
 
 ## Next Safe Step
 
