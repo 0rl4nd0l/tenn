@@ -1,0 +1,57 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_goal_proof_matrix_v2_20260529.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/objective_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/status.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_goal_proof_matrix_v2_20260529.md",
+        "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/README.md",
+        "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/objective_matrix.json",
+        "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/status.json",
+        "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529/diff-check.json",
+        "docs/claude/STATE.md"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_goal_proof_matrix_v2_20260529",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_goal_proof_matrix_v2_20260529",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

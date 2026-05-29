@@ -1,0 +1,233 @@
+{
+  "artifact_type": "extraction_goal_proof_matrix_v2",
+  "job_id": "extraction_goal_proof_matrix_v2_20260529",
+  "generated_at": "2026-05-29T12:57:51Z",
+  "generated_by": "Codex",
+  "branch": "audit/extraction-goal-proof-matrix-v2-20260529",
+  "worktree": "/home/l4nd0/tenn-extraction-goal-proof-matrix-v2-20260529",
+  "baseline_branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "baseline_head": "7ee06fbdad5f954056981769eef3ba25bee86480",
+  "baseline_subject": "milestone(extraction): block third canary on runtime preflight",
+  "goal_complete": false,
+  "runtime_mutation_performed": false,
+  "github_mutation_performed": false,
+  "canary_run": false,
+  "broad_backfill_run": false,
+  "datastore_mutation_performed": false,
+  "source_pdf_mutation_performed": false,
+  "objective_items": [
+    {
+      "item": 1,
+      "name": "Preserve And Publish The Current Truth-Gate Patch",
+      "status": "partial",
+      "evidence": [
+        "Baseline contains commit 5788b18a milestone(extraction): guard pre-canary truth persistence",
+        "Current PR #129 is open draft, mergeable, and has green lint-and-test plus scan checks",
+        "Older PRs #125-#128 remain open draft/stale with failing checks or conflicts"
+      ],
+      "remaining": [
+        "Explicitly supersede or close out stale PR stack under a GitHub-mutation task card",
+        "Decide whether PR #129 should be marked ready or kept draft"
+      ]
+    },
+    {
+      "item": 2,
+      "name": "Move Advisory Blocking Upstream Into Candidate Selection",
+      "status": "proven_for_current_baseline_scope",
+      "evidence": [
+        "Baseline contains commit a64d2295 milestone(extraction): exclude advisory canary candidates",
+        "Focused hardening suite passed"
+      ],
+      "remaining": []
+    },
+    {
+      "item": 3,
+      "name": "Formalize Source Document Classification",
+      "status": "proven_for_current_baseline_scope",
+      "evidence": [
+        "docs/extraction/metric_extraction_contract.md documents financial_report, advisory_only_document, unknown_document",
+        "test_extraction_pre_canary_truth_gates.py covers advisory and report classification cases"
+      ],
+      "remaining": []
+    },
+    {
+      "item": 4,
+      "name": "Implement Scale Policy V1",
+      "status": "proven_for_current_policy_slice",
+      "evidence": [
+        "Baseline contains commit 26ca0c4a milestone(extraction): support explicit rupiah trillion units",
+        "Focused hardening suite passed"
+      ],
+      "remaining": [
+        "No FX conversion policy exists; this remains an explicit non-goal"
+      ]
+    },
+    {
+      "item": 5,
+      "name": "Harden Metric Ontology",
+      "status": "partial",
+      "evidence": [
+        "metric_ontology_v1 is documented in docs/extraction/metric_extraction_contract.md",
+        "Focused metric ontology bridge tests passed"
+      ],
+      "remaining": [
+        "Persisted metric schema alignment remains outside current completed baseline scope",
+        "Issue #98 boundary remains unresolved for full graduation"
+      ]
+    },
+    {
+      "item": 6,
+      "name": "Harden Period Semantics",
+      "status": "proven_for_current_aau_blocker_scope",
+      "evidence": [
+        "Baseline contains commit c45f8f57 milestone(extraction): integrate AAU period fix and fixture",
+        "Focused hardening suite passed"
+      ],
+      "remaining": []
+    },
+    {
+      "item": 7,
+      "name": "Build A Real Gold/Eval Corpus From Canary Failures",
+      "status": "partial",
+      "evidence": [
+        "AAU canary failure fixture is integrated on baseline",
+        "PR #129 consolidates BHP real-gold corpus baseline with green checks"
+      ],
+      "remaining": [
+        "Broad test_extraction_gold_eval.py still fails the repo-relative 10X source-PDF assertion in this worktree",
+        "PR #129 remains draft and not merged"
+      ]
+    },
+    {
+      "item": 8,
+      "name": "Add Pre-Persistence Scorecard Gates",
+      "status": "proven_as_report_local_gate",
+      "evidence": [
+        "Baseline contains commit 47508882 milestone(extraction): add pre-persistence scorecard gate",
+        "Focused extraction hardening suite passed"
+      ],
+      "remaining": [
+        "Actual canary payloads have not yet been scored through the gate"
+      ]
+    },
+    {
+      "item": 9,
+      "name": "Run A Third Canary Only Under Approval",
+      "status": "blocked_before_canary",
+      "evidence": [
+        "Approval phrase was received and recorded in extraction_third_canary_runtime_preflight_v1_20260529",
+        "Direct nvidia-smi still fails with GPU handle error",
+        "No POST /api/process/document was performed by this report task"
+      ],
+      "remaining": [
+        "Restore clean GPU health",
+        "Create a fresh approval-required runtime task card that explicitly authorizes backend/worker/gpu_worker reload",
+        "Prove post-reload loaded code before submitting any document"
+      ]
+    },
+    {
+      "item": 10,
+      "name": "Graduate To Full Accurate Extraction",
+      "status": "not_proven",
+      "evidence": [],
+      "remaining": [
+        "Approved third canary must run successfully",
+        "Actual payload scorecard gates must pass",
+        "Source reviewability and metric schema boundaries must be resolved",
+        "Broader accuracy evidence must prove full graduation scope"
+      ]
+    }
+  ],
+  "validation": {
+    "focused_hardening_suite": {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/backend/tests/test_metric_ontology_bridge.py",
+      "result": "227 passed in 2.33s"
+    },
+    "broad_real_gold_eval": {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "result": "23 passed, 1 failed",
+      "known_failure": "test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_assets_exist fails on missing repo-relative 10X source PDF path"
+    },
+    "api_health": {
+      "response": {
+        "status": "ok"
+      }
+    },
+    "queue_status": {
+      "response": {
+        "redis_connected": true,
+        "queues": {
+          "ingest": 0,
+          "embed": 0,
+          "score": 0,
+          "llm_gpu": 0,
+          "llm_cpu": 0
+        },
+        "total_queued": 0
+      }
+    },
+    "gpu": {
+      "gpu_process_guard_exit": 0,
+      "direct_nvidia_smi_exit": 255,
+      "direct_nvidia_smi_error": "Unable to determine the device handle for GPU0000:25:00.0: Unknown Error"
+    }
+  },
+  "open_prs": [
+    {
+      "number": 129,
+      "title": "[codex] consolidate BHP real-gold corpus baseline",
+      "state": "open_draft",
+      "mergeable": "MERGEABLE",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      }
+    },
+    {
+      "number": 128,
+      "title": "[codex] resolve real-gold source path validation",
+      "state": "open_draft",
+      "mergeable": "CONFLICTING",
+      "checks": {
+        "lint-and-test": "FAILURE",
+        "scan": "SUCCESS"
+      }
+    },
+    {
+      "number": 127,
+      "title": "[codex] capture BHP canary eval regression",
+      "state": "open_draft",
+      "mergeable": "CONFLICTING",
+      "checks": {
+        "lint-and-test": "FAILURE",
+        "scan": "SUCCESS"
+      }
+    },
+    {
+      "number": 126,
+      "title": "[codex] exclude advisory canary candidates",
+      "state": "open_draft",
+      "mergeable": "MERGEABLE",
+      "checks": {
+        "lint-and-test": "FAILURE",
+        "scan": "SUCCESS"
+      }
+    },
+    {
+      "number": 125,
+      "title": "[codex] guard pre-canary truth persistence",
+      "state": "open_draft",
+      "mergeable": "MERGEABLE",
+      "checks": {
+        "lint-and-test": "FAILURE",
+        "CodeQL": "FAILURE",
+        "scan": "SUCCESS"
+      }
+    }
+  ],
+  "next_safe_steps": [
+    "Use a separate GitHub-mutation task card to supersede or close stale extraction PRs #125-#128 in favor of green draft PR #129.",
+    "Restore clean GPU health before any runtime canary action.",
+    "After GPU health is clean, create a fresh approval-required runtime execution task that explicitly authorizes only backend/worker/gpu_worker reload before canary submission."
+  ]
+}
