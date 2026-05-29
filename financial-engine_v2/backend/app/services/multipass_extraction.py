@@ -1974,6 +1974,47 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
 )
 
+_SOURCE_DATE_TEXT_PATTERN = (
+    r"(?P<date>"
+    r"\d{1,2}(?:st|nd|rd|th)?\s+"
+    r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+"
+    r"\d{4}"
+    r"|\d{4}-\d{1,2}-\d{1,2}"
+    r")"
+)
+
+_SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
+    (
+        "A",
+        "year_ended_explicit_date",
+        re.compile(
+            rf"\b(?:for\s+the\s+)?(?:financial\s+)?year\s+ended\s+"
+            rf"{_SOURCE_DATE_TEXT_PATTERN}",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "H",
+        "half_year_ended_explicit_date",
+        re.compile(
+            rf"\b(?:for\s+the\s+)?(?:(?:half[-\s]?year)|(?:(?:six|6)\s+months?))"
+            rf"\s+ended\s+{_SOURCE_DATE_TEXT_PATTERN}",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "Q",
+        "quarter_ended_explicit_date",
+        re.compile(
+            rf"\b(?:for\s+the\s+)?(?:(?:quarter)|(?:(?:three|3)\s+months?))"
+            rf"\s+ended\s+{_SOURCE_DATE_TEXT_PATTERN}",
+            re.IGNORECASE,
+        ),
+    ),
+)
+
 _EXPLICIT_SOURCE_UNIT_VALUE_RE = re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:AUD|USD|IDR)?\s*"
@@ -2096,6 +2137,87 @@ def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str
     if len(seen_types) > 1:
         return {"period_type": None, "reason": "ambiguous", "hits": hits}
     return {"period_type": None, "reason": "not_detected", "hits": []}
+
+
+def _normalize_source_date_text(value: Any) -> str:
+    text = str(value or "").strip()
+    return re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.IGNORECASE)
+
+
+def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str, Any]:
+    """
+    Detect explicit source period-end dates from typed reporting-period phrases.
+
+    This helper is deliberately narrow: it accepts phrases such as
+    "for the year ended 31 December 2025" and refuses ambiguous/multiple dates
+    instead of inferring from publication dates, filenames, or loose references.
+    """
+
+    text = _combined_source_text(title, source_text)
+    hits: list[dict[str, str]] = []
+    for period_type, reason, pattern in _SOURCE_PERIOD_END_PATTERNS:
+        for match in pattern.finditer(text):
+            raw_date = _normalize_source_date_text(match.group("date"))
+            parsed = parse_period_end(raw_date)
+            if parsed is None:
+                continue
+            hits.append(
+                {
+                    "period_type": period_type,
+                    "period_end": parsed.isoformat(),
+                    "reason": reason,
+                    "evidence": " ".join(match.group(0).split())[:200],
+                }
+            )
+
+    unique_dates = sorted({hit["period_end"] for hit in hits})
+    unique_types = sorted({hit["period_type"] for hit in hits})
+    if len(unique_dates) == 1 and len(unique_types) == 1:
+        return {
+            "period_type": unique_types[0],
+            "period_end": unique_dates[0],
+            "reason": hits[0]["reason"],
+            "hits": hits,
+        }
+    if hits:
+        return {
+            "period_type": None,
+            "period_end": None,
+            "reason": "ambiguous",
+            "hits": hits,
+        }
+    return {"period_type": None, "period_end": None, "reason": "not_detected", "hits": []}
+
+
+def _early_period_source_text(
+    sections: list[dict],
+    *,
+    max_page: int = 4,
+    max_sections_when_pages_unknown: int = 12,
+    max_chars: int = 6000,
+) -> str:
+    """Return early source text suitable for document-level period evidence."""
+
+    def _coerce_page(section: dict) -> int | None:
+        try:
+            return int(section.get("page"))
+        except (TypeError, ValueError):
+            return None
+
+    page_numbers = [_coerce_page(section) for section in sections]
+    has_real_page_numbers = any(page is not None and page > 0 for page in page_numbers)
+    if has_real_page_numbers:
+        selected = [
+            str(section.get("text") or "").strip()
+            for section, page in zip(sections, page_numbers)
+            if page is not None and 0 < page <= max_page
+        ]
+    else:
+        selected = [
+            str(section.get("text") or "").strip()
+            for section in sections[:max_sections_when_pages_unknown]
+        ]
+    return " ".join(part for part in selected if part)[:max_chars]
 
 
 def classify_source_document(
@@ -2642,6 +2764,7 @@ def _run_pass4_reconciler(
         "period_end": pass1_result.get("period_end"),
         "source_period_type": pass1_result.get("_source_period_type"),
         "source_period_evidence": pass1_result.get("_source_period_evidence"),
+        "source_period_end_evidence": pass1_result.get("_source_period_end_evidence"),
         "source_document_classification": pass1_result.get(
             "_source_document_classification"
         ),
@@ -2861,6 +2984,24 @@ def _period_source_mismatch(payload: dict) -> tuple[str, str, str] | None:
     return period_type, source_period_type, reason or "explicit_source_period"
 
 
+def _period_end_source_mismatch(payload: dict) -> tuple[str, str, str] | None:
+    evidence = payload.get("source_period_end_evidence")
+    if not isinstance(evidence, dict):
+        return None
+    source_period_end = str(evidence.get("period_end") or "").strip()
+    payload_period_end = str(payload.get("period_end") or "").strip()
+    if not source_period_end or not payload_period_end:
+        return None
+    source_date = parse_period_end(source_period_end)
+    payload_date = parse_period_end(payload_period_end)
+    if source_date is None or payload_date is None:
+        return None
+    if source_date == payload_date:
+        return None
+    reason = str(evidence.get("reason") or "").strip() or "explicit_source_period_end"
+    return payload_date.isoformat(), source_date.isoformat(), reason
+
+
 def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     """
     Validate the reconciled payload before DB upsert.
@@ -2915,6 +3056,15 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
             "failed",
             "validation_gate:period_source_mismatch:"
             f"payload={period_type}:source={source_period_type}:{reason}",
+        )
+
+    period_end_mismatch = _period_end_source_mismatch(payload)
+    if period_end_mismatch is not None:
+        period_end, source_period_end, reason = period_end_mismatch
+        return (
+            "failed",
+            "validation_gate:period_end_source_mismatch:"
+            f"payload={period_end}:source={source_period_end}:{reason}",
         )
 
     non_null = [v for v in metrics.values() if v is not None]
@@ -3069,9 +3219,15 @@ def run_multipass_extraction(
         # Fallback: some PDFs have page=0 for all sections (e.g. pymupdf fallback).
         first_page_sections = structured_doc.sections[:3]
     first_page_text = " ".join(s["text"] for s in first_page_sections)
+    early_period_text = _early_period_source_text(structured_doc.sections)
     title = doc_metadata.get("title", "")
 
-    source_period_evidence = _detect_source_period_evidence(title, first_page_text)
+    source_period_evidence = _detect_source_period_evidence(
+        title, early_period_text or first_page_text
+    )
+    source_period_end_evidence = _detect_source_period_end_evidence(
+        title, early_period_text or first_page_text
+    )
     source_document_classification = classify_source_document(title, first_page_text)
     if not source_document_classification.extraction_candidate_allowed:
         error = f"validation_gate:{source_document_classification.reason}"
@@ -3081,6 +3237,7 @@ def run_multipass_extraction(
             source_document_classification.document_class,
         )
         null_payload["source_period_evidence"] = source_period_evidence
+        null_payload["source_period_end_evidence"] = source_period_end_evidence
         null_payload["source_document_classification"] = (
             source_document_classification.to_dict()
         )
@@ -3135,7 +3292,10 @@ def run_multipass_extraction(
         )
     if observer is not None:
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
+    if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
+        pass1["period_end"] = source_period_end_evidence["period_end"]
     pass1["_source_period_evidence"] = source_period_evidence
+    pass1["_source_period_end_evidence"] = source_period_end_evidence
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
     pass1["_source_document_classification"] = source_document_classification.to_dict()
 

@@ -181,6 +181,53 @@ def test_source_period_evidence_detects_annual_and_ambiguous_cases():
     assert ambiguous["reason"] == "ambiguous"
 
 
+def test_explicit_source_period_end_conflict_is_hard_blocked():
+    from app.services.multipass_extraction import (
+        _detect_source_period_end_evidence,
+        _validate_gate,
+    )
+
+    evidence = _detect_source_period_end_evidence(
+        "Annual Report",
+        "ANTILLES GOLD LIMITED FOR THE YEAR ENDED 31 DECEMBER 2025",
+    )
+    assert evidence["period_type"] == "A"
+    assert evidence["period_end"] == "2025-12-31"
+
+    payload = _good_payload(period_type="A", scale="thousands")
+    payload["period_end"] = "2024-12-31"
+    payload["source_period_end_evidence"] = evidence
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:period_end_source_mismatch:"
+        "payload=2024-12-31:source=2025-12-31:year_ended_explicit_date"
+    )
+
+
+def test_explicit_source_period_end_detection_refuses_ambiguous_or_loose_dates():
+    from app.services.multipass_extraction import _detect_source_period_end_evidence
+
+    loose = _detect_source_period_end_evidence(
+        "Annual Report",
+        "Released to the market on 31 December 2025.",
+    )
+    assert loose["period_end"] is None
+    assert loose["reason"] == "not_detected"
+
+    ambiguous = _detect_source_period_end_evidence(
+        "Annual Report",
+        (
+            "Financial statements for the year ended 31 December 2025. "
+            "Comparatives are also discussed for the year ended 31 December 2024."
+        ),
+    )
+    assert ambiguous["period_end"] is None
+    assert ambiguous["reason"] == "ambiguous"
+
+
 def test_source_document_classification_formalizes_advisory_and_report_cases():
     """Source classification exposes policy without weakening existing gates."""
     from app.services.multipass_extraction import classify_source_document

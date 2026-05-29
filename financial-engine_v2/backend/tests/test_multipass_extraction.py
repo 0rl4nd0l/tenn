@@ -59,6 +59,83 @@ def test_pass1_returns_low_confidence_on_empty_input():
     assert result["classifier_confidence"] < 0.6
 
 
+def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_it():
+    """AAU-style annual reports may put the period end in early front matter, not page 1."""
+    from datetime import date
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 4
+        docling_version = None
+        tables = []
+        sections = [
+            {"text": "2025 ANNUAL REPORT", "page": 1},
+            {
+                "text": (
+                    "TABLE OF CONTENTS ANNUAL REPORT ANTILLES GOLD LIMITED "
+                    "FOR THE YEAR ENDED 31 DECEMBER 2025"
+                ),
+                "page": 2,
+            },
+        ]
+
+    pass1_missing_period = {
+        "report_type": "A",
+        "period_end": None,
+        "currency": "AUD",
+        "scale": "thousands",
+        "classifier_confidence": 0.97,
+    }
+    pass3a_results = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 26,
+            "pass3_confidence": 0.9,
+            "operating_cf": 1_000_000,
+            "investing_cf": -200_000,
+            "financing_cf": 300_000,
+            "row_refs": {
+                "operating_cf": "Net cash used in operating activities",
+                "investing_cf": "Net cash from investing activities",
+                "financing_cf": "Net cash from financing activities",
+            },
+        }
+    ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_missing_period,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/aau.pdf",
+            {
+                "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+                "ticker": "AAU",
+                "title": "Annual Report and Full Year Statutory Accounts",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["period_type"] == "A"
+    assert result.payload["period_end"] == "2025-12-31"
+    assert result.payload["period_start"] == date(2025, 1, 1)
+    assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
+
+
 # ---------------------------------------------------------------------------
 # Pass 2 — Table Locator
 # ---------------------------------------------------------------------------
