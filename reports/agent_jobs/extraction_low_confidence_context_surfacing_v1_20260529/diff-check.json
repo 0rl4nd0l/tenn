@@ -1,32 +1,12 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_low_confidence_context_surfacing_v1_20260529.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/architecture/16_currency_and_fx_policy.md",
+      "path": "reports/agent_jobs/extraction_low_confidence_context_surfacing_v1_20260529/diff-check.json",
       "status": "M"
-    },
-    {
-      "path": "docs/extraction/metric_extraction_contract.md",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/api/context.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_context_endpoints.py",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_low_confidence_context_surfacing_v1_20260529/README.md",
-      "status": "A"
     },
     {
       "path": "reports/agent_jobs/extraction_low_confidence_context_surfacing_v1_20260529/status.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
