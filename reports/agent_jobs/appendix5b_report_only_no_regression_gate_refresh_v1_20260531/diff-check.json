@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/appendix5b_report_only_no_regression_gate_refresh_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/appendix5b_no_regression_report.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/code_review.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/appendix5b_report_only_no_regression_gate_refresh_v1_20260531.md",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/README.md",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/status.json",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/validation.json",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/appendix5b_no_regression_report.json",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/diff-check.json",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/code_review.json"
+      ],
+      "approval_required": false,
+      "job_id": "appendix5b_report_only_no_regression_gate_refresh_v1_20260531",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531",
+      "owner": "Codex",
+      "primary_lane": "Evaluation",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Appendix 5B Report-Only No-Regression Gate Refresh v1"
+    },
+    "ok": true
+  }
+}
