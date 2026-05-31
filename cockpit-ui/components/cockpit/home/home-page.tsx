@@ -328,11 +328,14 @@ function HomeShell({
         )}
 
         <div className="flex-1 overflow-y-auto p-6 pt-14 scroll-smooth">
-          <div className="max-w-[1600px] mx-auto mb-6 grid gap-4">
+          {children}
+          <div
+            className="max-w-[1600px] mx-auto mt-6 grid gap-4"
+            data-testid="home-strategy-lab-section"
+          >
             <StrategyLabStatusCard />
             <StrategyLabArtifactsReviewCard />
           </div>
-          {children}
         </div>
 
         <aside className="w-[380px] border-l border-border shrink-0 hidden xl:block">

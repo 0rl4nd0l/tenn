@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/reporting_home_workspace_priority_v1_20260531.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/reporting_home_workspace_priority_v1_20260531.md",
+    "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531",
+    "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/README.md",
+    "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/status.json",
+    "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/validation.json",
+    "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/diff-check.json",
+    "cockpit-ui/components/cockpit/home/home-page.tsx",
+    "cockpit-ui/lib/cockpit-home-api.test.ts"
+  ],
+  "branch": "safe/reporting-home-workspace-priority-v1-20260531",
+  "claimed_at": "2026-05-31T12:12:46.411264Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-31T12:12:46.411264Z",
+  "job_id": "reporting_home_workspace_priority_v1_20260531",
+  "lane": "Reporting",
+  "last_seen_at": "2026-05-31T12:12:46.411264Z",
+  "output_dir": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-reporting-home-workspace-priority-v1-20260531",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:1806523:reporting_home_workspace_priority_v1_20260531",
+  "started_at": "2026-05-31T12:12:46.411264Z",
+  "status": "active",
+  "task_card": "docs/agent_tasks/reporting_home_workspace_priority_v1_20260531.md",
+  "updated_at": "2026-05-31T12:12:46.411264Z",
+  "worktree": "/home/l4nd0/tenn-reporting-home-workspace-priority-v1-20260531"
+}

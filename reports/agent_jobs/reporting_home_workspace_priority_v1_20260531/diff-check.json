@@ -1,0 +1,61 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/home/home-page.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/cockpit-home-api.test.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/reporting_home_workspace_priority_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/reporting_home_workspace_priority_v1_20260531.md",
+        "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/",
+        "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/README.md",
+        "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/status.json",
+        "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/validation.json",
+        "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531/diff-check.json",
+        "cockpit-ui/components/cockpit/home/home-page.tsx",
+        "cockpit-ui/lib/cockpit-home-api.test.ts"
+      ],
+      "approval_required": false,
+      "job_id": "reporting_home_workspace_priority_v1_20260531",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/reporting_home_workspace_priority_v1_20260531",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
