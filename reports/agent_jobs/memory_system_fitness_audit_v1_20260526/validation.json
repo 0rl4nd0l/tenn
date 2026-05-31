@@ -1,0 +1,104 @@
+{
+  "job_id": "memory_system_fitness_audit_v1_20260526",
+  "issue": 88,
+  "status": "PASS",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md --write-report",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "status": "PASS",
+      "notes": "Observed active Financial Truth job with no overlap and one stale Query Orchestration job."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md",
+      "status": "PASS"
+    },
+    {
+      "command": "gh issue view 88 --repo 0rl4nd0l/tenn --json number,title,state,labels,body,comments",
+      "status": "PASS"
+    },
+    {
+      "command": "gh issue list --repo 0rl4nd0l/tenn --state open --limit 200 --json number,title,labels",
+      "status": "PASS",
+      "notes": "Found adjacent memory/provenance/reporting issues but no duplicate whole-system memory fitness audit."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_system_fitness_audit_v1_20260526/status.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_system_fitness_audit_v1_20260526/validation.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_system_fitness_audit_v1_20260526/diff-check.json",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/memory_system_fitness_audit_v1_20260526/code_review.json",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --cached --check",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release memory_system_fitness_audit_v1_20260526",
+      "status": "PASS"
+    }
+  ],
+  "static_evidence": [
+    "docs/architecture/22_memory_ownership_map.md",
+    "docs/architecture/18_cockpit_memory.md",
+    "docs/superpowers/specs/2026-04-18-memory-stabilization-design.md",
+    "docs/claude/STATE.md",
+    "financial-engine_v2/backend/app/services/source_registry.py",
+    "financial-engine_v2/backend/app/services/memory_events.py",
+    "financial-engine_v2/backend/app/services/memory_assembler.py",
+    "financial-engine_v2/backend/app/services/query_orchestrator.py",
+    "financial-engine_v2/backend/app/services/company_memory.py",
+    "financial-engine_v2/backend/app/services/market_memory.py",
+    "financial-engine_v2/backend/app/services/user_thesis_memory.py",
+    "financial-engine_v2/backend/app/services/memory_signal_router.py",
+    "financial-engine_v2/backend/app/api/context.py",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "cockpit-ui/app/api/cockpit/memory",
+    "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
+    "cockpit-ui/tests/memory.spec.ts",
+    "scripts/audit_memory_integrity.py",
+    "financial-engine_v2/backend/tests/test_company_memory.py",
+    "financial-engine_v2/backend/tests/test_market_memory.py",
+    "financial-engine_v2/backend/tests/test_user_thesis_memory.py",
+    "financial-engine_v2/backend/tests/test_memory_signal_router.py",
+    "financial-engine_v2/backend/tests/test_cockpit_api_preferences.py",
+    "financial-engine_v2/backend/app/services/tests/test_chat_preferences.py"
+  ],
+  "deferred_checks": [
+    {
+      "check": "live runtime memory root ownership",
+      "status": "DATA_MISSING",
+      "reason": "Avoided importing/opening live memory services because constructors can create directories/schemas and production memory mutation is forbidden."
+    },
+    {
+      "check": "live Cockpit Memory Workbench route parity",
+      "status": "DEFER",
+      "reason": "Existing evidence is static plus mocked-route tests; live no-store smoke is follow-up work."
+    }
+  ],
+  "pending_commands": []
+}

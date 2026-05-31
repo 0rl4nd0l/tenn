@@ -1,0 +1,83 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/code_review.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/fit_gap_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/followups.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/memory_surface_inventory.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/read_write_path_map.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/memory_system_fitness_audit_v1_20260526.md",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/README.md",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/status.json",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/memory_surface_inventory.md",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/fit_gap_matrix.md",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/read_write_path_map.md",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/followups.md",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/validation.json",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/diff-check.json",
+        "reports/agent_jobs/memory_system_fitness_audit_v1_20260526/code_review.json"
+      ],
+      "approval_required": false,
+      "job_id": "memory_system_fitness_audit_v1_20260526",
+      "lane": "Memory",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/memory_system_fitness_audit_v1_20260526",
+      "owner": "Codex",
+      "primary_lane": "Memory",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance",
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Memory System Fitness Audit v1"
+    },
+    "ok": true
+  }
+}
