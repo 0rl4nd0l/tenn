@@ -1,0 +1,26 @@
+[
+  {
+    "workflow_step": "select_or_paste_report_source",
+    "observed_state": "Select report input and Thesis Source textarea are present.",
+    "classification": "covered_current_contract",
+    "followup": "NO_FOLLOWUP"
+  },
+  {
+    "workflow_step": "choose_ticker_and_focus",
+    "observed_state": "Ticker and Focus inputs are present before running audit.",
+    "classification": "covered_current_contract",
+    "followup": "NO_FOLLOWUP"
+  },
+  {
+    "workflow_step": "coverage_preflight",
+    "observed_state": "Coverage refresh and coverage status badge are present; tests cover ready and no-backend-evidence states.",
+    "classification": "covered_current_contract",
+    "followup": "NO_FOLLOWUP"
+  },
+  {
+    "workflow_step": "provenance_and_evidence_limited_results",
+    "observed_state": "Report source role, read-only evidence, auto-save guard, evidence-limited warning, and missing categories are rendered.",
+    "classification": "covered_current_contract",
+    "followup": "NO_FOLLOWUP"
+  }
+]

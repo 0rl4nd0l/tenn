@@ -1,0 +1,38 @@
+[
+  {
+    "state": "claim_verified",
+    "backend_contract": "Only source-level labels can contribute to claim_verified source counts; context_only is excluded.",
+    "ui_contract": "Claim-supported / Verified sources appear only when claimVerifiedSourceCount is positive or evidence-bound classification is present.",
+    "result": "honest"
+  },
+  {
+    "state": "context_only",
+    "backend_contract": "Sources without stronger labels fall back to context_only.",
+    "ui_contract": "Rendered as Context only / Context sources only, not source-backed financial facts.",
+    "result": "honest"
+  },
+  {
+    "state": "no_hit",
+    "backend_contract": "No-hit remains distinct when no claim-verified source exists.",
+    "ui_contract": "Rendered as No-hit audit / No relevant source found.",
+    "result": "honest"
+  },
+  {
+    "state": "degraded_runtime",
+    "backend_contract": "Provider/runtime errors add degraded_runtime.",
+    "ui_contract": "Rendered as Degraded runtime before trust-positive states.",
+    "result": "honest"
+  },
+  {
+    "state": "DATA_MISSING / missing_required_evidence",
+    "backend_contract": "Grounding guards add missing_required_evidence.",
+    "ui_contract": "Rendered as Data missing, Unsupported claim blocked, or Evidence incomplete.",
+    "result": "honest"
+  },
+  {
+    "state": "memory_context / external context",
+    "backend_contract": "Non-claim metadata does not become claim_verified by itself.",
+    "ui_contract": "Rendered through evidence state labels and source rows, not as verified support.",
+    "result": "honest"
+  }
+]

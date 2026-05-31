@@ -1,0 +1,26 @@
+{
+  "job_id": "thesis_audit_first_run_workflow_audit_v1_20260526",
+  "issue_number": 118,
+  "mode": "audit_only",
+  "primary_lane": "Reporting",
+  "branch": "safe/reporting-audit-closeout-batch-v1-20260531",
+  "verdict": "PASS",
+  "close_gate": "COMPLETED_WITH_EVIDENCE",
+  "finding_class": "NO_FOLLOWUP",
+  "root_cause_fixed": false,
+  "audit_resolved_data_missing": true,
+  "followup_required": false,
+  "product_remediation_landed": false,
+  "production_data_access": false,
+  "forbidden_mutations": false,
+  "data_missing": [
+    "Vitest/Playwright tests were inspected but not rerun because the isolated worktree lacks installed frontend test dependencies."
+  ],
+  "evidence": [
+    "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.tsx:663-724",
+    "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.tsx:743-818",
+    "cockpit-ui/tests/thesis-audit.spec.ts:75-215",
+    "cockpit-ui/tests/thesis-audit.spec.ts:285-327",
+    "financial-engine_v2/backend/app/routes/thesis_audit.py:255-307"
+  ]
+}

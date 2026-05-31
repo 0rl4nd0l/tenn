@@ -1,0 +1,33 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Review scope is the staged task-card and report-artifact diff only.",
+      "Product code was inspected as evidence but not modified."
+    ],
+    "sources_used": [
+      "git diff --cached --stat",
+      "git diff --cached --name-only",
+      "task-card validation output",
+      "task-card check-diff output"
+    ],
+    "files_read": [
+      "docs/agent_tasks/reporting_audit_closeout_batch_v1_20260531.md",
+      "reports/agent_jobs/reporting_audit_closeout_batch_v1_20260531/issue_closeout_matrix.md",
+      "reports/agent_jobs/reporting_audit_closeout_batch_v1_20260531/status.json",
+      "reports/agent_jobs/reporting_audit_closeout_batch_v1_20260531/validation.json"
+    ],
+    "files_modified": [],
+    "validation_checks": [
+      "JSON artifacts parse",
+      "task-card validate passes",
+      "task-card check-diff passes after exact allowed-file enumeration",
+      "git diff --cached --check passes"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "checks": [
+    {
+      "command": "gh issue view 117 --repo 0rl4nd0l/tenn --json body,state,title,url,labels",
+      "result": "PASS",
+      "note": "Issue #117 is open and acceptance criteria were read."
+    },
+    {
+      "command": "jq read of ui-audit-gemini-20260526/audit-results.json",
+      "result": "PASS",
+      "note": "Existing browser artifact for /marketplace has no navigation error and shows the assistant surface."
+    },
+    {
+      "command": "PYTHONPATH=\"$PWD/financial-engine_v2/backend:$PWD/financial-engine_v2\" /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/pytest -q financial-engine_v2/backend/tests/test_marketplace_mission_service.py::test_marketplace_mission_service_requires_explicit_location_scope financial-engine_v2/backend/tests/test_marketplace_search_builder.py::test_build_marketplace_search_pack_prefers_keywords_and_brands financial-engine_v2/backend/tests/test_marketplace_search_builder.py::test_build_marketplace_search_pack_uses_preferred_suburbs_for_location_scope",
+      "result": "PASS",
+      "note": "3 passed in 0.18s"
+    },
+    {
+      "command": "gh issue list --repo 0rl4nd0l/tenn --state all --search \"Marketplace home-location\"",
+      "result": "PASS",
+      "note": "Found only #117."
+    }
+  ]
+}

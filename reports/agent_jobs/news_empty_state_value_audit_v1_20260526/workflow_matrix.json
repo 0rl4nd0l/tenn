@@ -1,0 +1,26 @@
+[
+  {
+    "workflow": "first_use_news_route",
+    "observed_state": "Search-first controls, readiness panel, no-query empty state.",
+    "classification": "expected_state",
+    "followup": "NO_FOLLOWUP"
+  },
+  {
+    "workflow": "no_query_no_news",
+    "observed_state": "DATA_MISSING is explicit until the user submits a query.",
+    "classification": "honest_missing_evidence",
+    "followup": "NO_FOLLOWUP"
+  },
+  {
+    "workflow": "holdings_or_watchlist_aware_suggested_news",
+    "observed_state": "No direct News-route automatic suggested-news workflow found; proactive context belongs to Home/chat and must remain evidence-bound.",
+    "classification": "expected_architecture_boundary",
+    "followup": "NO_FOLLOWUP"
+  },
+  {
+    "workflow": "home_recent_context_handoff",
+    "observed_state": "Home actionability blocks chat handoff for DATA_MISSING and only attaches resolvable sources.",
+    "classification": "covered_current_contract",
+    "followup": "NO_FOLLOWUP"
+  }
+]

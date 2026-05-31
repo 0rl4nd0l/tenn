@@ -1,0 +1,38 @@
+{
+  "issue_number": 105,
+  "pr_number": 39,
+  "checked_at_local": "2026-05-31T21:39:00+10:00",
+  "close_gate": "SUPERSEDED",
+  "finding_class": "NO_FOLLOWUP",
+  "verdict": "PASS",
+  "reason": "The original issue tracked a current red PR #39 lint-and-test failure split. PR #39 now has SUCCESS for lint-and-test and scan at current head 6caa3e72399be3a21155134632e76393334f03f1.",
+  "pr_state": {
+    "state": "OPEN",
+    "is_draft": true,
+    "head_ref": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head_oid": "6caa3e72399be3a21155134632e76393334f03f1",
+    "base_ref": "migration/clean-runtime-baseline-reconstruct-base-36130cbd",
+    "merge_state_status": "CLEAN",
+    "url": "https://github.com/0rl4nd0l/tenn/pull/39"
+  },
+  "checks": [
+    {
+      "name": "lint-and-test",
+      "conclusion": "SUCCESS",
+      "status": "COMPLETED",
+      "started_at": "2026-05-31T07:07:52Z",
+      "completed_at": "2026-05-31T07:14:25Z",
+      "details_url": "https://github.com/0rl4nd0l/tenn/actions/runs/26706119589/job/78707605354"
+    },
+    {
+      "name": "scan",
+      "conclusion": "SUCCESS",
+      "status": "COMPLETED",
+      "started_at": "2026-05-31T07:07:52Z",
+      "completed_at": "2026-05-31T07:08:16Z",
+      "details_url": "https://github.com/0rl4nd0l/tenn/actions/runs/26706119588/job/78707605332"
+    }
+  ],
+  "production_data_access": false,
+  "forbidden_mutations": false
+}

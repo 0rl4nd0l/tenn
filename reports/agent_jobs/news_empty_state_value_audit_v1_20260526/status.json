@@ -1,0 +1,26 @@
+{
+  "job_id": "news_empty_state_value_audit_v1_20260526",
+  "issue_number": 116,
+  "mode": "audit_only",
+  "primary_lane": "Reporting",
+  "branch": "safe/reporting-audit-closeout-batch-v1-20260531",
+  "verdict": "PASS",
+  "close_gate": "COMPLETED_WITH_EVIDENCE",
+  "finding_class": "NO_FOLLOWUP",
+  "root_cause_fixed": false,
+  "audit_resolved_data_missing": true,
+  "followup_required": false,
+  "product_remediation_landed": false,
+  "production_data_access": false,
+  "forbidden_mutations": false,
+  "data_missing": [
+    "No fresh browser rerun was performed; existing Gemini browser evidence from 2026-05-26 was used with current static source inspection."
+  ],
+  "adjacent_open_issues": [40, 41],
+  "evidence": [
+    "cockpit-ui/components/cockpit/news/news-screen.tsx:280-393",
+    "cockpit-ui/lib/cockpit-home-actionability.ts:67-120",
+    "cockpit-ui/lib/cockpit-home-actionability.ts:183-225",
+    "/home/l4nd0/.gemini/tmp/tenn-nvme-clean-baseline-reconstruct-v1/ui-audit-gemini-20260526/audit-results.json"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "job_id": "reporting_audit_closeout_batch_v1_20260531",
+  "mode": "audit_only_issue_closeout",
+  "primary_lane": "Reporting",
+  "supporting_lanes": ["Evaluation", "Repo Hygiene", "Provenance", "Query Orchestration"],
+  "branch": "safe/reporting-audit-closeout-batch-v1-20260531",
+  "issues_reviewed": 5,
+  "issues_ready_to_close": 5,
+  "issues_closed": 0,
+  "issues_left_open": 0,
+  "followup_issues_created": 0,
+  "followup_issues_linked": 2,
+  "parked_items_created": 0,
+  "duplicates_closed": 0,
+  "superseded_closed": 1,
+  "data_missing": [
+    "Vitest is not installed in this isolated worktree.",
+    "Fresh browser rerun was not performed for #116, #117, or #118; existing Gemini browser evidence from 2026-05-26 was used with current static source inspection."
+  ],
+  "registry_release": {
+    "status": "released",
+    "released_at": "2026-05-31T11:51:42.440497Z",
+    "registry_scope": "shared",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry"
+  },
+  "forbidden_mutations": false,
+  "production_data_access": false,
+  "validation_summary": [
+    "task-card validate: PASS",
+    "registry check-overlap: PASS",
+    "registry claim: PASS",
+    "registry release: PASS",
+    "GitHub PR #39 current checks: lint-and-test SUCCESS, scan SUCCESS",
+    "Marketplace backend focused tests: PASS, 3 passed",
+    "frontend vitest attempt: BLOCKED, vitest not found"
+  ],
+  "reviewer_verdict": "PASS_CLOSEOUT",
+  "verdict": "PASS_PENDING_GITHUB_CLOSEOUT"
+}

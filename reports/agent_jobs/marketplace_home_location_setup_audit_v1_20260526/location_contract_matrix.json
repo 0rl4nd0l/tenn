@@ -1,0 +1,22 @@
+[
+  {
+    "question": "Is there a discoverable route to set home location?",
+    "answer": "Yes. Settings exposes Marketplace Preferences / Home location / suburb and a test verifies persistence to store preferences.",
+    "classification": "covered_current_contract"
+  },
+  {
+    "question": "Does no saved home location materially block mission creation?",
+    "answer": "No. It keeps mission draft missing_fields on location and the assistant asks what location to use.",
+    "classification": "expected_state"
+  },
+  {
+    "question": "Does saved home location improve mission quality?",
+    "answer": "Yes. Draft creation and merge fill location_names from homeLocation, and tests preserve that behavior.",
+    "classification": "covered_current_contract"
+  },
+  {
+    "question": "Does backend allow missions with no location scope?",
+    "answer": "No. Backend mission service raises on missing location, preserving explicit location boundaries.",
+    "classification": "guarded"
+  }
+]

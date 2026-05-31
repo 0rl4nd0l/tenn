@@ -1,0 +1,24 @@
+{
+  "checks": [
+    {
+      "command": "gh issue view 116 --repo 0rl4nd0l/tenn --json body,state,title,url,labels",
+      "result": "PASS",
+      "note": "Issue #116 is open and acceptance criteria were read."
+    },
+    {
+      "command": "jq read of ui-audit-gemini-20260526/audit-results.json",
+      "result": "PASS",
+      "note": "Existing browser artifact for /news has no navigation error and shows the no-query DATA_MISSING state."
+    },
+    {
+      "command": "read-only source inspection",
+      "result": "PASS",
+      "note": "News route and Home actionability preserve no-query and missing-evidence boundaries."
+    },
+    {
+      "command": "gh issue list --repo 0rl4nd0l/tenn --state all --search \"News empty-state\"",
+      "result": "PASS",
+      "note": "Found #116 plus adjacent #40/#41; no duplicate fully replaces the #116 audit."
+    }
+  ]
+}

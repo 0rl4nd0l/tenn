@@ -1,0 +1,27 @@
+{
+  "job_id": "marketplace_home_location_setup_audit_v1_20260526",
+  "issue_number": 117,
+  "mode": "audit_only",
+  "primary_lane": "Reporting",
+  "branch": "safe/reporting-audit-closeout-batch-v1-20260531",
+  "verdict": "PASS",
+  "close_gate": "COMPLETED_WITH_EVIDENCE",
+  "finding_class": "NO_FOLLOWUP",
+  "root_cause_fixed": false,
+  "audit_resolved_data_missing": true,
+  "followup_required": false,
+  "product_remediation_landed": false,
+  "production_data_access": false,
+  "forbidden_mutations": false,
+  "data_missing": [
+    "Vitest is not installed in this isolated worktree, so frontend tests were inspected but not rerun."
+  ],
+  "evidence": [
+    "cockpit-ui/components/cockpit/settings/settings-screen.tsx:518-535",
+    "cockpit-ui/components/cockpit/settings/settings-screen.test.tsx:31-79",
+    "cockpit-ui/lib/marketplace-assistant.ts:578-591",
+    "cockpit-ui/lib/marketplace-assistant.ts:630-641",
+    "cockpit-ui/components/cockpit/marketplace/marketplace-assistant.tsx:344-470",
+    "financial-engine_v2/backend/tests/test_marketplace_mission_service.py:612-638"
+  ]
+}

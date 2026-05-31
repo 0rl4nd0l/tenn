@@ -1,0 +1,7 @@
+| Issue | Lane | Worker decision | Reviewer verdict | Closed? | Follow-up/Parking | DATA_MISSING | Next action |
+| ----- | ---- | --------------- | ---------------- | ------- | ----------------- | ------------ | ----------- |
+| #95 | Reporting / Provenance | `COMPLETED_WITH_EVIDENCE`; UI/backend source semantics are honest | `PASS_CLOSEOUT` | Ready to close | `NO_FOLLOWUP` | Frontend tests inspected but not rerun; `vitest` unavailable | Close with report link |
+| #105 | Evaluation / Repo Hygiene | `SUPERSEDED`; current PR #39 checks are green | `PASS_CLOSEOUT` | Ready to close | `NO_FOLLOWUP` | None for supersession decision | Close with current PR check evidence |
+| #116 | Reporting | `COMPLETED_WITH_EVIDENCE`; News search-first/no-query state is honest | `PASS_CLOSEOUT` | Ready to close | `NO_FOLLOWUP`; adjacent #40/#41 remain open for broader Jam reports | Existing 2026-05-26 browser evidence used; no fresh rerun | Close with report link |
+| #117 | Reporting | `COMPLETED_WITH_EVIDENCE`; no saved home location is informational and guarded | `PASS_CLOSEOUT` | Ready to close | `NO_FOLLOWUP` | Frontend tests inspected but not rerun; `vitest` unavailable | Close with report link |
+| #118 | Reporting / Provenance | `COMPLETED_WITH_EVIDENCE`; first-run route has inputs, coverage, and provenance guards | `PASS_CLOSEOUT` | Ready to close | `NO_FOLLOWUP` | Existing 2026-05-26 browser evidence used; frontend tests inspected but not rerun | Close with report link |
