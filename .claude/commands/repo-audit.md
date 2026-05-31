@@ -8,7 +8,7 @@ Full repository audit: environment preflight, branch inventory, structure analys
 - `docs/claude/README.md`
 - `docs/entrypoints.md`
 - `README.md`
-- `.cursor/agents/repository_audit.md` (full audit contract and required output schema)
+- This command file's workflow and output requirements
 
 ## Workflow
 
@@ -22,7 +22,7 @@ Full repository audit: environment preflight, branch inventory, structure analys
    - Repository structure (top-level dirs, key files).
    - Branches: compare against default branch; identify duplicate, stale, or half-integrated work.
    - Docs: check `docs/claude/`, `docs/architecture/`, `docs/ops/` for completeness.
-   - Rules and agents: `.cursor/rules/`, `.cursor/agents/`, `.codex/skills/`.
+   - Rules and agents: `docs/architecture/SYSTEM_CONTRACT.md`, `.claude/commands/`, `.claude/agents/`, `.codex/skills/`.
    - Validation commands and feature surfaces.
 
 3. **Run smallest real checks** the environment supports; record exact commands and outcomes.
@@ -40,4 +40,4 @@ Full repository audit: environment preflight, branch inventory, structure analys
 
 ## Output
 
-Return the evidence-rich markdown report and JSON structure defined in `.cursor/agents/repository_audit.md`.
+Return an evidence-rich markdown report with a JSON structure covering preflight status, files inspected, validation commands, confirmed findings, inferred findings, unverified findings, and next actions.

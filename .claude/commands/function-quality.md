@@ -22,7 +22,7 @@ Check for:
 - **Inaccuracies**: Docs/code mismatches, misleading names or comments, outdated config.
 - **Inefficiencies**: Redundant work, unnecessary I/O, missing caching or batching.
 - **Robustness**: Resource leaks, race conditions, silent failures.
-- **Consistency**: Divergence from project patterns and `.cursor/rules/` architecture rules.
+- **Consistency**: Divergence from project patterns and `docs/architecture/SYSTEM_CONTRACT.md`.
 
 Classify each finding: **critical** (must fix), **warning** (should fix), **suggestion** (consider). For each: file, location (line range or symbol), issue (one clear sentence), fix_example (concrete — must be passable directly to `/code-fix`).
 
