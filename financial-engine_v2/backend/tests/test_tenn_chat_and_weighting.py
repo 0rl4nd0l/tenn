@@ -10,6 +10,7 @@ from app.services.source_weighting import (
     half_life_for_type,
     source_weight_for_type,
 )
+from app.services import tenn_chat
 from app.services.tenn_chat import (
     _context_rows,
     _evidence_context_rows,
@@ -17,6 +18,7 @@ from app.services.tenn_chat import (
     _normalize_insights,
     _normalize_news_chunk,
     _normalize_supporting_evidence,
+    _retrieve_chat_context,
     _safe_float,
 )
 
@@ -142,6 +144,154 @@ class TestContextRows:
             "retrieval_strategies",
         }
         assert required == set(rows[0].keys())
+
+
+class TestRetrieveChatContext:
+    def test_returns_commentary_and_ticker_news_rows(self, monkeypatch):
+        monkeypatch.setattr(
+            tenn_chat,
+            "query_rag",
+            lambda **_: {"hits": [], "research_context": {"evidence_chunks": []}},
+        )
+        monkeypatch.setattr(tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks))
+
+        class FakeRetriever:
+            def __init__(self, *, collection_name):
+                self.collection_name = collection_name
+
+            def retrieve(self, **kwargs):
+                if self.collection_name == "commentary_chunks":
+                    return {
+                        "chunks": [
+                            {
+                                "chunk_id": "commentary-1",
+                                "text": "BHP commentary context",
+                                "source_name": "Analyst note",
+                                "source_type": "market_commentary",
+                                "final_score": 0.9,
+                            }
+                        ]
+                    }
+                assert self.collection_name == "news_chunks"
+                assert kwargs["ticker"] == "BHP"
+                return {
+                    "chunks": [
+                        {
+                            "article_id": "news-1",
+                            "text": "BHP news context",
+                            "title": "BHP headline",
+                            "ticker": "BHP",
+                            "provider": "Wire",
+                            "final_score": 0.8,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(tenn_chat, "HybridRetriever", FakeRetriever)
+
+        bundle = _retrieve_chat_context(
+            normalized_query="what changed with BHP",
+            normalized_ticker="BHP",
+        )
+
+        assert bundle.news_retrieval_attempted is True
+        assert bundle.news_retrieval_failed is False
+        assert [row["source_name"] for row in bundle.context_rows] == [
+            "BHP headline",
+            "Analyst note",
+        ]
+        assert bundle.context_rows[0]["source_type"] == "news_article"
+
+    def test_news_failure_is_nonfatal_when_commentary_context_exists(self, monkeypatch):
+        monkeypatch.setattr(
+            tenn_chat,
+            "query_rag",
+            lambda **_: {"hits": [], "research_context": {"evidence_chunks": []}},
+        )
+        monkeypatch.setattr(tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks))
+
+        class FakeRetriever:
+            def __init__(self, *, collection_name):
+                self.collection_name = collection_name
+
+            def retrieve(self, **kwargs):
+                if self.collection_name == "news_chunks":
+                    raise RuntimeError("news unavailable")
+                return {
+                    "chunks": [
+                        {
+                            "chunk_id": "commentary-1",
+                            "text": "BHP commentary context",
+                            "source_name": "Analyst note",
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(tenn_chat, "HybridRetriever", FakeRetriever)
+
+        bundle = _retrieve_chat_context(
+            normalized_query="what changed with BHP",
+            normalized_ticker="BHP",
+        )
+
+        assert bundle.news_retrieval_attempted is True
+        assert bundle.news_retrieval_failed is True
+        assert [row["source_name"] for row in bundle.context_rows] == ["Analyst note"]
+
+    def test_rag_evidence_rows_are_used_when_chunk_retrieval_is_empty(self, monkeypatch):
+        monkeypatch.setattr(
+            tenn_chat,
+            "query_rag",
+            lambda **_: {
+                "hits": [],
+                "research_context": {
+                    "evidence_chunks": [
+                        {
+                            "title": "BHP announcement",
+                            "text": "BHP announced an update.",
+                            "document_id": "doc-1",
+                            "score": 0.77,
+                        }
+                    ]
+                },
+            },
+        )
+        monkeypatch.setattr(tenn_chat, "_apply_chat_strategy", lambda chunks: list(chunks))
+
+        class FakeRetriever:
+            def __init__(self, *, collection_name):
+                self.collection_name = collection_name
+
+            def retrieve(self, **kwargs):
+                return {"chunks": []}
+
+        monkeypatch.setattr(tenn_chat, "HybridRetriever", FakeRetriever)
+
+        bundle = _retrieve_chat_context(
+            normalized_query="summarize BHP",
+            normalized_ticker=None,
+        )
+
+        assert bundle.news_retrieval_attempted is False
+        assert bundle.news_retrieval_failed is False
+        assert bundle.context_rows == [
+            {
+                "chunk_id": "",
+                "article_id": "",
+                "document_id": "doc-1",
+                "text": "BHP announced an update.",
+                "source_name": "BHP announcement",
+                "url": "",
+                "ticker": "",
+                "provider": "",
+                "relevance_score": 0.77,
+                "recency_decay": 1.0,
+                "final_score": 0.77,
+                "source_type": "",
+                "published_at": "",
+                "retrieval_strategies": ["rag_vector"],
+            }
+        ]
 
 
 class TestEvidenceContextRows:

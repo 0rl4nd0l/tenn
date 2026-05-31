@@ -9,52 +9,21 @@ from app.services.company_memory import CompanyMemoryStore
 from app.services.memory_assembler import MemoryAssembler
 from app.services.market_memory import MarketMemoryStore
 from app.services.market_sector_inference import infer_sector
+from shared.evidence_labels import (
+    ORCHESTRATOR_EVIDENCE_LABELS as _VALID_EVIDENCE_LABELS,
+    SOURCE_LABEL_PRIMARY_ORDER as _SOURCE_LABEL_PRIMARY_ORDER,
+    SOURCE_LABEL_TAXONOMY_VERSION,
+    SOURCE_ROLE_LABELS as _SOURCE_ROLE_LABELS,
+    normalize_source_labels as _normalize_source_labels,
+    ordered_source_labels as _ordered_source_labels,
+    primary_source_label as _primary_source_label,
+)
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_tickers
 
 
 QueryIntent = str
 SourceName = str
 
-SOURCE_LABEL_TAXONOMY_VERSION = "source_label_semantics_v1"
-_VALID_EVIDENCE_LABELS = frozenset(
-    {
-        "claim_verified",
-        "context_only",
-        "no_hit",
-        "operational_trace",
-        "local_personal_data",
-        "memory_context",
-        "external_web_context",
-        "local_news_context",
-        "financial_truth",
-        "degraded_runtime",
-        "missing_required_evidence",
-        "unknown_unclassified",
-    }
-)
-_SOURCE_LABEL_PRIMARY_ORDER = (
-    "missing_required_evidence",
-    "degraded_runtime",
-    "no_hit",
-    "claim_verified",
-    "financial_truth",
-    "local_personal_data",
-    "memory_context",
-    "external_web_context",
-    "local_news_context",
-    "operational_trace",
-    "unknown_unclassified",
-    "context_only",
-)
-_SOURCE_ROLE_LABELS = {
-    "financial_truth",
-    "local_personal_data",
-    "memory_context",
-    "external_web_context",
-    "local_news_context",
-    "operational_trace",
-    "unknown_unclassified",
-}
 _CONTEXT_SOURCE_LABELS = {
     "local_personal_data",
     "memory_context",
@@ -650,32 +619,19 @@ def _payload_signal_count(source: SourceName, payload: dict[str, Any]) -> int:
 
 
 def _normalize_evidence_labels(value: Any) -> set[str]:
-    if isinstance(value, str):
-        raw_items = [value]
-    elif isinstance(value, (list, tuple, set)):
-        raw_items = list(value)
-    else:
-        raw_items = []
-    labels: set[str] = set()
-    for item in raw_items:
-        label = str(item or "").strip()
-        if label in _VALID_EVIDENCE_LABELS:
-            labels.add(label)
-    return labels
+    return _normalize_source_labels(value, valid_labels=_VALID_EVIDENCE_LABELS)
 
 
 def _ordered_evidence_labels(labels: Iterable[str]) -> list[str]:
-    label_set = {str(label) for label in labels if str(label) in _VALID_EVIDENCE_LABELS}
-    ordered = [label for label in _SOURCE_LABEL_PRIMARY_ORDER if label in label_set]
-    ordered.extend(sorted(label_set.difference(ordered)))
-    return ordered
+    return _ordered_source_labels(
+        labels,
+        valid_labels=_VALID_EVIDENCE_LABELS,
+        primary_order=_SOURCE_LABEL_PRIMARY_ORDER,
+    )
 
 
 def _primary_evidence_label(labels: set[str]) -> str:
-    for label in _SOURCE_LABEL_PRIMARY_ORDER:
-        if label in labels:
-            return label
-    return "unknown_unclassified"
+    return _primary_source_label(labels, primary_order=_SOURCE_LABEL_PRIMARY_ORDER)
 
 
 def _source_status(payload: dict[str, Any]) -> str:

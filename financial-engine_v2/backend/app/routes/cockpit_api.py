@@ -92,6 +92,13 @@ from app.services.marketplace_scanner import MarketplaceScanCancelled, Marketpla
 from app.services.news_health_status import build_a2m_news_health_status
 from app.services.router_state import get_extraction_activity_snapshot
 from app.services.structured_chunking import simple_chunk
+from shared.evidence_labels import (
+    SOURCE_LABEL_DEFINITIONS as SOURCE_LABEL_DEFINITIONS,
+    SOURCE_LABEL_TAXONOMY_VERSION,
+    VALID_SOURCE_LABELS as _VALID_SOURCE_LABELS,
+    normalize_source_labels as _normalize_source_labels,
+    primary_source_label as _primary_source_label,
+)
 from cockpit.core.config import (
     compute_effective_cockpit_config,
     effective_anthropic_api_key,
@@ -1358,40 +1365,6 @@ class IntelPulseMatrixResponse(BaseModel):
 # Helper: normalize chat sources for cockpit UI
 # ---------------------------------------------------------------------------
 
-SOURCE_LABEL_TAXONOMY_VERSION = "source_label_semantics_v1"
-
-SOURCE_LABEL_DEFINITIONS: dict[str, str] = {
-    "claim_verified": "The source directly supports a claim in the answer.",
-    "context_only": "The source was used for background/context and does not by itself verify a claim.",
-    "no_hit": "A search/tool/source path was attempted but returned no relevant evidence.",
-    "operational_trace": "The source is a tool/runtime/system trace, not financial evidence.",
-    "local_personal_data": "User/cockpit-local data such as holdings, not financial truth.",
-    "memory_context": "Company/market/thesis memory context, not canonical truth unless separately supported.",
-    "external_web_context": "External web context, not canonical financial truth.",
-    "local_news_context": "Retrieved local/news context; not claim verification unless paired with claim_verified.",
-    "financial_truth": "Canonical numeric financial truth or structured extracted metrics.",
-    "financial_truth_numeric": "Structured numeric financial truth context, not event/news verification.",
-    "degraded_runtime": "The answer was produced under runtime/tool/synthesis degradation.",
-    "missing_required_evidence": "The answer has a known evidence gap.",
-    "insufficient_for_recent_news": "Recent-news/update evidence is missing or price-only.",
-    "unknown_unclassified": "Safe fallback for unclassified sources; never treated as verified.",
-}
-_VALID_SOURCE_LABELS = frozenset(SOURCE_LABEL_DEFINITIONS)
-_SOURCE_LABEL_PRIMARY_ORDER = (
-    "missing_required_evidence",
-    "degraded_runtime",
-    "no_hit",
-    "claim_verified",
-    "financial_truth",
-    "financial_truth_numeric",
-    "local_personal_data",
-    "memory_context",
-    "external_web_context",
-    "local_news_context",
-    "operational_trace",
-    "unknown_unclassified",
-    "context_only",
-)
 _CONTEXT_SOURCE_LABELS = {
     "memory_context",
     "external_web_context",
@@ -1462,29 +1435,6 @@ def _summarize_scalar_fields(raw: dict[str, Any], *, max_items: int = 4) -> str 
     if not bits:
         return None
     return _clean_source_text("; ".join(bits))
-
-
-def _normalize_source_labels(value: Any) -> set[str]:
-    raw_items: list[Any]
-    if isinstance(value, str):
-        raw_items = [value]
-    elif isinstance(value, (list, tuple, set)):
-        raw_items = list(value)
-    else:
-        raw_items = []
-    labels: set[str] = set()
-    for item in raw_items:
-        label = str(item or "").strip()
-        if label in _VALID_SOURCE_LABELS:
-            labels.add(label)
-    return labels
-
-
-def _primary_source_label(labels: set[str]) -> str:
-    for label in _SOURCE_LABEL_PRIMARY_ORDER:
-        if label in labels:
-            return label
-    return "unknown_unclassified"
 
 
 def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:

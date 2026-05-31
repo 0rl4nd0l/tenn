@@ -43,7 +43,8 @@ from cockpit.core.backend_proposals import (
 )
 from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.action_preview import normalize_action_preview
-from cockpit.core.command_router import CommandRoute, route_command
+from cockpit.core.chat_route_decision import build_chat_route_decision
+from cockpit.core.command_router import CommandRoute
 from cockpit.core.conversation_commands import derive_conversational_command
 from cockpit.core.request_standards import (
     build_request_standard_prompt_guidance,
@@ -6803,17 +6804,16 @@ class ChatController:
                 attached_bundle=attached_bundle,
             )
 
-        command_route = route_command(
+        route_decision = build_chat_route_decision(
             effective_message,
             active_ticker=prior_ticker or self.last_ticker,
             recent_youtube_channel=self._recent_youtube_channel_from_context(),
             recent_youtube_videos=self._recent_youtube_video_options_from_context(),
+            query_orchestrator_available=self._query_orchestrator is not None,
         )
+        command_route = route_decision.command_route
         command_response = self._build_command_route_response(command_route)
-        command_is_analysis_fallback = (
-            self._query_orchestrator is not None and command_route.tool == "run_analysis"
-        )
-        if command_response is not None and not command_is_analysis_fallback:
+        if command_response is not None and not route_decision.defer_command_to_orchestrator:
             return command_response
 
         market_update_followup = self._try_market_update_followup(effective_message)
