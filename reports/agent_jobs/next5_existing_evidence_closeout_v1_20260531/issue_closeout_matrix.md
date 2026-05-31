@@ -1,0 +1,9 @@
+# Issue Closeout Matrix
+
+| Issue | Decision | Close Gate | Evidence | Validation | Notes |
+|---|---|---|---|---|---|
+| #112 `[Runtime] Add final-status observability for nightly news scheduling` | READY_TO_CLOSE_COMPLETED | `COMPLETED_WITH_EVIDENCE` | GitHub-visible commit `3725591cf76e`; `nightly_news.sh` status JSON and phase tracking; report `reports/agent_jobs/nightly_news_observability_followup_v1_20260526/` | `bash -n`; JSON parse; existing committed smoke evidence | No scheduler mutation in closeout |
+| #114 `[Runtime] Nightly news fetch fails because canonical ASX ticker universe is missing` | READY_TO_CLOSE_COMPLETED | `COMPLETED_WITH_EVIDENCE` | GitHub-visible commit `3725591cf76e`; ticker universe present; SHA-256 `042b6b799c24ecbcf0c94f73ac94753e90d35f8282cd10205c17a2f7f8479cf9`; report `reports/agent_jobs/nightly_news_ticker_universe_input_repair_v1_20260526/` | file hash/line count; `bash -n`; JSON parse; existing dry-run evidence | No live fetch/Qdrant/news-store mutation in closeout |
+| #115 `[Repo Hygiene] Add report-only Codex nightly lock-up audit` | READY_TO_CLOSE_AUDIT_WITH_FOLLOWUPS | `COMPLETED_AUDIT_ONLY_WITH_FOLLOWUPS` | GitHub-visible commit `3725591cf76e`; report `reports/agent_jobs/codex_nightly_lockup_report_v1_20260526/` | JSON parse for status, branch matrix, GitHub activity | Branch cleanup/runner integration deferred, not part of report-only objective |
+| #71 `[Provenance] Source label fixture matrix v1` | OPEN_ACTIONABLE | none | Existing tests cover many labels, but no dedicated fixture-matrix task/test artifact was committed in this closeout | not run in this closeout | Next safe implementation issue if collision checks stay clean |
+| #88 `[Memory] System fitness and improvement audit v1` | OPEN_ACTIONABLE | none | Required memory-system audit task/report not present in this closeout | not run in this closeout | Next report-only audit issue after #71 or in parallel only if exact report card is claimed |
