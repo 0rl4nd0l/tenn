@@ -135,6 +135,9 @@ function sourceOpenUnavailableReason(row: ConfirmedMetricCoverageRow): string | 
   if (path.includes('\\') || path.split('/').includes('..') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) {
     return 'DATA_MISSING: source PDF path is not eligible for browser opening.'
   }
+  if (!String(process.env.NEXT_PUBLIC_API_KEY || '').trim()) {
+    return 'DATA_MISSING: source opening requires a Cockpit API key for the authenticated BFF route.'
+  }
   return null
 }
 
@@ -625,7 +628,7 @@ export function MetricCoverageTabPanel({
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
-                        Source opens through the backend allowlisted PDF route. Page hints are passed to the browser PDF viewer when available.
+                        Source opens through the Cockpit BFF, which forwards the API key to the backend allowlisted PDF route. Page hints are passed to the browser PDF viewer when available.
                       </div>
                     )}
 
