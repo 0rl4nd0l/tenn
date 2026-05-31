@@ -86,6 +86,11 @@ Every gate artifact reports `canonical_write_allowed: false` and
 eligible for operator review; it is not approval to run a canary or persist
 financial truth.
 
+Gate artifacts also include a complete `blocking_document_summary` and
+`missing_actual_document_ids` list so broader corpus reviews can identify every
+document still lacking actual extracted payloads or carrying blocking metric
+classes. The short `blocking_examples` field remains only a bounded preview.
+
 ## Source document classification
 
 Source-document classification is deterministic and source-metadata only:

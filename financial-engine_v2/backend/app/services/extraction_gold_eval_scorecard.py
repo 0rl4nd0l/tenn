@@ -782,6 +782,10 @@ def build_pre_persistence_scorecard_gate(
         for result_class in _PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES
         if result_class_summary.get(result_class, 0) > 0
     }
+    blocking_document_summary = _gate_blocking_document_summary(rows)
+    missing_actual_document_ids = _gate_missing_actual_document_ids(
+        blocking_document_summary
+    )
 
     blockers: list[dict[str, Any]] = []
     if not actual_payload_supplied:
@@ -843,6 +847,10 @@ def build_pre_persistence_scorecard_gate(
         "blocking_result_classes": list(_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES),
         "result_class_summary": result_class_summary,
         "blocking_result_class_summary": blocking_result_counts,
+        "blocking_document_count": len(blocking_document_summary),
+        "blocking_document_summary": blocking_document_summary,
+        "missing_actual_document_count": len(missing_actual_document_ids),
+        "missing_actual_document_ids": missing_actual_document_ids,
         "allowed_noncanonical_abstention_count": result_class_summary.get(
             PayloadScoreStatus.UNSUPPORTED_CORRECTLY_ABSTAINED.value, 0
         ),
@@ -2745,6 +2753,71 @@ def _gate_blocking_examples(
         if len(examples) >= limit:
             break
     return examples
+
+
+def _gate_blocking_document_summary(
+    rows: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    blocking_classes = set(_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES)
+    by_document: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        result_class = str(row.get("result_class") or "")
+        if result_class not in blocking_classes:
+            continue
+        document_id = str(row.get("document_id") or row.get("fixture_id") or "")
+        if not document_id:
+            document_id = "DATA_MISSING"
+        entry = by_document.setdefault(
+            document_id,
+            {
+                "document_id": document_id,
+                "blocking_metric_count": 0,
+                "blocking_result_class_summary": {},
+                "blocking_metrics": [],
+                "missing_actual_payload": False,
+            },
+        )
+        entry["blocking_metric_count"] += 1
+        summary = entry["blocking_result_class_summary"]
+        summary[result_class] = summary.get(result_class, 0) + 1
+        if result_class == PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value:
+            entry["missing_actual_payload"] = True
+        entry["blocking_metrics"].append(
+            {
+                "metric_name": row.get("metric_name"),
+                "canonical_field": row.get("canonical_field"),
+                "result_class": result_class,
+                "reason": row.get("reason"),
+            }
+        )
+
+    return [
+        {
+            **entry,
+            "blocking_result_class_summary": dict(
+                sorted(entry["blocking_result_class_summary"].items())
+            ),
+            "blocking_metrics": sorted(
+                entry["blocking_metrics"],
+                key=lambda item: (
+                    str(item.get("result_class") or ""),
+                    str(item.get("metric_name") or ""),
+                    str(item.get("canonical_field") or ""),
+                ),
+            ),
+        }
+        for _document_id, entry in sorted(by_document.items())
+    ]
+
+
+def _gate_missing_actual_document_ids(
+    blocking_document_summary: Iterable[Mapping[str, Any]],
+) -> list[str]:
+    return [
+        str(row.get("document_id"))
+        for row in blocking_document_summary
+        if row.get("missing_actual_payload") is True and row.get("document_id")
+    ]
 
 
 def _source_pdf_summary(expectations: Iterable[CoverageExpectation]) -> dict[str, int]:

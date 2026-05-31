@@ -863,6 +863,19 @@ def test_pre_persistence_scorecard_gate_blocks_bad_and_missing_actuals(tmp_path)
     assert blockers[PayloadScoreStatus.WRONG_PERIOD.value] == 1
     assert blockers[PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value] == 1
     assert blockers[PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value] == 1
+    assert gate["blocking_document_count"] == 4
+    assert gate["missing_actual_document_count"] == 1
+    assert gate["missing_actual_document_ids"] == ["missing_actual_doc"]
+    summary_by_doc = {
+        row["document_id"]: row for row in gate["blocking_document_summary"]
+    }
+    assert summary_by_doc["missing_actual_doc"]["missing_actual_payload"] is True
+    assert summary_by_doc["missing_actual_doc"]["blocking_result_class_summary"] == {
+        PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value: 1
+    }
+    assert summary_by_doc["wrong_value_doc"]["blocking_result_class_summary"] == {
+        PayloadScoreStatus.PRESENT_WRONG_VALUE.value: 1
+    }
     assert {example["document_id"] for example in gate["blocking_examples"]} == {
         "ambiguous_doc",
         "missing_actual_doc",
@@ -892,6 +905,9 @@ def test_pre_persistence_scorecard_gate_blocks_without_actual_payloads(tmp_path)
 
     assert gate["gate_status"] == "fail"
     assert gate["actual_payload_supplied"] is False
+    assert gate["blocking_document_count"] == 1
+    assert gate["missing_actual_document_count"] == 1
+    assert gate["missing_actual_document_ids"] == ["confirmed_doc"]
     assert blockers["actual_payload_not_supplied"] == 1
     assert blockers[PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value] == 1
 
