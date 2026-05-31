@@ -183,6 +183,21 @@ Output is a stable JSON object with keys including:
 - `scale_correctness_summary`
 - `fixture_summaries`
 
+Generate a confirmed-metric payload scorecard from actual extracted payloads
+without running extraction:
+
+```bash
+python scripts/extraction_gold_eval_scorecard.py \
+  --profile confirmed_metric_payload \
+  --actuals-json /path/to/actuals.json \
+  --include-pre-persistence-gate \
+  --out-json reports/confirmed_metric_payload_gate.json
+```
+
+`actuals.json` must map `document_id` or fixture id to an extracted payload.
+The emitted `pre_persistence_gate` remains an evaluation artifact only:
+`canonical_write_allowed` and `broad_backfill_authorized` stay `false`.
+
 ## Real-document gold eval pilot
 
 The real-gold pilot keeps real document labels separate from synthetic fixtures
