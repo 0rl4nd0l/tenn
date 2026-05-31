@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -59,6 +60,13 @@ _CHAT_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | frozenset(
         "UPDATES",
     }
 )
+
+
+@dataclass(frozen=True)
+class TennChatRetrievalBundle:
+    context_rows: list[dict[str, Any]]
+    news_retrieval_attempted: bool
+    news_retrieval_failed: bool
 
 
 def _json_safe_value(value: Any) -> Any:
@@ -412,6 +420,86 @@ def _coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
     return "no_visible_sources"
 
 
+def _retrieve_chat_context(
+    *,
+    normalized_query: str,
+    normalized_ticker: str | None,
+) -> TennChatRetrievalBundle:
+    rag_result = query_rag(query=normalized_query, ticker=normalized_ticker, top_k=10)
+    rag_hits = rag_result.get("hits") or []
+    evidence = rag_result.get("research_context", {}).get("evidence_chunks") or rag_hits
+
+    retriever = HybridRetriever(collection_name="commentary_chunks")
+    try:
+        retrieval = retriever.retrieve(
+            query=normalized_query,
+            framework_families=None,
+            top_k_vector=10,
+            top_k_keyword=10,
+        )
+        commentary_chunks = list(retrieval.get("chunks") or [])
+    except Exception as exc:
+        logger.warning(
+            "commentary_retrieval_failed",
+            extra={
+                "component": "tenn_chat",
+                "collection": "commentary_chunks",
+                "operation": "retrieve",
+                "error": type(exc).__name__,
+                "detail": str(exc)[:200],
+            },
+        )
+        commentary_chunks = []
+
+    news_retriever = HybridRetriever(collection_name="news_chunks")
+    news_retrieval_attempted = bool(normalized_ticker)
+    news_retrieval_failed = False
+    try:
+        news_retrieval = news_retriever.retrieve(
+            query=normalized_query,
+            framework_families=None,
+            ticker=normalized_ticker,
+            top_k_vector=10,
+            top_k_keyword=10,
+        )
+        news_chunks = [
+            _normalize_news_chunk(c)
+            for c in list(news_retrieval.get("chunks") or [])
+        ]
+        news_chunks = _filter_news_by_ticker(news_chunks, normalized_ticker)
+    except Exception as exc:
+        logger.warning(
+            "news_retrieval_failed",
+            extra={
+                "component": "tenn_chat",
+                "collection": "news_chunks",
+                "operation": "retrieve",
+                "error": type(exc).__name__,
+                "detail": str(exc)[:200],
+            },
+        )
+        news_retrieval_failed = True
+        news_chunks = []
+
+    ranked_chunks = _apply_chat_strategy(commentary_chunks + news_chunks)
+    ranked_chunks = _ensure_ticker_news_context(
+        ranked_chunks,
+        news_chunks,
+        ticker=normalized_ticker,
+    )
+    context_rows = _context_rows(ranked_chunks)
+
+    if not context_rows and evidence:
+        if isinstance(evidence, list):
+            context_rows = _evidence_context_rows(evidence[:10])
+
+    return TennChatRetrievalBundle(
+        context_rows=context_rows,
+        news_retrieval_attempted=news_retrieval_attempted,
+        news_retrieval_failed=news_retrieval_failed,
+    )
+
+
 def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
     lines: list[str] = ["Relevant prior session context (use as background only):"]
     for turn in prior_turns:
@@ -588,73 +676,13 @@ def chat_with_tenn(
         )
 
     try:
-        rag_result = query_rag(query=normalized_query, ticker=normalized_ticker, top_k=10)
-        rag_hits = rag_result.get("hits") or []
-        evidence = rag_result.get("research_context", {}).get("evidence_chunks") or rag_hits
-
-        retriever = HybridRetriever(collection_name="commentary_chunks")
-        try:
-            retrieval = retriever.retrieve(
-                query=normalized_query,
-                framework_families=None,
-                top_k_vector=10,
-                top_k_keyword=10,
-            )
-            commentary_chunks = list(retrieval.get("chunks") or [])
-        except Exception as exc:
-            logger.warning(
-                "commentary_retrieval_failed",
-                extra={
-                    "component": "tenn_chat",
-                    "collection": "commentary_chunks",
-                    "operation": "retrieve",
-                    "error": type(exc).__name__,
-                    "detail": str(exc)[:200],
-                },
-            )
-            commentary_chunks = []
-
-        news_retriever = HybridRetriever(collection_name="news_chunks")
-        news_retrieval_attempted = bool(normalized_ticker)
-        news_retrieval_failed = False
-        try:
-            news_retrieval = news_retriever.retrieve(
-                query=normalized_query,
-                framework_families=None,
-                ticker=normalized_ticker,
-                top_k_vector=10,
-                top_k_keyword=10,
-            )
-            news_chunks = [
-                _normalize_news_chunk(c)
-                for c in list(news_retrieval.get("chunks") or [])
-            ]
-            news_chunks = _filter_news_by_ticker(news_chunks, normalized_ticker)
-        except Exception as exc:
-            logger.warning(
-                "news_retrieval_failed",
-                extra={
-                    "component": "tenn_chat",
-                    "collection": "news_chunks",
-                    "operation": "retrieve",
-                    "error": type(exc).__name__,
-                    "detail": str(exc)[:200],
-                },
-            )
-            news_retrieval_failed = True
-            news_chunks = []
-
-        ranked_chunks = _apply_chat_strategy(commentary_chunks + news_chunks)
-        ranked_chunks = _ensure_ticker_news_context(
-            ranked_chunks,
-            news_chunks,
-            ticker=normalized_ticker,
+        retrieval_bundle = _retrieve_chat_context(
+            normalized_query=normalized_query,
+            normalized_ticker=normalized_ticker,
         )
-        context_rows = _context_rows(ranked_chunks)
-
-        if not context_rows and evidence:
-            if isinstance(evidence, list):
-                context_rows = _evidence_context_rows(evidence[:10])
+        context_rows = retrieval_bundle.context_rows
+        news_retrieval_attempted = retrieval_bundle.news_retrieval_attempted
+        news_retrieval_failed = retrieval_bundle.news_retrieval_failed
 
         if not context_rows:
             return _degraded_chat_payload("I do not have enough retrieved context to answer safely.")
