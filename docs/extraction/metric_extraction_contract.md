@@ -91,6 +91,12 @@ Gate artifacts also include a complete `blocking_document_summary` and
 document still lacking actual extracted payloads or carrying blocking metric
 classes. The short `blocking_examples` field remains only a bounded preview.
 
+Actual payload maps must also match the scorecard fixture scope exactly. Extra
+payload document ids that do not resolve to a fixture document or fixture file
+stem are reported as `unmatched_actual_payload_ids` and block the
+pre-persistence gate so unreviewed extraction outputs cannot be silently
+ignored.
+
 ## Source document classification
 
 Source-document classification is deterministic and source-metadata only:

@@ -704,15 +704,20 @@ def build_confirmed_metric_payload_scorecard(
     rows: list[dict[str, Any]] = []
     fixture_summaries: list[dict[str, Any]] = []
     expectations: list[CoverageExpectation] = []
+    matched_actual_payload_ids: set[str] = set()
 
     for path, fixture_payload in fixture_payloads:
         fixture_expectations = _expectations_for_payload(path, fixture_payload, root)
         expectations.extend(fixture_expectations)
-        actual_payload = (
-            _resolve_extracted_payload(payloads, str(fixture_payload.get("document_id") or path.stem), path)
-            if actual_payload_supplied
-            else None
-        )
+        actual_payload = None
+        if actual_payload_supplied:
+            actual_payload, matched_actual_key = _resolve_extracted_payload_with_key(
+                payloads,
+                str(fixture_payload.get("document_id") or path.stem),
+                path,
+            )
+            if matched_actual_key is not None:
+                matched_actual_payload_ids.add(matched_actual_key)
         fixture_rows = [
             _payload_score_row(
                 expectation,
@@ -727,6 +732,11 @@ def build_confirmed_metric_payload_scorecard(
         )
 
     result_class_summary = _payload_result_class_summary(rows)
+    unmatched_actual_payload_ids = sorted(
+        document_id
+        for document_id in payloads
+        if document_id not in matched_actual_payload_ids
+    )
     return {
         "artifact_type": "confirmed_metric_payload_scorecard_v1",
         "profile": "confirmed_metric_coverage",
@@ -735,6 +745,10 @@ def build_confirmed_metric_payload_scorecard(
         "fixtures_dir": str(fixture_dir),
         "actual_payload_supplied": actual_payload_supplied,
         "actual_payload_document_count": len(payloads),
+        "matched_actual_payload_document_count": len(matched_actual_payload_ids),
+        "matched_actual_payload_ids": sorted(matched_actual_payload_ids),
+        "unmatched_actual_payload_document_count": len(unmatched_actual_payload_ids),
+        "unmatched_actual_payload_ids": unmatched_actual_payload_ids,
         "total_fixture_count": len(fixture_payloads),
         "total_metric_expectations": len(expectations),
         "scored_metric_expectations": sum(1 for item in expectations if item.should_score),
@@ -812,6 +826,20 @@ def build_pre_persistence_scorecard_gate(
                 "policy": "pre-persistence gate requires metric result rows",
             }
         )
+    unmatched_actual_payload_count = _safe_int(
+        scorecard.get("unmatched_actual_payload_document_count")
+    )
+    if unmatched_actual_payload_count > 0:
+        blockers.append(
+            {
+                "code": "unmatched_actual_payload_documents",
+                "count": unmatched_actual_payload_count,
+                "policy": (
+                    "every supplied actual payload must match a scorecard "
+                    "fixture document"
+                ),
+            }
+        )
     for result_class, count in blocking_result_counts.items():
         blockers.append(
             {
@@ -837,6 +865,13 @@ def build_pre_persistence_scorecard_gate(
         "actual_payload_supplied": actual_payload_supplied,
         "actual_payload_document_count": _safe_int(
             scorecard.get("actual_payload_document_count")
+        ),
+        "matched_actual_payload_document_count": _safe_int(
+            scorecard.get("matched_actual_payload_document_count")
+        ),
+        "unmatched_actual_payload_document_count": unmatched_actual_payload_count,
+        "unmatched_actual_payload_ids": list(
+            scorecard.get("unmatched_actual_payload_ids") or []
         ),
         "metric_result_count": len(rows),
         "total_metric_expectations": _safe_int(
@@ -2358,11 +2393,24 @@ def _resolve_extracted_payload(
     fixture_id: str,
     path: Path,
 ) -> Mapping[str, Any] | None:
+    payload, _matched_key = _resolve_extracted_payload_with_key(
+        extracted_payloads,
+        fixture_id,
+        path,
+    )
+    return payload
+
+
+def _resolve_extracted_payload_with_key(
+    extracted_payloads: Mapping[str, Mapping[str, Any]],
+    fixture_id: str,
+    path: Path,
+) -> tuple[Mapping[str, Any] | None, str | None]:
     if fixture_id in extracted_payloads:
-        return extracted_payloads[fixture_id]
+        return extracted_payloads[fixture_id], fixture_id
     if path.stem in extracted_payloads:
-        return extracted_payloads[path.stem]
-    return None
+        return extracted_payloads[path.stem], path.stem
+    return None, None
 
 
 def _normalize_extracted_payload(payload: Mapping[str, Any]) -> dict[str, Any]:

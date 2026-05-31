@@ -884,6 +884,56 @@ def test_pre_persistence_scorecard_gate_blocks_bad_and_missing_actuals(tmp_path)
     }
 
 
+def test_pre_persistence_scorecard_gate_blocks_unmatched_actual_payloads(tmp_path):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "confirmed.json",
+        _base_fixture(metrics={"revenue": 100.0}, expected_nulls=[]),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
+            "unmatched_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert scorecard["actual_payload_document_count"] == 2
+    assert scorecard["matched_actual_payload_document_count"] == 1
+    assert scorecard["matched_actual_payload_ids"] == ["confirmed_doc"]
+    assert scorecard["unmatched_actual_payload_document_count"] == 1
+    assert scorecard["unmatched_actual_payload_ids"] == ["unmatched_doc"]
+    assert gate["gate_status"] == "fail"
+    assert gate["unmatched_actual_payload_document_count"] == 1
+    assert gate["unmatched_actual_payload_ids"] == ["unmatched_doc"]
+    assert blockers["unmatched_actual_payload_documents"] == 1
+    assert gate["canonical_write_allowed"] is False
+    assert gate["broad_backfill_authorized"] is False
+
+
 def test_pre_persistence_scorecard_gate_blocks_without_actual_payloads(tmp_path):
     fixtures_dir = tmp_path / "fixtures"
     fixtures_dir.mkdir()
