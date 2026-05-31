@@ -1,0 +1,72 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/lib/source-label-fixture-matrix.test.ts",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/source_label_fixture_matrix_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_source_label_fixture_matrix.py",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/code_review.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/source_label_fixture_matrix_v1_20260531.md",
+        "financial-engine_v2/backend/tests/test_source_label_fixture_matrix.py",
+        "cockpit-ui/lib/source-label-fixture-matrix.test.ts",
+        "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/README.md",
+        "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/status.json",
+        "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/validation.json",
+        "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/diff-check.json",
+        "reports/agent_jobs/source_label_fixture_matrix_v1_20260531/code_review.json"
+      ],
+      "approval_required": false,
+      "job_id": "source_label_fixture_matrix_v1_20260531",
+      "lane": "Provenance",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/source_label_fixture_matrix_v1_20260531",
+      "owner": "Codex",
+      "primary_lane": "Provenance",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200,
+      "title": "Source Label Fixture Matrix v1"
+    },
+    "ok": true
+  }
+}
