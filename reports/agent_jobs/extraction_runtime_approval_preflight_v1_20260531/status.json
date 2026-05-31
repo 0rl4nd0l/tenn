@@ -1,0 +1,33 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "generated_at": "2026-05-31T06:44:47Z",
+  "job_id": "extraction_runtime_approval_preflight_v1_20260531",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth"
+  ],
+  "status": "released",
+  "released_at": "2026-05-31T06:44:47.047001Z",
+  "validation_result": "blocked_before_canary",
+  "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-gate-v1-20260531",
+  "branch": "safe/extraction-metric-ontology-gate-v1-20260531",
+  "head": "925548f93c8c",
+  "runtime_ready": false,
+  "backend_health_reachable": false,
+  "queue_status_reachable": false,
+  "gpu_probe_clean": true,
+  "gpu_guard_exit_status": 0,
+  "source_pdfs_present": true,
+  "draft_execution_task_card": "docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md",
+  "required_approval_phrase": "APPROVE extraction_third_canary_runtime_execution_v1_20260531 WITH BACKEND WORKER GPU_WORKER RELOAD",
+  "runtime_or_data_mutation": false,
+  "canonical_write_authorized": false,
+  "contested_surfaces_touched": [],
+  "collision_risk": "LOW",
+  "remaining_blockers": [
+    "Backend health endpoint is not reachable.",
+    "Queue status endpoint is not reachable.",
+    "Loaded runtime code cannot be proven while backend and workers are unreachable.",
+    "Current operator approval phrase for backend/worker/gpu_worker reload and canary submission is missing."
+  ]
+}

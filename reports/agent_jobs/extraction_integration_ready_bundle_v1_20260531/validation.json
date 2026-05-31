@@ -1,0 +1,82 @@
+{
+  "job_id": "extraction_integration_ready_bundle_v1_20260531",
+  "generated_at": "2026-05-31T07:02:05Z",
+  "branch": "integrate/extraction-metric-ontology-gate-v1-20260531",
+  "worktree": "/home/l4nd0/tenn-extraction-integration-ready-v1-20260531",
+  "base_ref": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "5b276e4ba9aa",
+  "source_branch": "safe/extraction-metric-ontology-gate-v1-20260531",
+  "source_head": "95d47ee9fbc1",
+  "runtime_mutation": false,
+  "github_mutation": false,
+  "production_data_access": false,
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_integration_ready_bundle_v1_20260531.md",
+      "result": "passed"
+    },
+    {
+      "name": "registry_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_integration_ready_bundle_v1_20260531.md --repo-root .",
+      "result": "passed",
+      "notes": "Only stale non-overlapping Query Orchestration audit job present."
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_integration_ready_bundle_v1_20260531.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "name": "source_content_parity",
+      "command": "Compare every file from git diff --name-only origin/migration/clean-runtime-baseline-reconstruct-v1...safe/extraction-metric-ontology-gate-v1-20260531 against safe/extraction-metric-ontology-gate-v1-20260531 with git show and cmp.",
+      "result": "passed",
+      "notes": "Run before integration-only STATE/report additions. Six carried docs/report artifacts later had trailing blank-line EOFs normalized for staged whitespace checks; no code/test logic changed."
+    },
+    {
+      "name": "staged_whitespace_normalization",
+      "command": "perl -0pi -e 's/\\n+\\z/\\n/' docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md reports/agent_jobs/extraction_goal_proof_matrix_refresh_v3_20260531/README.md reports/agent_jobs/extraction_goal_proof_matrix_refresh_v3_20260531/objective_matrix.json reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/README.md reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/runtime_preflight.json reports/agent_jobs/extraction_synced_eval_verification_v1_20260531/README.md",
+      "result": "passed",
+      "summary": "Removed trailing blank-line EOFs from six docs/report artifacts."
+    },
+    {
+      "name": "focused_pytest",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -q financial-engine_v2/backend/tests/test_metric_ontology_bridge.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "passed",
+      "summary": "61 passed, 1 warning"
+    },
+    {
+      "name": "broader_extraction_eval_pytest",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_metric_ontology_bridge.py financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py financial-engine_v2/backend/tests/test_extraction_capability_guards.py financial-engine_v2/backend/tests/test_extraction_eval.py financial-engine_v2/backend/tests/test_extraction_eval_harness.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_review.py financial-engine_v2/backend/tests/test_extraction_review_service.py financial-engine_v2/backend/tests/test_extraction_run_observability.py financial-engine_v2/backend/tests/test_extraction_llm_separation.py financial-engine_v2/backend/tests/test_prose_shares_extraction.py financial-engine_v2/backend/tests/test_financial_metrics.py",
+      "result": "passed",
+      "summary": "388 passed, 1 deselected, 6 warnings"
+    },
+    {
+      "name": "json_validation",
+      "command": "find reports/agent_jobs/extraction_metric_ontology_gate_v1_20260531 reports/agent_jobs/extraction_synced_eval_verification_v1_20260531 reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531 reports/agent_jobs/extraction_goal_proof_matrix_refresh_v3_20260531 reports/agent_jobs/extraction_integration_ready_bundle_v1_20260531 -maxdepth 1 -type f -name '*.json' -print0 | sort -z | xargs -0 -n1 python3 -m json.tool",
+      "result": "passed"
+    },
+    {
+      "name": "raw_artifact_scan",
+      "command": "Scan changed files and report artifacts with file(1), blocking *.db, *.sqlite, *.sqlite3, *.pdf, *.parquet, *.pkl, *.pickle, *.gguf, and raster image artifacts.",
+      "result": "passed",
+      "summary": "No forbidden raw/binary/database artifacts found."
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_integration_ready_bundle_v1_20260531.md",
+      "result": "passed"
+    },
+    {
+      "name": "registry_release",
+      "command": "python3 scripts/agent_job_registry.py release extraction_integration_ready_bundle_v1_20260531 --repo-root .",
+      "result": "passed",
+      "summary": "status.json records released_at=2026-05-31T07:02:00.968343Z"
+    }
+  ]
+}

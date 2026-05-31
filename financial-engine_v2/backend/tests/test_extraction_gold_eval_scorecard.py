@@ -657,6 +657,251 @@ def test_pre_persistence_scorecard_gate_passes_correct_and_allowed_abstention(
     assert gate["blocking_examples"] == []
 
 
+def test_pre_persistence_scorecard_gate_blocks_noncanonical_policy_families(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    policy_metrics = {
+        "total_equity": 1000.0,
+        "interest_expense": 10.0,
+        "finance_costs": 12.0,
+        "total_assets": 2000.0,
+        "eps": 0.25,
+        "dividends": 0.05,
+        "debt_borrowings": 800.0,
+    }
+    for metric_name, value in policy_metrics.items():
+        _write_fixture(
+            fixtures_dir / f"{metric_name}.json",
+            _base_fixture(
+                document_id=f"{metric_name}_doc",
+                metrics={metric_name: value},
+                expected_nulls=[],
+            ),
+        )
+
+    actual_payloads = {
+        f"{metric_name}_doc": {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "millions",
+            "metrics": {metric_name: value},
+            "evidence": {metric_name: {"page": 1}},
+        }
+        for metric_name, value in policy_metrics.items()
+    }
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        actual_payloads,
+        financial_engine_root=tmp_path,
+    )
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+
+    by_metric = {row["metric_name"]: row for row in scorecard["metric_results"]}
+    for metric_name in policy_metrics:
+        assert by_metric[metric_name]["canonical_field"] is None
+        assert by_metric[metric_name]["support_status"] == (
+            CoverageSupportStatus.UNSUPPORTED_SCHEMA.value
+        )
+        assert by_metric[metric_name]["result_class"] == (
+            PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value
+        )
+
+    assert gate["gate_status"] == "fail"
+    assert gate["canonical_write_allowed"] is False
+    assert gate["broad_backfill_authorized"] is False
+    assert gate["blocking_result_class_summary"][
+        PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value
+    ] == len(policy_metrics)
+    assert {example["metric_name"] for example in gate["blocking_examples"]} == set(
+        policy_metrics
+    )
+
+
+def test_pre_persistence_scorecard_gate_blocks_unexpected_supported_actual_metric(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "confirmed.json",
+        _base_fixture(
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+            tolerances={"revenue": 0.01},
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {
+                    "revenue": 100.0,
+                    "ebit": 25.0,
+                    "capex": None,
+                },
+                "evidence": {
+                    "revenue": {"page": 1},
+                    "ebit": {"page": 1},
+                },
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    rows = {row["metric_name"]: row for row in scorecard["metric_results"]}
+    assert rows["revenue"]["result_class"] == PayloadScoreStatus.PRESENT_CORRECT.value
+    assert "capex" not in rows
+    assert rows["ebit"]["expectation_type"] == "unexpected_actual_metric"
+    assert rows["ebit"]["metric_contract_status"] == MetricContractStatus.SUPPORTED.value
+    assert rows["ebit"]["canonical_use_allowed"] is True
+    assert rows["ebit"]["result_class"] == PayloadScoreStatus.MISSING_EVIDENCE.value
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert gate["gate_status"] == "fail"
+    assert blockers[PayloadScoreStatus.MISSING_EVIDENCE.value] == 1
+    assert gate["blocking_examples"] == [
+        {
+            "document_id": "confirmed_doc",
+            "metric_name": "ebit",
+            "canonical_field": "ebit",
+            "result_class": PayloadScoreStatus.MISSING_EVIDENCE.value,
+            "reason": rows["ebit"]["reason"],
+        }
+    ]
+
+
+def test_pre_persistence_scorecard_gate_blocks_unexpected_noncanonical_actual_metrics(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "confirmed.json",
+        _base_fixture(
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+            tolerances={"revenue": 0.01},
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {
+                    "revenue": 100.0,
+                    "total_equity": 500.0,
+                    "interest_expense": 12.0,
+                    "total_debt": 100.0,
+                    "finance_costs": 14.0,
+                    "eps": 0.5,
+                    "total_assets": 700.0,
+                },
+                "evidence": {"revenue": {"page": 1}},
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    rows = {row["metric_name"]: row for row in scorecard["metric_results"]}
+    expected_statuses = {
+        "total_equity": MetricContractStatus.PERSISTED_ONLY.value,
+        "interest_expense": MetricContractStatus.PERSISTED_ONLY.value,
+        "total_debt": MetricContractStatus.INTERNAL_ONLY.value,
+        "finance_costs": MetricContractStatus.AMBIGUOUS_REQUIRES_POLICY.value,
+        "eps": MetricContractStatus.PLANNED.value,
+        "total_assets": MetricContractStatus.UNSUPPORTED.value,
+    }
+    for metric, status in expected_statuses.items():
+        assert rows[metric]["expectation_type"] == "unexpected_actual_metric"
+        assert rows[metric]["metric_contract_status"] == status
+        assert rows[metric]["canonical_use_allowed"] is False
+        assert rows[metric]["result_class"] == (
+            PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value
+        )
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert gate["gate_status"] == "fail"
+    assert blockers[PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value] == len(
+        expected_statuses
+    )
+    assert {
+        example["metric_name"] for example in gate["blocking_examples"]
+    }.issuperset(expected_statuses)
+
+
+def test_pre_persistence_scorecard_gate_ignores_flat_payload_metadata_keys(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "confirmed.json",
+        _base_fixture(
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+            tolerances={"revenue": 0.01},
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "document_id": "confirmed_doc",
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "source_file": "report.pdf",
+                "_method_provenance": {"actual_method": "docling"},
+                "revenue": 100.0,
+                "provenance": {"revenue": {"page": 1}},
+                "metric_evidence": {"revenue": {"page": 1}},
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+
+    assert [row["metric_name"] for row in scorecard["metric_results"]] == ["revenue"]
+    assert scorecard["metric_results"][0]["result_class"] == (
+        PayloadScoreStatus.PRESENT_CORRECT.value
+    )
+    assert gate["gate_status"] == "pass"
+    assert gate["canonical_write_allowed"] is False
+    assert gate["broad_backfill_authorized"] is False
+
+
 def test_pre_persistence_scorecard_gate_blocks_bad_and_missing_actuals(tmp_path):
     fixtures_dir = tmp_path / "fixtures"
     fixtures_dir.mkdir()

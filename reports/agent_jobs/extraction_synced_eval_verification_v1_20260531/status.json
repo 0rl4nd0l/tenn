@@ -1,0 +1,35 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "generated_at": "2026-05-31T06:35:58Z",
+  "job_id": "extraction_synced_eval_verification_v1_20260531",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth"
+  ],
+  "status": "released",
+  "released_at": "2026-05-31T06:35:58.861428Z",
+  "validation_result": "pass",
+  "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-gate-v1-20260531",
+  "branch": "safe/extraction-metric-ontology-gate-v1-20260531",
+  "head": "fd65cef787e9",
+  "origin_baseline": "5b276e4ba9aa",
+  "origin_relation": {
+    "behind": 0,
+    "ahead": 2
+  },
+  "shared_baseline_synced": false,
+  "runtime_or_data_mutation": false,
+  "canonical_write_authorized": false,
+  "contested_surfaces_touched": [],
+  "collision_risk": "LOW",
+  "summary": [
+    "Verified the isolated branch includes the merged PR #129 origin baseline plus the metric ontology gate slice.",
+    "Focused real-gold, scorecard, ontology, pre-canary, and capability pytest passed.",
+    "Broader extraction evaluation lane pytest passed."
+  ],
+  "remaining_blockers": [
+    "Shared baseline worktree remains behind origin and was not mutated.",
+    "Third canary still requires explicit approval and fresh runtime preflight.",
+    "Full accurate extraction graduation remains not proven by this non-runtime audit."
+  ]
+}

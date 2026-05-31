@@ -303,6 +303,25 @@ def test_total_assets_is_supplemental() -> None:
     assert p.auto_collapse_safe is False
 
 
+@pytest.mark.unit
+def test_interest_expense_is_supplemental_not_collapse_safe() -> None:
+    p = project(
+        _datapoint(
+            row_label="Interest expense",
+            context_text="Income statement",
+            raw_value="125",
+            raw_scale="millions",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family == "interest_expense"
+    assert p.mapping_confidence == MappingConfidence.SUPPLEMENTAL
+    assert p.auto_collapse_safe is False
+    assert p.canonical_family in SUPPLEMENTAL_FAMILIES
+    assert p.canonical_family not in EXTRACTOR_TARGET_FAMILIES
+
+
 # ---------------------------------------------------------------------------
 # Unit-type overrides (the main hardening rules of the bridge)
 # ---------------------------------------------------------------------------
@@ -416,6 +435,40 @@ def test_total_without_context_is_unsupported() -> None:
     )
     assert p.canonical_family is None
     assert p.mapping_confidence == MappingConfidence.UNSUPPORTED
+
+
+@pytest.mark.unit
+def test_finance_costs_stays_unsupported_without_policy() -> None:
+    p = project(
+        _datapoint(
+            row_label="Finance costs",
+            context_text="Income statement",
+            raw_value="125",
+            raw_scale="millions",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family is None
+    assert p.mapping_confidence == MappingConfidence.UNSUPPORTED
+    assert p.auto_collapse_safe is False
+
+
+@pytest.mark.unit
+def test_total_debt_internal_alias_stays_unsupported() -> None:
+    p = project(
+        _datapoint(
+            row_label="Total debt",
+            context_text="Balance sheet",
+            raw_value="900",
+            raw_scale="millions",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family is None
+    assert p.mapping_confidence == MappingConfidence.UNSUPPORTED
+    assert p.auto_collapse_safe is False
 
 
 @pytest.mark.unit

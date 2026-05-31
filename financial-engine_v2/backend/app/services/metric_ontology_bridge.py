@@ -99,6 +99,7 @@ SUPPLEMENTAL_FAMILIES: frozenset[str] = frozenset(
         "ebitda",
         "depreciation_and_amortisation",
         "free_cash_flow",
+        "interest_expense",
         "net_income",
         "total_assets",
         "total_equity",
@@ -195,6 +196,11 @@ _FAMILY_CORE_PHRASES: dict[str, tuple[str, ...]] = {
         "free cash flow",
         "fcf",
     ),
+    "interest_expense": (
+        "interest expense",
+        "interest paid",
+        "interest cost",
+    ),
     "net_income": (
         "net income",
         "profit after tax",
@@ -225,6 +231,7 @@ _FAMILY_EXPECTED_UNIT: dict[str, UnitType] = {
     "shares_outstanding": UnitType.COUNT,
     "depreciation_and_amortisation": UnitType.CURRENCY,
     "free_cash_flow": UnitType.CURRENCY,
+    "interest_expense": UnitType.CURRENCY,
     "net_income": UnitType.CURRENCY,
     "total_assets": UnitType.CURRENCY,
     "total_equity": UnitType.CURRENCY,

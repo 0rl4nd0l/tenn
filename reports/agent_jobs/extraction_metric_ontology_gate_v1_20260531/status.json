@@ -1,0 +1,28 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "generated_at": "2026-05-31T06:27:08Z",
+  "job_id": "extraction_metric_ontology_gate_v1_20260531",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth"
+  ],
+  "status": "completed",
+  "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-gate-v1-20260531",
+  "branch": "safe/extraction-metric-ontology-gate-v1-20260531",
+  "head_before_commit": "5b276e4ba9aa",
+  "task_card": "docs/agent_tasks/extraction_metric_ontology_gate_v1_20260531.md",
+  "contested_surfaces_touched": [],
+  "collision_risk": "LOW",
+  "runtime_or_data_mutation": false,
+  "canonical_write_authorized": false,
+  "validation_result": "pass",
+  "summary": [
+    "Added pre-persistence blocking rows for unexpected actual payload metrics.",
+    "Kept interest_expense supplemental and non-collapse-safe in ontology bridge.",
+    "Proved persisted-only, internal-only, planned, ambiguous, and unsupported metric families cannot count as successful pre-persistence payload facts."
+  ],
+  "remaining_blockers": [
+    "Third canary still requires explicit approval and fresh runtime preflight.",
+    "Full accurate extraction graduation remains not proven by this evaluation-only slice."
+  ]
+}
