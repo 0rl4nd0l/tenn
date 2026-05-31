@@ -1,5 +1,5 @@
 up:
-	cp -n .env.example .env || true
+	test -f .env || (echo "Missing .env. Copy .env.example and set strong credentials before starting." && exit 1)
 	docker compose up -d --build
 
 migrate:

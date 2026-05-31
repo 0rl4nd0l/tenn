@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     importance_include_pdf_text: bool = True
     importance_link_mode: str = "symlink"
     importance_sort_source_docs: bool = True
+    ingestion_api_key: str = ""
 
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
