@@ -4,6 +4,41 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MarketplaceMatchesScreen } from './matches-screen'
 
+function jsonResponse(body: unknown, ok = true) {
+  return {
+    ok,
+    json: async () => body,
+  }
+}
+
+function minimalMatch(overrides: Record<string, unknown> = {}) {
+  return {
+    match_id: 'mp_match_default',
+    mission_id: 'mp_mission_default',
+    mission_name: 'Default mission',
+    listing_id: 'listing_default',
+    listing_url: 'https://www.facebook.com/marketplace/item/default/',
+    title: 'Default listing',
+    price: '$100',
+    location: 'Melbourne VIC',
+    captured_at: '2026-05-04T01:28:29Z',
+    first_found_at: '2026-05-04T01:28:29Z',
+    last_seen_at: '2026-05-04T01:28:29Z',
+    score: 50,
+    decision_band: 'candidate',
+    reasons_for: ['Matched mission keyword'],
+    reasons_against: [],
+    confidence: 0.66,
+    raw_text_snapshot: 'Visible listing text',
+    listing_media: [],
+    status: 'reviewed',
+    metadata: {},
+    user_feedback: null,
+    updated_at: '2026-05-04T01:28:29Z',
+    ...overrides,
+  }
+}
+
 function installPointerCaptureMock() {
   const prototype = HTMLElement.prototype as unknown as Record<string, unknown>
   if (typeof prototype.hasPointerCapture !== 'function') {
@@ -607,5 +642,86 @@ describe('MarketplaceMatchesScreen', () => {
     expect(screen.getByText(/listing photos unavailable/i)).toBeInTheDocument()
     expect(screen.getByText(/photos: 0/i)).toBeInTheDocument()
     expect(screen.getByText(/first found \(capture\)/i)).toBeInTheDocument()
+  })
+
+  it('explains when no Marketplace missions exist for empty matches', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/api/cockpit/marketplace/matches')) {
+        return Promise.resolve(jsonResponse({ items: [] }))
+      }
+      if (url.includes('/api/cockpit/marketplace/missions')) {
+        return Promise.resolve(jsonResponse({ items: [] }))
+      }
+      return Promise.reject(new Error(`unexpected fetch ${url}`))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchesScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/no Marketplace missions configured yet/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/require a saved mission/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /open mission setup/i })).toHaveAttribute('href', '/marketplace')
+  })
+
+  it('explains when active filters hide existing matches', async () => {
+    installPointerCaptureMock()
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/api/cockpit/marketplace/missions')) {
+        return Promise.resolve(jsonResponse({
+          items: [
+            {
+              mission_id: 'mp_mission_1',
+              name: 'GPU mission',
+              status: 'active',
+              mission_type: 'saved_search',
+              brief: 'Find GPUs',
+              category_hint: null,
+              hard_filters: {},
+              soft_preferences: {},
+              search_config: {},
+              scan_config: {},
+              last_error: null,
+              created_at: '2026-05-04T01:28:29Z',
+              updated_at: '2026-05-04T01:28:29Z',
+              last_scan_at: '2026-05-04T02:00:00Z',
+            },
+          ],
+        }))
+      }
+      if (url.includes('/api/cockpit/marketplace/matches?status=new')) {
+        return Promise.resolve(jsonResponse({ items: [] }))
+      }
+      if (url.includes('/api/cockpit/marketplace/matches')) {
+        return Promise.resolve(jsonResponse({
+          items: [minimalMatch({ title: 'Reviewed RTX 3090 listing' })],
+        }))
+      }
+      return Promise.reject(new Error(`unexpected fetch ${url}`))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMatchesScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Reviewed RTX 3090 listing')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getAllByRole('combobox')[0])
+    await userEvent.click(screen.getByRole('option', { name: /^new$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/filters are hiding existing matches/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/unfiltered Marketplace evidence contains 1 match/i)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /clear filters/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Reviewed RTX 3090 listing')).toBeInTheDocument()
+    })
   })
 })
