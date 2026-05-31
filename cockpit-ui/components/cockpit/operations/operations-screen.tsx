@@ -518,10 +518,14 @@ export function OperationsScreen() {
 
   return (
     <ScrollArea className="h-full">
-      <div className={cn(
-        "max-w-6xl mx-auto",
-        isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
-      )}>
+      <div
+        className={cn(
+          "max-w-6xl mx-auto",
+          isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
+        )}
+        data-operations-ready="true"
+        data-testid="operations-ready"
+      >
         <div className={cn(
           "flex items-center justify-between",
           isIPhoneScale && "flex-col items-start gap-2"
