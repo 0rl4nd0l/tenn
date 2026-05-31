@@ -8,6 +8,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+try:
+    from scripts.reporting.offline_artifact_authority import (
+        artifact_record,
+        build_authority_metadata,
+        write_authority_manifest,
+    )
+except ModuleNotFoundError:  # pragma: no cover - supports direct `python scripts/...` runs
+    from reporting.offline_artifact_authority import (
+        artifact_record,
+        build_authority_metadata,
+        write_authority_manifest,
+    )
+
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -560,12 +573,65 @@ def store_sqlite(rows: List[Dict[str, object]], db_path: Path) -> int:
         conn.close()
 
 
+def default_authority_path(out_json: Path) -> Path:
+    return out_json.with_suffix(".authority.json")
+
+
+def build_derived_authority_metadata(
+    *,
+    canonical_path: Path,
+    out_json: Path,
+    out_csv: Path,
+    out_sqlite: Path,
+    derived_rows: int,
+    sqlite_rows_written: int,
+    integrity_db_path: Path,
+    min_canonical_confidence: int,
+    min_integrity_score: int,
+    min_integrity_checks_evaluated: int,
+    default_tax_rate: float,
+) -> Dict[str, object]:
+    source_artifacts = [
+        artifact_record(canonical_path, "report_local_selected_metric_rows"),
+    ]
+    if integrity_db_path.exists():
+        source_artifacts.append(artifact_record(integrity_db_path, "report_local_statement_integrity_sqlite"))
+    return build_authority_metadata(
+        artifact_type="derived_financial_metrics_report",
+        producer="scripts/derived_metrics.py",
+        lane="Analysis",
+        source_artifacts=source_artifacts,
+        output_artifacts=[
+            artifact_record(out_json, "derived_metrics_json"),
+            artifact_record(out_csv, "derived_metrics_csv"),
+            artifact_record(out_sqlite, "derived_metrics_sqlite"),
+        ],
+        extra_do_not_overclaim=[
+            "Derived metrics are analysis outputs, not extracted source financial facts.",
+            "SQLite output is a report-local projection and must not be used as canonical financial truth.",
+        ],
+        extra={
+            "derived_rows": derived_rows,
+            "sqlite_rows_written": sqlite_rows_written,
+            "min_canonical_confidence": min_canonical_confidence,
+            "min_integrity_score": min_integrity_score,
+            "min_integrity_checks_evaluated": min_integrity_checks_evaluated,
+            "default_tax_rate": default_tax_rate,
+        },
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Compute derived financial metrics from canonical rows.")
     ap.add_argument("--canonical-json", required=True, help="Canonical JSON output from extract_financial_metrics.py")
     ap.add_argument("--out-json", default="reports/derived_metrics.json")
     ap.add_argument("--out-csv", default="reports/derived_metrics.csv")
     ap.add_argument("--out-sqlite", default="reports/financial_metrics.sqlite")
+    ap.add_argument(
+        "--authority-json",
+        default="",
+        help="Optional report-local authority manifest path. Default: <out-json stem>.authority.json",
+    )
     ap.add_argument(
         "--integrity-sqlite",
         default="",
@@ -595,13 +661,14 @@ def main() -> int:
     min_integrity_checks_evaluated = max(0, int(args.min_integrity_checks_evaluated))
     if args.strict_integrity and min_integrity_checks_evaluated < 1:
         min_integrity_checks_evaluated = 1
+    default_tax_rate = min(max(float(args.default_tax_rate), 0.0), 1.0)
 
     derived = build_derived_metrics(
         rows,
         min_canonical_confidence=max(0, int(args.min_canonical_confidence)),
         min_integrity_score=max(0, int(args.min_integrity_score)),
         min_integrity_checks_evaluated=min_integrity_checks_evaluated,
-        default_tax_rate=min(max(float(args.default_tax_rate), 0.0), 1.0),
+        default_tax_rate=default_tax_rate,
     )
 
     out_json = Path(args.out_json)
@@ -610,12 +677,28 @@ def main() -> int:
     write_json(derived, out_json)
     write_csv(derived, out_csv)
     written = store_sqlite(derived, out_sqlite)
+    authority_path = Path(args.authority_json) if args.authority_json else default_authority_path(out_json)
+    authority = build_derived_authority_metadata(
+        canonical_path=canonical_path,
+        out_json=out_json,
+        out_csv=out_csv,
+        out_sqlite=out_sqlite,
+        derived_rows=len(derived),
+        sqlite_rows_written=written,
+        integrity_db_path=integrity_db_path,
+        min_canonical_confidence=max(0, int(args.min_canonical_confidence)),
+        min_integrity_score=max(0, int(args.min_integrity_score)),
+        min_integrity_checks_evaluated=min_integrity_checks_evaluated,
+        default_tax_rate=default_tax_rate,
+    )
+    write_authority_manifest(authority_path, authority)
 
     print(f"Derived metric rows: {len(derived)}")
     print(f"Derived JSON: {out_json}")
     print(f"Derived CSV: {out_csv}")
     print(f"Derived SQLite upserted: {written}")
     print(f"Derived SQLite DB: {out_sqlite}")
+    print(f"Authority manifest: {authority_path}")
     return 0
 
 
