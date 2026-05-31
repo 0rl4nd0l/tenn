@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useCockpitStore } from '@/lib/cockpit-store'
-import { parseCockpitConfig, resolveRuntimeModel } from '@/lib/cockpit-config'
+import { parseCockpitConfig } from '@/lib/cockpit-config'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -35,9 +35,7 @@ export function CockpitStatusBar({
 }: CockpitStatusBarProps) {
   const {
     sessionStats,
-    chatModel,
     apiDefaultEnabled,
-    activeSource,
     setApiDefaultEnabled,
   } = useCockpitStore()
   const { data: configData, error: configError } = useQuery({
@@ -56,8 +54,20 @@ export function CockpitStatusBar({
   const config = parseCockpitConfig(configData)
   const apiOverrideAvailable = config.anthropicKeyConfigured
   const apiOverrideForced = config.extractionActive === true && apiOverrideAvailable
-  const activeRuntimeModel = resolveRuntimeModel(sessionStats.activeModel, config.model) || '--'
   const configAuthFailure = configError instanceof Error && /(401|403)/.test(configError.message)
+  const configLoaded = Boolean(configData) && !configError
+  const runtimeVariant = !backendHealthy || configAuthFailure
+    ? 'critical'
+    : configError
+      ? 'secondary'
+      : 'outline'
+  const runtimeLabel = !backendHealthy
+    ? 'Runtime: backend down'
+    : configLoaded
+      ? 'Runtime: ready'
+      : configError
+        ? 'Runtime: needs setup'
+        : 'Runtime: checking'
   const extractionLabel = config.extractionActive === true
     ? 'running'
     : config.extractionActive === false
@@ -76,23 +86,6 @@ export function CockpitStatusBar({
   const extractionHref = config.extractionActive === true && config.activeRuns.length > 0
     ? '/verification?attach=active'
     : null
-  const routeLabel = activeSource === 'anthropic' || activeSource === 'api'
-    ? 'Claude API'
-    : activeSource === 'local'
-      ? 'local'
-      : activeSource === 'cockpit'
-        ? 'Cockpit'
-      : '--'
-  const routeVariant = activeSource === 'anthropic' || activeSource === 'api'
-    ? 'default'
-    : activeSource === 'local'
-      ? 'outline'
-      : activeSource === 'cockpit'
-        ? 'secondary'
-      : 'secondary'
-  const selectedModelLabel = apiDefaultEnabled ? 'Route: API default' : `Selected: ${chatModel}`
-  const localModelLabel = apiDefaultEnabled ? `Local fallback: ${chatModel}` : `Active: ${activeRuntimeModel}`
-
   useEffect(() => {
     if (!apiOverrideAvailable && apiDefaultEnabled) {
       setApiDefaultEnabled(false)
@@ -131,39 +124,10 @@ export function CockpitStatusBar({
     )}>
       <div className={cn("flex items-center justify-between gap-1", compact && "flex-col items-stretch")}>
         <div className={cn("flex items-center gap-2", compact && "flex-wrap justify-center py-1")}>
-          {!compact && (
-            <>
-              <Badge variant="outline" className="h-5 text-[10px] font-mono">
-                {selectedModelLabel}
-              </Badge>
-              <Badge variant="outline" className="h-5 text-[10px] font-mono">
-                {localModelLabel}
-              </Badge>
-              {apiDefaultEnabled && (
-                <Badge variant="outline" className="h-5 text-[10px] font-mono">
-                  Active: {activeRuntimeModel}
-                </Badge>
-              )}
-            </>
-          )}
-          {compact && (
-             <Badge variant="outline" className="h-4 text-[9px] font-mono px-1">
-               {activeRuntimeModel}
-             </Badge>
-          )}
-          <Badge variant="outline" className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
-            {config.maxTokens ? `max ${config.maxTokens}` : 'max --'}
-          </Badge>
-          {!compact && (
-            <Badge variant="outline" className="h-5 text-[10px] font-mono">
-              {config.temperature !== null ? `temp ${config.temperature.toFixed(2)}` : 'temp --'}
-            </Badge>
-          )}
-          <Badge variant={routeVariant} className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
-            {compact ? (activeSource === 'anthropic' || activeSource === 'api' ? 'API' : activeSource === 'local' ? 'LOC' : activeSource === 'cockpit' ? 'SYS' : '--') : `Source: ${routeLabel}`}
-          </Badge>
-          <Badge variant="outline" className="h-5 text-[10px] font-mono hidden lg:inline-flex">
-            profile: {config.profile ?? '--'}
+          <Badge variant={runtimeVariant} className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
+            {compact
+              ? (!backendHealthy ? 'RT DOWN' : configLoaded ? 'RT OK' : 'RT CHECK')
+              : runtimeLabel}
           </Badge>
           {!compact && (
             <Badge asChild variant={apiOverrideAvailable ? 'outline' : 'critical'} className="hidden h-5 px-1.5 text-[10px] font-mono xl:inline-flex">
@@ -198,9 +162,10 @@ export function CockpitStatusBar({
                   )}
                 />
                 <span>
+                  Cloud route:{' '}
                   {apiOverrideAvailable
-                    ? (apiOverrideForced ? 'Connected (locked)' : apiDefaultEnabled ? 'Connected' : 'Available')
-                    : 'Needs setup'}
+                    ? (apiOverrideForced ? 'connected locked' : apiDefaultEnabled ? 'connected' : 'available')
+                    : 'needs setup'}
                 </span>
               </button>
             </Badge>
@@ -253,9 +218,9 @@ export function CockpitStatusBar({
           <AlertTriangle className="h-3 w-3 shrink-0" />
           <span className="truncate">
             {!backendHealthy && backendError
-              ? `backend critical: ${backendError}`
+              ? 'backend critical: unavailable; open Operations for details'
               : configError instanceof Error
-                ? `${configAuthFailure ? 'config auth failure' : 'config warning'}: ${configError.message} (using last known values)`
+                ? `${configAuthFailure ? 'config auth failure' : 'config warning'}: open Settings for details`
                 : 'config warning: unknown error'}
           </span>
         </div>

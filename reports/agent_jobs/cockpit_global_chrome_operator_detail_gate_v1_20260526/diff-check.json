@@ -1,0 +1,86 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-status-bar.test.tsx",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-status-bar.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/full-chat.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/home.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/operations.png",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/README.md",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/status.json",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/validation.json",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/diff-check.json",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/home.png",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/full-chat.png",
+        "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526/operations.png",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+        "cockpit-ui/components/cockpit/cockpit-status-bar.tsx",
+        "cockpit-ui/components/cockpit/cockpit-status-bar.test.tsx"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_global_chrome_operator_detail_gate_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
