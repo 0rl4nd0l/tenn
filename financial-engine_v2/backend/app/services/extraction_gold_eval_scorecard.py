@@ -98,6 +98,12 @@ METRIC_NAME_MAP = {
     "shares_outstanding": "shares_outstanding",
 }
 
+SCORECARD_SAFE_METRIC_ALIAS_MAP = {
+    "cash": "cash_end",
+    "cash_and_cash_equivalents": "cash_end",
+    "closing_cash": "cash_end",
+}
+
 PRODUCTION_RELEVANCE_TIERS = {
     "revenue": "core",
     "ebit": "core",
@@ -422,6 +428,33 @@ METRIC_CONTRACT_FAMILIES = (
 )
 
 
+def _scorecard_metric_name_map() -> dict[str, str]:
+    """Return only aliases approved for scorecard value matching."""
+
+    mapping = dict(METRIC_NAME_MAP)
+    mapping.update(SCORECARD_SAFE_METRIC_ALIAS_MAP)
+    return mapping
+
+
+def _canonical_field_for_metric(metric: str) -> str | None:
+    return _scorecard_metric_name_map().get(metric)
+
+
+def _metric_contract_specs_for_key(key: str | None) -> tuple[MetricContractFamily, ...]:
+    normalised = _normalise_metric_name(str(key or ""))
+    if not normalised:
+        return ()
+
+    matches: list[MetricContractFamily] = []
+    for spec in METRIC_CONTRACT_FAMILIES:
+        names = [spec.family, *spec.aliases]
+        if spec.canonical_field is not None:
+            names.append(spec.canonical_field)
+        if any(_normalise_metric_name(name) == normalised for name in names):
+            matches.append(spec)
+    return tuple(matches)
+
+
 def get_scorecard_profiles() -> dict[str, dict[str, Any]]:
     """Return deterministic metadata for all extraction scorecard profiles."""
 
@@ -432,7 +465,7 @@ def metric_mapping_table() -> list[dict[str, Any]]:
     """Return the broader fixture metric mapping into extractor schema fields."""
 
     rows: list[dict[str, Any]] = []
-    for fixture_name, canonical_field in sorted(METRIC_NAME_MAP.items()):
+    for fixture_name, canonical_field in sorted(_scorecard_metric_name_map().items()):
         schema_supported = canonical_field in METRIC_FIELDS
         rows.append(
             {
@@ -1832,7 +1865,7 @@ def _expectations_for_payload(
         if not isinstance(raw_metric, str):
             raise ValueError(f"metric names for {path} must be strings")
 
-        canonical_field = METRIC_NAME_MAP.get(raw_metric)
+        canonical_field = _canonical_field_for_metric(raw_metric)
         expected_value = _coerce_metric_value(raw_metrics.get(raw_metric), path)
         expectation_type = (
             "expected_null"
@@ -2013,7 +2046,7 @@ def _internal_extractor_metric_fields() -> set[str]:
 def _evaluator_supported_metric_fields() -> set[str]:
     return set(METRIC_FIELDS) | {
         canonical
-        for canonical in METRIC_NAME_MAP.values()
+        for canonical in _scorecard_metric_name_map().values()
         if canonical in METRIC_FIELDS
     }
 
@@ -2330,7 +2363,7 @@ def _normalize_extracted_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     metrics = raw_metrics if isinstance(raw_metrics, Mapping) else {}
     normalized_metrics: dict[str, Any] = {}
     for metric, value in metrics.items():
-        canonical = METRIC_NAME_MAP.get(str(metric), str(metric))
+        canonical = _canonical_field_for_metric(str(metric)) or str(metric)
         normalized_metrics[canonical] = value
     normalized["metrics"] = normalized_metrics
     return normalized
@@ -2486,10 +2519,7 @@ def _actual_metric_value(
     expectation: CoverageExpectation,
 ) -> float | None:
     metrics = _actual_metrics(payload)
-    keys = [expectation.metric_name]
-    if expectation.canonical_field is not None:
-        keys.append(expectation.canonical_field)
-    for key in keys:
+    for key in _actual_metric_keys(expectation):
         if key not in metrics:
             continue
         value = metrics.get(key)
@@ -2513,9 +2543,7 @@ def _metric_has_evidence(
 ) -> bool:
     if not isinstance(payload, Mapping):
         return False
-    keys = [expectation.metric_name]
-    if expectation.canonical_field is not None:
-        keys.append(expectation.canonical_field)
+    keys = _actual_metric_keys(expectation)
 
     metrics = _actual_metrics(payload)
     for key in keys:
@@ -2531,6 +2559,41 @@ def _metric_has_evidence(
             if _truthy_evidence(evidence_map.get(key)):
                 return True
     return False
+
+
+def _actual_metric_keys(expectation: CoverageExpectation) -> list[str]:
+    keys: list[str] = []
+
+    def add(raw: str | None) -> None:
+        value = str(raw or "").strip()
+        if value and value not in keys:
+            keys.append(value)
+
+    add(expectation.metric_name)
+    add(expectation.canonical_field)
+
+    if expectation.canonical_field is not None:
+        for alias, canonical_field in _scorecard_metric_name_map().items():
+            if canonical_field == expectation.canonical_field:
+                add(alias)
+
+    if expectation.support_status != CoverageSupportStatus.UNSUPPORTED_SCHEMA:
+        return keys
+
+    for spec in _metric_contract_specs_for_key(expectation.metric_name):
+        add(spec.family)
+        add(spec.canonical_field)
+        for alias in spec.aliases:
+            add(alias)
+
+    if expectation.canonical_field is not None:
+        for spec in _metric_contract_specs_for_key(expectation.canonical_field):
+            add(spec.family)
+            add(spec.canonical_field)
+            for alias in spec.aliases:
+                add(alias)
+
+    return keys
 
 
 def _truthy_evidence(raw: Any) -> bool:
