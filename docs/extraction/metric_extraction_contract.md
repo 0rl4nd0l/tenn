@@ -153,6 +153,12 @@ policy change.
 `ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
 populate canonical `ebit`.
 
+The canonical storage upsert accepts only the current `METRIC_FIELDS` output
+set. Persisted-only columns such as `total_equity` and `interest_expense` may
+exist in the model for historical or future policy reasons, but extraction
+payloads must not populate them until they are promoted through extractor,
+evaluator, and policy support.
+
 ## Non-goals
 
 - No DB writes, no embedding calls, no retrieval.
