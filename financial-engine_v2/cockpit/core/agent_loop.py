@@ -32,6 +32,12 @@ from cockpit.core.response_classification import (
     ResponseClassification,
     classify_agent_output,
 )
+from shared.evidence_labels import (
+    EVIDENCE_COVERAGE_PRIORITY as _EVIDENCE_COVERAGE_PRIORITY,
+    EVIDENCE_STATE_LABELS as _EVIDENCE_STATE_LABELS,
+    coverage_from_evidence_labels as _shared_coverage_from_evidence_labels,
+    normalize_source_labels as _normalize_source_labels,
+)
 
 # ---------------------------------------------------------------------------
 # Conditional imports for modules being created in parallel.  At runtime they
@@ -142,50 +148,15 @@ _GROUNDING_TOOL_NAMES = frozenset(
         "market_memory",
     }
 )
-_EVIDENCE_STATE_LABELS = frozenset(
-    {
-        "degraded_runtime",
-        "missing_required_evidence",
-        "no_hit",
-        "operational_trace",
-        "context_only",
-        "local_personal_data",
-        "memory_context",
-        "external_web_context",
-        "local_news_context",
-        "financial_truth",
-        "unknown_unclassified",
-    }
-)
-_EVIDENCE_COVERAGE_PRIORITY = (
-    "degraded_runtime",
-    "missing_required_evidence",
-    "local_personal_data",
-    "financial_truth",
-    "no_hit",
-    "context_only",
-)
-
-
 def _normalize_evidence_state_labels(value: Any) -> set[str]:
-    if isinstance(value, str):
-        raw_items = [value]
-    elif isinstance(value, (list, tuple, set)):
-        raw_items = list(value)
-    else:
-        raw_items = []
-    return {
-        str(item).strip()
-        for item in raw_items
-        if str(item).strip() in _EVIDENCE_STATE_LABELS
-    }
+    return _normalize_source_labels(value, valid_labels=_EVIDENCE_STATE_LABELS)
 
 
 def _coverage_from_evidence_labels(labels: set[str]) -> str | None:
-    for label in _EVIDENCE_COVERAGE_PRIORITY:
-        if label in labels:
-            return label
-    return None
+    return _shared_coverage_from_evidence_labels(
+        labels,
+        coverage_priority=_EVIDENCE_COVERAGE_PRIORITY,
+    )
 
 
 def _evidence_semantic_metadata(evidence: list[dict]) -> dict[str, Any]:

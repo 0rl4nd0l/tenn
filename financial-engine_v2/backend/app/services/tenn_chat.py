@@ -20,6 +20,10 @@ from app.services.session_memory import (
 )
 from app.services.source_weighting import apply_weighting_to_chunk
 from app.services.strategy_controller import get_active_strategy_state
+from shared.evidence_labels import (
+    CHAT_SOURCE_LABEL_PRIMARY_ORDER as _SOURCE_LABEL_ORDER,
+    primary_source_label as _shared_primary_source_label,
+)
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
 
 
@@ -41,20 +45,6 @@ _LOCAL_NEWS_EXPECTED_RE = re.compile(
     r"\b(?:tell me about|what(?:'s| is)?\s+going\s+on|what(?:'s| is)?\s+new|"
     r"what\s+changed)\b",
     re.IGNORECASE,
-)
-_SOURCE_LABEL_ORDER = (
-    "missing_required_evidence",
-    "degraded_runtime",
-    "no_hit",
-    "claim_verified",
-    "financial_truth",
-    "local_personal_data",
-    "memory_context",
-    "external_web_context",
-    "local_news_context",
-    "operational_trace",
-    "unknown_unclassified",
-    "context_only",
 )
 _CHAT_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | frozenset(
     {
@@ -334,10 +324,7 @@ def _normalize_supporting_evidence(value: Any) -> list[dict[str, Any]]:
 
 
 def _primary_source_label(labels: set[str]) -> str:
-    for label in _SOURCE_LABEL_ORDER:
-        if label in labels:
-            return label
-    return "unknown_unclassified"
+    return _shared_primary_source_label(labels, primary_order=_SOURCE_LABEL_ORDER)
 
 
 def _row_is_local_news(row: dict[str, Any]) -> bool:
