@@ -70,6 +70,12 @@ blocking result classes. `present_correct` is accepted. The only accepted
 noncanonical abstention is `unsupported_correctly_abstained`, which keeps
 unsupported metrics out of canonical use.
 
+Actual payloads are also checked for extra non-null metric fields that are not
+source-evidenced fixture expectations. Extra supported metrics fail with
+`missing_evidence`. Extra persisted-only, internal-only, planned, ambiguous, or
+unsupported metric families fail with `ambiguous_quarantined`. Null/default
+metric omissions remain abstentions.
+
 The gate fails on:
 
 - `missing_expected_metric`

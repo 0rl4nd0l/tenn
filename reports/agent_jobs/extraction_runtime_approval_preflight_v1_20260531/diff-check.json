@@ -1,0 +1,66 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_runtime_approval_preflight_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/runtime_preflight.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_runtime_approval_preflight_v1_20260531.md",
+        "docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md",
+        "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/README.md",
+        "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/status.json",
+        "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/validation.json",
+        "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/diff-check.json",
+        "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531/runtime_preflight.json",
+        "docs/claude/STATE.md"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_runtime_approval_preflight_v1_20260531",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/extraction_runtime_approval_preflight_v1_20260531",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 97,
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

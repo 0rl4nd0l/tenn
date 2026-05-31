@@ -124,6 +124,20 @@ PERSISTED_METRIC_FIELD_EXCLUSIONS = {
     "updated_at",
 }
 
+ACTUAL_PAYLOAD_NON_METRIC_KEYS = PERSISTED_METRIC_FIELD_EXCLUSIONS | {
+    "document_id",
+    "evidence",
+    "metric_evidence",
+    "metadata",
+    "metrics",
+    "_method_provenance",
+    "method_provenance",
+    "provenance",
+    "row_refs",
+    "scale",
+    "source_file",
+}
+
 METRIC_CONTRACT_ARTIFACT_TYPE = "metric_contract_parity_matrix_v1"
 
 
@@ -688,6 +702,16 @@ def build_confirmed_metric_payload_scorecard(
             )
             for expectation in fixture_expectations
         ]
+        if actual_payload_supplied and actual_payload is not None:
+            fixture_rows.extend(
+                _unexpected_actual_metric_rows(
+                    fixture_payload=fixture_payload,
+                    fixture_path=path,
+                    expectations=fixture_expectations,
+                    actual_payload=actual_payload,
+                    financial_engine_root=root,
+                )
+            )
         rows.extend(fixture_rows)
         fixture_summaries.append(
             _payload_fixture_summary(path, fixture_payload, fixture_expectations, fixture_rows)
@@ -2135,6 +2159,36 @@ def _metric_contract_row(
     }
 
 
+def _metric_contract_row_for_actual_metric(metric_name: str) -> dict[str, Any]:
+    lookup = _metric_family_lookup()
+    family = _normalise_contract_family(metric_name, lookup)
+    spec = next(
+        (
+            candidate
+            for candidate in METRIC_CONTRACT_FAMILIES
+            if candidate.family == family
+        ),
+        None,
+    )
+    if spec is None:
+        canonical_field = metric_name if metric_name in METRIC_FIELDS else None
+        spec = MetricContractFamily(
+            family=family,
+            canonical_field=canonical_field,
+            aliases=(),
+            notes="Observed only in actual payload metrics; no contract family exists.",
+        )
+
+    return _metric_contract_row(
+        spec,
+        persisted_fields=_persisted_periodic_financial_metric_fields(),
+        extractor_fields=set(METRIC_FIELDS),
+        internal_extractor_fields=_internal_extractor_metric_fields(),
+        evaluator_fields=_evaluator_supported_metric_fields(),
+        expectation_count=0,
+    )
+
+
 def _metric_contract_status(
     *,
     persisted: bool,
@@ -2377,6 +2431,109 @@ def _payload_score_row(
     }
 
 
+def _unexpected_actual_metric_rows(
+    *,
+    fixture_payload: Mapping[str, Any],
+    fixture_path: Path,
+    expectations: list[CoverageExpectation],
+    actual_payload: Mapping[str, Any],
+    financial_engine_root: Path,
+) -> list[dict[str, Any]]:
+    metrics = _normalized_actual_metric_items(actual_payload)
+    if not metrics:
+        return []
+
+    expected_keys = _expected_actual_metric_keys(expectations)
+    fixture_id = str(fixture_payload.get("document_id") or fixture_path.stem)
+    source_status = classify_fixture_source_status(fixture_payload)
+    source_pdf_exists = (
+        expectations[0].source_pdf_exists
+        if expectations
+        else _source_pdf_exists(fixture_payload, financial_engine_root)
+    )
+    expected_context = {
+        "period_end": str_or_none(fixture_payload.get("period_end")),
+        "period_type": str_or_none(fixture_payload.get("period_type")),
+        "currency": str_or_none(fixture_payload.get("currency")),
+        "scale": str_or_none(fixture_payload.get("scale")),
+    }
+    actual_context = _actual_context(actual_payload)
+
+    rows: list[dict[str, Any]] = []
+    for metric_name, raw_value in sorted(metrics.items()):
+        normalized_metric = _normalise_metric_name(metric_name)
+        if normalized_metric in expected_keys:
+            continue
+
+        actual_value, supplied = _actual_metric_supplied_value(raw_value)
+        if not supplied:
+            continue
+
+        contract_row = _metric_contract_row_for_actual_metric(metric_name)
+        result_class = (
+            PayloadScoreStatus.MISSING_EVIDENCE
+            if contract_row.get("canonical_use_allowed") is True
+            else PayloadScoreStatus.AMBIGUOUS_QUARANTINED
+        )
+        if contract_row.get("canonical_use_allowed") is True:
+            reason = (
+                "Actual payload supplied a source-supported metric that has no "
+                "fixture expectation in this scorecard"
+            )
+        else:
+            reason = (
+                "Actual payload supplied a metric outside the approved canonical "
+                "contract for this scorecard"
+            )
+
+        canonical_field = contract_row.get("canonical_field")
+        canonical_field_text = (
+            str(canonical_field) if isinstance(canonical_field, str) else None
+        )
+        rows.append(
+            {
+                "fixture_id": fixture_id,
+                "document_id": fixture_id,
+                "fixture": fixture_path.name,
+                "metric_name": metric_name,
+                "canonical_field": canonical_field_text,
+                "expectation_type": "unexpected_actual_metric",
+                "expected_value": None,
+                "actual_value": actual_value,
+                "tolerance": 0.0,
+                "support_status": "unexpected_actual_metric",
+                "source_status": source_status.value,
+                "source_pdf_exists": source_pdf_exists,
+                "source_openability_is_correctness": False,
+                "evidence_available": _metric_key_has_evidence(
+                    actual_payload,
+                    metric_name,
+                    canonical_field_text,
+                ),
+                "expected_context": expected_context,
+                "actual_context": actual_context,
+                "result_class": result_class.value,
+                "extraction_correctness_status": _payload_correctness_status(
+                    result_class
+                ),
+                "score": _payload_score(result_class),
+                "reason": reason,
+                "tier": PRODUCTION_RELEVANCE_TIERS.get(
+                    canonical_field_text or metric_name, "DATA_MISSING"
+                ),
+                "recommendation": (
+                    "remove_unexpected_actual_metric_or_add_source_evidenced_policy"
+                ),
+                "contract_family": contract_row.get("family"),
+                "metric_contract_status": contract_row.get("status"),
+                "canonical_use_allowed": contract_row.get("canonical_use_allowed"),
+                "promotion_gate": contract_row.get("promotion_gate"),
+            }
+        )
+
+    return rows
+
+
 def _payload_result(
     expectation: CoverageExpectation,
     actual_payload: Mapping[str, Any] | None,
@@ -2481,6 +2638,44 @@ def _actual_metrics(payload: Mapping[str, Any] | None) -> Mapping[str, Any]:
     return raw_metrics if isinstance(raw_metrics, Mapping) else {}
 
 
+def _normalized_actual_metric_items(payload: Mapping[str, Any]) -> dict[str, Any]:
+    raw_metrics = _actual_metrics(payload)
+    normalized: dict[str, Any] = {}
+    for raw_metric, value in raw_metrics.items():
+        metric = str(raw_metric)
+        if metric in ACTUAL_PAYLOAD_NON_METRIC_KEYS:
+            continue
+        canonical = METRIC_NAME_MAP.get(metric, metric)
+        normalized[canonical] = value
+    return normalized
+
+
+def _expected_actual_metric_keys(
+    expectations: Iterable[CoverageExpectation],
+) -> set[str]:
+    keys: set[str] = set()
+    for expectation in expectations:
+        for metric in (expectation.metric_name, expectation.canonical_field):
+            if metric is None:
+                continue
+            keys.add(_normalise_metric_name(METRIC_NAME_MAP.get(metric, metric)))
+    return keys
+
+
+def _actual_metric_supplied_value(raw: Any) -> tuple[float | None, bool]:
+    if isinstance(raw, Mapping):
+        raw = raw.get("value")
+    if raw is None or isinstance(raw, bool):
+        return None, False
+    if isinstance(raw, (int, float)):
+        return float(raw), True
+    if isinstance(raw, str):
+        if not raw.strip():
+            return None, False
+        return None, True
+    return None, True
+
+
 def _actual_metric_value(
     payload: Mapping[str, Any] | None,
     expectation: CoverageExpectation,
@@ -2516,6 +2711,33 @@ def _metric_has_evidence(
     keys = [expectation.metric_name]
     if expectation.canonical_field is not None:
         keys.append(expectation.canonical_field)
+
+    metrics = _actual_metrics(payload)
+    for key in keys:
+        value = metrics.get(key)
+        if isinstance(value, Mapping) and _truthy_evidence(value.get("evidence")):
+            return True
+
+    for field in ("provenance", "evidence", "metric_evidence"):
+        evidence_map = payload.get(field)
+        if not isinstance(evidence_map, Mapping):
+            continue
+        for key in keys:
+            if _truthy_evidence(evidence_map.get(key)):
+                return True
+    return False
+
+
+def _metric_key_has_evidence(
+    payload: Mapping[str, Any] | None,
+    metric_name: str,
+    canonical_field: str | None,
+) -> bool:
+    if not isinstance(payload, Mapping):
+        return False
+    keys = {metric_name, METRIC_NAME_MAP.get(metric_name, metric_name)}
+    if canonical_field is not None:
+        keys.add(canonical_field)
 
     metrics = _actual_metrics(payload)
     for key in keys:

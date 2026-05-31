@@ -1,0 +1,75 @@
+{
+  "artifact_type": "agent_job_validation_v1",
+  "generated_at": "2026-05-31T06:52:17Z",
+  "job_id": "extraction_goal_proof_matrix_refresh_v3_20260531",
+  "validations": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_goal_proof_matrix_refresh_v3_20260531.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_goal_proof_matrix_refresh_v3_20260531.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_goal_proof_matrix_refresh_v3_20260531.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "gh pr view 125..129 and gh pr list --state open --limit 20",
+      "result": "pass",
+      "notes": "Read-only GitHub state refreshed. No GitHub mutation performed."
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_metric_ontology_bridge.py financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py financial-engine_v2/backend/tests/test_extraction_capability_guards.py financial-engine_v2/backend/tests/test_extraction_eval.py financial-engine_v2/backend/tests/test_extraction_eval_harness.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_review.py financial-engine_v2/backend/tests/test_extraction_review_service.py financial-engine_v2/backend/tests/test_extraction_run_observability.py financial-engine_v2/backend/tests/test_extraction_llm_separation.py financial-engine_v2/backend/tests/test_prose_shares_extraction.py financial-engine_v2/backend/tests/test_financial_metrics.py",
+      "result": "pass",
+      "notes": "388 passed, 1 deselected, 6 warnings."
+    },
+    {
+      "command": "curl -sS --max-time 2 -w '\\nHTTP_STATUS:%{http_code}\\n' http://127.0.0.1:8000/api/health",
+      "result": "blocked",
+      "notes": "Connection refused, HTTP_STATUS:000."
+    },
+    {
+      "command": "curl -sS --max-time 2 -w '\\nHTTP_STATUS:%{http_code}\\n' http://127.0.0.1:8000/api/queue/status",
+      "result": "blocked",
+      "notes": "Connection refused, HTTP_STATUS:000."
+    },
+    {
+      "command": "nvidia-smi --query-gpu=index,name,memory.used,memory.total --format=csv,noheader,nounits",
+      "result": "pass",
+      "notes": "GT 1030 1/2048 MiB, Tesla M40 0/24576 MiB."
+    },
+    {
+      "command": "scripts/gpu_process_guard.sh --check",
+      "result": "pass",
+      "notes": "Exit status 0."
+    },
+    {
+      "command": "source PDF stat probe for seven prior eligible candidates",
+      "result": "pass",
+      "notes": "All seven source PDFs are present."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_goal_proof_matrix_refresh_v3_20260531/objective_matrix.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_goal_proof_matrix_refresh_v3_20260531/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_goal_proof_matrix_refresh_v3_20260531/validation.json >/dev/null",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --name-only | rg '\\.(pdf|zip|tar|tgz|tar\\.gz|db|sqlite|duckdb|parquet|csv)$'",
+      "result": "pass",
+      "notes": "No changed raw PDF, archive, database, parquet, or CSV artifact paths."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_goal_proof_matrix_refresh_v3_20260531.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release extraction_goal_proof_matrix_refresh_v3_20260531 --repo-root .",
+      "result": "pass"
+    }
+  ]
+}

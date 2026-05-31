@@ -1,0 +1,122 @@
+{
+  "artifact_type": "runtime_approval_preflight_v1",
+  "generated_at": "2026-05-31T06:40:29Z",
+  "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-gate-v1-20260531",
+  "branch": "safe/extraction-metric-ontology-gate-v1-20260531",
+  "head": "925548f93c8c",
+  "origin_relation": {
+    "behind": 0,
+    "ahead": 3
+  },
+  "shared_baseline": {
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "behind_origin": 8,
+    "ahead_origin": 0,
+    "untracked": [
+      "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md"
+    ]
+  },
+  "backend_health": {
+    "url": "http://127.0.0.1:8000/api/health",
+    "reachable": false,
+    "http_status": "000",
+    "error": "curl failed to connect to 127.0.0.1 port 8000: Connection refused"
+  },
+  "queue_status": {
+    "url": "http://127.0.0.1:8000/api/queue/status",
+    "reachable": false,
+    "http_status": "000",
+    "error": "curl failed to connect to 127.0.0.1 port 8000: Connection refused"
+  },
+  "gpu": {
+    "nvidia_smi_succeeded": true,
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce GT 1030",
+        "memory_used_mib": 1,
+        "memory_total_mib": 2048
+      },
+      {
+        "index": 1,
+        "name": "Tesla M40 24GB",
+        "memory_used_mib": 0,
+        "memory_total_mib": 24576
+      }
+    ],
+    "compute_processes_reported": []
+  },
+  "gpu_process_guard": {
+    "command": "scripts/gpu_process_guard.sh --check",
+    "exit_status": 0
+  },
+  "process_probe": {
+    "notes": [
+      "Ollama serve is running.",
+      "Unrelated pytest and gh pr checks commands were observed outside this extraction task.",
+      "No uvicorn, celery, process/document, llama, run_local_backend, or gpu_worker process was observed by the extraction preflight probe."
+    ]
+  },
+  "source_pdf_probe": {
+    "all_present": true,
+    "candidates": [
+      {
+        "order": 1,
+        "ticker": "AAU",
+        "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+        "present": true,
+        "size_bytes": 1804699
+      },
+      {
+        "order": 2,
+        "ticker": "ATM",
+        "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+        "present": true,
+        "size_bytes": 4094864
+      },
+      {
+        "order": 3,
+        "ticker": "AM5",
+        "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+        "present": true,
+        "size_bytes": 1368198
+      },
+      {
+        "order": 4,
+        "ticker": "AQX",
+        "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+        "present": true,
+        "size_bytes": 2521397
+      },
+      {
+        "order": 5,
+        "ticker": "CRS",
+        "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+        "present": true,
+        "size_bytes": 1383745
+      },
+      {
+        "order": 6,
+        "ticker": "CLV",
+        "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+        "present": true,
+        "size_bytes": 232373
+      },
+      {
+        "order": 7,
+        "ticker": "CTM",
+        "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+        "present": true,
+        "size_bytes": 1761954
+      }
+    ]
+  },
+  "runtime_ready": false,
+  "blocking_reasons": [
+    "Backend health endpoint is not reachable.",
+    "Queue status endpoint is not reachable.",
+    "Loaded backend, worker, and gpu_worker code cannot be proven because runtime services are not reachable.",
+    "No current operator approval phrase authorizes runtime startup/reload or canary submission."
+  ],
+  "draft_execution_task_card": "docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md"
+}

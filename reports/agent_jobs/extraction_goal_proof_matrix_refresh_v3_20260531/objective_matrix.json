@@ -1,0 +1,206 @@
+{
+  "artifact_type": "extraction_goal_proof_matrix_v3",
+  "job_id": "extraction_goal_proof_matrix_refresh_v3_20260531",
+  "generated_at": "2026-05-31T06:49:58Z",
+  "generated_by": "Codex",
+  "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-gate-v1-20260531",
+  "branch": "safe/extraction-metric-ontology-gate-v1-20260531",
+  "head": "1bca673212b1",
+  "origin_baseline": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "origin_relation": {
+    "behind": 0,
+    "ahead": 4
+  },
+  "shared_baseline": {
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "head": "7ee06fbdad5f",
+    "behind_origin": 8,
+    "ahead_origin": 0,
+    "untracked": [
+      "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md"
+    ]
+  },
+  "goal_complete": false,
+  "runtime_mutation_performed": false,
+  "github_mutation_performed": false,
+  "canary_run": false,
+  "broad_backfill_run": false,
+  "datastore_mutation_performed": false,
+  "source_pdf_mutation_performed": false,
+  "objective_items": [
+    {
+      "item": 1,
+      "name": "Preserve And Publish The Current Truth-Gate Patch",
+      "status": "partial",
+      "evidence": [
+        "PR #129 is MERGED with lint-and-test SUCCESS and scan SUCCESS.",
+        "Isolated branch is based on origin/migration/clean-runtime-baseline-reconstruct-v1 and is 0 behind origin.",
+        "Closed PRs #125-#128 remain historical/stale and closed."
+      ],
+      "remaining": [
+        "Shared baseline worktree remains 8 commits behind origin.",
+        "No GitHub mutation was performed by this refresh."
+      ]
+    },
+    {
+      "item": 2,
+      "name": "Move Advisory Blocking Upstream Into Candidate Selection",
+      "status": "proven_for_current_baseline_scope",
+      "evidence": [
+        "Prior advisory candidate selection reports are preserved.",
+        "Current extraction evaluation lane passed after PR #129 baseline and metric-gate slice."
+      ],
+      "remaining": []
+    },
+    {
+      "item": 3,
+      "name": "Formalize Source Document Classification",
+      "status": "proven_for_current_baseline_scope",
+      "evidence": [
+        "Metric extraction contract documents source classification.",
+        "Current extraction evaluation lane passed."
+      ],
+      "remaining": []
+    },
+    {
+      "item": 4,
+      "name": "Implement Scale Policy V1",
+      "status": "proven_for_current_policy_slice",
+      "evidence": [
+        "Scale Policy V1 hardening is present in the origin baseline used by the isolated branch.",
+        "Current extraction evaluation lane passed."
+      ],
+      "remaining": [
+        "FX conversion remains outside this policy slice and is not implemented."
+      ]
+    },
+    {
+      "item": 5,
+      "name": "Harden Metric Ontology",
+      "status": "proven_for_current_eval_gate_scope",
+      "evidence": [
+        "Metric ontology gate slice is committed at fd65cef7.",
+        "Current extraction evaluation lane passed with metric ontology bridge and scorecard tests included.",
+        "Pre-persistence scorecard blocks unexpected actual metrics and noncanonical metric families in eval scope."
+      ],
+      "remaining": [
+        "Actual canary payloads have not yet exercised this gate.",
+        "Full graduation still needs runtime evidence."
+      ]
+    },
+    {
+      "item": 6,
+      "name": "Harden Period Semantics",
+      "status": "proven_for_current_aau_blocker_scope",
+      "evidence": [
+        "AAU period semantics hardening is present in the origin baseline used by the isolated branch.",
+        "Current extraction evaluation lane passed."
+      ],
+      "remaining": []
+    },
+    {
+      "item": 7,
+      "name": "Build A Real Gold/Eval Corpus From Canary Failures",
+      "status": "proven_for_current_local_eval_scope",
+      "evidence": [
+        "PR #129 is merged remotely and present in the isolated branch baseline.",
+        "Current extraction evaluation lane passed: 388 passed, 1 deselected, 6 warnings."
+      ],
+      "remaining": [
+        "Shared baseline worktree remains unsynced.",
+        "Future canary failures may still need new real-gold fixtures."
+      ]
+    },
+    {
+      "item": 8,
+      "name": "Add Pre-Persistence Scorecard Gates",
+      "status": "proven_as_report_local_eval_gate",
+      "evidence": [
+        "Pre-persistence scorecard gate is present and covered by current passing tests.",
+        "Metric gate slice extends the gate to unexpected actual-payload metrics."
+      ],
+      "remaining": [
+        "No current approved canary payload has been scored through the gate."
+      ]
+    },
+    {
+      "item": 9,
+      "name": "Run A Third Canary Only Under Approval",
+      "status": "blocked_before_canary",
+      "evidence": [
+        "Backend /api/health is unreachable: HTTP_STATUS 000.",
+        "Backend /api/queue/status is unreachable: HTTP_STATUS 000.",
+        "Direct nvidia-smi succeeds and shows Tesla M40 at 0 MiB used.",
+        "scripts/gpu_process_guard.sh --check exits 0.",
+        "All seven prior eligible source PDFs are present.",
+        "Draft approval-required runtime execution card exists with exact approval phrase."
+      ],
+      "remaining": [
+        "Operator must approve the exact runtime execution phrase.",
+        "Backend, queue, loaded-code, GPU, source-path, and registry gates must be re-proven after approved startup or reload.",
+        "Canary must submit at most one document at a time."
+      ]
+    },
+    {
+      "item": 10,
+      "name": "Graduate To Full Accurate Extraction",
+      "status": "not_proven",
+      "evidence": [],
+      "remaining": [
+        "Approved third canary has not run.",
+        "Actual payload scorecard gates have not passed.",
+        "Full extraction accuracy has not been proven across the broader graduation scope.",
+        "Shared baseline is not synced to the merged origin baseline."
+      ]
+    }
+  ],
+  "validation": {
+    "extraction_eval_lane": {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_metric_ontology_bridge.py financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py financial-engine_v2/backend/tests/test_extraction_capability_guards.py financial-engine_v2/backend/tests/test_extraction_eval.py financial-engine_v2/backend/tests/test_extraction_eval_harness.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_review.py financial-engine_v2/backend/tests/test_extraction_review_service.py financial-engine_v2/backend/tests/test_extraction_run_observability.py financial-engine_v2/backend/tests/test_extraction_llm_separation.py financial-engine_v2/backend/tests/test_prose_shares_extraction.py financial-engine_v2/backend/tests/test_financial_metrics.py",
+      "result": "388 passed, 1 deselected, 6 warnings"
+    },
+    "runtime": {
+      "api_health": {
+        "reachable": false,
+        "http_status": "000"
+      },
+      "queue_status": {
+        "reachable": false,
+        "http_status": "000"
+      },
+      "nvidia_smi": {
+        "succeeded": true,
+        "gpus": [
+          {
+            "index": 0,
+            "name": "NVIDIA GeForce GT 1030",
+            "memory_used_mib": 1,
+            "memory_total_mib": 2048
+          },
+          {
+            "index": 1,
+            "name": "Tesla M40 24GB",
+            "memory_used_mib": 0,
+            "memory_total_mib": 24576
+          }
+        ]
+      },
+      "gpu_process_guard_exit": 0,
+      "source_pdfs_present": true
+    }
+  },
+  "github_pr_state": {
+    "pr_125": "CLOSED draft unstable with historical lint-and-test and CodeQL failures",
+    "pr_126": "CLOSED draft unstable with historical lint-and-test failure",
+    "pr_127": "CLOSED draft conflicting with historical lint-and-test failure",
+    "pr_128": "CLOSED draft conflicting with historical lint-and-test failure",
+    "pr_129": "MERGED, lint-and-test SUCCESS, scan SUCCESS",
+    "pr_130": "OPEN non-draft, mergeable, lint-and-test SUCCESS, scan SUCCESS",
+    "pr_39": "OPEN draft, mergeable, lint-and-test SUCCESS, scan SUCCESS"
+  },
+  "next_safe_steps": [
+    "Do not run third canary until explicit runtime execution approval is provided.",
+    "Use docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md if operator approves runtime startup/reload and one-document-at-a-time canary submission.",
+    "Keep shared baseline sync/integration separate from runtime execution because the shared worktree has unrelated untracked Query Orchestration state."
+  ]
+}
