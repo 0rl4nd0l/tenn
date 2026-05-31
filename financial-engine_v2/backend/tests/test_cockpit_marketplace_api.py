@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -21,6 +22,12 @@ def _fake_service(tmp_path: Path) -> SimpleNamespace:
         state_store=state_store,
         artifact_store=SimpleNamespace(logs_dir=logs_dir),
     )
+
+
+def _recent_observed_at(idx: int) -> str:
+    return (
+        datetime.now(timezone.utc) - timedelta(days=5 - idx)
+    ).replace(microsecond=0).isoformat()
 
 
 def test_marketplace_api_supports_missions_matches_and_alerts(tmp_path, monkeypatch) -> None:
@@ -405,7 +412,7 @@ def test_marketplace_mission_link_product_and_value_context(
             {
                 "tracked_product_id": product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"api-value-{idx}",
                 "title": f"RTX 4070 Super 12GB listing {idx}",
                 "price": price,
@@ -582,7 +589,7 @@ def test_requirement_mission_uses_matched_candidate_for_value_context(
             {
                 "tracked_product_id": rtx_3090["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"rtx-3090-value-{idx}",
                 "title": f"RTX 3090 24GB listing {idx}",
                 "price": price,
@@ -683,7 +690,7 @@ def test_requirement_match_value_context_honors_resale_candidate_metadata(
             {
                 "tracked_product_id": product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"resale-api-{idx}",
                 "title": f"RTX 4070 Super 12GB listing {idx}",
                 "price": price,

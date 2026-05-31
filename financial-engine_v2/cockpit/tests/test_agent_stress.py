@@ -430,7 +430,7 @@ class TestMalformedJsonHandling:
         llm = _make_llm(plain_text)
 
         loop = AgentLoop(llm_client=llm)
-        result = loop.run("What is the revenue?")
+        result = loop.run("Reply with a plain-text status.")
 
         assert result.text == plain_text, (
             f"Expected plain text to be preserved as result.text, got: {result.text!r}"
@@ -628,8 +628,8 @@ class TestRapidSequentialMessages:
         results = []
 
         for i in range(10):
-            msg = f"Message number {i}: what is the revenue of TICKER{i}?"
-            response_text = f"Revenue for TICKER{i} is ${i * 100}M."
+            msg = f"Message number {i}: echo TOKEN{i}."
+            response_text = f"Independent response TOKEN{i}."
 
             llm = _make_llm(json.dumps({"type": "response", "content": response_text}))
             loop = AgentLoop(llm_client=llm)
@@ -640,7 +640,7 @@ class TestRapidSequentialMessages:
         assert len(results) == 10
 
         for i, result in enumerate(results):
-            expected = f"${i * 100}M"
+            expected = f"TOKEN{i}"
             assert expected in result.text, (
                 f"Run {i}: expected {expected!r} in text, got {result.text!r}"
             )
@@ -762,13 +762,13 @@ class TestMultipleToolCallSequences:
             '"explanation": "Run full analysis pipeline for NST.", "requires_confirmation": true}'
         )
         loop = AgentLoop(llm_client=llm)
-        result = loop.run("run analysis NST")
+        result = loop.run("please propose analysis for NST")
 
         assert result.action_preview is not None
         assert result.action_preview["tool"] == "run_analysis"
         assert result.action_preview["action_id"] == "run_analysis"
         assert result.action_preview["args"] == {"ticker": "NST"}
-        assert result.iterations_used == 0
+        assert result.iterations_used == 1
 
     def test_llm_exception_returns_error_result(self):
         """LLM communication failure returns a graceful error result, not a crash."""

@@ -33,6 +33,7 @@ class TestStreamingSubprocess:
         stderr_path = tmp_path / "err.log"
 
         exit_code, stdout_text, _ = _run_action_subprocess_streaming(
+            job_id="test-output-reaches-file",
             normalized_command=[sys.executable, str(script)],
             repo_root=tmp_path,
             action_env={},
@@ -62,6 +63,7 @@ class TestStreamingSubprocess:
         captured_lines: list[str] = []
 
         _run_action_subprocess_streaming(
+            job_id="test-progress-callback",
             normalized_command=[sys.executable, str(script)],
             repo_root=tmp_path,
             action_env={},
@@ -87,6 +89,7 @@ class TestStreamingSubprocess:
         stderr_path = tmp_path / "err.log"
 
         exit_code, _, stderr_text = _run_action_subprocess_streaming(
+            job_id="test-timeout-kills-process",
             normalized_command=[sys.executable, str(script)],
             repo_root=tmp_path,
             action_env={},
@@ -111,6 +114,7 @@ class TestStreamingSubprocess:
         stderr_path = tmp_path / "err.log"
 
         _run_action_subprocess_streaming(
+            job_id="test-stderr-captured",
             normalized_command=[sys.executable, str(script)],
             repo_root=tmp_path,
             action_env={},
@@ -129,6 +133,7 @@ class TestStreamingSubprocess:
         stderr_path = tmp_path / "err.log"
 
         exit_code, _, _ = _run_action_subprocess_streaming(
+            job_id="test-nonzero-exit",
             normalized_command=[sys.executable, str(script)],
             repo_root=tmp_path,
             action_env={},

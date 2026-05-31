@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -35,6 +36,12 @@ def _tracked_gpu(service: MarketplacePriceIntelligenceService) -> dict:
             "negative_terms": ["box only"],
         }
     )
+
+
+def _recent_observed_at(idx: int) -> str:
+    return (
+        datetime.now(timezone.utc) - timedelta(days=5 - idx)
+    ).replace(microsecond=0).isoformat()
 
 
 def test_price_observation_schema_adds_transactional_column_to_existing_table(
@@ -472,7 +479,7 @@ def test_benchmark_rollup_freshness_and_confidence_states(tmp_path: Path) -> Non
             {
                 "tracked_product_id": product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"listing-{idx}",
                 "title": f"RTX 4070 Super 12GB listing {idx}",
                 "price": price,
@@ -524,7 +531,7 @@ def test_match_value_assessment_uses_latest_snapshot_without_changing_match_scor
             {
                 "tracked_product_id": product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"value-{idx}",
                 "title": f"RTX 4070 Super 12GB listing {idx}",
                 "price": price,
@@ -567,7 +574,7 @@ def test_match_price_comparison_reports_used_and_retail_deltas(tmp_path: Path) -
             {
                 "tracked_product_id": product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"comparison-{idx}",
                 "title": f"RTX 4070 Super 12GB listing {idx}",
                 "price": price,
@@ -799,7 +806,7 @@ def test_value_assessment_reports_ambiguous_variant_and_retail_anchor_only(
             {
                 "tracked_product_id": product["tracked_product_id"],
                 "source": "facebook",
-                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "observed_at": _recent_observed_at(idx),
                 "source_listing_id": f"ambiguous-{idx}",
                 "title": f"RTX 4070 Super {idx}",
                 "price": price,
