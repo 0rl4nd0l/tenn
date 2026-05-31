@@ -1,14 +1,30 @@
 {
   "job_id": "extraction_integration_ready_publish_pr_v1_20260531",
-  "generated_at": "2026-05-31T07:09:20Z",
+  "generated_at": "2026-05-31T07:13:11Z",
   "branch": "integrate/extraction-metric-ontology-gate-v1-20260531",
   "worktree": "/home/l4nd0/tenn-extraction-integration-ready-v1-20260531",
   "repository": "0rl4nd0l/tenn",
   "base_branch": "migration/clean-runtime-baseline-reconstruct-v1",
   "head_before_publish_task": "687b912b74b9",
+  "base_after_rebase": "6caa3e72399b",
+  "integration_commit_after_rebase": "1962cc49",
+  "publish_commit_after_rebase": "631c32d09dd5",
+  "draft_pr": {
+    "number": 131,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/131",
+    "title": "[codex] prepare integration-ready metric gate branch",
+    "state": "OPEN",
+    "is_draft": true,
+    "mergeable": "MERGEABLE",
+    "merge_state_status": "UNSTABLE",
+    "checks_at_creation": {
+      "scan": "SUCCESS",
+      "lint-and-test": "IN_PROGRESS"
+    }
+  },
   "runtime_mutation": false,
   "github_mutation_allowed": "push_branch_and_open_draft_pr",
-  "github_mutation_performed": false,
+  "github_mutation_performed": true,
   "production_data_access": false,
   "checks": [
     {
@@ -50,14 +66,59 @@
       "command": "gh pr list --head integrate/extraction-metric-ontology-gate-v1-20260531 --state all --json number,title,state,isDraft,url,headRefName,baseRefName",
       "result": "passed",
       "summary": "No existing PR for the head branch."
+    },
+    {
+      "name": "base_advance_check",
+      "command": "git fetch origin migration/clean-runtime-baseline-reconstruct-v1 && git rev-list --left-right --count origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD && git log --oneline --decorate --left-right origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD",
+      "result": "passed",
+      "summary": "Base branch had advanced by PR #130; integration branch was rebased before PR creation."
+    },
+    {
+      "name": "rebase",
+      "command": "git rebase origin/migration/clean-runtime-baseline-reconstruct-v1",
+      "result": "passed",
+      "summary": "Resolved docs/claude/STATE.md by preserving both PR #130 and extraction integration notes."
+    },
+    {
+      "name": "post_rebase_focused_pytest",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -q financial-engine_v2/backend/tests/test_metric_ontology_bridge.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "passed",
+      "summary": "61 passed, 1 warning"
+    },
+    {
+      "name": "post_rebase_broader_extraction_eval_pytest",
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py financial-engine_v2/backend/tests/test_metric_ontology_bridge.py financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py financial-engine_v2/backend/tests/test_extraction_capability_guards.py financial-engine_v2/backend/tests/test_extraction_eval.py financial-engine_v2/backend/tests/test_extraction_eval_harness.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_api.py financial-engine_v2/backend/tests/test_confirmed_metric_coverage_review.py financial-engine_v2/backend/tests/test_extraction_review_service.py financial-engine_v2/backend/tests/test_extraction_run_observability.py financial-engine_v2/backend/tests/test_extraction_llm_separation.py financial-engine_v2/backend/tests/test_prose_shares_extraction.py financial-engine_v2/backend/tests/test_financial_metrics.py",
+      "result": "passed",
+      "summary": "388 passed, 1 deselected, 6 warnings"
+    },
+    {
+      "name": "push_branch",
+      "command": "git push --force-with-lease origin HEAD:integrate/extraction-metric-ontology-gate-v1-20260531",
+      "result": "passed",
+      "summary": "Remote branch force-updated after rebase."
+    },
+    {
+      "name": "open_draft_pr",
+      "command": "gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head integrate/extraction-metric-ontology-gate-v1-20260531 --title '[codex] prepare integration-ready metric gate branch' --body-file /tmp/extraction_metric_gate_pr_body.md",
+      "result": "passed",
+      "summary": "Opened https://github.com/0rl4nd0l/tenn/pull/131"
+    },
+    {
+      "name": "pr_view",
+      "command": "gh pr view 131 --json number,title,state,isDraft,url,headRefName,baseRefName,mergeStateStatus,mergeable,statusCheckRollup,updatedAt",
+      "result": "passed",
+      "summary": "PR #131 open draft, mergeable, scan success, lint-and-test in progress."
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_integration_ready_publish_pr_v1_20260531.md",
+      "result": "passed"
+    },
+    {
+      "name": "registry_release",
+      "command": "python3 scripts/agent_job_registry.py release extraction_integration_ready_publish_pr_v1_20260531 --repo-root .",
+      "result": "passed",
+      "summary": "status.json records released_at=2026-05-31T07:14:14.576578Z"
     }
-  ],
-  "pending_checks": [
-    "commit publish task evidence",
-    "push branch",
-    "open draft PR",
-    "capture PR URL",
-    "task-card check-diff",
-    "registry release"
   ]
 }
