@@ -14,7 +14,31 @@ import { toast } from 'sonner'
 import type { Job } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
 
-function getStatusIcon(status: Job['status']) {
+type HistoryRowKind = 'job_execution' | 'document_inventory' | 'queue_summary'
+
+interface HistoryRow {
+  id: string
+  action: string
+  args: Record<string, unknown>
+  status: Job['status']
+  startedAt: Date | null
+  completedAt?: Date | null
+  output?: string
+  error?: string
+  kind: HistoryRowKind
+  statusLabel?: string
+  canRerun: boolean
+}
+
+function getStatusIcon(job: HistoryRow) {
+  if (job.kind === 'document_inventory') {
+    return <History className="h-4 w-4 text-muted-foreground" />
+  }
+  if (job.kind === 'queue_summary') {
+    return <Clock className="h-4 w-4 text-muted-foreground" />
+  }
+
+  const status = job.status
   switch (status) {
     case 'completed':
       return <CheckCircle2 className="h-4 w-4 text-[oklch(0.65_0.2_145)]" />
@@ -27,7 +51,12 @@ function getStatusIcon(status: Job['status']) {
   }
 }
 
-function getStatusBadgeVariant(status: Job['status']): 'default' | 'secondary' | 'destructive' | 'outline' {
+function getStatusBadgeVariant(job: HistoryRow): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (job.kind !== 'job_execution') {
+    return 'outline'
+  }
+
+  const status = job.status
   switch (status) {
     case 'completed':
       return 'default'
@@ -40,7 +69,9 @@ function getStatusBadgeVariant(status: Job['status']): 'default' | 'secondary' |
   }
 }
 
-function formatDuration(startedAt: Date, completedAt?: Date): string {
+function formatDuration(startedAt: Date | null, completedAt?: Date | null): string {
+  if (!startedAt) return 'Unknown'
+
   const end = completedAt || new Date()
   const durationMs = end.getTime() - startedAt.getTime()
   
@@ -49,7 +80,9 @@ function formatDuration(startedAt: Date, completedAt?: Date): string {
   return `${Math.floor(durationMs / 60000)}m ${Math.floor((durationMs % 60000) / 1000)}s`
 }
 
-function formatTimeAgo(date: Date): string {
+function formatTimeAgo(date: Date | null): string {
+  if (!date) return 'DATA_MISSING'
+
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   
@@ -60,10 +93,10 @@ function formatTimeAgo(date: Date): string {
 }
 
 interface JobRowProps {
-  job: Job
+  job: HistoryRow
   isOpen: boolean
   onToggle: () => void
-  onRerun: (job: Job) => void
+  onRerun: (job: HistoryRow) => void
 }
 
 function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
@@ -92,9 +125,9 @@ function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            {getStatusIcon(job.status)}
-            <Badge variant={getStatusBadgeVariant(job.status)} className="text-[10px]">
-              {job.status}
+            {getStatusIcon(job)}
+            <Badge variant={getStatusBadgeVariant(job)} className="text-[10px]">
+              {job.statusLabel ?? job.status}
             </Badge>
           </div>
         </TableCell>
@@ -105,15 +138,19 @@ function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
           {formatDuration(job.startedAt, job.completedAt)}
         </TableCell>
         <TableCell>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={(e) => { e.stopPropagation(); onRerun(job); }}
-          >
-            <Play className="h-3 w-3 mr-1" />
-            Re-run
-          </Button>
+          {job.canRerun ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={(e) => { e.stopPropagation(); onRerun(job); }}
+            >
+              <Play className="h-3 w-3 mr-1" />
+              Re-run
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">Read-only</span>
+          )}
         </TableCell>
       </TableRow>
       {isOpen && (
@@ -143,7 +180,7 @@ function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
                 </div>
               )}
               <div className="flex gap-4 text-xs text-muted-foreground">
-                <span>Started: {job.startedAt.toLocaleString()}</span>
+                <span>Execution time: {job.startedAt ? job.startedAt.toLocaleString() : 'DATA_MISSING'}</span>
                 {job.completedAt && (
                   <span>Completed: {job.completedAt.toLocaleString()}</span>
                 )}
@@ -156,12 +193,33 @@ function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
   )
 }
 
-function mapDocumentToJob(doc: Record<string, unknown>, index: number): Job {
+function mapDocumentToHistoryRow(doc: Record<string, unknown>, index: number): HistoryRow {
   const id = (doc.id as string) ?? `doc-${index}`
   const title = (doc.title as string) ?? (doc.filename as string) ?? 'Unknown document'
-  const createdAt = doc.created_at ?? doc.createdAt ?? doc.uploaded_at
-  const startedAt = createdAt ? new Date(createdAt as string) : new Date()
+  const executionTimestamp = doc.created_at ?? doc.createdAt ?? doc.uploaded_at
+  const startedAt = parseTimestamp(executionTimestamp)
   const docStatus = (doc.status as string) ?? 'completed'
+  const baseArgs = {
+    title,
+    filename: doc.filename ?? title,
+    published_at: doc.published_at ?? null,
+    execution_timestamp: startedAt ? executionTimestamp : 'DATA_MISSING',
+  }
+
+  if (!startedAt) {
+    return {
+      id: String(id),
+      action: 'Document Inventory',
+      args: baseArgs,
+      status: 'pending',
+      startedAt: null,
+      completedAt: null,
+      output: `Document inventory only: ${title}. Execution timestamp DATA_MISSING.`,
+      kind: 'document_inventory',
+      statusLabel: 'inventory',
+      canRerun: false,
+    }
+  }
 
   let status: Job['status'] = 'completed'
   if (docStatus === 'failed' || docStatus === 'error') {
@@ -175,13 +233,22 @@ function mapDocumentToJob(doc: Record<string, unknown>, index: number): Job {
   return {
     id: String(id),
     action: 'document_ingestion',
-    args: { title, filename: doc.filename ?? title },
+    args: baseArgs,
     status,
     startedAt,
     completedAt: status === 'completed' || status === 'failed' ? startedAt : undefined,
     output: status === 'completed' ? `Ingested: ${title}` : undefined,
     error: status === 'failed' ? (doc.error as string) ?? 'Processing failed' : undefined,
+    kind: 'job_execution',
+    canRerun: true,
   }
+}
+
+function parseTimestamp(value: unknown): Date | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
 export function HistoryScreen() {
@@ -216,8 +283,8 @@ export function HistoryScreen() {
   })
 
   const jobs = useMemo(() => {
-    const docJobs: Job[] = Array.isArray(docs)
-      ? docs.map((d, i) => mapDocumentToJob(d as Record<string, unknown>, i))
+    const docJobs: HistoryRow[] = Array.isArray(docs)
+      ? docs.map((d, i) => mapDocumentToHistoryRow(d as Record<string, unknown>, i))
       : []
 
     // Merge queue-level counts as a summary row when no document-level data exists
@@ -226,11 +293,15 @@ export function HistoryScreen() {
       if (qs.pending > 0 || qs.active > 0 || qs.completed > 0 || qs.failed > 0) {
         docJobs.push({
           id: 'queue-summary',
-          action: 'queue_status',
+          action: 'Queue Snapshot',
           args: { pending: qs.pending, active: qs.active, completed: qs.completed, failed: qs.failed },
-          status: qs.active > 0 ? 'running' : 'completed',
-          startedAt: new Date(),
-          output: `Queue: ${qs.pending} pending, ${qs.active} active, ${qs.completed} completed, ${qs.failed} failed`,
+          status: qs.active > 0 ? 'running' : 'pending',
+          startedAt: null,
+          completedAt: null,
+          output: `Queue snapshot: ${qs.pending} pending, ${qs.active} active, ${qs.completed} completed, ${qs.failed} failed`,
+          kind: 'queue_summary',
+          statusLabel: qs.active > 0 ? 'active queue' : 'queue snapshot',
+          canRerun: false,
         })
       }
     }
@@ -240,15 +311,18 @@ export function HistoryScreen() {
   const loading = isLoadingDocs || isLoadingQueue
   const fetchError = isErrorDocs ? 'Failed to load document history.' : null
 
-  const runningJobs = jobs.filter(j => j.status === 'running')
-  const completedJobs = jobs.filter(j => j.status === 'completed')
-  const failedJobs = jobs.filter(j => j.status === 'failed')
+  const executionJobs = jobs.filter(j => j.kind === 'job_execution')
+  const runningJobs = executionJobs.filter(j => j.status === 'running')
+  const completedJobs = executionJobs.filter(j => j.status === 'completed')
+  const failedJobs = executionJobs.filter(j => j.status === 'failed')
 
   const toggleJob = (jobId: string) => {
     setExpandedJobId(prev => prev === jobId ? null : jobId)
   }
 
-  const handleRerun = useCallback(async (job: Job) => {
+  const handleRerun = useCallback(async (job: HistoryRow) => {
+    if (!job.canRerun) return
+
     try {
       toast.info(`Re-running job "${job.action}"...`)
       await rerunJob({
@@ -287,7 +361,7 @@ export function HistoryScreen() {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-mono font-semibold">{jobs.length}</p>
-                <p className="text-xs text-muted-foreground">Total Jobs</p>
+                <p className="text-xs text-muted-foreground">History Rows</p>
               </div>
             </CardContent>
           </Card>
@@ -295,7 +369,7 @@ export function HistoryScreen() {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-mono font-semibold text-primary">{runningJobs.length}</p>
-                <p className="text-xs text-muted-foreground">Running</p>
+                <p className="text-xs text-muted-foreground">Running Jobs</p>
               </div>
             </CardContent>
           </Card>
@@ -303,7 +377,7 @@ export function HistoryScreen() {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-mono font-semibold text-[oklch(0.65_0.2_145)]">{completedJobs.length}</p>
-                <p className="text-xs text-muted-foreground">Completed</p>
+                <p className="text-xs text-muted-foreground">Completed Jobs</p>
               </div>
             </CardContent>
           </Card>
@@ -311,7 +385,7 @@ export function HistoryScreen() {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-mono font-semibold text-[oklch(0.55_0.2_25)]">{failedJobs.length}</p>
-                <p className="text-xs text-muted-foreground">Failed</p>
+                <p className="text-xs text-muted-foreground">Failed Jobs</p>
               </div>
             </CardContent>
           </Card>
@@ -324,10 +398,10 @@ export function HistoryScreen() {
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <History className="h-5 w-5 text-primary" />
-                  Job History
+                  History
                 </CardTitle>
                 <CardDescription>
-                  View and manage past job executions
+                  View job executions and document inventory without inferred timestamps
                 </CardDescription>
               </div>
               <Button
@@ -351,7 +425,7 @@ export function HistoryScreen() {
             ) : jobs.length === 0 && !loading ? (
               <div className="text-center py-12 text-muted-foreground">
                 <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">No jobs have run yet. Run an update or verification job to see results here.</p>
+                <p className="text-sm">No execution or document history is available yet.</p>
                 <Button variant="outline" size="sm" className="mt-4" onClick={handleRefresh}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Load History
@@ -363,11 +437,11 @@ export function HistoryScreen() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[40px]"></TableHead>
-                      <TableHead className="w-[100px]">Job ID</TableHead>
-                      <TableHead>Action</TableHead>
+                      <TableHead className="w-[100px]">Record ID</TableHead>
+                      <TableHead>Record</TableHead>
                       <TableHead>Arguments</TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Started</TableHead>
+                      <TableHead className="w-[100px]">Execution Time</TableHead>
                       <TableHead className="w-[100px]">Duration</TableHead>
                       <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>

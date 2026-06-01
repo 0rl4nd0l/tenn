@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_history_timestamp_truth_v1_20260526.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_history_timestamp_truth_v1_20260526.md",
+    "reports/agent_jobs/cockpit_history_timestamp_truth_v1_20260526/README.md",
+    "reports/agent_jobs/cockpit_history_timestamp_truth_v1_20260526/status.json",
+    "reports/agent_jobs/cockpit_history_timestamp_truth_v1_20260526/validation.json",
+    "reports/agent_jobs/cockpit_history_timestamp_truth_v1_20260526/diff-check.json",
+    "cockpit-ui/components/cockpit/history/history-screen.tsx",
+    "cockpit-ui/components/cockpit/history/history-screen.test.tsx"
+  ],
+  "branch": "safe/reporting-history-timestamp-truth-v1-20260526",
+  "claimed_at": "2026-06-01T06:18:44.101889Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T06:18:44.101889Z",
+  "job_id": "cockpit_history_timestamp_truth_v1_20260526",
+  "lane": "Reporting",
+  "last_seen_at": "2026-06-01T06:27:05.217857Z",
+  "output_dir": "reports/agent_jobs/cockpit_history_timestamp_truth_v1_20260526",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T06:27:05.217857Z",
+  "repo_root": "/home/l4nd0/tenn-reporting-history-timestamp-truth-v1-20260526",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:4039418:cockpit_history_timestamp_truth_v1_20260526",
+  "started_at": "2026-06-01T06:18:44.101889Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_history_timestamp_truth_v1_20260526.md",
+  "updated_at": "2026-06-01T06:27:05.217857Z",
+  "worktree": "/home/l4nd0/tenn-reporting-history-timestamp-truth-v1-20260526"
+}
