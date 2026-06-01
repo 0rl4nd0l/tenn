@@ -1,32 +1,8 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/diff-check.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/next_repair_decision.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/parity_matrix.json",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],

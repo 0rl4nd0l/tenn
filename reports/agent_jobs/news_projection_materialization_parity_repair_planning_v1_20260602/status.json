@@ -1,7 +1,70 @@
 {
-  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/news_projection_materialization_parity_repair_planning_v1_20260602.json",
-  "agent": "Codex",
-  "allowed_files": [
+  "generated_at": "2026-06-02T01:56:44+10:00",
+  "issue": 83,
+  "job_id": "news_projection_materialization_parity_repair_planning_v1_20260602",
+  "lane": "Query Orchestration",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "worktree": "/home/l4nd0/tenn-news-projection-materialization-parity-repair-planning-v1-20260602",
+  "branch": "audit/news-projection-materialization-parity-repair-planning-v1-20260602",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "registry_released": true,
+  "no_mutation": true,
+  "summary": {
+    "canonical_contract": "reports/qual_context/news.sqlite is the single production news RAG DB.",
+    "current_live_artifact_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context",
+    "current_projection_state": "partial",
+    "root_cause_status": "canonical news.sqlite projection missing",
+    "selected_next_step": "separate approved projection materialization task",
+    "github_issue_status": "audit planning deliverable complete; product data repair not performed"
+  },
+  "read_only_evidence": {
+    "live_artifact_root_news_articles_sqlite": {
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite",
+      "exists": true,
+      "article_count": 225,
+      "a2m_like_article_count": 13,
+      "latest_published_at_utc": "2026-05-27T07:02:01Z"
+    },
+    "live_artifact_root_news_sqlite": {
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite",
+      "exists": false
+    },
+    "legacy_news_articles_sqlite": {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite",
+      "exists": true,
+      "article_count": 2983,
+      "a2m_like_article_count": 33,
+      "latest_published_at_utc": "2026-05-19T16:07:14Z",
+      "consumer_status": "not_current_consumer"
+    },
+    "legacy_news_sqlite": {
+      "path": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite",
+      "exists": true,
+      "context_chunk_count": 24096,
+      "a2m_like_context_chunk_count": 771,
+      "consumer_status": "not_current_consumer"
+    },
+    "live_services": {
+      "backend_8000": "connection_refused",
+      "next_3000": "connection_refused",
+      "qdrant_6333": "connection_refused"
+    },
+    "status_builder": {
+      "default_root_status": "partial",
+      "workspace_root_argument_status": "missing",
+      "live_probe_performed": false
+    }
+  },
+  "data_missing": [
+    "live_qdrant_news_chunks_count",
+    "live_backend_api_cockpit_news_status_payload",
+    "live_next_api_cockpit_news_status_payload",
+    "current_safe_chat_synthesis_proof",
+    "current_branch_nightly_news_status_artifact"
+  ],
+  "forbidden_mutations_performed": [],
+  "files_changed": [
     "docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
     "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/README.md",
     "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/status.json",
@@ -9,25 +72,5 @@
     "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/next_repair_decision.md",
     "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/validation.json",
     "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/diff-check.json"
-  ],
-  "branch": "audit/news-projection-materialization-parity-repair-planning-v1-20260602",
-  "claimed_at": "2026-06-01T15:54:33.108295Z",
-  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
-  "heartbeat_at": "2026-06-01T15:54:33.108295Z",
-  "job_id": "news_projection_materialization_parity_repair_planning_v1_20260602",
-  "lane": "Query Orchestration",
-  "last_seen_at": "2026-06-01T16:00:07.301618Z",
-  "output_dir": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602",
-  "owner": "Codex",
-  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
-  "registry_scope": "shared",
-  "released_at": "2026-06-01T16:00:07.301618Z",
-  "repo_root": "/home/l4nd0/tenn-news-projection-materialization-parity-repair-planning-v1-20260602",
-  "schema_version": 1,
-  "session_id": "l4nd0-System-Product-Name:1464607:news_projection_materialization_parity_repair_planning_v1_20260602",
-  "started_at": "2026-06-01T15:54:33.108295Z",
-  "status": "released",
-  "task_card": "docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
-  "updated_at": "2026-06-01T16:00:07.301618Z",
-  "worktree": "/home/l4nd0/tenn-news-projection-materialization-parity-repair-planning-v1-20260602"
+  ]
 }
