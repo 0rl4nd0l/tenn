@@ -1,0 +1,202 @@
+{
+  "backend_health_after_stop": {
+    "cmd": [
+      "curl",
+      "-sS",
+      "--max-time",
+      "2",
+      "http://127.0.0.1:8000/api/health"
+    ],
+    "exit_code": 7,
+    "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused\n",
+    "stdout": ""
+  },
+  "captured_at": "2026-06-01T06:30:59.902806+00:00",
+  "db_summary": {
+    "extraction_runs": [
+      {
+        "confidence_overall": 0.917,
+        "correction_reason": "year_ended_explicit_date",
+        "created_at": "2026-06-01 06:27:35",
+        "document_id": "035c67587aed41a69e84ad154125d431",
+        "error": null,
+        "run_id": "233900e716834ff4bdedabb68824c0e3",
+        "source_period_end": "2025-12-31",
+        "status": "ok"
+      }
+    ],
+    "financial_rows_for_source_document": [
+      {
+        "capex": -2123497,
+        "cash_end": 24577181,
+        "confidence_metrics": 0.917,
+        "currency": "AUD",
+        "ebit": -15111363,
+        "financing_cf": 22024529,
+        "investing_cf": -2167611,
+        "net_debt": null,
+        "np_attributable": -14308070,
+        "operating_cf": -13225929,
+        "period_end": "2025-12-31",
+        "period_start": null,
+        "period_type": "A",
+        "revenue": null,
+        "shares_outstanding": 562827818,
+        "source_document_id": "035c67587aed41a69e84ad154125d431",
+        "ticker": "CTM",
+        "updated_at": "2026-06-01 06:27:35"
+      }
+    ]
+  },
+  "final_summary": {
+    "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+    "error": null,
+    "extraction_status": "ok",
+    "failure_code": null,
+    "financial_rows_written": 1,
+    "persisted": true,
+    "reviewable_metrics_count": 8,
+    "risk_note_written": 0,
+    "run_id": "233900e7-1683-4ff4-bded-abb68824c0e3",
+    "written_points": 0
+  },
+  "final_verdict": "accepted",
+  "gpu_compute_apps": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-compute-apps=pid,process_name,gpu_uuid,used_memory",
+      "--format=csv,noheader,nounits"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gpu_memory_query": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-gpu=index,name,memory.used,memory.total,utilization.gpu",
+      "--format=csv,noheader,nounits"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048, 0\n1, Tesla M40 24GB, 0, 24576, 0\n"
+  },
+  "llama_lock": {
+    "exists": false,
+    "path": "/tmp/llama-server.lock"
+  },
+  "llama_models_after_stop": {
+    "cmd": [
+      "curl",
+      "-sS",
+      "--max-time",
+      "2",
+      "http://127.0.0.1:8001/v1/models"
+    ],
+    "exit_code": 7,
+    "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8001 after 0 ms: Connection refused\n",
+    "stdout": ""
+  },
+  "phase": "after_ctm_spaced_year_rerun_cleanup",
+  "ports_8000_8001": {
+    "cmd": [
+      "ss",
+      "-ltnp",
+      "( sport = :8000 or sport = :8001 )"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n"
+  },
+  "runtime_process_probe": {
+    "matches": []
+  },
+  "unit_is_active": {
+    "backend": {
+      "cmd": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "tenn-backend-ctm-spaced-20260601.service"
+      ],
+      "exit_code": 3,
+      "stderr": "",
+      "stdout": "inactive\n"
+    },
+    "llama_router": {
+      "cmd": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "tenn-llama-router-ctm-spaced-20260601.service"
+      ],
+      "exit_code": 3,
+      "stderr": "",
+      "stdout": "inactive\n"
+    },
+    "llm_gpu_worker": {
+      "cmd": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "tenn-llm-gpu-worker-ctm-spaced-20260601.service"
+      ],
+      "exit_code": 3,
+      "stderr": "",
+      "stdout": "inactive\n"
+    }
+  },
+  "unit_show": {
+    "backend": {
+      "cmd": [
+        "systemctl",
+        "--user",
+        "show",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "tenn-backend-ctm-spaced-20260601.service"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead\n"
+    },
+    "llama_router": {
+      "cmd": [
+        "systemctl",
+        "--user",
+        "show",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "tenn-llama-router-ctm-spaced-20260601.service"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead\n"
+    },
+    "llm_gpu_worker": {
+      "cmd": [
+        "systemctl",
+        "--user",
+        "show",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "tenn-llm-gpu-worker-ctm-spaced-20260601.service"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead\n"
+    }
+  }
+}

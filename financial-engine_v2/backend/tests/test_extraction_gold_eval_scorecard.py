@@ -99,6 +99,8 @@ def test_metric_name_mapping_is_deterministic_and_schema_supported():
     assert rows["operating_cash_flow"]["canonical_field"] == "operating_cf"
     assert rows["operating_cf"]["canonical_field"] == "operating_cf"
     assert rows["shares_outstanding"]["canonical_field"] == "shares_outstanding"
+    assert rows["cash"]["canonical_field"] == "cash_end"
+    assert rows["cash_and_cash_equivalents"]["canonical_field"] == "cash_end"
     assert rows["operating_cf"]["schema_supported"] is True
     assert rows["capex"]["evaluator_supported"] is True
     assert rows["net_debt"]["ambiguity_risk"].startswith("medium:")
@@ -597,6 +599,129 @@ def test_confirmed_payload_scorecard_abstains_or_quarantines_unscored_labels(tmp
     )
 
 
+def test_confirmed_payload_scorecard_quarantines_noncanonical_contract_aliases(
+    tmp_path,
+):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    cases = {
+        "total_equity_doc": ("total_equity", "shareholders_equity", 1.0),
+        "interest_doc": ("interest_expense", "interest_paid", 2.0),
+        "finance_doc": ("finance_costs", "finance_expense", 3.0),
+        "assets_doc": ("total_assets", "assets", 4.0),
+        "eps_doc": ("eps", "basic_eps", 0.1),
+        "debt_doc": ("debt_borrowings", "total_debt", 5.0),
+    }
+    _write_fixture(
+        fixtures_dir / "revenue.json",
+        _base_fixture(
+            document_id="revenue_doc",
+            metrics={"revenue": 100.0},
+            expected_nulls=[],
+        ),
+    )
+    for document_id, (metric_name, _actual_key, expected_value) in cases.items():
+        _write_fixture(
+            fixtures_dir / f"{document_id}.json",
+            _base_fixture(
+                document_id=document_id,
+                metrics={metric_name: expected_value},
+                expected_nulls=[],
+            ),
+        )
+
+    actual_payloads = {
+        "revenue_doc": {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "millions",
+            "metrics": {"revenue": 100.0},
+            "evidence": {"revenue": {"page": 1}},
+        }
+    }
+    for document_id, (_metric_name, actual_key, expected_value) in cases.items():
+        actual_payloads[document_id] = {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "millions",
+            "metrics": {actual_key: expected_value},
+            "evidence": {actual_key: {"page": 1}},
+        }
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        actual_payloads,
+        financial_engine_root=tmp_path,
+    )
+    by_doc = {row["document_id"]: row for row in scorecard["metric_results"]}
+
+    assert by_doc["revenue_doc"]["result_class"] == (
+        PayloadScoreStatus.PRESENT_CORRECT.value
+    )
+    for document_id, (_metric_name, _actual_key, expected_value) in cases.items():
+        row = by_doc[document_id]
+        assert row["result_class"] == (
+            PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value
+        )
+        assert row["actual_value"] == expected_value
+        assert row["evidence_available"] is True
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+    blocking_docs = {example["document_id"] for example in gate["blocking_examples"]}
+
+    assert gate["gate_status"] == "fail"
+    assert blockers[PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value] == len(cases)
+    assert set(cases) <= blocking_docs
+
+
+def test_confirmed_payload_scorecard_scores_safe_cash_alias(tmp_path):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "cash.json",
+        _base_fixture(
+            document_id="cash_doc",
+            metrics={"cash": 10.0},
+            expected_nulls=[],
+        ),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "cash_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"cash_and_cash_equivalents": 10.0},
+                "evidence": {"cash_and_cash_equivalents": {"page": 1}},
+            }
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    row = scorecard["metric_results"][0]
+    assert row["metric_name"] == "cash"
+    assert row["canonical_field"] == "cash_end"
+    assert row["support_status"] == CoverageSupportStatus.SCORED.value
+    assert row["result_class"] == PayloadScoreStatus.PRESENT_CORRECT.value
+    assert row["actual_value"] == 10.0
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    assert gate["gate_status"] == "pass"
+
+
 def test_pre_persistence_scorecard_gate_passes_correct_and_allowed_abstention(
     tmp_path,
 ):
@@ -738,12 +863,75 @@ def test_pre_persistence_scorecard_gate_blocks_bad_and_missing_actuals(tmp_path)
     assert blockers[PayloadScoreStatus.WRONG_PERIOD.value] == 1
     assert blockers[PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value] == 1
     assert blockers[PayloadScoreStatus.AMBIGUOUS_QUARANTINED.value] == 1
+    assert gate["blocking_document_count"] == 4
+    assert gate["missing_actual_document_count"] == 1
+    assert gate["missing_actual_document_ids"] == ["missing_actual_doc"]
+    summary_by_doc = {
+        row["document_id"]: row for row in gate["blocking_document_summary"]
+    }
+    assert summary_by_doc["missing_actual_doc"]["missing_actual_payload"] is True
+    assert summary_by_doc["missing_actual_doc"]["blocking_result_class_summary"] == {
+        PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value: 1
+    }
+    assert summary_by_doc["wrong_value_doc"]["blocking_result_class_summary"] == {
+        PayloadScoreStatus.PRESENT_WRONG_VALUE.value: 1
+    }
     assert {example["document_id"] for example in gate["blocking_examples"]} == {
         "ambiguous_doc",
         "missing_actual_doc",
         "wrong_period_doc",
         "wrong_value_doc",
     }
+
+
+def test_pre_persistence_scorecard_gate_blocks_unmatched_actual_payloads(tmp_path):
+    fixtures_dir = tmp_path / "fixtures"
+    fixtures_dir.mkdir()
+    pdf_path = tmp_path / "data" / "asx" / "docs" / "TEST" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    _write_fixture(
+        fixtures_dir / "confirmed.json",
+        _base_fixture(metrics={"revenue": 100.0}, expected_nulls=[]),
+    )
+
+    scorecard = build_confirmed_metric_payload_scorecard(
+        fixtures_dir,
+        {
+            "confirmed_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
+            "unmatched_doc": {
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "evidence": {"revenue": {"page": 1}},
+            },
+        },
+        financial_engine_root=tmp_path,
+    )
+
+    gate = build_pre_persistence_scorecard_gate(scorecard)
+    blockers = {blocker["code"]: blocker["count"] for blocker in gate["blockers"]}
+
+    assert scorecard["actual_payload_document_count"] == 2
+    assert scorecard["matched_actual_payload_document_count"] == 1
+    assert scorecard["matched_actual_payload_ids"] == ["confirmed_doc"]
+    assert scorecard["unmatched_actual_payload_document_count"] == 1
+    assert scorecard["unmatched_actual_payload_ids"] == ["unmatched_doc"]
+    assert gate["gate_status"] == "fail"
+    assert gate["unmatched_actual_payload_document_count"] == 1
+    assert gate["unmatched_actual_payload_ids"] == ["unmatched_doc"]
+    assert blockers["unmatched_actual_payload_documents"] == 1
+    assert gate["canonical_write_allowed"] is False
+    assert gate["broad_backfill_authorized"] is False
 
 
 def test_pre_persistence_scorecard_gate_blocks_without_actual_payloads(tmp_path):
@@ -767,6 +955,9 @@ def test_pre_persistence_scorecard_gate_blocks_without_actual_payloads(tmp_path)
 
     assert gate["gate_status"] == "fail"
     assert gate["actual_payload_supplied"] is False
+    assert gate["blocking_document_count"] == 1
+    assert gate["missing_actual_document_count"] == 1
+    assert gate["missing_actual_document_ids"] == ["confirmed_doc"]
     assert blockers["actual_payload_not_supplied"] == 1
     assert blockers[PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value] == 1
 

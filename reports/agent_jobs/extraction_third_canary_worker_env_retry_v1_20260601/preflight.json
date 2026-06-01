@@ -1,0 +1,320 @@
+{
+  "approval_packet": "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+  "backend_health": {
+    "json": {
+      "status": "ok"
+    },
+    "status_code": 200
+  },
+  "captured_at": "2026-06-01T05:19:21.468000+00:00",
+  "document_checks": [
+    {
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "document_key": "508fc892ae8845ec981fcd9e124c8375",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "annual",
+          "doc_subtype": "report",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+          "ticker": "AAU",
+          "title": "Annual Report and Full Year Statutory Accounts"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 1,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-06-01 05:09:20",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+          "run_id": "4793ba9785c04fde91443a9b24e866ca",
+          "status": "failed"
+        },
+        {
+          "created_at": "2026-05-31 11:47:54",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": null,
+          "run_id": "8b2649157d5942629bc5d68e00e512e3",
+          "status": "ok_low_confidence"
+        },
+        {
+          "created_at": "2026-05-31 09:50:57",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": null,
+          "run_id": "4d770cc666e54d389e031ff08f07254a",
+          "status": "ok_low_confidence"
+        },
+        {
+          "created_at": "2026-05-31 09:13:38",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": "[Errno 13] Permission denied: '/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.pymupdf.json'",
+          "run_id": "8e4368d52a924a7491e457b6323f329e",
+          "status": "parser_error"
+        }
+      ],
+      "source_path": "/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 1804699,
+      "ticker": "AAU"
+    },
+    {
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "document_key": "96e9aabd44dc4c2cbe8c74248a0a9025",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "annual",
+          "doc_subtype": "report",
+          "document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf",
+          "ticker": "ATM",
+          "title": "Full Year Statutory Accounts"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 2,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 09:59:49",
+          "document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+          "error": null,
+          "run_id": "97ed7aca327347d08216c9689b4d1d3a",
+          "status": "ok_low_confidence"
+        }
+      ],
+      "source_path": "/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 4094864,
+      "ticker": "ATM"
+    },
+    {
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "document_key": "aacc4c29308948cf8b828004134f9387",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "half_year",
+          "doc_subtype": "report",
+          "document_id": "aacc4c29308948cf8b828004134f9387",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf",
+          "ticker": "AM5",
+          "title": "Interim Financial Report - Half Year Ended 31 December 2025"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 3,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 10:02:56",
+          "document_id": "aacc4c29308948cf8b828004134f9387",
+          "error": null,
+          "run_id": "277dddef51164f9787190322bdaa92f0",
+          "status": "ok"
+        }
+      ],
+      "source_path": "/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 1368198,
+      "ticker": "AM5"
+    },
+    {
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "document_key": "0ed0104ff29a40688ff7370f14fead98",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "half_year",
+          "doc_subtype": "report",
+          "document_id": "0ed0104ff29a40688ff7370f14fead98",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf",
+          "ticker": "AQX",
+          "title": "HALF-YEAR FINANCIAL REPORT - 31 DECEMBER 2025"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 4,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 10:05:32",
+          "document_id": "0ed0104ff29a40688ff7370f14fead98",
+          "error": null,
+          "run_id": "8d32c5f33fbb45c5ade73254701b193a",
+          "status": "ok"
+        }
+      ],
+      "source_path": "/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 2521397,
+      "ticker": "AQX"
+    },
+    {
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "document_key": "b43a16fb76604bf796ab0db641cd4032",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "half_year",
+          "doc_subtype": "report",
+          "document_id": "b43a16fb76604bf796ab0db641cd4032",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf",
+          "ticker": "CRS",
+          "title": "Half Year Financial Report"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 5,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 10:09:01",
+          "document_id": "b43a16fb76604bf796ab0db641cd4032",
+          "error": null,
+          "run_id": "8097c92dc1264e0ba611838f462ec3c0",
+          "status": "ok"
+        }
+      ],
+      "source_path": "/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 1383745,
+      "ticker": "CRS"
+    },
+    {
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "document_key": "da9f9ea56596464faf145acf12f9b050",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+          "ticker": "CLV",
+          "title": "Clover 1H FY26 Results Announcement"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 6,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 10:51:36",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": null,
+          "run_id": "c057d26063dc4cf08025596cf93695cc",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 10:09:30",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": "validation_gate:insufficient_metrics:0",
+          "run_id": "e5cefa6c11a34e1faf150a5f21328071",
+          "status": "failed"
+        }
+      ],
+      "source_path": "/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 232373,
+      "ticker": "CLV"
+    },
+    {
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "document_key": "035c67587aed41a69e84ad154125d431",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+          "ticker": "CTM",
+          "title": "Financial Report 31 December 2025"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 7,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 11:51:59",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "feb20c6b28b048b69692c15e1d32ed20",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 11:20:51",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "f493fb094b554363a638be77fccac574",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 10:57:06",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "92bf4e7166dd422e9eb0e4a20fcf3234",
+          "status": "failed"
+        }
+      ],
+      "source_path": "/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+      "source_path_exists": true,
+      "source_size_bytes": 1761954,
+      "ticker": "CTM"
+    }
+  ],
+  "failed_gates": [],
+  "gpu_guard": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gpu_memory_query": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 10547, 24576"
+  },
+  "head_short": "201d7701",
+  "loaded_models": [
+    "model:qwen2.5-14b-instruct"
+  ],
+  "ok": true,
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 3
+    },
+    "redis_connected": true,
+    "total_queued": 3
+  },
+  "unit_status": {
+    "tenn-backend-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3848585\nActiveState=active\nSubState=running"
+    },
+    "tenn-llama-router-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3846184\nActiveState=active\nSubState=running"
+    },
+    "tenn-llm-gpu-worker-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3877057\nActiveState=active\nSubState=running"
+    }
+  },
+  "worker_ping": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online."
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "captured_at": "2026-06-01T12:46:18.427329+00:00",
+  "unit": "tenn-llama-router-broad-post-hardening-20260601.service",
+  "model": "model:qwen2.5-14b-instruct",
+  "steps": [
+    {
+      "name": "stop_existing_unit",
+      "result": {
+        "cmd": [
+          "systemctl",
+          "--user",
+          "stop",
+          "tenn-llama-router-broad-post-hardening-20260601.service"
+        ],
+        "exit_code": 5,
+        "stdout": "",
+        "stderr": "Failed to stop tenn-llama-router-broad-post-hardening-20260601.service: Unit tenn-llama-router-broad-post-hardening-20260601.service not loaded.\n"
+      }
+    },
+    {
+      "name": "reset_failed_unit",
+      "result": {
+        "cmd": [
+          "systemctl",
+          "--user",
+          "reset-failed",
+          "tenn-llama-router-broad-post-hardening-20260601.service"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Failed to reset failed state of unit tenn-llama-router-broad-post-hardening-20260601.service: Unit tenn-llama-router-broad-post-hardening-20260601.service not loaded.\n"
+      }
+    },
+    {
+      "name": "gpu_activity_start",
+      "result": {
+        "cmd": [
+          "financial-engine_v2/.venv/bin/python",
+          "scripts/gpu_activity_guard.py",
+          "start",
+          "--json",
+          "--ttl-seconds",
+          "7200",
+          "--reason",
+          "extraction_broad_robustness_post_hardening_sample_v1_20260601",
+          "--owner",
+          "Codex",
+          "--metadata",
+          "job_id=extraction_broad_robustness_post_hardening_sample_v1_20260601",
+          "--metadata",
+          "mode=report_only_broad_sample"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"snapshot\": {\"active\": true, \"active_runs\": [{\"activity_type\": \"gpu_exclusive\", \"expires_at\": 1780325178.5694041, \"expires_in_seconds\": 7199, \"host\": \"l4nd0-System-Product-Name\", \"mode\": \"report_only_broad_sample\", \"owner\": \"Codex\", \"reason\": \"extraction_broad_robustness_post_hardening_sample_v1_20260601\", \"started_at\": \"2026-06-01T12:46:18+00:00\", \"token\": \"2b95e9e8e37a4bda9ced243eeb7dc4f5\"}], \"expires_at\": 1780325178.5694041, \"expires_in_seconds\": 7199, \"kind\": \"gpu_exclusive_activity\", \"source\": \"redis\", \"token_count\": 1}, \"token\": \"2b95e9e8e37a4bda9ced243eeb7dc4f5\"}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "systemd_run_router",
+      "result": {
+        "cmd": [
+          "systemd-run",
+          "--user",
+          "--collect",
+          "--unit=tenn-llama-router-broad-post-hardening-20260601.service",
+          "--working-directory=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+          "/usr/bin/env",
+          "ALLOW_LLAMA_DURING_GPU_EXCLUSIVE=1",
+          "LLM_API_KEY=local-openai-key",
+          "LLAMA_SERVER_ROUTER_MODE=1",
+          "LLAMA_SERVER_PORT=8001",
+          "LLAMA_SERVER_PARALLEL=1",
+          "LLAMA_SERVER_HOST=127.0.0.1",
+          "bash",
+          "scripts/run_llama_server.sh"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Running as unit: tenn-llama-router-broad-post-hardening-20260601.service\n"
+      }
+    },
+    {
+      "name": "model_load",
+      "result": {
+        "cmd": [
+          "curl",
+          "-sS",
+          "-m",
+          "300",
+          "-H",
+          "Authorization: Bearer local-openai-key",
+          "-H",
+          "Content-Type: application/json",
+          "-d",
+          "{\"model\": \"model:qwen2.5-14b-instruct\"}",
+          "http://127.0.0.1:8001/models/load"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"success\":true}",
+        "stderr": ""
+      }
+    }
+  ],
+  "gpu_activity_token": "2b95e9e8e37a4bda9ced243eeb7dc4f5",
+  "router_ready_tail": [
+    {
+      "attempt": 1,
+      "exit_code": 7,
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8001 after 0 ms: Connection refused\n",
+      "stdout_prefix": ""
+    },
+    {
+      "attempt": 2,
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_prefix": "{\"data\":[{\"id\":\"Qwen3.5-35B-A3B-APEX-I-Compact\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780317980,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\""
+    }
+  ],
+  "model_loaded": true,
+  "model_checks_tail": [
+    {
+      "attempt": 1,
+      "loaded": false,
+      "summary": [
+        {
+          "id": "model:qwen2.5-14b-instruct",
+          "status": "loading"
+        }
+      ],
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "attempt": 2,
+      "loaded": true,
+      "summary": [
+        {
+          "id": "model:qwen2.5-14b-instruct",
+          "status": "loaded"
+        }
+      ],
+      "exit_code": 0,
+      "stderr": ""
+    }
+  ],
+  "systemctl_show": {
+    "cmd": [
+      "systemctl",
+      "--user",
+      "show",
+      "tenn-llama-router-broad-post-hardening-20260601.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ExecMainPID",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "--no-pager"
+    ],
+    "exit_code": 0,
+    "stdout": "MainPID=967462\nExecMainPID=967462\nActiveState=active\nSubState=running\n",
+    "stderr": ""
+  },
+  "gpu_guard_json_after_start": {
+    "cmd": [
+      "scripts/gpu_process_guard.sh",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n    {\"pid\": 967462, \"port\": \"8001\", \"model\": \"router-mode\", \"vram_mb\": 0, \"status\": \"AUTHORISED\"},\n    {\"pid\": 967560, \"port\": \"48253\", \"model\": \"qwen2.5-14b-instruct-q4_k_m.gguf\", \"vram_mb\": 10544, \"status\": \"AUTHORISED\"}\n  ]\n}\n",
+    "stderr": ""
+  },
+  "gpu_memory_after_start": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-gpu=index,name,memory.used,memory.total",
+      "--format=csv,noheader,nounits"
+    ],
+    "exit_code": 0,
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 10547, 24576\n",
+    "stderr": ""
+  },
+  "ok": true
+}

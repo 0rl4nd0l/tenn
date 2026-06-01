@@ -1,0 +1,63 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/issue98_current_branch_status_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue98_current_branch_status_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue98_current_branch_status_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue98_current_branch_status_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/issue98_current_branch_status_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue98_current_branch_status_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue98_current_branch_status_v1_20260602.md",
+        "reports/agent_jobs/issue98_current_branch_status_v1_20260602/README.md",
+        "reports/agent_jobs/issue98_current_branch_status_v1_20260602/status.json",
+        "reports/agent_jobs/issue98_current_branch_status_v1_20260602/validation.json",
+        "reports/agent_jobs/issue98_current_branch_status_v1_20260602/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_comment_targets": [
+        98
+      ],
+      "inspect_only_surfaces": [
+        "docs/agent_tasks/extraction_contract_parity_guard_v1_20260526.md",
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/**",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py"
+      ],
+      "job_id": "issue98_current_branch_status_v1_20260602",
+      "lane": "Financial Truth",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/issue98_current_branch_status_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

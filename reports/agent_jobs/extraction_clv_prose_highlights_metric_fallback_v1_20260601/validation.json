@@ -1,0 +1,32 @@
+{
+  "issues": [],
+  "metadata": {
+    "allowed_files": [
+      "docs/agent_tasks/extraction_clv_prose_highlights_metric_fallback_v1_20260601.md",
+      "docs/claude/STATE.md",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "reports/agent_jobs/extraction_clv_prose_highlights_metric_fallback_v1_20260601/README.md",
+      "reports/agent_jobs/extraction_clv_prose_highlights_metric_fallback_v1_20260601/status.json",
+      "reports/agent_jobs/extraction_clv_prose_highlights_metric_fallback_v1_20260601/validation.json",
+      "reports/agent_jobs/extraction_clv_prose_highlights_metric_fallback_v1_20260601/diff-check.json"
+    ],
+    "approval_required": true,
+    "github_mutation_allowed": "none",
+    "job_id": "extraction_clv_prose_highlights_metric_fallback_v1_20260601",
+    "lane": "Financial Truth",
+    "mutation_mode": "safe_extension",
+    "operator_approval_source": "Proceed after third-canary retry hard-stopped on CLV with validation_gate:insufficient_metrics:0; source text shows explicit prose-highlight metric facts and no tables.",
+    "output_dir": "reports/agent_jobs/extraction_clv_prose_highlights_metric_fallback_v1_20260601",
+    "owner": "Codex",
+    "production_data_access": false,
+    "related_issue": 96,
+    "requested_mutation_mode": "code_fix",
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance"
+    ],
+    "timeout_seconds": 14400
+  },
+  "ok": true
+}

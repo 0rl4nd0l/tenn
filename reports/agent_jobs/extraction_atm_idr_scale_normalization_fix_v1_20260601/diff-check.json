@@ -1,0 +1,68 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_atm_idr_scale_normalization_fix_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_atm_idr_scale_normalization_fix_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/diff-check.json"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_atm_idr_scale_normalization_fix_v1_20260601",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "User approved full production runtime necessary to complete the extraction goal; the immediately preceding bounded canary scorecard at e4a20c91 proved the remaining blocker is ATM scale quarantine.",
+      "output_dir": "reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "requested_mutation_mode": "atm_idr_scale_normalization_code_fix",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

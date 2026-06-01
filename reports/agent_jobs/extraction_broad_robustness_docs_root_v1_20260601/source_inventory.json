@@ -1,0 +1,15 @@
+{
+  "repo_local_docs_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/asx/docs",
+  "repo_local_financial_performance_pdf_count": 0,
+  "host_docs_root": "/data/asx/docs",
+  "host_financial_performance_pdf_count": 28633,
+  "resolved_docs_root": "/data/asx/docs",
+  "resolved_financial_performance_pdf_count": 28633,
+  "sample_resolved_source_paths": [
+    "data/asx/docs/10X/financial_performance/2025-12-09_financial-report-for-period-ended-30-june-2025_3f517fe5-7b78-46b5-b861-475f72e68bd1.pdf",
+    "data/asx/docs/10X/financial_performance/2025-12-09_financial-report-for-period-ended-30-june-2025_6fc76759-e4ad-4494-9450-df9b0f263e44.pdf",
+    "data/asx/docs/10X/financial_performance/2025-12-09_trading-policy_a7a55838-cc21-461d-a43e-1bf4af62f2eb.pdf",
+    "data/asx/docs/10X/financial_performance/2025-12-09_trading-policy_d0787a40-4b37-4018-bf29-cd9a-a03ea85f261.pdf",
+    "data/asx/docs/10X/financial_performance/2026-01-21_exceptional-results-up-to-5-42-g-t-au-256-g-t-ag-peak-view_057333db-9c11-416a-8986-753ca81f4c7b.pdf"
+  ]
+}

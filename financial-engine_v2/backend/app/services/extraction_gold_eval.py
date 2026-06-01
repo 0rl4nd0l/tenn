@@ -28,7 +28,7 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from app.services.extraction_eval import (
     ExtractionFixture,
@@ -184,8 +184,26 @@ def classify_real_gold_fixtures(
 def build_real_gold_scorecard(
     fixtures_dir: str | Path,
     extracted_payloads: dict[str, dict[str, Any]] | None = None,
+    document_ids: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     fixtures = load_real_gold_fixtures(fixtures_dir)
+    requested_document_ids = (
+        {str(document_id) for document_id in document_ids}
+        if document_ids is not None
+        else None
+    )
+    if requested_document_ids is not None:
+        fixtures = [
+            fixture
+            for fixture in fixtures
+            if fixture.document_id in requested_document_ids
+        ]
+        found_document_ids = {fixture.document_id for fixture in fixtures}
+        missing_document_ids = sorted(requested_document_ids - found_document_ids)
+        if missing_document_ids:
+            raise ValueError(
+                "real-gold fixture(s) missing: " + ", ".join(missing_document_ids)
+            )
     extracted_payloads = extracted_payloads or {}
     evaluations = classify_real_gold_fixtures(fixtures, extracted_payloads)
 

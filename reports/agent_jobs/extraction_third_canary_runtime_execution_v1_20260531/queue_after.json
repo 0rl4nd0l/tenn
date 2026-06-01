@@ -1,0 +1,53 @@
+{
+  "canary_stopped_early": true,
+  "captured_at": "2026-06-01T05:13:58.810303+00:00",
+  "cleanup": "canary-specific services intentionally left active for immediate bounded retry card; no additional documents submitted under this failed attempt",
+  "gpu_memory_query": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 10547, 24576"
+  },
+  "item_results": [
+    {
+      "db_financial_row_count_after": 1,
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+      "extraction_status": "failed",
+      "failure_code": "unknown",
+      "financial_rows_written": 0,
+      "order": 1,
+      "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+      "status": "failed",
+      "ticker": "AAU"
+    }
+  ],
+  "items_attempted": 1,
+  "items_not_submitted": 6,
+  "phase": "post_first_attempt_hard_stop",
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 3
+    },
+    "redis_connected": true,
+    "total_queued": 3
+  },
+  "stop_reason": "hard_failed:508fc892-ae88-45ec-981f-cd9e124c8375:failed",
+  "unit_status": {
+    "tenn-backend-canary-20260601.service": {
+      "exit_code": 0,
+      "is_active_stdout": "active"
+    },
+    "tenn-llama-router-canary-20260601.service": {
+      "exit_code": 0,
+      "is_active_stdout": "active"
+    },
+    "tenn-llm-gpu-worker-canary-20260601.service": {
+      "exit_code": 0,
+      "is_active_stdout": "active"
+    }
+  }
+}

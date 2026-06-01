@@ -1,0 +1,95 @@
+{
+  "backend_health": {
+    "json": {
+      "status": "ok"
+    },
+    "status_code": 200
+  },
+  "captured_at": "2026-06-01T06:07:09.116762+00:00",
+  "gpu_memory_query": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 3, 24576\n"
+  },
+  "head_short": "07f20ff3",
+  "models_probe": {
+    "qwen2_5_14b": [
+      {
+        "id": "model:qwen2.5-14b-instruct",
+        "status": "unloaded"
+      }
+    ],
+    "status_code": 200
+  },
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 9
+    },
+    "redis_connected": true,
+    "total_queued": 9
+  },
+  "runtime_config": {
+    "backend_port": 8000,
+    "database_url": "sqlite:////data/fe_local.db",
+    "docs_root": "/data/asx/docs",
+    "enable_embeddings": false,
+    "enable_extraction": true,
+    "enable_qdrant": false,
+    "extract_model": "qwen2.5-14b-instruct",
+    "llamacpp_url": "http://127.0.0.1:8001",
+    "ollama_url": "http://127.0.0.1:11434",
+    "task_mode": "celery",
+    "worker_concurrency": 1,
+    "worker_queue": "llm_gpu"
+  },
+  "unit_status": {
+    "backend": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3993032\nExecMainPID=3993032\nActiveState=active\nSubState=running\n"
+    },
+    "llama_router": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3991961\nExecMainPID=3991961\nActiveState=active\nSubState=running\n"
+    },
+    "llm_gpu_worker": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3994489\nExecMainPID=3994489\nActiveState=active\nSubState=running\n"
+    }
+  },
+  "unit_status_verbose": {
+    "backend": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "\u25cf tenn-backend-ctm-rerun-20260601.service - /usr/bin/env LOCAL_BACKEND_PROFILE=full DATA_ROOT=/data DATABASE_URL=sqlite:////data/fe_local.db DOCS_ROOT=/data/asx/docs TASK_MODE=celery AUTO_CREATE_TABLES=true ENABLE_EXTRACTION=true ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false ENABLE_MARKETINDEX_FALLBACK=false REDIS_URL=redis://127.0.0.1:6379/0 CELERY_BROKER_URL=redis://127.0.0.1:6379/0 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1 OLLAMA_URL=http://127.0.0.1:11434 EMBEDDING_URL=http://127.0.0.1:11434 LLAMACPP_URL=http://127.0.0.1:8001 LLM_URL=http://127.0.0.1:8001 EXTRACT_MODEL=qwen2.5-14b-instruct LLM_API_KEY=local-openai-key LOCAL_API_KEY=local-openai-key bash financial-engine_v2/scripts/run_local_backend.sh\n     Loaded: loaded (/run/user/1000/systemd/transient/tenn-backend-ctm-rerun-20260601.service; transient)\n  Transient: yes\n     Active: active (running) since Mon 2026-06-01 16:05:27 AEST; 1min 41s ago\n   Main PID: 3993032 (python)\n      Tasks: 18 (limit: 38309)\n     Memory: 231.0M\n        CPU: 3.988s\n     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/tenn-backend-ctm-rerun-20260601.service\n             \u2514\u25003993032 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1\n\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]:   warnings.warn(\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]: INFO:     Started server process [3993032]\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]: INFO:     Waiting for application startup.\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]: WARNING: embeddings disabled - RAG functionality will be limited\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]: backend.session_memory: OpenViking init failed \u2014 running stateless. Root cause: ModuleNotFoundError: No module named 'openviking'\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]: INFO:     Application startup complete.\nJun 01 16:05:30 l4nd0-System-Product-Name env[3993032]: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)\nJun 01 16:05:33 l4nd0-System-Product-Name env[3993032]: INFO:     127.0.0.1:53680 - \"GET /api/health HTTP/1.1\" 200 OK\nJun 01 16:07:08 l4nd0-System-Product-Name env[3993032]: INFO:     127.0.0.1:49068 - \"GET /api/health HTTP/1.1\" 200 OK\nJun 01 16:07:08 l4nd0-System-Product-Name env[3993032]: INFO:     127.0.0.1:49072 - \"GET /api/queue/status HTTP/1.1\" 200 OK\n"
+    },
+    "llama_router": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "\u25cf tenn-llama-router-ctm-rerun-20260601.service - /usr/bin/env LLM_API_KEY=local-openai-key LLAMA_SERVER_ROUTER_MODE=1 LLAMA_SERVER_PORT=8001 scripts/run_llama_server.sh\n     Loaded: loaded (/run/user/1000/systemd/transient/tenn-llama-router-ctm-rerun-20260601.service; transient)\n  Transient: yes\n     Active: active (running) since Mon 2026-06-01 16:05:10 AEST; 1min 58s ago\n   Main PID: 3991961 (llama-server)\n      Tasks: 15 (limit: 38309)\n     Memory: 10.0M\n        CPU: 321ms\n     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/tenn-llama-router-ctm-rerun-20260601.service\n             \u2514\u25003991961 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server --main-gpu 0 --threads 4 --host 0.0.0.0 --port 8001 --spec-type ngram-simple --models-dir /mnt/tenn-nvme2/tenn/models --models-max 1 --models-preset /home/l4nd0/.config/tenn/llamacpp-presets.ini --no-mmap --api-key local-openai-key --parallel 1\n\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: srv   load_models:   * model:qwen2.5-14b-instruct\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: srv   load_models:   * model:qwen3-14b\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: srv   load_models:   * model:qwen3.5-35b-a3b\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: srv   load_models:   * model:qwen3.5-35b-a3b-apex\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: srv   load_models:     qwen2.5-14b-instruct-q4_k_m\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: main: starting router server, no model will be loaded in this process\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: start: binding port with default address family\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: main: router server is listening on http://0.0.0.0:8001\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: main: NOTE: router mode is experimental\nJun 01 16:05:10 l4nd0-System-Product-Name env[3991961]: main:       it is not recommended to use this mode in untrusted environments\n"
+    },
+    "llm_gpu_worker": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "\u25cf tenn-llm-gpu-worker-ctm-rerun-20260601.service - /usr/bin/env DATA_ROOT=/data DATABASE_URL=sqlite:////data/fe_local.db DOCS_ROOT=/data/asx/docs TASK_MODE=celery AUTO_CREATE_TABLES=true ENABLE_EXTRACTION=true ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false ENABLE_MARKETINDEX_FALLBACK=false REDIS_URL=redis://127.0.0.1:6379/0 CELERY_BROKER_URL=redis://127.0.0.1:6379/0 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1 OLLAMA_URL=http://127.0.0.1:11434 EMBEDDING_URL=http://127.0.0.1:11434 LLAMACPP_URL=http://127.0.0.1:8001 LLM_URL=http://127.0.0.1:8001 EXTRACT_MODEL=qwen2.5-14b-instruct LLM_API_KEY=local-openai-key LOCAL_API_KEY=local-openai-key bash -lc cd financial-engine_v2 && source .venv/bin/activate && export PYTHONPATH=\"$PWD/backend\" && exec celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu --hostname=tenn-llm-gpu-ctm-rerun@%h\n     Loaded: loaded (/run/user/1000/systemd/transient/tenn-llm-gpu-worker-ctm-rerun-20260601.service; transient)\n  Transient: yes\n     Active: active (running) since Mon 2026-06-01 16:05:44 AEST; 1min 24s ago\n   Main PID: 3994489 (celery)\n      Tasks: 2 (limit: 38309)\n     Memory: 193.8M\n        CPU: 2.738s\n     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/tenn-llm-gpu-worker-ctm-rerun-20260601.service\n             \u251c\u25003994489 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu --hostname=tenn-llm-gpu-ctm-rerun@%h\n             \u2514\u25003994620 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu --hostname=tenn-llm-gpu-ctm-rerun@%h\n\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]:   warnings.warn(\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]: [2026-06-01 16:05:46,680: INFO/MainProcess] Connected to redis://127.0.0.1:6379/0\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]: [2026-06-01 16:05:46,681: WARNING/MainProcess] /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]: whether broker connection retries are made during startup in Celery 6.0 and above.\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]: If you wish to retain the existing behavior for retrying connections on startup,\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]: you should set broker_connection_retry_on_startup to True.\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]:   warnings.warn(\nJun 01 16:05:46 l4nd0-System-Product-Name env[3994489]: [2026-06-01 16:05:46,681: INFO/MainProcess] mingle: searching for neighbors\nJun 01 16:05:47 l4nd0-System-Product-Name env[3994489]: [2026-06-01 16:05:47,686: INFO/MainProcess] mingle: all alone\nJun 01 16:05:47 l4nd0-System-Product-Name env[3994489]: [2026-06-01 16:05:47,692: INFO/MainProcess] tenn-llm-gpu-ctm-rerun@l4nd0-System-Product-Name ready.\n"
+    }
+  },
+  "worker_env_evidence": {
+    "EMBEDDING_URL": "http://127.0.0.1:11434",
+    "EXTRACT_MODEL": "qwen2.5-14b-instruct",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "OLLAMA_URL": "http://127.0.0.1:11434"
+  },
+  "worker_ping": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-ctm-rerun@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online.\n"
+  }
+}

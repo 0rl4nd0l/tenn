@@ -1,0 +1,23 @@
+{
+  "job_id": "issue98_current_branch_status_v1_20260602",
+  "issue": 98,
+  "status": "CLOSED_AUDIT_WITH_FOLLOWUPS",
+  "decision": "READY_TO_CLOSE_AUDIT_WITH_FOLLOWUPS",
+  "lane": "Financial Truth",
+  "execution_mode": "AUDIT_MODE_CLOSEOUT",
+  "forbidden_surfaces_changed": false,
+  "registry": {
+    "claimed": true,
+    "released": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "followups": [
+    "https://github.com/0rl4nd0l/tenn/issues/97",
+    "https://github.com/0rl4nd0l/tenn/issues/99"
+  ],
+  "reviewer_verdict": "READY_TO_CLOSE_AUDIT_WITH_FOLLOWUPS",
+  "github_status_comment": "https://github.com/0rl4nd0l/tenn/issues/98#issuecomment-4594821190",
+  "github_closeout_comment": "https://github.com/0rl4nd0l/tenn/issues/98#issuecomment-4594844771",
+  "github_closed": true
+}

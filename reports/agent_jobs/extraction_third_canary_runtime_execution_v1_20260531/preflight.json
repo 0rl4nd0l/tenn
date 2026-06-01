@@ -1,0 +1,82 @@
+{
+  "approval_packet": "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+  "approved_document_ids": [
+    "508fc892-ae88-45ec-981f-cd9e124c8375",
+    "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+    "aacc4c29-3089-48cf-8b82-8004134f9387",
+    "0ed0104f-f29a-4068-8ff7-370f14fead98",
+    "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+    "da9f9ea5-6596-464f-af14-5acf12f9b050",
+    "035c6758-7aed-41a6-9e84-ad154125d431"
+  ],
+  "backend_health": {
+    "json": {
+      "status": "ok"
+    },
+    "ok": true,
+    "raw": "{\"status\":\"ok\"}",
+    "status": 200
+  },
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "generated_at": "2026-06-01T05:07:41.143383Z",
+  "git_status_short_branch": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [ahead 7]\n?? docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md\n",
+  "gpu_guard": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "\nexit:0\n"
+  },
+  "head": "cf1bdcf48b2ac9a1a9c7bd46be7688b445491f39",
+  "llama_models_probe_ok": true,
+  "llama_models_qwen_status": [
+    {
+      "id": "model:qwen2.5-14b-instruct",
+      "status": "loaded"
+    },
+    {
+      "id": "qwen2.5-14b-instruct-q4_k_m",
+      "status": "unloaded"
+    }
+  ],
+  "nvidia_smi_compute": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "3850313, /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server, 10544\n"
+  },
+  "nvidia_smi_gpus": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "NVIDIA GeForce GT 1030, 1, 2048\nTesla M40 24GB, 10547, 24576\n"
+  },
+  "queue_status": {
+    "json": {
+      "queues": {
+        "embed": 0,
+        "ingest": 0,
+        "llm_cpu": 0,
+        "llm_gpu": 0,
+        "score": 3
+      },
+      "redis_connected": true,
+      "total_queued": 3
+    },
+    "ok": true,
+    "raw": "{\"redis_connected\":true,\"queues\":{\"ingest\":0,\"embed\":0,\"score\":3,\"llm_gpu\":0,\"llm_cpu\":0},\"total_queued\":3}",
+    "status": 200
+  },
+  "redis_queue_lengths": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "ingest 0\nembed 0\nscore 3\nllm_gpu 0\nllm_cpu 0\n"
+  },
+  "task_card": "docs/agent_tasks/extraction_third_canary_runtime_execution_v1_20260531.md",
+  "worker_active_reserved_scheduled": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "== active ==\n->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n== reserved ==\n->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n== scheduled ==\n->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n"
+  },
+  "worker_ping": {
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online.\n"
+  }
+}

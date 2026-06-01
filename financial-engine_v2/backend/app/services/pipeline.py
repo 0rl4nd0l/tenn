@@ -42,6 +42,7 @@ from app.services.llm import embed_texts, generate_json, get_routing_decision
 from app.services.multipass_extraction import (
     run_multipass_extraction,
     EXTRACTOR_VERSION,
+    METRIC_FIELDS,
     PROMPT_HASH,
     parse_period_end,
 )
@@ -1136,7 +1137,11 @@ def _upsert_financial_rows(db, doc, structured):
             )
             db.add(row)
 
-        for field in [
+        # Storage accepts only final extractor-output metrics. Persisted-only
+        # columns such as total_equity and interest_expense must remain
+        # policy-gated until they are promoted into METRIC_FIELDS and the
+        # evaluator contract.
+        supported_metric_fields = [
             "revenue",
             "ebit",
             "np_attributable",
@@ -1147,9 +1152,10 @@ def _upsert_financial_rows(db, doc, structured):
             "cash_end",
             "net_debt",
             "shares_outstanding",
-            "total_equity",
-            "interest_expense",
-        ]:
+        ]
+        if set(supported_metric_fields) != set(METRIC_FIELDS):
+            raise RuntimeError("metric_contract_mismatch: storage upsert field drift")
+        for field in supported_metric_fields:
             setattr(row, field, _coerce_float(metrics.get(field, None)))
         row.source_document_id = doc.document_id
         row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))

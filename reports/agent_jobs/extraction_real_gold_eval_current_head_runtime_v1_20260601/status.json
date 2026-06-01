@@ -1,0 +1,51 @@
+{
+  "eval_result": {
+    "canonical": true,
+    "context_accuracy": 0.9333333333333333,
+    "correct_count": 34,
+    "failed_documents": [
+      "14d_q_2021-03-31",
+      "29m_a_2025-12-31",
+      "a2m_h_2025-12-31"
+    ],
+    "kpi_eligible": true,
+    "total_accuracy": 0.8717948717948718,
+    "total_documents": 15,
+    "total_metric_checks": 39,
+    "trust_distribution": {
+      "abstain": 2,
+      "quarantine": 1,
+      "trusted": 12
+    },
+    "trust_matches_expected": 12
+  },
+  "execution_mode": "safe_extension_runtime_eval",
+  "external_review_artifacts": {
+    "after_file_count": 1183,
+    "after_session_json_count": 7,
+    "after_snippet_file_count": 43,
+    "before_file_count": 1162,
+    "before_session_json_count": 5,
+    "before_snippet_file_count": 24
+  },
+  "finished_at": "2026-06-01T10:04:00Z",
+  "full_extraction_goal_complete": false,
+  "goal_scope": "backend real-gold eval current HEAD",
+  "head": "8728158d34b0",
+  "job_id": "extraction_real_gold_eval_current_head_runtime_v1_20260601",
+  "lane": "Financial Truth",
+  "notes": [
+    "This runtime eval is a broader proof step after the seven-document canary and source-path resolver fix.",
+    "It is not a broad ticker-universe backfill and does not by itself prove full extraction graduation.",
+    "Canonical real-gold eval still has three residual trusted-fixture mismatches."
+  ],
+  "registry_released": true,
+  "runtime_shutdown": {
+    "gpu_activity_cleared": true,
+    "m40_memory_after_mib": 0,
+    "ok": true,
+    "ports_8000_8001_closed": true
+  },
+  "started_at": "2026-06-01T09:16:47Z",
+  "status": "complete_with_residual_blockers"
+}

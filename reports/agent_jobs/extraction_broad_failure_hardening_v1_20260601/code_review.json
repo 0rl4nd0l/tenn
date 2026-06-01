@@ -1,0 +1,42 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Review scope is limited to the current working-tree diff for the active task card.",
+      "Runtime extraction, datastore writes, source-PDF mutation, and GitHub mutation are out of scope for this slice."
+    ],
+    "sources_used": [
+      "git diff -- financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "docs/architecture/SYSTEM_CONTRACT.md",
+      "docs/agent_tasks/extraction_broad_failure_hardening_v1_20260601.md"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "financial-engine_v2/scripts/broad_extraction_test.py",
+      "financial-engine_v2/scripts/test_broad_extraction_test.py"
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "financial-engine_v2/scripts/broad_extraction_test.py",
+      "financial-engine_v2/scripts/test_broad_extraction_test.py"
+    ],
+    "validation_checks": [
+      "Focused multipass/broad helper pytest: 6 passed, 187 deselected",
+      "Full touched test files: 193 passed",
+      "Adjacent advisory pre-canary pytest: 2 passed, 14 deselected",
+      "Adjacent terminal candidate manifest pytest: 5 passed, 27 deselected",
+      "Ruff on touched Python files: passed",
+      "py_compile on touched Python files: passed",
+      "git diff --check: passed",
+      "No-runtime exact failure filename probe: GTE and CAF retained; ARL, HNG, TLS excluded",
+      "No-runtime /data/asx/docs inventory probe: 28633 input, 26462 candidates, 2171 excluded"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}

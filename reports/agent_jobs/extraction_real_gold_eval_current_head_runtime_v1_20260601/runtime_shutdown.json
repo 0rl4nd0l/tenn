@@ -1,0 +1,298 @@
+{
+  "commands": {
+    "clear_gpu_activity": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "clear",
+        "984262d2cfdb48408a1b6274af09458c"
+      ],
+      "duration_seconds": 0.181,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "gpu_activity_after_clear": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "duration_seconds": 0.18,
+      "json": {
+        "active": false,
+        "active_runs": [],
+        "expires_at": null,
+        "expires_in_seconds": 0,
+        "kind": "gpu_exclusive_activity",
+        "source": "none",
+        "token_count": 0
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n"
+    },
+    "gpu_activity_before_stop": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "duration_seconds": 0.24,
+      "json": {
+        "active": true,
+        "active_runs": [
+          {
+            "activity_type": "gpu_exclusive",
+            "expires_at": 1780319987.72064,
+            "expires_in_seconds": 11749,
+            "host": "l4nd0-System-Product-Name",
+            "mode": "real_gold_eval",
+            "owner": "Codex",
+            "reason": "extraction_real_gold_eval_current_head_runtime_v1_20260601",
+            "started_at": "2026-06-01T09:19:47+00:00",
+            "token": "984262d2cfdb48408a1b6274af09458c"
+          }
+        ],
+        "expires_at": 1780319987.72064,
+        "expires_in_seconds": 11749,
+        "kind": "gpu_exclusive_activity",
+        "source": "redis",
+        "token_count": 1
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": true, \"active_runs\": [{\"activity_type\": \"gpu_exclusive\", \"expires_at\": 1780319987.72064, \"expires_in_seconds\": 11749, \"host\": \"l4nd0-System-Product-Name\", \"mode\": \"real_gold_eval\", \"owner\": \"Codex\", \"reason\": \"extraction_real_gold_eval_current_head_runtime_v1_20260601\", \"started_at\": \"2026-06-01T09:19:47+00:00\", \"token\": \"984262d2cfdb48408a1b6274af09458c\"}], \"expires_at\": 1780319987.72064, \"expires_in_seconds\": 11749, \"kind\": \"gpu_exclusive_activity\", \"source\": \"redis\", \"token_count\": 1}\n"
+    },
+    "gpu_compute_apps": {
+      "argv": [
+        "nvidia-smi",
+        "--query-compute-apps=pid,process_name,used_memory",
+        "--format=csv,noheader,nounits"
+      ],
+      "duration_seconds": 0.023,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "gpu_guard_after": {
+      "argv": [
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "duration_seconds": 0.048,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "gpu_memory_after": {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,memory.total",
+        "--format=csv,noheader,nounits"
+      ],
+      "duration_seconds": 0.021,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n"
+    },
+    "health_before_stop": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "3",
+        "--max-time",
+        "5",
+        "http://127.0.0.1:8000/api/health"
+      ],
+      "duration_seconds": 0.007,
+      "json": {
+        "status": "ok"
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "ports_after_stop": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 )"
+      ],
+      "duration_seconds": 0.023,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n"
+    },
+    "ports_before_stop": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 )"
+      ],
+      "duration_seconds": 0.027,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                  \nLISTEN 0      512        127.0.0.1:8001      0.0.0.0:*    users:((\"llama-server\",pid=399396,fd=8))\nLISTEN 0      2048         0.0.0.0:8000      0.0.0.0:*    users:((\"python\",pid=399516,fd=17))     \n"
+    },
+    "ports_wait_1": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 )"
+      ],
+      "duration_seconds": 0.024,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n"
+    },
+    "queue_after": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        "20",
+        "-H",
+        "X-API-Key: local-openai-key",
+        "http://127.0.0.1:8000/api/queue/status"
+      ],
+      "duration_seconds": 0.009,
+      "json": {
+        "queues": {
+          "embed": 0,
+          "ingest": 0,
+          "llm_cpu": 0,
+          "llm_gpu": 0,
+          "score": 26
+        },
+        "redis_connected": true,
+        "total_queued": 26
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"redis_connected\":true,\"queues\":{\"ingest\":0,\"embed\":0,\"score\":26,\"llm_gpu\":0,\"llm_cpu\":0},\"total_queued\":26}"
+    },
+    "show_backend": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-backend-realgold-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "duration_seconds": 0.006,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nResult=success\nExecMainPID=0\nId=tenn-backend-realgold-20260601.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n"
+    },
+    "show_router": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-llama-router-realgold-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "duration_seconds": 0.007,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nResult=success\nExecMainPID=0\nId=tenn-llama-router-realgold-20260601.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n"
+    },
+    "stop_backend": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "stop",
+        "tenn-backend-realgold-20260601.service"
+      ],
+      "duration_seconds": 1.073,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "stop_router": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "stop",
+        "tenn-llama-router-realgold-20260601.service"
+      ],
+      "duration_seconds": 1.287,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "unit_status": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "is-active",
+        "tenn-backend-realgold-20260601.service",
+        "tenn-llama-router-realgold-20260601.service"
+      ],
+      "duration_seconds": 0.006,
+      "json": null,
+      "returncode": 3,
+      "stderr": "",
+      "stdout": "inactive\ninactive\n"
+    }
+  },
+  "created_at": "2026-06-01T10:04:00.753364+00:00",
+  "gpu_activity_token_cleared": "984262d2cfdb48408a1b6274af09458c",
+  "job_id": "extraction_real_gold_eval_current_head_runtime_v1_20260601",
+  "ok": true,
+  "stopped_units": [
+    "tenn-backend-realgold-20260601.service",
+    "tenn-llama-router-realgold-20260601.service"
+  ]
+}

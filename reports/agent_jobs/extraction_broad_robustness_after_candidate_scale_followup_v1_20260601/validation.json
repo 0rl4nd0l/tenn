@@ -1,0 +1,42 @@
+{
+  "job_id": "extraction_broad_robustness_after_candidate_scale_followup_v1_20260601",
+  "ok": true,
+  "commands": [
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python scripts/agent_job_contract.py validate docs/agent_tasks/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.md --repo-root .",
+      "result": "passed with only unrelated Reporting job in sibling worktree"
+    },
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python scripts/agent_job_registry.py claim docs/agent_tasks/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.md --repo-root .",
+      "result": "claimed"
+    },
+    {
+      "cmd": "runtime preflight",
+      "result": "passed; GPU activity inactive, ports 8000/8001 clear, docs root present"
+    },
+    {
+      "cmd": "router startup",
+      "result": "passed; llama.cpp router on 8001 loaded model:qwen2.5-14b-instruct"
+    },
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 8 --seed 20260601 --docs-root /data/asx/docs --output-dir reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601",
+      "result": "exit 0; 8/8 sampled; ok=3, ok_low_confidence=1, failed=4"
+    },
+    {
+      "cmd": "runtime shutdown",
+      "result": "passed; router stopped, GPU token cleared, ports closed, GPU guard clean"
+    },
+    {
+      "cmd": "jq/json parsing of broad_sample_results.json, broad_sample_summary.json, failure_digest.json, preflight/runtime artifacts",
+      "result": "passed"
+    }
+  ],
+  "runtime_started": true,
+  "runtime_cleaned_up": true,
+  "canonical_writes_authorized": false,
+  "broad_backfill_authorized": false
+}
