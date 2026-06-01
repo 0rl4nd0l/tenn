@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "no_transcript",
+      "description": "Video metadata is available but no transcript text can be fetched.",
+      "video": {
+        "video_id": "no-transcript-001",
+        "title": "No captions available",
+        "access_status": "public",
+        "duration_seconds": 600
+      },
+      "transcript_text": "",
+      "expected_decision": "reject"
+    },
+    {
+      "id": "members_only",
+      "description": "Members-only videos must not enter autonomous intake.",
+      "video": {
+        "video_id": "members-only-001",
+        "title": "Private portfolio update",
+        "access_status": "members_only",
+        "duration_seconds": 900
+      },
+      "transcript_text": null,
+      "expected_decision": "reject"
+    },
+    {
+      "id": "short_incomplete",
+      "description": "A long video with only a short caption fragment is quarantined.",
+      "video": {
+        "video_id": "short-001",
+        "title": "Long market stream",
+        "access_status": "public",
+        "duration_seconds": 1560
+      },
+      "transcript_text": "BHP reported production updates in the opening minute only.",
+      "ticker_allowlist": ["BHP"],
+      "expected_decision": "quarantine"
+    },
+    {
+      "id": "generic_low_signal",
+      "description": "Generic market talk without tickers or concrete evidence requires review.",
+      "video": {
+        "video_id": "generic-001",
+        "title": "Market vibes",
+        "access_status": "public",
+        "duration_seconds": 30
+      },
+      "transcript_text": "Today I ramble about markets, sentiment, and how investors should stay patient without naming any company or concrete update.",
+      "expected_decision": "requires_user_review"
+    },
+    {
+      "id": "ticker_factual",
+      "description": "Ticker-bearing factual discussion can become a factual candidate after review.",
+      "video": {
+        "video_id": "factual-001",
+        "title": "BHP quarterly production",
+        "access_status": "public",
+        "duration_seconds": 30
+      },
+      "transcript_text": "BHP reported quarterly production growth, lower unit costs, stronger cash flow, and updated capex guidance after the results release.",
+      "ticker_allowlist": ["BHP"],
+      "expected_decision": "factual_candidate"
+    },
+    {
+      "id": "ticker_speculative",
+      "description": "Ticker-bearing thesis language stays speculative.",
+      "video": {
+        "video_id": "speculative-001",
+        "title": "BHP bull case",
+        "access_status": "public",
+        "duration_seconds": 30
+      },
+      "transcript_text": "I think BHP could become a 10x ten-bagger if copper runs hard. This is my thesis and not financial advice.",
+      "ticker_allowlist": ["BHP"],
+      "expected_decision": "speculative_candidate"
+    },
+    {
+      "id": "mixed_factual_speculative",
+      "description": "Mixed factual and speculative claims require review before memory routing.",
+      "video": {
+        "video_id": "mixed-001",
+        "title": "BHP update and thesis",
+        "access_status": "public",
+        "duration_seconds": 30
+      },
+      "transcript_text": "BHP reported quarterly production growth and lower unit costs. I think BHP could double if copper prices keep rising.",
+      "ticker_allowlist": ["BHP"],
+      "expected_decision": "requires_user_review"
+    }
+  ]
+}
