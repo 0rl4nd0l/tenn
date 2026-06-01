@@ -332,7 +332,11 @@ async function mockCockpitApis(page: Page, counters: MockCounters): Promise<void
       await fulfillJson(route, {
         status: 'healthy',
         services: [
-          { name: 'backend', status: 'healthy' },
+          { name: 'backend', status: 'healthy', endpoint: 'http://localhost:8000' },
+          { name: 'llamacpp', status: 'healthy', endpoint: 'http://localhost:8001', response_time_ms: 8 },
+          { name: 'ollama', status: 'healthy', endpoint: 'http://localhost:11434', response_time_ms: 10 },
+          { name: 'qdrant', status: 'healthy', endpoint: 'http://localhost:6333', response_time_ms: 6 },
+          { name: 'redis', status: 'healthy', endpoint: 'redis://localhost:6379/0', response_time_ms: 2 },
           { name: 'gpu', status: 'healthy', details: { utilization_pct: 0, memory_used_mb: 0 } },
           { name: 'host', status: 'healthy', details: { load_avg_1m: 0.2 } },
         ],
@@ -700,12 +704,41 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     })
   })
 
+  test('Boot readiness uses Cockpit health BFF without browser-local probes', async ({ page }) => {
+    const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
+    const directProbeUrls: string[] = []
+    await mockCockpitApis(page, counters)
+    await page.route(/http:\/\/(localhost|127\.0\.0\.1):(8001|11434|6333|6379)\/.*/, async (route) => {
+      directProbeUrls.push(route.request().url())
+      await route.abort('failed')
+    })
+
+    const response = await page.goto('/boot', { waitUntil: 'domcontentloaded' })
+    await expect(page.getByText('Service check complete')).toBeVisible()
+    await expect(page.getByText('Ready')).toBeVisible()
+    await expect(page.getByText('Redis', { exact: true })).toBeVisible()
+    await expect(page.getByText('GPU', { exact: true })).toBeVisible()
+    await expect(page.getByText('Host', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Direct health checks/i)).toHaveCount(0)
+
+    expect(directProbeUrls).toEqual([])
+    addReportRow({
+      route: '/boot',
+      area: 'Boot readiness',
+      expected: 'Boot consumes /api/cockpit/health and does not fetch localhost runtime ports from the browser',
+      observed: `HTTP ${response?.status() ?? 0}; direct browser-local probe count ${directProbeUrls.length}`,
+      status: 'PASS',
+      notes: 'Cockpit health BFF mocked; service lifecycle and data stores untouched',
+    })
+  })
+
   test('visible primary routes load without browser 404 or 500 pages', async ({ page }) => {
     const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
     await mockCockpitApis(page, counters)
 
     const routes = [
       { route: '/', area: 'Chat' },
+      { route: '/boot', area: 'Boot' },
       { route: '/operations', area: 'Operations' },
       { route: '/verification', area: 'Verification' },
       { route: '/news', area: 'News' },
