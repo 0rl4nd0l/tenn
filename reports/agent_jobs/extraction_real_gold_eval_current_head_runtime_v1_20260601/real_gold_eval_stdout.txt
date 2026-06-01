@@ -1,0 +1,41 @@
+Requesting backend real-gold eval from http://127.0.0.1:8000/api/extraction-eval/real-gold
+
+Per-document results:
+- 10x_q_2025-12-31_difficult: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- 14d_q_2021-03-31: context=mismatch, trust=quarantine (expected=trusted), metrics=[revenue:quarantine, operating_cash_flow:quarantine, net_debt:quarantine]
+  reason: period_end: expected='2021-03-31' actual=None
+  reason: metric:revenue:Context mismatch; fixture marked quarantine
+  reason: metric:operating_cash_flow:Context mismatch; fixture marked quarantine
+  reason: metric:net_debt:Context mismatch; fixture marked quarantine
+  reason: trust: expected=trusted actual=quarantine
+  reason: extraction_error:validation_gate:missing_period_end
+- 29m_a_2025-12-31: context=ok, trust=abstain (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:missing]
+  reason: metric:net_debt:Expected metric was absent
+  reason: trust: expected=trusted actual=abstain
+- a2m_h_2025-12-31: context=ok, trust=abstain (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:wrong]
+  reason: metric:net_debt:Expected null was not null
+  reason: trust: expected=trusted actual=abstain
+- bhp_a_2021-06-30_difficult: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- bhp_a_2025-06-30: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- eqr_q_2025-12-31: context=ok, trust=trusted (expected=trusted), metrics=[operating_cash_flow:correct]
+- gre_q_2024-12-31: context=ok, trust=trusted (expected=trusted), metrics=[operating_cash_flow:correct]
+- gre_q_2025-09-30: context=ok, trust=trusted (expected=trusted), metrics=[operating_cash_flow:correct]
+  reason: extraction_error:validation_gate:low_confidence:0.4
+- min_h_2025-12-31: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- qbe_h_2025-06-30: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- rio_a_2023-12-31: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- rio_a_2024-12-31: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- rms_h_2025-12-31: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+- tls_h_2025-12-31: context=ok, trust=trusted (expected=trusted), metrics=[revenue:correct, operating_cash_flow:correct, net_debt:correct]
+
+Summary:
+- Metric accuracy: 87.18% (34/39)
+- Trust distribution: trusted=12, abstain=2, quarantine=1
+- Eval mode: canonical (kpi_eligible=True)
+- Wrote detailed JSON: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results.json
+- Wrote summary JSON: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_summary.json
+- Wrote canonical scorecard JSON: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_canonical_scorecard.json
+- Wrote markdown report: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_summary.md
+- Wrote per-document CSV: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_documents.csv
+- Wrote per-metric CSV: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_metrics.csv
+- Wrote trust-trigger CSV: reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_trust_triggers.csv
