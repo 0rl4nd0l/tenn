@@ -116,7 +116,11 @@ def _validate_ticker(raw: str) -> str:
 
 
 def _run_query(
-    db: Session, sql: str, params: dict[str, Any]
+    db: Session,
+    sql: str,
+    params: dict[str, Any],
+    *,
+    warn_on_missing_table: bool = True,
 ) -> tuple[list[dict[str, Any]], str | None]:
     """Run a read-only query, returning (rows, error_or_none)."""
     try:
@@ -127,7 +131,12 @@ def _run_query(
             db.rollback()
         except Exception:
             pass
-        logger.warning("Query failed: %s", exc)
+        if warn_on_missing_table or not _is_missing_table_error(str(exc)):
+            logger.warning("Query failed: %s", exc)
+        else:
+            logger.info(
+                "Optional query skipped because a referenced table is unavailable"
+            )
         return [], str(exc)
     except Exception as exc:
         try:
@@ -1474,6 +1483,7 @@ def get_ticker_context(
         LIMIT :limit
     """,
         {"ticker": ticker, "limit": announcements_limit},
+        warn_on_missing_table=False,
     )
     if err:
         if _is_missing_table_error(err):
