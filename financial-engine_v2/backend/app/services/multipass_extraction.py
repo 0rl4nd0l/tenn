@@ -2234,6 +2234,24 @@ _OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
         r"\b(?:new|first|major)[-_\s]+(?:client|customer|contract)\b",
         re.IGNORECASE,
     ),
+    re.compile(
+        r"(?:^|[-_\s])(?:capital[-_\s]+rais(?:e|ing)|institutional[-_\s]+placement|"
+        r"placement[-_\s]+to[-_\s]+raise)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])raises?\b[-_\s\w$,.]{0,60}\b\d+(?:\.\d+)?\s*"
+        r"(?:m|million|b|billion)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:launch|launched|launches|rollout|introduction)"
+        r"[-_\s]+of[-_\s]+"
+        r"(?:[A-Za-z0-9]+[-_\s]+){0,8}"
+        r"(?:services?|products?|platform|vertical|solution|program|programme)"
+        r"(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
 )
 
 _NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
@@ -2247,6 +2265,17 @@ _NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     re.compile(
         r"\bresults?\b[-_\s\w,.%/@]{0,120}"
         r"\b(?:drill(?:ing)?|assay|rc|diamond)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:annual[-_\s]+general[-_\s]+meeting|agm)"
+        r"[-_\s]+presentations?(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:notice[-_\s]+of[-_\s]+)?"
+        r"(?:(?:full|half)[-_\s]+year[-_\s]+|quarterly[-_\s]+)?"
+        r"results?[-_\s]+(?:briefing|presentations?|webcast)(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
     re.compile(r"\bprogramme[-_\s]+results?\b", re.IGNORECASE),
@@ -2636,6 +2665,19 @@ def _is_operational_update_without_formal_statements(
     title: Any,
     first_page_text: Any,
 ) -> bool:
+    title_text = _combined_source_text(title)
+    if (
+        title_text
+        and not _has_formal_financial_statement_marker(title_text)
+        and _detect_source_period_evidence(title_text, "").get("period_type")
+        not in {"A", "H", "Q"}
+        and any(
+            pattern.search(title_text)
+            for pattern in _OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS
+        )
+    ):
+        return True
+
     text = _combined_source_text(title, first_page_text)
     if not text:
         return False

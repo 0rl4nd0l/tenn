@@ -2851,6 +2851,73 @@ def test_source_document_classifier_blocks_shareholder_summary():
     assert result.canary_candidate_allowed is False
 
 
+def test_source_document_classifier_blocks_agm_presentation():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-11-29_annual-general-meeting-presentation_be0285c9.pdf",
+        "Annual General Meeting presentation. General information and forward looking statements.",
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_results_briefing_notice():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-08-07_full-year-results-briefing-18-august-2023-at-11-30-am.pdf",
+        (
+            "Notice of full year results briefing. The company will announce "
+            "financial results on Friday and provide a live webinar."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_capital_raising_announcement():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-11-01_capricorn-raises-200m-to-underpin-growth.pdf",
+        (
+            "Capricorn raises $200 million through an institutional placement. "
+            "Proceeds will fund growth projects and working capital."
+        ),
+    )
+
+    assert result.document_class == "operational_update_without_formal_statements"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_service_launch_update():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2026-01-29_launch-of-mayfield-360-allied-health-services_23e3fae2.pdf",
+        (
+            "Launch of Mayfield 360 Allied Health Services. "
+            "Further financial detail will be provided after the Appendix 4C."
+        ),
+    )
+
+    assert result.document_class == "operational_update_without_formal_statements"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
 def test_source_document_classifier_keeps_appendix_4c_business_update_candidate():
     from app.services.multipass_extraction import classify_source_document
 
@@ -2900,6 +2967,21 @@ def test_source_document_classifier_keeps_period_report_with_drilling_results():
     result = classify_source_document(
         "2024-01-30_quarterly-activities-report-and-drilling-results.pdf",
         "Quarterly activities report. Drilling results from the current quarter.",
+    )
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+
+
+def test_source_document_classifier_keeps_formal_annual_report_with_appendix_4e():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-08-25_2023-annual-report-incorporating-appendix-4e.pdf",
+        (
+            "Pilbara Minerals Annual Report 2023 Incorporating Appendix 4E. "
+            "Consolidated statement of profit or loss and other comprehensive income."
+        ),
     )
 
     assert result.document_class == "financial_report"

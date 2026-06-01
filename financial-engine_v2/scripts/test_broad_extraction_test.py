@@ -146,6 +146,30 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2024-07-31_annual-asx-shareholder-summary_jjjj.pdf"
             )
+            agm_presentation_pdf = _touch_pdf(
+                docs_root
+                / "CMM"
+                / "financial_performance"
+                / "2023-11-29_annual-general-meeting-presentation_kkkk.pdf"
+            )
+            results_briefing_pdf = _touch_pdf(
+                docs_root
+                / "MFG"
+                / "financial_performance"
+                / "2023-08-07_full-year-results-briefing-18-august-2023-at-11-30-am_llll.pdf"
+            )
+            capital_raise_pdf = _touch_pdf(
+                docs_root
+                / "CMM"
+                / "financial_performance"
+                / "2024-11-01_capricorn-raises-200m-to-underpin-growth_mmmm.pdf"
+            )
+            service_launch_pdf = _touch_pdf(
+                docs_root
+                / "MFD"
+                / "financial_performance"
+                / "2026-01-29_launch-of-mayfield-360-allied-health-services_nnnn.pdf"
+            )
             appendix_pdf = _touch_pdf(
                 docs_root
                 / "CAF"
@@ -169,6 +193,10 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                     drilling_pdf,
                     monthly_report_pdf,
                     shareholder_summary_pdf,
+                    agm_presentation_pdf,
+                    results_briefing_pdf,
+                    capital_raise_pdf,
+                    service_launch_pdf,
                     appendix_pdf,
                     appendix_4c_pdf,
                 ],
@@ -187,6 +215,10 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 "non_financial_update_without_formal_statements",
                 "non_financial_update_without_formal_statements",
                 "non_financial_update_without_formal_statements",
+                "non_financial_update_without_formal_statements",
+                "non_financial_update_without_formal_statements",
+                "operational_update_without_formal_statements",
+                "operational_update_without_formal_statements",
             ],
         )
         self.assertEqual(
