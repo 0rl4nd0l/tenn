@@ -9,6 +9,7 @@ describe('SettingsScreen', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     window.localStorage.clear()
+    delete process.env.NEXT_PUBLIC_COCKPIT_PROMPT_LAB_OPERATOR_ACCESS
     const elementPrototype = Element.prototype as Element & {
       hasPointerCapture?: (pointerId: number) => boolean
       setPointerCapture?: (pointerId: number) => void
@@ -172,7 +173,46 @@ describe('SettingsScreen', () => {
     expect(useCockpitStore.getState().preferences.chatRoutingPolicyOverride).toBe('local_only')
   })
 
+  it('hides Prompt Lab from normal Settings by default', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ status: 'healthy' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            llm_model: 'model:qwen-test',
+            llm_endpoint: 'http://localhost:8001',
+            routing_policy: 'local-first',
+            backend_url: 'http://localhost:8000',
+            profile: 'isolated',
+            features: { web_search: true, rag: true, extraction: true },
+            python_version: '3.11.8',
+            git_branch: 'main',
+            data_root: '/data/financial-engine',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ groups: [] }),
+        }),
+    )
+
+    render(<SettingsScreen />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /runtime/i })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('tab', { name: /prompt lab/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/prompt stack/i)).not.toBeInTheDocument()
+  })
+
   it('shows Prompt Lab previews and runs a dry test from Settings', async () => {
+    process.env.NEXT_PUBLIC_COCKPIT_PROMPT_LAB_OPERATOR_ACCESS = '1'
     const previewPayload = {
       route: {
         route_id: 'structured_agent',
@@ -294,7 +334,12 @@ describe('SettingsScreen', () => {
     })
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/cockpit/prompts/dry-run',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'X-Cockpit-Prompt-Lab-Intent': 'inspect-prompts',
+        }),
+      }),
     )
   })
 })

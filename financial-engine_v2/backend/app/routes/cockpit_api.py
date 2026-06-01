@@ -116,11 +116,34 @@ logger = logging.getLogger(__name__)
 _MARKETPLACE_SCHEDULER_LOCK = threading.Lock()
 _MARKETPLACE_SCHEDULER_STARTED = False
 _MARKETPLACE_SCHEDULER_INTERVAL_SECONDS = 60
+_PROMPT_LAB_OPERATOR_ACCESS_ENV = "COCKPIT_PROMPT_LAB_OPERATOR_ACCESS"
+_PROMPT_LAB_OPERATOR_INTENT_HEADER = "X-Cockpit-Prompt-Lab-Intent"
+_PROMPT_LAB_OPERATOR_INTENT_VALUE = "inspect-prompts"
 
 # How long the SSE chat stream may remain silent before emitting a keepalive
 # comment. Module-level so tests can monkey-patch it to a smaller value.
 SSE_KEEPALIVE_INTERVAL_SECONDS = 10.0
 STATELESS_SMOKE_HEADER = "x-tenn-stateless-smoke"
+
+
+def _env_flag_enabled(name: str) -> bool:
+    return str(os.getenv(name) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _require_prompt_lab_operator_access(request: Request) -> None:
+    if not _env_flag_enabled(_PROMPT_LAB_OPERATOR_ACCESS_ENV):
+        raise HTTPException(
+            status_code=403,
+            detail="Prompt Lab operator access is disabled",
+        )
+    header_value = str(
+        request.headers.get(_PROMPT_LAB_OPERATOR_INTENT_HEADER) or ""
+    ).strip()
+    if header_value != _PROMPT_LAB_OPERATOR_INTENT_VALUE:
+        raise HTTPException(
+            status_code=403,
+            detail="Prompt Lab operator intent header is required",
+        )
 
 
 @dataclass
@@ -9596,7 +9619,8 @@ def cockpit_patch_preferences(
 
 
 @router.get("/prompts/routes", response_model=CockpitPromptRoutesResponse)
-def cockpit_prompt_routes() -> CockpitPromptRoutesResponse:
+def cockpit_prompt_routes(request: Request) -> CockpitPromptRoutesResponse:
+    _require_prompt_lab_operator_access(request)
     return CockpitPromptRoutesResponse(
         routes=[CockpitPromptRouteRecord(**item) for item in prompt_route_inventory()]
     )
@@ -9604,8 +9628,10 @@ def cockpit_prompt_routes() -> CockpitPromptRoutesResponse:
 
 @router.post("/prompts/preview", response_model=CockpitPromptPreviewResponse)
 async def cockpit_prompt_preview(
+    request: Request,
     payload: CockpitPromptPreviewRequest,
 ) -> CockpitPromptPreviewResponse:
+    _require_prompt_lab_operator_access(request)
     try:
         service = CockpitService.get_instance()
         preview = await asyncio.to_thread(
@@ -9629,8 +9655,10 @@ async def cockpit_prompt_preview(
 
 @router.post("/prompts/dry-run", response_model=CockpitPromptDryRunResponse)
 async def cockpit_prompt_dry_run(
+    request: Request,
     payload: CockpitPromptPreviewRequest,
 ) -> CockpitPromptDryRunResponse:
+    _require_prompt_lab_operator_access(request)
     try:
         service = CockpitService.get_instance()
         preview = await asyncio.to_thread(

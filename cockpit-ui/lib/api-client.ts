@@ -32,6 +32,8 @@ import type {
 } from './cockpit-types'
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
+const PROMPT_LAB_OPERATOR_INTENT_HEADER = 'X-Cockpit-Prompt-Lab-Intent'
+const PROMPT_LAB_OPERATOR_INTENT_VALUE = 'inspect-prompts'
 
 function withApiKey(headers?: HeadersInit): HeadersInit {
   const merged: Record<string, string> = {
@@ -41,6 +43,13 @@ function withApiKey(headers?: HeadersInit): HeadersInit {
     merged['X-API-Key'] = API_KEY
   }
   return merged
+}
+
+function withPromptLabOperatorIntent(headers?: HeadersInit): HeadersInit {
+  return {
+    ...(headers as Record<string, string> | undefined),
+    [PROMPT_LAB_OPERATOR_INTENT_HEADER]: PROMPT_LAB_OPERATOR_INTENT_VALUE,
+  }
 }
 
 // ── Error class ────────────────────────────────────────────────────────────
@@ -837,7 +846,9 @@ export async function loadCockpitModel(modelId?: string, runtimeTarget?: ChatRun
 }
 
 export async function getPromptLabRoutes(): Promise<PromptLabRoutesResponse> {
-  return apiFetch<PromptLabRoutesResponse>('/api/cockpit/prompts/routes')
+  return apiFetch<PromptLabRoutesResponse>('/api/cockpit/prompts/routes', {
+    headers: withPromptLabOperatorIntent(),
+  })
 }
 
 export async function previewPromptLabRoute(
@@ -845,6 +856,7 @@ export async function previewPromptLabRoute(
 ): Promise<PromptLabPreviewResponse> {
   return apiFetch<PromptLabPreviewResponse>('/api/cockpit/prompts/preview', {
     method: 'POST',
+    headers: withPromptLabOperatorIntent(),
     body: JSON.stringify(payload),
   })
 }
@@ -854,6 +866,7 @@ export async function dryRunPromptLabRoute(
 ): Promise<PromptLabDryRunResponse> {
   return apiFetch<PromptLabDryRunResponse>('/api/cockpit/prompts/dry-run', {
     method: 'POST',
+    headers: withPromptLabOperatorIntent(),
     body: JSON.stringify(payload),
   }, 180_000)
 }
