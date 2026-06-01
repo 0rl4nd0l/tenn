@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { copyRequestHeaders, resolveBackendUrl } from '@/lib/proxy'
+import { requireMemoryWriteIntent } from '@/app/api/cockpit/memory/_write-intent'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -11,11 +12,15 @@ export async function POST(
   context: { params: Promise<{ proposalId: string }> },
 ): Promise<NextResponse> {
   const { proposalId } = await context.params
+  const confirmed = await requireMemoryWriteIntent(request, 'thesis-proposal-apply')
+  if (!confirmed.ok) return confirmed.response
+
   const backend = await fetch(
     `${resolveBackendUrl()}/api/context/thesis/proposals/${encodeURIComponent(proposalId)}/apply`,
     {
       method: 'POST',
       headers: copyRequestHeaders(request),
+      body: confirmed.body,
       cache: 'no-store',
     },
   )

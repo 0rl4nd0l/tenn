@@ -1,0 +1,43 @@
+{
+  "issues": [],
+  "metadata": {
+    "allowed_files": [
+      "docs/agent_tasks/memory_workbench_write_confirmation_gates_v1_20260601.md",
+      "docs/claude/STATE.md",
+      "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
+      "cockpit-ui/components/cockpit/memory/memory-screen.test.tsx",
+      "cockpit-ui/lib/memory-write-routes.test.ts",
+      "cockpit-ui/app/api/cockpit/memory/_write-intent.ts",
+      "cockpit-ui/app/api/cockpit/memory/company/add/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/company/expire/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/market/add/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/market/expire/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/thesis/proposals/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/confirm/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/reject/route.ts",
+      "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/apply/route.ts",
+      "financial-engine_v2/backend/app/api/context.py",
+      "financial-engine_v2/backend/tests/test_context_endpoints.py",
+      "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/README.md",
+      "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/status.json",
+      "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/validation.json",
+      "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/diff-check.json"
+    ],
+    "approval_required": true,
+    "github_mutation_allowed": "issue_comment_and_pr",
+    "job_id": "memory_workbench_write_confirmation_gates_v1_20260601",
+    "lane": "Memory",
+    "mutation_mode": "safe_extension",
+    "operator_approval_source": "User requested ongoing safe GitHub issue remediation with isolated branches/worktrees; issue #154 is state:ready and requires this task card.",
+    "output_dir": "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601",
+    "owner": "Codex",
+    "production_data_access": false,
+    "related_issue": 154,
+    "supporting_lanes": [
+      "Reporting",
+      "Provenance"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}

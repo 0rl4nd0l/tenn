@@ -30,6 +30,17 @@ type MemoryKind =
   | 'operational_alert'
 type StrategyProposalType = 'create_thesis' | 'add_evidence' | 'invalidate'
 type EditableLevel = 'company' | 'sector' | 'macro' | 'strategy'
+type MemoryWriteIntent =
+  | 'company-memory-add'
+  | 'company-memory-expire'
+  | 'sector-memory-add'
+  | 'sector-memory-expire'
+  | 'macro-memory-add'
+  | 'macro-memory-expire'
+  | 'thesis-proposal-create'
+  | 'thesis-proposal-confirm'
+  | 'thesis-proposal-reject'
+  | 'thesis-proposal-apply'
 
 interface MemoryScreenProps {
   apiKey: string
@@ -111,6 +122,36 @@ const BROWSER_SECTIONS: MemorySection[] = [
   'session',
   'operational',
 ]
+
+const MEMORY_WRITE_CONFIRMATION = 'reviewed-memory-write'
+const MEMORY_WRITE_INTENT_HEADER = 'X-Cockpit-Memory-Write-Intent'
+
+function addIntentForLevel(level: EditableLevel): MemoryWriteIntent {
+  if (level === 'company') return 'company-memory-add'
+  if (level === 'sector') return 'sector-memory-add'
+  if (level === 'macro') return 'macro-memory-add'
+  return 'thesis-proposal-create'
+}
+
+function expireIntentForKind(kind: MemoryKind): MemoryWriteIntent | null {
+  if (kind === 'company_entry') return 'company-memory-expire'
+  if (kind === 'sector_entry') return 'sector-memory-expire'
+  if (kind === 'macro_entry') return 'macro-memory-expire'
+  return null
+}
+
+function addIntentForKind(kind: MemoryKind): MemoryWriteIntent | null {
+  if (kind === 'company_entry') return 'company-memory-add'
+  if (kind === 'sector_entry') return 'sector-memory-add'
+  if (kind === 'macro_entry') return 'macro-memory-add'
+  return null
+}
+
+const PROPOSAL_ACTION_INTENTS: Record<'confirm' | 'reject' | 'apply', MemoryWriteIntent> = {
+  confirm: 'thesis-proposal-confirm',
+  reject: 'thesis-proposal-reject',
+  apply: 'thesis-proposal-apply',
+}
 
 function parseMemorySection(raw: string | null): MemorySection {
   const normalized = (raw ?? '').trim().toLowerCase()
@@ -997,11 +1038,18 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
   }, [loadMemory])
 
   const submitMutation = useCallback(
-    async (path: string, body: Record<string, unknown> | null) => {
+    async (path: string, body: Record<string, unknown>, intent: MemoryWriteIntent) => {
       const response = await fetch(path, {
         method: 'POST',
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
+        headers: {
+          ...headers,
+          [MEMORY_WRITE_INTENT_HEADER]: intent,
+        },
+        body: JSON.stringify({
+          ...body,
+          intent,
+          confirmation: MEMORY_WRITE_CONFIRMATION,
+        }),
       })
       if (!response.ok) {
         const raw = await response.json().catch(() => null)
@@ -1011,6 +1059,16 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
     },
     [headers],
   )
+
+  const confirmMemoryWrite = useCallback((action: string, detail: string) => {
+    const confirmed = window.confirm(
+      `Confirm ${action}\n\n${detail}\n\nThis writes durable memory through the backend-owned Memory Workbench path.`,
+    )
+    if (!confirmed) {
+      setStatus('Memory write cancelled.')
+    }
+    return confirmed
+  }, [])
 
   const resetEditor = useCallback(() => {
     setEditTarget(null)
@@ -1033,6 +1091,11 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
       return
     }
 
+    const intent = addIntentForLevel(level)
+    if (!confirmMemoryWrite('add memory entry', `${SECTION_LABELS[level === 'strategy' ? 'strategy' : level]} item for ${ticker}.`)) {
+      return
+    }
+
     setBusy(true)
     try {
       if (level === 'company') {
@@ -1041,7 +1104,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           type: entryType.trim() || 'observed_fact',
           statement: nextStatement,
           note: 'web-memory-tab',
-        })
+        }, intent)
       } else if (level === 'sector') {
         await submitMutation('/api/cockpit/memory/market/add', {
           scope: 'sector',
@@ -1049,7 +1112,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           type: entryType.trim() || 'sector_trend',
           statement: nextStatement,
           note: 'web-memory-tab',
-        })
+        }, intent)
       } else if (level === 'macro') {
         await submitMutation('/api/cockpit/memory/market/add', {
           scope: 'macro',
@@ -1058,7 +1121,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           type: entryType.trim() || 'macro_theme',
           statement: nextStatement,
           note: 'web-memory-tab',
-        })
+        }, intent)
       } else {
         await submitMutation('/api/cockpit/memory/thesis/proposals', {
           ticker,
@@ -1067,7 +1130,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           signal: strategySignal.trim() || null,
           is_supporting: true,
           note: 'web-memory-tab',
-        })
+        }, intent)
       }
 
       setStatus(`Added ${SECTION_LABELS[level === 'strategy' ? 'strategy' : level]} item for ${ticker}.`)
@@ -1080,7 +1143,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
     } finally {
       setBusy(false)
     }
-  }, [entryType, level, loadMemory, statement, strategyProposalType, strategySignal, submitMutation, tickerInput])
+  }, [confirmMemoryWrite, entryType, level, loadMemory, statement, strategyProposalType, strategySignal, submitMutation, tickerInput])
 
   const startEdit = useCallback((row: MemoryRow) => {
     if (!row.editable) return
@@ -1111,6 +1174,15 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
       setStatus('Selected row has no entry id.')
       return
     }
+    const expireIntent = expireIntentForKind(editTarget.kind)
+    const addIntent = addIntentForKind(editTarget.kind)
+    if (!expireIntent || !addIntent) {
+      setStatus('Only company/sector/macro rows are directly editable.')
+      return
+    }
+    if (!confirmMemoryWrite('save memory edit', `Expire row ${editTarget.entryId} and add its replacement for ${ticker}.`)) {
+      return
+    }
 
     setBusy(true)
     try {
@@ -1119,32 +1191,32 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           ticker,
           entry_id: editTarget.entryId,
           note: 'superseded-via-web-memory-tab',
-        })
+        }, expireIntent)
         await submitMutation('/api/cockpit/memory/company/add', {
           ticker,
           type: entryType.trim() || editTarget.type || 'observed_fact',
           statement: nextStatement,
           note: 'edited-via-web-memory-tab',
-        })
+        }, addIntent)
       } else if (editTarget.kind === 'sector_entry') {
         await submitMutation('/api/cockpit/memory/market/expire', {
           scope: 'sector',
           entry_id: editTarget.entryId,
           note: 'superseded-via-web-memory-tab',
-        })
+        }, expireIntent)
         await submitMutation('/api/cockpit/memory/market/add', {
           scope: 'sector',
           ticker,
           type: entryType.trim() || editTarget.type || 'sector_trend',
           statement: nextStatement,
           note: 'edited-via-web-memory-tab',
-        })
+        }, addIntent)
       } else if (editTarget.kind === 'macro_entry') {
         await submitMutation('/api/cockpit/memory/market/expire', {
           scope: 'macro',
           entry_id: editTarget.entryId,
           note: 'superseded-via-web-memory-tab',
-        })
+        }, expireIntent)
         await submitMutation('/api/cockpit/memory/market/add', {
           scope: 'macro',
           ticker,
@@ -1152,10 +1224,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           type: entryType.trim() || editTarget.type || 'macro_theme',
           statement: nextStatement,
           note: 'edited-via-web-memory-tab',
-        })
-      } else {
-        setStatus('Only company/sector/macro rows are directly editable.')
-        return
+        }, addIntent)
       }
 
       setStatus(`Updated row ${editTarget.entryId} by expiring + replacing it.`)
@@ -1166,7 +1235,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
     } finally {
       setBusy(false)
     }
-  }, [editTarget, entryType, loadMemory, resetEditor, statement, submitMutation, tickerInput])
+  }, [confirmMemoryWrite, editTarget, entryType, loadMemory, resetEditor, statement, submitMutation, tickerInput])
 
   const expireRow = useCallback(
     async (row: MemoryRow) => {
@@ -1175,6 +1244,12 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
         setStatus('Row has no entry id.')
         return
       }
+      const intent = expireIntentForKind(row.kind)
+      if (!intent) return
+      if (!confirmMemoryWrite('expire memory row', `Expire row ${row.entryId} from ${row.scope || 'memory'}.`)) {
+        return
+      }
+
       setBusy(true)
       try {
         if (row.kind === 'company_entry') {
@@ -1182,21 +1257,19 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
             ticker,
             entry_id: row.entryId,
             note: 'expired-via-web-memory-tab',
-          })
+          }, intent)
         } else if (row.kind === 'sector_entry') {
           await submitMutation('/api/cockpit/memory/market/expire', {
             scope: 'sector',
             entry_id: row.entryId,
             note: 'expired-via-web-memory-tab',
-          })
+          }, intent)
         } else if (row.kind === 'macro_entry') {
           await submitMutation('/api/cockpit/memory/market/expire', {
             scope: 'macro',
             entry_id: row.entryId,
             note: 'expired-via-web-memory-tab',
-          })
-        } else {
-          return
+          }, intent)
         }
         setStatus(`Expired row ${row.entryId}.`)
         await loadMemory()
@@ -1206,7 +1279,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
         setBusy(false)
       }
     },
-    [loadMemory, submitMutation, tickerInput],
+    [confirmMemoryWrite, loadMemory, submitMutation, tickerInput],
   )
 
   const runProposalAction = useCallback(
@@ -1215,18 +1288,25 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
         setStatus('Proposal id missing.')
         return
       }
+      const intent = PROPOSAL_ACTION_INTENTS[action]
+      if (!confirmMemoryWrite(`${action} thesis proposal`, `Proposal ${row.proposalId}.`)) {
+        return
+      }
+
       setBusy(true)
       try {
         if (action === 'confirm') {
           await submitMutation(`/api/cockpit/memory/thesis/proposals/${encodeURIComponent(row.proposalId)}/confirm`, {
             note: 'confirmed-via-web-memory-tab',
-          })
+          }, intent)
         } else if (action === 'reject') {
           await submitMutation(`/api/cockpit/memory/thesis/proposals/${encodeURIComponent(row.proposalId)}/reject`, {
             note: 'rejected-via-web-memory-tab',
-          })
+          }, intent)
         } else {
-          await submitMutation(`/api/cockpit/memory/thesis/proposals/${encodeURIComponent(row.proposalId)}/apply`, null)
+          await submitMutation(`/api/cockpit/memory/thesis/proposals/${encodeURIComponent(row.proposalId)}/apply`, {
+            note: 'applied-via-web-memory-tab',
+          }, intent)
         }
         setStatus(`Proposal ${row.proposalId} ${action}ed.`)
         await loadMemory()
@@ -1236,7 +1316,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
         setBusy(false)
       }
     },
-    [loadMemory, submitMutation],
+    [confirmMemoryWrite, loadMemory, submitMutation],
   )
 
   const frameworkNotes = [
