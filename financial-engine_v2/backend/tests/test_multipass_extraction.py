@@ -1678,6 +1678,28 @@ def test_plain_dollar_units_do_not_override_explicit_thousands_header():
     assert _detect_scale_from_tables([table]) == "thousands"
 
 
+def test_appendix_4c_usd_thousand_header_detects_thousands_scale():
+    """Appendix 4C USD thousand headers are explicit scale evidence."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=3,
+        caption="Appendix 4C Quarterly Cash Flow Report",
+        headers=[
+            "Consolidated statement of cash flows",
+            "Current quarter $USD\u2019000",
+            "Year to date (3 months) $USD'000",
+        ],
+        rows=[
+            ["Net cash from / (used in) operating activities", "(4,921)", "(4,921)"],
+            ["Cash and cash equivalents at end of period", "13,369", "13,369"],
+        ],
+    )
+
+    assert _detect_scale_from_tables([table]) == "thousands"
+
+
 def test_usd_million_detection_ignores_usd_m_and_a_prose():
     """The USD M extension must not treat M&A prose as a million-unit marker."""
     from app.services.multipass_extraction import _detect_scale_from_tables
@@ -2687,6 +2709,37 @@ def test_source_document_classifier_blocks_agm_results_notices():
     assert result.reason == "meeting_results_notice"
 
 
+def test_source_document_classifier_blocks_agm_notice_proxy_forms_title_only():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2025-04-28_notice-of-annual-general-meeting-proxy-form.pdf",
+        "",
+    )
+
+    assert result.document_class == "meeting_notice"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "meeting_notice"
+
+
+def test_source_document_classifier_blocks_upcoming_agm_notice_with_text():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-11-05_upcoming-annual-general-meeting.pdf",
+        (
+            "Upcoming Annual General Meeting of Shareholders. "
+            "The Notice of Meeting and Proxy Form are attached. "
+            "Shareholders are encouraged to vote online."
+        ),
+    )
+
+    assert result.document_class == "meeting_notice"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
 def test_source_document_classifier_blocks_unaudited_non_statement_update():
     from app.services.multipass_extraction import classify_source_document
 
@@ -2705,6 +2758,39 @@ def test_source_document_classifier_blocks_unaudited_non_statement_update():
     )
     assert result.extraction_candidate_allowed is False
     assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_operational_customer_update():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2021-04-12_ccr-signs-suncorp-as-first-insurance-client-grows-q3-revenue.pdf",
+        (
+            "Credit Clear signs Suncorp as first insurance client and grows Q3 revenue 30%. "
+            "The announcement highlights a new customer contract and revenue growth."
+        ),
+    )
+
+    assert result.document_class == "operational_update_without_formal_statements"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "operational_update_without_formal_statements"
+
+
+def test_source_document_classifier_keeps_appendix_4c_business_update_candidate():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-04-28_appendix-4c-quarterly-report-and-business-update.pdf",
+        (
+            "1Q FY22 Quarterly Activities Report and Appendix 4C. "
+            "Appendix 4C Quarterly Cash Flow Report."
+        ),
+    )
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+    assert result.canary_candidate_allowed is True
 
 
 def test_source_document_classifier_keeps_formal_appendix_4e_candidate():

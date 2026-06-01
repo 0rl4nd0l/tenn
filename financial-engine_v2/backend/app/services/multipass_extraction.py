@@ -108,9 +108,19 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "Source metadata identifies an AGM/meeting result or poll notice; it "
         "must not enter canonical metric extraction."
     ),
+    "meeting_notice": (
+        "Source metadata identifies a shareholder meeting notice, proxy form, "
+        "or voting-material announcement; it must not enter canonical metric "
+        "extraction."
+    ),
     "unaudited_financial_update_without_formal_statements": (
         "Source metadata identifies an unaudited headline update without formal "
         "financial statements; it must not enter canonical metric extraction."
+    ),
+    "operational_update_without_formal_statements": (
+        "Source metadata identifies a customer, contract, or revenue update "
+        "without formal Appendix or financial-statement evidence; it must not "
+        "enter canonical metric extraction."
     ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
@@ -155,11 +165,25 @@ class SourceDocumentClassification:
 
 import re as _re
 
+_THOUSANDS_SCALE_PATTERN = (
+    r"(?<!\w)(?:"
+    r"(?:A\$|\$A|US\$|\$US|\$[A-Z]{2,3}|[A-Z]{3}|\$)"
+    r"\s*[\u2019']?\s*000(?!,000\b)"
+    r"|[\u2019']\s*000(?!,000\b)"
+    r")[,s]?\b|\bthousands?\b"
+)
+_MILLIONS_SCALE_PATTERN = (
+    r"(?<!\w)(?:"
+    r"(?:A\$|\$A|US\$|\$US|\$[A-Z]{2,3}|[A-Z]{3}|\$)"
+    r"\s*[\u2019']?\s*000,000"
+    r"|[\u2019']\s*000,000"
+    r")\b|\bmillions?\b|A?\$[Mm]\b|\$m\b"
+)
 _SCALE_PATTERNS: list[tuple[str, str]] = [
-    # Thousands: $'000, $A'000, $000 (ASX Appendix 5B uses "$A'000" notation)
-    (r"\$A?'?000[,s]?\b|\bthousands?\b", "thousands"),
-    # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
-    (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
+    # Thousands: $'000, $A'000, $USD'000, smart-apostrophe $USD'000, $000.
+    (_THOUSANDS_SCALE_PATTERN, "thousands"),
+    # Millions: spelled-out, $'000,000, compact $M / A$M notation.
+    (_MILLIONS_SCALE_PATTERN, "millions"),
     (r"\bbillions?\b", "billions"),
     (
         r"(?:(?<!\w)RP\.?\s*trillions?\b|\bIDR\s*trillions?\b|"
@@ -2144,8 +2168,31 @@ _MEETING_RESULTS_NOTICE_PATTERNS: tuple[re.Pattern[str], ...] = (
     ),
 )
 
+_MEETING_NOTICE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\bnotice[-_\s]+of[-_\s]+(?:annual[-_\s]+general[-_\s]+meeting|meeting)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bupcoming[-_\s]+annual[-_\s]+general[-_\s]+meeting\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bannual[-_\s]+general[-_\s]+meeting\b.*\b(?:notice[-_\s]+of[-_\s]+meeting|"
+        r"proxy[-_\s]+form|voting|shareholders?[-_\s]+are[-_\s]+encouraged|"
+        r"explanatory[-_\s]+memorandum)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bproxy[-_\s]+form\b.*\bannual[-_\s]+general[-_\s]+meeting\b",
+        re.IGNORECASE,
+    ),
+)
+
 _FORMAL_FINANCIAL_STATEMENT_MARKERS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\bappendix\s+4[de]\b", re.IGNORECASE),
+    re.compile(r"\bappendix\s+4[cde]\b", re.IGNORECASE),
+    re.compile(r"\bappendix\s+5b\b", re.IGNORECASE),
+    re.compile(r"\bquarterly\s+cash\s+flow\s+report\b", re.IGNORECASE),
     re.compile(r"\bresults?\s+for\s+announcement\s+to\s+the\s+market\b", re.IGNORECASE),
     re.compile(r"\bstatement\s+of\s+(?:profit|financial\s+position|cash\s+flows?)\b", re.IGNORECASE),
     re.compile(r"\bconsolidated\s+statement\b", re.IGNORECASE),
@@ -2160,6 +2207,25 @@ _NON_STATEMENT_FINANCIAL_UPDATE_CONTEXT: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bsubject\s+to\s+audit\b", re.IGNORECASE),
     re.compile(r"\bheadline\s+financial\s+information\b", re.IGNORECASE),
     re.compile(r"\banticipates\s+the\s+following\s+headline\b", re.IGNORECASE),
+)
+
+_OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
+    re.Pattern[str], ...
+] = (
+    re.compile(
+        r"\bsigns?\b.{0,80}\b(?:client|customer|contract|agreement)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:client|customer|contract|agreement)\b.{0,80}"
+        r"\b(?:revenue|fee|signed|awarded|secured)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bgrows?[-_\s]+q[1-4][\-_\s]+revenue\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:new|first|major)[-_\s]+(?:client|customer|contract)\b",
+        re.IGNORECASE,
+    ),
 )
 
 _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
@@ -2486,6 +2552,17 @@ def _is_meeting_results_notice(title: Any, first_page_text: Any) -> bool:
     return any(pattern.search(text) for pattern in _MEETING_RESULTS_NOTICE_PATTERNS)
 
 
+def _is_meeting_notice(title: Any, first_page_text: Any) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _MEETING_NOTICE_PATTERNS)
+
+
+def _has_formal_financial_statement_marker(text: str) -> bool:
+    return any(pattern.search(text) for pattern in _FORMAL_FINANCIAL_STATEMENT_MARKERS)
+
+
 def _is_unaudited_non_statement_financial_update(
     title: Any,
     first_page_text: Any,
@@ -2495,7 +2572,7 @@ def _is_unaudited_non_statement_financial_update(
         return False
     if not any(pattern.search(text) for pattern in _NON_STATEMENT_FINANCIAL_UPDATE_MARKERS):
         return False
-    if any(pattern.search(text) for pattern in _FORMAL_FINANCIAL_STATEMENT_MARKERS):
+    if _has_formal_financial_statement_marker(text):
         return False
 
     # Title-only candidate selection may only have a filename such as
@@ -2505,6 +2582,27 @@ def _is_unaudited_non_statement_financial_update(
 
     return any(
         pattern.search(text) for pattern in _NON_STATEMENT_FINANCIAL_UPDATE_CONTEXT
+    )
+
+
+def _is_operational_update_without_formal_statements(
+    title: Any,
+    first_page_text: Any,
+) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    if _has_formal_financial_statement_marker(text):
+        return False
+    if _detect_source_period_evidence(title, first_page_text).get("period_type") in {
+        "A",
+        "H",
+        "Q",
+    }:
+        return False
+    return any(
+        pattern.search(text)
+        for pattern in _OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS
     )
 
 
@@ -2716,6 +2814,14 @@ def classify_source_document(
             reason="meeting_results_notice",
             evidence=["meeting_results_notice_pattern"],
         )
+    if _is_meeting_notice(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="meeting_notice",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="meeting_notice",
+            evidence=["meeting_notice_pattern"],
+        )
     if _is_unaudited_non_statement_financial_update(title, first_page_text):
         return SourceDocumentClassification(
             document_class="unaudited_financial_update_without_formal_statements",
@@ -2723,6 +2829,14 @@ def classify_source_document(
             canary_candidate_allowed=False,
             reason="unaudited_financial_update_without_formal_statements",
             evidence=["financial_update_without_formal_statement_pattern"],
+        )
+    if _is_operational_update_without_formal_statements(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="operational_update_without_formal_statements",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="operational_update_without_formal_statements",
+            evidence=["operational_update_without_formal_statement_pattern"],
         )
 
     period_evidence = _detect_source_period_evidence(title, first_page_text)

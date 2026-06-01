@@ -104,11 +104,23 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2022-10-28_results-of-meeting_aaaa.pdf"
             )
+            agm_notice_pdf = _touch_pdf(
+                docs_root
+                / "AAM"
+                / "financial_performance"
+                / "2024-11-05_notice-of-annual-general-meeting-proxy-form_eeee.pdf"
+            )
             update_pdf = _touch_pdf(
                 docs_root
                 / "HNG"
                 / "financial_performance"
                 / "2021-05-17_financial-update_bbbb.pdf"
+            )
+            operational_pdf = _touch_pdf(
+                docs_root
+                / "CCR"
+                / "financial_performance"
+                / "2021-04-12_ccr-signs-suncorp-as-first-insurance-client-grows-q3-revenue_dddd.pdf"
             )
             appendix_pdf = _touch_pdf(
                 docs_root
@@ -116,17 +128,33 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2021-08-25_appendix-4e-fy21_cccc.pdf"
             )
-
-            candidates, excluded = self.mod.filter_candidate_pdfs(
-                [agm_pdf, update_pdf, appendix_pdf], docs_root
+            appendix_4c_pdf = _touch_pdf(
+                docs_root
+                / "IMR"
+                / "financial_performance"
+                / "2022-04-28_appendix-4c-quarterly-report-and-business-update_ffff.pdf"
             )
 
-        self.assertEqual(candidates, [appendix_pdf])
+            candidates, excluded = self.mod.filter_candidate_pdfs(
+                [
+                    agm_pdf,
+                    agm_notice_pdf,
+                    update_pdf,
+                    operational_pdf,
+                    appendix_pdf,
+                    appendix_4c_pdf,
+                ],
+                docs_root,
+            )
+
+        self.assertEqual(candidates, [appendix_pdf, appendix_4c_pdf])
         self.assertEqual(
             [row["exclusion_reason"] for row in excluded],
             [
                 "meeting_results_notice",
+                "meeting_notice",
                 "unaudited_financial_update_without_formal_statements",
+                "operational_update_without_formal_statements",
             ],
         )
         self.assertEqual(
