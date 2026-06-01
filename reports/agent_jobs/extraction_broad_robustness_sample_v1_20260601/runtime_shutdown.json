@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-06-01T12:07:16Z",
+  "cleared_gpu_activity_token": "0033b70bb5e4427d9891aaee8d860ec6",
+  "ports_8000_8001": {
+    "cmd": "ss -ltnp '( sport = :8000 or sport = :8001 )'",
+    "returncode": 0,
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess",
+    "stderr": ""
+  },
+  "gpu_activity_guard": {
+    "cmd": "financial-engine_v2/.venv/bin/python scripts/gpu_activity_guard.py status --json",
+    "returncode": 0,
+    "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}",
+    "stderr": ""
+  },
+  "nvidia_smi": {
+    "cmd": "nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader,nounits",
+    "returncode": 0,
+    "stdout": "NVIDIA GeForce GT 1030, 1, 2048, 0\nTesla M40 24GB, 0, 24576, 0",
+    "stderr": ""
+  },
+  "llama_processes": {
+    "cmd": "pgrep -af 'llama-server|broad_extraction_test.py' | grep -v pgrep | grep -v runtime_shutdown || true",
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "The next full-goal-aligned slice is evaluation-only source review of the seven accepted canary runtime payloads.",
+      "Runtime output is not used as fixture truth; fixture labels must come from local source PDF evidence."
+    ],
+    "sources_used": [
+      "/tmp/tenn_metric_extraction_handoff_2026-05-31.md",
+      "docs/architecture/SYSTEM_CONTRACT.md",
+      "docs/claude/STATE.md",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads.json",
+      "financial-engine_v2/backend/tests/fixtures/extraction_gold/*.json",
+      "local source PDFs under /data/asx/docs"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/extraction_gold_eval.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "financial-engine_v2/scripts/extraction_gold_eval_scorecard.py",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads.json"
+    ],
+    "files_modified": [],
+    "validation_checks": [
+      "pdftotext source review for AM5, AQX, ATM, and CRS",
+      "focused pytest for real-gold eval and rekey helper",
+      "seven-payload rekey probe",
+      "canary-only real-gold scorecard probe"
+    ]
+  },
+  "result": {
+    "feature": "metric extraction canary source-review evaluation",
+    "summary": "Accepted runtime canary payloads were exportable but not yet source-reviewable as real-gold evidence. The evaluated gap was a missing source-document-id bridge plus missing real-gold fixtures for four accepted canary documents.",
+    "critical": [
+      {
+        "file": "financial-engine_v2/backend/tests/fixtures/extraction_gold",
+        "location": "canary fixture set",
+        "issue": "Four accepted canary documents had no source-reviewed real-gold fixtures, so runtime acceptance could not be checked against hand-verified source values.",
+        "fix_example": "Add AM5, AQX, ATM, and CRS canary regression fixtures labelled only from source PDF evidence."
+      },
+      {
+        "file": "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads.json",
+        "location": "top-level actual payload keys",
+        "issue": "The exported actuals were keyed by backend source document ids while the real-gold scorecard expects fixture document ids.",
+        "fix_example": "Add a read-only rekey helper that maps actual payloads to fixture ids using fixture source_document_id metadata and fails on duplicate or unmatched inputs."
+      }
+    ],
+    "warnings": [
+      {
+        "file": "reports/agent_jobs/extraction_canary_source_review_fixture_bridge_v1_20260601/canary_real_gold_scorecard.json",
+        "location": "fixture_summaries",
+        "issue": "The seven accepted canary payloads are not all source-trusted: AAU has wrong np_attributable, AQX maps loss before tax to ebit, and ATM is quarantined by scale.",
+        "fix_example": "Do not graduate broad extraction; create follow-up extraction hardening for AAU attributable-profit selection, AQX EBIT abstention, and ATM IDR scale normalization."
+      }
+    ],
+    "suggestions": [
+      {
+        "file": "financial-engine_v2/scripts/extraction_gold_eval_scorecard.py",
+        "location": "CLI",
+        "issue": "Canary scorecards need a fixture subset mode so unrelated real-gold fixtures do not pollute bounded canary review.",
+        "fix_example": "Add repeatable --document-id filtering and pass it through to build_real_gold_scorecard(..., document_ids=...)."
+      }
+    ],
+    "implementation_notes": "Apply source-review fixtures and source-document-id rekey bridge only. Keep runtime, datastore, source PDFs, prompts, schemas, and broad backfill untouched."
+  }
+}

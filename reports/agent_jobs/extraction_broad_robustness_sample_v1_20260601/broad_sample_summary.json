@@ -1,0 +1,115 @@
+{
+  "total": 8,
+  "status_distribution": {
+    "ok": 2,
+    "failed": 5,
+    "ok_low_confidence": 1
+  },
+  "success_rate": 0.375,
+  "error_classification": {
+    "validation_gate": 5
+  },
+  "metric_coverage": {
+    "revenue": {
+      "present": 0,
+      "total": 3,
+      "rate": 0
+    },
+    "ebit": {
+      "present": 0,
+      "total": 3,
+      "rate": 0
+    },
+    "np_attributable": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "operating_cf": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "investing_cf": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "financing_cf": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "capex": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "cash_end": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "net_debt": {
+      "present": 0,
+      "total": 3,
+      "rate": 0
+    },
+    "shares_outstanding": {
+      "present": 3,
+      "total": 3,
+      "rate": 1
+    }
+  },
+  "nonnull_metric_distribution": {
+    "mean": 7,
+    "median": 7,
+    "min": 7,
+    "max": 7
+  },
+  "timing": {
+    "mean_s": 92.74,
+    "median_s": 75.42,
+    "p95_s": 240.73,
+    "p99_s": 240.73,
+    "min_s": 7.25,
+    "max_s": 240.73,
+    "total_s": 741.9
+  },
+  "sanity_checks": {
+    "revenue_positive": {
+      "passed": 0,
+      "total": 0,
+      "rate": 0
+    },
+    "shares_positive": {
+      "passed": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "cash_end_positive": {
+      "passed": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "period_end_valid": {
+      "passed": 3,
+      "total": 3,
+      "rate": 1
+    },
+    "period_type_valid": {
+      "passed": 3,
+      "total": 3,
+      "rate": 1
+    }
+  },
+  "unique_tickers": 8,
+  "period_type_distribution": {
+    "A": 1,
+    "H": 2
+  },
+  "scale_distribution": {
+    "units": 2,
+    "millions": 1
+  }
+}

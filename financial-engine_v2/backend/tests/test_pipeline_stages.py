@@ -786,6 +786,42 @@ def test_upsert_financial_rows_suppresses_empty_risk_note() -> None:
         session.close()
 
 
+def test_upsert_financial_rows_ignores_persisted_only_metric_payload_fields() -> None:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.models.asx_financials import ASXPeriodicFinancial
+    from app.models.base import Base
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+    doc = SimpleNamespace(ticker="TST", document_id=uuid.uuid4())
+    payload = {
+        "period_type": "H",
+        "period_end": "2026-03-31",
+        "confidence_metrics": 0.72,
+        "metrics": {
+            "revenue": 1000.0,
+            "total_equity": 2500.0,
+            "interest_expense": 50.0,
+        },
+    }
+
+    session = Session()
+    try:
+        assert pipeline._upsert_financial_rows(session, doc, payload) == 1
+        session.flush()
+
+        row = session.query(ASXPeriodicFinancial).filter_by(ticker="TST").one()
+        assert float(row.revenue) == 1000.0
+        assert row.total_equity is None
+        assert row.interest_expense is None
+    finally:
+        session.close()
+
+
 def test_upsert_financial_rows_persists_real_risk_note() -> None:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker

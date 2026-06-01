@@ -1,0 +1,39 @@
+{
+  "14d_period_end_evidence": {
+    "hits": [
+      {
+        "evidence": "Quarter ended ('current quarter') 31 March 2021",
+        "period_end": "2021-03-31",
+        "period_type": "Q",
+        "reason": "quarter_ended_explicit_date"
+      }
+    ],
+    "period_end": "2021-03-31",
+    "period_type": "Q",
+    "reason": "quarter_ended_explicit_date"
+  },
+  "29m_net_debt_note_page": 19,
+  "29m_recovered_net_debt": {
+    "normalized_value_at_thousands_scale": 85161000.0,
+    "period_col": "2025",
+    "raw_value": 85161.0,
+    "row_ref": "Net Drawn Debt 1"
+  },
+  "a2m_period_column_gate": {
+    "current_period_column": "31 Dec 25 $'000",
+    "current_period_matches_2025_12_31": true,
+    "prior_period_column": "30 Jun 25 $'000",
+    "prior_period_matches_2025_12_31": false
+  },
+  "a2m_negative_derived_net_debt_guard": {
+    "cash_end": 436878000,
+    "derived_formula_candidate": "total_debt(39000000)-cash_end(436878000)",
+    "derived_value": -397878000,
+    "expected_metric": null,
+    "runtime_validation_after_guard": {
+      "document_id": "a2m_h_2025-12-31",
+      "failed_metric_count": 0,
+      "trust_outcome": "trusted"
+    }
+  }
+}

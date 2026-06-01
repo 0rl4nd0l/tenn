@@ -1,0 +1,142 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_real_gold_eval_current_head_runtime_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/preflight.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/queue_after.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/queue_before.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_canonical_scorecard.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_documents.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_metrics.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_summary.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_trust_triggers.csv",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_stdout.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_summary.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/review_session_inventory_after.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/review_session_inventory_before.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/runtime_shutdown.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/runtime_startup.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/source_path_probe.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_real_gold_eval_current_head_runtime_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/diff-check.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/preflight.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/runtime_startup.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/runtime_shutdown.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/queue_before.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/queue_after.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/source_path_probe.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/review_session_inventory_before.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/review_session_inventory_after.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_stdout.txt",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_summary.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_canonical_scorecard.json",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_documents.csv",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_metrics.csv",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_results_trust_triggers.csv",
+        "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601/real_gold_eval_summary.md"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_real_gold_eval_current_head_runtime_v1_20260601",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "User approved full production runtime necessary to complete the extraction goal; this card is bounded to backend real-gold eval on current HEAD after the source-path resolver fix.",
+      "output_dir": "reports/agent_jobs/extraction_real_gold_eval_current_head_runtime_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "requested_mutation_mode": "real_gold_eval_current_head_runtime",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_broad_residual_noncandidate_filter_v1_20260601.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_broad_residual_noncandidate_filter_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_broad_residual_noncandidate_filter_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/scripts/test_broad_extraction_test.py",
+        "reports/agent_jobs/extraction_broad_residual_noncandidate_filter_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_broad_residual_noncandidate_filter_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_broad_residual_noncandidate_filter_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_broad_residual_noncandidate_filter_v1_20260601/diff-check.json"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_broad_residual_noncandidate_filter_v1_20260601",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "Continuation of the full extraction hardening goal after runtime sample 4bde51ce exposed residual non-candidate source-document classes.",
+      "output_dir": "reports/agent_jobs/extraction_broad_residual_noncandidate_filter_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

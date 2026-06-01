@@ -1,0 +1,78 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_real_gold_source_path_resolver_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/main.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/source_path_probe_after.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/source_path_probe_before.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_real_gold_source_path_resolver_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "financial-engine_v2/backend/app/main.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval.py",
+        "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/diff-check.json",
+        "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/source_path_probe_before.json",
+        "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601/source_path_probe_after.json"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_real_gold_source_path_resolver_v1_20260601",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "User requested continuation of /tmp/tenn_metric_extraction_handoff_2026-05-31.md toward full extraction graduation. This task is bounded to a backend real-gold eval source-path resolver fix and does not run runtime extraction.",
+      "output_dir": "reports/agent_jobs/extraction_real_gold_source_path_resolver_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 96,
+      "requested_mutation_mode": "real_gold_eval_source_path_resolver_fix",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

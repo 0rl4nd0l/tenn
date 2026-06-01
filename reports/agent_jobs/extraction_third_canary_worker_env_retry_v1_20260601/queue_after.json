@@ -1,0 +1,167 @@
+{
+  "captured_at": "2026-06-01T05:35:37.373792+00:00",
+  "cleanup": {
+    "action": "stopped canary-specific worker, backend, and llama router units after CLV hard stop",
+    "backend_health_after_cleanup": {
+      "exit_code": 7,
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused",
+      "stdout": ""
+    },
+    "captured_at": "2026-06-01T05:36:00.590471+00:00",
+    "gpu_memory_query_after_cleanup": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576"
+    },
+    "llama_lock_exists_after_cleanup": true,
+    "llama_lock_text_after_cleanup": "3846184",
+    "stale_llama_lock_removed": {
+      "captured_at": "2026-06-01T05:36:14.422018+00:00",
+      "exists_after_remove": false,
+      "pid_alive_before_remove": false,
+      "removed_path": "/tmp/llama-server.lock",
+      "removed_pid_text": "3846184"
+    },
+    "unit_status_after_cleanup": {
+      "tenn-backend-canary-20260601.service": {
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead"
+      },
+      "tenn-llama-router-canary-20260601.service": {
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead"
+      },
+      "tenn-llm-gpu-worker-canary-20260601.service": {
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead"
+      }
+    }
+  },
+  "gpu_memory_query_before_cleanup": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 13615, 24576"
+  },
+  "item_results": [
+    {
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "error": null,
+      "extraction_status": "ok_low_confidence",
+      "failure_code": null,
+      "financial_row_count_for_source_document": 1,
+      "financial_rows_written": 1,
+      "order": 1,
+      "risk_note_written": 1,
+      "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+      "ticker": "AAU",
+      "verdict": "accepted"
+    },
+    {
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "error": null,
+      "extraction_status": "ok_low_confidence",
+      "failure_code": null,
+      "financial_row_count_for_source_document": 1,
+      "financial_rows_written": 1,
+      "order": 2,
+      "risk_note_written": 1,
+      "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+      "ticker": "ATM",
+      "verdict": "accepted"
+    },
+    {
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "error": null,
+      "extraction_status": "ok",
+      "failure_code": null,
+      "financial_row_count_for_source_document": 1,
+      "financial_rows_written": 1,
+      "order": 3,
+      "risk_note_written": 1,
+      "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+      "ticker": "AM5",
+      "verdict": "accepted"
+    },
+    {
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "error": null,
+      "extraction_status": "ok",
+      "failure_code": null,
+      "financial_row_count_for_source_document": 1,
+      "financial_rows_written": 1,
+      "order": 4,
+      "risk_note_written": 1,
+      "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+      "ticker": "AQX",
+      "verdict": "accepted"
+    },
+    {
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "error": null,
+      "extraction_status": "ok_low_confidence",
+      "failure_code": null,
+      "financial_row_count_for_source_document": 1,
+      "financial_rows_written": 1,
+      "order": 5,
+      "risk_note_written": 1,
+      "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+      "ticker": "CRS",
+      "verdict": "accepted"
+    },
+    {
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "error": "validation_gate:insufficient_metrics:0",
+      "extraction_status": "failed",
+      "failure_code": "unknown",
+      "financial_row_count_for_source_document": 1,
+      "financial_rows_written": 0,
+      "order": 6,
+      "risk_note_written": 1,
+      "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+      "ticker": "CLV",
+      "verdict": "hard_failed"
+    }
+  ],
+  "not_submitted_after_stop": [
+    "CTM"
+  ],
+  "phase": "post_retry_hard_stop_before_cleanup",
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 8
+    },
+    "redis_connected": true,
+    "total_queued": 8
+  },
+  "retry_stopped_early": true,
+  "stop_reason": "hard_failed:da9f9ea5-6596-464f-af14-5acf12f9b050:failed:45b9c846-9f00-44ca-b8c6-7833f80e6342",
+  "unit_status_before_cleanup": {
+    "tenn-backend-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3848585\nActiveState=active\nSubState=running"
+    },
+    "tenn-llama-router-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3846184\nActiveState=active\nSubState=running"
+    },
+    "tenn-llm-gpu-worker-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3877057\nActiveState=active\nSubState=running"
+    }
+  },
+  "worker_active_reserved_scheduled": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online."
+  }
+}

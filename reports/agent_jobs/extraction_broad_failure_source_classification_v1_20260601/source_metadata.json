@@ -1,0 +1,65 @@
+{
+  "job_id": "extraction_broad_failure_source_classification_v1_20260601",
+  "generated_at": "2026-06-01T12:20:00Z",
+  "tools": {
+    "pdfinfo": "/usr/bin/pdfinfo",
+    "pdftotext": "/usr/bin/pdftotext",
+    "pdftoppm": "/usr/bin/pdftoppm"
+  },
+  "prior_sample_artifacts": {
+    "failure_digest": "reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/failure_digest.json",
+    "results": "reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/broad_sample_results.json"
+  },
+  "source_files": [
+    {
+      "ticker": "GTE",
+      "path": "/data/asx/docs/GTE/financial_performance/2025-09-11_annual-report-to-shareholders_a918a867-650e-40cb-91fc-8aa184f7379d.pdf",
+      "sha256": "359efeedc7680252d665a2f0625a0e734ed010dfc5d4cc343182c9f6a6bff62f",
+      "pages": 77,
+      "file_size_bytes": 4297894,
+      "source_mtime": "2026-03-01 19:02:45.976550616 +1100",
+      "text_extract": "/tmp/tenn_broad_failure_source_classification_v1/GTE.txt",
+      "text_extract_lines": 4080
+    },
+    {
+      "ticker": "ARL",
+      "path": "/data/asx/docs/ARL/financial_performance/2022-10-28_results-of-meeting_f6d952b4-61a9-4525-8d6d-6016bde62530.pdf",
+      "sha256": "4683c693dbdf4e4aa09bcb84824971ea7bdc1663d886608bd04d50a0ec0a658c",
+      "pages": 2,
+      "file_size_bytes": 212626,
+      "source_mtime": "2026-03-01 16:54:38.905706438 +1100",
+      "text_extract": "/tmp/tenn_broad_failure_source_classification_v1/ARL.txt",
+      "text_extract_lines": 81
+    },
+    {
+      "ticker": "HNG",
+      "path": "/data/asx/docs/HNG/financial_performance/2021-05-17_financial-update_b99edab3-ce8c-4560-ad33-86c4c77b2250.pdf",
+      "sha256": "e461f7aa4a412aab62fd46dfb7bcd5e8255c113a76389582ad2b7d4f9f9d2b7e",
+      "pages": 1,
+      "file_size_bytes": 156028,
+      "source_mtime": "2026-03-01 19:08:49.291994801 +1100",
+      "text_extract": "/tmp/tenn_broad_failure_source_classification_v1/HNG.txt",
+      "text_extract_lines": 51
+    },
+    {
+      "ticker": "CAF",
+      "path": "/data/asx/docs/CAF/financial_performance/2021-08-25_appendix-4e-fy21_2676743b-c638-40d9-be60-9b8069221d14.pdf",
+      "sha256": "64ac5919d5650aee147eb5493564b97c984a48bedaac89931218ea7c6cc7dd01",
+      "pages": 1,
+      "file_size_bytes": 524663,
+      "source_mtime": "2026-02-19 08:26:19.952717844 +1100",
+      "text_extract": "/tmp/tenn_broad_failure_source_classification_v1/CAF.txt",
+      "text_extract_lines": 59
+    },
+    {
+      "ticker": "TLS",
+      "path": "/data/asx/docs/TLS/financial_performance/2022-10-11_results-of-2022-annual-general-meeting_36c30afc-00a3-45f6-acd9-163a7519441f.pdf",
+      "sha256": "a236f692cd75f862178c8e714a1cb22cc761c80183a288f71bd24e78ee03a4fa",
+      "pages": 3,
+      "file_size_bytes": 208078,
+      "source_mtime": "2026-03-01 16:20:38.076151308 +1100",
+      "text_extract": "/tmp/tenn_broad_failure_source_classification_v1/TLS.txt",
+      "text_extract_lines": 142
+    }
+  ]
+}

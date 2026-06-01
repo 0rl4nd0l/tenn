@@ -1,0 +1,120 @@
+{
+  "job_id": "extraction_broad_failure_source_classification_v1_20260601",
+  "generated_at": "2026-06-01T12:20:00Z",
+  "source_sample": {
+    "job_id": "extraction_broad_robustness_sample_v1_20260601",
+    "docs_root": "/data/asx/docs",
+    "seed": 20260601,
+    "requested_count": 8,
+    "failure_count": 5
+  },
+  "classification_summary": {
+    "candidate_selection_or_source_document_classification": 3,
+    "scale_policy_or_source_unit_detection": 1,
+    "metric_ontology_or_ebit_label_semantics": 1,
+    "full_extraction_graduation_proven": false
+  },
+  "failures": [
+    {
+      "ticker": "GTE",
+      "source_path": "/data/asx/docs/GTE/financial_performance/2025-09-11_annual-report-to-shareholders_a918a867-650e-40cb-91fc-8aa184f7379d.pdf",
+      "broad_sample_error": "validation_gate:metric_label_mismatch:ebit:pre_tax",
+      "broad_sample_status": "failed",
+      "broad_sample_period_type": "A",
+      "broad_sample_period_end": "2025-06-30",
+      "broad_sample_scale": "units",
+      "non_null_metrics": 9,
+      "document_type": "annual_financial_report",
+      "candidate_eligible_for_canonical_extraction": true,
+      "unit_scale_classification": "units",
+      "unit_scale_evidence": [
+        "GTE pdftotext lines 1334-1341 show a consolidated profit-or-loss statement for the year ended 30 June 2025 with currency headers '$' and no thousands/millions unit header.",
+        "GTE pdftotext lines 1503-1508 show the consolidated cash-flow statement with '$' headers.",
+        "GTE pdftotext lines 2911-2916 show ordinary shares on issue as an explicit share count."
+      ],
+      "failure_cause_classification": "metric_ontology_or_ebit_label_semantics",
+      "next_workstream": "metric ontology / pre-persistence metric repair",
+      "recommendation": "Do not exclude this source. Preserve the fail-closed guard that blocks pre-tax profit/loss from being accepted as EBIT; follow-up should either abstain/drop only the invalid EBIT metric when policy allows partial accepted payloads, or keep the document rejected until EBIT label semantics are hardened."
+    },
+    {
+      "ticker": "ARL",
+      "source_path": "/data/asx/docs/ARL/financial_performance/2022-10-28_results-of-meeting_f6d952b4-61a9-4525-8d6d-6016bde62530.pdf",
+      "broad_sample_error": "validation_gate:scale_unknown",
+      "broad_sample_status": "failed",
+      "broad_sample_period_type": "A",
+      "broad_sample_period_end": "2022-10-28",
+      "broad_sample_scale": "unknown",
+      "non_null_metrics": 0,
+      "document_type": "agm_results_notice",
+      "candidate_eligible_for_canonical_extraction": false,
+      "unit_scale_classification": "not_applicable",
+      "unit_scale_evidence": [
+        "ARL pdftotext lines 9-21 identify the document as results of the 2022 Annual General Meeting.",
+        "ARL pdftotext lines 42-81 contain proxy and poll vote results, not financial statements."
+      ],
+      "failure_cause_classification": "candidate_selection_or_source_document_classification",
+      "next_workstream": "candidate selection / formal source document classification",
+      "recommendation": "Exclude AGM result/poll notices from broad financial extraction candidates before metric extraction."
+    },
+    {
+      "ticker": "HNG",
+      "source_path": "/data/asx/docs/HNG/financial_performance/2021-05-17_financial-update_b99edab3-ce8c-4560-ad33-86c4c77b2250.pdf",
+      "broad_sample_error": "validation_gate:scale_unknown",
+      "broad_sample_status": "failed",
+      "broad_sample_period_type": "H",
+      "broad_sample_period_end": "2021-03-31",
+      "broad_sample_scale": "unknown",
+      "non_null_metrics": 0,
+      "document_type": "unaudited_financial_update_without_formal_statements",
+      "candidate_eligible_for_canonical_extraction": false,
+      "unit_scale_classification": "headline_millions_only",
+      "unit_scale_evidence": [
+        "HNG pdftotext lines 8-15 identify the document as a financial update for the half year, ahead of planned release, with information subject to audit.",
+        "HNG pdftotext lines 25-32 provide headline values using '$8.5 million', '$1.0 million to $1.5 million', and '$30.0 million', but no formal financial statements."
+      ],
+      "failure_cause_classification": "candidate_selection_or_source_document_classification",
+      "next_workstream": "candidate selection / formal source document classification",
+      "recommendation": "Exclude unaudited headline financial updates from canonical financial-row extraction, or route them to a separate non-canonical announcement-signal path if needed."
+    },
+    {
+      "ticker": "CAF",
+      "source_path": "/data/asx/docs/CAF/financial_performance/2021-08-25_appendix-4e-fy21_2676743b-c638-40d9-be60-9b8069221d14.pdf",
+      "broad_sample_error": "validation_gate:scale_unknown",
+      "broad_sample_status": "failed",
+      "broad_sample_period_type": "A",
+      "broad_sample_period_end": "2021-06-30",
+      "broad_sample_scale": "unknown",
+      "non_null_metrics": 2,
+      "document_type": "appendix_4e_results_announcement",
+      "candidate_eligible_for_canonical_extraction": true,
+      "unit_scale_classification": "units",
+      "unit_scale_evidence": [
+        "CAF pdftotext lines 6-18 identify Appendix 4E for the year ended 30 June 2021 and show full-dollar values such as '$138,176,320' and '$1,846,857'.",
+        "CAF pdftotext line 54 gives a prose shorthand '$1.8m', but the extracted table values themselves are explicit full-dollar amounts."
+      ],
+      "failure_cause_classification": "scale_policy_or_source_unit_detection",
+      "next_workstream": "Scale Policy V1 / source-unit detection",
+      "recommendation": "Do not exclude this source. Add a bounded source-unit rule for Appendix 4E summary rows where selected values are explicitly dollar-prefixed full-dollar amounts and no '$000', thousands, or millions table header is present."
+    },
+    {
+      "ticker": "TLS",
+      "source_path": "/data/asx/docs/TLS/financial_performance/2022-10-11_results-of-2022-annual-general-meeting_36c30afc-00a3-45f6-acd9-163a7519441f.pdf",
+      "broad_sample_error": "validation_gate:scale_unknown",
+      "broad_sample_status": "failed",
+      "broad_sample_period_type": "A",
+      "broad_sample_period_end": "2022-06-30",
+      "broad_sample_scale": "unknown",
+      "non_null_metrics": 0,
+      "document_type": "agm_results_notice",
+      "candidate_eligible_for_canonical_extraction": false,
+      "unit_scale_classification": "not_applicable",
+      "unit_scale_evidence": [
+        "TLS pdftotext lines 22-25 identify results of the 2022 Annual General Meeting and poll results.",
+        "TLS pdftotext lines 82-142 contain the AGM vote report, not financial statements."
+      ],
+      "failure_cause_classification": "candidate_selection_or_source_document_classification",
+      "next_workstream": "candidate selection / formal source document classification",
+      "recommendation": "Exclude AGM result/poll notices from broad financial extraction candidates before metric extraction."
+    }
+  ]
+}

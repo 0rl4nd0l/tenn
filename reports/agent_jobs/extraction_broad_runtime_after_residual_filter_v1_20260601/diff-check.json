@@ -1,0 +1,46 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_broad_runtime_after_residual_filter_v1_20260601.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_broad_runtime_after_residual_filter_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/diff-check.json",
+        "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/runtime-control.json",
+        "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/broad_test_20260601T140000Z.json"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_broad_runtime_after_residual_filter_v1_20260601",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "User approved launch and full necessary runtime for the continuing extraction hardening goal on 2026-06-01.",
+      "output_dir": "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "job_id": "extraction_broad_runtime_after_residual_filter_v1_20260601",
+  "date": "2026-06-01",
+  "lane": "Evaluation",
+  "execution_mode": "SAFE EXTENSION MODE",
+  "code_changed": false,
+  "runtime_started": true,
+  "backend_started": false,
+  "worker_started": false,
+  "data_stores_mutated": false,
+  "source_pdfs_mutated": false,
+  "sample": {
+    "docs_root": "/data/asx/docs",
+    "seed": 20260601,
+    "requested_count": 8,
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "output_file": "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/broad_test_20260601T140000Z.json"
+  },
+  "candidate_filter": {
+    "input_count": 28633,
+    "candidate_count": 23842,
+    "excluded_count": 4791,
+    "excluded_reason_counts": {
+      "advisory_only_document": 50,
+      "meeting_notice": 1660,
+      "meeting_results_notice": 2250,
+      "non_financial_update_without_formal_statements": 745,
+      "operational_update_without_formal_statements": 81,
+      "unaudited_financial_update_without_formal_statements": 5
+    }
+  },
+  "summary": {
+    "status_distribution": {
+      "failed": 5,
+      "ok": 3
+    },
+    "success_rate": 0.375,
+    "error_classification": {
+      "validation_gate": 4,
+      "classifier_low_confidence": 1
+    },
+    "total_runtime_seconds": 735.0,
+    "max_document_seconds": 235.1,
+    "period_type_distribution": {
+      "A": 1,
+      "H": 1,
+      "Q": 1
+    },
+    "scale_distribution": {
+      "thousands": 1,
+      "units": 2
+    }
+  },
+  "results": [
+    {
+      "ticker": "CMM",
+      "source_path": "data/asx/docs/CMM/financial_performance/2023-11-29_annual-general-meeting-presentation_be0285c9-3e9e-4abb-bb95-d65cadba0faf.pdf",
+      "status": "failed",
+      "error": "validation_gate:insufficient_metrics:0",
+      "classification": "non-candidate AGM presentation"
+    },
+    {
+      "ticker": "M79",
+      "source_path": "data/asx/docs/M79/financial_performance/2025-09-29_annual-report-to-shareholders_655c396c-fa65-4ae1-915c-0fd5e9e64c8e.pdf",
+      "status": "ok",
+      "non_null_metrics": 7
+    },
+    {
+      "ticker": "AUE",
+      "source_path": "data/asx/docs/AUE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_7e9bb4d6-af45-4f16-90ec-3d8a743a7dc2.pdf",
+      "status": "ok",
+      "non_null_metrics": 4
+    },
+    {
+      "ticker": "ABE",
+      "source_path": "data/asx/docs/ABE/financial_performance/2022-02-28_half-yearly-report-and-accounts_181b6dd7-43ae-444b-a31e-464b361b8484.pdf",
+      "status": "ok",
+      "non_null_metrics": 8
+    },
+    {
+      "ticker": "MFG",
+      "source_path": "data/asx/docs/MFG/financial_performance/2023-08-07_full-year-results-briefing-18-august-2023-at-11-30-am_8925c1ca-b1e9-474c-a7db-dc0ff43196c5.pdf",
+      "status": "failed",
+      "error": "validation_gate:scale_unknown",
+      "classification": "non-candidate results-briefing notice"
+    },
+    {
+      "ticker": "CMM",
+      "source_path": "data/asx/docs/CMM/financial_performance/2024-11-01_capricorn-raises-200m-to-underpin-growth_280fd43e-5d8b-4e1d-add1-7d113536b590.pdf",
+      "status": "failed",
+      "error": "validation_gate:missing_period_end",
+      "classification": "non-candidate capital-raising announcement"
+    },
+    {
+      "ticker": "MFD",
+      "source_path": "data/asx/docs/MFD/financial_performance/2026-01-29_launch-of-mayfield-360-allied-health-services_23e3fae2-96fd-496f-a6b2-926c8d140bc3.pdf",
+      "status": "failed",
+      "error": "classifier_low_confidence:0.05",
+      "classification": "non-candidate service-launch update"
+    },
+    {
+      "ticker": "PLS",
+      "source_path": "data/asx/docs/PLS/financial_performance/2023-08-25_2023-annual-report-incorporating-appendix-4e_ec140119-ca8d-4bcf-a887-f05257fdf61a.pdf",
+      "status": "failed",
+      "error": "validation_gate:scale_unknown",
+      "classification": "formal annual report real blocker; large-PDF/PyMuPDF fallback missed $'000 statement scale and statement period-end evidence"
+    }
+  ],
+  "validation": [
+    {
+      "name": "task card validation",
+      "result": "passed"
+    },
+    {
+      "name": "active job overlap",
+      "result": "passed; only unrelated Reporting job in sibling worktree"
+    },
+    {
+      "name": "runtime command",
+      "command": "PYTHONPATH=financial-engine_v2/backend LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8001 LLM_API_KEY=local-openai-key OLLAMA_URL=http://127.0.0.1:11434 EXTRACT_MODEL=model:qwen2.5-14b-instruct financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 8 --seed 20260601 --docs-root /data/asx/docs --output-dir reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601 --resume",
+      "result": "completed 8/8"
+    },
+    {
+      "name": "post-run cleanup",
+      "result": "no llama-server processes; GPU token inactive; ports 8000/8001 closed; M40 memory 0 / 24576 MiB"
+    },
+    {
+      "name": "read-only source peeks",
+      "result": "confirmed CMM presentation, MFG briefing notice, CMM capital raise, MFD service launch, and PLS formal annual report statement pages with $'000 headers"
+    }
+  ],
+  "remaining_blockers": [
+    "Filter non-candidate AGM presentations, briefing notices, capital raisings, and product/service launch updates before metric extraction.",
+    "Fix large-PDF/PyMuPDF formal annual-report scale and source-period detection for PLS-style Appendix 4E annual reports.",
+    "This run does not prove full ticker-universe extraction graduation or authorize broad backfill/canonical datastore writes."
+  ]
+}

@@ -1,0 +1,158 @@
+Discovering PDFs...
+Using docs root: /data/asx/docs
+Found 28633 financial_performance PDFs across 655 tickers
+Candidate filter retained 24721 PDFs; excluded 3912 ({'advisory_only_document': 50, 'meeting_notice': 1660, 'meeting_results_notice': 2116, 'operational_update_without_formal_statements': 81, 'unaudited_financial_update_without_formal_statements': 5})
+Sampled 8 PDFs (seed=20260601)
+
+Running extraction on 8 PDFs...
+Estimated time: ~6 min (at ~45s/doc with llama.cpp)
+
+Using llama.cpp at http://127.0.0.1:8001/v1
+[1/8] CHN/2023-07-26_june-2023-quarterly-activities-cashflow...WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 66 → 1 rows (98% reduction) — using full table
+ [OK] 58.2s  metrics=5/10  ETA=0min
+[2/8] LM8/2022-08-29_baker-rc-programme-results-complete_779... [FL] 11.5s  metrics=0/10  ETA=7min
+[3/8] ATT/2023-09-27_copper-search-2023-annual-report-to-sha.../home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in StageModelPreset has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in ObjectDetectionStagePreset has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in ImageClassificationStagePreset has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_name" in KserveV2OptionsMixin has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_version" in KserveV2OptionsMixin has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_path" in LayoutModelConfig has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_filename" in OnnxRuntimeObjectDetectionEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_name" in ApiKserveV2ObjectDetectionEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_version" in ApiKserveV2ObjectDetectionEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in DocumentPictureClassifierOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_name" in KserveV2OcrOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_version" in KserveV2OcrOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in PictureDescriptionVlmEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in VlmConvertOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in CodeFormulaVlmOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_filename" in OnnxRuntimeImageClassificationEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_name" in ApiKserveV2ImageClassificationEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_version" in ApiKserveV2ImageClassificationEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in LayoutOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in LayoutObjectDetectionOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+ [OK] 237.6s  metrics=6/10  ETA=3min
+[4/8] AAM/2026-01-30_quarterly-activities-appendix-5b-cash-f...WARNING app.services.multipass_extraction: non-AUD currency detected: CAD — values stored as-is (no FX conversion applied)
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 67 → 1 rows (99% reduction) — using full table
+WARNING app.services.multipass_extraction: validation_gate:non_aud_currency:CAD — downgrading to ok_low_confidence (no FX policy)
+ [LC] 77.6s  metrics=6/10  ETA=9min
+[5/8] LSR/2022-11-04_results-of-2022-agm_adb0e50a-4178-4e74-...WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-11-04_results-of-2022-agm_adb0e50a-4178-4e74-a8b6-694a382e9868.pdf' class=meeting_results_notice
+ [FL] 2.0s  metrics=0/10  ETA=6min
+[6/8] CHN/2024-09-26_annual-report-to-shareholders_01be858a-... [OK] 231.7s  metrics=7/10  ETA=4min
+[7/8] LSF/2022-04-08_monthly-report-march-2022_852e638c-89bb...WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+ [FL] 35.6s  metrics=1/10  ETA=3min
+[8/8] OLY/2024-07-31_annual-asx-shareholder-summary_ecdc0511...WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+ [FL] 30.2s  metrics=1/10  ETA=2min
+
+======================================================================
+  BROAD EXTRACTION TEST — 8 documents
+======================================================================
+
+STATUS DISTRIBUTION:
+  failed                       4 ( 50.0%) █████████████████████████
+  ok                           3 ( 37.5%) ██████████████████
+  ok_low_confidence            1 ( 12.5%) ██████
+
+  Success rate: 50.0%
+
+ERROR CLASSIFICATION:
+  validation_gate                        3
+  classifier_low_confidence              1
+
+METRIC COVERAGE (across 4 successful extractions):
+  revenue                   0/   4 ( 0.0%)
+  ebit                      0/   4 ( 0.0%)
+  np_attributable           2/   4 (50.0%) ███████████████
+  operating_cf              4/   4 (100.0%) ██████████████████████████████
+  investing_cf              4/   4 (100.0%) ██████████████████████████████
+  financing_cf              3/   4 (75.0%) ██████████████████████
+  capex                     4/   4 (100.0%) ██████████████████████████████
+  cash_end                  4/   4 (100.0%) ██████████████████████████████
+  net_debt                  0/   4 ( 0.0%)
+  shares_outstanding        3/   4 (75.0%) ██████████████████████
+
+  Non-null metrics per doc: mean=6.0, median=6.0, range=[5,7]
+
+SANITY CHECKS:
+  revenue_positive             0/   0 ( 0.0%) [N/A]
+  shares_positive              3/   3 (100.0%) [PASS]
+  cash_end_positive            4/   4 (100.0%) [PASS]
+  period_end_valid             4/   4 (100.0%) [PASS]
+  period_type_valid            4/   4 (100.0%) [PASS]
+
+PERIOD TYPE DISTRIBUTION:
+  A        2
+  Q        2
+
+SCALE DISTRIBUTION:
+  thousands          3
+  units              1
+
+TIMING:
+  Mean: 85.6s  Median: 46.9s  P95: 237.6s  P99: 237.6s
+  Range: [2.0s, 237.6s]  Total: 684s (11.4min)
+
+  Unique tickers sampled: 7
+======================================================================
+
+Results saved to: reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/broad_test_20260601T132607Z.json

@@ -1,0 +1,56 @@
+{
+  "job_id": "extraction_broad_residual_noncandidate_filter_v1_20260601",
+  "date": "2026-06-01",
+  "lane": "Financial Truth",
+  "execution_mode": "SAFE EXTENSION MODE",
+  "runtime_started": false,
+  "data_stores_mutated": false,
+  "source_pdfs_mutated": false,
+  "validation": [
+    {
+      "name": "focused source-document classifier tests",
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'source_document_classifier'",
+      "result": "13 passed, 185 deselected"
+    },
+    {
+      "name": "focused broad candidate-filter helper test",
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/scripts/test_broad_extraction_test.py -k candidate_filter",
+      "result": "1 passed, 5 deselected"
+    },
+    {
+      "name": "full touched test files",
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "204 passed in 2.07s"
+    },
+    {
+      "name": "targeted ruff",
+      "command": "financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "All checks passed"
+    },
+    {
+      "name": "py_compile",
+      "command": "financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "passed"
+    },
+    {
+      "name": "exact residual-title probe",
+      "result": "LM8 excluded as non_financial_update_without_formal_statements; LSR excluded as meeting_results_notice; LSF excluded as non_financial_update_without_formal_statements; OLY excluded as non_financial_update_without_formal_statements; AAM Appendix 5B and CHN annual report remained allowed"
+    },
+    {
+      "name": "exact broad-helper probe on residual real paths",
+      "result": "AAM Appendix 5B and CHN annual report retained; LM8, LSR, LSF, and OLY excluded for the intended reasons"
+    },
+    {
+      "name": "no-runtime /data/asx/docs candidate inventory",
+      "result": "total=28633 candidates=23842 excluded=4791; advisory_only_document=50; meeting_notice=1660; meeting_results_notice=2250; non_financial_update_without_formal_statements=745; operational_update_without_formal_statements=81; unaudited_financial_update_without_formal_statements=5"
+    },
+    {
+      "name": "new exclusion-bucket spot-check",
+      "result": "non_financial_update_without_formal_statements=745; drill_assay_results=673; monthly=54; shareholder_summary=1; resource=35; period_title_watch=0"
+    }
+  ],
+  "remaining_blockers": [
+    "Runtime improvement remains unproven until a fresh approved bounded broad robustness sample runs.",
+    "This task does not prove full ticker-universe extraction graduation or authorize broad backfill/canonical datastore writes."
+  ]
+}

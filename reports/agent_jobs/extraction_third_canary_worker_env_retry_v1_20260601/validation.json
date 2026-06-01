@@ -1,0 +1,36 @@
+{
+  "issues": [],
+  "metadata": {
+    "allowed_files": [
+      "docs/agent_tasks/extraction_third_canary_worker_env_retry_v1_20260601.md",
+      "docs/claude/STATE.md",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/README.md",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/status.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/validation.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/diff-check.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/runtime_restart.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/preflight.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/queue_before.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/retry_results.json",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/queue_after.json"
+    ],
+    "approval_required": true,
+    "github_mutation_allowed": "none",
+    "job_id": "extraction_third_canary_worker_env_retry_v1_20260601",
+    "lane": "Financial Truth",
+    "mutation_mode": "safe_extension",
+    "operator_approval_source": "User approved full production runtime necessary to complete the extraction goal and specifically approved backend/worker/GPU worker reload for extraction_third_canary_runtime_execution_v1_20260531. Prior card 201d7701 hard-stopped after AAU failed because the dedicated worker lacked OLLAMA_URL; this retry is bounded to the same seven approved document IDs with worker env parity corrected.",
+    "output_dir": "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601",
+    "owner": "Codex",
+    "production_data_access": false,
+    "related_issue": 96,
+    "requested_mutation_mode": "runtime_canary_retry",
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance",
+      "Query Orchestration"
+    ],
+    "timeout_seconds": 14400
+  },
+  "ok": true
+}

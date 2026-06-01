@@ -1,0 +1,40 @@
+document_id,ticker,period_type,period_end,trust_outcome,expected_trust,metric_name,status,expected,actual,reason,source_metric_key
+10x_q_2025-12-31_difficult,10X,Q,2025-12-31,trusted,trusted,net_debt,correct,,,Within tolerance,net_debt
+10x_q_2025-12-31_difficult,10X,Q,2025-12-31,trusted,trusted,operating_cash_flow,correct,-398000.0,-398000.0,Within tolerance,operating_cf
+10x_q_2025-12-31_difficult,10X,Q,2025-12-31,trusted,trusted,revenue,correct,,,Within tolerance,revenue
+14d_q_2021-03-31,14D,Q,2021-03-31,quarantine,trusted,net_debt,quarantine,,,Context mismatch; fixture marked quarantine,net_debt
+14d_q_2021-03-31,14D,Q,2021-03-31,quarantine,trusted,operating_cash_flow,quarantine,-1106000.0,-1106000.0,Context mismatch; fixture marked quarantine,operating_cf
+14d_q_2021-03-31,14D,Q,2021-03-31,quarantine,trusted,revenue,quarantine,,,Context mismatch; fixture marked quarantine,revenue
+29m_a_2025-12-31,29M,A,2025-12-31,abstain,trusted,net_debt,missing,85161000.0,,Expected metric was absent,net_debt
+29m_a_2025-12-31,29M,A,2025-12-31,abstain,trusted,operating_cash_flow,correct,55451000.0,55451000.0,Within tolerance,operating_cf
+29m_a_2025-12-31,29M,A,2025-12-31,abstain,trusted,revenue,correct,566622000.0,566622000.0,Within tolerance,revenue
+a2m_h_2025-12-31,A2M,H,2025-12-31,abstain,trusted,net_debt,wrong,,-397878000.0,Expected null was not null,net_debt
+a2m_h_2025-12-31,A2M,H,2025-12-31,abstain,trusted,operating_cash_flow,correct,95189000.0,95189000.0,Within tolerance,operating_cf
+a2m_h_2025-12-31,A2M,H,2025-12-31,abstain,trusted,revenue,correct,993491000.0,992558000.0,Within tolerance,revenue
+bhp_a_2021-06-30_difficult,BHP,A,2021-06-30,trusted,trusted,net_debt,correct,,,Within tolerance,net_debt
+bhp_a_2021-06-30_difficult,BHP,A,2021-06-30,trusted,trusted,operating_cash_flow,correct,27234000000.0,27234000000.0,Within tolerance,operating_cf
+bhp_a_2021-06-30_difficult,BHP,A,2021-06-30,trusted,trusted,revenue,correct,60817000000.0,60817000000.0,Within tolerance,revenue
+bhp_a_2025-06-30,BHP,A,2025-06-30,trusted,trusted,net_debt,correct,12924000000.0,12924000000.0,Within tolerance,net_debt
+bhp_a_2025-06-30,BHP,A,2025-06-30,trusted,trusted,operating_cash_flow,correct,18692000000.0,18692000000.0,Within tolerance,operating_cf
+bhp_a_2025-06-30,BHP,A,2025-06-30,trusted,trusted,revenue,correct,51262000000.0,51262000000.0,Within tolerance,revenue
+eqr_q_2025-12-31,EQR,Q,2025-12-31,trusted,trusted,operating_cash_flow,correct,1154000.0,1154000.0,Within tolerance,operating_cf
+gre_q_2024-12-31,GRE,Q,2024-12-31,trusted,trusted,operating_cash_flow,correct,-450000.0,-450000.0,Within tolerance,operating_cf
+gre_q_2025-09-30,GRE,Q,2025-09-30,trusted,trusted,operating_cash_flow,correct,-63000.0,-63000.0,Within tolerance,operating_cf
+min_h_2025-12-31,MIN,H,2025-12-31,trusted,trusted,net_debt,correct,,,Within tolerance,net_debt
+min_h_2025-12-31,MIN,H,2025-12-31,trusted,trusted,operating_cash_flow,correct,880000000.0,880000000.0,Within tolerance,operating_cf
+min_h_2025-12-31,MIN,H,2025-12-31,trusted,trusted,revenue,correct,3052000000.0,3052000000.0,Within tolerance,revenue
+qbe_h_2025-06-30,QBE,H,2025-06-30,trusted,trusted,net_debt,correct,1555000000.0,1555000000.0,Within tolerance,net_debt
+qbe_h_2025-06-30,QBE,H,2025-06-30,trusted,trusted,operating_cash_flow,correct,1756000000.0,1756000000.0,Within tolerance,operating_cf
+qbe_h_2025-06-30,QBE,H,2025-06-30,trusted,trusted,revenue,correct,10875000000.0,10875000000.0,Within tolerance,revenue
+rio_a_2023-12-31,RIO,A,2023-12-31,trusted,trusted,net_debt,correct,4231000000.0,4231000000.0,Within tolerance,net_debt
+rio_a_2023-12-31,RIO,A,2023-12-31,trusted,trusted,operating_cash_flow,correct,15160000000.0,15160000000.0,Within tolerance,operating_cf
+rio_a_2023-12-31,RIO,A,2023-12-31,trusted,trusted,revenue,correct,54041000000.0,54041000000.0,Within tolerance,revenue
+rio_a_2024-12-31,RIO,A,2024-12-31,trusted,trusted,net_debt,correct,5491000000.0,5491000000.0,Within tolerance,net_debt
+rio_a_2024-12-31,RIO,A,2024-12-31,trusted,trusted,operating_cash_flow,correct,15599000000.0,15599000000.0,Within tolerance,operating_cf
+rio_a_2024-12-31,RIO,A,2024-12-31,trusted,trusted,revenue,correct,53658000000.0,53658000000.0,Within tolerance,revenue
+rms_h_2025-12-31,RMS,H,2025-12-31,trusted,trusted,net_debt,correct,,,Within tolerance,net_debt
+rms_h_2025-12-31,RMS,H,2025-12-31,trusted,trusted,operating_cash_flow,correct,171179000.0,171179000.0,Within tolerance,operating_cf
+rms_h_2025-12-31,RMS,H,2025-12-31,trusted,trusted,revenue,correct,485630000.0,485630000.0,Within tolerance,revenue
+tls_h_2025-12-31,TLS,H,2025-12-31,trusted,trusted,net_debt,correct,16800000000.0,16800000000.0,Within tolerance,net_debt
+tls_h_2025-12-31,TLS,H,2025-12-31,trusted,trusted,operating_cash_flow,correct,3637000000.0,3637000000.0,Within tolerance,operating_cf
+tls_h_2025-12-31,TLS,H,2025-12-31,trusted,trusted,revenue,correct,11641000000.0,11641000000.0,Within tolerance,revenue
