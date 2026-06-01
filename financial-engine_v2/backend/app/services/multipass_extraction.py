@@ -308,6 +308,28 @@ def _table_allows_row_level_currency_scan(table) -> bool:
     return any(hint in combined for hint in _ROW_LEVEL_CURRENCY_CONTEXT_HINTS)
 
 
+def _table_text_surfaces(table, *, row_limit: int = 3) -> list[str]:
+    surfaces: list[str] = []
+    if table.headers:
+        surfaces.append(" ".join(str(h) for h in table.headers))
+    if getattr(table, "caption", None):
+        surfaces.append(str(table.caption))
+    for row in (table.rows or [])[:row_limit]:
+        surfaces.append(" ".join(str(cell) for cell in row))
+    return surfaces
+
+
+def _detect_scale_from_text(text: str) -> str:
+    for pattern, scale in _SCALE_PATTERNS:
+        if _re.search(pattern, text, _re.IGNORECASE):
+            return scale
+    return "unknown"
+
+
+def _has_financial_statement_context(text: str) -> bool:
+    return bool(_FINANCIAL_STATEMENT_UNIT_CONTEXT_RE.search(text))
+
+
 def _explicit_currency_million_hits(text: str) -> dict[str, int]:
     hits: dict[str, int] = {}
     for pattern, currency in _EXPLICIT_CURRENCY_MILLION_PATTERNS:
@@ -370,17 +392,34 @@ def _detect_idr_millions_statement_scale(tables) -> bool:
 
 def _detect_scale_from_sections(sections) -> str:
     """Detect formal statement units that Docling kept as page text sections."""
+    page_texts: dict[int, list[str]] = {}
     for section in sections or []:
         if isinstance(section, dict):
             text = str(section.get("text") or "")
+            page = section.get("page")
         else:
             text = str(getattr(section, "text", "") or "")
+            page = getattr(section, "page", None)
         if not text:
             continue
         if _IDR_MILLIONS_STATEMENT_UNIT_RE.search(
             text
-        ) and _FINANCIAL_STATEMENT_UNIT_CONTEXT_RE.search(text):
+        ) and _has_financial_statement_context(text):
             return "millions"
+        try:
+            page_number = int(page)
+        except (TypeError, ValueError):
+            continue
+        page_texts.setdefault(page_number, []).append(text)
+
+    for page_number in sorted(page_texts):
+        text = " ".join(page_texts[page_number])
+        if not _has_financial_statement_context(text):
+            continue
+        detected = _detect_scale_from_text(text)
+        if detected != "unknown":
+            return detected
+
     return "unknown"
 
 
@@ -395,27 +434,22 @@ def _detect_scale_from_tables(tables) -> str:
     if _detect_idr_millions_statement_scale(tables):
         return "millions"
 
+    for table in tables or []:
+        combined = " ".join(_table_text_surfaces(table, row_limit=8))
+        if not _has_financial_statement_context(combined):
+            continue
+        detected = _detect_scale_from_text(combined)
+        if detected != "unknown":
+            return detected
+
     for table in tables[:15]:
         # Build list of text surfaces to scan: headers, caption, first 3 body rows
-        surfaces: list[str] = []
-        if table.headers:
-            surfaces.append(" ".join(table.headers))
-        if getattr(table, "caption", None):
-            surfaces.append(table.caption)
-        for row in (table.rows or [])[:3]:
-            surfaces.append(" ".join(str(cell) for cell in row))
-
-        combined = " ".join(surfaces)
-        for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, combined, _re.IGNORECASE):
-                return scale
+        detected = _detect_scale_from_text(" ".join(_table_text_surfaces(table)))
+        if detected != "unknown":
+            return detected
 
     for table in tables[:15]:
-        surfaces: list[str] = []
-        if table.headers:
-            surfaces.append(" ".join(str(h) for h in table.headers))
-        if getattr(table, "caption", None):
-            surfaces.append(table.caption)
+        surfaces: list[str] = _table_text_surfaces(table, row_limit=0)
         if _table_allows_extended_unit_scan(table):
             for row in (table.rows or [])[:20]:
                 surfaces.append(" ".join(str(cell) for cell in row))
@@ -442,14 +476,7 @@ def _detect_scale_from_tables(tables) -> str:
     # table unit, not "unknown". This is intentionally checked after all
     # thousands/millions/billions patterns so scaled columns still win.
     for table in tables[:15]:
-        surfaces: list[str] = []
-        if table.headers:
-            surfaces.append(" ".join(str(h) for h in table.headers))
-        if getattr(table, "caption", None):
-            surfaces.append(str(table.caption))
-        for row in (table.rows or [])[:3]:
-            surfaces.append(" ".join(str(cell) for cell in row))
-        if _RAW_DOLLAR_UNIT_RE.search(" ".join(surfaces)):
+        if _RAW_DOLLAR_UNIT_RE.search(" ".join(_table_text_surfaces(table))):
             return "units"
     return "unknown"
 
@@ -2823,6 +2850,36 @@ def _apply_source_period_end_type_correction(
     pass1["report_type"] = source_period_type
 
 
+def _apply_source_period_end_correction(
+    pass1: dict[str, Any],
+    source_period_end_evidence: dict[str, Any],
+) -> None:
+    """Correct Pass 1 period end only from unambiguous typed source-date evidence."""
+
+    source_period_type = str(source_period_end_evidence.get("period_type") or "").strip()
+    source_period_end = str(source_period_end_evidence.get("period_end") or "").strip()
+    if source_period_type not in {"A", "H", "Q"} or not source_period_end:
+        return
+
+    current_period_type = str(pass1.get("report_type") or "").strip()
+    if current_period_type in {"A", "H", "Q"} and current_period_type != source_period_type:
+        return
+
+    source_date = parse_period_end(source_period_end)
+    current_period_end = str(pass1.get("period_end") or "").strip()
+    current_date = parse_period_end(current_period_end)
+    if source_date is None or current_date == source_date:
+        return
+
+    pass1["_source_period_end_correction"] = {
+        "from": current_date.isoformat() if current_date is not None else None,
+        "to": source_date.isoformat(),
+        "reason": str(source_period_end_evidence.get("reason") or "").strip()
+        or "explicit_source_period_end",
+    }
+    pass1["period_end"] = source_date.isoformat()
+
+
 def _early_period_source_text(
     sections: list[dict],
     *,
@@ -2897,6 +2954,45 @@ def _early_period_table_text(
             selected.append(table_text)
         if len(selected) >= max_tables:
             break
+
+    return " ".join(selected)[:max_chars]
+
+
+def _formal_statement_source_text(
+    sections: list[dict],
+    tables: list[Any],
+    *,
+    max_chars: int = 8000,
+) -> str:
+    """Return explicit formal-statement text from late annual-report pages."""
+
+    selected: list[str] = []
+    page_texts: dict[int, list[str]] = {}
+
+    for section in sections or []:
+        if isinstance(section, dict):
+            text = str(section.get("text") or "").strip()
+            page = section.get("page")
+        else:
+            text = str(getattr(section, "text", "") or "").strip()
+            page = getattr(section, "page", None)
+        if not text:
+            continue
+        try:
+            page_number = int(page)
+        except (TypeError, ValueError):
+            continue
+        page_texts.setdefault(page_number, []).append(text)
+
+    for page_number in sorted(page_texts):
+        page_text = " ".join(page_texts[page_number])
+        if _has_financial_statement_context(page_text):
+            selected.append(page_text)
+
+    for table in tables or []:
+        table_text = " ".join(_table_text_surfaces(table, row_limit=8))
+        if _has_financial_statement_context(table_text):
+            selected.append(table_text)
 
     return " ".join(selected)[:max_chars]
 
@@ -3838,6 +3934,9 @@ def _run_pass4_reconciler(
         "source_period_type_correction": pass1_result.get(
             "_source_period_type_correction"
         ),
+        "source_period_end_correction": pass1_result.get(
+            "_source_period_end_correction"
+        ),
         "source_document_classification": pass1_result.get(
             "_source_document_classification"
         ),
@@ -4367,6 +4466,16 @@ def run_multipass_extraction(
                     if part
                 ),
             )
+    if not source_period_end_evidence.get("period_end"):
+        statement_text = _formal_statement_source_text(
+            structured_doc.sections,
+            structured_doc.tables,
+        )
+        if statement_text:
+            source_period_end_evidence = _detect_source_period_end_evidence(
+                title,
+                statement_text,
+            )
     source_document_classification = classify_source_document(title, first_page_text)
     if not source_document_classification.extraction_candidate_allowed:
         error = f"validation_gate:{source_document_classification.reason}"
@@ -4434,6 +4543,7 @@ def run_multipass_extraction(
     if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
         pass1["period_end"] = source_period_end_evidence["period_end"]
     _apply_source_period_end_type_correction(pass1, source_period_end_evidence)
+    _apply_source_period_end_correction(pass1, source_period_end_evidence)
     pass1["_source_period_evidence"] = source_period_evidence
     pass1["_source_period_end_evidence"] = source_period_end_evidence
     pass1["_source_period_type"] = source_period_evidence.get("period_type")

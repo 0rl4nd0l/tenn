@@ -179,6 +179,123 @@ def test_early_period_table_text_includes_appendix_4c_date_rows():
     assert evidence["period_end"] == "2021-03-31"
 
 
+def test_formal_statement_source_text_detects_late_annual_report_period_end():
+    """Large annual reports can carry statement-period evidence far past page 1."""
+    from app.services.multipass_extraction import (
+        _detect_source_period_end_evidence,
+        _formal_statement_source_text,
+    )
+
+    sections = [
+        {"text": "2023 Annual Report Incorporating Appendix 4E", "page": 1},
+        {"text": "CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND", "page": 161},
+        {"text": "OTHER COMPREHENSIVE INCOME", "page": 161},
+        {"text": "For the year ended 30 June 2023", "page": 161},
+        {"text": "Notes", "page": 161},
+        {"text": "$\u2019000", "page": 161},
+    ]
+
+    evidence = _detect_source_period_end_evidence(
+        "2023 Annual Report Incorporating Appendix 4E",
+        _formal_statement_source_text(sections, []),
+    )
+
+    assert evidence["period_type"] == "A"
+    assert evidence["period_end"] == "2023-06-30"
+    assert evidence["reason"] == "year_ended_explicit_date"
+
+
+def test_run_multipass_corrects_publication_date_from_formal_statement_period():
+    """PLS-style reports must use statement period end, not ASX publication date."""
+    from datetime import date
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 232
+        docling_version = None
+        tables = []
+        sections = [
+            {"text": "2023 Annual Report Incorporating Appendix 4E", "page": 1},
+            {"text": "CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND", "page": 161},
+            {"text": "OTHER COMPREHENSIVE INCOME", "page": 161},
+            {"text": "For the year ended 30 June 2023", "page": 161},
+            {"text": "2023", "page": 161},
+            {"text": "$\u2019000", "page": 161},
+            {"text": "CONSOLIDATED STATEMENT OF CASH FLOWS", "page": 164},
+            {"text": "For the year ended 30 June 2023", "page": 164},
+            {"text": "$\u2019000", "page": 164},
+        ]
+
+    pass1_publication_date = {
+        "report_type": "A",
+        "period_end": "2023-08-25",
+        "currency": "AUD",
+        "scale": "unknown",
+        "classifier_confidence": 0.97,
+    }
+    pass3a_results = [
+        {
+            "_source": "income_statement",
+            "_page_number": 161,
+            "pass3_confidence": 0.92,
+            "np_attributable": 2_391_135_000,
+            "row_refs": {
+                "np_attributable": "Net profit for the period",
+            },
+        },
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 164,
+            "pass3_confidence": 0.91,
+            "operating_cf": 3_456_693_000,
+            "cash_end": 3_338_553_000,
+            "row_refs": {
+                "operating_cf": "Net cash inflow from operating activities",
+                "cash_end": "Cash and cash equivalents at the end of the period",
+            },
+        },
+    ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_publication_date,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/pls.pdf",
+            {
+                "document_id": "ec140119-ca8d-4bcf-a887-f05257fdf61a",
+                "ticker": "PLS",
+                "title": "2023 Annual Report Incorporating Appendix 4E",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "ok"
+    assert result.error is None
+    assert result.payload["period_type"] == "A"
+    assert result.payload["period_end"] == "2023-06-30"
+    assert result.payload["period_start"] == date(2022, 7, 1)
+    assert result.payload["scale"] == "thousands"
+    assert result.payload["source_period_end_evidence"]["period_end"] == "2023-06-30"
+    assert result.payload["source_period_end_correction"] == {
+        "from": "2023-08-25",
+        "to": "2023-06-30",
+        "reason": "year_ended_explicit_date",
+    }
+
+
 def test_run_multipass_corrects_period_type_from_explicit_source_period_end():
     """CTM-style annual reports must not persist a Pass 1 half-year misclassification."""
     from datetime import date
@@ -1168,6 +1285,64 @@ def test_scale_unknown_table_preserves_pass1_scale():
     assert pass1["scale"] == "millions", (
         "pass1['scale'] must be unchanged when table scan returns 'unknown'"
     )
+
+
+def test_late_formal_statement_table_detects_smart_apostrophe_thousands():
+    """PLS-style PyMuPDF statement tables may appear long after the first 15 tables."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    filler_tables = [
+        DoclingTable(
+            page_number=i,
+            caption="Remuneration table",
+            rows=[["Director", "Shares"], ["Example", "100"]],
+            headers=["Director", "Shares"],
+        )
+        for i in range(1, 18)
+    ]
+    statement_table = DoclingTable(
+        page_number=161,
+        caption="",
+        headers=["", ""],
+        rows=[
+            [
+                "",
+                (
+                    "CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND "
+                    "OTHER COMPREHENSIVE INCOME For the year ended 30 June 2023 "
+                    "2023 2022 Notes $\u2019000 $\u2019000"
+                ),
+            ],
+            ["Revenue from contracts with customers", "4,064,019"],
+        ],
+    )
+
+    assert _detect_scale_from_tables([*filler_tables, statement_table]) == "thousands"
+
+
+def test_late_non_statement_unit_table_does_not_drive_scale():
+    """Broad late-table scans must stay limited to formal statement context."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    filler_tables = [
+        DoclingTable(
+            page_number=i,
+            caption="Remuneration table",
+            rows=[["Director", "Shares"], ["Example", "100"]],
+            headers=["Director", "Shares"],
+        )
+        for i in range(1, 18)
+    ]
+    note_table = DoclingTable(
+        page_number=120,
+        caption="Debt instruments",
+        rows=[["Facility", "US$'000"], ["Private placement", "12,500"]],
+        headers=["Facility", "US$'000"],
+    )
+
+    assert _detect_scale_from_tables([*filler_tables, note_table]) == "unknown"
 
 
 def test_scale_override_log_condition_fires_on_disagreement():
