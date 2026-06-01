@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CockpitSidebar } from './cockpit-sidebar'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import type { ServiceHealth } from '@/lib/cockpit-types'
 import {
   deleteChatSessionRemote,
   listChatSessions,
@@ -27,14 +28,14 @@ vi.mock('@/lib/chat-session-store', () => ({
   loadAllChatSessions: vi.fn(() => []),
 }))
 
-function renderSidebar() {
+function renderSidebar({ gpuHealth = null }: { gpuHealth?: ServiceHealth | null } = {}) {
   return render(
     <SidebarProvider>
       <CockpitSidebar
         backendHealthy
         backendLastHealthyAt={new Date('2026-05-07T00:00:00Z')}
         backendError={null}
-        gpuHealth={null}
+        gpuHealth={gpuHealth}
         hostHealth={null}
         sessionCost={0}
       />
@@ -106,5 +107,22 @@ describe('CockpitSidebar chat sessions', () => {
     })
     expect(deleteChatSession).toHaveBeenCalledWith('session-alpha')
     expect(useCockpitStore.getState().sessionId).toBe('active-session')
+  })
+
+  it('does not summarize degraded GPU telemetry as a confirmed idle process list', async () => {
+    renderSidebar({
+      gpuHealth: {
+        name: 'gpu',
+        status: 'degraded',
+        error: 'nvidia-smi query failed',
+        details: {
+          gpus: [],
+          processes: [],
+        },
+      },
+    })
+
+    expect(await screen.findByText('GPU process telemetry unavailable')).toBeInTheDocument()
+    expect(screen.queryByText('No active GPU compute processes')).not.toBeInTheDocument()
   })
 })

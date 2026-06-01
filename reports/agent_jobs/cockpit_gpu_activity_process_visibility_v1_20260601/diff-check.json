@@ -1,0 +1,69 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/gpu-activity-dialog.test.tsx",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/gpu-activity-dialog.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_gpu_activity_process_visibility_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_gpu_activity_process_visibility_v1_20260601.md",
+        "cockpit-ui/components/cockpit/gpu-activity-dialog.tsx",
+        "cockpit-ui/components/cockpit/gpu-activity-dialog.test.tsx",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.tsx",
+        "cockpit-ui/components/cockpit/cockpit-sidebar.test.tsx",
+        "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/README.md",
+        "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/status.json",
+        "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/validation.json",
+        "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "cockpit_gpu_activity_process_visibility_v1_20260601",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_gpu_activity_process_visibility_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
