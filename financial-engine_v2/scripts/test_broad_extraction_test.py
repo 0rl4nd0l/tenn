@@ -122,6 +122,30 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2021-04-12_ccr-signs-suncorp-as-first-insurance-client-grows-q3-revenue_dddd.pdf"
             )
+            agm_abbrev_pdf = _touch_pdf(
+                docs_root
+                / "LSR"
+                / "financial_performance"
+                / "2022-11-04_results-of-2022-agm_gggg.pdf"
+            )
+            drilling_pdf = _touch_pdf(
+                docs_root
+                / "LM8"
+                / "financial_performance"
+                / "2022-08-29_baker-rc-programme-results-complete_hhhh.pdf"
+            )
+            monthly_report_pdf = _touch_pdf(
+                docs_root
+                / "LSF"
+                / "financial_performance"
+                / "2022-04-08_monthly-report-march-2022_iiii.pdf"
+            )
+            shareholder_summary_pdf = _touch_pdf(
+                docs_root
+                / "OLY"
+                / "financial_performance"
+                / "2024-07-31_annual-asx-shareholder-summary_jjjj.pdf"
+            )
             appendix_pdf = _touch_pdf(
                 docs_root
                 / "CAF"
@@ -141,6 +165,10 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                     agm_notice_pdf,
                     update_pdf,
                     operational_pdf,
+                    agm_abbrev_pdf,
+                    drilling_pdf,
+                    monthly_report_pdf,
+                    shareholder_summary_pdf,
                     appendix_pdf,
                     appendix_4c_pdf,
                 ],
@@ -155,6 +183,10 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 "meeting_notice",
                 "unaudited_financial_update_without_formal_statements",
                 "operational_update_without_formal_statements",
+                "meeting_results_notice",
+                "non_financial_update_without_formal_statements",
+                "non_financial_update_without_formal_statements",
+                "non_financial_update_without_formal_statements",
             ],
         )
         self.assertEqual(

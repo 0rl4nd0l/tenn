@@ -122,6 +122,12 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "without formal Appendix or financial-statement evidence; it must not "
         "enter canonical metric extraction."
     ),
+    "non_financial_update_without_formal_statements": (
+        "Source metadata identifies a drilling, programme, monthly fund, or "
+        "shareholder-summary update without formal Appendix or "
+        "financial-statement evidence; it must not enter canonical metric "
+        "extraction."
+    ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
         "downstream gates still decide whether extraction is safe."
@@ -2152,18 +2158,20 @@ _ADVISORY_ONLY_DOCUMENT_PATTERNS: tuple[re.Pattern[str], ...] = (
 
 _MEETING_RESULTS_NOTICE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(
-        r"\bresults?\s+of\s+(?:\d{4}\s+)?annual\s+general\s+meeting\b",
+        r"(?:^|[-_\s])results?[-_\s]+of[-_\s]+(?:\d{4}[-_\s]+)?"
+        r"(?:annual[-_\s]+general[-_\s]+meeting|agm)(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
     re.compile(r"\bresults?\s+of\s+meeting\b", re.IGNORECASE),
     re.compile(
-        r"\bannual\s+general\s+meeting\b.*\b(?:poll\s+results?|proxy\s+votes?|"
+        r"\b(?:annual\s+general\s+meeting|agm)\b.*\b(?:poll\s+results?|proxy\s+votes?|"
         r"resolutions?\s+(?:were\s+)?(?:passed|decided)|section\s+251aa|"
         r"listing\s+rule\s+3\.13\.2)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\bresult\s+of\s+annual\s+general\s+meeting\b",
+        r"(?:^|[-_\s])result[-_\s]+of[-_\s]+"
+        r"(?:annual[-_\s]+general[-_\s]+meeting|agm)(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
 )
@@ -2224,6 +2232,45 @@ _OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     re.compile(r"\bgrows?[-_\s]+q[1-4][\-_\s]+revenue\b", re.IGNORECASE),
     re.compile(
         r"\b(?:new|first|major)[-_\s]+(?:client|customer|contract)\b",
+        re.IGNORECASE,
+    ),
+)
+
+_NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
+    re.Pattern[str], ...
+] = (
+    re.compile(
+        r"\b(?:drill(?:ing)?|assay|rc|diamond)[-_\s\w,.%/@]{0,120}"
+        r"\bresults?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bresults?\b[-_\s\w,.%/@]{0,120}"
+        r"\b(?:drill(?:ing)?|assay|rc|diamond)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bprogramme[-_\s]+results?\b", re.IGNORECASE),
+    re.compile(
+        r"\bmineral[-_\s]+resource[-_\s]+(?:estimate|update|model)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bmre\b.{0,80}\b(?:planned|update|reported)\b", re.IGNORECASE),
+    re.compile(r"(?:^|[-_\s])monthly[-_\s]+report(?![A-Za-z0-9])", re.IGNORECASE),
+    re.compile(
+        r"(?:^|[-_\s])annual[-_\s]+asx[-_\s]+shareholder[-_\s]+summary"
+        r"(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])shareholder[-_\s]+summary(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])additional[-_\s]+asx[-_\s]+information(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])distribution[-_\s]+of[-_\s]+shareholders(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
 )
@@ -2606,6 +2653,27 @@ def _is_operational_update_without_formal_statements(
     )
 
 
+def _is_non_financial_update_without_formal_statements(
+    title: Any,
+    first_page_text: Any,
+) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    if _has_formal_financial_statement_marker(text):
+        return False
+    if _detect_source_period_evidence(title, first_page_text).get("period_type") in {
+        "A",
+        "H",
+        "Q",
+    }:
+        return False
+    return any(
+        pattern.search(text)
+        for pattern in _NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS
+    )
+
+
 def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str, Any]:
     """
     Detect explicit source-period wording without changing the extracted period.
@@ -2837,6 +2905,14 @@ def classify_source_document(
             canary_candidate_allowed=False,
             reason="operational_update_without_formal_statements",
             evidence=["operational_update_without_formal_statement_pattern"],
+        )
+    if _is_non_financial_update_without_formal_statements(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="non_financial_update_without_formal_statements",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="non_financial_update_without_formal_statements",
+            evidence=["non_financial_update_without_formal_statement_pattern"],
         )
 
     period_evidence = _detect_source_period_evidence(title, first_page_text)

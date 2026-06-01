@@ -2709,6 +2709,20 @@ def test_source_document_classifier_blocks_agm_results_notices():
     assert result.reason == "meeting_results_notice"
 
 
+def test_source_document_classifier_blocks_agm_abbreviation_results_title_only():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-11-04_results-of-2022-agm.pdf",
+        "",
+    )
+
+    assert result.document_class == "meeting_results_notice"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "meeting_results_notice"
+
+
 def test_source_document_classifier_blocks_agm_notice_proxy_forms_title_only():
     from app.services.multipass_extraction import classify_source_document
 
@@ -2777,6 +2791,66 @@ def test_source_document_classifier_blocks_operational_customer_update():
     assert result.reason == "operational_update_without_formal_statements"
 
 
+def test_source_document_classifier_blocks_drilling_programme_results():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-08-29_baker-rc-programme-results-complete.pdf",
+        (
+            "Baker RC programme results complete. "
+            "RC drilling records 5m @ 4.15% Ni and updated Baker MRE planned "
+            "for December quarter."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "non_financial_update_without_formal_statements"
+
+
+def test_source_document_classifier_blocks_monthly_fund_report():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-04-08_monthly-report-march-2022.pdf",
+        (
+            "L1 Long Short Fund Limited Monthly Report | March 2022. "
+            "The portfolio returned 1.3% net in March. "
+            "Company information includes shares on issue."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_shareholder_summary():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-07-31_annual-asx-shareholder-summary.pdf",
+        (
+            "Additional ASX Information. Distribution of Shareholders. "
+            "Ordinary share capital and voting rights."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
 def test_source_document_classifier_keeps_appendix_4c_business_update_candidate():
     from app.services.multipass_extraction import classify_source_document
 
@@ -2802,6 +2876,30 @@ def test_source_document_classifier_keeps_formal_appendix_4e_candidate():
             "Appendix 4E Year ended 30 June 2021. "
             "Results for announcement to the market."
         ),
+    )
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+
+
+def test_source_document_classifier_keeps_formal_appendix_5b_candidate():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2026-01-30_quarterly-activities-appendix-5b-cash-flow-report.pdf",
+        "Quarterly activities and Appendix 5B cash flow report.",
+    )
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+
+
+def test_source_document_classifier_keeps_period_report_with_drilling_results():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-01-30_quarterly-activities-report-and-drilling-results.pdf",
+        "Quarterly activities report. Drilling results from the current quarter.",
     )
 
     assert result.document_class == "financial_report"
