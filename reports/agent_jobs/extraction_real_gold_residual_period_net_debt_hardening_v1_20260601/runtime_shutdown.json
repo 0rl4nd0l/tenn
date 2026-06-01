@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-06-01T21:33:28+10:00",
+  "stopped_units": [
+    "tenn-backend-residual-20260601.service",
+    "tenn-llama-router-residual-20260601.service"
+  ],
+  "residual_units_status": "not-found-after-stop",
+  "listeners_8000_8001": [
+    "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess"
+  ],
+  "transient_external_listener_observed": {
+    "pid": 761280,
+    "cwd": "/home/l4nd0/tenn-cockpit-mobile-chrome-compact-v1-20260601/financial-engine_v2",
+    "status": "gone_before_final_shutdown_probe",
+    "note": "A separate isolated backend briefly held port 8000 after residual shutdown; it was not the residual eval unit and was gone on the final listener probe."
+  },
+  "nvidia_smi": [
+    "0, NVIDIA GeForce GT 1030, 1, 2048, 0",
+    "1, Tesla M40 24GB, 0, 24576, 0"
+  ],
+  "gpu_activity_guard": {
+    "active": false,
+    "active_runs": [],
+    "expires_at": null,
+    "expires_in_seconds": 0,
+    "kind": "gpu_exclusive_activity",
+    "source": "none",
+    "token_count": 0
+  }
+}

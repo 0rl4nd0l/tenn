@@ -1,0 +1,140 @@
+{
+  "backend_health": {
+    "json": {
+      "status": "ok"
+    },
+    "status_code": 200
+  },
+  "captured_at": "2026-06-01T06:07:09.360616+00:00",
+  "document_checks": [
+    {
+      "active_run_statuses": [],
+      "current_financial_rows_for_source_document": [
+        {
+          "capex": -2123497,
+          "cash_end": 24577181,
+          "confidence_metrics": 0.92,
+          "currency": "AUD",
+          "ebit": -15111363,
+          "financing_cf": 22024529,
+          "investing_cf": -2167611,
+          "net_debt": 13722676,
+          "np_attributable": -14308070,
+          "operating_cf": -13225929,
+          "period_end": "2025-12-31",
+          "period_start": null,
+          "period_type": "A",
+          "revenue": null,
+          "shares_outstanding": 562827818,
+          "source_document_id": "035c67587aed41a69e84ad154125d431",
+          "ticker": "CTM",
+          "updated_at": "2026-05-31 11:51:59"
+        }
+      ],
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "document_key": "035c67587aed41a69e84ad154125d431",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+          "ticker": "CTM",
+          "title": "Financial Report 31 December 2025"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 1,
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-06-01 05:51:55",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "fbf2cf1d3f9b4c9691d58a0a88862fc0",
+          "status": "failed"
+        },
+        {
+          "created_at": "2026-05-31 11:51:59",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "feb20c6b28b048b69692c15e1d32ed20",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 11:20:51",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "f493fb094b554363a638be77fccac574",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 10:57:06",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "92bf4e7166dd422e9eb0e4a20fcf3234",
+          "status": "failed"
+        }
+      ],
+      "source_paths": [
+        {
+          "exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+          "size_bytes": 1761954
+        }
+      ],
+      "ticker": "CTM"
+    }
+  ],
+  "failed_gates": [],
+  "gpu_guard": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gpu_memory_query": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 3, 24576\n"
+  },
+  "head_short": "07f20ff3",
+  "models_probe": {
+    "qwen2_5_14b": [
+      {
+        "id": "model:qwen2.5-14b-instruct",
+        "status": "unloaded"
+      }
+    ],
+    "status_code": 200
+  },
+  "ok": true,
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 9
+    },
+    "redis_connected": true,
+    "total_queued": 9
+  },
+  "worker_active_reserved_scheduled": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-ctm-rerun@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n"
+  },
+  "worker_env_evidence": {
+    "EMBEDDING_URL": "http://127.0.0.1:11434",
+    "EXTRACT_MODEL": "qwen2.5-14b-instruct",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "OLLAMA_URL": "http://127.0.0.1:11434"
+  },
+  "worker_ping": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-ctm-rerun@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online.\n"
+  }
+}

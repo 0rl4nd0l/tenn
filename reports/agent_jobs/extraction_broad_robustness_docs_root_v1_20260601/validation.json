@@ -1,0 +1,45 @@
+{
+  "task_card_validate": {
+    "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_broad_robustness_docs_root_v1_20260601.md --write-report",
+    "ok": true
+  },
+  "focused_tests": {
+    "command": "financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/scripts/test_broad_extraction_test.py -q",
+    "ok": true,
+    "result": "5 passed"
+  },
+  "ruff": {
+    "command": "financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+    "ok": true
+  },
+  "py_compile": {
+    "command": "financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+    "ok": true
+  },
+  "empty_scope_smoke": {
+    "command": "financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 0 --docs-root <missing_tmp_root> --output-dir <tmp_out>",
+    "ok": true,
+    "result": "0 documents summarized without initializing an LLM client"
+  },
+  "source_inventory": {
+    "repo_local_financial_performance_pdf_count": 0,
+    "host_financial_performance_pdf_count": 28633,
+    "resolved_docs_root": "/data/asx/docs"
+  },
+  "json_validation": {
+    "command": "jq -e . reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/source_inventory.json reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/validation.json",
+    "ok": true
+  },
+  "check_diff": {
+    "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_broad_robustness_docs_root_v1_20260601.md --repo-root .",
+    "ok": true
+  },
+  "whitespace": {
+    "command": "git diff --check",
+    "ok": true
+  },
+  "runtime_started": false,
+  "extraction_run_executed": false,
+  "canonical_write_allowed": false,
+  "broad_backfill_authorized": false
+}

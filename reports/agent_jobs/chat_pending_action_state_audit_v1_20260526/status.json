@@ -1,0 +1,21 @@
+{
+  "job_id": "chat_pending_action_state_audit_v1_20260526",
+  "github_issue": 120,
+  "status": "ready_for_review",
+  "registry_release_status": "released",
+  "lane": "Query Orchestration",
+  "mode": "SAFE_EXTENSION",
+  "branch": "safe/chat-pending-action-normal-followup-v1-20260602",
+  "worktree": "/home/l4nd0/tenn-chat-pending-action-normal-followup-v1-20260602",
+  "collision_risk": "MEDIUM",
+  "contested_surfaces_touched": [
+    "cockpit-ui/tests/chat-browser-regression.spec.ts"
+  ],
+  "product_code_changed": false,
+  "test_coverage_added": true,
+  "production_data_access": false,
+  "current_behavior": "normal follow-up prompt completes independently while action proposal controls remain visible",
+  "action_job_posts_during_followup": 0,
+  "validation_result": "PASS",
+  "updated_at": "2026-06-02T02:36:49+10:00"
+}

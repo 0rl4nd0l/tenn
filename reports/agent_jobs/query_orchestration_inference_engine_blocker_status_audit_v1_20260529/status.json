@@ -1,0 +1,131 @@
+{
+  "artifact_type": "query_orchestration_inference_engine_blocker_status_audit_v1",
+  "job_id": "query_orchestration_inference_engine_blocker_status_audit_v1_20260529",
+  "generated_at": "2026-06-01T17:17:11+10:00",
+  "lane": "Query Orchestration",
+  "execution_mode": "audit_only_report_only",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head": "0626e1098504a0b483e176bb4c99e2f6f599b90a",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "verdict": "SUPERSEDED",
+  "decision": "proceed_report_only",
+  "collision_risk": "LOW",
+  "task_card": {
+    "path": "docs/agent_tasks/query_orchestration_inference_engine_blocker_status_audit_v1_20260529.md",
+    "validation_ok": true,
+    "allow_audit_code_changes_used": false,
+    "claimed": false,
+    "claim_skipped_reason": "registry claim would write outside the user-approved write set"
+  },
+  "active_marker": {
+    "path": ".tenn/active_agent_task",
+    "exists": false,
+    "points_to": null,
+    "renamed_stale_marker_found": ".tenn/active_agent_task.stale_query_orchestration_inference_engine_phase1_audit_v1_20260529_20260531T123605Z"
+  },
+  "registry": {
+    "list_active_ok": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "initial_active_jobs_observed": [
+      {
+        "job_id": "cockpit_accessible_controls_memory_updater_v1_20260601",
+        "lane": "Reporting",
+        "branch": "safe/reporting-accessible-controls-memory-updater-v1-20260601",
+        "worktree": "/home/l4nd0/tenn-reporting-accessible-controls-memory-updater-v1-20260601"
+      }
+    ],
+    "final_active_jobs": [],
+    "inference_audit_active": false,
+    "extraction_canary_active": false,
+    "old_inference_record_status": "released",
+    "old_inference_record_released_at": "2026-05-31T12:29:33.463036Z"
+  },
+  "old_phase1_card": {
+    "path": "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_v1_20260529.md",
+    "exists": true,
+    "validation_ok": true,
+    "contains_allow_audit_code_changes_true": true,
+    "contains_extraction_third_canary_runtime_v1_20260529_in_allowed_files": false,
+    "invalid_yaml_or_frontmatter": false
+  },
+  "old_phase1_report": {
+    "dir": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_v1_20260529",
+    "exists": true,
+    "files_found": [
+      "status.json",
+      "diff-check.json"
+    ],
+    "detailed_readme_found": false,
+    "completed": false,
+    "superseded_or_parked_by_commit": "8f7a0ab745e32d25fb41a9e49335ba9a7036ac7d"
+  },
+  "recent_commits": {
+    "inference_audit_paths": [
+      {
+        "commit": "8f7a0ab7",
+        "subject": "milestone(query-orchestration): preserve stale inference audit card"
+      }
+    ],
+    "agent_job_scripts": [
+      {
+        "commit": "c0113f11",
+        "subject": "fix(repo-hygiene): add read-only registry listing"
+      },
+      {
+        "commit": "35593a10",
+        "subject": "milestone(agent-hooks): add gemini task-card enforcement"
+      },
+      {
+        "commit": "2d09b676",
+        "subject": "milestone(agent-registry): share job claims across worktrees"
+      }
+    ]
+  },
+  "code_mutation": {
+    "dirty_or_staged_changes_found": false,
+    "files": {
+      "financial-engine_v2/backend/app/services/llm.py": {
+        "dirty_or_staged": false
+      },
+      "financial-engine_v2/backend/app/services/router.py": {
+        "dirty_or_staged": false
+      },
+      "financial-engine_v2/backend/app/services/llamacpp_runtime.py": {
+        "dirty_or_staged": false
+      },
+      "financial-engine_v2/backend/app/celery_app.py": {
+        "dirty_or_staged": false
+      },
+      "financial-engine_v2/backend/app/services/inference_engine.py": {
+        "exists": false,
+        "tracked": false,
+        "dirty_or_staged": false
+      },
+      "financial-engine_v2/backend/app/services/inference_schema.py": {
+        "exists": false,
+        "tracked": false,
+        "dirty_or_staged": false
+      }
+    }
+  },
+  "foreign_work_untouched": true,
+  "forbidden_actions_performed": false,
+  "data_missing": [
+    "Exact historical uncommitted bad Gemini recovery card contents are unavailable from current HEAD.",
+    "No detailed Phase 1 audit README/report exists in the old report directory, so Phase 1 audit completion cannot be confirmed.",
+    "Other agents' worktrees were not inspected beyond git worktree list evidence.",
+    "This audit was not claimed because registry claim writes were outside the user-approved write set."
+  ],
+  "validation": {
+    "new_task_card_validate_ok": true,
+    "old_task_card_validate_ok": true,
+    "registry_list_active_ok": true,
+    "json_tool_ok": true,
+    "check_diff_ok": false,
+    "check_diff_issue": "audit_only jobs may not include code changes unless allow_audit_code_changes=true",
+    "check_diff_disallowed_files": [],
+    "check_diff_expected_issue": "audit_only check-diff in this repo flags any changed files unless allow_audit_code_changes is true; this audit intentionally did not use that flag"
+  },
+  "next_safe_step": "Start any renewed Unified Inference Engine Phase 1 audit from a fresh card with no foreign allowed_files and no allow_audit_code_changes, and report hook limitations instead of widening ownership."
+}

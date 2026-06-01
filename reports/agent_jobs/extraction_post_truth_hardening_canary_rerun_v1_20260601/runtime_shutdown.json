@@ -1,0 +1,235 @@
+{
+  "commands": {
+    "clear_gpu_activity_59d1e9b7ca394ae58c46e0231f583030": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "clear",
+        "59d1e9b7ca394ae58c46e0231f583030"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "gpu_activity_after_clear": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "json": {
+        "active": false,
+        "active_runs": [],
+        "expires_at": null,
+        "expires_in_seconds": 0,
+        "kind": "gpu_exclusive_activity",
+        "source": "none",
+        "token_count": 0
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n"
+    },
+    "gpu_activity_before_clear": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "json": {
+        "active": true,
+        "active_runs": [
+          {
+            "activity_type": "gpu_exclusive",
+            "expires_at": 1780314997.7041125,
+            "expires_in_seconds": 12980,
+            "host": "l4nd0-System-Product-Name",
+            "mode": "runtime_canary",
+            "owner": "Codex",
+            "reason": "extraction_post_truth_hardening_canary_rerun_v1_20260601",
+            "started_at": "2026-06-01T07:56:37+00:00",
+            "token": "59d1e9b7ca394ae58c46e0231f583030"
+          }
+        ],
+        "expires_at": 1780314997.7041125,
+        "expires_in_seconds": 12980,
+        "kind": "gpu_exclusive_activity",
+        "source": "redis",
+        "token_count": 1
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": true, \"active_runs\": [{\"activity_type\": \"gpu_exclusive\", \"expires_at\": 1780314997.7041125, \"expires_in_seconds\": 12980, \"host\": \"l4nd0-System-Product-Name\", \"mode\": \"runtime_canary\", \"owner\": \"Codex\", \"reason\": \"extraction_post_truth_hardening_canary_rerun_v1_20260601\", \"started_at\": \"2026-06-01T07:56:37+00:00\", \"token\": \"59d1e9b7ca394ae58c46e0231f583030\"}], \"expires_at\": 1780314997.7041125, \"expires_in_seconds\": 12980, \"kind\": \"gpu_exclusive_activity\", \"source\": \"redis\", \"token_count\": 1}\n"
+    },
+    "gpu_guard_after_stop": {
+      "argv": [
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "nvidia_after_stop": {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,memory.total",
+        "--format=csv,noheader"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1 MiB, 2048 MiB\n1, Tesla M40 24GB, 0 MiB, 24576 MiB\n"
+    },
+    "ports_after_stop": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 or sport = :11434 or sport = :6379 )"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess\nLISTEN 0      511        127.0.0.1:6379       0.0.0.0:*          \nLISTEN 0      4096       127.0.0.1:11434      0.0.0.0:*          \nLISTEN 0      511            [::1]:6379          [::]:*          \n"
+    },
+    "show_tenn-backend-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-backend-posthardening-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nResult=success\nExecMainPID=0\nId=tenn-backend-posthardening-20260601.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n"
+    },
+    "show_tenn-llama-router-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-llama-router-posthardening-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nResult=success\nExecMainPID=0\nId=tenn-llama-router-posthardening-20260601.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n"
+    },
+    "show_tenn-llm-gpu-worker-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-llm-gpu-worker-posthardening-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nResult=success\nExecMainPID=0\nId=tenn-llm-gpu-worker-posthardening-20260601.service\nLoadState=not-found\nActiveState=inactive\nSubState=dead\n"
+    },
+    "stop_tenn-backend-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "stop",
+        "tenn-backend-posthardening-20260601.service"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "stop_tenn-llama-router-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "stop",
+        "tenn-llama-router-posthardening-20260601.service"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "stop_tenn-llm-gpu-worker-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "stop",
+        "tenn-llm-gpu-worker-posthardening-20260601.service"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    }
+  },
+  "completed_at": "2026-06-01T08:20:20.461507+00:00",
+  "created_at": "2026-06-01T08:20:17.201385+00:00",
+  "llama_lock": {
+    "content": "165093",
+    "exists": true,
+    "path": "/tmp/llama-server.lock"
+  },
+  "units": [
+    "tenn-llm-gpu-worker-posthardening-20260601.service",
+    "tenn-backend-posthardening-20260601.service",
+    "tenn-llama-router-posthardening-20260601.service"
+  ]
+}

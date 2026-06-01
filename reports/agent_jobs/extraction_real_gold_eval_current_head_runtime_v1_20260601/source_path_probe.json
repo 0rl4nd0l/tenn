@@ -1,0 +1,159 @@
+{
+  "all_resolved_existing": true,
+  "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+  "documents": [
+    {
+      "document_id": "10x_q_2025-12-31_difficult",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "sha256": "c700e3671ff907fa56739f23cf3a716ad00895d7fb249cc9f51ffd4aaea0f1e0",
+      "size": 1619626,
+      "source_file": "data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf"
+    },
+    {
+      "document_id": "14d_q_2021-03-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "sha256": "cf13bca699ce8095277310458a2fcf780d7bafd8044f550eea837a65b9f445df",
+      "size": 200139,
+      "source_file": "data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf"
+    },
+    {
+      "document_id": "29m_a_2025-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "sha256": "fe9536d85506bdc6fb01bdbb21ce2097131f075ef5ffdff90ade254dd16d0bab",
+      "size": 5397905,
+      "source_file": "data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf"
+    },
+    {
+      "document_id": "a2m_h_2025-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "sha256": "cf33ccb4a2729a88dcb30c44bbd77f6b0ebad258231facd29adeb4e7d6f86f52",
+      "size": 8484985,
+      "source_file": "data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf"
+    },
+    {
+      "document_id": "bhp_a_2021-06-30_difficult",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "sha256": "022fc8de7153fed33431423b16f24ff6ac41c975c558e514ec37367e0a57489e",
+      "size": 1751732,
+      "source_file": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf"
+    },
+    {
+      "document_id": "bhp_a_2025-06-30",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "sha256": "39e139174313295df56143a3cbd2c704eeb9783bdffb4706a083706d6b5a490a",
+      "size": 15541285,
+      "source_file": "data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf"
+    },
+    {
+      "document_id": "eqr_q_2025-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "sha256": "ef6afd6b30c32ceb94779dcece46b0a0ce4a60454497082db38882452ee11f97",
+      "size": 1138083,
+      "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf"
+    },
+    {
+      "document_id": "gre_q_2024-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "sha256": "5e69c641cabd0578321ad14262b676b02dd0807984993e06db69f64548e5a6a8",
+      "size": 2128366,
+      "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf"
+    },
+    {
+      "document_id": "gre_q_2025-09-30",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "sha256": "a2b9b73762a1ed9fa031746a8349501ea1a49ab22e4142c0951bb3975b179e5e",
+      "size": 2153679,
+      "source_file": "data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf"
+    },
+    {
+      "document_id": "min_h_2025-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "sha256": "179346499325a02dd05b23de7f04a00a335cb54f2e1899869b8de86bbd40f845",
+      "size": 4874396,
+      "source_file": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf"
+    },
+    {
+      "document_id": "qbe_h_2025-06-30",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "sha256": "278193d3a2de4e4182a5c0f504f28118f66a9b160367b1db68f99a01de4c127f",
+      "size": 1352512,
+      "source_file": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf"
+    },
+    {
+      "document_id": "rio_a_2023-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "sha256": "cb5ce3d28f8748124566262c69db4cb6850127bd11e03f5ce822b45f2b6365bd",
+      "size": 497862,
+      "source_file": "data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf"
+    },
+    {
+      "document_id": "rio_a_2024-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "sha256": "fc023fa578e3fe969132db79aea6bd08111857fc5036f5bb24749c9f48d516c2",
+      "size": 494327,
+      "source_file": "data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf"
+    },
+    {
+      "document_id": "rms_h_2025-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "sha256": "92c913e70c8c5070118842f718c2f89fad2dbb100f91e82a52e6add2e206eaaa",
+      "size": 1195545,
+      "source_file": "data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf"
+    },
+    {
+      "document_id": "tls_h_2025-12-31",
+      "error": null,
+      "exists": true,
+      "resolved": true,
+      "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "sha256": "afcb9b817bc687820e14ca8c1e9f0a7fc01c84d2476be837e3ae6f333c164a31",
+      "size": 6283216,
+      "source_file": "data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf"
+    }
+  ],
+  "generated_at": "2026-06-01T09:18:44+00:00",
+  "resolved_existing_count": 15,
+  "total_documents": 15
+}

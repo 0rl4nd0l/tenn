@@ -571,6 +571,36 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     })
   })
 
+  test('normal follow-up is independent while action proposal is pending (#120)', async ({ page }) => {
+    const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
+    await mockCockpitApis(page, counters)
+    await page.goto('/full-chat')
+    await expect(page.getByPlaceholder('Enter command or query...')).toBeVisible()
+
+    await sendChat(page, 'action proposal response', 'Action ready: Run company analysis.')
+    await expect(page.getByText('Action proposal').first()).toBeVisible()
+    await expect(page.getByText('Run company analysis').first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Confirm' }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Cancel' }).first()).toBeVisible()
+    expect(counters.actionJobPostCount).toBe(0)
+
+    await sendChat(page, 'Pick one current holding or watchlist item for review.', 'Sure, I can help narrow that down.')
+    await expect(page.getByText('Sure, I can help narrow that down.').last()).toBeVisible()
+    expect(counters.actionJobPostCount).toBe(0)
+
+    await page.getByRole('button', { name: 'Cancel' }).first().click()
+    await expect(page.getByText('Action cancelled: Run company analysis').first()).toBeVisible()
+    expect(counters.actionJobPostCount).toBe(0)
+    addReportRow({
+      route: '/full-chat',
+      area: 'Pending action follow-up',
+      expected: 'A normal prompt submitted while Confirm/Cancel is visible completes as an independent chat turn without running the action',
+      observed: `Independent plain answer rendered after action proposal; backend action POST count remained ${counters.actionJobPostCount}`,
+      status: 'PASS',
+      notes: 'Regression coverage for issue #120; confirmation gate stayed intact',
+    })
+  })
+
   test('mocked chat states preserve analyst shell, action, diagnostic, source, feedback, and guard behavior', async ({ page }) => {
     const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
     await mockCockpitApis(page, counters)

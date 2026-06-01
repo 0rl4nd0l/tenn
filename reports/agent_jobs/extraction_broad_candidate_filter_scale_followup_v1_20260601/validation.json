@@ -1,0 +1,55 @@
+{
+  "commands": [
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python scripts/agent_job_contract.py validate docs/agent_tasks/extraction_broad_candidate_filter_scale_followup_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python scripts/agent_job_registry.py list-active",
+      "result": "active extraction job claim plus unrelated YouTube Evaluation job in sibling worktree"
+    },
+    {
+      "cmd": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'source_document_classifier or appendix_4c_usd_thousand'",
+      "result": "8 passed, 184 deselected"
+    },
+    {
+      "cmd": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/scripts/test_broad_extraction_test.py -k candidate_filter",
+      "result": "1 passed, 5 deselected"
+    },
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "passed"
+    },
+    {
+      "cmd": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "198 passed"
+    },
+    {
+      "cmd": "financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "passed"
+    },
+    {
+      "cmd": "exact post-hardening failure candidate-filter probe",
+      "result": "CCR operational update excluded; AAM/IXC meeting notices excluded; IMR Appendix 4C retained"
+    },
+    {
+      "cmd": "no-runtime /data/asx/docs candidate inventory probe",
+      "result": "total=28633 candidates=24721 excluded=3912"
+    }
+  ],
+  "inventory_probe": {
+    "candidates": 24721,
+    "excluded": 3912,
+    "exclusion_reasons": {
+      "advisory_only_document": 50,
+      "meeting_notice": 1660,
+      "meeting_results_notice": 2116,
+      "operational_update_without_formal_statements": 81,
+      "unaudited_financial_update_without_formal_statements": 5
+    },
+    "total": 28633
+  },
+  "job_id": "extraction_broad_candidate_filter_scale_followup_v1_20260601",
+  "ok": true,
+  "runtime_started": false
+}

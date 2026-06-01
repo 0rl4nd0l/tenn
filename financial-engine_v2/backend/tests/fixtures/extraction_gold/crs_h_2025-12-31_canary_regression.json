@@ -1,0 +1,35 @@
+{
+  "_source": "Hand-verified from local source PDF pages 4-7. The financial report states half-year ended 31 December 2025, presents Australian dollar raw values, reports interest income but no revenue line, and reports cash-flow values in raw dollars.",
+  "_verification": "hand-verified-pdftotext",
+  "_verification_confidence": "high",
+  "document_id": "crs_h_2025-12-31_canary_regression",
+  "ticker": "CRS",
+  "source_document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+  "source_file": "/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf",
+  "source_sha256": "b65432d135c20b89a10a213878a727e456760d52f0605414289f9cf88a546e7a",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "units",
+  "metrics": {
+    "revenue": null,
+    "ebit": null,
+    "np_attributable": -1937589,
+    "operating_cf": -588790,
+    "investing_cf": -3429257,
+    "financing_cf": 997240,
+    "cash_end": 4756183
+  },
+  "tolerances": {
+    "np_attributable": 0.01,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.01
+  },
+  "notes": {
+    "revenue": "Expected null because the statement labels $103,092 as interest income, not revenue.",
+    "ebit": "Expected null because the statement labels loss before income tax, not EBIT."
+  },
+  "expected_trust": "trusted"
+}

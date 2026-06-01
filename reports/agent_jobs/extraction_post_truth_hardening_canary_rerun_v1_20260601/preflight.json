@@ -1,0 +1,1211 @@
+{
+  "commands": {
+    "active_jobs": {
+      "argv": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active",
+        "--read-only",
+        "--repo-root",
+        "."
+      ],
+      "json": {
+        "active_jobs": [
+          {
+            "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_post_truth_hardening_canary_rerun_v1_20260601.json",
+            "age_seconds": 694.381,
+            "agent": "Codex",
+            "allowed_files": [
+              "docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md",
+              "docs/claude/STATE.md",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/README.md",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/status.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/validation.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/diff-check.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_startup.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/preflight.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_before.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/results.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_after.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_shutdown.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads_summary.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actuals_real_gold_keyed.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/source_document_rekey_summary.json",
+              "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_real_gold_scorecard.json"
+            ],
+            "approval_required": true,
+            "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+            "claimed_at": "2026-06-01T07:48:00.904398Z",
+            "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+            "heartbeat_at": "2026-06-01T07:48:00.904398Z",
+            "hostname": "l4nd0-System-Product-Name",
+            "job_id": "extraction_post_truth_hardening_canary_rerun_v1_20260601",
+            "lane": "Financial Truth",
+            "last_seen_at": "2026-06-01T07:48:00.904398Z",
+            "mutation_mode": "safe_extension",
+            "output_dir": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601",
+            "owner": "Codex",
+            "pid": 141120,
+            "production_data_access": false,
+            "schema_version": 1,
+            "session_id": "l4nd0-System-Product-Name:141120:extraction_post_truth_hardening_canary_rerun_v1_20260601",
+            "stale": false,
+            "stale_after_seconds": 1800,
+            "started_at": "2026-06-01T07:48:00.904398Z",
+            "status": "active",
+            "task_card": "docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md",
+            "task_card_sha256": "abe747a5b604625396d7998be33bb09e47c0a77c25761900c41a894e9e193b60",
+            "timeout_seconds": 14400,
+            "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+          }
+        ],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "lock_acquired": false,
+        "ok": true,
+        "read_only": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "warnings": []
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_post_truth_hardening_canary_rerun_v1_20260601.json\",\n      \"age_seconds\": 694.381,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md\",\n        \"docs/claude/STATE.md\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/README.md\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/status.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/validation.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_startup.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/preflight.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_before.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/results.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_after.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_shutdown.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads_summary.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actuals_real_gold_keyed.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/source_document_rekey_summary.json\",\n        \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_real_gold_scorecard.json\"\n      ],\n      \"approval_required\": true,\n      \"branch\": \"migration/clean-runtime-baseline-reconstruct-v1\",\n      \"claimed_at\": \"2026-06-01T07:48:00.904398Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-06-01T07:48:00.904398Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"extraction_post_truth_hardening_canary_rerun_v1_20260601\",\n      \"lane\": \"Financial Truth\",\n      \"last_seen_at\": \"2026-06-01T07:48:00.904398Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601\",\n      \"owner\": \"Codex\",\n      \"pid\": 141120,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:141120:extraction_post_truth_hardening_canary_rerun_v1_20260601\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-06-01T07:48:00.904398Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md\",\n      \"task_card_sha256\": \"abe747a5b604625396d7998be33bb09e47c0a77c25761900c41a894e9e193b60\",\n      \"timeout_seconds\": 14400,\n      \"worktree\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": false,\n  \"ok\": true,\n  \"read_only\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n"
+    },
+    "backend_health": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        "20",
+        "http://127.0.0.1:8000/api/health"
+      ],
+      "json": {
+        "status": "ok"
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "git_head": {
+      "argv": [
+        "git",
+        "rev-parse",
+        "--short=12",
+        "HEAD"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "fcbbc31edfc5\n"
+    },
+    "gpu_activity": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "json": {
+        "active": true,
+        "active_runs": [
+          {
+            "activity_type": "gpu_exclusive",
+            "expires_at": 1780314997.7041125,
+            "expires_in_seconds": 14222,
+            "host": "l4nd0-System-Product-Name",
+            "mode": "runtime_canary",
+            "owner": "Codex",
+            "reason": "extraction_post_truth_hardening_canary_rerun_v1_20260601",
+            "started_at": "2026-06-01T07:56:37+00:00",
+            "token": "59d1e9b7ca394ae58c46e0231f583030"
+          }
+        ],
+        "expires_at": 1780314997.7041125,
+        "expires_in_seconds": 14222,
+        "kind": "gpu_exclusive_activity",
+        "source": "redis",
+        "token_count": 1
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": true, \"active_runs\": [{\"activity_type\": \"gpu_exclusive\", \"expires_at\": 1780314997.7041125, \"expires_in_seconds\": 14222, \"host\": \"l4nd0-System-Product-Name\", \"mode\": \"runtime_canary\", \"owner\": \"Codex\", \"reason\": \"extraction_post_truth_hardening_canary_rerun_v1_20260601\", \"started_at\": \"2026-06-01T07:56:37+00:00\", \"token\": \"59d1e9b7ca394ae58c46e0231f583030\"}], \"expires_at\": 1780314997.7041125, \"expires_in_seconds\": 14222, \"kind\": \"gpu_exclusive_activity\", \"source\": \"redis\", \"token_count\": 1}\n"
+    },
+    "gpu_guard": {
+      "argv": [
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "models": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        "20",
+        "-H",
+        "Authorization: Bearer local-openai-key",
+        "http://127.0.0.1:8001/v1/models"
+      ],
+      "json": {
+        "data": [
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "Qwen3.5-35B-A3B-APEX-I-Compact",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "Qwen3.5-35B-A3B-APEX-I-Compact",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[Qwen3.5-35B-A3B-APEX-I-Compact]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "Qwen3.5-35B-A3B-Q4_K_M",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "Qwen3.5-35B-A3B-Q4_K_M",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[Qwen3.5-35B-A3B-Q4_K_M]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "gpt-oss-20b-mxfp4",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "gpt-oss-20b-mxfp4",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[gpt-oss-20b-mxfp4]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "model",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--cache-ram",
+                "0",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\ncache-ram = 0\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "model:gpt-oss-20b",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:gpt-oss-20b",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model:gpt-oss-20b]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "model:qwen2.5-14b-instruct",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "49313",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen2.5-14b-instruct",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "8192",
+                "--fit",
+                "off",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model:qwen2.5-14b-instruct]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "loaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "model:qwen3-14b",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen3-14b",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "8192",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model:qwen3-14b]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "model:qwen3.5-35b-a3b",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--chat-template-file",
+                "/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen3.5-35b-a3b",
+                "--batch-size",
+                "512",
+                "--ctx-size",
+                "16384",
+                "--fit",
+                "off",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "256"
+              ],
+              "preset": "[model:qwen3.5-35b-a3b]\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 512\nctx-size = 16384\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 256\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "model:qwen3.5-35b-a3b-apex",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--chat-template-file",
+                "/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen3.5-35b-a3b-apex",
+                "--batch-size",
+                "512",
+                "--ctx-size",
+                "16384",
+                "--fit",
+                "off",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "256"
+              ],
+              "preset": "[model:qwen3.5-35b-a3b-apex]\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 512\nctx-size = 16384\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 256\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780300775,
+            "id": "qwen2.5-14b-instruct-q4_k_m",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "qwen2.5-14b-instruct-q4_k_m",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[qwen2.5-14b-instruct-q4_k_m]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          }
+        ],
+        "object": "list"
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"data\":[{\"id\":\"Qwen3.5-35B-A3B-APEX-I-Compact\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"Qwen3.5-35B-A3B-APEX-I-Compact\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[Qwen3.5-35B-A3B-APEX-I-Compact]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"Qwen3.5-35B-A3B-Q4_K_M\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"Qwen3.5-35B-A3B-Q4_K_M\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[Qwen3.5-35B-A3B-Q4_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"gpt-oss-20b-mxfp4\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"gpt-oss-20b-mxfp4\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[gpt-oss-20b-mxfp4]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"model\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"model\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--cache-ram\",\"0\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[model]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\ncache-ram = 0\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"model:gpt-oss-20b\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"model:gpt-oss-20b\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[model:gpt-oss-20b]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"model:qwen2.5-14b-instruct\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"loaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"49313\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"model:qwen2.5-14b-instruct\",\"--batch-size\",\"1024\",\"--ctx-size\",\"8192\",\"--fit\",\"off\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[model:qwen2.5-14b-instruct]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 8192\\nfit = off\\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"model:qwen3-14b\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"model:qwen3-14b\",\"--batch-size\",\"1024\",\"--ctx-size\",\"8192\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[model:qwen3-14b]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 8192\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"model:qwen3.5-35b-a3b\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--chat-template-file\",\"/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"model:qwen3.5-35b-a3b\",\"--batch-size\",\"512\",\"--ctx-size\",\"16384\",\"--fit\",\"off\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"256\"],\"preset\":\"[model:qwen3.5-35b-a3b]\\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 512\\nctx-size = 16384\\nfit = off\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 256\\n\\n\"}},{\"id\":\"model:qwen3.5-35b-a3b-apex\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--chat-template-file\",\"/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"model:qwen3.5-35b-a3b-apex\",\"--batch-size\",\"512\",\"--ctx-size\",\"16384\",\"--fit\",\"off\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"256\"],\"preset\":\"[model:qwen3.5-35b-a3b-apex]\\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 512\\nctx-size = 16384\\nfit = off\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 256\\n\\n\"}},{\"id\":\"qwen2.5-14b-instruct-q4_k_m\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780300775,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"qwen2.5-14b-instruct-q4_k_m\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[qwen2.5-14b-instruct-q4_k_m]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}}],\"object\":\"list\"}"
+    },
+    "nvidia": {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,memory.total",
+        "--format=csv,noheader"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1 MiB, 2048 MiB\n1, Tesla M40 24GB, 10547 MiB, 24576 MiB\n"
+    },
+    "ports": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 or sport = :11434 or sport = :6379 )"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                  \nLISTEN 0      511        127.0.0.1:6379       0.0.0.0:*                                            \nLISTEN 0      512        127.0.0.1:8001       0.0.0.0:*    users:((\"llama-server\",pid=165093,fd=8))\nLISTEN 0      2048         0.0.0.0:8000       0.0.0.0:*    users:((\"python\",pid=165250,fd=17))     \nLISTEN 0      4096       127.0.0.1:11434      0.0.0.0:*                                            \nLISTEN 0      511            [::1]:6379          [::]:*                                            \n"
+    },
+    "processes": {
+      "argv": [
+        "pgrep",
+        "-af",
+        "uvicorn|celery|llama-server|process/document|pytest|gh pr|git push|agent_job"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "165093 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server --main-gpu 0 --threads 4 --host 127.0.0.1 --port 8001 --spec-type ngram-simple --models-dir /mnt/tenn-nvme2/tenn/models --models-max 1 --models-preset /home/l4nd0/.config/tenn/llamacpp-presets.ini --no-mmap --api-key local-openai-key --parallel 1\n165250 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1\n165506 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu --hostname=tenn-llm-gpu-posthardening@l4nd0-System-Product-Name\n165609 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu --hostname=tenn-llm-gpu-posthardening@l4nd0-System-Product-Name\n169645 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server --host 127.0.0.1 --no-mmap --port 49313 --spec-type ngram-simple --alias model:qwen2.5-14b-instruct --batch-size 1024 --ctx-size 8192 --fit off --model /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf --main-gpu 0 --n-gpu-layers 999 --parallel 1 --threads 4 --ubatch-size 512\n175792 /bin/bash -lc sleep 60 && gh pr view 168 --json number,title,state,isDraft,mergeStateStatus,statusCheckRollup,url\n175840 /bin/bash -c python3 - <<'PY' import json, os, sqlite3, subprocess from datetime import datetime, timezone from pathlib import Path repo=Path.cwd() out_dir=repo/'reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601' ids=[  ('AAU','508fc892-ae88-45ec-981f-cd9e124c8375'),  ('ATM','96e9aabd-44dc-4c2c-be8c-74248a0a9025'),  ('AM5','aacc4c29-3089-48cf-8b82-8004134f9387'),  ('AQX','0ed0104f-f29a-4068-8ff7-370f14fead98'),  ('CRS','b43a16fb-7660-4bf7-96ab-0db641cd4032'),  ('CLV','da9f9ea5-6596-464f-af14-5acf12f9b050'),  ('CTM','035c6758-7aed-41a6-9e84-ad154125d431'), ] api_key='local-openai-key'  def run(argv, timeout=60, env=None):     cp=subprocess.run(argv,cwd=repo,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout,env=env)     out={'argv':argv,'returncode':cp.returncode,'stdout':cp.stdout[-20000:],'stderr':cp.stderr[-20000:]}     try:         out['json']=json.loads(cp.stdout) if cp.stdout.strip() else None     except Exception:         out['json']=None     return out pre={'created_at':datetime.now(timezone.utc).isoformat(),'uuid_storage_note':'SQLite stores UUID primary keys as 32-character hex strings; API submissions use approved hyphenated UUIDs.','document_order':[{'ticker':t,'document_id':d,'db_document_id':d.replace('-','')} for t,d in ids],'commands':{}} pre['commands']['git_head']=run(['git','rev-parse','--short=12','HEAD'],10) pre['commands']['active_jobs']=run(['python3','scripts/agent_job_registry.py','list-active','--read-only','--repo-root','.'],30) pre['commands']['gpu_guard']=run(['scripts/gpu_process_guard.sh','--check'],30) pre['commands']['gpu_activity']=run(['financial-engine_v2/.venv/bin/python','scripts/gpu_activity_guard.py','--redis-url','redis://127.0.0.1:6379/0','status','--json'],30) pre['commands']['backend_health']=run(['curl','-fsS','--connect-timeout','5','--max-time','20','http://127.0.0.1:8000/api/health'],30) pre['commands']['router_health']=run(['curl','-fsS','--connect-timeout','5','--max-time','20','-H',f'Authorization: Bearer {api_key}','http://127.0.0.1:8001/health'],30) pre['commands']['models']=run(['curl','-fsS','--connect-timeout','5','--max-time','20','-H',f'Authorization: Bearer {api_key}','http://127.0.0.1:8001/v1/models'],30) pre['commands']['nvidia']=run(['nvidia-smi','--query-gpu=index,name,memory.used,memory.total','--format=csv,noheader'],30) pre['commands']['ports']=run(['ss','-ltnp','( sport = :8000 or sport = :8001 or sport = :11434 or sport = :6379 )'],20) pre['commands']['processes']=run(['pgrep','-af','uvicorn|celery|llama-server|process/document|pytest|gh pr|git push|agent_job'],20) env=os.environ.copy() env.update({'PYTHONPATH':str(repo/'financial-engine_v2/backend'),'DATA_ROOT':'/data','DATABASE_URL':'sqlite:////data/fe_local.db','DOCS_ROOT':'/data/asx/docs','TASK_MODE':'celery','CELERY_BROKER_URL':'redis://127.0.0.1:6379/0','CELERY_RESULT_BACKEND':'redis://127.0.0.1:6379/1','OLLAMA_URL':'http://127.0.0.1:11434','LLAMACPP_URL':'http://127.0.0.1:8001','LLM_URL':'http://127.0.0.1:8001','LOCAL_API_KEY':api_key}) worker=f'tenn-llm-gpu-posthardening@{os.uname().nodename}' pre['commands']['worker_ping']=run([str(repo/'financial-engine_v2/.venv/bin/celery'),'-A','app.celery_app.celery','inspect','ping','-d',worker],30,env) pre['commands']['worker_active_reserved_scheduled']=run([str(repo/'financial-engine_v2/.venv/bin/celery'),'-A','app.celery_app.celery','inspect','active','reserved','scheduled','-d',worker],30,env) pre['commands']['queue_status']=run(['curl','-fsS','--connect-timeout','5','--max-time','20','-H',f'X-API-Key: {api_key}','http://127.0.0.1:8000/api/queue/status'],30) conn=sqlite3.connect('/data/fe_local.db') conn.row_factory=sqlite3.Row doc_checks=[] for ticker,did in ids:     dbid=did.replace('-','')     rows=[dict(r) for r in conn.execute('select document_id,ticker,exchange,doc_class,doc_subtype,published_at,period_end,title,source_url,pdf_path,pdf_sha256 from documents where document_id=?',(dbid,))]     for row in rows:         row['pdf_exists']=Path(row['pdf_path']).exists() if row.get('pdf_path') else False     runs=[dict(r) for r in conn.execute('select run_id,document_id,status,confidence_overall,error,created_at from extraction_runs where document_id=? order by created_at desc limit 8',(dbid,))]     fin=[dict(r) for r in conn.execute('select ticker,period_end,period_type,source_document_id,updated_at from asx_periodic_financials where source_document_id=? order by updated_at desc limit 5',(dbid,))]     active=[r for r in runs if str(r.get('status')).lower() in {'pending','running','queued','started'}]     doc_checks.append({'ticker':ticker,'document_id':did,'db_document_id':dbid,'document_row_count':len(rows),'document_rows':rows,'recent_runs':runs,'active_recent_run_count':len(active),'financial_rows_for_source':fin}) pre['document_checks']=doc_checks models=(pre['commands']['models'].get('json') or {}).get('data') or [] pre['qwen_model_status']=[m for m in models if m.get('id')=='model:qwen2.5-14b-instruct'] active_text=pre['commands']['worker_active_reserved_scheduled']['stdout']+pre['commands']['worker_active_reserved_scheduled']['stderr'] pre['gates']={  'active_job_claim_visible': 'extraction_post_truth_hardening_canary_rerun_v1_20260601' in pre['commands']['active_jobs']['stdout'],  'gpu_guard_exit_0': pre['commands']['gpu_guard']['returncode']==0,  'gpu_activity_active': bool((pre['commands']['gpu_activity'].get('json') or {}).get('active')),  'backend_health_ok': pre['commands']['backend_health']['returncode']==0,  'router_health_ok': pre['commands']['router_health']['returncode']==0,  'qwen_model_loaded': any(((m.get('status') or {}).get('value')=='loaded') for m in pre['qwen_model_status']),  'worker_ping_ok': 'pong' in (pre['commands']['worker_ping']['stdout']+pre['commands']['worker_ping']['stderr']).lower(),  'llm_gpu_idle': 'empty' in active_text.lower(),  'all_document_rows_exactly_one': all(c['document_row_count']==1 for c in doc_checks),  'all_pdf_paths_exist': all(c['document_rows'] and c['document_rows'][0].get('pdf_exists') for c in doc_checks),  'no_active_recent_runs_for_docs': all(c['active_recent_run_count']==0 for c in doc_checks), } pre['ok']=all(pre['gates'].values()) (out_dir/'preflight.json').write_text(json.dumps(pre,indent=2,sort_keys=True)+'\\n') (out_dir/'queue_before.json').write_text(json.dumps({'created_at':datetime.now(timezone.utc).isoformat(),'queue_status':pre['commands']['queue_status'],'worker_active_reserved_scheduled':pre['commands']['worker_active_reserved_scheduled']},indent=2,sort_keys=True)+'\\n') print(json.dumps({'ok':pre['ok'],'gates':pre['gates']},indent=2,sort_keys=True)) if not pre['ok']:     raise SystemExit(1) PY\n"
+    },
+    "queue_status": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        "20",
+        "-H",
+        "X-API-Key: local-openai-key",
+        "http://127.0.0.1:8000/api/queue/status"
+      ],
+      "json": {
+        "queues": {
+          "embed": 0,
+          "ingest": 0,
+          "llm_cpu": 0,
+          "llm_gpu": 0,
+          "score": 12
+        },
+        "redis_connected": true,
+        "total_queued": 12
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"redis_connected\":true,\"queues\":{\"ingest\":0,\"embed\":0,\"score\":12,\"llm_gpu\":0,\"llm_cpu\":0},\"total_queued\":12}"
+    },
+    "router_health": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        "20",
+        "-H",
+        "Authorization: Bearer local-openai-key",
+        "http://127.0.0.1:8001/health"
+      ],
+      "json": {
+        "status": "ok"
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "worker_active_reserved_scheduled": {
+      "argv": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery",
+        "-A",
+        "app.celery_app.celery",
+        "inspect",
+        "active",
+        "reserved",
+        "scheduled",
+        "-d",
+        "tenn-llm-gpu-posthardening@l4nd0-System-Product-Name"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "->  tenn-llm-gpu-posthardening@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n"
+    },
+    "worker_ping": {
+      "argv": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery",
+        "-A",
+        "app.celery_app.celery",
+        "inspect",
+        "ping",
+        "-d",
+        "tenn-llm-gpu-posthardening@l4nd0-System-Product-Name"
+      ],
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "->  tenn-llm-gpu-posthardening@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online.\n"
+    }
+  },
+  "created_at": "2026-06-01T07:59:35.217699+00:00",
+  "document_checks": [
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "508fc892ae8845ec981fcd9e124c8375",
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "annual",
+          "doc_subtype": "report",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+          "pdf_sha256": "dbe46731478437c46acb343f809b5c3f66cf9e39e22e032690a95190455c9334",
+          "period_end": null,
+          "published_at": "2026-03-31 01:57:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03077884",
+          "ticker": "AAU",
+          "title": "Annual Report and Full Year Statutory Accounts"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2025-12-31",
+          "period_type": "A",
+          "source_document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "ticker": "AAU",
+          "updated_at": "2026-06-01 05:23:14"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 1.0,
+          "created_at": "2026-06-01 05:23:14",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": null,
+          "run_id": "14616c70ba404398bd6323fa1508a190",
+          "status": "ok_low_confidence"
+        },
+        {
+          "confidence_overall": 0.0,
+          "created_at": "2026-06-01 05:09:20",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+          "run_id": "4793ba9785c04fde91443a9b24e866ca",
+          "status": "failed"
+        },
+        {
+          "confidence_overall": 1.0,
+          "created_at": "2026-05-31 11:47:54",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": null,
+          "run_id": "8b2649157d5942629bc5d68e00e512e3",
+          "status": "ok_low_confidence"
+        },
+        {
+          "confidence_overall": 1.0,
+          "created_at": "2026-05-31 09:50:57",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": null,
+          "run_id": "4d770cc666e54d389e031ff08f07254a",
+          "status": "ok_low_confidence"
+        },
+        {
+          "confidence_overall": 0.0,
+          "created_at": "2026-05-31 09:13:38",
+          "document_id": "508fc892ae8845ec981fcd9e124c8375",
+          "error": "[Errno 13] Permission denied: '/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/22bd5ae78671fab286ce7e69b963c95589042d438cc60146b3a7593a98c26ab1-2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.p.pymupdf.json'",
+          "run_id": "8e4368d52a924a7491e457b6323f329e",
+          "status": "parser_error"
+        }
+      ],
+      "ticker": "AAU"
+    },
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "annual",
+          "doc_subtype": "report",
+          "document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf",
+          "pdf_sha256": "008935eef949a3023b35da5d2f6c0d82dd78b0f4739b18fb97d9556fc8dcc3ef",
+          "period_end": null,
+          "published_at": "2026-03-31 22:51:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03078438",
+          "ticker": "ATM",
+          "title": "Full Year Statutory Accounts"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2025-12-31",
+          "period_type": "A",
+          "source_document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+          "ticker": "ATM",
+          "updated_at": "2026-05-31 09:59:49"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 1.0,
+          "created_at": "2026-06-01 05:25:44",
+          "document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+          "error": null,
+          "run_id": "74442c2b3ce445b98eed1581d1fa319e",
+          "status": "ok_low_confidence"
+        },
+        {
+          "confidence_overall": 1.0,
+          "created_at": "2026-05-31 09:59:49",
+          "document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+          "error": null,
+          "run_id": "97ed7aca327347d08216c9689b4d1d3a",
+          "status": "ok_low_confidence"
+        }
+      ],
+      "ticker": "ATM"
+    },
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "aacc4c29308948cf8b828004134f9387",
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "half_year",
+          "doc_subtype": "report",
+          "document_id": "aacc4c29308948cf8b828004134f9387",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf",
+          "pdf_sha256": "4c58af736abcc22a052d265f28efac9c677180b518bc184a977b5013f26bde89",
+          "period_end": null,
+          "published_at": "2026-03-13 03:05:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03071818",
+          "ticker": "AM5",
+          "title": "Interim Financial Report - Half Year Ended 31 December 2025"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "source_document_id": "aacc4c29308948cf8b828004134f9387",
+          "ticker": "AM5",
+          "updated_at": "2026-06-01 05:28:35"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 0.875,
+          "created_at": "2026-06-01 05:28:35",
+          "document_id": "aacc4c29308948cf8b828004134f9387",
+          "error": null,
+          "run_id": "c1c5fd5e39f94efe8534e4d839558445",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.833,
+          "created_at": "2026-05-31 10:02:56",
+          "document_id": "aacc4c29308948cf8b828004134f9387",
+          "error": null,
+          "run_id": "277dddef51164f9787190322bdaa92f0",
+          "status": "ok"
+        }
+      ],
+      "ticker": "AM5"
+    },
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "0ed0104ff29a40688ff7370f14fead98",
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "half_year",
+          "doc_subtype": "report",
+          "document_id": "0ed0104ff29a40688ff7370f14fead98",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf",
+          "pdf_sha256": "76a9926bd9576636673155d8b2418a1a9c3a9d653fe40be996d045cee8884e9a",
+          "period_end": null,
+          "published_at": "2026-03-13 00:53:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03071756",
+          "ticker": "AQX",
+          "title": "HALF-YEAR FINANCIAL REPORT - 31 DECEMBER 2025"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "source_document_id": "0ed0104ff29a40688ff7370f14fead98",
+          "ticker": "AQX",
+          "updated_at": "2026-05-31 10:05:32"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 0.874,
+          "created_at": "2026-06-01 05:30:58",
+          "document_id": "0ed0104ff29a40688ff7370f14fead98",
+          "error": null,
+          "run_id": "9aa658d6c8db43769698cb33f05172f4",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.874,
+          "created_at": "2026-05-31 10:05:32",
+          "document_id": "0ed0104ff29a40688ff7370f14fead98",
+          "error": null,
+          "run_id": "8d32c5f33fbb45c5ade73254701b193a",
+          "status": "ok"
+        }
+      ],
+      "ticker": "AQX"
+    },
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "b43a16fb76604bf796ab0db641cd4032",
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "half_year",
+          "doc_subtype": "report",
+          "document_id": "b43a16fb76604bf796ab0db641cd4032",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf",
+          "pdf_sha256": "b65432d135c20b89a10a213878a727e456760d52f0605414289f9cf88a546e7a",
+          "period_end": null,
+          "published_at": "2026-03-13 07:49:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03072117",
+          "ticker": "CRS",
+          "title": "Half Year Financial Report"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "source_document_id": "b43a16fb76604bf796ab0db641cd4032",
+          "ticker": "CRS",
+          "updated_at": "2026-06-01 05:34:15"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 0.695,
+          "created_at": "2026-06-01 05:34:15",
+          "document_id": "b43a16fb76604bf796ab0db641cd4032",
+          "error": null,
+          "run_id": "44a86108eab04b41911e545a4d7682c5",
+          "status": "ok_low_confidence"
+        },
+        {
+          "confidence_overall": 0.833,
+          "created_at": "2026-05-31 10:09:01",
+          "document_id": "b43a16fb76604bf796ab0db641cd4032",
+          "error": null,
+          "run_id": "8097c92dc1264e0ba611838f462ec3c0",
+          "status": "ok"
+        }
+      ],
+      "ticker": "CRS"
+    },
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "da9f9ea56596464faf145acf12f9b050",
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+          "pdf_sha256": "0c4e711d4b0279363ba9ab0f129ef1f8601510df00d430829a664ca5a10db839",
+          "period_end": null,
+          "published_at": "2026-03-23 21:19:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03075081",
+          "ticker": "CLV",
+          "title": "Clover 1H FY26 Results Announcement"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2026-01-31",
+          "period_type": "H",
+          "source_document_id": "da9f9ea56596464faf145acf12f9b050",
+          "ticker": "CLV",
+          "updated_at": "2026-06-01 05:48:18"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 0.72,
+          "created_at": "2026-06-01 05:48:18",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": null,
+          "run_id": "ecdfbcf1273a417c84aea92a1360ad70",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.0,
+          "created_at": "2026-06-01 05:34:45",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": "validation_gate:insufficient_metrics:0",
+          "run_id": "45b9c8469f0044cab8c67833f80e6342",
+          "status": "failed"
+        },
+        {
+          "confidence_overall": 0.9,
+          "created_at": "2026-05-31 10:51:36",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": null,
+          "run_id": "c057d26063dc4cf08025596cf93695cc",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.0,
+          "created_at": "2026-05-31 10:09:30",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": "validation_gate:insufficient_metrics:0",
+          "run_id": "e5cefa6c11a34e1faf150a5f21328071",
+          "status": "failed"
+        }
+      ],
+      "ticker": "CLV"
+    },
+    {
+      "active_recent_run_count": 0,
+      "db_document_id": "035c67587aed41a69e84ad154125d431",
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "exchange": "ASX",
+          "pdf_exists": true,
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+          "pdf_sha256": "689ad81d04eeb1b7adddb452e1c9c8152aa3a3cb6366f93fe8431bc5cfe6395a",
+          "period_end": null,
+          "published_at": "2026-03-30 07:45:00.000000",
+          "source_url": "https://www.asx.com.au/asx/v2/statistics/displayAnnouncement.do?display=pdf&idsId=03077510",
+          "ticker": "CTM",
+          "title": "Financial Report 31 December 2025"
+        }
+      ],
+      "financial_rows_for_source": [
+        {
+          "period_end": "2025-12-31",
+          "period_type": "A",
+          "source_document_id": "035c67587aed41a69e84ad154125d431",
+          "ticker": "CTM",
+          "updated_at": "2026-06-01 06:27:35"
+        }
+      ],
+      "recent_runs": [
+        {
+          "confidence_overall": 0.917,
+          "created_at": "2026-06-01 06:27:35",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "233900e716834ff4bdedabb68824c0e3",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.917,
+          "created_at": "2026-06-01 06:10:32",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "fbd99043fd4046f3beaa847e8348060c",
+          "status": "failed"
+        },
+        {
+          "confidence_overall": 0.775,
+          "created_at": "2026-06-01 05:51:55",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "fbf2cf1d3f9b4c9691d58a0a88862fc0",
+          "status": "failed"
+        },
+        {
+          "confidence_overall": 0.92,
+          "created_at": "2026-05-31 11:51:59",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "feb20c6b28b048b69692c15e1d32ed20",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.79,
+          "created_at": "2026-05-31 11:20:51",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "f493fb094b554363a638be77fccac574",
+          "status": "ok"
+        },
+        {
+          "confidence_overall": 0.933,
+          "created_at": "2026-05-31 10:57:06",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "92bf4e7166dd422e9eb0e4a20fcf3234",
+          "status": "failed"
+        }
+      ],
+      "ticker": "CTM"
+    }
+  ],
+  "document_order": [
+    {
+      "db_document_id": "508fc892ae8845ec981fcd9e124c8375",
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "ticker": "AAU"
+    },
+    {
+      "db_document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "ticker": "ATM"
+    },
+    {
+      "db_document_id": "aacc4c29308948cf8b828004134f9387",
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "ticker": "AM5"
+    },
+    {
+      "db_document_id": "0ed0104ff29a40688ff7370f14fead98",
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "ticker": "AQX"
+    },
+    {
+      "db_document_id": "b43a16fb76604bf796ab0db641cd4032",
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "ticker": "CRS"
+    },
+    {
+      "db_document_id": "da9f9ea56596464faf145acf12f9b050",
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "ticker": "CLV"
+    },
+    {
+      "db_document_id": "035c67587aed41a69e84ad154125d431",
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "ticker": "CTM"
+    }
+  ],
+  "gates": {
+    "active_job_claim_visible": true,
+    "all_document_rows_exactly_one": true,
+    "all_pdf_paths_exist": true,
+    "backend_health_ok": true,
+    "gpu_activity_active": true,
+    "gpu_guard_exit_0": true,
+    "llm_gpu_idle": true,
+    "no_active_recent_runs_for_docs": true,
+    "qwen_model_loaded": true,
+    "router_health_ok": true,
+    "worker_ping_ok": true
+  },
+  "ok": true,
+  "qwen_model_status": [
+    {
+      "aliases": [],
+      "created": 1780300775,
+      "id": "model:qwen2.5-14b-instruct",
+      "object": "model",
+      "owned_by": "llamacpp",
+      "status": {
+        "args": [
+          "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+          "--host",
+          "127.0.0.1",
+          "--no-mmap",
+          "--port",
+          "49313",
+          "--spec-type",
+          "ngram-simple",
+          "--alias",
+          "model:qwen2.5-14b-instruct",
+          "--batch-size",
+          "1024",
+          "--ctx-size",
+          "8192",
+          "--fit",
+          "off",
+          "--model",
+          "/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+          "--main-gpu",
+          "0",
+          "--n-gpu-layers",
+          "999",
+          "--parallel",
+          "1",
+          "--threads",
+          "4",
+          "--ubatch-size",
+          "512"
+        ],
+        "preset": "[model:qwen2.5-14b-instruct]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+        "value": "loaded"
+      },
+      "tags": []
+    }
+  ],
+  "uuid_storage_note": "SQLite stores UUID primary keys as 32-character hex strings; API submissions use approved hyphenated UUIDs."
+}

@@ -1,0 +1,35 @@
+{
+  "_source": "Hand-verified from local source PDF pages 21-24. The interim report states half-year ended 31 December 2025, presents raw Australian dollar values, reports revenue from continuing operations of $13,552, net loss attributable to owners of the parent of $1,158,426, and cash-flow statement values in raw dollars.",
+  "_verification": "hand-verified-pdftotext",
+  "_verification_confidence": "high",
+  "document_id": "aqx_h_2025-12-31_canary_regression",
+  "ticker": "AQX",
+  "source_document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+  "source_file": "/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf",
+  "source_sha256": "76a9926bd9576636673155d8b2418a1a9c3a9d653fe40be996d045cee8884e9a",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "units",
+  "metrics": {
+    "revenue": 13552,
+    "ebit": null,
+    "np_attributable": -1158426,
+    "operating_cf": -1462291,
+    "investing_cf": 32031,
+    "financing_cf": 1866935,
+    "cash_end": 802985
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "np_attributable": 0.01,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.01
+  },
+  "notes": {
+    "ebit": "Expected null because the source label is loss before income tax, not EBIT."
+  },
+  "expected_trust": "trusted"
+}

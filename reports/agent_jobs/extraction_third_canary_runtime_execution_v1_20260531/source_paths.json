@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-06-01T05:07:41.143383Z",
+  "items": [
+    {
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "exists": true,
+      "order": 1,
+      "pdf_path": "/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf",
+      "size_bytes": 1804699,
+      "ticker": "AAU"
+    },
+    {
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "exists": true,
+      "order": 2,
+      "pdf_path": "/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf",
+      "size_bytes": 4094864,
+      "ticker": "ATM"
+    },
+    {
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "exists": true,
+      "order": 3,
+      "pdf_path": "/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf",
+      "size_bytes": 1368198,
+      "ticker": "AM5"
+    },
+    {
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "exists": true,
+      "order": 4,
+      "pdf_path": "/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf",
+      "size_bytes": 2521397,
+      "ticker": "AQX"
+    },
+    {
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "exists": true,
+      "order": 5,
+      "pdf_path": "/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf",
+      "size_bytes": 1383745,
+      "ticker": "CRS"
+    },
+    {
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "exists": true,
+      "order": 6,
+      "pdf_path": "/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+      "size_bytes": 232373,
+      "ticker": "CLV"
+    },
+    {
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "exists": true,
+      "order": 7,
+      "pdf_path": "/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+      "size_bytes": 1761954,
+      "ticker": "CTM"
+    }
+  ]
+}

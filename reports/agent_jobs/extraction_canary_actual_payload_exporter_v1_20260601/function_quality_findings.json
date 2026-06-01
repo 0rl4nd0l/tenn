@@ -1,0 +1,61 @@
+{
+  "result": {
+    "critical": [
+      {
+        "file": "scripts/export_extraction_run_actual_payloads.py",
+        "fix_example": "Add a read-only SQLite exporter requiring explicit run/document selectors, accepted statuses, metrics-object validation, and separate summary/provenance output.",
+        "issue": "No repo-supported bridge existed from selected extraction_runs.structured_json rows to the actuals-json format consumed by the confirmed_metric_payload scorecard gate.",
+        "location": "new helper"
+      }
+    ],
+    "feature": "metric extraction actual-payload scorecard bridge",
+    "implementation_notes": "Implement the exporter as report-local tooling only; do not import runtime services, run extraction, mutate SQLite, or create gold labels.",
+    "suggestions": [
+      {
+        "file": "financial-engine_v2/backend/tests/eval_fixtures",
+        "fix_example": "Create a separate source-reviewed fixture/label task for the seven canary documents before expecting the payload gate to pass.",
+        "issue": "The accepted seven canary payloads are currently unmatched by confirmed metric fixtures, so the gate correctly blocks them rather than proving graduation.",
+        "location": "future work"
+      }
+    ],
+    "summary": "The existing scorecard gate can evaluate actual payload maps, but accepted runtime canary runs were only available through reports and ad hoc SQLite queries. A read-only exporter is needed so bounded extraction_runs rows can become reviewable actual-payload input without treating runtime outputs as gold truth or authorizing writes.",
+    "warnings": [
+      {
+        "file": "docs/extraction/metric_extraction_contract.md",
+        "fix_example": "Document the exporter command and explicitly state that exported payloads are review evidence only, not gold labels or write authorization.",
+        "issue": "The documented actuals-json path described the consumer but not how to safely produce actual payload maps from accepted runtime runs.",
+        "location": "Reporting helper section"
+      }
+    ]
+  },
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "The accepted seven-document canary is bounded evidence and must not be treated as full extraction graduation.",
+      "Existing confirmed_metric_payload scorecard requires operator-supplied actual payload JSON but did not provide a repo helper to create that JSON from accepted extraction_runs."
+    ],
+    "files_modified": [],
+    "files_read": [
+      "docs/extraction/metric_extraction_contract.md",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "scripts/extraction_gold_eval_scorecard.py",
+      "scripts/test_extraction_gold_eval_scorecard.py"
+    ],
+    "sources_used": [
+      "/tmp/tenn_metric_extraction_handoff_2026-05-31.md",
+      "docs/claude/STATE.md",
+      "docs/extraction/metric_extraction_contract.md",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "scripts/extraction_gold_eval_scorecard.py",
+      "reports/agent_jobs/extraction_third_canary_worker_env_retry_v1_20260601/README.md",
+      "reports/agent_jobs/extraction_remaining_canary_after_clv_prose_fix_v1_20260601/README.md",
+      "reports/agent_jobs/extraction_ctm_canary_rerun_after_spaced_year_fix_v1_20260601/README.md"
+    ],
+    "validation_checks": [
+      "rg search for actuals-json, actual_payload, structured_json, and pre_persistence scorecard surfaces",
+      "sqlite schema/read probe for extraction_runs",
+      "current canary report review"
+    ]
+  }
+}

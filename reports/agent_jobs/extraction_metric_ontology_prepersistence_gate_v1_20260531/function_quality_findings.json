@@ -1,0 +1,52 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "The scorecard remains report-local and cannot authorize canonical writes by itself.",
+      "Metric contract aliases are safe to use for noncanonical detection, but not as general supported-metric synonyms."
+    ],
+    "sources_used": [
+      "docs/agent_tasks/extraction_metric_ontology_prepersistence_gate_v1_20260531.md",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "docs/architecture/SYSTEM_CONTRACT.md"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_metric_ontology_bridge.py",
+      "financial-engine_v2/backend/app/models/asx_financials.py",
+      "docs/extraction/metric_extraction_contract.md"
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "docs/claude/STATE.md"
+    ],
+    "validation_checks": [
+      "py_compile passed",
+      "focused pytest passed: 31 passed",
+      "targeted Ruff passed",
+      "post-edit code review passed"
+    ]
+  },
+  "result": {
+    "critical": [
+      {
+        "file": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "location": "_actual_metric_value/_metric_has_evidence before this change",
+        "issue": "Unsupported or noncanonical expected metrics could be classified as absent when the actual payload used a contract alias or internal field name, allowing a mixed scorecard to pass with the unsupported fact invisible.",
+        "fix_example": "Resolve actual payload keys through the metric contract family table only for unsupported-schema expectations and quarantine present noncanonical aliases."
+      }
+    ],
+    "warnings": [
+      {
+        "file": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "location": "scorecard alias handling",
+        "issue": "Broad contract aliases such as profit_before_tax must not become accepted synonyms for supported scoreable metrics.",
+        "fix_example": "Keep supported matching limited to metric name, canonical field, and explicitly approved SCORECARD_SAFE_METRIC_ALIAS_MAP entries."
+      }
+    ],
+    "suggestions": []
+  }
+}

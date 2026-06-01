@@ -1,0 +1,43 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_broad_failure_source_classification_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/diff-check.json",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/source_metadata.json",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/failure_classification.json",
+        "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601/source_snippets.md"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_broad_failure_source_classification_v1_20260601",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_broad_failure_source_classification_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Provenance"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

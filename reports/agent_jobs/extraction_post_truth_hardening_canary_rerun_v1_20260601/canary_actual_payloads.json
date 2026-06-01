@@ -1,0 +1,496 @@
+{
+  "035c6758-7aed-41a6-9e84-ad154125d431": {
+    "currency": "AUD",
+    "evidence": {
+      "capex": {
+        "provenance": "cashflow_statement:page_27:Payments for property plant & equipment",
+        "row_ref": "Payments for property plant & equipment"
+      },
+      "cash_end": {
+        "provenance": "cashflow_statement:page_27:Cash and cash equivalents at 31 December",
+        "row_ref": "Cash and cash equivalents at 31 December"
+      },
+      "ebit": {
+        "provenance": "income_statement:page_24:Results from operating activities",
+        "row_ref": "Results from operating activities"
+      },
+      "financing_cf": {
+        "provenance": "cashflow_statement:page_27:Net cash from financing activities",
+        "row_ref": "Net cash from financing activities"
+      },
+      "investing_cf": {
+        "provenance": "cashflow_statement:page_27:Net cash used in investing activities",
+        "row_ref": "Net cash used in investing activities"
+      },
+      "np_attributable": {
+        "provenance": "income_statement:page_24:Loss for the period",
+        "row_ref": "Loss for the period"
+      },
+      "operating_cf": {
+        "provenance": "cashflow_statement:page_27:Net cash used in operating activities",
+        "row_ref": "Net cash used in operating activities"
+      },
+      "shares_outstanding": {
+        "provenance": "balance_sheet:page_25:Share capital",
+        "row_ref": "Share capital"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 0.889,
+      "created_at": "2026-06-01 08:18:26",
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "741f93b9-2c2a-4f07-b1cc-1bb2aae3699a",
+      "source": "extraction_runs.structured_json",
+      "status": "ok"
+    },
+    "metrics": {
+      "capex": -74476.0,
+      "cash_end": 24577181.0,
+      "ebit": -15111363.0,
+      "financing_cf": 22024529.0,
+      "investing_cf": -2167611.0,
+      "net_debt": null,
+      "np_attributable": -14308070.0,
+      "operating_cf": -13225929.0,
+      "revenue": null,
+      "shares_outstanding": 305423479.0
+    },
+    "period_end": "2025-12-31",
+    "period_type": "A",
+    "provenance": {
+      "capex": "cashflow_statement:page_27:Payments for property plant & equipment",
+      "cash_end": "cashflow_statement:page_27:Cash and cash equivalents at 31 December",
+      "ebit": "income_statement:page_24:Results from operating activities",
+      "financing_cf": "cashflow_statement:page_27:Net cash from financing activities",
+      "investing_cf": "cashflow_statement:page_27:Net cash used in investing activities",
+      "np_attributable": "income_statement:page_24:Loss for the period",
+      "operating_cf": "cashflow_statement:page_27:Net cash used in operating activities",
+      "shares_outstanding": "balance_sheet:page_25:Share capital"
+    },
+    "scale": "units"
+  },
+  "0ed0104f-f29a-4068-8ff7-370f14fead98": {
+    "currency": "AUD",
+    "evidence": {
+      "capex": {
+        "provenance": "cashflow_statement:page_24:Payments for plant and equipment",
+        "row_ref": "Payments for plant and equipment"
+      },
+      "cash_end": {
+        "provenance": "cashflow_statement:page_24:unknown"
+      },
+      "financing_cf": {
+        "provenance": "cashflow_statement:page_24:unknown"
+      },
+      "investing_cf": {
+        "provenance": "cashflow_statement:page_24:unknown"
+      },
+      "np_attributable": {
+        "provenance": "income_statement:page_21:Owners of the Parent Entity",
+        "row_ref": "Owners of the Parent Entity"
+      },
+      "operating_cf": {
+        "provenance": "cashflow_statement:page_24:Net cash used in operating activities",
+        "row_ref": "Net cash used in operating activities"
+      },
+      "revenue": {
+        "provenance": "income_statement:page_21:Revenue from continuing operations",
+        "row_ref": "Revenue from continuing operations"
+      },
+      "shares_outstanding": {
+        "provenance": "balance_sheet:page_22:Share capital",
+        "row_ref": "Share capital"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 0.889,
+      "created_at": "2026-06-01 08:11:50",
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "6876e6a1-479d-4f8b-8ac2-85d091c04611",
+      "source": "extraction_runs.structured_json",
+      "status": "ok"
+    },
+    "metrics": {
+      "capex": -71127.0,
+      "cash_end": 802985.0,
+      "ebit": null,
+      "financing_cf": 1866935.0,
+      "investing_cf": 32031.0,
+      "net_debt": null,
+      "np_attributable": -1158426.0,
+      "operating_cf": -1462291.0,
+      "revenue": 13552.0,
+      "shares_outstanding": 42776795.0
+    },
+    "period_end": "2025-12-31",
+    "period_type": "H",
+    "provenance": {
+      "capex": "cashflow_statement:page_24:Payments for plant and equipment",
+      "cash_end": "cashflow_statement:page_24:unknown",
+      "financing_cf": "cashflow_statement:page_24:unknown",
+      "investing_cf": "cashflow_statement:page_24:unknown",
+      "np_attributable": "income_statement:page_21:Owners of the Parent Entity",
+      "operating_cf": "cashflow_statement:page_24:Net cash used in operating activities",
+      "revenue": "income_statement:page_21:Revenue from continuing operations",
+      "shares_outstanding": "balance_sheet:page_22:Share capital"
+    },
+    "scale": "units"
+  },
+  "508fc892-ae88-45ec-981f-cd9e124c8375": {
+    "currency": "USD",
+    "evidence": {
+      "capex": {
+        "provenance": "cashflow_statement:page_27:Payments for projects, exploration and evaluation activities",
+        "row_ref": "Payments for projects, exploration and evaluation activities"
+      },
+      "cash_end": {
+        "provenance": "cashflow_statement:page_27:unknown"
+      },
+      "financing_cf": {
+        "provenance": "cashflow_statement:page_27:unknown"
+      },
+      "investing_cf": {
+        "provenance": "cashflow_statement:page_27:unknown"
+      },
+      "np_attributable": {
+        "provenance": "income_statement:deterministic:Profit/(loss) after income tax expense for the year",
+        "row_ref": "Profit/(loss) after income tax expense for the year"
+      },
+      "operating_cf": {
+        "provenance": "cashflow_statement:page_27:NET CASH USED IN OPERATING ACTIVITIES",
+        "row_ref": "NET CASH USED IN OPERATING ACTIVITIES"
+      },
+      "revenue": {
+        "provenance": "income_statement:page_24:Revenue",
+        "row_ref": "Revenue"
+      },
+      "shares_outstanding": {
+        "provenance": "share_capital:page_66:Total",
+        "row_ref": "Total"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 0.917,
+      "created_at": "2026-06-01 08:03:26",
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "27ab81b5-94f7-4424-82dc-d8c3a7a0661e",
+      "source": "extraction_runs.structured_json",
+      "status": "ok_low_confidence"
+    },
+    "metrics": {
+      "capex": -187097.0,
+      "cash_end": 3956993.0,
+      "ebit": null,
+      "financing_cf": 4103422.0,
+      "investing_cf": 301155.0,
+      "net_debt": null,
+      "np_attributable": 1100860.0,
+      "operating_cf": -854114.0,
+      "revenue": 187743.0,
+      "shares_outstanding": 3126828545.0
+    },
+    "period_end": "2025-12-31",
+    "period_type": "A",
+    "provenance": {
+      "capex": "cashflow_statement:page_27:Payments for projects, exploration and evaluation activities",
+      "cash_end": "cashflow_statement:page_27:unknown",
+      "financing_cf": "cashflow_statement:page_27:unknown",
+      "investing_cf": "cashflow_statement:page_27:unknown",
+      "np_attributable": "income_statement:deterministic:Profit/(loss) after income tax expense for the year",
+      "operating_cf": "cashflow_statement:page_27:NET CASH USED IN OPERATING ACTIVITIES",
+      "revenue": "income_statement:page_24:Revenue",
+      "shares_outstanding": "share_capital:page_66:Total"
+    },
+    "scale": "units"
+  },
+  "96e9aabd-44dc-4c2c-be8c-74248a0a9025": {
+    "currency": "IDR",
+    "evidence": {
+      "capex": {
+        "provenance": "cashflow_statement:page_30:Penambahan aset tetap",
+        "row_ref": "Penambahan aset tetap"
+      },
+      "cash_end": {
+        "provenance": "cashflow_statement:page_30:unknown"
+      },
+      "ebit": {
+        "provenance": "income_statement:page_27:LABA USAHA",
+        "row_ref": "LABA USAHA"
+      },
+      "financing_cf": {
+        "provenance": "cashflow_statement:page_30:unknown"
+      },
+      "investing_cf": {
+        "provenance": "cashflow_statement:page_30:unknown"
+      },
+      "np_attributable": {
+        "provenance": "income_statement:page_27:Laba tahun berjalan yang dapat diatribusikan kepada: Pemilik entitas induk",
+        "row_ref": "Laba tahun berjalan yang dapat diatribusikan kepada: Pemilik entitas induk"
+      },
+      "operating_cf": {
+        "provenance": "cashflow_statement:page_30:Kas Neto yang Diperoleh dari Aktivitas Operasi",
+        "row_ref": "Kas Neto yang Diperoleh dari Aktivitas Operasi"
+      },
+      "revenue": {
+        "provenance": "income_statement:page_27:Pendapatan dari kontrak dengan pelanggan",
+        "row_ref": "Pendapatan dari kontrak dengan pelanggan"
+      },
+      "shares_outstanding": {
+        "provenance": "share_capital:page_125:Total",
+        "row_ref": "Total"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 1.0,
+      "created_at": "2026-06-01 08:06:26",
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "05e96f37-0c1e-4fdc-bd3f-a0bd810245c1",
+      "source": "extraction_runs.structured_json",
+      "status": "ok_low_confidence"
+    },
+    "metrics": {
+      "capex": -430528.0,
+      "cash_end": 8433610.0,
+      "ebit": 8395030.0,
+      "financing_cf": 299870.0,
+      "investing_cf": -1506766.0,
+      "net_debt": null,
+      "np_attributable": 7208834.0,
+      "operating_cf": 4853256.0,
+      "revenue": 84642439.0,
+      "shares_outstanding": 24030762500.0
+    },
+    "period_end": "2025-12-31",
+    "period_type": "A",
+    "provenance": {
+      "capex": "cashflow_statement:page_30:Penambahan aset tetap",
+      "cash_end": "cashflow_statement:page_30:unknown",
+      "ebit": "income_statement:page_27:LABA USAHA",
+      "financing_cf": "cashflow_statement:page_30:unknown",
+      "investing_cf": "cashflow_statement:page_30:unknown",
+      "np_attributable": "income_statement:page_27:Laba tahun berjalan yang dapat diatribusikan kepada: Pemilik entitas induk",
+      "operating_cf": "cashflow_statement:page_30:Kas Neto yang Diperoleh dari Aktivitas Operasi",
+      "revenue": "income_statement:page_27:Pendapatan dari kontrak dengan pelanggan",
+      "shares_outstanding": "share_capital:page_125:Total"
+    },
+    "scale": "trillions"
+  },
+  "aacc4c29-3089-48cf-8b82-8004134f9387": {
+    "currency": "AUD",
+    "evidence": {
+      "capex": {
+        "provenance": "cashflow_statement:page_14:Payments for property, plant and equipment",
+        "row_ref": "Payments for property, plant and equipment"
+      },
+      "cash_end": {
+        "provenance": "cashflow_statement:page_14:unknown"
+      },
+      "financing_cf": {
+        "provenance": "cashflow_statement:page_14:unknown"
+      },
+      "investing_cf": {
+        "provenance": "cashflow_statement:page_14:unknown"
+      },
+      "np_attributable": {
+        "provenance": "income_statement:page_11:Loss after income tax expense for the half-year attributable to the owners of Antares Metals Limited",
+        "row_ref": "Loss after income tax expense for the half-year attributable to the owners of Antares Metals Limited"
+      },
+      "operating_cf": {
+        "provenance": "cashflow_statement:page_14:Net cash used in operating activities",
+        "row_ref": "Net cash used in operating activities"
+      },
+      "shares_outstanding": {
+        "provenance": "balance_sheet:page_12:Issued capital",
+        "row_ref": "Issued capital"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 0.833,
+      "created_at": "2026-06-01 08:09:37",
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "27e395ee-eb54-49b5-84fa-f13302422bdb",
+      "source": "extraction_runs.structured_json",
+      "status": "ok"
+    },
+    "metrics": {
+      "capex": -89057.0,
+      "cash_end": 1055036.0,
+      "ebit": null,
+      "financing_cf": 956516.0,
+      "investing_cf": -87689.0,
+      "net_debt": null,
+      "np_attributable": -1359665.0,
+      "operating_cf": -1180006.0,
+      "revenue": null,
+      "shares_outstanding": 24963832.0
+    },
+    "period_end": "2025-12-31",
+    "period_type": "H",
+    "provenance": {
+      "capex": "cashflow_statement:page_14:Payments for property, plant and equipment",
+      "cash_end": "cashflow_statement:page_14:unknown",
+      "financing_cf": "cashflow_statement:page_14:unknown",
+      "investing_cf": "cashflow_statement:page_14:unknown",
+      "np_attributable": "income_statement:page_11:Loss after income tax expense for the half-year attributable to the owners of Antares Metals Limited",
+      "operating_cf": "cashflow_statement:page_14:Net cash used in operating activities",
+      "shares_outstanding": "balance_sheet:page_12:Issued capital"
+    },
+    "scale": "units"
+  },
+  "b43a16fb-7660-4bf7-96ab-0db641cd4032": {
+    "currency": "AUD",
+    "evidence": {
+      "capex": {
+        "provenance": "cashflow_statement:page_9:Payments for property, plant and equipment",
+        "row_ref": "Payments for property, plant and equipment"
+      },
+      "cash_end": {
+        "provenance": "cashflow_statement:page_9:unknown"
+      },
+      "financing_cf": {
+        "provenance": "cashflow_statement:page_9:unknown"
+      },
+      "investing_cf": {
+        "provenance": "cashflow_statement:page_9:unknown"
+      },
+      "np_attributable": {
+        "provenance": "income_statement:page_6:Loss after income tax expense for the half year",
+        "row_ref": "Loss after income tax expense for the half year"
+      },
+      "operating_cf": {
+        "provenance": "cashflow_statement:page_9:Net cash used in operating activities",
+        "row_ref": "Net cash used in operating activities"
+      },
+      "shares_outstanding": {
+        "provenance": "balance_sheet:page_7:Contributed equity",
+        "row_ref": "Contributed equity"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 0.833,
+      "created_at": "2026-06-01 08:15:07",
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "5b75802c-c8f3-415e-a767-c6c315ffc55d",
+      "source": "extraction_runs.structured_json",
+      "status": "ok"
+    },
+    "metrics": {
+      "capex": -12224.0,
+      "cash_end": 4756183.0,
+      "ebit": null,
+      "financing_cf": 997240.0,
+      "investing_cf": -3429257.0,
+      "net_debt": null,
+      "np_attributable": -1937589.0,
+      "operating_cf": -588790.0,
+      "revenue": null,
+      "shares_outstanding": 33643848.0
+    },
+    "period_end": "2025-12-31",
+    "period_type": "H",
+    "provenance": {
+      "capex": "cashflow_statement:page_9:Payments for property, plant and equipment",
+      "cash_end": "cashflow_statement:page_9:unknown",
+      "financing_cf": "cashflow_statement:page_9:unknown",
+      "investing_cf": "cashflow_statement:page_9:unknown",
+      "np_attributable": "income_statement:page_6:Loss after income tax expense for the half year",
+      "operating_cf": "cashflow_statement:page_9:Net cash used in operating activities",
+      "shares_outstanding": "balance_sheet:page_7:Contributed equity"
+    },
+    "scale": "units"
+  },
+  "da9f9ea5-6596-464f-af14-5acf12f9b050": {
+    "currency": "AUD",
+    "evidence": {
+      "cash_end": {
+        "provenance": "prose_highlight:page_2:Cash of $10.3 million as at",
+        "row_ref": "Cash of $10.3 million as at"
+      },
+      "np_attributable": {
+        "provenance": "prose_highlight:page_1:NPAT $4.2 million",
+        "row_ref": "NPAT $4.2 million"
+      },
+      "revenue": {
+        "provenance": "prose_highlight:page_1:1H revenue of $44.1 million",
+        "row_ref": "1H revenue of $44.1 million"
+      }
+    },
+    "extraction_run_provenance": {
+      "actual_payload_only": true,
+      "broad_backfill_authorized": false,
+      "canonical_write_allowed": false,
+      "confidence_overall": 0.72,
+      "created_at": "2026-06-01 08:15:41",
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "extractor_version": "docling_multipass_v1",
+      "gold_label": false,
+      "model_name": "qwen2.5-14b-instruct",
+      "prompt_hash": "aa39c8665e7577bf",
+      "run_id": "c60d58a8-bb31-4b37-865f-5d1dc5487267",
+      "source": "extraction_runs.structured_json",
+      "status": "ok"
+    },
+    "metrics": {
+      "capex": null,
+      "cash_end": 10300000.0,
+      "ebit": null,
+      "financing_cf": null,
+      "investing_cf": null,
+      "net_debt": null,
+      "np_attributable": 4200000.0,
+      "operating_cf": null,
+      "revenue": 44100000.0,
+      "shares_outstanding": null
+    },
+    "period_end": "2026-01-31",
+    "period_type": "H",
+    "provenance": {
+      "cash_end": "prose_highlight:page_2:Cash of $10.3 million as at",
+      "np_attributable": "prose_highlight:page_1:NPAT $4.2 million",
+      "revenue": "prose_highlight:page_1:1H revenue of $44.1 million"
+    },
+    "scale": "millions"
+  }
+}

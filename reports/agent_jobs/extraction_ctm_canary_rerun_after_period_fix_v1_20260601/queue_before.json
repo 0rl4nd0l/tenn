@@ -1,0 +1,20 @@
+{
+  "captured_at": "2026-06-01T06:07:09.446876+00:00",
+  "phase": "before_ctm_rerun_submission",
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 9
+    },
+    "redis_connected": true,
+    "total_queued": 9
+  },
+  "worker_active_reserved_scheduled": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-ctm-rerun@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n"
+  }
+}

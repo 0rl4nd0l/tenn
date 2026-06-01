@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-06-01T10:30:39Z",
+  "source": "pre_eval_runtime_probe",
+  "review_root": "/data/reports/extraction_review",
+  "total_files": 1183,
+  "sessions_dir": "/data/reports/extraction_review/sessions",
+  "session_json_count": 7,
+  "snippets_dir": "/data/reports/extraction_review/snippets",
+  "snippet_file_count": 36
+}

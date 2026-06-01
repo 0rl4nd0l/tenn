@@ -1,0 +1,61 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_canary_backend_truth_hardening_v1_20260601.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md",
+    "docs/claude/STATE.md",
+    "docs/extraction/metric_extraction_contract.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/README.md",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/status.json",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/validation.json",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/diff-check.json",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/function_quality_findings.json"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-06-01T07:23:16.949687Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T07:23:16.949687Z",
+  "job_id": "extraction_canary_backend_truth_hardening_v1_20260601",
+  "lane": "Financial Truth",
+  "last_seen_at": "2026-06-01T07:40:36.668042Z",
+  "output_dir": "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601",
+  "owner": "Codex",
+  "production_data_access": false,
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T07:40:36.668042Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:64820:extraction_canary_backend_truth_hardening_v1_20260601",
+  "started_at": "2026-06-01T07:23:16.949687Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md",
+  "updated_at": "2026-06-01T07:40:36.668042Z",
+  "validation_summary": {
+    "check_diff": "passed",
+    "combined_targeted_pytest": "269 passed, 5 warnings",
+    "focused_multipass_pytest": "169 passed",
+    "focused_pre_canary_truth_gates_pytest": "16 passed",
+    "git_diff_check": "passed",
+    "py_compile": "passed",
+    "ruff": "passed"
+  },
+  "runtime_actions": {
+    "backend_reload": false,
+    "canary_extraction": false,
+    "celery_worker_reload": false,
+    "direct_sql_write": false,
+    "gpu_worker_reload": false,
+    "model_runtime_spawn": false,
+    "qdrant_write": false,
+    "source_pdf_mutation": false
+  },
+  "remaining_blockers": [
+    "Corrected runtime canary payloads are unproven because no backend route rerun happened in this task.",
+    "Full extraction across all tickers is still unproven until bounded canary scoring and broader evaluation pass."
+  ],
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

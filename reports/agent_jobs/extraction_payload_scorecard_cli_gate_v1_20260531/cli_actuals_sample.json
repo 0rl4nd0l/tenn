@@ -1,0 +1,17 @@
+{
+  "bhp_fy2021_preliminary_final": {
+    "period_type": "A",
+    "period_end": "2021-06-30",
+    "currency": "USD",
+    "scale": "millions",
+    "metrics": {
+      "revenue": 60000000000
+    },
+    "evidence": {
+      "revenue": {
+        "page": 44,
+        "label": "Synthetic CLI regression sample: intentionally wrong value."
+      }
+    }
+  }
+}

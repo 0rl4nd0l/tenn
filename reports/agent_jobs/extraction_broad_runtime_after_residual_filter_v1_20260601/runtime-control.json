@@ -1,0 +1,48 @@
+{
+  "job_id": "extraction_broad_runtime_after_residual_filter_v1_20260601",
+  "runtime": {
+    "llamacpp_url": "http://127.0.0.1:8001",
+    "extraction_llamacpp_url": "http://127.0.0.1:8001",
+    "extract_model": "model:qwen2.5-14b-instruct",
+    "llm_api_key_label": "local-openai-key",
+    "backend_started": false,
+    "worker_started": false,
+    "router_started": true,
+    "router_pid": 1170320,
+    "model_child_pid": 1174084
+  },
+  "gpu_activity_token": {
+    "token": "14b4bbcfadd64f9b8932a56a957cd415",
+    "reason": "extraction_broad_runtime_after_residual_filter_v1_20260601",
+    "owner": "Codex",
+    "ttl_seconds": 7200,
+    "cleared": true
+  },
+  "preflight": {
+    "active_extraction_job_overlap": false,
+    "active_unrelated_reporting_job": "cockpit_gpu_activity_process_visibility_v1_20260601",
+    "gpu_exclusive_activity_before_start": false,
+    "llama_processes_before_start": [],
+    "ports_before_start": {
+      "8000": "closed",
+      "8001": "closed",
+      "11434": "listening"
+    },
+    "m40_memory_before_start_mib": "0 / 24576"
+  },
+  "model_load": {
+    "requested_model": "model:qwen2.5-14b-instruct",
+    "result": "loaded successfully",
+    "load_time_seconds": 4
+  },
+  "cleanup": {
+    "router_stopped": true,
+    "gpu_activity_token_cleared": true,
+    "llama_processes_after_stop": [],
+    "ports_after_stop": {
+      "8000": "closed",
+      "8001": "closed"
+    },
+    "m40_memory_after_stop_mib": "0 / 24576"
+  }
+}
