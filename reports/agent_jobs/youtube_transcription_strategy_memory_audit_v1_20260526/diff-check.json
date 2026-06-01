@@ -1,36 +1,8 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/youtube_transcription_strategy_memory_audit_v1_20260526.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/architecture_map.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/diff-check.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/followups.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/runtime_probes.json",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/youtube_transcription_strategy_memory_audit_v1_20260526/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
