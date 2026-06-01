@@ -122,6 +122,43 @@ class ChatTickerDetectionTests(unittest.TestCase):
         self.assertIsNone(ticker)
         self.assertFalse(explicit)
 
+    def test_audit_prompt_ui_acronym_does_not_become_ticker(self) -> None:
+        ticker, explicit = self.controller._resolve_ticker_context(
+            "UI_AUDIT_GEMINI 2026-05-26: From the current Cockpit UI, "
+            "what should I review first today across holdings, watchlist, "
+            "and recent news? Use only visible/source-backed Tenn context "
+            "and say DATA_MISSING where needed.",
+            prior_ticker=None,
+        )
+        self.assertIsNone(ticker)
+        self.assertFalse(explicit)
+
+    def test_audit_marker_variants_do_not_become_tickers_in_prose(self) -> None:
+        prompts = (
+            "UI AUDIT GEMINI what should I review across holdings and recent news",
+            "UI-AUDIT-GEMINI what should I review across holdings and recent news",
+            "UI/AUDIT/GEMINI what should I review across holdings and recent news",
+            "from Cockpit UI what should I review across holdings and recent news",
+        )
+        for prompt in prompts:
+            with self.subTest(prompt=prompt):
+                ticker, explicit = self.controller._resolve_ticker_context(
+                    prompt,
+                    prior_ticker=None,
+                )
+                self.assertIsNone(ticker)
+                self.assertFalse(explicit)
+
+    def test_explicit_ui_ticker_forms_still_route(self) -> None:
+        for prompt in ("ASX:UI news", "$UI news", "UI.AX news"):
+            with self.subTest(prompt=prompt):
+                ticker, explicit = self.controller._resolve_ticker_context(
+                    prompt,
+                    prior_ticker=None,
+                )
+                self.assertEqual(ticker, "UI")
+                self.assertTrue(explicit)
+
     def test_chart_request_with_prior_ticker_uses_follow_up_context(self) -> None:
         self.controller.action_registry.preview.return_value = MagicMock(
             command=["chart", "BHP"],
@@ -698,6 +735,12 @@ class ChatTickerDetectionTests(unittest.TestCase):
                 ticker = self.controller._detect_ticker(msg, prior_ticker=None)
                 self.assertEqual(ticker, expected)
 
+    def test_compact_uppercase_ticker_lists_still_detected(self) -> None:
+        self.assertEqual(
+            self.controller._detect_ticker("BHP CSL RIO", prior_ticker=None),
+            "BHP",
+        )
+
     def test_cued_ticker_in_sentence(self) -> None:
         """Tickers with a cue word (about, price, news) must still be detected."""
         for msg, expected in (
@@ -706,6 +749,10 @@ class ChatTickerDetectionTests(unittest.TestCase):
             ("tell me about bhp", "BHP"),
             ("what does eos do", "EOS"),
             ("what does csl do", "CSL"),
+            ("what were BHP operating cash flows", "BHP"),
+            ("what were BHP earnings", "BHP"),
+            ("why did BHP fall today", "BHP"),
+            ("BHP rallied today", "BHP"),
         ):
             with self.subTest(msg=msg):
                 ticker = self.controller._detect_ticker(msg, prior_ticker=None)
@@ -717,6 +764,7 @@ class ChatTickerDetectionTests(unittest.TestCase):
             "why did ingestion fail",
             "hi how are you",
             "can you help me debug this",
+            "what are CI checks doing",
         ):
             with self.subTest(msg=msg):
                 self.assertIsNone(
