@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-06-02T02:05:30+10:00",
+  "job_id": "cockpit_action_control_route_guard_audit_v1_20260527",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_action_control_route_guard_audit_v1_20260527.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "status": "passed",
+      "result": "no active jobs before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_action_control_route_guard_audit_v1_20260527.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_action_control_route_guard_audit_v1_20260527.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/route_guard_matrix.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/status.json",
+      "status": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_action_control_route_guard_audit_v1_20260527/validation.json",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend:financial-engine_v2 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_cockpit_api_action_execute.py -q",
+      "status": "passed",
+      "result": "10 passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_action_control_route_guard_audit_v1_20260527.md",
+      "status": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release cockpit_action_control_route_guard_audit_v1_20260527",
+      "status": "passed"
+    }
+  ]
+}
