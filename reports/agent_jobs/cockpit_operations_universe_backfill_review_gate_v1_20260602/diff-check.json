@@ -1,0 +1,65 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/operations/operations-screen.test.tsx",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/operations/operations-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_operations_universe_backfill_review_gate_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_operations_universe_backfill_review_gate_v1_20260602.md",
+        "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/README.md",
+        "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/status.json",
+        "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/validation.json",
+        "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602/diff-check.json",
+        "cockpit-ui/components/cockpit/operations/operations-screen.tsx",
+        "cockpit-ui/components/cockpit/operations/operations-screen.test.tsx"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_operations_universe_backfill_review_gate_v1_20260602",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_operations_universe_backfill_review_gate_v1_20260602",
+      "owner": "Codex",
+      "primary_lane": "Reporting",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation"
+      ],
+      "timeout_seconds": 3600,
+      "title": "Cockpit Operations universe backfill review gate"
+    },
+    "ok": true
+  }
+}
