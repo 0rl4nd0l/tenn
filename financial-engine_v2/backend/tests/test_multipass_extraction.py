@@ -1236,6 +1236,78 @@ def test_pass4_higher_priority_source_wins():
     assert result["metrics"]["revenue"] == 45_192_000  # income_statement wins
 
 
+def test_pass4_extracts_explicit_prose_highlight_metrics():
+    """Prose-only results announcements may still contain explicit canonical metrics."""
+    from app.services.multipass_extraction import _run_pass4_reconciler, _validate_gate
+
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": "Revenue guidance for FY26 is $92 - 96 million.",
+        "material_changes": None,
+        "confidence_narrative": 0.7,
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2026-01-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+    sections = [
+        {
+            "page": 1,
+            "text": (
+                "1H revenue of $44.1 million up $6.5m. "
+                "NPAT strong at $4.2 million. "
+                "Revenue guidance for FY26 is $92 - 96 million."
+            ),
+        },
+        {
+            "page": 2,
+            "text": "Cash of $10.3 million as at 31 January 2026.",
+        },
+    ]
+
+    result = _run_pass4_reconciler([], pass3b, pass1, sections=sections)
+
+    assert result["metrics"]["revenue"] == 44_100_000
+    assert result["metrics"]["np_attributable"] == 4_200_000
+    assert result["metrics"]["cash_end"] == 10_300_000
+    assert result["provenance"]["revenue"].startswith("prose_highlight:page_1:")
+    assert "guidance" not in result["row_refs"]["revenue"].lower()
+    assert result["confidence_metrics"] >= 0.70
+
+    result["period_start"] = None
+    result["scale_validation"] = "pass"
+    result["currency"] = "AUD"
+    result["scale"] = "millions"
+    status, error = _validate_gate(result)
+    assert (status, error) == ("ok", None)
+
+
+def test_prose_highlight_extractor_ignores_revenue_guidance():
+    """Guidance values are not current-period revenue facts."""
+    from app.services.multipass_extraction import _extract_metric_highlights_from_prose
+
+    metrics, provenance, row_refs = _extract_metric_highlights_from_prose(
+        [
+            {
+                "page": 1,
+                "text": (
+                    "Revenue guidance of $96 million for FY26. "
+                    "NPAT $4.2 million. Cash of $10.3 million as at 31 January 2026."
+                ),
+            }
+        ]
+    )
+
+    assert "revenue" not in metrics
+    assert metrics["np_attributable"] == 4_200_000
+    assert metrics["cash_end"] == 10_300_000
+    assert "revenue" not in provenance
+    assert "revenue" not in row_refs
+
+
 # ---------------------------------------------------------------------------
 # Pipeline integration — _upsert_financial_rows (DB smoke test)
 # ---------------------------------------------------------------------------

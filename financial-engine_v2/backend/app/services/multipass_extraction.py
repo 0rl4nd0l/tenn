@@ -2036,6 +2036,48 @@ _SOURCE_UNIT_MULTIPLIERS = {
     "trillions": 1_000_000_000_000,
 }
 
+_PROSE_HIGHLIGHT_VALUE = (
+    r"(?:AUD\s*)?"
+    r"(?:A\$|\$A|\$)?\s*"
+    r"(?P<value>\(?-?\d+(?:,\d{3})*(?:\.\d+)?\)?)\s*"
+    r"(?P<unit>million|millions|m|billion|billions|bn|b)\b"
+)
+
+_PROSE_HIGHLIGHT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "revenue",
+        re.compile(
+            rf"\b(?:1h|h1|first\s+half|half[-\s]?year)?\s*"
+            rf"revenue\s+of\s+{_PROSE_HIGHLIGHT_VALUE}",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "np_attributable",
+        re.compile(
+            rf"\bNPAT\b(?:\s+\w+){{0,3}}\s+(?:of\s+|at\s+)?"
+            rf"{_PROSE_HIGHLIGHT_VALUE}",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "cash_end",
+        re.compile(
+            rf"\bcash\s+of\s+{_PROSE_HIGHLIGHT_VALUE}\s+as\s+at\b",
+            re.IGNORECASE,
+        ),
+    ),
+)
+
+_PROSE_HIGHLIGHT_BLOCKERS = (
+    "guidance",
+    "forecast",
+    "projected",
+    "projection",
+    "target",
+    "expected",
+)
+
 _EBIT_LABEL_BLOCKERS = (
     "ebitda",
     "earnings before interest tax depreciation",
@@ -2086,6 +2128,78 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
                 return value, provenance
 
     return None, ""
+
+
+def _parse_prose_highlight_value(match: re.Match[str]) -> float | None:
+    raw = str(match.group("value") or "").strip()
+    unit = str(match.group("unit") or "").strip().lower()
+    multiplier = _SOURCE_UNIT_MULTIPLIERS.get(unit)
+    if multiplier is None:
+        return None
+    negative = raw.startswith("(") and raw.endswith(")")
+    raw = raw.strip("()").replace(",", "")
+    try:
+        value = float(raw) * multiplier
+    except ValueError:
+        return None
+    matched_text = match.group(0).lower()
+    if "loss" in matched_text or negative:
+        value = -abs(value)
+    return value
+
+
+def _section_page_number(section: dict) -> int | None:
+    try:
+        return int(section.get("page"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_metric_highlights_from_prose(
+    sections: list[dict],
+) -> tuple[dict[str, float], dict[str, str], dict[str, str]]:
+    """Extract explicit current-period financial facts from prose highlights.
+
+    This fallback is intentionally narrow: it reads only explicit money values
+    tied to canonical metric labels and skips forecast/guidance contexts. It is
+    not a substitute for table extraction and must not map EBITDA to EBIT.
+    """
+    metrics: dict[str, float] = {}
+    provenance: dict[str, str] = {}
+    row_refs: dict[str, str] = {}
+    candidates = [
+        section
+        for section in sections
+        if section.get("text")
+        and (page := _section_page_number(section)) is not None
+        and 0 < page <= 3
+    ]
+    if not candidates:
+        candidates = [section for section in sections if section.get("text")][:8]
+
+    for section in candidates:
+        text = str(section.get("text") or "")
+        page = section.get("page", "?")
+        for metric_name, pattern in _PROSE_HIGHLIGHT_PATTERNS:
+            if metric_name in metrics:
+                continue
+            match = pattern.search(text)
+            if not match:
+                continue
+            matched_text = " ".join(match.group(0).split())
+            context = text[max(0, match.start() - 80) : match.end()].lower()
+            if metric_name == "revenue" and any(
+                blocker in context for blocker in _PROSE_HIGHLIGHT_BLOCKERS
+            ):
+                continue
+            value = _parse_prose_highlight_value(match)
+            if value is None:
+                continue
+            metrics[metric_name] = value
+            row_refs[metric_name] = matched_text[:120]
+            provenance[metric_name] = f"prose_highlight:page_{page}:{matched_text[:120]}"
+
+    return metrics, provenance, row_refs
 
 
 def _combined_source_text(*values: Any) -> str:
@@ -2746,6 +2860,19 @@ def _run_pass4_reconciler(
             prose_match = _EXTRACTION_RE.match(prose_prov)
             if prose_match:
                 row_refs["shares_outstanding"] = prose_match.group("detail")
+
+    if sections:
+        prose_metrics, prose_provenance, prose_row_refs = (
+            _extract_metric_highlights_from_prose(sections)
+        )
+        for metric_name, value in prose_metrics.items():
+            if merged_metrics.get(metric_name) is not None:
+                continue
+            merged_metrics[metric_name] = value
+            provenance[metric_name] = prose_provenance[metric_name]
+            row_refs[metric_name] = prose_row_refs[metric_name]
+            confidence_weighted_sum += 0.72
+            confidence_weight += 1
 
     # Weighted average confidence — each source weighted by metrics contributed
     metric_confidence = (
