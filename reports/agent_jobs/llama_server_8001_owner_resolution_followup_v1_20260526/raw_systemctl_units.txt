@@ -1,0 +1,22 @@
+Command: systemctl --user list-units --type=service --all | rg -i 'llama|openclaw|router|codex'
+Exit code: 0
+
+Output:
+  codex-remote-control-ws.service                                  loaded active   running Codex remote control websocket listener
+  codex-remote-control.service                                     loaded active   running Codex remote control bridge
+  tenn-codex-automation-health.service                             loaded inactive dead    Tenn Codex automation - automation health monitor
+  tenn-codex-bug-regression.service                                loaded inactive dead    Tenn Codex automation - bug and regression finder
+  tenn-codex-doc-drift.service                                     loaded inactive dead    Tenn Codex automation - documentation drift updater
+  tenn-codex-extraction-regression.service                         loaded inactive dead    Tenn Codex automation - extraction regression scout
+  tenn-codex-future-opportunities.service                          loaded inactive dead    Tenn Codex automation - future opportunity scout
+  tenn-codex-memory-drift.service                                  loaded inactive dead    Tenn Codex automation - project memory drift scanner
+  tenn-codex-repo-hygiene.service                                  loaded inactive dead    Tenn Codex automation - repo hygiene collision scanner
+
+Command: systemctl --user list-unit-files | rg -i 'llama|openclaw|router'
+Exit code: 0
+
+Output:
+llama-cpp-qwen25.service                                          disabled  enabled
+llama-cpp-router.service                                          disabled  enabled
+openclaw-dashboard.service                                        disabled  enabled
+openclaw-gateway.service                                          disabled  enabled

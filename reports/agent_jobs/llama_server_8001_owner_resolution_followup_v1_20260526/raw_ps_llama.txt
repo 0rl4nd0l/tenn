@@ -1,0 +1,10 @@
+Command: ps -eo pid,ppid,stat,etime,cmd | rg 'llama-server|run_llama'
+Exit code: 0
+
+Output:
+ 131020    1093 Ss         00:00 /bin/bash -lc ps -eo pid,ppid,stat,etime,cmd | rg 'llama-server|run_llama'
+ 131026  131020 S          00:00 rg llama-server|run_llama
+
+Interpretation:
+No persistent llama-server or run_llama process was present. The only matches
+were the audit command and rg process.
