@@ -2303,6 +2303,33 @@ def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str
     return {"period_type": None, "period_end": None, "reason": "not_detected", "hits": []}
 
 
+def _apply_source_period_end_type_correction(
+    pass1: dict[str, Any],
+    source_period_end_evidence: dict[str, Any],
+) -> None:
+    """Correct Pass 1 period type only from unambiguous typed source-date evidence."""
+
+    source_period_type = str(source_period_end_evidence.get("period_type") or "").strip()
+    source_period_end = str(source_period_end_evidence.get("period_end") or "").strip()
+    if source_period_type not in {"A", "H", "Q"} or not source_period_end:
+        return
+
+    current_period_type = str(pass1.get("report_type") or "").strip()
+    if current_period_type == source_period_type:
+        return
+    if current_period_type and current_period_type not in {"A", "H", "Q"}:
+        return
+
+    pass1["_source_period_type_correction"] = {
+        "from": current_period_type or None,
+        "to": source_period_type,
+        "reason": str(source_period_end_evidence.get("reason") or "").strip()
+        or "explicit_source_period_end",
+        "period_end": source_period_end,
+    }
+    pass1["report_type"] = source_period_type
+
+
 def _early_period_source_text(
     sections: list[dict],
     *,
@@ -2892,6 +2919,9 @@ def _run_pass4_reconciler(
         "source_period_type": pass1_result.get("_source_period_type"),
         "source_period_evidence": pass1_result.get("_source_period_evidence"),
         "source_period_end_evidence": pass1_result.get("_source_period_end_evidence"),
+        "source_period_type_correction": pass1_result.get(
+            "_source_period_type_correction"
+        ),
         "source_document_classification": pass1_result.get(
             "_source_document_classification"
         ),
@@ -3441,6 +3471,7 @@ def run_multipass_extraction(
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
     if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
         pass1["period_end"] = source_period_end_evidence["period_end"]
+    _apply_source_period_end_type_correction(pass1, source_period_end_evidence)
     pass1["_source_period_evidence"] = source_period_evidence
     pass1["_source_period_end_evidence"] = source_period_end_evidence
     pass1["_source_period_type"] = source_period_evidence.get("period_type")

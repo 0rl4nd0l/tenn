@@ -136,6 +136,88 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+def test_run_multipass_corrects_period_type_from_explicit_source_period_end():
+    """CTM-style annual reports must not persist a Pass 1 half-year misclassification."""
+    from datetime import date
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 4
+        docling_version = None
+        tables = []
+        sections = [
+            {"text": "CENTENNIAL MINING LIMITED Financial Report", "page": 1},
+            {
+                "text": (
+                    "The directors present their report on the Group during, "
+                    "the year ended 31 December 2025."
+                ),
+                "page": 2,
+            },
+        ]
+
+    pass1_half_year = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "units",
+        "classifier_confidence": 0.95,
+    }
+    pass3a_results = [
+        {
+            "_source": "income_statement",
+            "_page_number": 12,
+            "pass3_confidence": 0.88,
+            "revenue": 1_000_000,
+            "np_attributable": -500_000,
+            "cash_end": 2_000_000,
+            "row_refs": {
+                "revenue": "Revenue",
+                "np_attributable": "Net loss attributable to members",
+                "cash_end": "Cash and cash equivalents",
+            },
+        }
+    ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_half_year,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/ctm.pdf",
+            {
+                "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+                "ticker": "CTM",
+                "title": "Financial Report 31 December 2025",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["period_type"] == "A"
+    assert result.payload["period_end"] == "2025-12-31"
+    assert result.payload["period_start"] == date(2025, 1, 1)
+    assert result.payload["source_period_type_correction"] == {
+        "from": "H",
+        "to": "A",
+        "reason": "year_ended_explicit_date",
+        "period_end": "2025-12-31",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Pass 2 — Table Locator
 # ---------------------------------------------------------------------------
