@@ -286,6 +286,84 @@ def test_holdings_csv_attachment_import(tmp_path, monkeypatch) -> None:
     assert {row["ticker"] for row in holdings} == {"BHP", "CBA"}
 
 
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-key"}])
+def test_holdings_csv_attachment_upload_requires_api_key_before_import(
+    tmp_path, monkeypatch, headers
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings, "local_api_key", "local-secret", raising=False
+    )
+
+    add_holding_calls: list[dict[str, object]] = []
+
+    def fail_add_holding(**row: object) -> None:
+        add_holding_calls.append(row)
+        raise AssertionError("add_holding must not run for rejected attachment uploads")
+
+    monkeypatch.setattr(fake_service.state_store, "add_holding", fail_add_holding)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    csv_text = "ticker,quantity,avg_cost\nBHP,100,43.2\n"
+    encoded = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        headers=headers,
+        json={
+            "filename": "holdings.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    assert add_holding_calls == []
+    assert client.get("/api/cockpit/holdings").json()["items"] == []
+
+
+def test_holdings_csv_attachment_upload_accepts_correct_api_key_when_configured(
+    tmp_path, monkeypatch
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings, "local_api_key", "local-secret", raising=False
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    csv_text = "ticker,quantity,avg_cost\nBHP,100,43.2\n"
+    encoded = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        headers={"X-API-Key": "local-secret"},
+        json={
+            "filename": "holdings.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["file_kind"] == "holdings_csv"
+    assert payload["imported_count"] == 1
+    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    assert len(holdings) == 1
+    assert holdings[0]["ticker"] == "BHP"
+
+
 def test_holdings_csv_derives_avg_cost_from_value_and_capital_gain(
     tmp_path, monkeypatch
 ) -> None:
@@ -470,6 +548,9 @@ def test_pdf_attachment_upload_creates_attached_source(tmp_path, monkeypatch) ->
         CockpitService, "get_instance", classmethod(lambda cls: fake_service)
     )
     monkeypatch.setattr(
+        cockpit_api.settings, "local_api_key", "local-secret", raising=False
+    )
+    monkeypatch.setattr(
         cockpit_api,
         "_extract_pdf_text",
         lambda _bytes: (
@@ -492,6 +573,7 @@ def test_pdf_attachment_upload_creates_attached_source(tmp_path, monkeypatch) ->
     encoded = base64.b64encode(pdf_bytes).decode("ascii")
     response = client.post(
         "/api/cockpit/chat/attachments/upload",
+        headers={"X-API-Key": "local-secret"},
         json={
             "filename": "strategy-update.pdf",
             "mime_type": "application/pdf",
@@ -504,3 +586,53 @@ def test_pdf_attachment_upload_creates_attached_source(tmp_path, monkeypatch) ->
     assert payload["source_id"]
     assert payload["chunks_staged"] >= 1
     assert isinstance(payload["key_points"], list)
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "wrong-key"}])
+def test_pdf_attachment_upload_requires_api_key_before_staging(
+    tmp_path, monkeypatch, headers
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api.settings, "local_api_key", "local-secret", raising=False
+    )
+
+    staged_calls: list[dict[str, object]] = []
+
+    def fail_stage_uploaded_pdf_chunks(**kwargs: object) -> tuple[str, int]:
+        staged_calls.append(kwargs)
+        raise AssertionError(
+            "_stage_uploaded_pdf_chunks must not run for rejected attachment uploads"
+        )
+
+    monkeypatch.setattr(
+        cockpit_api, "_extract_pdf_text", lambda _bytes: "extracted text"
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_stage_uploaded_pdf_chunks",
+        fail_stage_uploaded_pdf_chunks,
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    pdf_bytes = b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n"
+    encoded = base64.b64encode(pdf_bytes).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        headers=headers,
+        json={
+            "filename": "strategy-update.pdf",
+            "mime_type": "application/pdf",
+            "content_base64": encoded,
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid or missing API key"
+    assert staged_calls == []

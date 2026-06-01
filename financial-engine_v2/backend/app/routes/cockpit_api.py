@@ -26,10 +26,11 @@ from typing import IO, Any, AsyncGenerator, Literal
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.routes import require_api_key
 from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.documents import Document
@@ -5523,6 +5524,7 @@ def cockpit_remove_holding(holding_id: str) -> CockpitHoldingMutationResponse:
 @router.post(
     "/chat/attachments/upload",
     response_model=CockpitChatAttachmentUploadResponse,
+    dependencies=[Depends(require_api_key)],
 )
 def cockpit_upload_chat_attachment(
     payload: CockpitChatAttachmentUploadRequest,
