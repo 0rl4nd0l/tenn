@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-06-02T01:56:44+10:00",
+  "issue": 83,
+  "job_id": "news_projection_materialization_parity_repair_planning_v1_20260602",
+  "no_mutation": true,
+  "rows": [
+    {
+      "surface": "architecture_contract",
+      "path_or_route": "docs/architecture/15_news_substrate.md",
+      "current_status": "confirmed",
+      "evidence": "Production uses exactly one news context DB path: reports/qual_context/news.sqlite.",
+      "a2m_evidence": "not_applicable",
+      "consumer_status": "contract_source"
+    },
+    {
+      "surface": "cockpit_config",
+      "path_or_route": "financial-engine_v2/config/cockpit.yaml",
+      "current_status": "confirmed",
+      "evidence": "rag.news_context.db_path is reports/qual_context/news.sqlite.",
+      "a2m_evidence": "not_applicable",
+      "consumer_status": "configured_consumer_path"
+    },
+    {
+      "surface": "isolated_worktree_projection",
+      "path_or_route": "/home/l4nd0/tenn-news-projection-materialization-parity-repair-planning-v1-20260602/reports/qual_context",
+      "current_status": "missing",
+      "evidence": "reports/qual_context does not exist in this isolated branch worktree.",
+      "a2m_evidence": "DATA_MISSING",
+      "consumer_status": "not_live_artifact_root"
+    },
+    {
+      "surface": "live_artifact_root_articles",
+      "path_or_route": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news_articles.sqlite",
+      "current_status": "present",
+      "evidence": "stat succeeded; immutable SQLite read found 225 articles, 13 A2M-like title/body matches, latest published_at_utc 2026-05-27T07:02:01Z.",
+      "a2m_evidence": "present_in_article_source",
+      "consumer_status": "source_candidate_for_projection"
+    },
+    {
+      "surface": "live_artifact_root_context",
+      "path_or_route": "/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite",
+      "current_status": "missing",
+      "evidence": "stat returned no such file.",
+      "a2m_evidence": "DATA_MISSING",
+      "consumer_status": "canonical_rag_projection_missing"
+    },
+    {
+      "surface": "status_builder_default_root",
+      "path_or_route": "app.services.news_health_status.build_a2m_news_health_status()",
+      "current_status": "partial",
+      "evidence": "Read-only builder resolved live artifact root to /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context and reported news_articles.sqlite exists, news.sqlite absent.",
+      "a2m_evidence": "prior_report_scope_only",
+      "consumer_status": "read_only_status_contract"
+    },
+    {
+      "surface": "legacy_articles",
+      "path_or_route": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news_articles.sqlite",
+      "current_status": "present_legacy",
+      "evidence": "Immutable SQLite read found 2983 articles, 33 A2M-like title/body matches, latest published_at_utc 2026-05-19T16:07:14Z.",
+      "a2m_evidence": "present_legacy_only",
+      "consumer_status": "not_current_consumer"
+    },
+    {
+      "surface": "legacy_context",
+      "path_or_route": "/mnt/sdb2/home/l4nd0/tenn/reports/qual_context/news.sqlite",
+      "current_status": "present_legacy",
+      "evidence": "Immutable SQLite read found 24096 context_chunks and 771 A2M-like ticker/title/text matches.",
+      "a2m_evidence": "present_legacy_only",
+      "consumer_status": "not_current_consumer"
+    },
+    {
+      "surface": "qdrant",
+      "path_or_route": "http://127.0.0.1:6333/collections/news_chunks",
+      "current_status": "DATA_MISSING",
+      "evidence": "curl failed with connection refused; no service was started.",
+      "a2m_evidence": "DATA_MISSING",
+      "consumer_status": "live_probe_unavailable"
+    },
+    {
+      "surface": "backend_status_route",
+      "path_or_route": "http://127.0.0.1:8000/api/cockpit/news/status",
+      "current_status": "DATA_MISSING",
+      "evidence": "curl failed with connection refused; code route and tests exist, but no live backend was running.",
+      "a2m_evidence": "DATA_MISSING",
+      "consumer_status": "live_probe_unavailable"
+    },
+    {
+      "surface": "next_status_route",
+      "path_or_route": "http://127.0.0.1:3000/api/cockpit/news/status",
+      "current_status": "DATA_MISSING",
+      "evidence": "curl failed with connection refused; no Next service was running.",
+      "a2m_evidence": "DATA_MISSING",
+      "consumer_status": "live_probe_unavailable"
+    }
+  ],
+  "selected_next_step": "separate_approved_projection_materialization_task"
+}

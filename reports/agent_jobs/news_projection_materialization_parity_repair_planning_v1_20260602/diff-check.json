@@ -1,0 +1,67 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/next_repair_decision.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/parity_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/news_projection_materialization_parity_repair_planning_v1_20260602.md",
+        "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/README.md",
+        "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/status.json",
+        "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/parity_matrix.json",
+        "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/next_repair_decision.md",
+        "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/validation.json",
+        "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602/diff-check.json"
+      ],
+      "approval_required": false,
+      "job_id": "news_projection_materialization_parity_repair_planning_v1_20260602",
+      "lane": "Query Orchestration",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/news_projection_materialization_parity_repair_planning_v1_20260602",
+      "owner": "Codex",
+      "primary_lane": "Query Orchestration",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Provenance",
+        "Runtime",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200,
+      "title": "News projection materialization parity repair planning"
+    },
+    "ok": true
+  }
+}
