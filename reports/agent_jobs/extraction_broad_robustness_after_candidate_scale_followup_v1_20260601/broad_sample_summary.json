@@ -1,0 +1,138 @@
+{
+  "run_metadata": {
+    "timestamp": "20260601T132607Z",
+    "seed": 20260601,
+    "requested_count": 8,
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "docs_root": "/data/asx/docs",
+    "candidate_filter": {
+      "input_count": 28633,
+      "candidate_count": 24721,
+      "excluded_count": 3912,
+      "excluded_reason_counts": {
+        "advisory_only_document": 50,
+        "meeting_notice": 1660,
+        "meeting_results_notice": 2116,
+        "operational_update_without_formal_statements": 81,
+        "unaudited_financial_update_without_formal_statements": 5
+      }
+    }
+  },
+  "summary": {
+    "total": 8,
+    "status_distribution": {
+      "ok": 3,
+      "failed": 4,
+      "ok_low_confidence": 1
+    },
+    "success_rate": 0.5,
+    "error_classification": {
+      "classifier_low_confidence": 1,
+      "validation_gate": 3
+    },
+    "metric_coverage": {
+      "revenue": {
+        "present": 0,
+        "total": 4,
+        "rate": 0.0
+      },
+      "ebit": {
+        "present": 0,
+        "total": 4,
+        "rate": 0.0
+      },
+      "np_attributable": {
+        "present": 2,
+        "total": 4,
+        "rate": 0.5
+      },
+      "operating_cf": {
+        "present": 4,
+        "total": 4,
+        "rate": 1.0
+      },
+      "investing_cf": {
+        "present": 4,
+        "total": 4,
+        "rate": 1.0
+      },
+      "financing_cf": {
+        "present": 3,
+        "total": 4,
+        "rate": 0.75
+      },
+      "capex": {
+        "present": 4,
+        "total": 4,
+        "rate": 1.0
+      },
+      "cash_end": {
+        "present": 4,
+        "total": 4,
+        "rate": 1.0
+      },
+      "net_debt": {
+        "present": 0,
+        "total": 4,
+        "rate": 0.0
+      },
+      "shares_outstanding": {
+        "present": 3,
+        "total": 4,
+        "rate": 0.75
+      }
+    },
+    "nonnull_metric_distribution": {
+      "mean": 6,
+      "median": 6.0,
+      "min": 5,
+      "max": 7
+    },
+    "timing": {
+      "mean_s": 85.56,
+      "median_s": 46.89,
+      "p95_s": 237.64,
+      "p99_s": 237.64,
+      "min_s": 2.04,
+      "max_s": 237.64,
+      "total_s": 684.5
+    },
+    "sanity_checks": {
+      "revenue_positive": {
+        "passed": 0,
+        "total": 0,
+        "rate": 0
+      },
+      "shares_positive": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "cash_end_positive": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1.0
+      },
+      "period_end_valid": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1.0
+      },
+      "period_type_valid": {
+        "passed": 4,
+        "total": 4,
+        "rate": 1.0
+      }
+    },
+    "unique_tickers": 7,
+    "period_type_distribution": {
+      "Q": 2,
+      "A": 2
+    },
+    "scale_distribution": {
+      "thousands": 3,
+      "units": 1
+    }
+  }
+}
