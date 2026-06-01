@@ -12,23 +12,31 @@ from fastapi.testclient import TestClient
 from app.api import commentary as mod
 
 
-def _write_staged_points(tmp_path: Path, source_id: str, texts: list[str]) -> Path:
+def _write_staged_points(
+    tmp_path: Path,
+    source_id: str,
+    texts: list[str],
+    payload_overrides: list[dict[str, object]] | None = None,
+) -> Path:
     staged_file = tmp_path / f"{source_id}.jsonl"
     rows = []
     for index, text in enumerate(texts):
+        payload = {
+            "source_id": source_id,
+            "chunk_id": f"{source_id}:{index}",
+            "chunk_index": index,
+            "text": text,
+            "source_name": "Test YouTube video",
+            "source_type": "youtube_transcript",
+            "published_at": "2026-04-28T00:00:00Z",
+        }
+        if payload_overrides and index < len(payload_overrides):
+            payload.update(payload_overrides[index])
         rows.append(
             {
                 "id": f"pt-{index}",
                 "vector": [0.1, 0.2],
-                "payload": {
-                    "source_id": source_id,
-                    "chunk_id": f"{source_id}:{index}",
-                    "chunk_index": index,
-                    "text": text,
-                    "source_name": "Test YouTube video",
-                    "source_type": "youtube_transcript",
-                    "published_at": "2026-04-28T00:00:00Z",
-                },
+                "payload": payload,
             }
         )
     staged_file.write_text(
@@ -76,7 +84,12 @@ def test_takeaways_from_staged_chunks_without_memo(tmp_path, monkeypatch):
     assert result["memo_status"] == "missing"
     assert result["takeaway_source"] == "chunks"
     assert len(result["takeaways"]) >= 2
-    assert result["takeaways"][0]["citations"][0]["chunk_id"].startswith(source_id)
+    citation = result["takeaways"][0]["citations"][0]
+    assert citation["chunk_id"].startswith(source_id)
+    assert citation["video_id"] is None
+    assert citation["webpage_url"] is None
+    assert citation["segment_start_seconds"] is None
+    assert citation["segment_end_seconds"] is None
     assert result["outline"][0]["title"] == "Transcript section 1"
     assert result["outline"][0]["summary"]
     assert result["digest"]["chunk_count"] == 2
@@ -172,9 +185,64 @@ def test_takeaways_prefer_existing_memo_and_watchlist_suggestions(
         {
             "ticker": "BHP",
             "commentary": "Ticker mentioned in the extracted commentary memo.",
-            "citations": [{"chunk_id": f"{source_id}:0", "segment_start_seconds": 0}],
+            "citations": [
+                {
+                    "chunk_id": f"{source_id}:0",
+                    "video_id": None,
+                    "webpage_url": None,
+                    "segment_start_seconds": None,
+                    "segment_end_seconds": None,
+                }
+            ],
         }
     ]
+
+
+def test_takeaway_citations_surface_youtube_provenance(tmp_path, monkeypatch):
+    source_id = "youtube_transcript:test-video:timed123"
+    staged_file = _write_staged_points(
+        tmp_path,
+        source_id,
+        [
+            (
+                "BHP reported stronger quarterly production and lower unit costs. "
+                "Management said cash flow should improve if commodity prices remain firm."
+            )
+        ],
+        payload_overrides=[
+            {
+                "video_id": "timed123",
+                "webpage_url": "https://www.youtube.com/watch?v=timed123",
+                "segment_start_seconds": 12.0,
+                "segment_end_seconds": 45.5,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        mod,
+        "_load_index",
+        lambda: {
+            source_id: {
+                "path": str(staged_file),
+                "source_name": "Test YouTube video",
+                "published_at": "2026-04-28T00:00:00Z",
+            }
+        },
+    )
+    monkeypatch.setattr(mod, "load_commentary_memos", lambda: [])
+
+    result = mod.get_commentary_takeaways(
+        mod.TakeawaysRequest(source_id=source_id, limit=3)
+    )
+
+    citation = result["takeaways"][0]["citations"][0]
+    assert citation == {
+        "chunk_id": f"{source_id}:0",
+        "video_id": "timed123",
+        "webpage_url": "https://www.youtube.com/watch?v=timed123",
+        "segment_start_seconds": 12.0,
+        "segment_end_seconds": 45.5,
+    }
 
 
 def test_takeaways_can_use_memo_without_staged_chunks(monkeypatch):

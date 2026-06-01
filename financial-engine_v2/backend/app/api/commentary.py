@@ -95,16 +95,28 @@ def _point_chunk_id(point: dict[str, Any], source_id: str) -> str:
     return f"{source_id}:{chunk_index}"
 
 
+def _nullable_nonnegative_seconds(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError):
+        return None
+    return coerced if coerced >= 0 else None
+
+
 def _citation_for_point(point: dict[str, Any], source_id: str) -> dict[str, Any]:
     payload = _point_payload(point)
-    start = payload.get("segment_start_seconds") or payload.get("chunk_start_seconds") or 0
-    try:
-        segment_start_seconds = max(0, int(float(start)))
-    except (TypeError, ValueError):
-        segment_start_seconds = 0
     return {
         "chunk_id": _point_chunk_id(point, source_id),
-        "segment_start_seconds": segment_start_seconds,
+        "video_id": str(payload.get("video_id") or "").strip() or None,
+        "webpage_url": str(payload.get("webpage_url") or "").strip() or None,
+        "segment_start_seconds": _nullable_nonnegative_seconds(
+            payload.get("segment_start_seconds", payload.get("chunk_start_seconds"))
+        ),
+        "segment_end_seconds": _nullable_nonnegative_seconds(
+            payload.get("segment_end_seconds", payload.get("chunk_end_seconds"))
+        ),
     }
 
 
@@ -1042,6 +1054,12 @@ def _ingest_youtube_url_to_staging(
         "source_type": "youtube_transcript",
         "speaker": video.channel_name,
         "published_at": video.published_at or "",
+        "video_id": video.video_id,
+        "webpage_url": video.webpage_url,
+        "transcript_segments": [
+            dict(row)
+            for row in getattr(transcript_text, "segment_timing", ()) or ()
+        ],
     }
     if credibility_weight is not None:
         ingest_kwargs["credibility_weight"] = credibility_weight

@@ -43,6 +43,9 @@ class TranscriptMetadata:
     topic_tags: tuple[str, ...] = ()
     credibility_weight: float | None = None
     decay_half_life_days: float | None = None
+    video_id: str | None = None
+    webpage_url: str | None = None
+    transcript_segments: tuple[dict[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -109,6 +112,38 @@ def _coerce_float(value: Any) -> float | None:
     return float(value)
 
 
+def _first_present(payload: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = payload.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _normalize_transcript_segments(value: Any) -> tuple[dict[str, Any], ...]:
+    if not isinstance(value, list):
+        return ()
+    rows: list[dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()
+        if not text:
+            continue
+        rows.append(
+            {
+                "text": text,
+                "segment_start_seconds": _coerce_float(
+                    _first_present(item, "segment_start_seconds", "start")
+                ),
+                "segment_end_seconds": _coerce_float(
+                    _first_present(item, "segment_end_seconds", "end")
+                ),
+            }
+        )
+    return tuple(rows)
+
+
 def _parse_front_matter_value(raw_value: str) -> Any:
     value = str(raw_value or "").strip()
     if not value:
@@ -161,6 +196,11 @@ def parse_transcript_job(path: str | Path) -> TranscriptJob:
         topic_tags=_normalize_topic_tags(metadata_block.get("topic_tags")),
         credibility_weight=_coerce_float(metadata_block.get("credibility_weight")),
         decay_half_life_days=_coerce_float(metadata_block.get("decay_half_life_days")),
+        video_id=str(metadata_block.get("video_id") or "").strip() or None,
+        webpage_url=str(metadata_block.get("webpage_url") or "").strip() or None,
+        transcript_segments=_normalize_transcript_segments(
+            metadata_block.get("transcript_segments")
+        ),
     )
     return TranscriptJob(
         path=transcript_path,
@@ -201,6 +241,9 @@ def render_transcript_drop_file(
         "topic_tags": list(metadata.topic_tags),
         "credibility_weight": metadata.credibility_weight,
         "decay_half_life_days": metadata.decay_half_life_days,
+        "video_id": metadata.video_id,
+        "webpage_url": metadata.webpage_url,
+        "transcript_segments": list(metadata.transcript_segments),
     }
     lines = ["---"]
     for key, value in payload.items():
@@ -223,6 +266,9 @@ def _default_ingest_runner(job: TranscriptJob) -> dict[str, Any]:
         topic_tags=list(job.metadata.topic_tags),
         credibility_weight=job.metadata.credibility_weight,
         decay_half_life_days=job.metadata.decay_half_life_days,
+        video_id=job.metadata.video_id,
+        webpage_url=job.metadata.webpage_url,
+        transcript_segments=list(job.metadata.transcript_segments),
     )
 
 

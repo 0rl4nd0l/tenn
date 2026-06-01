@@ -233,6 +233,15 @@ def test_ingest_transcript_verifies_qdrant_embeds_and_stages_hot_source(monkeypa
         registry_path=tmp_path / "source_registry.jsonl",
         memos_path=memos_path,
         qdrant_url="http://qdrant:6333",
+        video_id="abc123",
+        webpage_url="https://www.youtube.com/watch?v=abc123",
+        transcript_segments=[
+            {
+                "text": "A short transcript about a company update.",
+                "segment_start_seconds": 12.0,
+                "segment_end_seconds": 15.5,
+            }
+        ],
         embed_batch_fn=fake_embed_batch,
         memo_extractor=StubMemoExtractor(memos_path),
     )
@@ -266,6 +275,10 @@ def test_ingest_transcript_verifies_qdrant_embeds_and_stages_hot_source(monkeypa
     assert len(lines) == 1
     row = json.loads(lines[0])
     assert row["payload"]["chunk_id"].endswith(":0")
+    assert row["payload"]["video_id"] == "abc123"
+    assert row["payload"]["webpage_url"] == "https://www.youtube.com/watch?v=abc123"
+    assert row["payload"]["segment_start_seconds"] == 12.0
+    assert row["payload"]["segment_end_seconds"] == 15.5
     assert str(uuid.UUID(row["id"])) == row["id"]
 
 

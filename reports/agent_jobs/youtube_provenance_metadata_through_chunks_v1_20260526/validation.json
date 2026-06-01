@@ -1,0 +1,43 @@
+{
+  "job_id": "youtube_provenance_metadata_through_chunks_v1_20260526",
+  "validated_at": "2026-06-01T23:00:04+10:00",
+  "branch": "safe/youtube-provenance-metadata-through-chunks-v1-20260526",
+  "base_head": "0320f645c806",
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/youtube_provenance_metadata_through_chunks_v1_20260526.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/youtube_provenance_metadata_through_chunks_v1_20260526.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m ruff check financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py financial-engine_v2/backend/app/services/transcript_watcher.py financial-engine_v2/backend/app/services/commentary_ingest.py financial-engine_v2/backend/app/api/commentary.py financial-engine_v2/backend/tests/test_youtube_transcript_fetcher.py financial-engine_v2/backend/tests/test_qdrant_resolution.py financial-engine_v2/backend/tests/test_commentary_endpoints.py financial-engine_v2/backend/tests/test_commentary_takeaways_endpoint.py",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m pytest financial-engine_v2/backend/tests/test_youtube_transcript_fetcher.py financial-engine_v2/backend/tests/test_qdrant_resolution.py financial-engine_v2/backend/tests/test_commentary_endpoints.py financial-engine_v2/backend/tests/test_commentary_takeaways_endpoint.py -q",
+      "result": "passed",
+      "summary": "116 passed, 5 warnings"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/youtube_provenance_metadata_through_chunks_v1_20260526.md",
+      "result": "passed"
+    }
+  ],
+  "code_review": {
+    "result": "passed",
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  },
+  "notes": [
+    "Ruff emitted uv's requirements-file extra-index-url warning before passing.",
+    "Pytest warnings were pre-existing Pydantic/FastAPI deprecation warnings outside this task scope."
+  ]
+}

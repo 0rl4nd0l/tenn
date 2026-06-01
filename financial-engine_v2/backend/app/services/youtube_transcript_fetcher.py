@@ -46,6 +46,18 @@ class YoutubeVideo:
     view_count: int | None = None
 
 
+class YoutubeTranscriptText(str):
+    def __new__(
+        cls,
+        text: str,
+        *,
+        segment_timing: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+    ):
+        obj = str.__new__(cls, text)
+        obj.segment_timing = tuple(dict(row) for row in (segment_timing or []))
+        return obj
+
+
 class YoutubeChannelResolutionError(RuntimeError):
     def __init__(self, message: str, *, name_or_id: str) -> None:
         super().__init__(message)
@@ -235,6 +247,16 @@ def _coerce_optional_int(value: Any) -> int | None:
         return None
     try:
         coerced = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return coerced if coerced >= 0 else None
+
+
+def _coerce_optional_seconds(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        coerced = float(value)
     except (TypeError, ValueError):
         return None
     return coerced if coerced >= 0 else None
@@ -586,6 +608,33 @@ def _transcript_segments_to_text(segments: list[Any]) -> str:
     return "\n".join(lines).strip()
 
 
+def _segment_value(segment: Any, key: str) -> Any:
+    if isinstance(segment, dict):
+        return segment.get(key)
+    return getattr(segment, key, None)
+
+
+def _transcript_segments_to_timing(segments: list[Any]) -> list[dict[str, Any]]:
+    timing: list[dict[str, Any]] = []
+    for segment in segments:
+        text = str(_segment_value(segment, "text") or "").strip()
+        if not text:
+            continue
+        start = _coerce_optional_seconds(_segment_value(segment, "start"))
+        end = _coerce_optional_seconds(_segment_value(segment, "end"))
+        duration = _coerce_optional_seconds(_segment_value(segment, "duration"))
+        if end is None and start is not None and duration is not None:
+            end = start + duration
+        timing.append(
+            {
+                "text": text,
+                "segment_start_seconds": start,
+                "segment_end_seconds": end,
+            }
+        )
+    return timing
+
+
 def _coerce_transcript_segments(raw: Any) -> list[Any]:
     if raw is None:
         return []
@@ -637,7 +686,10 @@ def _default_fetch_transcript(video: YoutubeVideo) -> str:
     text = _transcript_segments_to_text(segments)
     if not text:
         raise TranscriptUnavailableError("transcript unavailable")
-    return text
+    return YoutubeTranscriptText(
+        text,
+        segment_timing=_transcript_segments_to_timing(segments),
+    )
 
 
 class YoutubeTranscriptFetcher:
@@ -678,6 +730,12 @@ class YoutubeTranscriptFetcher:
                     published_at=video.published_at or "",
                     credibility_weight=channel.credibility_weight,
                     decay_half_life_days=14.0,
+                    video_id=video.video_id,
+                    webpage_url=video.webpage_url,
+                    transcript_segments=tuple(
+                        dict(row)
+                        for row in getattr(transcript_text, "segment_timing", ()) or ()
+                    ),
                 )
                 if (
                     self.processor.duplicate_source_id_for_text(

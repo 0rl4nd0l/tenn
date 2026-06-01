@@ -1,0 +1,35 @@
+{
+  "job_id": "youtube_provenance_metadata_through_chunks_v1_20260526",
+  "issue": 101,
+  "status": "validated",
+  "agent": "Codex",
+  "lane": "Provenance",
+  "execution_mode": "safe_extension",
+  "collision_risk": "LOW",
+  "branch": "safe/youtube-provenance-metadata-through-chunks-v1-20260526",
+  "worktree": "/home/l4nd0/tenn-youtube-provenance-metadata-through-chunks-v1-20260526",
+  "base_head": "0320f645c806",
+  "updated_at": "2026-06-01T23:00:04+10:00",
+  "contract_enforcer": {
+    "initial_verdict": "BLOCK",
+    "reason": "Full issue scope required monitored-channel transcript_watcher metadata propagation and timestamp preservation before cleaning.",
+    "resolution": "Task card corrected, overlap rechecked, and full provenance path implemented."
+  },
+  "summary": [
+    "YouTube URL ingestion now passes video and segment provenance to staged commentary chunks.",
+    "Monitored-channel drop files now round-trip video and segment provenance through TranscriptMetadata.",
+    "Takeaway citations now surface video_id, webpage_url, segment_start_seconds, and segment_end_seconds with nulls for legacy staged chunks.",
+    "Approval preserves staged payload provenance during backend-owned Qdrant upsert."
+  ],
+  "validation": {
+    "task_card_validate": "passed",
+    "registry_overlap": "passed",
+    "ruff": "passed",
+    "pytest": "116 passed, 5 warnings",
+    "git_diff_check": "passed",
+    "task_card_check_diff": "passed"
+  },
+  "forbidden_surfaces_touched": [],
+  "production_data_access": false,
+  "ready_for_pr": true
+}

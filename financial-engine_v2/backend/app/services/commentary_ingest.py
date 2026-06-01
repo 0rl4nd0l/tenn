@@ -57,12 +57,16 @@ def _default_embed_batch(texts: list[str], *, llm_url: str | None, model: str | 
     return embed_texts_batched(texts, llm_url=llm_url, model=model)
 
 
+def _clean_transcript_line(raw_line: Any) -> str:
+    line = re.sub(r"^\s*\d{1,2}:\d{2}(?::\d{2})?\s*", "", str(raw_line or ""))
+    line = re.sub(r"^\s*\[[^\]]+\]\s*$", "", line)
+    return re.sub(r"\s+", " ", line).strip()
+
+
 def clean_transcript_text(transcript_text: str) -> str:
     lines = []
     for raw_line in str(transcript_text or "").replace("\r", "\n").splitlines():
-        line = re.sub(r"^\s*\d{1,2}:\d{2}(?::\d{2})?\s*", "", raw_line)
-        line = re.sub(r"^\s*\[[^\]]+\]\s*$", "", line)
-        line = re.sub(r"\s+", " ", line).strip()
+        line = _clean_transcript_line(raw_line)
         if line:
             lines.append(line)
     return "\n".join(lines).strip()
@@ -80,6 +84,183 @@ def _unique_chunks(chunks: list[str]) -> list[str]:
     return deduped
 
 
+def _coerce_optional_seconds(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError):
+        return None
+    return coerced if coerced >= 0 else None
+
+
+def _first_present(payload: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = payload.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _normalize_transcript_segments(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, (list, tuple)):
+        return []
+    segments: list[dict[str, Any]] = []
+    for row in value:
+        if not isinstance(row, dict):
+            continue
+        text = clean_transcript_text(str(row.get("text") or ""))
+        if not text:
+            continue
+        segments.append(
+            {
+                "text": text,
+                "segment_start_seconds": _coerce_optional_seconds(
+                    _first_present(row, "segment_start_seconds", "start")
+                ),
+                "segment_end_seconds": _coerce_optional_seconds(
+                    _first_present(row, "segment_end_seconds", "end")
+                ),
+            }
+        )
+    return segments
+
+
+def _split_timed_text_unit(
+    text: str,
+    *,
+    start: float | None,
+    end: float | None,
+    max_chars: int,
+) -> list[dict[str, Any]]:
+    normalized = _clean_transcript_line(text)
+    if not normalized:
+        return []
+    if len(normalized) <= max_chars:
+        return [
+            {
+                "text": normalized,
+                "segment_start_seconds": start,
+                "segment_end_seconds": end,
+            }
+        ]
+
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", normalized)
+        if sentence.strip()
+    ]
+    candidates = sentences if len(sentences) > 1 else [normalized]
+    raw_units: list[str] = []
+    for candidate in candidates:
+        if len(candidate) <= max_chars:
+            raw_units.append(candidate)
+            continue
+        words = re.findall(r"\S+", candidate)
+        current: list[str] = []
+        current_len = 0
+        for word in words:
+            separator = 1 if current else 0
+            if current and current_len + separator + len(word) > max_chars:
+                raw_units.append(" ".join(current))
+                current = [word]
+                current_len = len(word)
+            else:
+                current.append(word)
+                current_len += separator + len(word)
+        if current:
+            raw_units.append(" ".join(current))
+
+    return [
+        {
+            "text": unit,
+            "segment_start_seconds": start,
+            "segment_end_seconds": end,
+        }
+        for unit in raw_units
+        if unit
+    ]
+
+
+def _timed_chunk_payload(units: list[dict[str, Any]]) -> dict[str, Any]:
+    starts = [
+        unit.get("segment_start_seconds")
+        for unit in units
+        if unit.get("segment_start_seconds") is not None
+    ]
+    ends = [
+        unit.get("segment_end_seconds")
+        for unit in units
+        if unit.get("segment_end_seconds") is not None
+    ]
+    return {
+        "text": "\n".join(str(unit.get("text") or "").strip() for unit in units).strip(),
+        "segment_start_seconds": starts[0] if starts else None,
+        "segment_end_seconds": ends[-1] if ends else None,
+    }
+
+
+def _chunk_timed_segments(
+    transcript_segments: list[dict[str, Any]],
+    *,
+    max_chars: int = 1400,
+    min_chars: int = 650,
+) -> list[dict[str, Any]]:
+    resolved_max = max(120, int(max_chars))
+    resolved_min = max(0, min(int(min_chars), resolved_max))
+    units: list[dict[str, Any]] = []
+    for segment in transcript_segments:
+        units.extend(
+            _split_timed_text_unit(
+                str(segment.get("text") or ""),
+                start=segment.get("segment_start_seconds"),
+                end=segment.get("segment_end_seconds"),
+                max_chars=resolved_max,
+            )
+        )
+    if not units:
+        return []
+
+    chunks: list[dict[str, Any]] = []
+    current: list[dict[str, Any]] = []
+    current_len = 0
+    for unit in units:
+        text = str(unit.get("text") or "").strip()
+        if not text:
+            continue
+        separator = 1 if current else 0
+        next_len = current_len + separator + len(text)
+        if current and next_len > resolved_max and current_len >= resolved_min:
+            chunks.append(_timed_chunk_payload(current))
+            current = [unit]
+            current_len = len(text)
+        elif current and next_len > resolved_max:
+            chunks.append(_timed_chunk_payload(current))
+            current = [unit]
+            current_len = len(text)
+        else:
+            current.append(unit)
+            current_len = next_len
+
+    if current:
+        chunks.append(_timed_chunk_payload(current))
+
+    deduped: list[dict[str, Any]] = []
+    seen = set()
+    for chunk in chunks:
+        normalized = re.sub(r"\s+", " ", str(chunk.get("text") or "")).strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(chunk)
+    return deduped
+
+
+def _nullable_text(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
 def ingest_transcript(
     *,
     transcript_text: str,
@@ -91,6 +272,9 @@ def ingest_transcript(
     credibility_weight: float | int | None = None,
     decay_half_life_days: float | int | None = None,
     source_id: str | None = None,
+    video_id: str | None = None,
+    webpage_url: str | None = None,
+    transcript_segments: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
     qdrant_client: QdrantClient | Any | None = None,
     registry_path: str | Path | None = None,
     memos_path: str | Path | None = None,
@@ -156,7 +340,29 @@ def ingest_transcript(
         llm_url=llm_url,
         model=embed_model,
     )
-    chunks = _unique_chunks(chunk_commentary_text(cleaned, max_chars=1400))
+    normalized_segments = _normalize_transcript_segments(
+        transcript_segments or getattr(transcript_text, "segment_timing", None)
+    )
+    segment_cleaned = clean_transcript_text(
+        "\n".join(str(segment.get("text") or "") for segment in normalized_segments)
+    )
+    timed_chunks = (
+        _chunk_timed_segments(normalized_segments)
+        if normalized_segments and segment_cleaned == cleaned
+        else []
+    )
+    if timed_chunks:
+        chunks = [str(chunk["text"]) for chunk in timed_chunks]
+    else:
+        chunks = _unique_chunks(chunk_commentary_text(cleaned, max_chars=1400))
+        timed_chunks = [
+            {
+                "text": chunk,
+                "segment_start_seconds": None,
+                "segment_end_seconds": None,
+            }
+            for chunk in chunks
+        ]
     client = qdrant_client or verify_qdrant(qdrant_url=qdrant_url)
     embed = embed_batch_fn or _default_embed_batch
     vectors = embed(
@@ -174,9 +380,12 @@ def ingest_transcript(
         resolved_collection_name = ensure_collection(client, collection_name, len(vectors[0]))
 
     points: list[dict[str, Any]] = []
+    normalized_video_id = _nullable_text(video_id)
+    normalized_webpage_url = _nullable_text(webpage_url)
     for index, (chunk_text, vector) in enumerate(zip(chunks, vectors)):
         chunk_id = f"{resolved_source_id}:{index}"
         point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"commentary_chunks:{chunk_id}"))
+        timing = timed_chunks[index] if index < len(timed_chunks) else {}
         points.append(
             {
                 "id": point_id,
@@ -193,6 +402,10 @@ def ingest_transcript(
                     "credibility_weight": resolved_credibility,
                     "decay_half_life": resolved_half_life,
                     "topic_tags": sorted_tags,
+                    "video_id": normalized_video_id,
+                    "webpage_url": normalized_webpage_url,
+                    "segment_start_seconds": timing.get("segment_start_seconds"),
+                    "segment_end_seconds": timing.get("segment_end_seconds"),
                 },
             }
         )
@@ -219,6 +432,8 @@ def ingest_transcript(
                     "published_at": str(published_at or ""),
                     "collection_name": resolved_collection_name,
                     "credibility_weight": resolved_credibility,
+                    "video_id": normalized_video_id,
+                    "webpage_url": normalized_webpage_url,
                 }
                 _save_staging_index(staging_index)
                 staged = True
