@@ -1,0 +1,44 @@
+{
+  "job_id": "a2m_recall_chat_visible_evidence_gap_v1_20260526",
+  "issue": 87,
+  "agent": "Codex",
+  "lane": "Query Orchestration",
+  "execution_mode": "AUDIT MODE",
+  "collision_risk": "MEDIUM",
+  "branch": "audit/a2m-recall-chat-visible-evidence-gap-v1-20260526",
+  "task_card": "docs/agent_tasks/a2m_recall_chat_visible_evidence_gap_v1_20260526.md",
+  "output_dir": "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526",
+  "status": "released_pending_pr",
+  "registry_claim_released": true,
+  "released_at": "2026-06-01T12:15:24Z",
+  "decision": "KEEP_OPEN_DATA_MISSING",
+  "files_changed": [
+    "docs/agent_tasks/a2m_recall_chat_visible_evidence_gap_v1_20260526.md",
+    "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/README.md",
+    "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/diff-check.json",
+    "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/evidence_gap_analysis.json",
+    "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/runtime_probe.json",
+    "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/status.json",
+    "reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/validation.json"
+  ],
+  "files_intentionally_not_touched": [
+    "product code",
+    "chat evidence guard",
+    "query orchestrator",
+    "backend routes",
+    "frontend chat components",
+    "retrieval services",
+    "news stores",
+    "memory stores",
+    "DB/Qdrant data",
+    "runtime/model/GPU/service config"
+  ],
+  "validation_result": "pass_with_data_missing",
+  "remaining_blockers": [
+    "Exact prompt/session/source envelope remains missing",
+    "No current local backend or frontend was running for reproduction",
+    "Active news substrate proof for the reported answer is unavailable",
+    "Market and metric evidence for the reported answer is unavailable"
+  ],
+  "next_safe_step": "Run a separate captured-response replay or live smoke that preserves sources and routing metadata before implementation."
+}

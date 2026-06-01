@@ -1,0 +1,68 @@
+{
+  "job_id": "a2m_recall_chat_visible_evidence_gap_v1_20260526",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/a2m_recall_chat_visible_evidence_gap_v1_20260526.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/a2m_recall_chat_visible_evidence_gap_v1_20260526.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/a2m_recall_chat_visible_evidence_gap_v1_20260526.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "adjacent_issue_pr_check",
+      "command": "gh issue/pr views for #38, #49, #83, #87, #104, #122, #176",
+      "result": "pass"
+    },
+    {
+      "name": "read_only_code_context",
+      "command": "read-only rg/sed over chat_evidence_guard and A2M/news tests",
+      "result": "pass"
+    },
+    {
+      "name": "focused_guard_tests",
+      "command": "focused pytest for A2M recall source retention and chat evidence guard recent-news semantics",
+      "result": "pass",
+      "detail": "5 passed"
+    },
+    {
+      "name": "current_runtime_probe",
+      "command": "bounded ss and curl probes for ports 3000, 3001, 8000, and 8001",
+      "result": "data_missing",
+      "detail": "no current local backend, frontend, or llama listener was available"
+    },
+    {
+      "name": "json_validation",
+      "command": "jq empty reports/agent_jobs/a2m_recall_chat_visible_evidence_gap_v1_20260526/*.json",
+      "result": "pass"
+    },
+    {
+      "name": "path_redaction_scan",
+      "command": "rg filesystem-path-and-email redaction pattern over task card and report bundle",
+      "result": "pass"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/a2m_recall_chat_visible_evidence_gap_v1_20260526.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_release",
+      "command": "python3 scripts/agent_job_registry.py release a2m_recall_chat_visible_evidence_gap_v1_20260526 --repo-root .",
+      "result": "pass"
+    }
+  ],
+  "decision": "KEEP_OPEN_DATA_MISSING"
+}
