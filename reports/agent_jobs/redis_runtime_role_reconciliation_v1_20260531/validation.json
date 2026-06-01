@@ -1,0 +1,112 @@
+{
+  "job_id": "redis_runtime_role_reconciliation_v1_20260531",
+  "issue": 143,
+  "collected_at": "2026-06-01T08:26:36Z",
+  "lane": "Reporting",
+  "mode": "SAFE_EXTENSION",
+  "production_data_access": false,
+  "runtime_mutation": false,
+  "product_code_mutation": false,
+  "documentation_mutation": true,
+  "commands": [
+    {
+      "command": "gh issue view 143 --repo 0rl4nd0l/tenn --json number,title,state,labels,body,comments,updatedAt,url",
+      "result": "passed"
+    },
+    {
+      "command": "gh pr list --repo 0rl4nd0l/tenn --state all --search \"143 OR Redis daemon fe_redis compose container\" --json number,title,state,isDraft,headRefName,baseRefName,url,updatedAt,body",
+      "result": "passed",
+      "notes": "No matching PRs returned."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "notes": "Active Financial Truth job owned a disjoint file set."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/redis_runtime_role_reconciliation_v1_20260531.md --write-report",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/redis_runtime_role_reconciliation_v1_20260531.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/redis_runtime_role_reconciliation_v1_20260531.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "docker ps -a --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}' | rg '(^fe_(backend|worker|gpu_worker|redis)\\b|redis|6379)' || true",
+      "result": "passed"
+    },
+    {
+      "command": "docker inspect fe_redis --format 'name={{.Name}} status={{.State.Status}} exit={{.State.ExitCode}} started={{.State.StartedAt}} finished={{.State.FinishedAt}} restart={{.HostConfig.RestartPolicy.Name}} image={{.Config.Image}} network_mode={{.HostConfig.NetworkMode}}' 2>&1 || true",
+      "result": "passed"
+    },
+    {
+      "command": "docker logs --tail 80 fe_redis 2>&1 || true",
+      "result": "passed",
+      "notes": "Logs showed repeated port 6379 bind conflicts."
+    },
+    {
+      "command": "ss -ltnp 'sport = :6379' 2>&1 || true",
+      "result": "passed"
+    },
+    {
+      "command": "ps -eo pid,ppid,user,stat,etime,cmd | rg 'redis-server|[r]edis|6379' || true",
+      "result": "passed"
+    },
+    {
+      "command": "redis-cli -h 127.0.0.1 -p 6379 PING 2>&1 || true",
+      "result": "passed",
+      "notes": "Returned PONG."
+    },
+    {
+      "command": "redis-cli -h localhost -p 6379 PING 2>&1 || true",
+      "result": "passed",
+      "notes": "Returned PONG."
+    },
+    {
+      "command": "docker inspect fe_backend fe_worker fe_gpu_worker redis env grep",
+      "result": "passed",
+      "notes": "Redis/Celery env for all three containers pointed at redis://127.0.0.1:6379 with TENN_HOST_NETWORK=true."
+    },
+    {
+      "command": "nl -ba financial-engine_v2/docker-compose.yml | sed -n '1,190p'",
+      "result": "passed"
+    },
+    {
+      "command": "nl -ba financial-engine_v2/backend/app/core/config.py | sed -n '180,215p;248,356p'",
+      "result": "passed"
+    },
+    {
+      "command": "nl -ba financial-engine_v2/scripts/run_local_backend.sh | sed -n '216,286p'",
+      "result": "passed"
+    },
+    {
+      "command": "nl -ba financial-engine_v2/backend/app/routes/cockpit_api.py | sed -n '3948,3982p;4818,4844p'",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/redis_runtime_role_reconciliation_v1_20260531.md --repo-root .",
+      "result": "passed",
+      "notes": "No disallowed files."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release redis_runtime_role_reconciliation_v1_20260531 --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "passed",
+      "notes": "No active jobs remained after release."
+    }
+  ],
+  "conclusion": {
+    "status": "complete_followup_optional",
+    "runtime_owner": "host Redis at 127.0.0.1:6379",
+    "compose_container_state": "fe_redis exited with a bind conflict because it also uses host networking",
+    "documentation_update": "docs/architecture/02_runtime_topology.md now distinguishes host Redis ownership from compose fe_redis ownership",
+    "remaining_followup": "A separate approval-gated runtime task is required before changing compose dependencies, stopping host Redis, or making fe_redis the broker owner."
+  }
+}
