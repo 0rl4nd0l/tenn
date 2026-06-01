@@ -1,0 +1,27 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/cockpit_accessible_controls_chat_holdings_v1_20260601.md",
+      "reports/agent_jobs/cockpit_accessible_controls_chat_holdings_v1_20260601/README.md",
+      "reports/agent_jobs/cockpit_accessible_controls_chat_holdings_v1_20260601/status.json",
+      "reports/agent_jobs/cockpit_accessible_controls_chat_holdings_v1_20260601/validation.json",
+      "reports/agent_jobs/cockpit_accessible_controls_chat_holdings_v1_20260601/diff-check.json",
+      "reports/agent_jobs/cockpit_accessible_controls_chat_holdings_v1_20260601/accessibility_after.json",
+      "cockpit-ui/components/cockpit/chat/terminal-input.tsx",
+      "cockpit-ui/components/cockpit/chat/terminal-input.test.tsx",
+      "cockpit-ui/components/cockpit/holdings/holdings-screen.tsx",
+      "cockpit-ui/components/cockpit/holdings/holdings-screen.test.tsx"
+    ],
+    "approval_required": false,
+    "job_id": "cockpit_accessible_controls_chat_holdings_v1_20260601",
+    "lane": "Reporting",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/cockpit_accessible_controls_chat_holdings_v1_20260601",
+    "owner": "Codex",
+    "production_data_access": false,
+    "timeout_seconds": 21600
+  },
+  "ok": true
+}
