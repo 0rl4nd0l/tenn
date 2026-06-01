@@ -207,6 +207,36 @@ def test_explicit_source_period_end_conflict_is_hard_blocked():
     )
 
 
+def test_explicit_source_period_end_accepts_docling_spaced_year():
+    from app.services.multipass_extraction import _detect_source_period_end_evidence
+
+    evidence = _detect_source_period_end_evidence(
+        "Financial Report 31 December 2025",
+        (
+            "Your directors present their report on the Group and the entities it "
+            "controlled at the end of, or during, the year ended 31 December 202 5 "
+            "together with the consolidated financial report."
+        ),
+    )
+
+    assert evidence["period_type"] == "A"
+    assert evidence["period_end"] == "2025-12-31"
+    assert evidence["reason"] == "year_ended_explicit_date"
+
+
+def test_explicit_source_period_end_does_not_treat_half_year_as_annual():
+    from app.services.multipass_extraction import _detect_source_period_end_evidence
+
+    evidence = _detect_source_period_end_evidence(
+        "Appendix 4D",
+        "For the half year ended 31 December 2025.",
+    )
+
+    assert evidence["period_type"] == "H"
+    assert evidence["period_end"] == "2025-12-31"
+    assert evidence["reason"] == "half_year_ended_explicit_date"
+
+
 def test_explicit_source_period_end_type_conflict_is_hard_blocked():
     from app.services.multipass_extraction import (
         _detect_source_period_end_evidence,

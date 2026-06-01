@@ -152,7 +152,7 @@ def test_run_multipass_corrects_period_type_from_explicit_source_period_end():
             {
                 "text": (
                     "The directors present their report on the Group during, "
-                    "the year ended 31 December 2025."
+                    "the year ended 31 December 202 5."
                 ),
                 "page": 2,
             },

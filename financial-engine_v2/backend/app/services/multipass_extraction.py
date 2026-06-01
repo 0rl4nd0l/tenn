@@ -1974,14 +1974,16 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
 )
 
+_SOURCE_YEAR_TEXT_PATTERN = r"\d\s*\d\s*\d\s*\d"
+
 _SOURCE_DATE_TEXT_PATTERN = (
     r"(?P<date>"
     r"\d{1,2}(?:st|nd|rd|th)?\s+"
     r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
     r"Nov(?:ember)?|Dec(?:ember)?)\s+"
-    r"\d{4}"
-    r"|\d{4}-\d{1,2}-\d{1,2}"
+    rf"{_SOURCE_YEAR_TEXT_PATTERN}"
+    rf"|{_SOURCE_YEAR_TEXT_PATTERN}\s*-\s*\d{{1,2}}\s*-\s*\d{{1,2}}"
     r")"
 )
 
@@ -1990,7 +1992,8 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "A",
         "year_ended_explicit_date",
         re.compile(
-            rf"\b(?:for\s+the\s+)?(?:financial\s+)?year\s+ended\s+"
+            rf"\b(?:for\s+the\s+|the\s+)?(?:financial\s+)?"
+            rf"(?<!half[-\s])year\s+ended\s+"
             rf"{_SOURCE_DATE_TEXT_PATTERN}",
             re.IGNORECASE,
         ),
@@ -2255,7 +2258,12 @@ def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str
 
 def _normalize_source_date_text(value: Any) -> str:
     text = str(value or "").strip()
-    return re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.IGNORECASE)
+    return re.sub(
+        r"\b(?:\d\s*){4}\b",
+        lambda match: re.sub(r"\s+", "", match.group(0)),
+        text,
+    )
 
 
 def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str, Any]:
