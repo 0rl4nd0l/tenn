@@ -1,76 +1,8 @@
 {
   "changed_files": [
     {
-      "path": "cockpit-ui/app/api/cockpit/memory/_write-intent.ts",
-      "status": "A"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/company/add/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/company/expire/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/market/add/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/market/expire/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/apply/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/confirm/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/reject/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/app/api/cockpit/memory/thesis/proposals/route.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/memory/memory-screen.test.tsx",
-      "status": "A"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/memory-write-routes.test.ts",
-      "status": "A"
-    },
-    {
-      "path": "docs/agent_tasks/memory_workbench_write_confirmation_gates_v1_20260601.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/claude/STATE.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/diff-check.json",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],

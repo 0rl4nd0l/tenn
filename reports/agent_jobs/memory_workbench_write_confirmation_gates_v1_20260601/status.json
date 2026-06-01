@@ -1,14 +1,7 @@
 {
-  "branch": "safe/memory-workbench-write-confirmation-gates-v1-20260602",
-  "collision_risk": "MEDIUM",
-  "completed_at": "2026-06-01T15:09:58Z",
-  "contested_surfaces_touched": [],
-  "data_missing": [
-    "graphify-out/GRAPH_REPORT.md",
-    "Must revalidate after open PR #165 merges because it also touches memory-screen.tsx"
-  ],
-  "execution_mode": "safe_extension",
-  "files_changed_intended": [
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/memory_workbench_write_confirmation_gates_v1_20260601.json",
+  "agent": "Codex",
+  "allowed_files": [
     "docs/agent_tasks/memory_workbench_write_confirmation_gates_v1_20260601.md",
     "docs/claude/STATE.md",
     "cockpit-ui/components/cockpit/memory/memory-screen.tsx",
@@ -23,24 +16,31 @@
     "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/confirm/route.ts",
     "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/reject/route.ts",
     "cockpit-ui/app/api/cockpit/memory/thesis/proposals/[proposalId]/apply/route.ts",
+    "financial-engine_v2/backend/app/api/context.py",
+    "financial-engine_v2/backend/tests/test_context_endpoints.py",
     "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/README.md",
     "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/status.json",
     "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/validation.json",
     "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601/diff-check.json"
   ],
-  "github_issue": 154,
-  "head_before": "5ea3b65f0749",
+  "branch": "safe/memory-workbench-write-confirmation-gates-v1-20260602",
+  "claimed_at": "2026-06-01T15:02:43.232980Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T15:02:43.232980Z",
   "job_id": "memory_workbench_write_confirmation_gates_v1_20260601",
   "lane": "Memory",
-  "production_data_access": false,
-  "result": "implemented",
-  "validation": {
-    "check_overlap": "passed",
-    "eslint_targeted": "passed",
-    "git_diff_check": "passed",
-    "task_card_validate": "passed",
-    "tsc_no_emit": "passed",
-    "vitest_targeted": "passed"
-  },
+  "last_seen_at": "2026-06-01T15:12:24.510953Z",
+  "output_dir": "reports/agent_jobs/memory_workbench_write_confirmation_gates_v1_20260601",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T15:12:24.510953Z",
+  "repo_root": "/home/l4nd0/tenn-memory-workbench-write-confirmation-gates-v1-20260602",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:1340475:memory_workbench_write_confirmation_gates_v1_20260601",
+  "started_at": "2026-06-01T15:02:43.232980Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/memory_workbench_write_confirmation_gates_v1_20260601.md",
+  "updated_at": "2026-06-01T15:12:24.510953Z",
   "worktree": "/home/l4nd0/tenn-memory-workbench-write-confirmation-gates-v1-20260602"
 }
