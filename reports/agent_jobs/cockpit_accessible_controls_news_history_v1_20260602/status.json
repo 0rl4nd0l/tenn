@@ -1,0 +1,37 @@
+{
+  "job_id": "cockpit_accessible_controls_news_history_v1_20260602",
+  "issue": 53,
+  "status": "ready_for_review",
+  "lane": "Reporting",
+  "execution_mode": "SAFE EXTENSION",
+  "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-news-history-v1-20260602",
+  "branch": "safe/cockpit-accessible-controls-news-history-v1-20260602",
+  "base_branch": "audit/issue98-current-branch-status-v1-20260602",
+  "contested_surfaces_touched": [],
+  "collision_risk": "MEDIUM",
+  "created_at": "2026-06-01T17:38:13Z",
+  "updated_at": "2026-06-01T17:42:29Z",
+  "scope": [
+    "News query, ticker filter, and lookback controls have durable accessible names",
+    "History expand/collapse buttons have action-specific accessible names",
+    "History details column has a screen-reader-visible header",
+    "Focused component tests cover the new role/name contracts"
+  ],
+  "not_in_scope": [
+    "Closing issue #53",
+    "Other Cockpit routes",
+    "Backend API behavior",
+    "Retrieval, storage, memory, parser, financial truth, source labels, or runtime changes"
+  ],
+  "github": {
+    "issue_url": "https://github.com/0rl4nd0l/tenn/issues/53",
+    "pull_request_url": "https://github.com/0rl4nd0l/tenn/pull/208",
+    "issue_comment_url": "https://github.com/0rl4nd0l/tenn/issues/53#issuecomment-4595047667"
+  },
+  "registry": {
+    "claimed": true,
+    "released": true,
+    "active_record_removed": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_accessible_controls_news_history_v1_20260602.json",
+    "released_at": "2026-06-01T17:42:29.771725Z"
+  }
+}

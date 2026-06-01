@@ -1,0 +1,53 @@
+{
+  "job_id": "cockpit_accessible_controls_news_history_v1_20260602",
+  "validated_at": "2026-06-01T17:38:13Z",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_accessible_controls_news_history_v1_20260602.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_accessible_controls_news_history_v1_20260602.md",
+      "result": "passed"
+    },
+    {
+      "command": "./node_modules/.bin/vitest run components/cockpit/news/news-screen.test.tsx components/cockpit/history/history-screen.test.tsx",
+      "cwd": "cockpit-ui",
+      "result": "passed",
+      "summary": "2 test files passed, 4 tests passed"
+    },
+    {
+      "command": "./node_modules/.bin/eslint components/cockpit/news/news-screen.tsx components/cockpit/news/news-screen.test.tsx components/cockpit/history/history-screen.tsx components/cockpit/history/history-screen.test.tsx",
+      "cwd": "cockpit-ui",
+      "result": "passed"
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit",
+      "cwd": "cockpit-ui",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_accessible_controls_news_history_v1_20260602/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/cockpit_accessible_controls_news_history_v1_20260602/validation.json >/dev/null",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_accessible_controls_news_history_v1_20260602.md",
+      "result": "passed",
+      "summary": "No disallowed files"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed"
+    }
+  ],
+  "environment_notes": [
+    "pnpm was not available on PATH in this shell.",
+    "The sibling worktree had no local cockpit-ui/node_modules.",
+    "Validation used a temporary cockpit-ui/node_modules symlink to /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/cockpit-ui/node_modules.",
+    "The temporary symlink was removed before staging."
+  ]
+}
