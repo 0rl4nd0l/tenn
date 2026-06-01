@@ -1,0 +1,81 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_closeout_v1.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/call_site_inventory.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/call_site_inventory.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/phase2_plan.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/query_orchestration_inference_engine_phase1_audit_closeout_v1.md",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/README.md",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/call_site_inventory.md",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/call_site_inventory.json",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/phase2_plan.md",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/status.json",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/validation.json",
+        "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1/diff-check.json"
+      ],
+      "approval_required": false,
+      "inspect_only_surfaces": [
+        "financial-engine_v2/backend/app/services/llm.py",
+        "financial-engine_v2/backend/app/services/router.py",
+        "financial-engine_v2/backend/app/services/llamacpp_runtime.py",
+        "financial-engine_v2/backend/app/services/embeddings.py",
+        "financial-engine_v2/backend/app/services/llamacpp_embeddings.py",
+        "financial-engine_v2/backend/app/celery_app.py",
+        "financial-engine_v2/backend/app/worker_tasks.py",
+        "financial-engine_v2/backend/app/services/**",
+        "financial-engine_v2/backend/app/modules/**",
+        "scripts/**"
+      ],
+      "job_id": "query_orchestration_inference_engine_phase1_audit_closeout_v1",
+      "lane": "Query Orchestration",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/query_orchestration_inference_engine_phase1_audit_closeout_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
