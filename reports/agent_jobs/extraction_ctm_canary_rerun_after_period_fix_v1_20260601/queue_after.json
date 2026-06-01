@@ -1,0 +1,58 @@
+{
+  "backend_health_after_cleanup": {
+    "error": "<urlopen error [Errno 111] Connection refused>",
+    "status_code": 0
+  },
+  "captured_at": "2026-06-01T06:11:44.969475+00:00",
+  "gpu_memory_query_after_cleanup": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n"
+  },
+  "llama_lock_after_cleanup": {
+    "before_stale_cleanup": {
+      "exists": true,
+      "text": "3991961"
+    },
+    "exists_final": false,
+    "stale_lock_removed": {
+      "captured_at": "2026-06-01T06:11:44.969460+00:00",
+      "exists_after_remove": false,
+      "pid_alive_before_remove": false,
+      "removed_path": "/tmp/llama-server.lock",
+      "removed_pid_text": "3991961"
+    }
+  },
+  "phase": "post_ctm_period_fix_rerun_hard_stop_cleanup",
+  "queue_status_after_cleanup": {
+    "error": "<urlopen error [Errno 111] Connection refused>",
+    "status_code": 0
+  },
+  "result_summary": {
+    "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+    "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+    "financial_rows_written": 0,
+    "hard_stop_reason": "source_period_end_evidence_not_detected_for_the_year_ended_phrase",
+    "reviewable_metrics_count": 8,
+    "run_id": "fbd99043-fd40-46f3-beaa-847e8348060c",
+    "status": "failed",
+    "ticker": "CTM"
+  },
+  "unit_status_after_cleanup": {
+    "tenn-backend-ctm-rerun-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead\n"
+    },
+    "tenn-llama-router-ctm-rerun-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead\n"
+    },
+    "tenn-llm-gpu-worker-ctm-rerun-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=0\nActiveState=inactive\nSubState=dead\n"
+    }
+  }
+}
