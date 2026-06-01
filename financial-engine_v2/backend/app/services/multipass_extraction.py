@@ -1042,7 +1042,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             for marker in _NET_DEBT_DETAIL_ADJUSTMENT_MARKERS
         )
         has_net_debt_row = any(
-            _normalize_locator_text(row[0]) == "net debt" and _row_has_numeric_payload(row)
+            _is_explicit_net_debt_evidence(row[0]) and _row_has_numeric_payload(row)
             for row, _row_text in row_payloads
         )
         return (
@@ -1079,6 +1079,19 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                 return True
         return False
 
+    def _table_has_balance_sheet_section_context(
+        table: DoclingTable, row_index: int
+    ) -> bool:
+        """Detect summary tables where a Balance Sheet section owns the net-debt row."""
+        start = max(0, row_index - 6)
+        for idx in range(start, row_index):
+            row_text = _normalize_locator_text(
+                " ".join(str(cell) for cell in table.rows[idx])
+            )
+            if row_text in {"balance sheet", "statement of financial position"}:
+                return True
+        return False
+
     def _is_explicit_point_in_time_net_debt_row(
         table: DoclingTable, row_index: int
     ) -> bool:
@@ -1087,8 +1100,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         row = table.rows[row_index]
         if not row:
             return False
-        label = _normalize_locator_text(row[0])
-        if label != "net debt" or not _row_has_numeric_payload(row):
+        if not _is_explicit_net_debt_evidence(row[0]) or not _row_has_numeric_payload(row):
             return False
 
         header_text = (
@@ -1110,6 +1122,8 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             any(marker in row_text for marker in _POINT_IN_TIME_TABLE_MARKERS)
             for row_text in context_rows
         ):
+            return True
+        if _table_has_balance_sheet_section_context(table, row_index):
             return True
 
         # Do not treat annual formula-style tables as point-in-time net debt notes
@@ -2158,7 +2172,7 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "quarter_ended_explicit_date",
         re.compile(
             rf"\b(?:for\s+the\s+)?(?:(?:quarter)|(?:(?:three|3)\s+months?))"
-            rf"\s+ended\s+{_SOURCE_DATE_TEXT_PATTERN}",
+            rf"\s+ended(?:\s+\([^)]*\))?\s+{_SOURCE_DATE_TEXT_PATTERN}",
             re.IGNORECASE,
         ),
     ),
@@ -2535,6 +2549,53 @@ def _early_period_source_text(
             for section in sections[:max_sections_when_pages_unknown]
         ]
     return " ".join(part for part in selected if part)[:max_chars]
+
+
+def _early_period_table_text(
+    tables: list[Any],
+    *,
+    max_page: int = 4,
+    max_tables: int = 12,
+    max_chars: int = 6000,
+) -> str:
+    """Return early table text for typed source-period evidence only."""
+    selected: list[str] = []
+    for table in tables:
+        try:
+            page_number = int(getattr(table, "page_number", 0) or 0)
+        except (TypeError, ValueError):
+            page_number = 0
+        if page_number and page_number > max_page:
+            continue
+
+        parts: list[str] = []
+        caption = str(getattr(table, "caption", "") or "").strip()
+        if caption:
+            parts.append(caption)
+        headers = getattr(table, "headers", []) or []
+        if headers:
+            parts.append(" ".join(str(cell) for cell in headers if str(cell).strip()))
+        for row in getattr(table, "rows", []) or []:
+            row_text = " ".join(str(cell) for cell in row if str(cell).strip()).strip()
+            if row_text:
+                parts.append(row_text)
+        rows = [list(row) for row in getattr(table, "rows", []) or []]
+        width = max((len(row) for row in rows), default=0)
+        for col_idx in range(width):
+            column_text = " ".join(
+                str(row[col_idx]).strip()
+                for row in rows
+                if col_idx < len(row) and str(row[col_idx]).strip()
+            )
+            if column_text:
+                parts.append(column_text)
+        table_text = " ".join(parts).strip()
+        if table_text:
+            selected.append(table_text)
+        if len(selected) >= max_tables:
+            break
+
+    return " ".join(selected)[:max_chars]
 
 
 def classify_source_document(
@@ -2968,7 +3029,11 @@ def _net_debt_column_contexts(table: Any) -> dict[int, str]:
         return {}
 
     column_parts: dict[int, list[str]] = {idx: [] for idx in range(1, width)}
-    for row in header_rows:
+    for row_number, row in enumerate(header_rows):
+        if row_number > 0 and row and str(row[0] or "").strip():
+            trailing_cells = [str(cell or "").strip() for cell in row[1:]]
+            if not any(trailing_cells):
+                continue
         filled = _forward_fill_header_row(row, width)
         for idx in range(1, width):
             part = filled[idx].strip()
@@ -2983,11 +3048,16 @@ def _net_debt_period_match_score(context: str, period_end: str | None) -> int:
         return 0
 
     context_lower = context.lower()
+    short_year = period.strftime("%y")
     exact_patterns = (
         rf"\b{period.day}\s+{period.strftime('%b').lower()}\s+{period.year}\b",
         rf"\b{period.day}\s+{period.strftime('%B').lower()}\s+{period.year}\b",
+        rf"\b{period.day}\s+{period.strftime('%b').lower()}\s+{short_year}\b",
+        rf"\b{period.day}\s+{period.strftime('%B').lower()}\s+{short_year}\b",
         rf"\b{period.strftime('%b').lower()}\s+{period.day},?\s+{period.year}\b",
         rf"\b{period.strftime('%B').lower()}\s+{period.day},?\s+{period.year}\b",
+        rf"\b{period.strftime('%b').lower()}\s+{period.day},?\s+{short_year}\b",
+        rf"\b{period.strftime('%B').lower()}\s+{period.day},?\s+{short_year}\b",
     )
     if any(_re.search(pattern, context_lower) for pattern in exact_patterns):
         return 100
@@ -3004,6 +3074,43 @@ def _net_debt_period_match_score(context: str, period_end: str | None) -> int:
     return 0
 
 
+_PERIOD_COLUMN_DATE_RE = _re.compile(
+    r"\b\d{1,2}\s+"
+    r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+\d{2,4}\b"
+    r"|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+\d{2,4}\b"
+    r"|\b\d{4}\s*-\s*\d{1,2}\s*-\s*\d{1,2}\b",
+    _re.IGNORECASE,
+)
+
+
+def _period_column_matches_reporting_period(
+    period_col: Any, period_end: str | None
+) -> bool:
+    text = str(period_col or "").strip()
+    if not text:
+        return True
+    period = parse_period_end(period_end)
+    if period is None:
+        return True
+
+    saw_explicit_date = False
+    for match in _PERIOD_COLUMN_DATE_RE.finditer(text):
+        parsed = parse_period_end(match.group(0))
+        if parsed is None:
+            continue
+        saw_explicit_date = True
+        if parsed == period:
+            return True
+
+    if saw_explicit_date:
+        return False
+    return _net_debt_period_match_score(text, period_end) > 0
+
+
 def _recover_explicit_net_debt_from_table(
     table: Any, *, period_end: str | None
 ) -> tuple[float, str, str | None] | None:
@@ -3016,7 +3123,8 @@ def _recover_explicit_net_debt_from_table(
     for row in rows:
         if not row:
             continue
-        if _normalise_evidence_row_ref(row[0]) != "net debt":
+        row_ref = str(row[0] or "").strip()
+        if not _is_explicit_net_debt_evidence(row_ref):
             continue
 
         numeric_candidates: list[tuple[int, int, float, str]] = []
@@ -3032,7 +3140,7 @@ def _recover_explicit_net_debt_from_table(
             return None
         if len(numeric_candidates) == 1:
             _score, _col_idx, value, context = numeric_candidates[0]
-            return value, "Net debt", context or None
+            return value, row_ref, context or None
 
         best_score = max(candidate[0] for candidate in numeric_candidates)
         best_candidates = [
@@ -3040,7 +3148,7 @@ def _recover_explicit_net_debt_from_table(
         ]
         if best_score > 0 and len(best_candidates) == 1:
             _score, _col_idx, value, context = best_candidates[0]
-            return value, "Net debt", context or None
+            return value, row_ref, context or None
 
         logger.info(
             "Abstaining deterministic net_debt_note fallback on page %s due to ambiguous candidates: %s",
@@ -3086,6 +3194,14 @@ _DERIVED_NET_DEBT_ROW_FRAGMENTS = frozenset(
         "net debt ratio",
         "net debt to",
         "net debt and",
+        "included in net debt",
+        "derivatives included in net debt",
+        "equity and net debt",
+        "equity and net drawn debt",
+        "included in net drawn debt",
+        "net drawn debt ratio",
+        "net drawn debt to",
+        "net drawn debt and",
         "net gearing",
         # Reconciliation opening-balance labels common in mining-sector annual reports
         "net debt: beginning",
@@ -3270,13 +3386,26 @@ def _run_pass4_reconciler(
             if bs_result is not None:
                 total_debt = bs_result.get("total_debt")
                 total_debt_row_ref = bs_result.get("row_refs", {}).get("total_debt")
+                period_col = bs_result.get("period_col")
                 cash_end = merged_metrics.get("cash_end")
+                derived_net_debt = (
+                    total_debt - cash_end
+                    if total_debt is not None and cash_end is not None
+                    else None
+                )
+                period_col_matches = _period_column_matches_reporting_period(
+                    period_col,
+                    pass1_result.get("period_end"),
+                )
                 if (
                     total_debt is not None
                     and cash_end is not None
+                    and derived_net_debt is not None
+                    and derived_net_debt >= 0
+                    and period_col_matches
                     and _is_strong_total_debt_evidence(total_debt_row_ref, total_debt)
                 ):
-                    merged_metrics["net_debt"] = total_debt - cash_end
+                    merged_metrics["net_debt"] = derived_net_debt
                     row_ref = f"total_debt({total_debt:.0f})-cash_end({cash_end:.0f})"
                     row_refs["net_debt"] = row_ref
                     provenance["net_debt"] = (
@@ -3291,6 +3420,18 @@ def _run_pass4_reconciler(
                         cash_end,
                         merged_metrics["net_debt"],
                         net_debt_conf,
+                    )
+                elif derived_net_debt is not None and derived_net_debt < 0:
+                    logger.info(
+                        "Skipping negative derived net_debt from total_debt=%r cash_end=%r",
+                        total_debt,
+                        cash_end,
+                    )
+                elif total_debt is not None and cash_end is not None and not period_col_matches:
+                    logger.info(
+                        "Skipping net_debt derivation from non-current debt period_col=%r for period_end=%r",
+                        period_col,
+                        pass1_result.get("period_end"),
                     )
                 elif total_debt is not None and cash_end is not None:
                     logger.info(
@@ -3841,6 +3982,17 @@ def run_multipass_extraction(
     source_period_end_evidence = _detect_source_period_end_evidence(
         title, early_period_text or first_page_text
     )
+    if not source_period_end_evidence.get("period_end"):
+        early_table_text = _early_period_table_text(structured_doc.tables)
+        if early_table_text:
+            source_period_end_evidence = _detect_source_period_end_evidence(
+                title,
+                " ".join(
+                    part
+                    for part in (early_period_text or first_page_text, early_table_text)
+                    if part
+                ),
+            )
     source_document_classification = classify_source_document(title, first_page_text)
     if not source_document_classification.extraction_candidate_allowed:
         error = f"validation_gate:{source_document_classification.reason}"

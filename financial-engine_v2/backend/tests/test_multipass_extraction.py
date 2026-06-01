@@ -136,6 +136,49 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+def test_detects_appendix_4c_split_quarter_end_date():
+    """Appendix 4C forms may put the date after the current-quarter parenthetical."""
+    from app.services.multipass_extraction import _detect_source_period_end_evidence
+
+    evidence = _detect_source_period_end_evidence(
+        "Appendix 4C quarterly cash flow report",
+        "Quarter ended ('current quarter')\n31 March 2021\nCurrent quarter $A'000",
+    )
+
+    assert evidence["period_type"] == "Q"
+    assert evidence["period_end"] == "2021-03-31"
+    assert evidence["reason"] == "quarter_ended_explicit_date"
+
+
+def test_early_period_table_text_includes_appendix_4c_date_rows():
+    """Appendix 4C quarter dates can live in early tables rather than sections."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _detect_source_period_end_evidence,
+        _early_period_table_text,
+    )
+
+    table = DoclingTable(
+        page_number=1,
+        caption="",
+        headers=["0", "1"],
+        rows=[
+            ["1414 Degrees Ltd", "1414 Degrees Ltd"],
+            ["ABN", "Quarter ended ('current quarter')"],
+            ["57 138 803 620", "31 March 2021"],
+            ["Current quarter $A'000"],
+        ],
+    )
+
+    evidence = _detect_source_period_end_evidence(
+        "Appendix 4C quarterly cash flow report",
+        _early_period_table_text([table]),
+    )
+
+    assert evidence["period_type"] == "Q"
+    assert evidence["period_end"] == "2021-03-31"
+
+
 def test_run_multipass_corrects_period_type_from_explicit_source_period_end():
     """CTM-style annual reports must not persist a Pass 1 half-year misclassification."""
     from datetime import date
@@ -557,6 +600,31 @@ def test_pass2_rejects_glossary_definition_from_net_debt_note_slot():
     assert result["net_debt_note"] is None
 
 
+def test_pass2_selects_net_drawn_debt_balance_sheet_summary():
+    """29M-style summaries can explicitly report net-debt-equivalent balances."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    summary = DoclingTable(
+        page_number=19,
+        caption="",
+        rows=[
+            ["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+            ["Cashflows", "", "", "", ""],
+            ["Cash flows from operating activities", "$'000", "55,451", "59,236", "(3,785)"],
+            ["Balance Sheet", "", "", "", ""],
+            ["Drawn Debt 1", "$'000", "187,811", "262,128", "(74,317)"],
+            ["Cash and cash equivalents 2", "$'000", "102,650", "252,350", "(149,700)"],
+            ["Net Drawn Debt 1", "$'000", "85,161", "9,778", "75,383"],
+        ],
+        headers=["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+    )
+
+    result = _run_pass2_locator([summary])
+
+    assert result["net_debt_note"] is summary
+
+
 # ---------------------------------------------------------------------------
 # Pass 3a — Scale normalisation and negative values
 # ---------------------------------------------------------------------------
@@ -747,6 +815,56 @@ def test_pass3a_recovers_net_debt_note_from_selected_table_when_llm_abstains():
     assert results[0]["net_debt"] == 12_924_000_000
     assert results[0]["row_refs"]["net_debt"] == "Net debt"
     assert results[0]["period_col"] == "2025 Non-current"
+
+
+def test_pass3a_recovers_net_drawn_debt_from_selected_summary_table():
+    """Selected summary tables should recover explicit Net Drawn Debt rows."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=19,
+        caption="",
+        rows=[
+            ["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+            ["Balance Sheet", "", "", "", ""],
+            ["Drawn Debt 1", "$'000", "187,811", "262,128", "(74,317)"],
+            ["Cash and cash equivalents 2", "$'000", "102,650", "252,350", "(149,700)"],
+            ["Net Drawn Debt 1", "$'000", "85,161", "9,778", "75,383"],
+        ],
+        headers=["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "net_debt_note": table,
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
+
+    mock_raw = {
+        "net_debt": None,
+        "pass3_confidence": 0.4,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["net_debt"] == 85_161_000
+    assert results[0]["row_refs"]["net_debt"] == "Net Drawn Debt 1"
+    assert results[0]["period_col"] == "2025"
 
 
 # ---------------------------------------------------------------------------
@@ -1982,6 +2100,116 @@ def test_pass4_reconciler_derives_net_debt_from_total_debt():
         "Derived net_debt must contribute discounted confidence instead of inheriting "
         "the balance-sheet pass3 confidence."
     )
+
+
+def test_pass4_reconciler_derives_net_debt_with_matching_short_period_column():
+    """Short-date current-period debt columns should still allow derivation."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 10,
+            "cash_end": 200_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 9,
+            "net_debt": None,
+            "total_debt": 800_000_000,
+            "period_col": "31 Dec 25 $'000",
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Loans and borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "NZD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 600_000_000
+    assert "derived:balance_sheet" in payload["provenance"].get("net_debt", "")
+
+
+def test_pass4_reconciler_skips_derivation_with_prior_period_debt_column():
+    """A2M-style prior-period borrowings must not combine with current cash."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 10,
+            "cash_end": 436_878_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 9,
+            "net_debt": None,
+            "total_debt": 39_000_000,
+            "period_col": "30 Jun 25 $'000",
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Loans and borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "NZD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
+
+
+def test_pass4_reconciler_skips_negative_derived_net_debt_without_explicit_row():
+    """A2M-style net cash must not be fabricated as derived net_debt."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 10,
+            "cash_end": 436_878_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 9,
+            "net_debt": None,
+            "total_debt": 39_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Loans and borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "NZD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
 
 
 def test_pass4_reconciler_skips_derivation_when_net_debt_already_extracted():
@@ -4308,6 +4536,9 @@ class TestIsExplicitNetDebtEvidence:
     def test_accepts_plain_net_debt(self) -> None:
         assert self._check("Net debt") is True
 
+    def test_accepts_net_drawn_debt(self) -> None:
+        assert self._check("Net Drawn Debt") is True
+
     def test_accepts_net_debt_with_footnote(self) -> None:
         """Row refs from ASX summaries often have footnote markers like '¹'."""
         assert self._check("Net debt¹") is True
@@ -4345,6 +4576,12 @@ class TestIsExplicitNetDebtEvidence:
     def test_rejects_net_debt_and(self) -> None:
         """'Net debt and equity' uses 'net debt and' prefix — rejected as a derived/combined row."""
         assert self._check("Net debt and equity") is False
+
+    def test_rejects_derivatives_included_in_net_debt(self) -> None:
+        assert self._check("Less: Total derivatives included in net debt") is False
+
+    def test_rejects_equity_and_net_drawn_debt(self) -> None:
+        assert self._check("Equity and Net Drawn Debt") is False
 
     def test_rejects_net_gearing(self) -> None:
         """Net gearing contains 'net' but not 'debt' — also rejected."""

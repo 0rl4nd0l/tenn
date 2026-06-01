@@ -1,0 +1,1252 @@
+{
+  "artifact_paths": {
+    "canonical_scorecard_json": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_canonical_scorecard.json",
+    "documents_csv": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_documents.csv",
+    "metrics_csv": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_metrics.csv",
+    "results_json": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results.json",
+    "summary_json": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_summary.json",
+    "summary_markdown": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_summary.md",
+    "trust_triggers_csv": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_trust_triggers.csv"
+  },
+  "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+  "documents": [
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "10x_q_2025-12-31_difficult",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": -398000.0,
+          "expected": -398000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "Q",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "source_file": "data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "ticker": "10X",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2021-03-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2021-03-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "14d_q_2021-03-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": -1106000.0,
+          "expected": -1106000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2021-03-31",
+      "period_type": "Q",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "source_file": "data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "ticker": "14D",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "29m_a_2025-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": 85161000.0,
+          "expected": 85161000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 55451000.0,
+          "expected": 55451000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 566622000.0,
+          "expected": 566622000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "A",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "source_file": "data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "ticker": "29M",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "NZD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "NZD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "a2m_h_2025-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok_low_confidence",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": [
+          "non_aud_currency:NZD \u2014 values in native currency, no FX conversion"
+        ]
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 95189000.0,
+          "expected": 95189000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 992558000.0,
+          "expected": 993491000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "source_file": "data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "ticker": "A2M",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "USD",
+        "period_end": "2021-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "USD",
+        "period_end": "2021-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "bhp_a_2021-06-30_difficult",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok_low_confidence",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": [
+          "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+        ]
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 27234000000.0,
+          "expected": 27234000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 60817000000.0,
+          "expected": 60817000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2021-06-30",
+      "period_type": "A",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "source_file": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "ticker": "BHP",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "USD",
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "USD",
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "bhp_a_2025-06-30",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok_low_confidence",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": [
+          "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+        ]
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": 12924000000.0,
+          "expected": 12924000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 18692000000.0,
+          "expected": 18692000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 51262000000.0,
+          "expected": 51262000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "source_file": "data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "ticker": "BHP",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 1,
+      "document_id": "eqr_q_2025-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "operating_cash_flow": {
+          "actual": 1154000.0,
+          "expected": 1154000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 1,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "Q",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "ticker": "EQR",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2024-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2024-12-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 1,
+      "document_id": "gre_q_2024-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "operating_cash_flow": {
+          "actual": -450000.0,
+          "expected": -450000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 1,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2024-12-31",
+      "period_type": "Q",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "ticker": "GRE",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-09-30",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-09-30",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 1,
+      "document_id": "gre_q_2025-09-30",
+      "expected_trust": "trusted",
+      "extraction_error": "validation_gate:low_confidence:0.4",
+      "extraction_status": "failed",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": "extraction",
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "operating_cash_flow": {
+          "actual": -63000.0,
+          "expected": -63000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 1,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [
+        "extraction_error:validation_gate:low_confidence:0.4"
+      ],
+      "missing_metric_count": 0,
+      "period_end": "2025-09-30",
+      "period_type": "Q",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "source_file": "data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "ticker": "GRE",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "min_h_2025-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 880000000.0,
+          "expected": 880000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 3052000000.0,
+          "expected": 3052000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "source_file": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "ticker": "MIN",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "USD",
+        "period_end": "2025-06-30",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "USD",
+        "period_end": "2025-06-30",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "qbe_h_2025-06-30",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok_low_confidence",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": [
+          "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+        ]
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": 1555000000.0,
+          "expected": 1555000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 1756000000.0,
+          "expected": 1756000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 10875000000.0,
+          "expected": 10875000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-06-30",
+      "period_type": "H",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "source_file": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "ticker": "QBE",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "USD",
+        "period_end": "2023-12-31",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "USD",
+        "period_end": "2023-12-31",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "rio_a_2023-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok_low_confidence",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": [
+          "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+        ]
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": 4231000000.0,
+          "expected": 4231000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 15160000000.0,
+          "expected": 15160000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 54041000000.0,
+          "expected": 54041000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2023-12-31",
+      "period_type": "A",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "source_file": "data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "ticker": "RIO",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "USD",
+        "period_end": "2024-12-31",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "USD",
+        "period_end": "2024-12-31",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "rio_a_2024-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok_low_confidence",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": [
+          "non_aud_currency:USD \u2014 values in native currency, no FX conversion"
+        ]
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": 5491000000.0,
+          "expected": 5491000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 15599000000.0,
+          "expected": 15599000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 53658000000.0,
+          "expected": 53658000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2024-12-31",
+      "period_type": "A",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "source_file": "data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "ticker": "RIO",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "rms_h_2025-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": null,
+          "expected": null,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 171179000.0,
+          "expected": 171179000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 485630000.0,
+          "expected": 485630000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "source_file": "data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "ticker": "RMS",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    },
+    {
+      "abstained_metric_count": 0,
+      "context_actual": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "context_correct": true,
+      "context_expected": {
+        "currency": "AUD",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "context_mismatches": [],
+      "correct_metric_count": 3,
+      "document_id": "tls_h_2025-12-31",
+      "expected_trust": "trusted",
+      "extraction_error": null,
+      "extraction_status": "ok",
+      "failed_metric_count": 0,
+      "method_provenance": {
+        "actual_method": "docling_gpu",
+        "error_stage": null,
+        "fallback_used": false,
+        "model_id": "qwen2.5-14b-instruct",
+        "parser_id": "docling_gpu",
+        "requested_method": "docling",
+        "runtime_id": "http://127.0.0.1:8001",
+        "strict_method": true,
+        "warnings": []
+      },
+      "metric_results": {
+        "net_debt": {
+          "actual": 16800000000.0,
+          "expected": 16800000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "net_debt",
+          "status": "correct"
+        },
+        "operating_cash_flow": {
+          "actual": 3637000000.0,
+          "expected": 3637000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "operating_cf",
+          "status": "correct"
+        },
+        "revenue": {
+          "actual": 11641000000.0,
+          "expected": 11641000000.0,
+          "reason": "Within tolerance",
+          "source_metric_key": "revenue",
+          "status": "correct"
+        }
+      },
+      "metric_status_counts": {
+        "abstain": 0,
+        "correct": 3,
+        "missing": 0,
+        "wrong": 0
+      },
+      "mismatch_reasons": [],
+      "missing_metric_count": 0,
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "review_item_count": 0,
+      "review_reason": null,
+      "review_session_id": null,
+      "source_basename": "2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "source_file": "data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "ticker": "TLS",
+      "trust_matches_expected": true,
+      "trust_outcome": "trusted",
+      "trust_triggers": [],
+      "wrong_metric_count": 0
+    }
+  ],
+  "eval_policy": {
+    "actual_run": {
+      "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+      "limit": 0,
+      "method": "docling",
+      "model_override": null,
+      "prompt_variant_id": null,
+      "strict_method": true,
+      "tolerance": 0.01
+    },
+    "canonical_contract": {
+      "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+      "limit": 0,
+      "method": "docling",
+      "model_override": null,
+      "prompt_variant_id": null,
+      "strict_method": true,
+      "tolerance": 0.01
+    },
+    "kpi_eligible": true,
+    "mode": "canonical",
+    "non_canonical_reasons": [],
+    "policy_version": "2026-04-20"
+  },
+  "fixture_manifest": {
+    "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+    "fixture_content_sha256": "ff4501e04ec27354fa9dfa9f3791e88ac769ad90351fbb9b0bd3339c39236ba7",
+    "fixture_file_count": 15,
+    "fixture_git_commit": "24cfc90bc5a1e055adc7b8349f936be368d8d786",
+    "fixture_git_dirty": false
+  },
+  "requested_method": "docling",
+  "run_metadata": {
+    "backend_url": "http://127.0.0.1:8000",
+    "config_label": null,
+    "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+    "eval_mode": "canonical",
+    "eval_policy_version": "2026-04-20",
+    "extractor_label": "backend_real_gold_eval",
+    "kpi_eligible": true,
+    "limit": 0,
+    "method_label": "/api/extraction-eval/real-gold",
+    "model_label": null,
+    "parser_backend": "docling",
+    "provider_label": "backend_api",
+    "requested_method": "docling",
+    "strict_method": true,
+    "tolerance": 0.01
+  },
+  "strict_method": true,
+  "summary": {
+    "abstained_count": 0,
+    "context_accuracy": 1.0,
+    "context_correct_documents": 15,
+    "context_mismatch_documents": 0,
+    "context_mismatch_fields": 0,
+    "correct_count": 39,
+    "failed_documents": 0,
+    "generated_at": "2026-06-01T11:26:06.078935Z",
+    "metric_status_counts": {
+      "abstain": 0,
+      "correct": 39,
+      "missing": 0,
+      "wrong": 0
+    },
+    "missing_count": 0,
+    "per_metric_failure_counts": {
+      "net_debt": {
+        "abstain": 0,
+        "missing": 0,
+        "wrong": 0
+      },
+      "operating_cash_flow": {
+        "abstain": 0,
+        "missing": 0,
+        "wrong": 0
+      },
+      "revenue": {
+        "abstain": 0,
+        "missing": 0,
+        "wrong": 0
+      }
+    },
+    "total_accuracy": 1.0,
+    "total_documents": 15,
+    "total_metric_checks": 39,
+    "trust_distribution": {
+      "abstain": 0,
+      "quarantine": 0,
+      "trusted": 15
+    },
+    "trust_matches_expected": 15,
+    "trust_mismatches_expected": 0,
+    "trust_trigger_counts": {},
+    "wrong_count": 0
+  }
+}
