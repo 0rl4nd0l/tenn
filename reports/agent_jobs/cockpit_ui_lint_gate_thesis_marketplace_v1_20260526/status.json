@@ -1,0 +1,33 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526.md",
+    "reports/agent_jobs/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526/README.md",
+    "reports/agent_jobs/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526/status.json",
+    "reports/agent_jobs/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526/validation.json",
+    "reports/agent_jobs/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526/diff-check.json",
+    "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.tsx",
+    "cockpit-ui/components/cockpit/marketplace/mission-screen.tsx"
+  ],
+  "branch": "safe/evaluation-cockpit-ui-lint-gate-v1-20260526",
+  "claimed_at": "2026-06-01T06:33:01.047006Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T06:33:01.047006Z",
+  "job_id": "cockpit_ui_lint_gate_thesis_marketplace_v1_20260526",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-06-01T06:37:27.197519Z",
+  "output_dir": "reports/agent_jobs/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T06:37:27.197519Z",
+  "repo_root": "/home/l4nd0/tenn-evaluation-cockpit-ui-lint-gate-v1-20260526",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:4087758:cockpit_ui_lint_gate_thesis_marketplace_v1_20260526",
+  "started_at": "2026-06-01T06:33:01.047006Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/cockpit_ui_lint_gate_thesis_marketplace_v1_20260526.md",
+  "updated_at": "2026-06-01T06:37:27.197519Z",
+  "worktree": "/home/l4nd0/tenn-evaluation-cockpit-ui-lint-gate-v1-20260526"
+}

@@ -2007,6 +2007,8 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                         <div className="flex flex-col gap-3 sm:flex-row">
                           <div className="relative overflow-hidden rounded-md border border-border/60 bg-muted/30 sm:w-48 sm:shrink-0">
                             {firstMedia ? (
+                              // Listing media URLs are external marketplace evidence; keep the raw URL intact.
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={firstMedia}
                                 alt={`Listing photo for ${match.title}`}

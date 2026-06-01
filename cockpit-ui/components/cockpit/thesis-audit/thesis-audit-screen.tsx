@@ -367,7 +367,7 @@ function AlertList({ alerts, onDismiss, loading }: AlertListProps) {
             </div>
             <p className="font-medium leading-tight text-foreground">{alert.finding}</p>
             {alert.metadata.excerpt ? (
-              <p className="mt-2 line-clamp-2 italic text-muted-foreground">"{alert.metadata.excerpt}"</p>
+              <p className="mt-2 line-clamp-2 italic text-muted-foreground">&ldquo;{alert.metadata.excerpt}&rdquo;</p>
             ) : null}
           </div>
         ))}
@@ -652,7 +652,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
         setAlerts((prev) => prev.filter((a) => a.alert_id !== alertId))
         toast.success('Alert dismissed')
       }
-    } catch (e) {
+    } catch {
       toast.error('Failed to dismiss alert')
     }
   }
