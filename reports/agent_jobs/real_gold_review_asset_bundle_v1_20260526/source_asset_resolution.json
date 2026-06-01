@@ -1,0 +1,642 @@
+{
+  "artifact_type": "source_asset_resolution_v1",
+  "asset_policy": {
+    "hash_size_metadata_required": true,
+    "metadata_only": true,
+    "raw_pdfs_bundled": false,
+    "raw_pdfs_committed": false,
+    "raw_pdfs_required_in_default_ci": false,
+    "resolver_must_not_mutate_files": true,
+    "source_openability_counts_as_metric_correctness": false
+  },
+  "assets": [
+    {
+      "actual_sha256": "c700e3671ff907fa56739f23cf3a716ad00895d7fb249cc9f51ffd4aaea0f1e0",
+      "actual_size_bytes": 1619626,
+      "asset_id": "real_gold:10x_q_2025-12-31_difficult",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "10x_q_2025-12-31_difficult",
+      "expected_filename": "2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "expected_sha256": "c700e3671ff907fa56739f23cf3a716ad00895d7fb249cc9f51ffd4aaea0f1e0",
+      "expected_size_bytes": 1619626,
+      "fixture_id": "10x_q_2025-12-31_difficult",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/10X/financial_performance/2026-01-29_quarterly-activities-appendix-5b-cash-flow-report_28f2a7c8-c61d-4d1b-90ff-4c41d75d23cb.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "10X"
+    },
+    {
+      "actual_sha256": "cf13bca699ce8095277310458a2fcf780d7bafd8044f550eea837a65b9f445df",
+      "actual_size_bytes": 200139,
+      "asset_id": "real_gold:14d_q_2021-03-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "14d_q_2021-03-31",
+      "expected_filename": "2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "expected_sha256": "cf13bca699ce8095277310458a2fcf780d7bafd8044f550eea837a65b9f445df",
+      "expected_size_bytes": 200139,
+      "fixture_id": "14d_q_2021-03-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/14D/financial_performance/2021-04-30_appendix-4c-quarterly-cashflow-report_408ec763-d97d-4b2b-ad71-170e7a71c9b3.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "14D"
+    },
+    {
+      "actual_sha256": "fe9536d85506bdc6fb01bdbb21ce2097131f075ef5ffdff90ade254dd16d0bab",
+      "actual_size_bytes": 5397905,
+      "asset_id": "real_gold:29m_a_2025-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "29m_a_2025-12-31",
+      "expected_filename": "2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "expected_sha256": "fe9536d85506bdc6fb01bdbb21ce2097131f075ef5ffdff90ade254dd16d0bab",
+      "expected_size_bytes": 5397905,
+      "fixture_id": "29m_a_2025-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/29M/financial_performance/2026-02-26_2025-appendix-4e-and-annual-financial-report_0562489a-e22c-4a9d-986a-21f4e9ad358f.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "29M"
+    },
+    {
+      "actual_sha256": "cf33ccb4a2729a88dcb30c44bbd77f6b0ebad258231facd29adeb4e7d6f86f52",
+      "actual_size_bytes": 8484985,
+      "asset_id": "real_gold:a2m_h_2025-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "a2m_h_2025-12-31",
+      "expected_filename": "2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "expected_sha256": "cf33ccb4a2729a88dcb30c44bbd77f6b0ebad258231facd29adeb4e7d6f86f52",
+      "expected_size_bytes": 8484985,
+      "fixture_id": "a2m_h_2025-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/A2M/financial_performance/2026-02-16_appendix-4d-and-1h26-interim-report_008c6807-d8cf-44fe-8087-5d2855d78838.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "A2M"
+    },
+    {
+      "actual_sha256": "022fc8de7153fed33431423b16f24ff6ac41c975c558e514ec37367e0a57489e",
+      "actual_size_bytes": 1751732,
+      "asset_id": "real_gold:bhp_a_2021-06-30_difficult",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "bhp_a_2021-06-30_difficult",
+      "expected_filename": "2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "expected_sha256": "022fc8de7153fed33431423b16f24ff6ac41c975c558e514ec37367e0a57489e",
+      "expected_size_bytes": 1751732,
+      "fixture_id": "bhp_a_2021-06-30_difficult",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "BHP"
+    },
+    {
+      "actual_sha256": "39e139174313295df56143a3cbd2c704eeb9783bdffb4706a083706d6b5a490a",
+      "actual_size_bytes": 15541285,
+      "asset_id": "real_gold:bhp_a_2025-06-30",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "bhp_a_2025-06-30",
+      "expected_filename": "2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "expected_sha256": "39e139174313295df56143a3cbd2c704eeb9783bdffb4706a083706d6b5a490a",
+      "expected_size_bytes": 15541285,
+      "fixture_id": "bhp_a_2025-06-30",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "BHP"
+    },
+    {
+      "actual_sha256": "ef6afd6b30c32ceb94779dcece46b0a0ce4a60454497082db38882452ee11f97",
+      "actual_size_bytes": 1138083,
+      "asset_id": "real_gold:eqr_q_2025-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "eqr_q_2025-12-31",
+      "expected_filename": "2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "expected_sha256": "ef6afd6b30c32ceb94779dcece46b0a0ce4a60454497082db38882452ee11f97",
+      "expected_size_bytes": 1138083,
+      "fixture_id": "eqr_q_2025-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "EQR"
+    },
+    {
+      "actual_sha256": "5e69c641cabd0578321ad14262b676b02dd0807984993e06db69f64548e5a6a8",
+      "actual_size_bytes": 2128366,
+      "asset_id": "real_gold:gre_q_2024-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "gre_q_2024-12-31",
+      "expected_filename": "2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "expected_sha256": "5e69c641cabd0578321ad14262b676b02dd0807984993e06db69f64548e5a6a8",
+      "expected_size_bytes": 2128366,
+      "fixture_id": "gre_q_2024-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "GRE"
+    },
+    {
+      "actual_sha256": "a2b9b73762a1ed9fa031746a8349501ea1a49ab22e4142c0951bb3975b179e5e",
+      "actual_size_bytes": 2153679,
+      "asset_id": "real_gold:gre_q_2025-09-30",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "gre_q_2025-09-30",
+      "expected_filename": "2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "expected_sha256": "a2b9b73762a1ed9fa031746a8349501ea1a49ab22e4142c0951bb3975b179e5e",
+      "expected_size_bytes": 2153679,
+      "fixture_id": "gre_q_2025-09-30",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/GRE/financial_performance/2025-10-31_quarterly-activities-appendix-5b-cash-flow-report_b06d478e-798e-4b01-8798-592bb688b822.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "GRE"
+    },
+    {
+      "actual_sha256": "179346499325a02dd05b23de7f04a00a335cb54f2e1899869b8de86bbd40f845",
+      "actual_size_bytes": 4874396,
+      "asset_id": "real_gold:min_h_2025-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "min_h_2025-12-31",
+      "expected_filename": "2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "expected_sha256": "179346499325a02dd05b23de7f04a00a335cb54f2e1899869b8de86bbd40f845",
+      "expected_size_bytes": 4874396,
+      "fixture_id": "min_h_2025-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "MIN"
+    },
+    {
+      "actual_sha256": "278193d3a2de4e4182a5c0f504f28118f66a9b160367b1db68f99a01de4c127f",
+      "actual_size_bytes": 1352512,
+      "asset_id": "real_gold:qbe_h_2025-06-30",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "qbe_h_2025-06-30",
+      "expected_filename": "2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "expected_sha256": "278193d3a2de4e4182a5c0f504f28118f66a9b160367b1db68f99a01de4c127f",
+      "expected_size_bytes": 1352512,
+      "fixture_id": "qbe_h_2025-06-30",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "QBE"
+    },
+    {
+      "actual_sha256": "cb5ce3d28f8748124566262c69db4cb6850127bd11e03f5ce822b45f2b6365bd",
+      "actual_size_bytes": 497862,
+      "asset_id": "real_gold:rio_a_2023-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "rio_a_2023-12-31",
+      "expected_filename": "2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "expected_sha256": "cb5ce3d28f8748124566262c69db4cb6850127bd11e03f5ce822b45f2b6365bd",
+      "expected_size_bytes": 497862,
+      "fixture_id": "rio_a_2023-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "RIO"
+    },
+    {
+      "actual_sha256": "fc023fa578e3fe969132db79aea6bd08111857fc5036f5bb24749c9f48d516c2",
+      "actual_size_bytes": 494327,
+      "asset_id": "real_gold:rio_a_2024-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "rio_a_2024-12-31",
+      "expected_filename": "2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "expected_sha256": "fc023fa578e3fe969132db79aea6bd08111857fc5036f5bb24749c9f48d516c2",
+      "expected_size_bytes": 494327,
+      "fixture_id": "rio_a_2024-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RIO/2025-02-20_rio-tinto-2024-full-year-results_43913120-8250-4807-b1af-fe8937787f98.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "RIO"
+    },
+    {
+      "actual_sha256": "92c913e70c8c5070118842f718c2f89fad2dbb100f91e82a52e6add2e206eaaa",
+      "actual_size_bytes": 1195545,
+      "asset_id": "real_gold:rms_h_2025-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "rms_h_2025-12-31",
+      "expected_filename": "2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "expected_sha256": "92c913e70c8c5070118842f718c2f89fad2dbb100f91e82a52e6add2e206eaaa",
+      "expected_size_bytes": 1195545,
+      "fixture_id": "rms_h_2025-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "RMS"
+    },
+    {
+      "actual_sha256": "afcb9b817bc687820e14ca8c1e9f0a7fc01c84d2476be837e3ae6f333c164a31",
+      "actual_size_bytes": 6283216,
+      "asset_id": "real_gold:tls_h_2025-12-31",
+      "candidate_results": [
+        {
+          "candidate_path": "financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+          "exists": false,
+          "resolved_path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+          "root_id": "workspace_financial_engine_asx_docs",
+          "safe": true
+        },
+        {
+          "candidate_path": "/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+          "exists": true,
+          "resolved_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+          "root_id": "backend_container_asx_docs",
+          "safe": true
+        }
+      ],
+      "document_id": "tls_h_2025-12-31",
+      "expected_filename": "2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "expected_sha256": "afcb9b817bc687820e14ca8c1e9f0a7fc01c84d2476be837e3ae6f333c164a31",
+      "expected_size_bytes": 6283216,
+      "fixture_id": "tls_h_2025-12-31",
+      "issues": [],
+      "logical_source_name": "data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "matched_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+      "missing_reason": null,
+      "present": true,
+      "resolution_status": "present_verified",
+      "resolved_root_id": "backend_container_asx_docs",
+      "reviewability_only": true,
+      "reviewability_status": "present_verified_on_current_host",
+      "sha256_status": "matched",
+      "size_bytes_status": "matched",
+      "source_kind": "real_gold",
+      "source_openability_counts_as_metric_correctness": false,
+      "ticker": "TLS"
+    }
+  ],
+  "dataset": "real_gold_review_asset_bundle_v1_20260526",
+  "extraction_correctness_impact": "none",
+  "generated_at": "2026-06-01T09:49:55.233394+00:00",
+  "issue": "#99",
+  "job_id": "real_gold_review_asset_bundle_v1_20260526",
+  "manifest_id": "real_gold_review_source_assets_v1",
+  "reviewability_only": true,
+  "schema_version": 1,
+  "source_openability_counts_as_metric_correctness": false,
+  "source_roots": [
+    {
+      "path": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601/financial-engine_v2/data/asx/docs",
+      "root_id": "workspace_financial_engine_asx_docs"
+    },
+    {
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+      "root_id": "backend_container_asx_docs"
+    }
+  ],
+  "status_counts": {
+    "manifest_error": 0,
+    "missing": 0,
+    "present_metadata_mismatch": 0,
+    "present_unverified": 0,
+    "present_verified": 15
+  },
+  "total_asset_count": 15,
+  "workspace_root": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601"
+}

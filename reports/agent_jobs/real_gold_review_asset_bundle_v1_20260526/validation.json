@@ -1,0 +1,60 @@
+{
+  "artifact_type": "agent_job_validation_v1",
+  "clean_split_note": "Clean isolated split from prior local top commit; docs/claude/STATE.md intentionally excluded to avoid active Financial Truth registry overlap.",
+  "generated_at": "2026-06-01T09:50:32.130431+00:00",
+  "job_id": "real_gold_review_asset_bundle_v1_20260526",
+  "results": {
+    "git_diff_check": {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    },
+    "json_artifacts": {
+      "command": "python3 -m json.tool <manifest/report/resolution/off_git_status/status>",
+      "result": "PASS"
+    },
+    "py_compile": {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 -m py_compile financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "PASS"
+    },
+    "raw_artifact_staging_check": {
+      "command": "git status --short --untracked-files=all | rg '\\.(pdf|zip|tar|tgz|tar\\.gz)$'",
+      "result": "PASS: no matches"
+    },
+    "registry_check_overlap": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_claim": {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_list_active": {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS: active Financial Truth job observed in shared checkout; no allowed-file overlap after removing docs/claude/STATE.md"
+    },
+    "resolver_status_counts": {
+      "command": "resolve_source_asset_manifest(real_gold_review_source_assets.json)",
+      "result": "PASS: {'manifest_error': 0, 'missing': 0, 'present_metadata_mismatch': 0, 'present_unverified': 0, 'present_verified': 15}"
+    },
+    "ruff": {
+      "command": "uv run --python 3.10 --with ruff ruff check financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "result": "PASS"
+    },
+    "source_asset_pytest": {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with pytest --with pydantic-settings==2.6.1 --with pydantic==2.9.2 python -m pytest financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py -q -k 'source_asset_manifest or real_gold_review_source_asset_manifest'",
+      "result": "PASS: 3 passed, 27 deselected, 1 warning in 0.30s"
+    },
+    "strict_real_gold_asset_test_backend_requirements": {
+      "command": "TENN_REQUIRE_REAL_GOLD_SOURCE_ASSETS=1 PYTHONPATH=financial-engine_v2/backend uv run --python 3.10 --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest financial-engine_v2/backend/tests/test_extraction_gold_eval.py -q -k load_real_gold_corpus_accepts_operating_cash_flow_alias_and_source_paths",
+      "result": "PASS: 1 passed, 24 deselected, 6 warnings in 6.55s"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md --repo-root .",
+      "result": "PASS: no disallowed files"
+    },
+    "task_card_validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md",
+      "result": "PASS"
+    }
+  }
+}

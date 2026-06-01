@@ -1,0 +1,97 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/eval_source_assets/README.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/eval_source_assets/real_gold_review_source_assets.json",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/off_git_bundle_status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/placement_runbook.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/real_gold_source_asset_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/source_asset_resolution.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md",
+        "financial-engine_v2/backend/tests/eval_source_assets/README.md",
+        "financial-engine_v2/backend/tests/eval_source_assets/real_gold_review_source_assets.json",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/README.md",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/status.json",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/real_gold_source_asset_manifest.json",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/source_asset_resolution.json",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/placement_runbook.md",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/off_git_bundle_status.json",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/validation.json",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/diff-check.json"
+      ],
+      "allowed_repo_files": [
+        "docs/agent_tasks/real_gold_review_asset_bundle_v1_20260526.md",
+        "financial-engine_v2/backend/tests/eval_source_assets/**",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526/**"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "issue_comment_only",
+      "job_id": "real_gold_review_asset_bundle_v1_20260526",
+      "lane": "Provenance",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/real_gold_review_asset_bundle_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 99,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
