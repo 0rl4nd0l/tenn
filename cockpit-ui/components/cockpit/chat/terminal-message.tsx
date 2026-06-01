@@ -96,6 +96,10 @@ function stringArray(value: unknown): string[] {
     : []
 }
 
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)))
+}
+
 function extractTickerFromAction(message: ChatMessageType): string | null {
   const args = asRecord(message.actionPreview?.args)
   const ticker = String(args.ticker || args.symbol || '').trim().toUpperCase()
@@ -298,6 +302,8 @@ function buildAnalystShell(
     trustLabel = 'No-hit audit'
   } else if (hasEvidenceLabel('local_personal_data')) {
     trustLabel = 'Local personal data'
+  } else if (hasEvidenceLabel('local_news_context')) {
+    trustLabel = 'Local news context'
   } else if (sourceCount > 0) {
     trustLabel = 'Context sources only'
   }
@@ -317,6 +323,8 @@ function buildAnalystShell(
     sourceSummaryLabel = 'Financial truth numeric context'
   } else if (hasEvidenceLabel('local_personal_data')) {
     sourceSummaryLabel = 'Local holdings'
+  } else if (hasEvidenceLabel('local_news_context')) {
+    sourceSummaryLabel = 'Local news context'
   } else if (hasEvidenceLabel('memory_context')) {
     sourceSummaryLabel = 'Memory context'
   } else if (hasEvidenceLabel('no_hit')) {
@@ -443,6 +451,11 @@ export function TerminalMessage({
 
     return parsed.toISOString().slice(0, 10)
   }
+
+  const sourceEvidenceLabels = (source: NonNullable<ChatMessageType['sources']>[number]): string[] => uniqueStrings([
+    source.evidenceLabel || '',
+    ...(source.evidenceLabels || []),
+  ])
 
   const isFilestatsDump = message.content.includes('Company Data Dump:')
   const hasFilestatsChart = Boolean(message.chart && /filestats/i.test(message.chart.title || ''))
@@ -898,7 +911,11 @@ export function TerminalMessage({
                       <div className="break-words text-blue-200">{source.title}</div>
                     )}
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-blue-200/60">
-                      {source.evidenceLabel && <span>{compactLabel(source.evidenceLabel)}</span>}
+                      {sourceEvidenceLabels(source).map((label) => (
+                        <span key={label} className="rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 font-mono text-[10px] text-blue-100/75">
+                          {compactLabel(label)}
+                        </span>
+                      ))}
                       {source.kind && <span>{source.kind}</span>}
                       {source.docType && <span>{source.docType}</span>}
                       {formatSourceDate(source.publishedAt) && (

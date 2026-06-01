@@ -180,6 +180,41 @@ describe('TerminalMessage', () => {
     expect(screen.queryByText(/source-backed/i)).not.toBeInTheDocument()
   })
 
+  it('shows secondary source evidence labels in expanded source rows', () => {
+    render(
+      <TerminalMessage
+        showSources
+        message={buildAssistantMessage({
+          content: 'A2M local news context.',
+          metadata: {
+            source: 'local',
+            analyst: {
+              evidenceLabels: ['local_news_context', 'context_only'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'local_news_context',
+            },
+          },
+          sources: [
+            {
+              title: 'A2M recall local news context',
+              score: 0.81,
+              kind: 'news',
+              snippet: 'Local news context only.',
+              evidenceLabel: 'local_news_context',
+              evidenceLabels: ['local_news_context', 'context_only', 'no_hit'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getAllByText('Local news context').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Context Only').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('No Hit').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Claim-supported')).not.toBeInTheDocument()
+  })
+
   it('calls context-only source evidence context sources, not source-backed financial facts', () => {
     render(
       <TerminalMessage

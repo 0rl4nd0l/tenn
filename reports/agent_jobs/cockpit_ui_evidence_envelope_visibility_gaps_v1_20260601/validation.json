@@ -1,0 +1,51 @@
+{
+  "job_id": "cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601",
+  "issue": 175,
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui install --frozen-lockfile",
+      "result": "passed",
+      "notes": "pnpm warned that sharp and unrs-resolver build scripts were ignored by policy."
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run lib/cockpit-chat-actionability.test.ts components/cockpit/chat/terminal-message.test.tsx lib/cockpit-news-actionability.test.ts components/cockpit/news/news-screen.test.tsx",
+      "result": "passed",
+      "summary": "4 test files passed; 33 tests passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec eslint components/cockpit/chat/terminal-message.tsx components/cockpit/chat/terminal-message.test.tsx lib/cockpit-chat-actionability.ts lib/cockpit-chat-actionability.test.ts components/cockpit/news/news-screen.tsx components/cockpit/news/news-screen.test.tsx lib/cockpit-news-actionability.ts lib/cockpit-news-actionability.test.ts lib/cockpit-types.ts",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec tsc --noEmit",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md",
+      "result": "passed"
+    }
+  ],
+  "code_review": {
+    "result": "passed",
+    "critical_findings": 0,
+    "warning_findings": 0
+  },
+  "production_data_access": false,
+  "runtime_or_service_changes": false
+}

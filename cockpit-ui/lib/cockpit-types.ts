@@ -205,6 +205,11 @@ export interface NewsSearchResult {
   ticker?: string
   content?: string
   url?: string
+  sourceLabel?: string
+  evidenceLabels?: string[]
+  sourceCoverageStatus?: string
+  sourceLabelTaxonomyVersion?: string
+  claimVerifiedSourceCount?: number
 }
 
 export interface VerificationResult {

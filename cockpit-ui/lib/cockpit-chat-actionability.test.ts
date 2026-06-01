@@ -238,4 +238,35 @@ describe('deriveChatEvidenceActionability', () => {
     expect(result.stateCodes).toContain('draft_only')
     expect(result.stateCodes).toContain('unsupported_or_not_verified')
   })
+
+  it('surfaces local news context without upgrading it to claim verified', () => {
+    const result = deriveChatEvidenceActionability(
+      assistant({
+        content: 'A2M recall answer from local news context.',
+        metadata: {
+          source: 'orchestrator',
+          analyst: {
+            evidenceLabels: ['local_news_context', 'context_only'],
+            claimVerifiedSourceCount: 0,
+            sourceCoverageStatus: 'local_news_context',
+          },
+        },
+        sources: [
+          {
+            title: 'Local A2M news context',
+            score: 0.7,
+            kind: 'news',
+            evidenceLabel: 'local_news_context',
+            evidenceLabels: ['local_news_context', 'context_only'],
+            claimVerified: false,
+          },
+        ],
+      }),
+    )
+
+    expect(result.stateCodes).toContain('local_news_context')
+    expect(result.stateLabels).toContain('Local news context')
+    expect(result.stateCodes).toContain('context_only')
+    expect(result.stateCodes).not.toContain('claim_verified')
+  })
 })
