@@ -1,0 +1,147 @@
+{
+  "artifact_type": "news_ingestion_throughput_profile_v1",
+  "generated_at": "2026-06-01T20:27:02+10:00",
+  "job_id": "news_ingestion_throughput_profile_and_optimise_v1_20260527",
+  "related_issue": 123,
+  "mode": "audit_only",
+  "production_data_access": false,
+  "inputs": {
+    "ticker_universe_path": "financial-engine_v2/data/raw/asx_ticker_universe.txt",
+    "ticker_universe_lines": 376,
+    "fetch_dry_run_tickers_count": 375,
+    "copied_sqlite_source": "HOST_LOCAL_NEWS_ARTIFACT_ROOT_REDACTED/news_articles.sqlite",
+    "copied_sqlite_size": "8.5M",
+    "tmp_only": true
+  },
+  "measurements": {
+    "fetch_dry_run_plan": {
+      "elapsed_seconds": 0.08,
+      "user_seconds": 0.06,
+      "system_seconds": 0.01,
+      "max_rss_kb": 23084,
+      "tickers_count": 375,
+      "tickers_per_second_plan_only": 4687.5,
+      "writes_to_repo_or_live_stores": false
+    },
+    "loader_dry_run_36h": {
+      "elapsed_seconds": 1.18,
+      "user_seconds": 1.2,
+      "system_seconds": 0.75,
+      "max_rss_kb": 123528,
+      "eligible_articles": 0,
+      "eligible_chunks": 0,
+      "qdrant_diff_status": "unavailable",
+      "qdrant_error": "[Errno 111] Connection refused",
+      "writes_to_repo_or_live_stores": false
+    },
+    "loader_dry_run_full_copied_db": {
+      "elapsed_seconds": 2.31,
+      "user_seconds": 2.34,
+      "system_seconds": 0.76,
+      "max_rss_kb": 146148,
+      "eligible_articles": 225,
+      "eligible_chunks": 4397,
+      "articles_per_second": 97.4,
+      "chunks_per_second": 1903.5,
+      "batch_size": 64,
+      "theoretical_embed_upsert_batches": 69,
+      "memo_eligible_articles": 212,
+      "memo_skipped_articles": 13,
+      "qdrant_diff_status": "unavailable",
+      "qdrant_error": "[Errno 111] Connection refused",
+      "writes_to_repo_or_live_stores": false
+    },
+    "sqlite_fallback_scratch_rebuild": {
+      "elapsed_seconds": 2.052,
+      "articles_seen": 225,
+      "chunks_written": 4395,
+      "articles_per_second": 109.6,
+      "chunks_per_second": 2141.8,
+      "status": "success",
+      "writes_to_repo_or_live_stores": false
+    },
+    "memo_dispatch_plan_full_copied_db": {
+      "since_hours": 0,
+      "eligible_articles": 225,
+      "would_dispatch": 225,
+      "missing_memos": 212,
+      "persisted_memos": 0,
+      "skipped_articles": 13,
+      "status": "plan_only",
+      "writes_to_repo_or_live_stores": false
+    }
+  },
+  "phases": [
+    {
+      "phase": "wrapper_setup_status",
+      "status": "PASS_STATIC",
+      "evidence": [
+        "financial-engine_v2/scripts/nightly_news.sh:8",
+        "financial-engine_v2/scripts/nightly_news.sh:43",
+        "reports/agent_jobs/news_ingestion_throughput_profile_and_optimise_v1_20260527/bash_nightly_news.txt"
+      ]
+    },
+    {
+      "phase": "fetch_plan",
+      "status": "PASS_NO_WRITE",
+      "elapsed_seconds": 0.08,
+      "evidence": [
+        "scripts/fetch_daily_news.py:77",
+        "reports/agent_jobs/news_ingestion_throughput_profile_and_optimise_v1_20260527/fetch_dry_run.json"
+      ]
+    },
+    {
+      "phase": "fetch_parse_store_live",
+      "status": "DATA_MISSING_NOT_RUN",
+      "reason": "Live provider fetch and SQLite writes are outside this audit-only/no-production-mutation task."
+    },
+    {
+      "phase": "projection_build_36h",
+      "status": "PASS_NO_WRITE_BUT_EMPTY",
+      "eligible_articles": 0,
+      "eligible_chunks": 0,
+      "elapsed_seconds": 1.18
+    },
+    {
+      "phase": "projection_build_full_copied_db",
+      "status": "PASS_NO_WRITE",
+      "eligible_articles": 225,
+      "eligible_chunks": 4397,
+      "elapsed_seconds": 2.31
+    },
+    {
+      "phase": "embedding",
+      "status": "DATA_MISSING_NOT_RUN",
+      "reason": "sync_news_to_qdrant returns before probe/batch embedding when dry_run is true."
+    },
+    {
+      "phase": "qdrant_diff_upsert_delete",
+      "status": "DATA_MISSING_BLOCKED",
+      "reason": "Qdrant connection refused; upsert/delete are write paths."
+    },
+    {
+      "phase": "sqlite_fallback_refresh",
+      "status": "PASS_SCRATCH_ONLY",
+      "elapsed_seconds": 2.052,
+      "articles_seen": 225,
+      "chunks_written": 4395,
+      "reason": "loader rejects --dry-run with --refresh-sqlite-fallback, so refresh was measured only against copied /tmp SQLite inputs/outputs."
+    },
+    {
+      "phase": "memo_dispatch_wait_backfill",
+      "status": "PASS_PLAN_ONLY_REAL_DISPATCH_DATA_MISSING",
+      "would_dispatch_full_corpus": 225,
+      "reason": "loader dry-run skips memos; backfill runner has no dry-run and dispatches selected articles, so only selection/coverage was measured."
+    },
+    {
+      "phase": "retention_cleanup",
+      "status": "PASS_READ_ONLY_CANDIDATES",
+      "reason": "nightly wrapper cleanup deletes old logs/status files; candidate inspection found no local reports/ops_checks/nightly directory in this worktree."
+    }
+  ],
+  "followups": [
+    "Add phase timing fields under a safe-extension task card.",
+    "Add no-dispatch dry-run support to memo backfill before profiling memo selection.",
+    "Run approved bounded live sync only after Qdrant/backend readiness and store-mutation approval."
+  ]
+}

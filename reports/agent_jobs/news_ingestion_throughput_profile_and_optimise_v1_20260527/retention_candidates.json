@@ -1,0 +1,14 @@
+{
+  "log_dir": "reports/ops_checks/nightly",
+  "log_dir_exists": false,
+  "patterns": {
+    "nightly_news_*.log": {
+      "total": 0,
+      "would_delete_after_30": []
+    },
+    "nightly_news_*.status.json": {
+      "total": 0,
+      "would_delete_after_30": []
+    }
+  }
+}

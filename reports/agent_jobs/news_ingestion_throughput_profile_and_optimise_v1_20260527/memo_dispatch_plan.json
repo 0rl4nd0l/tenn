@@ -1,0 +1,78 @@
+{
+  "blocked_real_dispatch": "real dispatch/wait/backfill writes Celery/news memo state",
+  "plans": [
+    {
+      "coverage": {
+        "eligible": 0,
+        "memo_skips_file_exists": false,
+        "memo_skips_path": "financial-engine_v2/data/reports/research_memory/news_memo_skips.jsonl",
+        "memo_skips_read_errors": 0,
+        "memos_file_exists": false,
+        "memos_path": "financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+        "missing": 0,
+        "missing_samples": [],
+        "persisted": 0,
+        "read_errors": 0,
+        "skipped": 0,
+        "status": "empty",
+        "terminal_skipped": 0
+      },
+      "eligible_articles": 0,
+      "selection": {
+        "eligible": 0,
+        "force": false,
+        "limit": 0,
+        "memos_file_exists": false,
+        "memos_path": "financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+        "persisted": 0,
+        "read_errors": 0,
+        "selected": 0
+      },
+      "since_hours": 36,
+      "would_dispatch": 0
+    },
+    {
+      "coverage": {
+        "eligible": 212,
+        "memo_skips_file_exists": false,
+        "memo_skips_path": "financial-engine_v2/data/reports/research_memory/news_memo_skips.jsonl",
+        "memo_skips_read_errors": 0,
+        "memos_file_exists": false,
+        "memos_path": "financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+        "missing": 212,
+        "missing_samples": [
+          "news:art_018daad56e7d16a03c451c60",
+          "news:art_036097fcc638dbe44850bde3",
+          "news:art_03a2b4c3d48722a075e57e29",
+          "news:art_04559677ccedca47ac679c22",
+          "news:art_04df27d880efa04b8597ded4",
+          "news:art_05cee71b90bbd8145094ad21",
+          "news:art_085e4adc82d6399a23a85024",
+          "news:art_08811ce16a71dee6763cdb97",
+          "news:art_08faac1ddc2e52b866253fe6",
+          "news:art_09581b3b08b2ed3b3388c143"
+        ],
+        "persisted": 0,
+        "read_errors": 0,
+        "skipped": 13,
+        "status": "none",
+        "terminal_skipped": 0
+      },
+      "eligible_articles": 225,
+      "selection": {
+        "eligible": 225,
+        "force": false,
+        "limit": 0,
+        "memos_file_exists": false,
+        "memos_path": "financial-engine_v2/data/reports/research_memory/news_memos.jsonl",
+        "persisted": 0,
+        "read_errors": 0,
+        "selected": 225
+      },
+      "since_hours": 0,
+      "would_dispatch": 225
+    }
+  ],
+  "used_tmp_copy": true,
+  "writes_to_repo_or_live_stores": false
+}
