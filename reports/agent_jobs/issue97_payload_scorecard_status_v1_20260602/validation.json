@@ -1,0 +1,76 @@
+{
+  "job_id": "issue97_payload_scorecard_status_v1_20260602",
+  "validation": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/issue97_payload_scorecard_status_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "pass",
+      "summary": "active_jobs empty before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/issue97_payload_scorecard_status_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/issue97_payload_scorecard_status_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "gh issue view 97 --repo 0rl4nd0l/tenn --json number,title,state,url,labels,updatedAt,comments",
+      "result": "pass",
+      "summary": "issue open; labels include state:data-missing and state:needs-review"
+    },
+    {
+      "command": "gh pr list --repo 0rl4nd0l/tenn --state all --search \"#97 OR confirmed_metric_extracted_payload_scorecard OR confirmed_metric_payload OR payload scorecard\"",
+      "result": "pass",
+      "summary": "no exact #97 closeout PR found"
+    },
+    {
+      "command": "rg -n \"def build_confirmed_metric_payload_scorecard|PayloadScoreStatus|confirmed_metric_payload|include-pre-persistence-gate|export_extraction_run_actual_payloads\" ...",
+      "result": "pass",
+      "summary": "scorecard builder, CLI gate, and exporter present"
+    },
+    {
+      "command": "gh pr create --repo 0rl4nd0l/tenn --base migration/clean-runtime-baseline-reconstruct-v1 --head audit/issue97-payload-scorecard-status-v1-20260602",
+      "result": "pass",
+      "summary": "created PR #207"
+    },
+    {
+      "command": "gh issue comment 97 --repo 0rl4nd0l/tenn",
+      "result": "pass",
+      "summary": "posted non-closing status comment"
+    },
+    {
+      "command": "git rebase origin/audit/issue98-current-branch-status-v1-20260602",
+      "result": "pass",
+      "summary": "stacked #207 on #206 branch to keep the GitHub diff narrow without pushing the shared migration branch"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/status.json",
+      "result": "pass"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/validation.json",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/issue97_payload_scorecard_status_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release issue97_payload_scorecard_status_v1_20260602",
+      "result": "pass"
+    }
+  ]
+}

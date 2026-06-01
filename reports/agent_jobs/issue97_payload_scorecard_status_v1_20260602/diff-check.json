@@ -1,0 +1,68 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/validation.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/issue97_payload_scorecard_status_v1_20260602.md",
+        "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/README.md",
+        "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/status.json",
+        "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/validation.json",
+        "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/diff-check.json",
+        "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602/issue97_evidence_matrix.md"
+      ],
+      "approval_required": false,
+      "github_comment_targets": [
+        97
+      ],
+      "inspect_only_surfaces": [
+        "docs/agent_tasks/extraction_payload_scorecard_builder_v1_20260526.md",
+        "reports/agent_jobs/extraction_payload_scorecard_builder_v1_20260526/**",
+        "docs/agent_tasks/extraction_payload_scorecard_cli_gate_v1_20260531.md",
+        "reports/agent_jobs/extraction_payload_scorecard_cli_gate_v1_20260531/**",
+        "docs/agent_tasks/extraction_payload_actuals_coverage_gate_v1_20260531.md",
+        "reports/agent_jobs/extraction_payload_actuals_coverage_gate_v1_20260531/**",
+        "docs/agent_tasks/extraction_canary_actual_payload_exporter_v1_20260601.md",
+        "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/**",
+        "docs/agent_tasks/extraction_contract_parity_guard_v1_20260526.md",
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/**",
+        "docs/agent_tasks/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526.md",
+        "reports/agent_jobs/extraction_source_asset_manifest_metadata_safe_extension_v1_20260526/**",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "scripts/export_extraction_run_actual_payloads.py"
+      ],
+      "job_id": "issue97_payload_scorecard_status_v1_20260602",
+      "lane": "Evaluation",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/issue97_payload_scorecard_status_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
