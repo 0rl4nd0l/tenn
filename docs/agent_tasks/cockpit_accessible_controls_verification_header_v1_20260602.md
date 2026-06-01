@@ -1,0 +1,100 @@
+---
+job_id: cockpit_accessible_controls_verification_header_v1_20260602
+lane: Reporting
+supporting_lanes:
+  - Evaluation
+owner: Codex
+allowed_files:
+  - docs/agent_tasks/cockpit_accessible_controls_verification_header_v1_20260602.md
+  - docs/claude/STATE.md
+  - cockpit-ui/components/cockpit/verification/verification-header.tsx
+  - cockpit-ui/components/cockpit/verification/verification-header.test.tsx
+  - reports/agent_jobs/cockpit_accessible_controls_verification_header_v1_20260602/README.md
+  - reports/agent_jobs/cockpit_accessible_controls_verification_header_v1_20260602/status.json
+  - reports/agent_jobs/cockpit_accessible_controls_verification_header_v1_20260602/validation.json
+  - reports/agent_jobs/cockpit_accessible_controls_verification_header_v1_20260602/diff-check.json
+approval_required: true
+timeout_seconds: 7200
+output_dir: reports/agent_jobs/cockpit_accessible_controls_verification_header_v1_20260602
+mutation_mode: safe_extension
+production_data_access: false
+github_mutation_allowed: issue_comment_and_pr
+related_issue: 53
+operator_approval_source: "User requested ongoing safe issue remediation with isolated branches/worktrees; read-only #53 scout identified verification-header.tsx as a low-collision uncovered slice."
+---
+
+# Cockpit Accessible Controls: Verification Header
+
+## Objective
+
+Fix the narrow issue #53 accessible-name gap in the Verification header without
+touching adjacent active Verification route files.
+
+This slice is limited to:
+
+- Active ticker input.
+- Method/provider select trigger.
+- Strict mode switch.
+
+## Session Declaration
+
+Agent: Codex
+
+Branch: `safe/cockpit-accessible-controls-verification-header-v1-20260602`
+
+Worktree:
+`/home/l4nd0/tenn-cockpit-accessible-controls-verification-header-v1-20260602`
+
+Lane: Reporting
+
+Execution mode: SAFE EXTENSION MODE
+
+Intended files: this task card, `verification-header.tsx`, a focused component
+test, `docs/claude/STATE.md`, and this report bundle.
+
+Contested surfaces touched: none from AGENTS.md.
+
+Collision risk: MEDIUM because adjacent Verification files have open PRs, but
+current evidence found no open PR touching `verification-header.tsx`.
+
+Decision: proceed after validation, active-job check, overlap check, and
+registry claim.
+
+## Contract Check
+
+Target system layer: Cockpit client UI only.
+
+Relevant contract rules: `SYSTEM_CONTRACT.md` §1.2 Cockpit client role and §2
+mandatory flow. Backend remains authoritative for all data and retrieval.
+
+What must not change: backend APIs, extraction, retrieval, memory storage,
+financial truth, source/evidence labels, Qdrant/Postgres, runtime/model/GPU
+configuration, route behavior, values, handlers, and visible layout.
+
+Why safe: the change only adds durable programmatic names to existing controls
+and focused tests prove the names are available through DOM accessibility
+queries.
+
+GPU process check required: no. This task does not spawn, restart, or depend on
+llama-server.
+
+## Validation
+
+- `python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_accessible_controls_verification_header_v1_20260602.md --write-report`
+- `python3 scripts/agent_job_registry.py list-active`
+- `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_accessible_controls_verification_header_v1_20260602.md --repo-root .`
+- `python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_accessible_controls_verification_header_v1_20260602.md --repo-root .`
+- Focused Verification header component test.
+- Targeted ESLint for touched UI files.
+- Cockpit UI TypeScript if practical.
+- `git diff --check`
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_accessible_controls_verification_header_v1_20260602.md --repo-root .`
+- Registry release and final active-job check.
+
+## Hard Stops
+
+- Exact duplicate tracker or PR found.
+- Active registry overlap on `verification-header.tsx`.
+- Proposed fix touches adjacent active Verification PR files.
+- Backend/data/runtime/memory/extraction changes are required.
+- Validation cannot distinguish visual labels from programmatic names.
