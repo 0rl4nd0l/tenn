@@ -21,6 +21,7 @@ Requires: llama.cpp on :8001 (or --anthropic flag with ANTHROPIC_API_KEY set)
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import datetime
 import json
 import logging
@@ -147,6 +148,42 @@ def resolve_docs_root(explicit_docs_root: str | Path | None = None) -> Path:
 def discover_pdfs(docs_root: str | Path | None = None) -> list[Path]:
     """Find all financial_performance PDFs across all tickers."""
     return _scan_financial_performance_pdfs(resolve_docs_root(docs_root))
+
+
+def _candidate_filter_title(pdf_path: Path) -> str:
+    return pdf_path.stem.replace("_", " ").replace("-", " ")
+
+
+def candidate_exclusion_reason(pdf_path: Path) -> str | None:
+    """Return a deterministic source-classification exclusion reason, if any."""
+    from app.services.multipass_extraction import classify_source_document
+
+    classification = classify_source_document(_candidate_filter_title(pdf_path), "")
+    if classification.extraction_candidate_allowed:
+        return None
+    return classification.reason
+
+
+def filter_candidate_pdfs(
+    pdf_paths: list[Path],
+    docs_root: str | Path | None = None,
+) -> tuple[list[Path], list[dict]]:
+    candidates: list[Path] = []
+    excluded: list[dict] = []
+    for pdf_path in pdf_paths:
+        reason = candidate_exclusion_reason(pdf_path)
+        if reason is None:
+            candidates.append(pdf_path)
+            continue
+        excluded.append(
+            {
+                "pdf_path": str(pdf_path),
+                "source_path": _source_path_for_record(pdf_path, docs_root),
+                "ticker": _ticker_from_path(pdf_path),
+                "exclusion_reason": reason,
+            }
+        )
+    return candidates, excluded
 
 
 def _source_path_for_record(
@@ -528,13 +565,21 @@ def main():
     print("Discovering PDFs...")
     docs_root = resolve_docs_root(args.docs_root)
     all_pdfs = discover_pdfs(docs_root)
+    candidate_pdfs, excluded_candidates = filter_candidate_pdfs(all_pdfs, docs_root)
+    exclusion_reason_counts = dict(
+        sorted(Counter(row["exclusion_reason"] for row in excluded_candidates).items())
+    )
     print(f"Using docs root: {docs_root}")
     print(f"Found {len(all_pdfs)} financial_performance PDFs across {len(set(_ticker_from_path(p) for p in all_pdfs))} tickers")
+    print(
+        f"Candidate filter retained {len(candidate_pdfs)} PDFs; "
+        f"excluded {len(excluded_candidates)} ({exclusion_reason_counts})"
+    )
 
     # Sample
     rng = random.Random(args.seed)
-    sample_size = min(args.count, len(all_pdfs))
-    sample = rng.sample(all_pdfs, sample_size)
+    sample_size = min(args.count, len(candidate_pdfs))
+    sample = rng.sample(candidate_pdfs, sample_size)
     print(f"Sampled {sample_size} PDFs (seed={args.seed})")
 
     # Resume: load existing results and skip already-processed paths
@@ -597,6 +642,12 @@ def main():
                     "actual_count": len(results),
                     "backend": "anthropic" if args.anthropic else "llamacpp",
                     "docs_root": str(docs_root),
+                    "candidate_filter": {
+                        "input_count": len(all_pdfs),
+                        "candidate_count": len(candidate_pdfs),
+                        "excluded_count": len(excluded_candidates),
+                        "excluded_reason_counts": exclusion_reason_counts,
+                    },
                 },
                 "summary": summary,
                 "results": results,
@@ -613,6 +664,12 @@ def main():
             "actual_count": len(results),
             "backend": "anthropic" if args.anthropic else "llamacpp",
             "docs_root": str(docs_root),
+            "candidate_filter": {
+                "input_count": len(all_pdfs),
+                "candidate_count": len(candidate_pdfs),
+                "excluded_count": len(excluded_candidates),
+                "excluded_reason_counts": exclusion_reason_counts,
+            },
         },
         "summary": summary,
         "results": results,

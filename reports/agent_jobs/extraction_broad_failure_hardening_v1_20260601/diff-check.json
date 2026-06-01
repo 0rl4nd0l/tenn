@@ -1,0 +1,45 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_broad_failure_hardening_v1_20260601.md",
+        "docs/claude/STATE.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/scripts/broad_extraction_test.py",
+        "financial-engine_v2/scripts/test_broad_extraction_test.py",
+        "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/diff-check.json",
+        "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601/code_review.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_broad_failure_hardening_v1_20260601",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_broad_failure_hardening_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

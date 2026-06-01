@@ -1614,6 +1614,34 @@ def test_unknown_scale_without_valid_unit_header_remains_unknown():
     assert _detect_scale_from_tables([table]) == "unknown"
 
 
+def test_appendix_4e_full_dollar_values_detect_units_scale():
+    """Appendix 4E full-dollar summary rows are source-unit evidence."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=1,
+        caption="Appendix 4E",
+        headers=["", "30 June 2021", "30 June 2020"],
+        rows=[
+            [
+                "Revenues from ordinary activities",
+                "Up 5.9%",
+                "$138,176,320",
+                "$130,480,284",
+            ],
+            [
+                "Profit/(Loss) after tax attributable to members",
+                "Up n/a",
+                "$1,846,857",
+                "($2,000,307)",
+            ],
+        ],
+    )
+
+    assert _detect_scale_from_tables([table]) == "units"
+
+
 def test_plain_aud_dollar_statement_header_detects_units_scale():
     """Scale Policy V1 treats plain AUD dollar columns as raw units."""
     from app.services.multipass_extraction import _detect_scale_from_tables
@@ -2642,6 +2670,58 @@ def test_derive_period_start_returns_none_for_missing_inputs():
     assert _derive_period_start(date(2024, 12, 31), "X") is None
 
 
+def test_source_document_classifier_blocks_agm_results_notices():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-10-11_results-of-2022-annual-general-meeting.pdf",
+        (
+            "Results of 2022 Annual General Meeting. "
+            "The following poll results are provided under Listing Rule 3.13.2."
+        ),
+    )
+
+    assert result.document_class == "meeting_results_notice"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "meeting_results_notice"
+
+
+def test_source_document_classifier_blocks_unaudited_non_statement_update():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2021-05-17_financial-update.pdf",
+        (
+            "Financial Update - half year ended 31 March 2021. "
+            "The information is ahead of planned release and remains subject to audit. "
+            "The company anticipates the following headline financial information."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "unaudited_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_keeps_formal_appendix_4e_candidate():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2021-08-25_appendix-4e-fy21.pdf",
+        (
+            "Appendix 4E Year ended 30 June 2021. "
+            "Results for announcement to the market."
+        ),
+    )
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+
+
 # ---------------------------------------------------------------------------
 # Validation gate — new guards (B7: scale, B8: currency, B9: quarterly)
 # ---------------------------------------------------------------------------
@@ -2688,6 +2768,55 @@ def test_validate_gate_scale_unknown_hard_blocked():
     status, error = _validate_gate(_good_payload(scale="unknown"))
     assert status == "failed", f"Expected 'failed', got {status!r}"
     assert error == "validation_gate:scale_unknown", f"Unexpected error key: {error!r}"
+
+
+def test_validate_gate_still_blocks_unclean_pre_tax_ebit_evidence():
+    """The gate remains fail-closed when invalid EBIT evidence was not abstained."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(scale="units")
+    payload["row_refs"] = {"ebit": "Loss before income tax"}
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:metric_label_mismatch:ebit:pre_tax"
+
+
+def test_pre_validation_abstains_pre_tax_ebit_and_preserves_payload():
+    """Invalid EBIT evidence is nulled, not substituted, so other metrics can pass."""
+    from app.services.multipass_extraction import (
+        _abstain_metric_label_mismatches,
+        _validate_gate,
+    )
+
+    payload = _good_payload(scale="units")
+    payload["ebit"] = payload["metrics"]["ebit"]
+    payload["row_refs"] = {
+        "revenue": "Revenue",
+        "ebit": "Loss before income tax",
+        "np_attributable": "Profit after tax attributable to members",
+        "operating_cf": "Net cash from operating activities",
+    }
+    payload["provenance"] = {"ebit": "income_statement:Loss before income tax"}
+
+    abstentions = _abstain_metric_label_mismatches(payload)
+    status, error = _validate_gate(payload)
+
+    assert abstentions == [
+        {
+            "metric": "ebit",
+            "reason": "metric_label_mismatch:pre_tax",
+            "evidence": "Loss before income tax income_statement:Loss before income tax",
+        }
+    ]
+    assert payload["metrics"]["ebit"] is None
+    assert payload["ebit"] is None
+    assert "ebit" not in payload["row_refs"]
+    assert "ebit" not in payload["provenance"]
+    assert payload["metric_abstentions"] == abstentions
+    assert status == "ok"
+    assert error is None
 
 
 def test_validate_scale_blocks_wtc_like_unknown_scale_values():

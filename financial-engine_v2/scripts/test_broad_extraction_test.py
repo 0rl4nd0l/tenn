@@ -95,6 +95,46 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
         )
         self.assertEqual(summary["sanity_checks"]["period_end_valid"]["total"], 0)
 
+    def test_candidate_filter_excludes_meeting_results_and_financial_updates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            docs_root = Path(tmp) / "data" / "asx" / "docs"
+            agm_pdf = _touch_pdf(
+                docs_root
+                / "ARL"
+                / "financial_performance"
+                / "2022-10-28_results-of-meeting_aaaa.pdf"
+            )
+            update_pdf = _touch_pdf(
+                docs_root
+                / "HNG"
+                / "financial_performance"
+                / "2021-05-17_financial-update_bbbb.pdf"
+            )
+            appendix_pdf = _touch_pdf(
+                docs_root
+                / "CAF"
+                / "financial_performance"
+                / "2021-08-25_appendix-4e-fy21_cccc.pdf"
+            )
+
+            candidates, excluded = self.mod.filter_candidate_pdfs(
+                [agm_pdf, update_pdf, appendix_pdf], docs_root
+            )
+
+        self.assertEqual(candidates, [appendix_pdf])
+        self.assertEqual(
+            [row["exclusion_reason"] for row in excluded],
+            [
+                "meeting_results_notice",
+                "unaudited_financial_update_without_formal_statements",
+            ],
+        )
+        self.assertEqual(
+            excluded[0]["source_path"],
+            "data/asx/docs/ARL/financial_performance/"
+            "2022-10-28_results-of-meeting_aaaa.pdf",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

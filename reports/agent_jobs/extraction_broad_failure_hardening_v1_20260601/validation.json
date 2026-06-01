@@ -1,0 +1,78 @@
+{
+  "job_id": "extraction_broad_failure_hardening_v1_20260601",
+  "validated_at": "2026-06-01T12:36:00Z",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_broad_failure_hardening_v1_20260601.md",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "ok": true,
+      "note": "One disjoint Reporting job was active in another worktree; check-overlap passed."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_broad_failure_hardening_v1_20260601.md",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_broad_failure_hardening_v1_20260601.md",
+      "ok": true
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'appendix_4e_full_dollar or source_document_classifier or pre_tax_ebit or unclean_pre_tax' financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "ok": true,
+      "result": "6 passed, 187 deselected"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "ok": true,
+      "result": "193 passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -k advisory",
+      "ok": true,
+      "result": "2 passed, 14 deselected"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py -k 'terminal_candidate_manifest or terminal_extraction_candidate'",
+      "ok": true,
+      "result": "5 passed, 27 deselected"
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "ok": true
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "ok": true
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/python - <<'PY' ... exact five-failure filename filter probe ... PY",
+      "ok": true,
+      "result": "candidates=['GTE', 'CAF']; excluded=[('ARL', 'meeting_results_notice'), ('HNG', 'unaudited_financial_update_without_formal_statements'), ('TLS', 'meeting_results_notice')]"
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/python - <<'PY' ... /data/asx/docs inventory filter probe ... PY",
+      "ok": true,
+      "result": "input_count=28633, candidate_count=26462, excluded_count=2171, excluded_reason_counts={'advisory_only_document': 50, 'meeting_results_notice': 2116, 'unaudited_financial_update_without_formal_statements': 5}"
+    },
+    {
+      "command": "git diff --check",
+      "ok": true
+    },
+    {
+      "command": "git diff --cached --check",
+      "ok": true
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_broad_failure_hardening_v1_20260601.md",
+      "ok": true
+    }
+  ],
+  "runtime_started": false,
+  "datastore_mutation": false,
+  "source_pdf_mutation": false,
+  "github_mutation": false,
+  "full_extraction_graduation_proven": false
+}

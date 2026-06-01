@@ -104,6 +104,14 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "Source metadata identifies an advisory-only announcement; it must not "
         "enter canary selection or metric extraction."
     ),
+    "meeting_results_notice": (
+        "Source metadata identifies an AGM/meeting result or poll notice; it "
+        "must not enter canonical metric extraction."
+    ),
+    "unaudited_financial_update_without_formal_statements": (
+        "Source metadata identifies an unaudited headline update without formal "
+        "financial statements; it must not enter canonical metric extraction."
+    ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
         "downstream gates still decide whether extraction is safe."
@@ -182,6 +190,13 @@ _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?:A\$|\$A|\$|AUD(?:\s+dollars?)?)"
     r"(?!\s*(?:'?\d{3}|0{3}|[mMbB]\b|bn\b|millions?\b|billions?\b|trillions?\b))"
     r"(?=\s|$|\)|,|;|:)",
+    _re.IGNORECASE,
+)
+_APPENDIX_FULL_DOLLAR_VALUE_RE = _re.compile(
+    r"(?<![A-Za-z0-9])"
+    r"(?:A\$|\$A|\$)"
+    r"\s*\(?-?\d{1,3}(?:,\d{3})+(?:\.\d+)?\)?"
+    r"(?!\s*(?:[mMbB]\b|bn\b|millions?\b|billions?\b|trillions?\b))",
     _re.IGNORECASE,
 )
 
@@ -377,6 +392,21 @@ def _detect_scale_from_tables(tables) -> str:
 
         if _explicit_currency_million_hits(" ".join(surfaces)):
             return "millions"
+
+    # Appendix 4D/4E summary tables sometimes express every selected value as
+    # an explicit full-dollar amount (e.g. "$138,176,320") without a separate
+    # "$" column header. Treat that as source-unit evidence for raw units after
+    # all scaled-unit and currency-million checks have had priority.
+    for table in tables[:15]:
+        if not _table_allows_extended_unit_scan(table):
+            continue
+        surfaces = [
+            " ".join(str(cell) for cell in row)
+            for row in (table.rows or [])[:20]
+            if row
+        ]
+        if _APPENDIX_FULL_DOLLAR_VALUE_RE.search(" ".join(surfaces)):
+            return "units"
 
     # Scale Policy V1: a plain currency/$ column unit is an explicit raw-dollar
     # table unit, not "unknown". This is intentionally checked after all
@@ -2096,6 +2126,42 @@ _ADVISORY_ONLY_DOCUMENT_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bappendix\s+4[cd]\s+advisory\b", re.IGNORECASE),
 )
 
+_MEETING_RESULTS_NOTICE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\bresults?\s+of\s+(?:\d{4}\s+)?annual\s+general\s+meeting\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bresults?\s+of\s+meeting\b", re.IGNORECASE),
+    re.compile(
+        r"\bannual\s+general\s+meeting\b.*\b(?:poll\s+results?|proxy\s+votes?|"
+        r"resolutions?\s+(?:were\s+)?(?:passed|decided)|section\s+251aa|"
+        r"listing\s+rule\s+3\.13\.2)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bresult\s+of\s+annual\s+general\s+meeting\b",
+        re.IGNORECASE,
+    ),
+)
+
+_FORMAL_FINANCIAL_STATEMENT_MARKERS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bappendix\s+4[de]\b", re.IGNORECASE),
+    re.compile(r"\bresults?\s+for\s+announcement\s+to\s+the\s+market\b", re.IGNORECASE),
+    re.compile(r"\bstatement\s+of\s+(?:profit|financial\s+position|cash\s+flows?)\b", re.IGNORECASE),
+    re.compile(r"\bconsolidated\s+statement\b", re.IGNORECASE),
+)
+
+_NON_STATEMENT_FINANCIAL_UPDATE_MARKERS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bfinancial\s+update\b", re.IGNORECASE),
+)
+
+_NON_STATEMENT_FINANCIAL_UPDATE_CONTEXT: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bahead\s+of\s+(?:its\s+)?planned\s+release\b", re.IGNORECASE),
+    re.compile(r"\bsubject\s+to\s+audit\b", re.IGNORECASE),
+    re.compile(r"\bheadline\s+financial\s+information\b", re.IGNORECASE),
+    re.compile(r"\banticipates\s+the\s+following\s+headline\b", re.IGNORECASE),
+)
+
 _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
         "A",
@@ -2413,6 +2479,35 @@ def _is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
     return is_advisory_only_document(title, first_page_text)
 
 
+def _is_meeting_results_notice(title: Any, first_page_text: Any) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _MEETING_RESULTS_NOTICE_PATTERNS)
+
+
+def _is_unaudited_non_statement_financial_update(
+    title: Any,
+    first_page_text: Any,
+) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    if not any(pattern.search(text) for pattern in _NON_STATEMENT_FINANCIAL_UPDATE_MARKERS):
+        return False
+    if any(pattern.search(text) for pattern in _FORMAL_FINANCIAL_STATEMENT_MARKERS):
+        return False
+
+    # Title-only candidate selection may only have a filename such as
+    # "financial-update". That is a likely update notice, not a formal report.
+    if not str(first_page_text or "").strip():
+        return True
+
+    return any(
+        pattern.search(text) for pattern in _NON_STATEMENT_FINANCIAL_UPDATE_CONTEXT
+    )
+
+
 def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str, Any]:
     """
     Detect explicit source-period wording without changing the extracted period.
@@ -2612,6 +2707,22 @@ def classify_source_document(
             canary_candidate_allowed=False,
             reason="advisory_only_document",
             evidence=["advisory_only_pattern"],
+        )
+    if _is_meeting_results_notice(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="meeting_results_notice",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="meeting_results_notice",
+            evidence=["meeting_results_notice_pattern"],
+        )
+    if _is_unaudited_non_statement_financial_update(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="unaudited_financial_update_without_formal_statements",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="unaudited_financial_update_without_formal_statements",
+            evidence=["financial_update_without_formal_statement_pattern"],
         )
 
     period_evidence = _detect_source_period_evidence(title, first_page_text)
@@ -3656,6 +3767,37 @@ def _metric_label_mismatch(payload: dict) -> tuple[str, str] | None:
     return None
 
 
+def _abstain_metric_label_mismatches(payload: dict) -> list[dict[str, str]]:
+    """Null invalid metric values whose evidence label is explicitly disallowed."""
+
+    abstentions: list[dict[str, str]] = []
+    while True:
+        mismatch = _metric_label_mismatch(payload)
+        if mismatch is None:
+            return abstentions
+
+        metric_name, source_label = mismatch
+        metrics = payload.get("metrics")
+        if not isinstance(metrics, dict) or metric_name not in metrics:
+            return abstentions
+
+        evidence = _payload_metric_source_text(payload, metric_name)
+        abstentions.append(
+            {
+                "metric": metric_name,
+                "reason": f"metric_label_mismatch:{source_label}",
+                "evidence": evidence[:240],
+            }
+        )
+        metrics[metric_name] = None
+        payload[metric_name] = None
+        for mapping_name in ("row_refs", "provenance", "thinking", "markdown_tables"):
+            mapping = payload.get(mapping_name)
+            if isinstance(mapping, dict):
+                mapping.pop(metric_name, None)
+        payload.setdefault("metric_abstentions", []).append(abstentions[-1])
+
+
 def _explicit_unit_values_from_text(text: str) -> list[float]:
     values: list[float] = []
     for match in _EXPLICIT_SOURCE_UNIT_VALUE_RE.finditer(text or ""):
@@ -4246,6 +4388,12 @@ def run_multipass_extraction(
     if payload["currency"] != "AUD":
         payload["_structured_extraction"]["warnings"].append(
             f"non_aud_currency:{payload['currency']} — values in native currency, no FX conversion"
+        )
+
+    metric_label_abstentions = _abstain_metric_label_mismatches(payload)
+    for abstention in metric_label_abstentions:
+        payload["_structured_extraction"]["warnings"].append(
+            f"{abstention['reason']}:{abstention['metric']} — metric abstained"
         )
 
     # Scale validation — detect obviously wrong multiplier application
