@@ -1,0 +1,29 @@
+{
+  "agent": "Codex",
+  "branch": "safe/cockpit-llama-gpu-primary-display-v1-20260601",
+  "job_id": "cockpit_llama_server_gpu_default_visibility_v1_20260526",
+  "lane": "Reporting",
+  "mode": "safe_extension",
+  "output_dir": "reports/agent_jobs/cockpit_llama_server_gpu_default_visibility_v1_20260526",
+  "registry_released_at": "2026-06-01T10:54:57Z",
+  "related_issue": 61,
+  "schema_version": 1,
+  "status": "implemented_with_validation_caveats",
+  "updated_at": "2026-06-01T20:55:15+10:00",
+  "validation": {
+    "focused_eslint": "PASS",
+    "focused_vitest": "PASS",
+    "full_eslint": "FAIL_UNRELATED_PREEXISTING",
+    "full_vitest_accidental_run": "FAIL_UNRELATED_PREEXISTING",
+    "git_diff_check": "PASS",
+    "gpu_process_guard": "PASS",
+    "json_validation": "PASS",
+    "path_redaction": "PASS",
+    "registry_claim": "PASS",
+    "registry_reclaim_after_allowlist_update": "PASS",
+    "registry_release": "PASS",
+    "task_card_check_diff": "PASS",
+    "task_card_validate": "PASS"
+  },
+  "worktree": "isolated_worktree_redacted"
+}

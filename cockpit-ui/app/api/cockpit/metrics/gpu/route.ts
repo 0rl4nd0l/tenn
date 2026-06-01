@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { prioritizeGpusForDisplay } from '@/lib/gpu-display'
 
 const execFileAsync = promisify(execFile)
 
@@ -146,7 +147,7 @@ export async function GET(): Promise<Response> {
       }
     })
 
-    return Response.json({ details: { gpus, processes } })
+    return Response.json({ details: { gpus: prioritizeGpusForDisplay(gpus, processes), processes } })
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'GPU probe failed'
     return Response.json({ details: { gpus: [], processes: [] }, error: detail }, { status: 200 })

@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import os from 'node:os'
 import { promisify } from 'node:util'
+import { prioritizeGpusForDisplay } from '@/lib/gpu-display'
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const execFileAsync = promisify(execFile)
@@ -410,12 +411,13 @@ async function probeHostGpu(): Promise<ServiceHealth> {
     }
 
     const processes = await probeGpuProcesses(gpus)
+    const displayGpus = prioritizeGpusForDisplay(gpus, processes)
 
     return {
       name: 'gpu',
       status: 'healthy',
       response_time_ms: Date.now() - start,
-      details: { gpus, processes },
+      details: { gpus: displayGpus, processes },
     }
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'GPU probe failed'
