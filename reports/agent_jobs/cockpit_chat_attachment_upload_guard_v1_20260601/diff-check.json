@@ -1,32 +1,8 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/cockpit_chat_attachment_upload_guard_v1_20260601.md",
-      "status": "A"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_cockpit_api_holdings.py",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/diff-check.json",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
