@@ -1,0 +1,51 @@
+{
+  "job_id": "issue97_payload_scorecard_status_v1_20260602",
+  "issue": 97,
+  "issue_url": "https://github.com/0rl4nd0l/tenn/issues/97",
+  "lane": "Evaluation",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Provenance",
+    "Reporting"
+  ],
+  "mode": "audit_only",
+  "decision": "keep_open_with_status_comment",
+  "github_issue_state": "OPEN",
+  "duplicate_or_superseded": false,
+  "product_remediation_claimed": false,
+  "current_branch_evidence": {
+    "payload_scorecard_builder_present": true,
+    "payload_scorecard_cli_gate_present": true,
+    "unmatched_actuals_gate_present": true,
+    "actual_payload_exporter_present": true,
+    "seven_document_canary_scorecard_passed": true,
+    "full_confirmed_metric_profile_passed": false
+  },
+  "proven": [
+    "Report-local confirmed metric payload scorecard plumbing exists.",
+    "CLI gate can consume operator-supplied actual payload JSON.",
+    "Actuals coverage gate fails closed on unmatched actual payload document ids.",
+    "Exporter can build scorecard actuals JSON from explicit accepted extraction_runs rows.",
+    "Post-ATM-scale-fix bounded canary scorecard passed for seven source-reviewed fixtures and 42 metric expectations."
+  ],
+  "data_missing": [
+    "Full actual payload map for the approved 15-fixture confirmed metric coverage profile.",
+    "Passing confirmed_metric_payload gate for the full confirmed metric coverage inventory.",
+    "Approved threshold policy for broad confirmed metric payload scoring.",
+    "Source-reviewed bridge from bounded canary proof into the full confirmed metric coverage profile.",
+    "Broad annual, half-year, 4D, and 4E product graduation evidence."
+  ],
+  "forbidden_surfaces_changed": false,
+  "github_comment_url": "https://github.com/0rl4nd0l/tenn/issues/97#issuecomment-4594945604",
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/207",
+  "stacked_base": {
+    "pr_url": "https://github.com/0rl4nd0l/tenn/pull/206",
+    "branch": "audit/issue98-current-branch-status-v1-20260602",
+    "reason": "Keeps #207 report-only diff narrow while remote migration branch is behind local baseline."
+  },
+  "registry_release": {
+    "released": true,
+    "released_at": "2026-06-01T17:28:29.863539Z",
+    "active_jobs_after_release": []
+  }
+}
