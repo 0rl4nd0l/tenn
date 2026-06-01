@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -360,6 +361,39 @@ def test_load_real_gold_corpus_accepts_operating_cash_flow_alias_and_source_path
 
     if os.getenv(REQUIRE_REAL_GOLD_SOURCE_ASSETS) == "1":
         assert missing_source_files == []
+
+
+def test_real_gold_eval_source_resolver_uses_allowlisted_data_root(
+    monkeypatch, tmp_path
+):
+    source_root = tmp_path / "data" / "asx" / "docs"
+    pdf_path = source_root / "BHP" / "financial_performance" / "report.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(
+        main_app.confirmed_metric_coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    resolved = main_app._resolve_real_gold_source_path(
+        "data/asx/docs/BHP/financial_performance/report.pdf"
+    )
+
+    assert resolved == pdf_path.resolve()
+
+
+def test_real_gold_eval_source_resolver_rejects_unsafe_path(monkeypatch, tmp_path):
+    source_root = tmp_path / "data" / "asx" / "docs"
+    source_root.mkdir(parents=True)
+    monkeypatch.setattr(
+        main_app.confirmed_metric_coverage_review,
+        "CONFIRMED_COVERAGE_SOURCE_ROOTS",
+        (source_root,),
+    )
+
+    with pytest.raises(ValueError, match="source PDF path must be a local path"):
+        main_app._resolve_real_gold_source_path("https://example.com/report.pdf")
 
 
 def test_scorecard_script_defaults_to_real_gold_corpus():
