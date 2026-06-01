@@ -160,6 +160,23 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
     ),
 ]
 
+_IDR_MILLIONS_STATEMENT_UNIT_RE = _re.compile(
+    r"\bexpressed\s+in\s+millions?\s+of\s+rupiah\b"
+    r"|\bpresented\s+in\s+millions?\s+of\s+rupiah\b"
+    r"|\bdisajikan\s+dalam\s+jutaan\s+rupiah\b"
+    r"|\bdalam\s+jutaan\s+rupiah\b"
+    r"|\bjutaan\s+rupiah\b"
+    r"|(?<!\w)rp\.?\s*juta(?:an)?\b",
+    _re.IGNORECASE,
+)
+
+_FINANCIAL_STATEMENT_UNIT_CONTEXT_RE = _re.compile(
+    r"\bstatement\s+of\s+(?:financial\s+position|profit|comprehensive|cash\s*flows?|changes\s+in\s+equity)\b"
+    r"|\bconsolidated\s+statement\s+of\s+(?:financial\s+position|profit|comprehensive|cash\s*flows?|changes\s+in\s+equity)\b"
+    r"|\blaporan\s+(?:posisi\s+keuangan|laba\s+rugi|penghasilan\s+komprehensif|arus\s+kas|perubahan\s+ekuitas)\b",
+    _re.IGNORECASE,
+)
+
 _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:A\$|\$A|\$|AUD(?:\s+dollars?)?)"
@@ -283,6 +300,45 @@ def _detect_explicit_currency_million_header(tables) -> str | None:
     return _dominant_currency_from_hits(hits)
 
 
+def _detect_idr_millions_statement_scale(tables) -> bool:
+    """
+    Detect explicit Indonesian financial-statement units.
+
+    ATM-style filings may have an Appendix 4E summary in Rp trillions while the
+    formal statements say "Expressed in Millions of Rupiah". The statement unit
+    governs extraction values, so this check intentionally runs before the
+    generic first-match scale scan.
+    """
+    for table in tables[:20]:
+        surfaces: list[str] = []
+        if table.headers:
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if getattr(table, "caption", None):
+            surfaces.append(str(table.caption))
+        for row in (table.rows or [])[:3]:
+            surfaces.append(" ".join(str(cell) for cell in row))
+
+        if _IDR_MILLIONS_STATEMENT_UNIT_RE.search(" ".join(surfaces)):
+            return True
+    return False
+
+
+def _detect_scale_from_sections(sections) -> str:
+    """Detect formal statement units that Docling kept as page text sections."""
+    for section in sections or []:
+        if isinstance(section, dict):
+            text = str(section.get("text") or "")
+        else:
+            text = str(getattr(section, "text", "") or "")
+        if not text:
+            continue
+        if _IDR_MILLIONS_STATEMENT_UNIT_RE.search(
+            text
+        ) and _FINANCIAL_STATEMENT_UNIT_CONTEXT_RE.search(text):
+            return "millions"
+    return "unknown"
+
+
 def _detect_scale_from_tables(tables) -> str:
     """
     Scan table headers, captions, and first few body rows for scale indicators
@@ -291,6 +347,9 @@ def _detect_scale_from_tables(tables) -> str:
     ASX reports encode scale in column headings (e.g. "31 Dec 2025 $'000"),
     table captions, or sub-header rows just below the column headers.
     """
+    if _detect_idr_millions_statement_scale(tables):
+        return "millions"
+
     for table in tables[:15]:
         # Build list of text surfaces to scan: headers, caption, first 3 body rows
         surfaces: list[str] = []
@@ -462,6 +521,8 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         "operating income",  # banking: ANZ uses "Operating income" not "Revenue"
         "net interest income",  # banking: core revenue line in consolidated IS
         "operating expenses",  # formal IS row — distinguishes full IS from segment recons
+        "attributable to",  # continued IS owner-attributable rows
+        "owners of the parent",  # bilingual continued IS tables
         # These keywords also appear in CF statements but do NOT cause cross-contamination:
         # each table is scored independently per statement type. A CF table may score 3
         # for income_statement, but the real IS scores 7+ because it has BOTH the P&L
@@ -552,6 +613,8 @@ _HEADER_BONUS = 10
 # or 1 keyword + other body-text matches.  This avoids merging unrelated tables
 # that only incidentally mention a single CF keyword.
 _CF_MERGE_THRESHOLD = 2
+_INCOME_STATEMENT_MERGE_THRESHOLD = 3
+_INCOME_STATEMENT_MERGE_PAGE_WINDOW = 2
 
 # Cash-flow-specific phrases that disqualify a table from claiming the
 # income_statement or balance_sheet slot.  ASX Appendix 5B documents have a
@@ -637,6 +700,67 @@ def _merge_cf_tables(
     return DoclingTable(
         page_number=best_page,
         caption="Merged cashflow statement (Appendix 5B)",
+        rows=merged_rows,
+        headers=best_headers,
+    )
+
+
+def _merge_income_statement_tables(
+    candidates: list[tuple[int, Any]],
+) -> Any:
+    """Merge immediate income-statement continuation tables.
+
+    Bilingual annual reports can split the consolidated statement of profit or
+    loss across consecutive PDF pages. The first page contains revenue/operating
+    profit, while the continuation page contains the owner-attributable profit
+    rows. Keeping only the highest-scoring first page lets the model select total
+    profit instead of parent-owner profit.
+    """
+    from app.services.docling_extract import DoclingTable
+
+    ordered = sorted(candidates, key=lambda item: item[1].page_number)
+    best_table = max(candidates, key=lambda item: item[0])[1]
+    best_headers = list(best_table.headers or [])
+    best_page = ordered[0][1].page_number
+    target_width = max(
+        [len(best_headers)]
+        + [len(row) for _score, table in candidates for row in (table.rows or [])],
+        default=0,
+    )
+
+    merged_rows: list[list[str]] = []
+    seen_rows: set[str] = set()
+    if best_headers:
+        header = best_headers + [""] * max(0, target_width - len(best_headers))
+        merged_rows.append(header[:target_width])
+        seen_rows.add(" ".join(header).strip().lower())
+
+    for _score, table in ordered:
+        for row in table.rows:
+            key = " ".join(str(c) for c in row).strip().lower()
+            if key in seen_rows or not key:
+                continue
+            seen_rows.add(key)
+            normalized_row = [str(cell) for cell in row]
+            if target_width:
+                if len(normalized_row) < target_width:
+                    normalized_row = normalized_row + [""] * (
+                        target_width - len(normalized_row)
+                    )
+                elif len(normalized_row) > target_width:
+                    normalized_row = normalized_row[:target_width]
+            merged_rows.append(normalized_row)
+
+    logger.info(
+        "merged %d income statement tables into synthetic table (%d rows, pages %s)",
+        len(candidates),
+        len(merged_rows),
+        sorted(set(t.page_number for _score, t in candidates)),
+    )
+
+    return DoclingTable(
+        page_number=best_page,
+        caption="Merged income statement",
         rows=merged_rows,
         headers=best_headers,
     )
@@ -790,6 +914,19 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         if len(cf_candidates) > 1:
             labelled["cashflow_statement"] = _merge_cf_tables(cf_candidates)
 
+    if pools["income_statement"] and labelled.get("income_statement") is not None:
+        winner = labelled["income_statement"]
+        winner_page = int(getattr(winner, "page_number", 0) or 0)
+        is_candidates = [
+            (score, tbl)
+            for score, _not_toc, tbl in pools["income_statement"]
+            if score >= _INCOME_STATEMENT_MERGE_THRESHOLD
+            and abs(int(getattr(tbl, "page_number", 0) or 0) - winner_page)
+            <= _INCOME_STATEMENT_MERGE_PAGE_WINDOW
+        ]
+        if len(is_candidates) > 1:
+            labelled["income_statement"] = _merge_income_statement_tables(is_candidates)
+
     def _normalize_locator_text(value: Any) -> str:
         text = str(value or "").strip().lower()
         if not text:
@@ -905,7 +1042,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             for marker in _NET_DEBT_DETAIL_ADJUSTMENT_MARKERS
         )
         has_net_debt_row = any(
-            _normalize_locator_text(row[0]) == "net debt" and _row_has_numeric_payload(row)
+            _is_explicit_net_debt_evidence(row[0]) and _row_has_numeric_payload(row)
             for row, _row_text in row_payloads
         )
         return (
@@ -942,6 +1079,19 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                 return True
         return False
 
+    def _table_has_balance_sheet_section_context(
+        table: DoclingTable, row_index: int
+    ) -> bool:
+        """Detect summary tables where a Balance Sheet section owns the net-debt row."""
+        start = max(0, row_index - 6)
+        for idx in range(start, row_index):
+            row_text = _normalize_locator_text(
+                " ".join(str(cell) for cell in table.rows[idx])
+            )
+            if row_text in {"balance sheet", "statement of financial position"}:
+                return True
+        return False
+
     def _is_explicit_point_in_time_net_debt_row(
         table: DoclingTable, row_index: int
     ) -> bool:
@@ -950,8 +1100,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         row = table.rows[row_index]
         if not row:
             return False
-        label = _normalize_locator_text(row[0])
-        if label != "net debt" or not _row_has_numeric_payload(row):
+        if not _is_explicit_net_debt_evidence(row[0]) or not _row_has_numeric_payload(row):
             return False
 
         header_text = (
@@ -973,6 +1122,8 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             any(marker in row_text for marker in _POINT_IN_TIME_TABLE_MARKERS)
             for row_text in context_rows
         ):
+            return True
+        if _table_has_balance_sheet_section_context(table, row_index):
             return True
 
         # Do not treat annual formula-style tables as point-in-time net debt notes
@@ -1044,11 +1195,20 @@ Rules:
   For banks: "Net interest income" or "Total operating income" is the revenue equivalent.
 - ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax",
   "Profit from operations", "Profit / (loss) from operating activities", "Operating profit",
-  "Statutory EBIT", "Operating income", "Profit before income tax", or "Cash profit before tax".
+  "Statutory EBIT", or "Operating income".
   Do NOT use Net Profit as a proxy.
-  CRITICAL: if the table has BOTH "Profit before credit impairment and income tax" AND
-  "Profit before income tax", you MUST use "Profit before income tax" (the row AFTER credit impairment).
-  "Profit before credit impairment and income tax" is NOT ebit.
+  Do NOT use generic "Profit before income tax", "Loss before income tax",
+  "Profit before taxation", "Loss before taxation", "Profit before tax", or
+  "Cash profit before tax" as EBIT unless the same row is explicitly labeled
+  EBIT or operating profit/income.
+  CRITICAL: "Profit before credit impairment and income tax" is NOT ebit.
+  Generic profit/loss-before-tax rows are also NOT ebit unless the same row is
+  explicitly labeled EBIT or operating profit/income.
+- np_attributable: extract profit/loss after tax attributable to owners, shareholders,
+  ordinary equity holders, or security holders when that row is explicitly present.
+  Do NOT use total comprehensive income attributable to owners as a substitute.
+  If no owner-attributable profit/loss row is present, use the explicit statutory
+  profit/loss after income tax for the period, not total comprehensive income.
 - capex: Capital Expenditure must be a SPECIFIC LINE ITEM, NOT a total or subtotal.
   Correct labels: "Payments for property, plant and equipment", "Purchases of property, plant and equipment",
   "Purchase of PPE", "Additions to fixed assets", "Capital expenditure",
@@ -1974,14 +2134,16 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
 )
 
+_SOURCE_YEAR_TEXT_PATTERN = r"\d\s*\d\s*\d\s*\d"
+
 _SOURCE_DATE_TEXT_PATTERN = (
     r"(?P<date>"
     r"\d{1,2}(?:st|nd|rd|th)?\s+"
     r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
     r"Nov(?:ember)?|Dec(?:ember)?)\s+"
-    r"\d{4}"
-    r"|\d{4}-\d{1,2}-\d{1,2}"
+    rf"{_SOURCE_YEAR_TEXT_PATTERN}"
+    rf"|{_SOURCE_YEAR_TEXT_PATTERN}\s*-\s*\d{{1,2}}\s*-\s*\d{{1,2}}"
     r")"
 )
 
@@ -1990,7 +2152,8 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "A",
         "year_ended_explicit_date",
         re.compile(
-            rf"\b(?:for\s+the\s+)?(?:financial\s+)?year\s+ended\s+"
+            rf"\b(?:for\s+the\s+|the\s+)?(?:financial\s+)?"
+            rf"(?<!half[-\s])year\s+ended\s+"
             rf"{_SOURCE_DATE_TEXT_PATTERN}",
             re.IGNORECASE,
         ),
@@ -2009,7 +2172,7 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "quarter_ended_explicit_date",
         re.compile(
             rf"\b(?:for\s+the\s+)?(?:(?:quarter)|(?:(?:three|3)\s+months?))"
-            rf"\s+ended\s+{_SOURCE_DATE_TEXT_PATTERN}",
+            rf"\s+ended(?:\s+\([^)]*\))?\s+{_SOURCE_DATE_TEXT_PATTERN}",
             re.IGNORECASE,
         ),
     ),
@@ -2036,12 +2199,76 @@ _SOURCE_UNIT_MULTIPLIERS = {
     "trillions": 1_000_000_000_000,
 }
 
+_PROSE_HIGHLIGHT_VALUE = (
+    r"(?:AUD\s*)?"
+    r"(?:A\$|\$A|\$)?\s*"
+    r"(?P<value>\(?-?\d+(?:,\d{3})*(?:\.\d+)?\)?)\s*"
+    r"(?P<unit>million|millions|m|billion|billions|bn|b)\b"
+)
+
+_PROSE_HIGHLIGHT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "revenue",
+        re.compile(
+            rf"\b(?:1h|h1|first\s+half|half[-\s]?year)?\s*"
+            rf"revenue\s+of\s+{_PROSE_HIGHLIGHT_VALUE}",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "np_attributable",
+        re.compile(
+            rf"\bNPAT\b(?:\s+\w+){{0,3}}\s+(?:of\s+|at\s+)?"
+            rf"{_PROSE_HIGHLIGHT_VALUE}",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "cash_end",
+        re.compile(
+            rf"\bcash\s+of\s+{_PROSE_HIGHLIGHT_VALUE}\s+as\s+at\b",
+            re.IGNORECASE,
+        ),
+    ),
+)
+
+_PROSE_HIGHLIGHT_BLOCKERS = (
+    "guidance",
+    "forecast",
+    "projected",
+    "projection",
+    "target",
+    "expected",
+)
+
 _EBIT_LABEL_BLOCKERS = (
     "ebitda",
     "earnings before interest tax depreciation",
     "earnings before interest, tax, depreciation",
     "earnings before interest and tax depreciation",
     "earnings before interest, taxes, depreciation",
+)
+
+_EBIT_PRE_TAX_LABEL_BLOCKERS = (
+    "profit before income tax",
+    "loss before income tax",
+    "profit/(loss) before income tax",
+    "profit or loss before income tax",
+    "profit before taxation",
+    "loss before taxation",
+    "profit before tax",
+    "loss before tax",
+    "cash profit before tax",
+    "laba sebelum pajak",
+)
+
+_EBIT_PRE_TAX_EXPLICIT_ALLOW_MARKERS = (
+    "ebit",
+    "operating profit",
+    "operating income",
+    "profit from operations",
+    "profit/(loss) from operating activities",
+    "laba usaha",
 )
 
 
@@ -2086,6 +2313,78 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
                 return value, provenance
 
     return None, ""
+
+
+def _parse_prose_highlight_value(match: re.Match[str]) -> float | None:
+    raw = str(match.group("value") or "").strip()
+    unit = str(match.group("unit") or "").strip().lower()
+    multiplier = _SOURCE_UNIT_MULTIPLIERS.get(unit)
+    if multiplier is None:
+        return None
+    negative = raw.startswith("(") and raw.endswith(")")
+    raw = raw.strip("()").replace(",", "")
+    try:
+        value = float(raw) * multiplier
+    except ValueError:
+        return None
+    matched_text = match.group(0).lower()
+    if "loss" in matched_text or negative:
+        value = -abs(value)
+    return value
+
+
+def _section_page_number(section: dict) -> int | None:
+    try:
+        return int(section.get("page"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_metric_highlights_from_prose(
+    sections: list[dict],
+) -> tuple[dict[str, float], dict[str, str], dict[str, str]]:
+    """Extract explicit current-period financial facts from prose highlights.
+
+    This fallback is intentionally narrow: it reads only explicit money values
+    tied to canonical metric labels and skips forecast/guidance contexts. It is
+    not a substitute for table extraction and must not map EBITDA to EBIT.
+    """
+    metrics: dict[str, float] = {}
+    provenance: dict[str, str] = {}
+    row_refs: dict[str, str] = {}
+    candidates = [
+        section
+        for section in sections
+        if section.get("text")
+        and (page := _section_page_number(section)) is not None
+        and 0 < page <= 3
+    ]
+    if not candidates:
+        candidates = [section for section in sections if section.get("text")][:8]
+
+    for section in candidates:
+        text = str(section.get("text") or "")
+        page = section.get("page", "?")
+        for metric_name, pattern in _PROSE_HIGHLIGHT_PATTERNS:
+            if metric_name in metrics:
+                continue
+            match = pattern.search(text)
+            if not match:
+                continue
+            matched_text = " ".join(match.group(0).split())
+            context = text[max(0, match.start() - 80) : match.end()].lower()
+            if metric_name == "revenue" and any(
+                blocker in context for blocker in _PROSE_HIGHLIGHT_BLOCKERS
+            ):
+                continue
+            value = _parse_prose_highlight_value(match)
+            if value is None:
+                continue
+            metrics[metric_name] = value
+            row_refs[metric_name] = matched_text[:120]
+            provenance[metric_name] = f"prose_highlight:page_{page}:{matched_text[:120]}"
+
+    return metrics, provenance, row_refs
 
 
 def _combined_source_text(*values: Any) -> str:
@@ -2141,7 +2440,12 @@ def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str
 
 def _normalize_source_date_text(value: Any) -> str:
     text = str(value or "").strip()
-    return re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.IGNORECASE)
+    return re.sub(
+        r"\b(?:\d\s*){4}\b",
+        lambda match: re.sub(r"\s+", "", match.group(0)),
+        text,
+    )
 
 
 def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str, Any]:
@@ -2189,6 +2493,33 @@ def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str
     return {"period_type": None, "period_end": None, "reason": "not_detected", "hits": []}
 
 
+def _apply_source_period_end_type_correction(
+    pass1: dict[str, Any],
+    source_period_end_evidence: dict[str, Any],
+) -> None:
+    """Correct Pass 1 period type only from unambiguous typed source-date evidence."""
+
+    source_period_type = str(source_period_end_evidence.get("period_type") or "").strip()
+    source_period_end = str(source_period_end_evidence.get("period_end") or "").strip()
+    if source_period_type not in {"A", "H", "Q"} or not source_period_end:
+        return
+
+    current_period_type = str(pass1.get("report_type") or "").strip()
+    if current_period_type == source_period_type:
+        return
+    if current_period_type and current_period_type not in {"A", "H", "Q"}:
+        return
+
+    pass1["_source_period_type_correction"] = {
+        "from": current_period_type or None,
+        "to": source_period_type,
+        "reason": str(source_period_end_evidence.get("reason") or "").strip()
+        or "explicit_source_period_end",
+        "period_end": source_period_end,
+    }
+    pass1["report_type"] = source_period_type
+
+
 def _early_period_source_text(
     sections: list[dict],
     *,
@@ -2218,6 +2549,53 @@ def _early_period_source_text(
             for section in sections[:max_sections_when_pages_unknown]
         ]
     return " ".join(part for part in selected if part)[:max_chars]
+
+
+def _early_period_table_text(
+    tables: list[Any],
+    *,
+    max_page: int = 4,
+    max_tables: int = 12,
+    max_chars: int = 6000,
+) -> str:
+    """Return early table text for typed source-period evidence only."""
+    selected: list[str] = []
+    for table in tables:
+        try:
+            page_number = int(getattr(table, "page_number", 0) or 0)
+        except (TypeError, ValueError):
+            page_number = 0
+        if page_number and page_number > max_page:
+            continue
+
+        parts: list[str] = []
+        caption = str(getattr(table, "caption", "") or "").strip()
+        if caption:
+            parts.append(caption)
+        headers = getattr(table, "headers", []) or []
+        if headers:
+            parts.append(" ".join(str(cell) for cell in headers if str(cell).strip()))
+        for row in getattr(table, "rows", []) or []:
+            row_text = " ".join(str(cell) for cell in row if str(cell).strip()).strip()
+            if row_text:
+                parts.append(row_text)
+        rows = [list(row) for row in getattr(table, "rows", []) or []]
+        width = max((len(row) for row in rows), default=0)
+        for col_idx in range(width):
+            column_text = " ".join(
+                str(row[col_idx]).strip()
+                for row in rows
+                if col_idx < len(row) and str(row[col_idx]).strip()
+            )
+            if column_text:
+                parts.append(column_text)
+        table_text = " ".join(parts).strip()
+        if table_text:
+            selected.append(table_text)
+        if len(selected) >= max_tables:
+            break
+
+    return " ".join(selected)[:max_chars]
 
 
 def classify_source_document(
@@ -2376,6 +2754,254 @@ def _parse_table_numeric_cell(cell: Any) -> float | None:
     return -value if negative else value
 
 
+def _parse_statement_numeric_cell(cell: Any) -> float | None:
+    """Parse statement cells, including Indonesian dot thousands separators."""
+    text = str(cell or "").strip()
+    if not text or text in {"-", "−", "–", "—"}:
+        return None
+
+    negative = False
+    if text.startswith("(") and text.endswith(")"):
+        negative = True
+        text = text[1:-1].strip()
+
+    text = (
+        text.replace("A$", "")
+        .replace("US$", "")
+        .replace("$", "")
+        .replace("AUD", "")
+        .replace("USD", "")
+        .replace("IDR", "")
+        .replace("Rp", "")
+        .replace("RP", "")
+        .replace("−", "-")
+        .replace("–", "-")
+        .replace("—", "-")
+        .strip()
+    )
+    if _re.fullmatch(r"-?\d{1,3}(?:\.\d{3})+(?:,\d+)?", text):
+        text = text.replace(".", "").replace(",", ".")
+    else:
+        text = text.replace(",", "")
+    if not text or not _re.search(r"\d", text):
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return -value if negative else value
+
+
+def _markdown_table_rows(markdown: Any) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for line in str(markdown or "").splitlines():
+        if "|" not in line:
+            continue
+        cells = [cell.strip() for cell in line.split("|")]
+        if not any(cells):
+            continue
+        non_empty = [cell for cell in cells if cell]
+        if non_empty and all(_re.fullmatch(r"-+", cell) for cell in non_empty):
+            continue
+        rows.append(cells)
+    return rows
+
+
+def _statement_row_label(row: list[str]) -> str:
+    parts: list[str] = []
+    for cell in row:
+        text = str(cell or "").strip()
+        if not text:
+            continue
+        if _parse_statement_numeric_cell(text) is not None:
+            continue
+        normalized = _normalise_evidence_row_ref(text)
+        if normalized in {"note", "notes", "catatan/ notes"}:
+            continue
+        parts.append(text)
+    return " ".join(parts).strip()[:220] or (str(row[0]).strip() if row else "")
+
+
+def _statement_note_columns(rows: list[list[str]]) -> set[int]:
+    note_columns: set[int] = set()
+    for row in rows[:5]:
+        for idx, cell in enumerate(row):
+            normalized = _normalise_evidence_row_ref(cell)
+            if normalized in {"note", "notes", "catatan/ notes"}:
+                note_columns.add(idx)
+    return note_columns
+
+
+def _first_current_period_value(
+    row: list[str], note_columns: set[int] | None = None
+) -> float | None:
+    parsed: list[tuple[str, float]] = []
+    note_columns = note_columns or set()
+    for idx, cell in enumerate(row[1:], start=1):
+        if idx in note_columns:
+            continue
+        value = _parse_statement_numeric_cell(cell)
+        if value is not None:
+            parsed.append((str(cell or "").strip(), value))
+    if not parsed:
+        return None
+    return parsed[0][1]
+
+
+_NPAT_OWNER_MARKERS = (
+    "owners of the parent",
+    "owners of parent",
+    "owner of the parent",
+    "pemilik entitas induk",
+    "ordinary equity holders",
+    "shareholders of",
+    "security holders",
+    "members of",
+)
+
+_NPAT_PROFIT_CONTEXT_MARKERS = (
+    "profit",
+    "loss",
+    "laba",
+    "rugi",
+)
+
+_NPAT_ATTRIBUTABLE_CONTEXT_MARKERS = (
+    "attributable",
+    "diatribusikan",
+)
+
+_NPAT_TOTAL_COMPREHENSIVE_MARKERS = (
+    "total comprehensive",
+    "penghasilan komprehensif",
+)
+
+_NPAT_TOTAL_PROFIT_ROW_MARKERS = (
+    "laba tahun berjalan",
+    "profit for the year",
+    "net profit for the year",
+    "net loss for the year",
+)
+
+_NPAT_PROFIT_AFTER_TAX_ROW_MARKERS = (
+    "profit/(loss) after income tax expense for the year",
+    "profit/(loss) after income tax expense for the period",
+    "profit/(loss) after income tax expense for the half-year",
+    "profit after income tax expense for the year",
+    "loss after income tax expense for the year",
+)
+
+
+def _find_owner_attributable_profit_row(
+    rows: list[list[str]],
+) -> tuple[float, str] | None:
+    note_columns = _statement_note_columns(rows)
+    for idx, row in enumerate(rows):
+        label = _normalise_evidence_row_ref(_statement_row_label(row))
+        if not any(marker in label for marker in _NPAT_OWNER_MARKERS):
+            continue
+        context_rows = rows[max(0, idx - 6) : idx]
+        context = _normalise_evidence_row_ref(
+            " ".join(_statement_row_label(context_row) for context_row in context_rows)
+        )
+        evidence_context = f"{context} {label}".strip()
+        if any(
+            marker in evidence_context for marker in _NPAT_TOTAL_COMPREHENSIVE_MARKERS
+        ):
+            continue
+        if not any(
+            marker in evidence_context for marker in _NPAT_ATTRIBUTABLE_CONTEXT_MARKERS
+        ):
+            continue
+        if not any(
+            marker in evidence_context for marker in _NPAT_PROFIT_CONTEXT_MARKERS
+        ):
+            continue
+        value = _first_current_period_value(row, note_columns)
+        if value is None:
+            continue
+        row_label = _statement_row_label(row)
+        row_is_self_contained = any(
+            marker in label for marker in _NPAT_ATTRIBUTABLE_CONTEXT_MARKERS
+        ) and any(marker in label for marker in _NPAT_PROFIT_CONTEXT_MARKERS)
+        if row_is_self_contained:
+            return value, row_label
+        heading = _statement_row_label(context_rows[-1]) if context_rows else ""
+        return value, f"{heading} {row_label}".strip()
+    return None
+
+
+def _find_profit_after_tax_row(rows: list[list[str]]) -> tuple[float, str] | None:
+    note_columns = _statement_note_columns(rows)
+    for row in rows:
+        label = _normalise_evidence_row_ref(_statement_row_label(row))
+        if any(marker in label for marker in _NPAT_TOTAL_COMPREHENSIVE_MARKERS):
+            continue
+        if not any(marker in label for marker in _NPAT_PROFIT_AFTER_TAX_ROW_MARKERS):
+            continue
+        value = _first_current_period_value(row, note_columns)
+        if value is None:
+            continue
+        return value, _statement_row_label(row)
+    return None
+
+
+def _np_attributable_selection_needs_repair(row_ref: Any, provenance: Any) -> bool:
+    evidence = _normalise_evidence_row_ref(_combined_source_text(row_ref, provenance))
+    if not evidence:
+        return False
+    if any(marker in evidence for marker in _NPAT_TOTAL_COMPREHENSIVE_MARKERS):
+        return True
+    owner_selected = any(marker in evidence for marker in _NPAT_OWNER_MARKERS)
+    owner_context_is_profit = any(
+        marker in evidence for marker in _NPAT_PROFIT_CONTEXT_MARKERS
+    ) and any(marker in evidence for marker in _NPAT_ATTRIBUTABLE_CONTEXT_MARKERS)
+    if owner_selected and not owner_context_is_profit:
+        return True
+    if any(marker in evidence for marker in _NPAT_TOTAL_PROFIT_ROW_MARKERS) and not any(
+        marker in evidence for marker in _NPAT_ATTRIBUTABLE_CONTEXT_MARKERS
+    ):
+        return True
+    return False
+
+
+def _repair_np_attributable_from_income_statement(
+    *,
+    merged_metrics: dict[str, Any],
+    row_refs: dict[str, str],
+    provenance: dict[str, str],
+    markdown_map: dict[str, str],
+    pass1_result: dict[str, Any],
+) -> None:
+    if merged_metrics.get("np_attributable") is None:
+        return
+    if not _np_attributable_selection_needs_repair(
+        row_refs.get("np_attributable"),
+        provenance.get("np_attributable"),
+    ):
+        return
+
+    rows = _markdown_table_rows(markdown_map.get("np_attributable"))
+    if not rows:
+        return
+
+    candidate = _find_owner_attributable_profit_row(rows)
+    if candidate is None:
+        candidate = _find_profit_after_tax_row(rows)
+    if candidate is None:
+        return
+
+    raw_value, source_row_ref = candidate
+    multiplier = SCALE_MULTIPLIERS.get(pass1_result.get("scale", "unknown"), 1)
+    merged_metrics["np_attributable"] = raw_value * multiplier
+    row_refs["np_attributable"] = source_row_ref
+    provenance["np_attributable"] = f"income_statement:deterministic:{source_row_ref}"
+    logger.info(
+        "Repaired np_attributable from explicit income-statement row_ref=%r",
+        source_row_ref,
+    )
+
+
 def _forward_fill_header_row(row: list[Any], width: int) -> list[str]:
     filled = [""] * width
     carry = ""
@@ -2403,7 +3029,11 @@ def _net_debt_column_contexts(table: Any) -> dict[int, str]:
         return {}
 
     column_parts: dict[int, list[str]] = {idx: [] for idx in range(1, width)}
-    for row in header_rows:
+    for row_number, row in enumerate(header_rows):
+        if row_number > 0 and row and str(row[0] or "").strip():
+            trailing_cells = [str(cell or "").strip() for cell in row[1:]]
+            if not any(trailing_cells):
+                continue
         filled = _forward_fill_header_row(row, width)
         for idx in range(1, width):
             part = filled[idx].strip()
@@ -2418,11 +3048,16 @@ def _net_debt_period_match_score(context: str, period_end: str | None) -> int:
         return 0
 
     context_lower = context.lower()
+    short_year = period.strftime("%y")
     exact_patterns = (
         rf"\b{period.day}\s+{period.strftime('%b').lower()}\s+{period.year}\b",
         rf"\b{period.day}\s+{period.strftime('%B').lower()}\s+{period.year}\b",
+        rf"\b{period.day}\s+{period.strftime('%b').lower()}\s+{short_year}\b",
+        rf"\b{period.day}\s+{period.strftime('%B').lower()}\s+{short_year}\b",
         rf"\b{period.strftime('%b').lower()}\s+{period.day},?\s+{period.year}\b",
         rf"\b{period.strftime('%B').lower()}\s+{period.day},?\s+{period.year}\b",
+        rf"\b{period.strftime('%b').lower()}\s+{period.day},?\s+{short_year}\b",
+        rf"\b{period.strftime('%B').lower()}\s+{period.day},?\s+{short_year}\b",
     )
     if any(_re.search(pattern, context_lower) for pattern in exact_patterns):
         return 100
@@ -2439,6 +3074,43 @@ def _net_debt_period_match_score(context: str, period_end: str | None) -> int:
     return 0
 
 
+_PERIOD_COLUMN_DATE_RE = _re.compile(
+    r"\b\d{1,2}\s+"
+    r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+\d{2,4}\b"
+    r"|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+\d{2,4}\b"
+    r"|\b\d{4}\s*-\s*\d{1,2}\s*-\s*\d{1,2}\b",
+    _re.IGNORECASE,
+)
+
+
+def _period_column_matches_reporting_period(
+    period_col: Any, period_end: str | None
+) -> bool:
+    text = str(period_col or "").strip()
+    if not text:
+        return True
+    period = parse_period_end(period_end)
+    if period is None:
+        return True
+
+    saw_explicit_date = False
+    for match in _PERIOD_COLUMN_DATE_RE.finditer(text):
+        parsed = parse_period_end(match.group(0))
+        if parsed is None:
+            continue
+        saw_explicit_date = True
+        if parsed == period:
+            return True
+
+    if saw_explicit_date:
+        return False
+    return _net_debt_period_match_score(text, period_end) > 0
+
+
 def _recover_explicit_net_debt_from_table(
     table: Any, *, period_end: str | None
 ) -> tuple[float, str, str | None] | None:
@@ -2451,7 +3123,8 @@ def _recover_explicit_net_debt_from_table(
     for row in rows:
         if not row:
             continue
-        if _normalise_evidence_row_ref(row[0]) != "net debt":
+        row_ref = str(row[0] or "").strip()
+        if not _is_explicit_net_debt_evidence(row_ref):
             continue
 
         numeric_candidates: list[tuple[int, int, float, str]] = []
@@ -2467,7 +3140,7 @@ def _recover_explicit_net_debt_from_table(
             return None
         if len(numeric_candidates) == 1:
             _score, _col_idx, value, context = numeric_candidates[0]
-            return value, "Net debt", context or None
+            return value, row_ref, context or None
 
         best_score = max(candidate[0] for candidate in numeric_candidates)
         best_candidates = [
@@ -2475,7 +3148,7 @@ def _recover_explicit_net_debt_from_table(
         ]
         if best_score > 0 and len(best_candidates) == 1:
             _score, _col_idx, value, context = best_candidates[0]
-            return value, "Net debt", context or None
+            return value, row_ref, context or None
 
         logger.info(
             "Abstaining deterministic net_debt_note fallback on page %s due to ambiguous candidates: %s",
@@ -2521,6 +3194,14 @@ _DERIVED_NET_DEBT_ROW_FRAGMENTS = frozenset(
         "net debt ratio",
         "net debt to",
         "net debt and",
+        "included in net debt",
+        "derivatives included in net debt",
+        "equity and net debt",
+        "equity and net drawn debt",
+        "included in net drawn debt",
+        "net drawn debt ratio",
+        "net drawn debt to",
+        "net drawn debt and",
         "net gearing",
         # Reconciliation opening-balance labels common in mining-sector annual reports
         "net debt: beginning",
@@ -2705,13 +3386,26 @@ def _run_pass4_reconciler(
             if bs_result is not None:
                 total_debt = bs_result.get("total_debt")
                 total_debt_row_ref = bs_result.get("row_refs", {}).get("total_debt")
+                period_col = bs_result.get("period_col")
                 cash_end = merged_metrics.get("cash_end")
+                derived_net_debt = (
+                    total_debt - cash_end
+                    if total_debt is not None and cash_end is not None
+                    else None
+                )
+                period_col_matches = _period_column_matches_reporting_period(
+                    period_col,
+                    pass1_result.get("period_end"),
+                )
                 if (
                     total_debt is not None
                     and cash_end is not None
+                    and derived_net_debt is not None
+                    and derived_net_debt >= 0
+                    and period_col_matches
                     and _is_strong_total_debt_evidence(total_debt_row_ref, total_debt)
                 ):
-                    merged_metrics["net_debt"] = total_debt - cash_end
+                    merged_metrics["net_debt"] = derived_net_debt
                     row_ref = f"total_debt({total_debt:.0f})-cash_end({cash_end:.0f})"
                     row_refs["net_debt"] = row_ref
                     provenance["net_debt"] = (
@@ -2727,12 +3421,32 @@ def _run_pass4_reconciler(
                         merged_metrics["net_debt"],
                         net_debt_conf,
                     )
+                elif derived_net_debt is not None and derived_net_debt < 0:
+                    logger.info(
+                        "Skipping negative derived net_debt from total_debt=%r cash_end=%r",
+                        total_debt,
+                        cash_end,
+                    )
+                elif total_debt is not None and cash_end is not None and not period_col_matches:
+                    logger.info(
+                        "Skipping net_debt derivation from non-current debt period_col=%r for period_end=%r",
+                        period_col,
+                        pass1_result.get("period_end"),
+                    )
                 elif total_debt is not None and cash_end is not None:
                     logger.info(
                         "Skipping net_debt derivation from weak debt evidence row_ref=%r value=%r",
                         total_debt_row_ref,
                         total_debt,
                     )
+
+    _repair_np_attributable_from_income_statement(
+        merged_metrics=merged_metrics,
+        row_refs=row_refs,
+        provenance=provenance,
+        markdown_map=markdown_map,
+        pass1_result=pass1_result,
+    )
 
     # Prose fallback: shares_outstanding from note sections when tables yield null.
     # Banking filings (ANZ, WBC) often report share counts in prose Note 13/14
@@ -2746,6 +3460,19 @@ def _run_pass4_reconciler(
             prose_match = _EXTRACTION_RE.match(prose_prov)
             if prose_match:
                 row_refs["shares_outstanding"] = prose_match.group("detail")
+
+    if sections:
+        prose_metrics, prose_provenance, prose_row_refs = (
+            _extract_metric_highlights_from_prose(sections)
+        )
+        for metric_name, value in prose_metrics.items():
+            if merged_metrics.get(metric_name) is not None:
+                continue
+            merged_metrics[metric_name] = value
+            provenance[metric_name] = prose_provenance[metric_name]
+            row_refs[metric_name] = prose_row_refs[metric_name]
+            confidence_weighted_sum += 0.72
+            confidence_weight += 1
 
     # Weighted average confidence — each source weighted by metrics contributed
     metric_confidence = (
@@ -2765,6 +3492,9 @@ def _run_pass4_reconciler(
         "source_period_type": pass1_result.get("_source_period_type"),
         "source_period_evidence": pass1_result.get("_source_period_evidence"),
         "source_period_end_evidence": pass1_result.get("_source_period_end_evidence"),
+        "source_period_type_correction": pass1_result.get(
+            "_source_period_type_correction"
+        ),
         "source_document_classification": pass1_result.get(
             "_source_document_classification"
         ),
@@ -2919,6 +3649,10 @@ def _metric_label_mismatch(payload: dict) -> tuple[str, str] | None:
     compact = evidence.replace(",", "")
     if any(blocker in compact for blocker in _EBIT_LABEL_BLOCKERS):
         return "ebit", "ebitda"
+    if any(blocker in compact for blocker in _EBIT_PRE_TAX_LABEL_BLOCKERS) and not any(
+        marker in compact for marker in _EBIT_PRE_TAX_EXPLICIT_ALLOW_MARKERS
+    ):
+        return "ebit", "pre_tax"
     return None
 
 
@@ -3248,6 +3982,17 @@ def run_multipass_extraction(
     source_period_end_evidence = _detect_source_period_end_evidence(
         title, early_period_text or first_page_text
     )
+    if not source_period_end_evidence.get("period_end"):
+        early_table_text = _early_period_table_text(structured_doc.tables)
+        if early_table_text:
+            source_period_end_evidence = _detect_source_period_end_evidence(
+                title,
+                " ".join(
+                    part
+                    for part in (early_period_text or first_page_text, early_table_text)
+                    if part
+                ),
+            )
     source_document_classification = classify_source_document(title, first_page_text)
     if not source_document_classification.extraction_candidate_allowed:
         error = f"validation_gate:{source_document_classification.reason}"
@@ -3314,19 +4059,29 @@ def run_multipass_extraction(
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
     if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
         pass1["period_end"] = source_period_end_evidence["period_end"]
+    _apply_source_period_end_type_correction(pass1, source_period_end_evidence)
     pass1["_source_period_evidence"] = source_period_evidence
     pass1["_source_period_end_evidence"] = source_period_end_evidence
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
     pass1["_source_document_classification"] = source_document_classification.to_dict()
 
-    # Table-header scale detection is always authoritative — ASX filings print scale
-    # explicitly in column headers ($'000, A$M, etc.) which is more reliable than
-    # LLM text inference. Run unconditionally; fall back to Pass 1 if headers give nothing.
+    # Deterministic source-unit detection is authoritative over LLM text inference.
+    # Prefer explicit formal-statement section units when Docling keeps unit text
+    # outside the table object; otherwise use table headers/captions/body rows.
     detected = _detect_scale_from_tables(structured_doc.tables)
+    section_detected = _detect_scale_from_sections(structured_doc.sections)
+    if section_detected != "unknown":
+        if detected not in ("unknown", section_detected):
+            logger.info(
+                "scale from statement sections (%s) overrides table scan (%s)",
+                section_detected,
+                detected,
+            )
+        detected = section_detected
     if detected != "unknown":
         if pass1.get("scale", "unknown") not in (detected, "unknown", None, ""):
             logger.info(
-                "scale from table headers (%s) overrides Pass 1 (%s)",
+                "scale from deterministic source units (%s) overrides Pass 1 (%s)",
                 detected,
                 pass1.get("scale"),
             )

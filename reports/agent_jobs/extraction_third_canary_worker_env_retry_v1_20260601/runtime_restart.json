@@ -1,0 +1,37 @@
+{
+  "action": "restarted dedicated llm_gpu worker with OLLAMA_URL runtime parity",
+  "captured_at": "2026-06-01T05:17:40.442130+00:00",
+  "routing_config_probe": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "{\"embedding_base_url\": \"http://127.0.0.1:11434\", \"embedding_provider\": \"ollama\", \"extraction_base_url\": \"http://127.0.0.1:8001\", \"extraction_model\": \"qwen2.5-14b-instruct\", \"router_provider\": \"llamacpp\"}"
+  },
+  "systemctl_show": {
+    "exit_code": 0,
+    "props": {
+      "ActiveState": "active",
+      "ExecMainPID": "3877057",
+      "MainPID": "3877057",
+      "SubState": "running"
+    },
+    "stderr": "",
+    "stdout": "MainPID=3877057\nExecMainPID=3877057\nActiveState=active\nSubState=running"
+  },
+  "unit": "tenn-llm-gpu-worker-canary-20260601.service",
+  "worker_env_evidence": {
+    "EMBEDDING_URL": "http://127.0.0.1:11434",
+    "ENABLE_EMBEDDINGS": "false",
+    "ENABLE_EXTRACTION": "true",
+    "ENABLE_QDRANT": "false",
+    "EXTRACT_MODEL": "qwen2.5-14b-instruct",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "OLLAMA_URL": "http://127.0.0.1:11434",
+    "TASK_MODE": "celery"
+  },
+  "worker_ping": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online."
+  }
+}

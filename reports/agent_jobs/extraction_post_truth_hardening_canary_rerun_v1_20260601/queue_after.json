@@ -1,0 +1,47 @@
+{
+  "api_queue_status": {
+    "argv": [
+      "curl",
+      "-fsS",
+      "--connect-timeout",
+      "5",
+      "--max-time",
+      "20",
+      "-H",
+      "X-API-Key: local-openai-key",
+      "http://127.0.0.1:8000/api/queue/status"
+    ],
+    "json": {
+      "queues": {
+        "embed": 0,
+        "ingest": 0,
+        "llm_cpu": 0,
+        "llm_gpu": 0,
+        "score": 19
+      },
+      "redis_connected": true,
+      "total_queued": 19
+    },
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "{\"redis_connected\":true,\"queues\":{\"ingest\":0,\"embed\":0,\"score\":19,\"llm_gpu\":0,\"llm_cpu\":0},\"total_queued\":19}"
+  },
+  "created_at": "2026-06-01T08:20:16.749712+00:00",
+  "worker_active_reserved_scheduled": {
+    "argv": [
+      "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery",
+      "-A",
+      "app.celery_app.celery",
+      "inspect",
+      "active",
+      "reserved",
+      "scheduled",
+      "-d",
+      "tenn-llm-gpu-posthardening@l4nd0-System-Product-Name"
+    ],
+    "json": null,
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-posthardening@l4nd0-System-Product-Name: OK\n    - empty -\n\n1 node online.\n"
+  }
+}

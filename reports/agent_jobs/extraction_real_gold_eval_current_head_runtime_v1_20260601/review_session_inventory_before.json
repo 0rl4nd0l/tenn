@@ -1,0 +1,510 @@
+{
+  "exists": true,
+  "file_count": 1162,
+  "generated_at": "2026-06-01T09:18:41+00:00",
+  "newest_files": [
+    {
+      "mtime_ns": 1780303966076508358,
+      "path": "run_status/cb5a9d0c-c58a-477b-bda6-87adc83f391e.json",
+      "size": 16479
+    },
+    {
+      "mtime_ns": 1780303802731394677,
+      "path": "run_status/dc170bd5-5f28-43f4-9b22-63ee710786e5.json",
+      "size": 16460
+    },
+    {
+      "mtime_ns": 1780303768769152336,
+      "path": "run_status/0b1eb004-91ca-4d89-a69b-5600f4add463.json",
+      "size": 16477
+    },
+    {
+      "mtime_ns": 1780303572588658406,
+      "path": "run_status/d4e10582-95a9-4e9e-b2b6-c7b2b689bf75.json",
+      "size": 16489
+    },
+    {
+      "mtime_ns": 1780303438612520896,
+      "path": "run_status/45dd9912-bada-4f60-a0b6-78c9c85ec12c.json",
+      "size": 16503
+    },
+    {
+      "mtime_ns": 1780303248420022946,
+      "path": "run_status/0bf92b5f-18ab-477d-8f98-57f9f30105b8.json",
+      "size": 16560
+    },
+    {
+      "mtime_ns": 1780303064053245890,
+      "path": "run_status/02996be7-e14f-4477-b5f2-600f4c8c419d.json",
+      "size": 16567
+    },
+    {
+      "mtime_ns": 1780301906662151567,
+      "path": "run_status/741f93b9-2c2a-4f07-b1cc-1bb2aae3699a.json",
+      "size": 16479
+    },
+    {
+      "mtime_ns": 1780301741535851628,
+      "path": "run_status/c60d58a8-bb31-4b37-865f-5d1dc5487267.json",
+      "size": 16452
+    },
+    {
+      "mtime_ns": 1780301707635808466,
+      "path": "run_status/5b75802c-c8f3-415e-a767-c6c315ffc55d.json",
+      "size": 16472
+    },
+    {
+      "mtime_ns": 1780301510655718577,
+      "path": "run_status/6876e6a1-479d-4f8b-8ac2-85d091c04611.json",
+      "size": 16489
+    },
+    {
+      "mtime_ns": 1780301377601855535,
+      "path": "run_status/27e395ee-eb54-49b5-84fa-f13302422bdb.json",
+      "size": 16503
+    },
+    {
+      "mtime_ns": 1780301186615780913,
+      "path": "run_status/05e96f37-0c1e-4fdc-bd3f-a0bd810245c1.json",
+      "size": 16555
+    },
+    {
+      "mtime_ns": 1780301006027795127,
+      "path": "run_status/27ab81b5-94f7-4424-82dc-d8c3a7a0661e.json",
+      "size": 16570
+    },
+    {
+      "mtime_ns": 1780295255977520544,
+      "path": "run_status/233900e7-1683-4ff4-bded-abb68824c0e3.json",
+      "size": 16484
+    },
+    {
+      "mtime_ns": 1780294232134804559,
+      "path": "run_status/fbd99043-fd40-46f3-beaa-847e8348060c.json",
+      "size": 16280
+    },
+    {
+      "mtime_ns": 1780293115709710679,
+      "path": "run_status/fbf2cf1d-3f9b-4c96-91d5-8a0a88862fc0.json",
+      "size": 16275
+    },
+    {
+      "mtime_ns": 1780292898275015045,
+      "path": "run_status/ecdfbcf1-273a-417c-84ae-a92a1360ad70.json",
+      "size": 16460
+    },
+    {
+      "mtime_ns": 1780292085504549912,
+      "path": "run_status/45b9c846-9f00-44ca-b8c6-7833f80e6342.json",
+      "size": 15945
+    },
+    {
+      "mtime_ns": 1780292055158562270,
+      "path": "run_status/44a86108-eab0-4b41-911e-545a4d7682c5.json",
+      "size": 16547
+    },
+    {
+      "mtime_ns": 1780291858702704775,
+      "path": "run_status/9aa658d6-c8db-4376-9698-cb33f05172f4.json",
+      "size": 16489
+    },
+    {
+      "mtime_ns": 1780291715833013667,
+      "path": "run_status/c1c5fd5e-39f9-4efe-8534-e4d839558445.json",
+      "size": 16503
+    },
+    {
+      "mtime_ns": 1780291544124177605,
+      "path": "run_status/74442c2b-3ce4-45b9-8eed-1581d1fa319e.json",
+      "size": 16560
+    },
+    {
+      "mtime_ns": 1780291394798443982,
+      "path": "run_status/14616c70-ba40-4398-bd63-23fa1508a190.json",
+      "size": 16567
+    },
+    {
+      "mtime_ns": 1780290560417085158,
+      "path": "run_status/4793ba97-85c0-4fde-9144-3a9b24e866ca.json",
+      "size": 10825
+    },
+    {
+      "mtime_ns": 1780228319361005323,
+      "path": "run_status/feb20c6b-28b0-48b6-9692-c15e1d32ed20.json",
+      "size": 16485
+    },
+    {
+      "mtime_ns": 1780228074303190660,
+      "path": "run_status/8b264915-7d59-4262-9bc5-d68e00e512e3.json",
+      "size": 16578
+    },
+    {
+      "mtime_ns": 1780226451666453099,
+      "path": "run_status/f493fb09-4b55-4363-a638-be77fccac574.json",
+      "size": 16485
+    },
+    {
+      "mtime_ns": 1780225026426448160,
+      "path": "run_status/92bf4e71-66dd-422e-9eb0-e4a20fcf3234.json",
+      "size": 17043
+    },
+    {
+      "mtime_ns": 1780224696038967223,
+      "path": "run_status/c057d260-63dc-4cf0-8025-596cf93695cc.json",
+      "size": 16457
+    },
+    {
+      "mtime_ns": 1780222170297138728,
+      "path": "run_status/e5cefa6c-11a3-4e1f-af15-0a5f21328071.json",
+      "size": 16711
+    },
+    {
+      "mtime_ns": 1780222141738944796,
+      "path": "run_status/8097c92d-c126-4e0b-a611-838f462ec3c0.json",
+      "size": 17227
+    },
+    {
+      "mtime_ns": 1780221932403490512,
+      "path": "run_status/8d32c5f3-3fbb-45c5-ade7-3254701b193a.json",
+      "size": 17261
+    },
+    {
+      "mtime_ns": 1780221776492358741,
+      "path": "run_status/277dddef-5116-4f97-8719-0322bdaa92f0.json",
+      "size": 17289
+    },
+    {
+      "mtime_ns": 1780221589225920779,
+      "path": "run_status/97ed7aca-3273-47d0-8216-c9689b4d1d3a.json",
+      "size": 17311
+    },
+    {
+      "mtime_ns": 1780221057533980761,
+      "path": "run_status/4d770cc6-66e5-4d38-9e03-1ff08f07254a.json",
+      "size": 16570
+    },
+    {
+      "mtime_ns": 1780219869938336694,
+      "path": "run_status/3f1ed28f-3c4e-4920-9e5d-98bc7d522a77.json",
+      "size": 21293
+    },
+    {
+      "mtime_ns": 1780218818901134975,
+      "path": "run_status/8e4368d5-2a92-4a74-91e4-57b6323f329e.json",
+      "size": 12487
+    },
+    {
+      "mtime_ns": 1780187163260328443,
+      "path": "run_status/6e96bf39-4dad-41c5-afb6-ec70411c73e7.json",
+      "size": 15857
+    },
+    {
+      "mtime_ns": 1780041012249820346,
+      "path": "run_status/523e018f-d342-4d1d-b239-8e92ecc4c5ce.json",
+      "size": 15892
+    },
+    {
+      "mtime_ns": 1779880267196772509,
+      "path": "run_status/631ef394-8cd4-4a16-a4b1-7b84bad934ed.json",
+      "size": 15600
+    },
+    {
+      "mtime_ns": 1779880033148135186,
+      "path": "run_status/be5a2a8b-7959-4129-8bea-497cc652bb1f.json",
+      "size": 15664
+    },
+    {
+      "mtime_ns": 1779879925546527566,
+      "path": "run_status/f0269b2c-5adc-4cfd-8052-c97f197eb4c7.json",
+      "size": 15834
+    },
+    {
+      "mtime_ns": 1779879734986456341,
+      "path": "run_status/93beefb3-7a7f-40e3-b02d-9aafc1f9770d.json",
+      "size": 15851
+    },
+    {
+      "mtime_ns": 1779879577143548893,
+      "path": "run_status/b2ec2645-071a-418e-8230-8959f7fd2802.json",
+      "size": 15865
+    },
+    {
+      "mtime_ns": 1779879428686672440,
+      "path": "run_status/57717372-fe6c-4ccc-b451-699452605d91.json",
+      "size": 16009
+    },
+    {
+      "mtime_ns": 1779879119876741731,
+      "path": "run_status/96a454d4-9910-4cf6-b7e4-e7b7b9fa49ba.json",
+      "size": 15892
+    },
+    {
+      "mtime_ns": 1779878948109572993,
+      "path": "run_status/c8f1cff7-fe6e-4917-a823-e2f3ca8e2982.json",
+      "size": 15819
+    },
+    {
+      "mtime_ns": 1779867418648676487,
+      "path": "run_status/78538206-a4ac-4bc2-8fa9-2f21094d70c9.json",
+      "size": 15839
+    },
+    {
+      "mtime_ns": 1779867372795450304,
+      "path": "run_status/bdcbc76a-47ba-4370-95af-0462fdba1c86.json",
+      "size": 15696
+    },
+    {
+      "mtime_ns": 1779858501318497275,
+      "path": "run_status/98cc3805-5842-40ad-8283-7285079fda07.json",
+      "size": 10910
+    },
+    {
+      "mtime_ns": 1779858497602470761,
+      "path": "run_status/aab9c636-950d-41d3-bab7-a7e943b7db91.json",
+      "size": 10844
+    },
+    {
+      "mtime_ns": 1778914858563249952,
+      "path": "run_status/319ba4ff-758e-49a1-b0bc-99d65fa458a0.json",
+      "size": 7015
+    },
+    {
+      "mtime_ns": 1778914845902180968,
+      "path": "run_status/a43885e2-a3dd-42d8-91c1-7fca69dcdf5a.json",
+      "size": 9717
+    },
+    {
+      "mtime_ns": 1778914814980012313,
+      "path": "run_status/186f79ff-07a6-4910-8761-42108d9668ca.json",
+      "size": 7940
+    },
+    {
+      "mtime_ns": 1778914759771710539,
+      "path": "run_status/972b0a66-bbd7-4009-851a-5476747f64da.json",
+      "size": 12084
+    },
+    {
+      "mtime_ns": 1778914458754045826,
+      "path": "run_status/2a9ea4cf-7b6f-4380-b549-421df30707a8.json",
+      "size": 8002
+    },
+    {
+      "mtime_ns": 1778914439486937857,
+      "path": "run_status/4787b7bd-29de-4619-a20f-37b836caf57b.json",
+      "size": 9717
+    },
+    {
+      "mtime_ns": 1778914406219750932,
+      "path": "run_status/c3b35c5e-926f-4160-879e-006c73582ce9.json",
+      "size": 7940
+    },
+    {
+      "mtime_ns": 1778914359720488526,
+      "path": "run_status/09873a47-98d8-4ebe-86f8-4236f10ac552.json",
+      "size": 12090
+    },
+    {
+      "mtime_ns": 1778914296612130069,
+      "path": "run_status/b0a38167-b5a0-467b-9aa0-a1d709dcbe35.json",
+      "size": 15301
+    },
+    {
+      "mtime_ns": 1778914289005086666,
+      "path": "run_status/b65bad79-d623-4d2b-8f8f-89b257371157.json",
+      "size": 9689
+    },
+    {
+      "mtime_ns": 1778914280765039601,
+      "path": "run_status/cd6fe5e5-bcd8-47c2-9f0b-a92c94eb0701.json",
+      "size": 7863
+    },
+    {
+      "mtime_ns": 1778914273255996667,
+      "path": "run_status/d0983e55-2258-4b54-89e5-6961ec196b12.json",
+      "size": 7849
+    },
+    {
+      "mtime_ns": 1778914266496957982,
+      "path": "run_status/06b9e70f-7186-4598-acdf-8b16d5772214.json",
+      "size": 9677
+    },
+    {
+      "mtime_ns": 1778914253523883631,
+      "path": "run_status/c9b20dee-50aa-4a35-9187-a774059ac0f2.json",
+      "size": 9696
+    },
+    {
+      "mtime_ns": 1778914234216772721,
+      "path": "run_status/d8aa0be7-046d-4dd3-9261-952a6388fad0.json",
+      "size": 15343
+    },
+    {
+      "mtime_ns": 1778914208907626852,
+      "path": "run_status/ddc8d884-ea4c-49a8-95f1-0bc75c87d0aa.json",
+      "size": 9711
+    },
+    {
+      "mtime_ns": 1778914186566497617,
+      "path": "run_status/4c6ec7f0-61e6-426b-bb6d-396a50f36eb1.json",
+      "size": 15299
+    },
+    {
+      "mtime_ns": 1778914163092361328,
+      "path": "run_status/ea0af4e6-c3a0-428c-bfb3-1a609bea2b84.json",
+      "size": 7853
+    },
+    {
+      "mtime_ns": 1778914151642294656,
+      "path": "run_status/e15c7e19-f66e-4938-b8d2-5f39a18ad7a7.json",
+      "size": 7862
+    },
+    {
+      "mtime_ns": 1778914129421164891,
+      "path": "run_status/9731b0d1-cd4e-4150-abcb-f1e11b4cbe5e.json",
+      "size": 15322
+    },
+    {
+      "mtime_ns": 1778914102488006918,
+      "path": "run_status/4dfc92d5-7245-479e-8d28-4e9a1dc60b9c.json",
+      "size": 15342
+    },
+    {
+      "mtime_ns": 1778914073291834771,
+      "path": "run_status/cb049022-d6eb-47ae-bdd5-28eec75cc16e.json",
+      "size": 15308
+    },
+    {
+      "mtime_ns": 1778914038256626885,
+      "path": "run_status/3fc12df4-d3ae-43f2-aaf3-cf44548affe1.json",
+      "size": 15313
+    },
+    {
+      "mtime_ns": 1778914012308471940,
+      "path": "run_status/32f45f95-6edc-4490-9888-1eb53e90d4f3.json",
+      "size": 7863
+    },
+    {
+      "mtime_ns": 1778914010422460644,
+      "path": "run_status/e863010c-f4a3-4ff8-83bc-a256c0ecf1d3.json",
+      "size": 7849
+    },
+    {
+      "mtime_ns": 1778913996249375607,
+      "path": "run_status/ab1ddd72-069e-4db2-bdaf-318fa8fb2574.json",
+      "size": 9693
+    },
+    {
+      "mtime_ns": 1778913989301333821,
+      "path": "run_status/5af0a3f7-1a5e-463e-b198-b1b75ea3e3c8.json",
+      "size": 15327
+    },
+    {
+      "mtime_ns": 1778913963562178442,
+      "path": "run_status/4fda1dde-2dfc-4e5f-9033-1e8429b47ec6.json",
+      "size": 9719
+    },
+    {
+      "mtime_ns": 1778913906827832517,
+      "path": "run_status/ba16ad12-1138-4c5a-9cd8-fa22a34c04ca.json",
+      "size": 15312
+    },
+    {
+      "mtime_ns": 1778913890739733506,
+      "path": "run_status/dfc822fe-e0b6-4540-8bac-dc4eedef0e25.json",
+      "size": 9694
+    },
+    {
+      "mtime_ns": 1778913882338681632,
+      "path": "run_status/24abd209-2d9f-42bc-88a9-a919f48cd5a2.json",
+      "size": 7863
+    },
+    {
+      "mtime_ns": 1778913876652646456,
+      "path": "run_status/25a41629-0d12-4f52-97e1-441bf7f171b1.json",
+      "size": 15282
+    },
+    {
+      "mtime_ns": 1778913872108618306,
+      "path": "run_status/b16d8691-aa35-4f77-87ca-fa476af21b94.json",
+      "size": 7841
+    },
+    {
+      "mtime_ns": 1778913865797579150,
+      "path": "run_status/5acf539b-654f-41e6-aef1-752cb9ae255d.json",
+      "size": 9677
+    },
+    {
+      "mtime_ns": 1778913856121518980,
+      "path": "run_status/e6f18a37-bf65-420b-8e06-a5fb4e79695b.json",
+      "size": 9717
+    },
+    {
+      "mtime_ns": 1778913854631509700,
+      "path": "run_status/d3ec18ff-dfbc-4237-bec8-f89d0749b996.json",
+      "size": 9696
+    },
+    {
+      "mtime_ns": 1778913843363439391,
+      "path": "run_status/703fdc47-a36b-4259-b66f-53c7b670066e.json",
+      "size": 15320
+    },
+    {
+      "mtime_ns": 1778913829514362401,
+      "path": "run_status/3a02aad2-2776-4354-93a8-c9ee74366034.json",
+      "size": 7940
+    },
+    {
+      "mtime_ns": 1778913823692333598,
+      "path": "run_status/5cea7edf-378a-44f0-82c4-fd2afc20414f.json",
+      "size": 9707
+    },
+    {
+      "mtime_ns": 1778913799012211646,
+      "path": "run_status/6efbecad-0322-4b06-958b-b57f03c1d3cf.json",
+      "size": 15299
+    },
+    {
+      "mtime_ns": 1778913765244045187,
+      "path": "run_status/3e8531c6-b437-4679-a990-634ef41c94b1.json",
+      "size": 7876
+    },
+    {
+      "mtime_ns": 1778913743693939211,
+      "path": "run_status/c70fde18-8494-4d92-85a8-9a59b33a031b.json",
+      "size": 7862
+    },
+    {
+      "mtime_ns": 1778913740631924170,
+      "path": "run_status/e397990b-a097-48d6-a472-bd0cb4fee5ad.json",
+      "size": 12087
+    },
+    {
+      "mtime_ns": 1778913738288912663,
+      "path": "run_status/a987ab34-1eb3-4dc7-bb76-60afa0a6b720.json",
+      "size": 15317
+    },
+    {
+      "mtime_ns": 1778913713434790761,
+      "path": "run_status/c81a75fe-129d-4751-8175-1579b5773717.json",
+      "size": 15348
+    },
+    {
+      "mtime_ns": 1778913676959612400,
+      "path": "run_status/0dab3550-bb45-4b45-8f9b-60e8602fdcd3.json",
+      "size": 15308
+    },
+    {
+      "mtime_ns": 1778913643369448745,
+      "path": "run_status/25aeba21-993d-48e0-9b5b-a081dc813902.json",
+      "size": 15308
+    },
+    {
+      "mtime_ns": 1778913621253341328,
+      "path": "run_status/865f7bcc-fdbe-4e48-80d6-84139501f4ac.json",
+      "size": 7863
+    }
+  ],
+  "root": "/data/reports/extraction_review",
+  "session_json_count": 5,
+  "snippet_file_count": 24
+}

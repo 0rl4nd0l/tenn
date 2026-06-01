@@ -1,0 +1,83 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_payload_gate_blocking_summary_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/claude/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/extraction/metric_extraction_contract.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/function_quality_findings.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/gate_actionability_sample.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_payload_gate_blocking_summary_v1_20260531.md",
+        "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/README.md",
+        "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/status.json",
+        "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/validation.json",
+        "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/function_quality_findings.json",
+        "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/gate_actionability_sample.json",
+        "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531/diff-check.json",
+        "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "docs/extraction/metric_extraction_contract.md",
+        "docs/claude/STATE.md"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_payload_gate_blocking_summary_v1_20260531",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_payload_gate_blocking_summary_v1_20260531",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

@@ -136,6 +136,131 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+def test_detects_appendix_4c_split_quarter_end_date():
+    """Appendix 4C forms may put the date after the current-quarter parenthetical."""
+    from app.services.multipass_extraction import _detect_source_period_end_evidence
+
+    evidence = _detect_source_period_end_evidence(
+        "Appendix 4C quarterly cash flow report",
+        "Quarter ended ('current quarter')\n31 March 2021\nCurrent quarter $A'000",
+    )
+
+    assert evidence["period_type"] == "Q"
+    assert evidence["period_end"] == "2021-03-31"
+    assert evidence["reason"] == "quarter_ended_explicit_date"
+
+
+def test_early_period_table_text_includes_appendix_4c_date_rows():
+    """Appendix 4C quarter dates can live in early tables rather than sections."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _detect_source_period_end_evidence,
+        _early_period_table_text,
+    )
+
+    table = DoclingTable(
+        page_number=1,
+        caption="",
+        headers=["0", "1"],
+        rows=[
+            ["1414 Degrees Ltd", "1414 Degrees Ltd"],
+            ["ABN", "Quarter ended ('current quarter')"],
+            ["57 138 803 620", "31 March 2021"],
+            ["Current quarter $A'000"],
+        ],
+    )
+
+    evidence = _detect_source_period_end_evidence(
+        "Appendix 4C quarterly cash flow report",
+        _early_period_table_text([table]),
+    )
+
+    assert evidence["period_type"] == "Q"
+    assert evidence["period_end"] == "2021-03-31"
+
+
+def test_run_multipass_corrects_period_type_from_explicit_source_period_end():
+    """CTM-style annual reports must not persist a Pass 1 half-year misclassification."""
+    from datetime import date
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 4
+        docling_version = None
+        tables = []
+        sections = [
+            {"text": "CENTENNIAL MINING LIMITED Financial Report", "page": 1},
+            {
+                "text": (
+                    "The directors present their report on the Group during, "
+                    "the year ended 31 December 202 5."
+                ),
+                "page": 2,
+            },
+        ]
+
+    pass1_half_year = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "units",
+        "classifier_confidence": 0.95,
+    }
+    pass3a_results = [
+        {
+            "_source": "income_statement",
+            "_page_number": 12,
+            "pass3_confidence": 0.88,
+            "revenue": 1_000_000,
+            "np_attributable": -500_000,
+            "cash_end": 2_000_000,
+            "row_refs": {
+                "revenue": "Revenue",
+                "np_attributable": "Net loss attributable to members",
+                "cash_end": "Cash and cash equivalents",
+            },
+        }
+    ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_half_year,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/ctm.pdf",
+            {
+                "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+                "ticker": "CTM",
+                "title": "Financial Report 31 December 2025",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["period_type"] == "A"
+    assert result.payload["period_end"] == "2025-12-31"
+    assert result.payload["period_start"] == date(2025, 1, 1)
+    assert result.payload["source_period_type_correction"] == {
+        "from": "H",
+        "to": "A",
+        "reason": "year_ended_explicit_date",
+        "period_end": "2025-12-31",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Pass 2 — Table Locator
 # ---------------------------------------------------------------------------
@@ -475,6 +600,31 @@ def test_pass2_rejects_glossary_definition_from_net_debt_note_slot():
     assert result["net_debt_note"] is None
 
 
+def test_pass2_selects_net_drawn_debt_balance_sheet_summary():
+    """29M-style summaries can explicitly report net-debt-equivalent balances."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    summary = DoclingTable(
+        page_number=19,
+        caption="",
+        rows=[
+            ["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+            ["Cashflows", "", "", "", ""],
+            ["Cash flows from operating activities", "$'000", "55,451", "59,236", "(3,785)"],
+            ["Balance Sheet", "", "", "", ""],
+            ["Drawn Debt 1", "$'000", "187,811", "262,128", "(74,317)"],
+            ["Cash and cash equivalents 2", "$'000", "102,650", "252,350", "(149,700)"],
+            ["Net Drawn Debt 1", "$'000", "85,161", "9,778", "75,383"],
+        ],
+        headers=["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+    )
+
+    result = _run_pass2_locator([summary])
+
+    assert result["net_debt_note"] is summary
+
+
 # ---------------------------------------------------------------------------
 # Pass 3a — Scale normalisation and negative values
 # ---------------------------------------------------------------------------
@@ -667,6 +817,56 @@ def test_pass3a_recovers_net_debt_note_from_selected_table_when_llm_abstains():
     assert results[0]["period_col"] == "2025 Non-current"
 
 
+def test_pass3a_recovers_net_drawn_debt_from_selected_summary_table():
+    """Selected summary tables should recover explicit Net Drawn Debt rows."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=19,
+        caption="",
+        rows=[
+            ["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+            ["Balance Sheet", "", "", "", ""],
+            ["Drawn Debt 1", "$'000", "187,811", "262,128", "(74,317)"],
+            ["Cash and cash equivalents 2", "$'000", "102,650", "252,350", "(149,700)"],
+            ["Net Drawn Debt 1", "$'000", "85,161", "9,778", "75,383"],
+        ],
+        headers=["For the 12 months ended 31 December", "", "2025", "2024", "VAR"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "net_debt_note": table,
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
+
+    mock_raw = {
+        "net_debt": None,
+        "pass3_confidence": 0.4,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["net_debt"] == 85_161_000
+    assert results[0]["row_refs"]["net_debt"] == "Net Drawn Debt 1"
+    assert results[0]["period_col"] == "2025"
+
+
 # ---------------------------------------------------------------------------
 # Pass 3b — Narrative extractor
 # ---------------------------------------------------------------------------
@@ -724,6 +924,199 @@ def test_pass4_merges_non_overlapping_metrics():
     assert result["metrics"]["operating_cf"] == 3_241_000
     assert result["metrics"]["revenue"] == 27_841_000_000
     assert result["period_end"] == "2024-12-31"
+
+
+def test_pass4_repairs_aau_comprehensive_owner_row_to_profit_after_tax():
+    """AAU-style total-comprehensive owner rows must not populate NPAT."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 24,
+            "revenue": 187_743,
+            "ebit": 1_100_860,
+            "np_attributable": 1_002_078,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "Profit/(loss) before income tax from continuing operations",
+                "np_attributable": "Owners of the Parent Entity",
+            },
+            "_markdown": "\n".join(
+                [
+                    " | Note | 2025 US$ | 2024 US$",
+                    "--- | --- | --- | ---",
+                    "Revenue | 4 | 187,743 | 9,227",
+                    "Profit/(loss) before income tax from continuing operations |  | 1,100,860 | (542,662)",
+                    "Income tax expense | 12 | - | -",
+                    "Profit/(loss) after income tax expense for the year |  | 1,100,860 | (505,857)",
+                    "Total comprehensive income/(loss) for the year |  | 1,002,078 | (427,540)",
+                    "Attributable to: |  |  | ",
+                    "Owners of the Parent Entity |  | 1,002,078 | (427,540)",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "units"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 1_100_860
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Profit/(loss) after income tax expense for the year"
+    )
+
+
+def test_pass4_repair_uses_current_period_value_after_note_column():
+    """Small current-period values must not be mistaken for note numbers."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 24,
+            "revenue": 100,
+            "ebit": 20,
+            "np_attributable": 14,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "Operating profit",
+                "np_attributable": "Total comprehensive income attributable to owners",
+            },
+            "_markdown": "\n".join(
+                [
+                    "Item | Note | 2025 | 2024",
+                    "--- | --- | --- | ---",
+                    "Revenue | 2 | 100 | 90",
+                    "Operating profit | 3 | 20 | 18",
+                    "Profit after income tax expense for the year | 7 | 12 | 99,000",
+                    "Total comprehensive income attributable to owners | 8 | 14 | 100,000",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "units"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 12
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Profit after income tax expense for the year"
+    )
+
+
+def test_pass4_repair_accepts_single_row_owner_profit_label():
+    """Explicit self-contained owner-profit rows are valid NPAT repair sources."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 24,
+            "revenue": 100,
+            "ebit": 20,
+            "np_attributable": 16,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "Operating profit",
+                "np_attributable": "Profit for the year",
+            },
+            "_markdown": "\n".join(
+                [
+                    "Item | 2025 | 2024",
+                    "--- | --- | ---",
+                    "Revenue | 100 | 90",
+                    "Operating profit | 20 | 18",
+                    "Profit for the year | 16 | 11",
+                    "Profit attributable to owners of the parent | 12 | 8",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "units"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 12
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Profit attributable to owners of the parent"
+    )
+
+
+def test_pass4_repairs_atm_total_profit_to_parent_owner_profit():
+    """ATM-style continued statements must use owner-attributable profit."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 27,
+            "revenue": 84_642_439_000_000,
+            "ebit": 8_395_030_000_000,
+            "np_attributable": 7_920_415_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Pendapatan dari kontrak dengan pelanggan",
+                "ebit": "LABA USAHA",
+                "np_attributable": "LABA TAHUN BERJALAN",
+            },
+            "_markdown": "\n".join(
+                [
+                    " | 2025 | Catatan/ Notes | 2024 | ",
+                    "--- | --- | --- | --- | ---",
+                    "Pendapatan dari kontrak dengan pelanggan | 84.642.439 | 28 | 69.192.440 | Revenue from contracts with customers",
+                    "LABA USAHA | 8.395.030 |  | 2.997.953 | OPERATING PROFIT",
+                    "LABA TAHUN BERJALAN | 7.920.415 |  | 3.852.218 | PROFIT FOR THE YEAR",
+                    "Laba tahun berjalan yang dapat diatribusikan kepada: |  |  |  | Profit for the year attributable to:",
+                    "Pemilik entitas induk | 7.208.834 | 35 | 3.647.210 | Owners of the parent",
+                    "Kepentingan nonpengendali | 711.581 |  | 205.008 | Non-controlling interests",
+                    "Total penghasilan komprehensif tahun berjalan yang dapat diatribusikan kepada: |  |  |  | Total comprehensive income for the year attributable to:",
+                    "Pemilik entitas induk | 7.487.305 |  | 3.892.564 | Owners of the parent",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "millions"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 7_208_834_000_000
+    assert "Profit for the year attributable" in result["row_refs"]["np_attributable"]
+    assert "Owners of the parent" in result["row_refs"]["np_attributable"]
 
 
 # ---------------------------------------------------------------------------
@@ -952,6 +1345,163 @@ def test_idr_rupiah_trillion_headers_detect_native_currency_and_scale():
 
     assert _detect_currency_from_tables([table]) == "IDR"
     assert _detect_scale_from_tables([table]) == "trillions"
+
+
+def test_idr_millions_statement_unit_beats_rp_trillion_summary():
+    """Formal statement units must outrank unrelated Rp-trillion summary tables."""
+    from app.services.multipass_extraction import (
+        _detect_currency_from_tables,
+        _detect_scale_from_tables,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    summary = DoclingTable(
+        page_number=1,
+        caption="Appendix 4E Results for Announcement",
+        headers=["Metric", "Rp trillion"],
+        rows=[["Revenue", "84.6"], ["Profit", "7.9"]],
+    )
+    statement = DoclingTable(
+        page_number=27,
+        caption=(
+            "Consolidated Statement of Profit or Loss "
+            "(Disajikan dalam Jutaan Rupiah, Kecuali Dinyatakan Lain) "
+            "(Expressed in Millions of Rupiah, Unless Otherwise Stated)"
+        ),
+        headers=["", "2025", "Catatan/ Notes", "2024", ""],
+        rows=[
+            [
+                "Pendapatan dari kontrak dengan pelanggan",
+                "84.642.439",
+                "28",
+                "69.192.440",
+                "Revenue from contracts with customers",
+            ],
+            ["LABA USAHA", "8.395.030", "", "2.997.953", "OPERATING PROFIT"],
+        ],
+    )
+
+    assert _detect_currency_from_tables([summary, statement]) == "IDR"
+    assert _detect_scale_from_tables([summary, statement]) == "millions"
+
+
+def test_idr_millions_statement_unit_detected_from_sections_when_tables_lack_unit():
+    """ATM Docling cache keeps statement-unit wording in sections, not table headers."""
+    from app.services.multipass_extraction import _detect_scale_from_sections
+
+    sections = [
+        {
+            "page": 1,
+            "text": "Appendix 4E results summary with Rp trillion market context.",
+        },
+        {
+            "page": 27,
+            "text": (
+                "PERUSAHAAN PERSEROAN (PERSERO) PT ANEKA TAMBANG TBK AND ITS "
+                "SUBSIDIARIES CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND "
+                "OTHER COMPREHENSIVE INCOME For the Year Ended December 31, "
+                "2025 (Expressed in Millions of Rupiah, Unless Otherwise Stated)"
+            ),
+        },
+    ]
+
+    assert _detect_scale_from_sections(sections) == "millions"
+
+
+def test_run_multipass_overrides_pass1_trillions_from_idr_statement_sections():
+    """Section-level statement units must correct ATM-style Pass 1 scale."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "docling_gpu"
+        page_count = 200
+        docling_version = "test"
+        sections = [
+            {
+                "page": 1,
+                "text": "Appendix 4E results summary with Rp trillion context.",
+            },
+            {
+                "page": 27,
+                "text": (
+                    "CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND OTHER "
+                    "COMPREHENSIVE INCOME For the Year Ended December 31, 2025 "
+                    "(Expressed in Millions of Rupiah, Unless Otherwise Stated)"
+                ),
+            },
+        ]
+        tables = [
+            DoclingTable(
+                page_number=27,
+                caption="",
+                headers=["", "2025", "Catatan/ Notes", "2024", ""],
+                rows=[
+                    ["", "2025", "Catatan/ Notes", "2024", ""],
+                    [
+                        "Pendapatan dari kontrak dengan pelanggan",
+                        "84.642.439",
+                        "28",
+                        "69.192.440",
+                        "Revenue from contracts with customers",
+                    ],
+                ],
+            )
+        ]
+
+    pass1_wrong_scale = {
+        "report_type": "A",
+        "period_end": "2025-12-31",
+        "currency": "IDR",
+        "scale": "trillions",
+        "classifier_confidence": 0.97,
+    }
+
+    def _fake_pass3a(_labelled, pass1, _llm_client, **_kwargs):
+        assert pass1["scale"] == "millions"
+        return [
+            {
+                "_source": "income_statement",
+                "_page_number": 27,
+                "pass3_confidence": 0.9,
+                "revenue": 84_642_439_000_000,
+                "np_attributable": 7_208_834_000_000,
+                "cash_end": 8_433_610_000_000,
+                "row_refs": {
+                    "revenue": "Revenue from contracts with customers",
+                    "np_attributable": "Owners of the parent",
+                    "cash_end": "Cash and cash equivalents",
+                },
+            }
+        ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_wrong_scale,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={"income_statement": _FakeDoc.tables[0]},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        side_effect=_fake_pass3a,
+    ):
+        result = run_multipass_extraction(
+            "/fake/atm.pdf",
+            {
+                "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+                "ticker": "ATM",
+                "title": "Full Year Statutory Accounts",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "ok_low_confidence"
+    assert result.payload["scale"] == "millions"
+    assert result.payload["metrics"]["revenue"] == 84_642_439_000_000
 
 
 def test_generic_trillion_mention_without_rupiah_marker_stays_unknown_scale():
@@ -1236,6 +1786,78 @@ def test_pass4_higher_priority_source_wins():
     assert result["metrics"]["revenue"] == 45_192_000  # income_statement wins
 
 
+def test_pass4_extracts_explicit_prose_highlight_metrics():
+    """Prose-only results announcements may still contain explicit canonical metrics."""
+    from app.services.multipass_extraction import _run_pass4_reconciler, _validate_gate
+
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": "Revenue guidance for FY26 is $92 - 96 million.",
+        "material_changes": None,
+        "confidence_narrative": 0.7,
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2026-01-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+    sections = [
+        {
+            "page": 1,
+            "text": (
+                "1H revenue of $44.1 million up $6.5m. "
+                "NPAT strong at $4.2 million. "
+                "Revenue guidance for FY26 is $92 - 96 million."
+            ),
+        },
+        {
+            "page": 2,
+            "text": "Cash of $10.3 million as at 31 January 2026.",
+        },
+    ]
+
+    result = _run_pass4_reconciler([], pass3b, pass1, sections=sections)
+
+    assert result["metrics"]["revenue"] == 44_100_000
+    assert result["metrics"]["np_attributable"] == 4_200_000
+    assert result["metrics"]["cash_end"] == 10_300_000
+    assert result["provenance"]["revenue"].startswith("prose_highlight:page_1:")
+    assert "guidance" not in result["row_refs"]["revenue"].lower()
+    assert result["confidence_metrics"] >= 0.70
+
+    result["period_start"] = None
+    result["scale_validation"] = "pass"
+    result["currency"] = "AUD"
+    result["scale"] = "millions"
+    status, error = _validate_gate(result)
+    assert (status, error) == ("ok", None)
+
+
+def test_prose_highlight_extractor_ignores_revenue_guidance():
+    """Guidance values are not current-period revenue facts."""
+    from app.services.multipass_extraction import _extract_metric_highlights_from_prose
+
+    metrics, provenance, row_refs = _extract_metric_highlights_from_prose(
+        [
+            {
+                "page": 1,
+                "text": (
+                    "Revenue guidance of $96 million for FY26. "
+                    "NPAT $4.2 million. Cash of $10.3 million as at 31 January 2026."
+                ),
+            }
+        ]
+    )
+
+    assert "revenue" not in metrics
+    assert metrics["np_attributable"] == 4_200_000
+    assert metrics["cash_end"] == 10_300_000
+    assert "revenue" not in provenance
+    assert "revenue" not in row_refs
+
+
 # ---------------------------------------------------------------------------
 # Pipeline integration — _upsert_financial_rows (DB smoke test)
 # ---------------------------------------------------------------------------
@@ -1478,6 +2100,116 @@ def test_pass4_reconciler_derives_net_debt_from_total_debt():
         "Derived net_debt must contribute discounted confidence instead of inheriting "
         "the balance-sheet pass3 confidence."
     )
+
+
+def test_pass4_reconciler_derives_net_debt_with_matching_short_period_column():
+    """Short-date current-period debt columns should still allow derivation."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 10,
+            "cash_end": 200_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 9,
+            "net_debt": None,
+            "total_debt": 800_000_000,
+            "period_col": "31 Dec 25 $'000",
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Loans and borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "NZD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 600_000_000
+    assert "derived:balance_sheet" in payload["provenance"].get("net_debt", "")
+
+
+def test_pass4_reconciler_skips_derivation_with_prior_period_debt_column():
+    """A2M-style prior-period borrowings must not combine with current cash."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 10,
+            "cash_end": 436_878_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 9,
+            "net_debt": None,
+            "total_debt": 39_000_000,
+            "period_col": "30 Jun 25 $'000",
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Loans and borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "NZD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
+
+
+def test_pass4_reconciler_skips_negative_derived_net_debt_without_explicit_row():
+    """A2M-style net cash must not be fabricated as derived net_debt."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 10,
+            "cash_end": 436_878_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 9,
+            "net_debt": None,
+            "total_debt": 39_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Loans and borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "NZD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
 
 
 def test_pass4_reconciler_skips_derivation_when_net_debt_already_extracted():
@@ -2753,6 +3485,69 @@ def test_pass2_cross_guarantee_note_cannot_claim_income_statement():
     )
 
 
+def test_pass2_merges_income_statement_continuation_for_owner_profit_rows():
+    """Immediate IS continuation pages must stay available for parent-owner profit."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    first_page = DoclingTable(
+        page_number=27,
+        caption="Consolidated Statement of Profit or Loss",
+        headers=["", "2025", "Catatan/ Notes", "2024", ""],
+        rows=[
+            [
+                "Pendapatan dari kontrak dengan pelanggan",
+                "84.642.439",
+                "28",
+                "69.192.440",
+                "Revenue from contracts with customers",
+            ],
+            ["LABA USAHA", "8.395.030", "", "2.997.953", "OPERATING PROFIT"],
+            [
+                "LABA TAHUN BERJALAN",
+                "7.920.415",
+                "",
+                "3.852.218",
+                "PROFIT FOR THE YEAR",
+            ],
+        ],
+    )
+    continuation = DoclingTable(
+        page_number=28,
+        caption="Consolidated Statement of Profit or Loss and Other Comprehensive Income (continued)",
+        headers=["", "2025", "Catatan/ Notes", "2024", ""],
+        rows=[
+            [
+                "Laba tahun berjalan yang dapat diatribusikan kepada:",
+                "",
+                "",
+                "",
+                "Profit for the year attributable to:",
+            ],
+            [
+                "Pemilik entitas induk",
+                "7.208.834",
+                "35",
+                "3.647.210",
+                "Owners of the parent",
+            ],
+            [
+                "Kepentingan nonpengendali",
+                "711.581",
+                "",
+                "205.008",
+                "Non-controlling interests",
+            ],
+        ],
+    )
+
+    labelled = _run_pass2_locator([first_page, continuation])
+
+    merged = labelled["income_statement"]
+    assert merged is not first_page
+    assert any("Pemilik entitas induk" in " ".join(row) for row in merged.rows)
+
+
 # ---------------------------------------------------------------------------
 # Redundant table skipping
 # ---------------------------------------------------------------------------
@@ -3741,6 +4536,9 @@ class TestIsExplicitNetDebtEvidence:
     def test_accepts_plain_net_debt(self) -> None:
         assert self._check("Net debt") is True
 
+    def test_accepts_net_drawn_debt(self) -> None:
+        assert self._check("Net Drawn Debt") is True
+
     def test_accepts_net_debt_with_footnote(self) -> None:
         """Row refs from ASX summaries often have footnote markers like '¹'."""
         assert self._check("Net debt¹") is True
@@ -3778,6 +4576,12 @@ class TestIsExplicitNetDebtEvidence:
     def test_rejects_net_debt_and(self) -> None:
         """'Net debt and equity' uses 'net debt and' prefix — rejected as a derived/combined row."""
         assert self._check("Net debt and equity") is False
+
+    def test_rejects_derivatives_included_in_net_debt(self) -> None:
+        assert self._check("Less: Total derivatives included in net debt") is False
+
+    def test_rejects_equity_and_net_drawn_debt(self) -> None:
+        assert self._check("Equity and Net Drawn Debt") is False
 
     def test_rejects_net_gearing(self) -> None:
         """Net gearing contains 'net' but not 'debt' — also rejected."""

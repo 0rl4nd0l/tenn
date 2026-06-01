@@ -1,0 +1,50 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Scope is limited to metric ontology and storage-boundary alignment for extraction payload persistence.",
+      "No production data access or runtime execution is required for this slice."
+    ],
+    "sources_used": [
+      "/tmp/tenn_metric_extraction_handoff_2026-05-31.md",
+      "docs/architecture/SYSTEM_CONTRACT.md",
+      "docs/extraction/metric_extraction_contract.md",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/app/services/pipeline.py",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/app/models/asx_financials.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_pipeline_stages.py"
+    ],
+    "files_read": [
+      "docs/extraction/metric_extraction_contract.md",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/app/services/pipeline.py",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/app/models/asx_financials.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_pipeline_stages.py",
+      "financial-engine_v2/backend/tests/test_extraction_capability_guards.py"
+    ],
+    "files_modified": [],
+    "validation_checks": [
+      "Read-only function-quality pass completed before edits.",
+      "Architecture-check .cursor rule files were DATA_MISSING in this worktree; SYSTEM_CONTRACT.md was used for the applicable backend source-of-truth and fail-closed rules."
+    ]
+  },
+  "result": {
+    "feature": "metric ontology storage contract",
+    "summary": "The report-local scorecard quarantined persisted-only aliases, but the canonical storage upsert still accepted payload keys for persisted-only model columns. That left a storage-boundary gap where unsupported extraction payload facts could be written into canonical periodic rows.",
+    "critical": [
+      {
+        "file": "financial-engine_v2/backend/app/services/pipeline.py",
+        "location": "_upsert_financial_rows",
+        "issue": "The upsert field list included persisted-only `total_equity` and `interest_expense`, allowing extraction payloads to populate fields that Metric Ontology V1 marks as not canonical-use allowed.",
+        "fix_example": "Restrict the upsert field list to the current final extractor-output metric families and add a regression test proving payload-supplied persisted-only fields remain null."
+      }
+    ],
+    "warnings": [],
+    "suggestions": [],
+    "implementation_notes": "Apply the storage whitelist first; validate with focused pipeline-stage tests, the existing upsert source guard, py_compile, and Ruff."
+  }
+}

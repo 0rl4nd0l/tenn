@@ -1,0 +1,125 @@
+{
+  "commands": {
+    "active_jobs": {
+      "argv": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active",
+        "--read-only",
+        "--repo-root",
+        "."
+      ],
+      "duration_seconds": 0.074,
+      "json": null,
+      "returncode": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/agent_job_registry.py\", line 21, in <module>\n    from scripts import agent_job_contract as contract\nImportError: cannot import name 'agent_job_contract' from 'scripts' (unknown location)\n",
+      "stdout": ""
+    },
+    "git_head": {
+      "argv": [
+        "git",
+        "rev-parse",
+        "--short=12",
+        "HEAD"
+      ],
+      "duration_seconds": 0.004,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "8728158d34b0\n"
+    },
+    "git_status": {
+      "argv": [
+        "git",
+        "status",
+        "--short",
+        "--branch"
+      ],
+      "duration_seconds": 0.013,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [ahead 23]\n?? docs/agent_tasks/extraction_real_gold_eval_current_head_runtime_v1_20260601.md\n"
+    },
+    "gpu_activity": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "duration_seconds": 0.684,
+      "json": {
+        "active": false,
+        "active_runs": [],
+        "expires_at": null,
+        "expires_in_seconds": 0,
+        "kind": "gpu_exclusive_activity",
+        "source": "none",
+        "token_count": 0
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n"
+    },
+    "gpu_guard": {
+      "argv": [
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "duration_seconds": 0.048,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "nvidia_smi": {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,memory.total",
+        "--format=csv,noheader,nounits"
+      ],
+      "duration_seconds": 0.023,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n"
+    },
+    "overlap": {
+      "argv": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "check-overlap",
+        "docs/agent_tasks/extraction_real_gold_eval_current_head_runtime_v1_20260601.md",
+        "--repo-root",
+        "."
+      ],
+      "duration_seconds": 0.075,
+      "json": null,
+      "returncode": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/agent_job_registry.py\", line 21, in <module>\n    from scripts import agent_job_contract as contract\nImportError: cannot import name 'agent_job_contract' from 'scripts' (unknown location)\n",
+      "stdout": ""
+    },
+    "ports": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 or sport = :11434 or sport = :6379 )"
+      ],
+      "duration_seconds": 0.024,
+      "json": null,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess\nLISTEN 0      511        127.0.0.1:6379       0.0.0.0:*          \nLISTEN 0      4096       127.0.0.1:11434      0.0.0.0:*          \nLISTEN 0      511            [::1]:6379          [::]:*          \n"
+    }
+  },
+  "generated_at": "2026-06-01T09:18:41+00:00",
+  "hard_gates": {
+    "gpu_activity_inactive_before_claimed_runtime": true,
+    "gpu_guard_clean": true,
+    "overlap_ok": false
+  },
+  "job_id": "extraction_real_gold_eval_current_head_runtime_v1_20260601"
+}

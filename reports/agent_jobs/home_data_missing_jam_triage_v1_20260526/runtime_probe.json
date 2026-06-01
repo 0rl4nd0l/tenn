@@ -1,0 +1,38 @@
+{
+  "job_id": "home_data_missing_jam_triage_v1_20260526",
+  "checked_at": "2026-06-01T12:06:05Z",
+  "read_only": true,
+  "services_started": false,
+  "listeners": {
+    "3000": "not_listening",
+    "3001": "not_listening",
+    "8000": "not_listening"
+  },
+  "probes": [
+    {
+      "target": "http://127.0.0.1:8000/api/health",
+      "method": "GET",
+      "result": "connection_refused"
+    },
+    {
+      "target": "http://127.0.0.1:3000/api/cockpit/home",
+      "method": "GET",
+      "result": "connection_refused"
+    },
+    {
+      "target": "http://127.0.0.1:3000/api/cockpit/home/portfolio",
+      "method": "GET",
+      "result": "connection_refused"
+    },
+    {
+      "target": "http://127.0.0.1:8000/api/cockpit/home/portfolio",
+      "method": "GET",
+      "result": "connection_refused"
+    }
+  ],
+  "decision": "CURRENT_REPRODUCTION_DATA_MISSING",
+  "notes": [
+    "No service was started because the task is audit-only and current safe reproduction requires an already-running frontend/backend.",
+    "The current localhost probe cannot validate whether #41 still reproduces on current HEAD."
+  ]
+}

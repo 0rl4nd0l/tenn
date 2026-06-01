@@ -1,0 +1,218 @@
+{
+  "abstained_count": 2,
+  "fixture_summaries": [
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 5,
+      "document_id": "aau_a_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 6,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 9,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 9
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "abstain",
+      "trust_matches_expected": false,
+      "trust_triggers": [
+        "np_attributable:wrong"
+      ],
+      "wrong_count": 1
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 7,
+      "document_id": "am5_h_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 7,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 7,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 7
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 6,
+      "document_id": "aqx_h_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 7,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 8,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 8
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "abstain",
+      "trust_matches_expected": false,
+      "trust_triggers": [
+        "ebit:wrong"
+      ],
+      "wrong_count": 1
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [
+        "scale"
+      ],
+      "context_ok": false,
+      "correct_count": 0,
+      "document_id": "atm_a_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 8,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 9,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 9
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 8,
+      "trust": "quarantine",
+      "trust_matches_expected": false,
+      "trust_triggers": [
+        "context_mismatch:scale"
+      ],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 3,
+      "document_id": "clv_h_2026-01-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 3,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 3,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 3
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 7,
+      "document_id": "crs_h_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 7,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 6,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 6
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 4,
+      "document_id": "ctm_a_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 4,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 8,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 8
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    }
+  ],
+  "metric_status_counts": {
+    "abstain": 0,
+    "correct": 32,
+    "missing": 0,
+    "quarantine": 8,
+    "wrong": 2
+  },
+  "provenance_summary": {
+    "available_fixture_count": 7,
+    "clean_fixture_count": 7,
+    "error_count": 0,
+    "fixture_with_issues_count": 0,
+    "issue_count": 0,
+    "record_count": 50,
+    "status": "clean",
+    "status_counts": {
+      "precise": 50
+    },
+    "unavailable_fixture_count": 0,
+    "warning_count": 0
+  },
+  "quarantined_count": 1,
+  "total_fixture_count": 7,
+  "total_metric_expectations": 42,
+  "trust_check_summary": {
+    "expected_present": 7,
+    "matches": 4,
+    "mismatches": 3
+  },
+  "trusted_count": 4
+}

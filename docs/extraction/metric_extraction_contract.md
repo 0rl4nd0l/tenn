@@ -86,6 +86,17 @@ Every gate artifact reports `canonical_write_allowed: false` and
 eligible for operator review; it is not approval to run a canary or persist
 financial truth.
 
+Gate artifacts also include a complete `blocking_document_summary` and
+`missing_actual_document_ids` list so broader corpus reviews can identify every
+document still lacking actual extracted payloads or carrying blocking metric
+classes. The short `blocking_examples` field remains only a bounded preview.
+
+Actual payload maps must also match the scorecard fixture scope exactly. Extra
+payload document ids that do not resolve to a fixture document or fixture file
+stem are reported as `unmatched_actual_payload_ids` and block the
+pre-persistence gate so unreviewed extraction outputs cannot be silently
+ignored.
+
 ## Source document classification
 
 Source-document classification is deterministic and source-metadata only:
@@ -148,6 +159,12 @@ policy change.
 `ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
 populate canonical `ebit`.
 
+The canonical storage upsert accepts only the current `METRIC_FIELDS` output
+set. Persisted-only columns such as `total_equity` and `interest_expense` may
+exist in the model for historical or future policy reasons, but extraction
+payloads must not populate them until they are promoted through extractor,
+evaluator, and policy support.
+
 ## Non-goals
 
 - No DB writes, no embedding calls, no retrieval.
@@ -182,6 +199,38 @@ Output is a stable JSON object with keys including:
 - `currency_correctness_summary`
 - `scale_correctness_summary`
 - `fixture_summaries`
+
+Generate a confirmed-metric payload scorecard from actual extracted payloads
+without running extraction:
+
+```bash
+python scripts/extraction_gold_eval_scorecard.py \
+  --profile confirmed_metric_payload \
+  --actuals-json /path/to/actuals.json \
+  --include-pre-persistence-gate \
+  --out-json reports/confirmed_metric_payload_gate.json
+```
+
+`actuals.json` must map `document_id` or fixture id to an extracted payload.
+The emitted `pre_persistence_gate` remains an evaluation artifact only:
+`canonical_write_allowed` and `broad_backfill_authorized` stay `false`.
+
+Export an actual-payload map from explicit, already-completed extraction run ids
+without running extraction:
+
+```bash
+python scripts/export_extraction_run_actual_payloads.py \
+  --db-path /data/fe_local.db \
+  --run-id <run_uuid> \
+  --out-json reports/extraction_run_actual_payloads.json \
+  --summary-json reports/extraction_run_actual_payloads_summary.json
+```
+
+The exporter is read-only over SQLite and fails closed on missing rows,
+non-accepted statuses, invalid `structured_json`, or missing `metrics`. Its
+output is actual payload evidence for scorecard review only; it is not a gold
+label source and does not authorize canonical writes, canaries, or broad
+backfills.
 
 ## Real-document gold eval pilot
 
@@ -220,6 +269,8 @@ Place fixtures under `backend/tests/fixtures/extraction_gold/*.json` using:
 - `document_id`: stable document key (e.g., filing id)
 - `period_type`, `period_end`, `currency`, `scale`: context expected by extractor
 - `metrics`: required numeric/null expectations for this pilot document
+- optional `source_document_id`: backend source document UUID used to map
+  runtime actual payload exports to this fixture for review
 - optional `tolerances`: per-metric relative tolerance
 - optional `expected_trust`: one of `trusted`, `abstain`, `quarantine`
 
@@ -268,6 +319,30 @@ python financial-engine_v2/scripts/extraction_gold_eval_scorecard.py \
 }
 ```
 
+Runtime canary actuals exported from `extraction_runs` are normally keyed by
+backend source document id. Rekey those payloads to real-gold fixture ids before
+running this scorecard:
+
+```bash
+python scripts/rekey_real_gold_actuals_by_source_document.py \
+  --fixtures-dir financial-engine_v2/backend/tests/fixtures/extraction_gold \
+  --actuals-json reports/extraction_run_actual_payloads.json \
+  --out-json reports/extraction_run_actual_payloads.real_gold_keyed.json \
+  --summary-json reports/extraction_run_actual_payloads.rekey_summary.json \
+  --require-all-actuals-matched
+```
+
+For bounded canary review, limit the real-gold scorecard to the reviewed canary
+fixtures so unrelated fixtures do not appear as missing actuals:
+
+```bash
+python financial-engine_v2/scripts/extraction_gold_eval_scorecard.py \
+  --fixtures-dir financial-engine_v2/backend/tests/fixtures/extraction_gold \
+  --actuals-json reports/extraction_run_actual_payloads.real_gold_keyed.json \
+  --document-id aau_a_2025-12-31_canary_regression \
+  --document-id am5_h_2025-12-31_canary_regression
+```
+
 The output includes per-document trust outcomes and fixture separation status:
 
 - `trusted_count`
@@ -306,13 +381,44 @@ Example of a clean non-contradictory interpretation:
 
 ### Canary regression fixtures
 
-The test-only real-gold fixture directory includes source-verified CLV and CTM
-canary regression fixtures. They lock in these behaviors:
+The test-only real-gold fixture directory includes source-verified AAU, AM5,
+AQX, ATM, CLV, CRS, and CTM canary regression fixtures. They lock in these
+behaviors:
 
+- AAU annual source values are raw USD units and attributable profit must remain
+  source-correct.
+- AM5 has other income but no revenue line; loss-before-tax is not promoted to
+  EBIT.
+- AQX revenue and cash-flow values are raw AUD units; loss-before-tax is not
+  promoted to EBIT.
+- ATM financial statements are expressed in millions of Rupiah, and expected
+  values are raw IDR values after applying that source scale.
 - CLV `$44.1 million` revenue must not score as `$44.1 billion`, and EBITDA must
   not score as canonical `ebit`.
+- CRS has interest income but no revenue line; loss-before-tax is not promoted
+  to EBIT.
 - CTM's source cash-flow table is annual and uses raw dollar units; a half-year
   `millions` payload is quarantined by period/scale context.
 
 These fixtures do not authorize a canary, backfill, database write, Qdrant
 write, source-PDF mutation, or production gold-label mutation.
+
+### Backend truth hardening from canary actuals
+
+The source-reviewed canary scorecard also defines backend extraction guardrails:
+
+- Generic `Profit/Loss before income tax`, `Profit/Loss before taxation`, and
+  `Profit/Loss before tax` rows are not canonical `ebit` unless the same row is
+  explicitly labeled EBIT or operating profit/income.
+- Total comprehensive income attributable to owners is not a substitute for
+  `np_attributable`; when the source table exposes an explicit profit-after-tax
+  or parent-owner profit row, the extractor must use that row.
+- Indonesian financial statements that say `Expressed in Millions of Rupiah`
+  or `Disajikan dalam Jutaan Rupiah` use the `millions` statement scale even if
+  a summary table elsewhere mentions Rp trillions.
+- Immediate income-statement continuation tables are part of the same source
+  truth surface when they carry owner-attributable profit rows.
+
+These guardrails are code/test hardening only. They do not prove a corrected
+runtime canary until the approved backend route is rerun and scored against the
+source-reviewed fixtures.

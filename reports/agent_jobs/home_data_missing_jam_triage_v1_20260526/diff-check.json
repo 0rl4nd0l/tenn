@@ -1,0 +1,72 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/home_data_missing_jam_triage_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/gap_mapping.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/jam_evidence.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/runtime_probe.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/home_data_missing_jam_triage_v1_20260526.md",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/README.md",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/status.json",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/jam_evidence.json",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/gap_mapping.json",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/runtime_probe.json",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/validation.json",
+        "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "branch_push_pr_and_issue_comment",
+      "job_id": "home_data_missing_jam_triage_v1_20260526",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/home_data_missing_jam_triage_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 41,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Provenance"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

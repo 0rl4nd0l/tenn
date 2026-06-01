@@ -1,0 +1,64 @@
+{
+  "actuals_json": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads.json",
+  "artifact_type": "real_gold_source_document_actual_rekey_summary_v1",
+  "boundaries": {
+    "broad_backfill_authorized": false,
+    "canonical_write_allowed": false,
+    "created_gold_labels": false,
+    "ran_extraction": false
+  },
+  "fixture_source_document_count": 8,
+  "fixtures_dir": "financial-engine_v2/backend/tests/fixtures/extraction_gold",
+  "fixtures_without_actual_count": 1,
+  "fixtures_without_actual_ids": [
+    "bhp_a_2025-06-30_canary_regression"
+  ],
+  "input_actual_payload_count": 7,
+  "matched_actual_payload_count": 7,
+  "matched_actuals": [
+    {
+      "actual_key": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/aau_a_2025-12-31_canary_regression.json",
+      "fixture_id": "aau_a_2025-12-31_canary_regression",
+      "source_document_id": "508fc892-ae88-45ec-981f-cd9e124c8375"
+    },
+    {
+      "actual_key": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/am5_h_2025-12-31_canary_regression.json",
+      "fixture_id": "am5_h_2025-12-31_canary_regression",
+      "source_document_id": "aacc4c29-3089-48cf-8b82-8004134f9387"
+    },
+    {
+      "actual_key": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/aqx_h_2025-12-31_canary_regression.json",
+      "fixture_id": "aqx_h_2025-12-31_canary_regression",
+      "source_document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98"
+    },
+    {
+      "actual_key": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/atm_a_2025-12-31_canary_regression.json",
+      "fixture_id": "atm_a_2025-12-31_canary_regression",
+      "source_document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025"
+    },
+    {
+      "actual_key": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/clv_h_2026-01-31_canary_regression.json",
+      "fixture_id": "clv_h_2026-01-31_canary_regression",
+      "source_document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050"
+    },
+    {
+      "actual_key": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/crs_h_2025-12-31_canary_regression.json",
+      "fixture_id": "crs_h_2025-12-31_canary_regression",
+      "source_document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032"
+    },
+    {
+      "actual_key": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "fixture_file": "financial-engine_v2/backend/tests/fixtures/extraction_gold/ctm_a_2025-12-31_canary_regression.json",
+      "fixture_id": "ctm_a_2025-12-31_canary_regression",
+      "source_document_id": "035c6758-7aed-41a6-9e84-ad154125d431"
+    }
+  ],
+  "unmatched_actual_payload_count": 0,
+  "unmatched_actual_payload_ids": []
+}

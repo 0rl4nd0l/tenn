@@ -1,0 +1,3857 @@
+{
+  "accepted_extraction_statuses": [
+    "ok",
+    "ok_low_confidence"
+  ],
+  "approval_packet": "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+  "items": [
+    {
+      "db_summary": {
+        "financial_row_count_for_source_document": 1,
+        "financial_rows_for_source_document": [
+          {
+            "capex": -187097,
+            "cash_end": 3956993,
+            "confidence_metrics": 1.0,
+            "currency": "USD",
+            "ebit": 1100860,
+            "financing_cf": 4103422,
+            "interest_expense": null,
+            "investing_cf": 301155,
+            "net_debt": null,
+            "np_attributable": 1002078,
+            "operating_cf": -854114,
+            "period_end": "2025-12-31",
+            "period_type": "A",
+            "revenue": 187743,
+            "shares_outstanding": 2316828545,
+            "ticker": "AAU",
+            "total_equity": null,
+            "updated_at": "2026-06-01 05:23:14"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 1.0,
+            "created_at": "2026-06-01 05:23:14",
+            "document_id": "508fc892ae8845ec981fcd9e124c8375",
+            "error": null,
+            "run_id": "14616c70ba404398bd6323fa1508a190",
+            "status": "ok_low_confidence"
+          }
+        ]
+      },
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "final_status": {
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 603,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 620,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 622,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 622,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 623,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 625,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 625,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 66,
+              "table_count": 82
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 631,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 632,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:32+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 7216,
+            "error_code": null,
+            "message": "Pass 1 completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass1_classifier",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:39+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 7222,
+            "error_code": null,
+            "message": "Locating statement tables.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass2_locator",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:39+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 7234,
+            "error_code": null,
+            "message": "Pass 2 completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass2_locator",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:39+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 7235,
+            "error_code": null,
+            "message": "Extracting metric candidates.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass3a_metrics",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:20:39+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 124996,
+            "error_code": null,
+            "message": "Pass 3a completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass3a_metrics",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:22:36+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 124997,
+            "error_code": null,
+            "message": "Extracting narrative evidence.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass3b_narrative",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:22:36+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162756,
+            "error_code": null,
+            "message": "Pass 3b completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass3b_narrative",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162757,
+            "error_code": null,
+            "message": "Reconciling extracted fields.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass4_reconciliation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162763,
+            "error_code": null,
+            "message": "Pass 4 completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "pass4_reconciliation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162764,
+            "error_code": null,
+            "message": "Running validation gates.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "validation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "error": null,
+              "extraction_status": "ok_low_confidence"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162765,
+            "error_code": null,
+            "message": "Validation completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "validation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162767,
+            "error_code": null,
+            "message": "Chunking extracted sections for embeddings.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "chunking",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 67
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162768,
+            "error_code": null,
+            "message": "Chunking completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "chunking",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162769,
+            "error_code": null,
+            "message": "Writing chunks to vector storage.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "embedding",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 67,
+              "chunks_skipped": 0,
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162770,
+            "error_code": null,
+            "message": "Embedding skipped in current profile.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "embedding",
+            "status": "blocked",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": "embedding_skipped"
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162000,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 9,
+              "risk_note_written": 1
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162000,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+              "error": null,
+              "extraction_status": "ok_low_confidence",
+              "failure_code": null,
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 9,
+              "risk_note_written": 1,
+              "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+              "written_points": 0
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 162000,
+            "error_code": null,
+            "message": "Extraction completed with status ok_low_confidence.",
+            "requested_method": "auto",
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "stage": "completed",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:14+00:00",
+            "warning_code": null
+          }
+        ],
+        "summary": {
+          "actual_method": "docling_gpu",
+          "completed_at": "2026-06-01T05:23:14+00:00",
+          "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+          "elapsed_ms": 162000,
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "errors": [
+            {
+              "code": "embedding_blocked",
+              "details": {
+                "chunks_created": 67,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:23:14+00:00"
+            }
+          ],
+          "final_summary": {
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "error": null,
+            "extraction_status": "ok_low_confidence",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 9,
+            "risk_note_written": 1,
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok_low_confidence.",
+          "queue_wait_ms": 0,
+          "queued_at": "2026-06-01T05:20:32+00:00",
+          "requested_method": "auto",
+          "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+          "stage": "completed",
+          "stage_timings_ms": {
+            "chunking": 0,
+            "completed": 0,
+            "document_load": 0,
+            "embedding": 0,
+            "env_check": 0,
+            "parser": 0,
+            "pass1_classifier": 7000,
+            "pass2_locator": 0,
+            "pass3a_metrics": 117000,
+            "pass3b_narrative": 38000,
+            "pass4_reconciliation": 0,
+            "persistence": 0,
+            "validation": 0
+          },
+          "started_at": "2026-06-01T05:20:32+00:00",
+          "status": "succeeded",
+          "strict_method": false,
+          "updated_at": "2026-06-01T05:23:14+00:00",
+          "warning_codes": [
+            "embedding_skipped"
+          ],
+          "warnings": [
+            {
+              "code": "embedding_skipped",
+              "details": {
+                "chunks_created": 67,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:23:14+00:00"
+            }
+          ],
+          "worker_started_at": "2026-06-01T05:20:32+00:00"
+        }
+      },
+      "order": 1,
+      "post_response": {
+        "json": {
+          "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+          "enqueued": 1,
+          "mode": "celery",
+          "requested_method": "auto",
+          "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+          "strict_method": false,
+          "task_id": "5d056f2a-f48d-43bf-838e-155eabd3d07a"
+        },
+        "status_code": 200
+      },
+      "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+      "status_snapshots": [
+        {
+          "captured_at": "2026-06-01T05:20:32.606495+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extraction run queued.",
+          "stage": "queued",
+          "status": "pending",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:20:37.614745+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:20:42.622496+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:22:37.797017+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting narrative evidence.",
+          "stage": "pass3b_narrative",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:23:17.854659+00:00",
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "final_summary": {
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "error": null,
+            "extraction_status": "ok_low_confidence",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 9,
+            "risk_note_written": 1,
+            "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok_low_confidence.",
+          "stage": "completed",
+          "status": "succeeded",
+          "warning_codes": [
+            "embedding_skipped"
+          ]
+        }
+      ],
+      "submitted_at": "2026-06-01T05:20:32.595351+00:00",
+      "task_id": "5d056f2a-f48d-43bf-838e-155eabd3d07a",
+      "ticker": "AAU",
+      "verdict": "accepted"
+    },
+    {
+      "db_summary": {
+        "financial_row_count_for_source_document": 1,
+        "financial_rows_for_source_document": [
+          {
+            "capex": -430528,
+            "cash_end": 8433610,
+            "confidence_metrics": 1.0,
+            "currency": "IDR",
+            "ebit": 8395030,
+            "financing_cf": 299870,
+            "interest_expense": null,
+            "investing_cf": -1506766,
+            "net_debt": null,
+            "np_attributable": 7920415,
+            "operating_cf": 4853256,
+            "period_end": "2025-12-31",
+            "period_type": "A",
+            "revenue": 84642439,
+            "shares_outstanding": 24030764725,
+            "ticker": "ATM",
+            "total_equity": null,
+            "updated_at": "2026-05-31 09:59:49"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 1.0,
+            "created_at": "2026-06-01 05:25:44",
+            "document_id": "96e9aabd44dc4c2cbe8c74248a0a9025",
+            "error": null,
+            "run_id": "74442c2b3ce445b98eed1581d1fa319e",
+            "status": "ok_low_confidence"
+          }
+        ]
+      },
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "final_status": {
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 867,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 872,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 873,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 873,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf"
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 874,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 877,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 877,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 200,
+              "table_count": 134
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 893,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 896,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:17+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 9988,
+            "error_code": null,
+            "message": "Pass 1 completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass1_classifier",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:26+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 9992,
+            "error_code": null,
+            "message": "Locating statement tables.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass2_locator",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:26+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 10016,
+            "error_code": null,
+            "message": "Pass 2 completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass2_locator",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:27+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 10017,
+            "error_code": null,
+            "message": "Extracting metric candidates.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass3a_metrics",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:23:27+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 127203,
+            "error_code": null,
+            "message": "Pass 3a completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass3a_metrics",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:24+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 127204,
+            "error_code": null,
+            "message": "Extracting narrative evidence.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass3b_narrative",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:24+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147094,
+            "error_code": null,
+            "message": "Pass 3b completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass3b_narrative",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147094,
+            "error_code": null,
+            "message": "Reconciling extracted fields.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass4_reconciliation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147100,
+            "error_code": null,
+            "message": "Pass 4 completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "pass4_reconciliation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147101,
+            "error_code": null,
+            "message": "Running validation gates.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "validation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "error": null,
+              "extraction_status": "ok_low_confidence"
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147102,
+            "error_code": null,
+            "message": "Validation completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "validation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147105,
+            "error_code": null,
+            "message": "Chunking extracted sections for embeddings.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "chunking",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 309
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147108,
+            "error_code": null,
+            "message": "Chunking completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "chunking",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147108,
+            "error_code": null,
+            "message": "Writing chunks to vector storage.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "embedding",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 309,
+              "chunks_skipped": 0,
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147109,
+            "error_code": null,
+            "message": "Embedding skipped in current profile.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "embedding",
+            "status": "blocked",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": "embedding_skipped"
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147000,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 9,
+              "risk_note_written": 1
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147000,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+              "error": null,
+              "extraction_status": "ok_low_confidence",
+              "failure_code": null,
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 9,
+              "risk_note_written": 1,
+              "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+              "written_points": 0
+            },
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "elapsed_ms": 147000,
+            "error_code": null,
+            "message": "Extraction completed with status ok_low_confidence.",
+            "requested_method": "auto",
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "stage": "completed",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:44+00:00",
+            "warning_code": null
+          }
+        ],
+        "summary": {
+          "actual_method": "docling_gpu",
+          "completed_at": "2026-06-01T05:25:44+00:00",
+          "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+          "elapsed_ms": 147000,
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "errors": [
+            {
+              "code": "embedding_blocked",
+              "details": {
+                "chunks_created": 309,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:25:44+00:00"
+            }
+          ],
+          "final_summary": {
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "error": null,
+            "extraction_status": "ok_low_confidence",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 9,
+            "risk_note_written": 1,
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok_low_confidence.",
+          "queue_wait_ms": 0,
+          "queued_at": "2026-06-01T05:23:17+00:00",
+          "requested_method": "auto",
+          "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+          "stage": "completed",
+          "stage_timings_ms": {
+            "chunking": 0,
+            "completed": 0,
+            "document_load": 0,
+            "embedding": 0,
+            "env_check": 0,
+            "parser": 0,
+            "pass1_classifier": 9000,
+            "pass2_locator": 1000,
+            "pass3a_metrics": 117000,
+            "pass3b_narrative": 20000,
+            "pass4_reconciliation": 0,
+            "persistence": 0,
+            "validation": 0
+          },
+          "started_at": "2026-06-01T05:23:17+00:00",
+          "status": "succeeded",
+          "strict_method": false,
+          "updated_at": "2026-06-01T05:25:44+00:00",
+          "warning_codes": [
+            "embedding_skipped"
+          ],
+          "warnings": [
+            {
+              "code": "embedding_skipped",
+              "details": {
+                "chunks_created": 309,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:25:44+00:00"
+            }
+          ],
+          "worker_started_at": "2026-06-01T05:23:17+00:00"
+        }
+      },
+      "order": 2,
+      "post_response": {
+        "json": {
+          "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+          "enqueued": 1,
+          "mode": "celery",
+          "requested_method": "auto",
+          "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+          "strict_method": false,
+          "task_id": "7e9f5478-9809-4bc9-8961-aa3a2b0fc0f1"
+        },
+        "status_code": 200
+      },
+      "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+      "status_snapshots": [
+        {
+          "captured_at": "2026-06-01T05:23:17.874676+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extraction run started.",
+          "stage": "starting",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:23:22.883962+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:23:27.893073+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:25:28.077633+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting narrative evidence.",
+          "stage": "pass3b_narrative",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:25:48.111016+00:00",
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "final_summary": {
+            "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "error": null,
+            "extraction_status": "ok_low_confidence",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 9,
+            "risk_note_written": 1,
+            "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok_low_confidence.",
+          "stage": "completed",
+          "status": "succeeded",
+          "warning_codes": [
+            "embedding_skipped"
+          ]
+        }
+      ],
+      "submitted_at": "2026-06-01T05:23:17.859079+00:00",
+      "task_id": "7e9f5478-9809-4bc9-8961-aa3a2b0fc0f1",
+      "ticker": "ATM",
+      "verdict": "accepted"
+    },
+    {
+      "db_summary": {
+        "financial_row_count_for_source_document": 1,
+        "financial_rows_for_source_document": [
+          {
+            "capex": -89057,
+            "cash_end": 1055036,
+            "confidence_metrics": 0.875,
+            "currency": "AUD",
+            "ebit": null,
+            "financing_cf": 956516,
+            "interest_expense": null,
+            "investing_cf": -87689,
+            "net_debt": null,
+            "np_attributable": -1359665,
+            "operating_cf": -1180006,
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "revenue": null,
+            "shares_outstanding": 24963832,
+            "ticker": "AM5",
+            "total_equity": null,
+            "updated_at": "2026-06-01 05:28:35"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 0.875,
+            "created_at": "2026-06-01 05:28:35",
+            "document_id": "aacc4c29308948cf8b828004134f9387",
+            "error": null,
+            "run_id": "c1c5fd5e39f94efe8534e4d839558445",
+            "status": "ok"
+          }
+        ]
+      },
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "final_status": {
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 118,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 128,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 129,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 129,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf"
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 130,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 133,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 133,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 26,
+              "table_count": 24
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 140,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 142,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:48+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 6457,
+            "error_code": null,
+            "message": "Pass 1 completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass1_classifier",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:54+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 6460,
+            "error_code": null,
+            "message": "Locating statement tables.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass2_locator",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:54+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 6470,
+            "error_code": null,
+            "message": "Pass 2 completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass2_locator",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:54+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 6471,
+            "error_code": null,
+            "message": "Extracting metric candidates.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass3a_metrics",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:25:54+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 148046,
+            "error_code": null,
+            "message": "Pass 3a completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass3a_metrics",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:16+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 148047,
+            "error_code": null,
+            "message": "Extracting narrative evidence.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass3b_narrative",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:16+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167802,
+            "error_code": null,
+            "message": "Pass 3b completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass3b_narrative",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167803,
+            "error_code": null,
+            "message": "Reconciling extracted fields.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass4_reconciliation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167809,
+            "error_code": null,
+            "message": "Pass 4 completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "pass4_reconciliation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167810,
+            "error_code": null,
+            "message": "Running validation gates.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "validation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "error": null,
+              "extraction_status": "ok"
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167811,
+            "error_code": null,
+            "message": "Validation completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "validation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167814,
+            "error_code": null,
+            "message": "Chunking extracted sections for embeddings.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "chunking",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 27
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167815,
+            "error_code": null,
+            "message": "Chunking completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "chunking",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167816,
+            "error_code": null,
+            "message": "Writing chunks to vector storage.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "embedding",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 27,
+              "chunks_skipped": 0,
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167817,
+            "error_code": null,
+            "message": "Embedding skipped in current profile.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "embedding",
+            "status": "blocked",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": "embedding_skipped"
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167000,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 7,
+              "risk_note_written": 1
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167000,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+              "error": null,
+              "extraction_status": "ok",
+              "failure_code": null,
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 7,
+              "risk_note_written": 1,
+              "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+              "written_points": 0
+            },
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "elapsed_ms": 167000,
+            "error_code": null,
+            "message": "Extraction completed with status ok.",
+            "requested_method": "auto",
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "stage": "completed",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:35+00:00",
+            "warning_code": null
+          }
+        ],
+        "summary": {
+          "actual_method": "docling_gpu",
+          "completed_at": "2026-06-01T05:28:35+00:00",
+          "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+          "elapsed_ms": 167000,
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "errors": [
+            {
+              "code": "embedding_blocked",
+              "details": {
+                "chunks_created": 27,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:28:35+00:00"
+            }
+          ],
+          "final_summary": {
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "error": null,
+            "extraction_status": "ok",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 7,
+            "risk_note_written": 1,
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok.",
+          "queue_wait_ms": 0,
+          "queued_at": "2026-06-01T05:25:48+00:00",
+          "requested_method": "auto",
+          "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+          "stage": "completed",
+          "stage_timings_ms": {
+            "chunking": 0,
+            "completed": 0,
+            "document_load": 0,
+            "embedding": 0,
+            "env_check": 0,
+            "parser": 0,
+            "pass1_classifier": 6000,
+            "pass2_locator": 0,
+            "pass3a_metrics": 142000,
+            "pass3b_narrative": 19000,
+            "pass4_reconciliation": 0,
+            "persistence": 0,
+            "validation": 0
+          },
+          "started_at": "2026-06-01T05:25:48+00:00",
+          "status": "succeeded",
+          "strict_method": false,
+          "updated_at": "2026-06-01T05:28:35+00:00",
+          "warning_codes": [
+            "embedding_skipped"
+          ],
+          "warnings": [
+            {
+              "code": "embedding_skipped",
+              "details": {
+                "chunks_created": 27,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:28:35+00:00"
+            }
+          ],
+          "worker_started_at": "2026-06-01T05:25:48+00:00"
+        }
+      },
+      "order": 3,
+      "post_response": {
+        "json": {
+          "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+          "enqueued": 1,
+          "mode": "celery",
+          "requested_method": "auto",
+          "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+          "strict_method": false,
+          "task_id": "73b5c097-6427-48fd-b933-8e9dff5a5196"
+        },
+        "status_code": 200
+      },
+      "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+      "status_snapshots": [
+        {
+          "captured_at": "2026-06-01T05:25:48.130983+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extraction run started.",
+          "stage": "starting",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:25:53.141080+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:25:58.151258+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:28:18.365964+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting narrative evidence.",
+          "stage": "pass3b_narrative",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:28:38.399439+00:00",
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "final_summary": {
+            "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "error": null,
+            "extraction_status": "ok",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 7,
+            "risk_note_written": 1,
+            "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok.",
+          "stage": "completed",
+          "status": "succeeded",
+          "warning_codes": [
+            "embedding_skipped"
+          ]
+        }
+      ],
+      "submitted_at": "2026-06-01T05:25:48.116738+00:00",
+      "task_id": "73b5c097-6427-48fd-b933-8e9dff5a5196",
+      "ticker": "AM5",
+      "verdict": "accepted"
+    },
+    {
+      "db_summary": {
+        "financial_row_count_for_source_document": 1,
+        "financial_rows_for_source_document": [
+          {
+            "capex": null,
+            "cash_end": 802985,
+            "confidence_metrics": 0.874,
+            "currency": "AUD",
+            "ebit": -1197045,
+            "financing_cf": 1866935,
+            "interest_expense": null,
+            "investing_cf": 32031,
+            "net_debt": null,
+            "np_attributable": -1158426,
+            "operating_cf": -1462291,
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "revenue": 13552,
+            "shares_outstanding": 42776795,
+            "ticker": "AQX",
+            "total_equity": null,
+            "updated_at": "2026-05-31 10:05:32"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 0.874,
+            "created_at": "2026-06-01 05:30:58",
+            "document_id": "0ed0104ff29a40688ff7370f14fead98",
+            "error": null,
+            "run_id": "9aa658d6c8db43769698cb33f05172f4",
+            "status": "ok"
+          }
+        ]
+      },
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "final_status": {
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 414,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 419,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 419,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 420,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf"
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 421,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 423,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 424,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 34,
+              "table_count": 14
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 433,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 435,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:38+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 6784,
+            "error_code": null,
+            "message": "Pass 1 completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass1_classifier",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 6786,
+            "error_code": null,
+            "message": "Locating statement tables.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass2_locator",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 6794,
+            "error_code": null,
+            "message": "Pass 2 completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass2_locator",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 6794,
+            "error_code": null,
+            "message": "Extracting metric candidates.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass3a_metrics",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:28:44+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 121790,
+            "error_code": null,
+            "message": "Pass 3a completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass3a_metrics",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:39+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 121791,
+            "error_code": null,
+            "message": "Extracting narrative evidence.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass3b_narrative",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:39+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140677,
+            "error_code": null,
+            "message": "Pass 3b completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass3b_narrative",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140678,
+            "error_code": null,
+            "message": "Reconciling extracted fields.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass4_reconciliation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140684,
+            "error_code": null,
+            "message": "Pass 4 completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "pass4_reconciliation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140684,
+            "error_code": null,
+            "message": "Running validation gates.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "validation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "error": null,
+              "extraction_status": "ok"
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140685,
+            "error_code": null,
+            "message": "Validation completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "validation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140690,
+            "error_code": null,
+            "message": "Chunking extracted sections for embeddings.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "chunking",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 27
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140690,
+            "error_code": null,
+            "message": "Chunking completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "chunking",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140691,
+            "error_code": null,
+            "message": "Writing chunks to vector storage.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "embedding",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 27,
+              "chunks_skipped": 0,
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140691,
+            "error_code": null,
+            "message": "Embedding skipped in current profile.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "embedding",
+            "status": "blocked",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": "embedding_skipped"
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140000,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 8,
+              "risk_note_written": 1
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140000,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+              "error": null,
+              "extraction_status": "ok",
+              "failure_code": null,
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 8,
+              "risk_note_written": 1,
+              "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+              "written_points": 0
+            },
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "elapsed_ms": 140000,
+            "error_code": null,
+            "message": "Extraction completed with status ok.",
+            "requested_method": "auto",
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "stage": "completed",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:30:58+00:00",
+            "warning_code": null
+          }
+        ],
+        "summary": {
+          "actual_method": "docling_gpu",
+          "completed_at": "2026-06-01T05:30:58+00:00",
+          "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+          "elapsed_ms": 140000,
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "errors": [
+            {
+              "code": "embedding_blocked",
+              "details": {
+                "chunks_created": 27,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:30:58+00:00"
+            }
+          ],
+          "final_summary": {
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "error": null,
+            "extraction_status": "ok",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 8,
+            "risk_note_written": 1,
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok.",
+          "queue_wait_ms": 0,
+          "queued_at": "2026-06-01T05:28:38+00:00",
+          "requested_method": "auto",
+          "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+          "stage": "completed",
+          "stage_timings_ms": {
+            "chunking": 0,
+            "completed": 0,
+            "document_load": 0,
+            "embedding": 0,
+            "env_check": 0,
+            "parser": 0,
+            "pass1_classifier": 6000,
+            "pass2_locator": 0,
+            "pass3a_metrics": 115000,
+            "pass3b_narrative": 19000,
+            "pass4_reconciliation": 0,
+            "persistence": 0,
+            "validation": 0
+          },
+          "started_at": "2026-06-01T05:28:38+00:00",
+          "status": "succeeded",
+          "strict_method": false,
+          "updated_at": "2026-06-01T05:30:58+00:00",
+          "warning_codes": [
+            "embedding_skipped"
+          ],
+          "warnings": [
+            {
+              "code": "embedding_skipped",
+              "details": {
+                "chunks_created": 27,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:30:58+00:00"
+            }
+          ],
+          "worker_started_at": "2026-06-01T05:28:38+00:00"
+        }
+      },
+      "order": 4,
+      "post_response": {
+        "json": {
+          "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+          "enqueued": 1,
+          "mode": "celery",
+          "requested_method": "auto",
+          "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+          "strict_method": false,
+          "task_id": "855a063a-c450-40ea-b8d1-effb59488aed"
+        },
+        "status_code": 200
+      },
+      "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+      "status_snapshots": [
+        {
+          "captured_at": "2026-06-01T05:28:38.422770+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Document metadata loaded.",
+          "stage": "document_load",
+          "status": "succeeded",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:29:38.557226+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:30:43.659326+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting narrative evidence.",
+          "stage": "pass3b_narrative",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:30:58.685294+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:31:03.699565+00:00",
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "final_summary": {
+            "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "error": null,
+            "extraction_status": "ok",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 8,
+            "risk_note_written": 1,
+            "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok.",
+          "stage": "completed",
+          "status": "succeeded",
+          "warning_codes": [
+            "embedding_skipped"
+          ]
+        }
+      ],
+      "submitted_at": "2026-06-01T05:28:38.407422+00:00",
+      "task_id": "855a063a-c450-40ea-b8d1-effb59488aed",
+      "ticker": "AQX",
+      "verdict": "accepted"
+    },
+    {
+      "db_summary": {
+        "financial_row_count_for_source_document": 1,
+        "financial_rows_for_source_document": [
+          {
+            "capex": null,
+            "cash_end": 4756183,
+            "confidence_metrics": 0.695,
+            "currency": "AUD",
+            "ebit": null,
+            "financing_cf": 997240,
+            "interest_expense": null,
+            "investing_cf": -3429257,
+            "net_debt": null,
+            "np_attributable": -1937589,
+            "operating_cf": -588790,
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "revenue": null,
+            "shares_outstanding": 33643848,
+            "ticker": "CRS",
+            "total_equity": null,
+            "updated_at": "2026-06-01 05:34:15"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 0.695,
+            "created_at": "2026-06-01 05:34:15",
+            "document_id": "b43a16fb76604bf796ab0db641cd4032",
+            "error": null,
+            "run_id": "44a86108eab04b41911e545a4d7682c5",
+            "status": "ok_low_confidence"
+          }
+        ]
+      },
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "final_status": {
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 717,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 722,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 723,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 723,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf"
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 725,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 727,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 728,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 22,
+              "table_count": 29
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 735,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 736,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:03+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 7109,
+            "error_code": null,
+            "message": "Pass 1 completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass1_classifier",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:10+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 7113,
+            "error_code": null,
+            "message": "Locating statement tables.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass2_locator",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:10+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 7124,
+            "error_code": null,
+            "message": "Pass 2 completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass2_locator",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:10+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 7125,
+            "error_code": null,
+            "message": "Extracting metric candidates.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass3a_metrics",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:31:10+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 170447,
+            "error_code": null,
+            "message": "Pass 3a completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass3a_metrics",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:33:53+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 170448,
+            "error_code": null,
+            "message": "Extracting narrative evidence.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass3b_narrative",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:33:53+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192132,
+            "error_code": null,
+            "message": "Pass 3b completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass3b_narrative",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192133,
+            "error_code": null,
+            "message": "Reconciling extracted fields.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass4_reconciliation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192139,
+            "error_code": null,
+            "message": "Pass 4 completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "pass4_reconciliation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192140,
+            "error_code": null,
+            "message": "Running validation gates.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "validation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "error": null,
+              "extraction_status": "ok_low_confidence"
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192140,
+            "error_code": null,
+            "message": "Validation completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "validation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192143,
+            "error_code": null,
+            "message": "Chunking extracted sections for embeddings.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "chunking",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 14
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192144,
+            "error_code": null,
+            "message": "Chunking completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "chunking",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192144,
+            "error_code": null,
+            "message": "Writing chunks to vector storage.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "embedding",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 14,
+              "chunks_skipped": 0,
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192145,
+            "error_code": null,
+            "message": "Embedding skipped in current profile.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "embedding",
+            "status": "blocked",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": "embedding_skipped"
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192000,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 6,
+              "risk_note_written": 1
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192000,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+              "error": null,
+              "extraction_status": "ok_low_confidence",
+              "failure_code": null,
+              "financial_rows_written": 1,
+              "persisted": true,
+              "reviewable_metrics_count": 6,
+              "risk_note_written": 1,
+              "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+              "written_points": 0
+            },
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "elapsed_ms": 192000,
+            "error_code": null,
+            "message": "Extraction completed with status ok_low_confidence.",
+            "requested_method": "auto",
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "stage": "completed",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:15+00:00",
+            "warning_code": null
+          }
+        ],
+        "summary": {
+          "actual_method": "docling_gpu",
+          "completed_at": "2026-06-01T05:34:15+00:00",
+          "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+          "elapsed_ms": 192000,
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "errors": [
+            {
+              "code": "embedding_blocked",
+              "details": {
+                "chunks_created": 14,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:34:15+00:00"
+            }
+          ],
+          "final_summary": {
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "error": null,
+            "extraction_status": "ok_low_confidence",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 6,
+            "risk_note_written": 1,
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok_low_confidence.",
+          "queue_wait_ms": 0,
+          "queued_at": "2026-06-01T05:31:03+00:00",
+          "requested_method": "auto",
+          "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+          "stage": "completed",
+          "stage_timings_ms": {
+            "chunking": 0,
+            "completed": 0,
+            "document_load": 0,
+            "embedding": 0,
+            "env_check": 0,
+            "parser": 0,
+            "pass1_classifier": 7000,
+            "pass2_locator": 0,
+            "pass3a_metrics": 163000,
+            "pass3b_narrative": 22000,
+            "pass4_reconciliation": 0,
+            "persistence": 0,
+            "validation": 0
+          },
+          "started_at": "2026-06-01T05:31:03+00:00",
+          "status": "succeeded",
+          "strict_method": false,
+          "updated_at": "2026-06-01T05:34:15+00:00",
+          "warning_codes": [
+            "embedding_skipped"
+          ],
+          "warnings": [
+            {
+              "code": "embedding_skipped",
+              "details": {
+                "chunks_created": 14,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "skipped_invalid_vectors": 0,
+                "written_points": 0
+              },
+              "message": "Embedding skipped in current profile.",
+              "stage": "embedding",
+              "timestamp": "2026-06-01T05:34:15+00:00"
+            }
+          ],
+          "worker_started_at": "2026-06-01T05:31:03+00:00"
+        }
+      },
+      "order": 5,
+      "post_response": {
+        "json": {
+          "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+          "enqueued": 1,
+          "mode": "celery",
+          "requested_method": "auto",
+          "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+          "strict_method": false,
+          "task_id": "1a261350-598e-4d23-90e6-eb3a5198c648"
+        },
+        "status_code": 200
+      },
+      "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+      "status_snapshots": [
+        {
+          "captured_at": "2026-06-01T05:31:03.727936+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Document metadata loaded.",
+          "stage": "document_load",
+          "status": "succeeded",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:31:08.740888+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:31:13.756952+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:33:54.003598+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting narrative evidence.",
+          "stage": "pass3b_narrative",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:34:19.046803+00:00",
+          "error_codes": [
+            "embedding_blocked"
+          ],
+          "final_summary": {
+            "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "error": null,
+            "extraction_status": "ok_low_confidence",
+            "failure_code": null,
+            "financial_rows_written": 1,
+            "persisted": true,
+            "reviewable_metrics_count": 6,
+            "risk_note_written": 1,
+            "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+            "written_points": 0
+          },
+          "last_message": "Extraction completed with status ok_low_confidence.",
+          "stage": "completed",
+          "status": "succeeded",
+          "warning_codes": [
+            "embedding_skipped"
+          ]
+        }
+      ],
+      "submitted_at": "2026-06-01T05:31:03.710651+00:00",
+      "task_id": "1a261350-598e-4d23-90e6-eb3a5198c648",
+      "ticker": "CRS",
+      "verdict": "accepted"
+    },
+    {
+      "db_summary": {
+        "financial_row_count_for_source_document": 1,
+        "financial_rows_for_source_document": [
+          {
+            "capex": null,
+            "cash_end": 10300000,
+            "confidence_metrics": 0.9,
+            "currency": "AUD",
+            "ebit": null,
+            "financing_cf": null,
+            "interest_expense": null,
+            "investing_cf": null,
+            "net_debt": null,
+            "np_attributable": 4200000,
+            "operating_cf": null,
+            "period_end": "2026-01-31",
+            "period_type": "H",
+            "revenue": 44100000,
+            "shares_outstanding": null,
+            "ticker": "CLV",
+            "total_equity": null,
+            "updated_at": "2026-05-31 10:51:36"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 0.0,
+            "created_at": "2026-06-01 05:34:45",
+            "document_id": "da9f9ea56596464faf145acf12f9b050",
+            "error": "validation_gate:insufficient_metrics:0",
+            "run_id": "45b9c8469f0044cab8c67833f80e6342",
+            "status": "failed"
+          }
+        ]
+      },
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "final_status": {
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 60,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 64,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 65,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 71,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf"
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 72,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 75,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 76,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 4,
+              "table_count": 0
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 78,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 82,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:19+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 10304,
+            "error_code": null,
+            "message": "Pass 1 completed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass1_classifier",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:29+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 10305,
+            "error_code": null,
+            "message": "Locating statement tables.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass2_locator",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:29+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 10311,
+            "error_code": null,
+            "message": "Pass 2 completed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass2_locator",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:29+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 10311,
+            "error_code": null,
+            "message": "Extracting metric candidates.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass3a_metrics",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:29+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 10318,
+            "error_code": null,
+            "message": "Pass 3a completed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass3a_metrics",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:29+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 10319,
+            "error_code": null,
+            "message": "Extracting narrative evidence.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass3b_narrative",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:29+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26481,
+            "error_code": null,
+            "message": "Pass 3b completed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass3b_narrative",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26482,
+            "error_code": null,
+            "message": "Reconciling extracted fields.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass4_reconciliation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26489,
+            "error_code": null,
+            "message": "Pass 4 completed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "pass4_reconciliation",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26490,
+            "error_code": null,
+            "message": "Running validation gates.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "validation",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "error": "validation_gate:insufficient_metrics:0",
+              "extraction_status": "failed"
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26491,
+            "error_code": "validation_failed",
+            "message": "Validation failed: validation_gate:insufficient_metrics:0",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "validation",
+            "status": "failed",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "extraction_status": "failed"
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26000,
+            "error_code": null,
+            "message": "Chunking skipped because extraction did not produce persistable sections.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "chunking",
+            "status": "skipped",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "chunks_created": 0,
+              "chunks_skipped": 0,
+              "extraction_status": "failed",
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26000,
+            "error_code": null,
+            "message": "Embedding skipped because extraction did not produce chunks.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "embedding",
+            "status": "skipped",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {},
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26000,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "financial_rows_written": 0,
+              "persisted": true,
+              "reviewable_metrics_count": 0,
+              "risk_note_written": 1
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26000,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "docling_gpu",
+            "details": {
+              "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+              "error": "validation_gate:insufficient_metrics:0",
+              "extraction_status": "failed",
+              "failure_code": "unknown",
+              "financial_rows_written": 0,
+              "persisted": true,
+              "reviewable_metrics_count": 0,
+              "risk_note_written": 1,
+              "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+              "written_points": 0
+            },
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "elapsed_ms": 26000,
+            "error_code": "unknown",
+            "message": "Extraction finished with status failed.",
+            "requested_method": "auto",
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "stage": "failed",
+            "status": "failed",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:34:45+00:00",
+            "warning_code": null
+          }
+        ],
+        "summary": {
+          "actual_method": "docling_gpu",
+          "completed_at": "2026-06-01T05:34:45+00:00",
+          "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+          "elapsed_ms": 26000,
+          "error_codes": [
+            "validation_failed",
+            "unknown"
+          ],
+          "errors": [
+            {
+              "code": "validation_failed",
+              "details": {
+                "error": "validation_gate:insufficient_metrics:0",
+                "extraction_status": "failed"
+              },
+              "message": "Validation failed: validation_gate:insufficient_metrics:0",
+              "stage": "validation",
+              "timestamp": "2026-06-01T05:34:45+00:00"
+            },
+            {
+              "code": "unknown",
+              "details": {
+                "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+                "error": "validation_gate:insufficient_metrics:0",
+                "extraction_status": "failed",
+                "failure_code": "unknown",
+                "financial_rows_written": 0,
+                "persisted": true,
+                "reviewable_metrics_count": 0,
+                "risk_note_written": 1,
+                "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+                "written_points": 0
+              },
+              "message": "Extraction finished with status failed.",
+              "stage": "failed",
+              "timestamp": "2026-06-01T05:34:45+00:00"
+            }
+          ],
+          "final_summary": {
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "error": "validation_gate:insufficient_metrics:0",
+            "extraction_status": "failed",
+            "failure_code": "unknown",
+            "financial_rows_written": 0,
+            "persisted": true,
+            "reviewable_metrics_count": 0,
+            "risk_note_written": 1,
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "written_points": 0
+          },
+          "last_message": "Extraction finished with status failed.",
+          "queue_wait_ms": 0,
+          "queued_at": "2026-06-01T05:34:19+00:00",
+          "requested_method": "auto",
+          "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+          "stage": "failed",
+          "stage_timings_ms": {
+            "chunking": 0,
+            "document_load": 0,
+            "embedding": 0,
+            "env_check": 0,
+            "failed": 0,
+            "parser": 0,
+            "pass1_classifier": 10000,
+            "pass2_locator": 0,
+            "pass3a_metrics": 0,
+            "pass3b_narrative": 16000,
+            "pass4_reconciliation": 0,
+            "persistence": 0,
+            "validation": 0
+          },
+          "started_at": "2026-06-01T05:34:19+00:00",
+          "status": "failed",
+          "strict_method": false,
+          "updated_at": "2026-06-01T05:34:45+00:00",
+          "warning_codes": [],
+          "warnings": [],
+          "worker_started_at": "2026-06-01T05:34:19+00:00"
+        }
+      },
+      "order": 6,
+      "post_response": {
+        "json": {
+          "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+          "enqueued": 1,
+          "mode": "celery",
+          "requested_method": "auto",
+          "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+          "strict_method": false,
+          "task_id": "33946daa-d1ce-4e44-b608-092f0f884223"
+        },
+        "status_code": 200
+      },
+      "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+      "status_snapshots": [
+        {
+          "captured_at": "2026-06-01T05:34:19.070349+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extraction run started.",
+          "stage": "starting",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:34:24.083503+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:34:34.104637+00:00",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extracting narrative evidence.",
+          "stage": "pass3b_narrative",
+          "status": "running",
+          "warning_codes": []
+        },
+        {
+          "captured_at": "2026-06-01T05:34:49.133964+00:00",
+          "error_codes": [
+            "validation_failed",
+            "unknown"
+          ],
+          "final_summary": {
+            "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+            "error": "validation_gate:insufficient_metrics:0",
+            "extraction_status": "failed",
+            "failure_code": "unknown",
+            "financial_rows_written": 0,
+            "persisted": true,
+            "reviewable_metrics_count": 0,
+            "risk_note_written": 1,
+            "run_id": "45b9c846-9f00-44ca-b8c6-7833f80e6342",
+            "written_points": 0
+          },
+          "last_message": "Extraction finished with status failed.",
+          "stage": "failed",
+          "status": "failed",
+          "warning_codes": []
+        }
+      ],
+      "submitted_at": "2026-06-01T05:34:19.058859+00:00",
+      "task_id": "33946daa-d1ce-4e44-b608-092f0f884223",
+      "ticker": "CLV",
+      "verdict": "hard_failed"
+    }
+  ],
+  "resume_notes": [
+    {
+      "captured_at": "2026-06-01T05:29:38.552008+00:00",
+      "note": "Previous driver treated intermediate summary.status=succeeded as terminal for AQX. Direct run-status check showed AQX still running; resuming with final_summary-only terminal condition."
+    }
+  ],
+  "route": "POST /api/process/document/{document_id}",
+  "started_at": "2026-06-01T05:20:32.595212+00:00",
+  "stop_reason": "hard_failed:da9f9ea5-6596-464f-af14-5acf12f9b050:failed:45b9c846-9f00-44ca-b8c6-7833f80e6342",
+  "stopped_early": true,
+  "updated_at": "2026-06-01T05:34:49.141870+00:00"
+}

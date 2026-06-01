@@ -12,6 +12,7 @@ NOT an accuracy test (no ground truth). Measures:
 
 Usage:
   python scripts/broad_extraction_test.py --count 200 --seed 42
+  python scripts/broad_extraction_test.py --count 20 --docs-root /data/asx/docs
   python scripts/broad_extraction_test.py --count 50 --resume   # pick up where left off
   python scripts/broad_extraction_test.py --count 200 --anthropic  # use Anthropic API
 
@@ -29,7 +30,7 @@ import statistics
 import sys
 import time
 import traceback
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 # Add backend to path so we can import app.services
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -72,21 +73,97 @@ METRIC_FIELDS = [
     "capex", "cash_end", "net_debt", "shares_outstanding",
 ]
 
-DOCS_ROOT = _REPO_ROOT / "data" / "asx" / "docs"
+DEFAULT_DOCS_ROOT = _REPO_ROOT / "data" / "asx" / "docs"
+HOST_DOCS_ROOT = Path("/data/asx/docs")
 RESULTS_DIR = _REPO_ROOT / "scripts" / "broad_test_results"
 
 
-def discover_pdfs() -> list[Path]:
-    """Find all financial_performance PDFs across all tickers."""
-    pdfs = []
-    for ticker_dir in sorted(DOCS_ROOT.iterdir()):
-        fp_dir = ticker_dir / "financial_performance"
-        if not fp_dir.is_dir():
+def _dedupe_paths(paths: list[Path]) -> list[Path]:
+    seen: set[str] = set()
+    deduped: list[Path] = []
+    for path in paths:
+        key = str(path.expanduser().resolve(strict=False))
+        if key in seen:
             continue
-        for f in fp_dir.iterdir():
-            if f.suffix == ".pdf" and not f.name.endswith((".docling.json", ".pymupdf.json")):
-                pdfs.append(f)
-    return pdfs
+        seen.add(key)
+        deduped.append(path.expanduser())
+    return deduped
+
+
+def _candidate_docs_roots(explicit_docs_root: str | Path | None = None) -> list[Path]:
+    explicit = str(explicit_docs_root or "").strip()
+    if explicit:
+        return _dedupe_paths([Path(explicit)])
+
+    candidates: list[Path] = []
+    env_docs_root = os.environ.get("DOCS_ROOT", "").strip()
+    if env_docs_root:
+        candidates.append(Path(env_docs_root))
+
+    data_root = os.environ.get("DATA_ROOT", "").strip()
+    if data_root:
+        candidates.append(Path(data_root) / "asx" / "docs")
+
+    candidates.extend([DEFAULT_DOCS_ROOT, HOST_DOCS_ROOT])
+    return _dedupe_paths(candidates)
+
+
+def _scan_financial_performance_pdfs(docs_root: Path) -> list[Path]:
+    if not docs_root.is_dir():
+        return []
+    return sorted(docs_root.glob("*/financial_performance/*.pdf"))
+
+
+def _root_has_financial_pdfs(docs_root: Path) -> bool:
+    if not docs_root.is_dir():
+        return False
+    try:
+        next(docs_root.glob("*/financial_performance/*.pdf"))
+    except StopIteration:
+        return False
+    return True
+
+
+def resolve_docs_root(explicit_docs_root: str | Path | None = None) -> Path:
+    """Resolve the source-PDF root for broad robustness runs.
+
+    An explicit root is authoritative even if empty, so callers can test or
+    intentionally scope a run without falling through to host data.
+    """
+
+    candidates = _candidate_docs_roots(explicit_docs_root)
+    if explicit_docs_root:
+        return candidates[0]
+
+    for candidate in candidates:
+        if _root_has_financial_pdfs(candidate):
+            return candidate
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    return DEFAULT_DOCS_ROOT
+
+
+def discover_pdfs(docs_root: str | Path | None = None) -> list[Path]:
+    """Find all financial_performance PDFs across all tickers."""
+    return _scan_financial_performance_pdfs(resolve_docs_root(docs_root))
+
+
+def _source_path_for_record(
+    pdf_path: Path,
+    docs_root: str | Path | None = None,
+) -> str:
+    path = Path(pdf_path)
+    root = resolve_docs_root(docs_root).resolve(strict=False)
+    resolved_path = path.resolve(strict=False)
+    try:
+        relative_to_docs = resolved_path.relative_to(root)
+    except ValueError:
+        try:
+            return str(path.relative_to(_REPO_ROOT))
+        except ValueError:
+            return str(path)
+    return PurePosixPath("data/asx/docs", *relative_to_docs.parts).as_posix()
 
 
 def _ticker_from_path(pdf_path: Path) -> str:
@@ -144,7 +221,12 @@ def make_llm_client(use_anthropic: bool):
         return client
 
 
-def run_one(pdf_path: Path, llm_client) -> dict:
+def run_one(
+    pdf_path: Path,
+    llm_client,
+    *,
+    docs_root: str | Path | None = None,
+) -> dict:
     """Run extraction on a single PDF. Returns result dict."""
     from app.services.multipass_extraction import run_multipass_extraction
 
@@ -157,7 +239,7 @@ def run_one(pdf_path: Path, llm_client) -> dict:
     }
 
     record = {
-        "pdf_path": str(pdf_path.relative_to(_REPO_ROOT)),
+        "pdf_path": _source_path_for_record(pdf_path, docs_root),
         "ticker": ticker,
         "document_id": doc_id,
         "status": None,
@@ -223,7 +305,31 @@ def compute_summary(results: list[dict]) -> dict:
     """Compute aggregate stats from all results."""
     total = len(results)
     if total == 0:
-        return {"total": 0}
+        return {
+            "total": 0,
+            "status_distribution": {},
+            "success_rate": 0,
+            "error_classification": {},
+            "metric_coverage": {
+                metric: {"present": 0, "total": 0, "rate": 0}
+                for metric in METRIC_FIELDS
+            },
+            "nonnull_metric_distribution": {},
+            "timing": {},
+            "sanity_checks": {
+                check_name: {"passed": 0, "total": 0, "rate": 0}
+                for check_name in (
+                    "revenue_positive",
+                    "shares_positive",
+                    "cash_end_positive",
+                    "period_end_valid",
+                    "period_type_valid",
+                )
+            },
+            "unique_tickers": 0,
+            "period_type_distribution": {},
+            "scale_distribution": {},
+        }
 
     # Status distribution
     status_counts: dict[str, int] = {}
@@ -365,7 +471,14 @@ def print_summary(summary: dict) -> None:
     print(f"\nSANITY CHECKS:")
     for check, stats in summary["sanity_checks"].items():
         rate = stats["rate"]
-        label = "PASS" if rate >= 0.95 else "WARN" if rate >= 0.80 else "FAIL"
+        if stats["total"] == 0:
+            label = "N/A"
+        elif rate >= 0.95:
+            label = "PASS"
+        elif rate >= 0.80:
+            label = "WARN"
+        else:
+            label = "FAIL"
         print(f"  {check:25s} {stats['passed']:4d}/{stats['total']:4d} ({rate:5.1%}) [{label}]")
 
     # Period type + scale
@@ -395,6 +508,14 @@ def main():
     parser.add_argument("--resume", action="store_true", help="Resume from existing results file")
     parser.add_argument("--anthropic", action="store_true", help="Use Anthropic API instead of local llama.cpp")
     parser.add_argument("--output-dir", type=str, default=str(RESULTS_DIR), help="Output directory for results")
+    parser.add_argument(
+        "--docs-root",
+        default=None,
+        help=(
+            "Root containing ASX filing PDFs. Defaults to DOCS_ROOT, "
+            "DATA_ROOT/asx/docs, repo-local data/asx/docs, then /data/asx/docs."
+        ),
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -405,7 +526,9 @@ def main():
 
     # Discover all PDFs
     print("Discovering PDFs...")
-    all_pdfs = discover_pdfs()
+    docs_root = resolve_docs_root(args.docs_root)
+    all_pdfs = discover_pdfs(docs_root)
+    print(f"Using docs root: {docs_root}")
     print(f"Found {len(all_pdfs)} financial_performance PDFs across {len(set(_ticker_from_path(p) for p in all_pdfs))} tickers")
 
     # Sample
@@ -429,12 +552,9 @@ def main():
             results_path = latest  # overwrite same file
             print(f"  Already processed: {len(processed_paths)}")
 
-    # Build LLM client
-    llm_client = make_llm_client(args.anthropic)
-
     # Run extraction
     results = list(existing_results)
-    remaining = [p for p in sample if str(p.relative_to(_REPO_ROOT)) not in processed_paths]
+    remaining = [p for p in sample if _source_path_for_record(p, docs_root) not in processed_paths]
     total_remaining = len(remaining)
 
     if total_remaining == 0:
@@ -443,8 +563,11 @@ def main():
         print(f"\nRunning extraction on {total_remaining} PDFs...")
         print(f"Estimated time: ~{total_remaining * 45 / 60:.0f} min (at ~45s/doc with llama.cpp)\n")
 
+    llm_client = make_llm_client(args.anthropic) if total_remaining > 0 else None
+
     for i, pdf_path in enumerate(remaining):
-        rel = str(pdf_path.relative_to(_REPO_ROOT))
+        if llm_client is None:
+            raise RuntimeError("LLM client was not initialized for a non-empty run")
         ticker = _ticker_from_path(pdf_path)
         done_total = len(results)
         elapsed_total = sum(r["elapsed_s"] for r in results if r["elapsed_s"]) or 0.001
@@ -453,7 +576,7 @@ def main():
 
         print(f"[{i+1}/{total_remaining}] {ticker}/{pdf_path.name[:50]}...", end="", flush=True)
 
-        record = run_one(pdf_path, llm_client)
+        record = run_one(pdf_path, llm_client, docs_root=docs_root)
         results.append(record)
 
         status = record["status"]
@@ -473,6 +596,7 @@ def main():
                     "requested_count": args.count,
                     "actual_count": len(results),
                     "backend": "anthropic" if args.anthropic else "llamacpp",
+                    "docs_root": str(docs_root),
                 },
                 "summary": summary,
                 "results": results,
@@ -488,6 +612,7 @@ def main():
             "requested_count": args.count,
             "actual_count": len(results),
             "backend": "anthropic" if args.anthropic else "llamacpp",
+            "docs_root": str(docs_root),
         },
         "summary": summary,
         "results": results,
