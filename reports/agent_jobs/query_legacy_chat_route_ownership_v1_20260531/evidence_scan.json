@@ -1,0 +1,84 @@
+{
+  "job_id": "query_legacy_chat_route_ownership_v1_20260531",
+  "issue": 150,
+  "branch": "audit/query-legacy-chat-route-ownership-v1-20260602",
+  "base_head": "5ea3b65f074913d0c6ce3be4bad5b49b03165194",
+  "findings": {
+    "legacy_chat_mounts": {
+      "status": "confirmed",
+      "evidence": [
+        "financial-engine_v2/backend/app/main.py:96 app.include_router(router, prefix=\"/api\")",
+        "financial-engine_v2/backend/app/main.py:97 app.include_router(chat_router)",
+        "financial-engine_v2/backend/app/main.py:98 app.include_router(chat_router, prefix=\"/api\")"
+      ]
+    },
+    "legacy_handler": {
+      "status": "confirmed",
+      "evidence": [
+        "financial-engine_v2/backend/app/routes/chat.py:156 @router.post(\"/chat\")",
+        "financial-engine_v2/backend/app/routes/chat.py:163-168 delegates analysis mode to _analysis_response()",
+        "financial-engine_v2/backend/app/routes/chat.py:138-141 returns type=analysis with content"
+      ]
+    },
+    "legacy_source_labels": {
+      "status": "present_but_not_route_versioned",
+      "evidence": [
+        "financial-engine_v2/backend/app/services/tenn_chat.py:733-753 builds sources with evidence_label, evidence_labels, claim_verified",
+        "financial-engine_v2/backend/app/services/tenn_chat.py:794-813 includes evidence_labels, source_coverage_status, evidence_status"
+      ]
+    },
+    "taxonomy_version_current_branch": {
+      "status": "missing_from_legacy_route",
+      "evidence": [
+        "financial-engine_v2/shared/evidence_labels.py:5 defines SOURCE_LABEL_TAXONOMY_VERSION",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py imports and uses SOURCE_LABEL_TAXONOMY_VERSION",
+        "financial-engine_v2/backend/app/services/query_orchestrator.py emits source_label_taxonomy_version",
+        "current rg found no SOURCE_LABEL_TAXONOMY_VERSION or source_label_taxonomy_version in financial-engine_v2/backend/app/routes/chat.py or financial-engine_v2/backend/app/services/tenn_chat.py"
+      ]
+    },
+    "cockpit_web_route": {
+      "status": "confirmed",
+      "evidence": [
+        "cockpit-ui/lib/api-client.ts:671-699 blocking sendChatMessage posts to /api/cockpit/chat",
+        "cockpit-ui/lib/api-client.ts:757-792 streamChat posts to /api/cockpit/chat",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:9927 @router.post(\"/chat\") under /api/cockpit router"
+      ]
+    },
+    "docs_route_inventory": {
+      "status": "confirmed",
+      "evidence": [
+        "docs/architecture/19_backend_api_surface.md:15 lists /chat and /api/chat from app.routes.chat",
+        "docs/architecture/19_backend_api_surface.md:93-98 documents POST /chat and POST /api/chat",
+        "docs/architecture/19_backend_api_surface.md:109-120 documents POST /api/cockpit/chat",
+        "docs/architecture/19_backend_api_surface.md:296-298 says /chat and /api/chat are intentionally exposed"
+      ]
+    },
+    "parked_compatibility_work": {
+      "status": "not_integrated",
+      "evidence": [
+        "reports/agent_jobs/query_legacy_chat_merge_readiness_audit_v1/README.md records commit 9fc3d158f0cab218ae17343c00a56cf4d66cc240",
+        "git branch --all --contains 9fc3d158f0cab218ae17343c00a56cf4d66cc240 returned only safe/query-legacy-chat-envelope-compat-v1"
+      ]
+    },
+    "github_duplicate_search": {
+      "status": "no_duplicate_pr_found",
+      "evidence": [
+        "gh pr list search for legacy api chat taxonomy/envelope terms returned []",
+        "gh issue list search for legacy api chat taxonomy/envelope terms returned only issue #150"
+      ]
+    }
+  },
+  "commands": [
+    "nl -ba financial-engine_v2/backend/app/main.py | sed -n '88,105p'",
+    "nl -ba financial-engine_v2/backend/app/routes/chat.py | sed -n '1,220p'",
+    "nl -ba financial-engine_v2/backend/app/services/tenn_chat.py | sed -n '720,825p'",
+    "nl -ba cockpit-ui/lib/api-client.ts | sed -n '660,805p'",
+    "nl -ba financial-engine_v2/backend/app/routes/cockpit_api.py | sed -n '9920,10050p'",
+    "rg -n \"SOURCE_LABEL_TAXONOMY_VERSION|source_label_taxonomy_version|source_label_semantics\" financial-engine_v2/backend/app/routes/chat.py financial-engine_v2/backend/app/routes/cockpit_api.py financial-engine_v2/backend/app/services/tenn_chat.py financial-engine_v2/backend/app/services/query_orchestrator.py financial-engine_v2/shared/evidence_labels.py financial-engine_v2/backend/tests/test_evidence_label_semantics.py",
+    "nl -ba docs/architecture/19_backend_api_surface.md | sed -n '1,130p;285,315p'",
+    "nl -ba docs/architecture/21_cockpit_client_contract.md | sed -n '50,75p;155,170p'",
+    "git branch --all --contains 9fc3d158f0cab218ae17343c00a56cf4d66cc240",
+    "gh pr list --repo 0rl4nd0l/tenn --state all --search \"legacy api chat taxonomy envelope OR legacy chat envelope OR SOURCE_LABEL_TAXONOMY_VERSION OR legacy /chat evidence envelope OR query_legacy_chat_envelope\" --json number,title,state,url,headRefName,baseRefName,updatedAt,mergeStateStatus --limit 30",
+    "gh issue list --repo 0rl4nd0l/tenn --state all --search \"legacy api chat taxonomy envelope OR legacy chat envelope OR SOURCE_LABEL_TAXONOMY_VERSION OR legacy /chat evidence envelope OR query_legacy_chat_envelope\" --json number,title,state,url,updatedAt,labels --limit 30"
+  ]
+}

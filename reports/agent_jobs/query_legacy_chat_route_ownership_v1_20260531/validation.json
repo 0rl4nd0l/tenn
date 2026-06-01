@@ -1,0 +1,55 @@
+{
+  "job_id": "query_legacy_chat_route_ownership_v1_20260531",
+  "validations": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "status": "PASS",
+      "result": "active_jobs empty before claim"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/evidence_scan.json >/dev/null",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/status.json >/dev/null",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/validation.json >/dev/null",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --cached --check",
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release query_legacy_chat_route_ownership_v1_20260531",
+      "status": "PASS"
+    }
+  ],
+  "notes": [
+    "No live HTTP chat smoke was run because this audit is report-only and live Cockpit chat can persist session/diagnostic state.",
+    "No product route, runtime, DB, Qdrant, memory, news, extraction, parser, prompt, gold-label, or config surface was changed.",
+    "Initial check-diff failed until allow_audit_code_changes was corrected to true for task/report artifacts; rerun passed."
+  ]
+}

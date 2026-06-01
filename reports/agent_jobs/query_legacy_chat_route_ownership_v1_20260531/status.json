@@ -1,0 +1,38 @@
+{
+  "job_id": "query_legacy_chat_route_ownership_v1_20260531",
+  "issue": 150,
+  "status": "KEEP_OPEN_NEEDS_IMPLEMENTATION_DECISION",
+  "lane": "Query Orchestration",
+  "execution_mode": "AUDIT MODE",
+  "collision_risk": "LOW",
+  "worktree": "/home/l4nd0/tenn-query-legacy-chat-route-ownership-v1-20260602",
+  "branch": "audit/query-legacy-chat-route-ownership-v1-20260602",
+  "base_head": "5ea3b65f074913d0c6ce3be4bad5b49b03165194",
+  "registry": {
+    "claimed": true,
+    "released": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared"
+  },
+  "files_changed": [
+    "docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+    "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/README.md",
+    "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/route_ownership_matrix.md",
+    "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/evidence_scan.json",
+    "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/status.json",
+    "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/validation.json",
+    "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json"
+  ],
+  "forbidden_surfaces_changed": false,
+  "route_ownership_classified": true,
+  "legacy_route_product_remediated": false,
+  "cockpit_route_product_remediated": false,
+  "github_issue_closed": false,
+  "data_missing": [
+    "implementation decision: keep-and-harden versus retire/deprecate legacy /chat and /api/chat",
+    "live route smoke evidence",
+    "external caller/access-log evidence for legacy route usage",
+    "current-branch validation of parked legacy-envelope implementation"
+  ],
+  "next_safe_step": "Create a separate implementation task card to keep-and-harden or retire/deprecate the legacy /chat and /api/chat route."
+}

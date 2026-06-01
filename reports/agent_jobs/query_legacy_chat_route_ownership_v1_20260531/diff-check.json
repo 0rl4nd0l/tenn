@@ -1,0 +1,77 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/evidence_scan.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/route_ownership_matrix.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/query_legacy_chat_route_ownership_v1_20260531.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/README.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/route_ownership_matrix.md",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/evidence_scan.json",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/status.json",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/validation.json",
+        "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531/diff-check.json"
+      ],
+      "approval_required": false,
+      "inspect_only_surfaces": [
+        "financial-engine_v2/backend/app/main.py",
+        "financial-engine_v2/backend/app/routes/chat.py",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/app/services/tenn_chat.py",
+        "financial-engine_v2/backend/app/services/query_orchestrator.py",
+        "financial-engine_v2/shared/evidence_labels.py",
+        "financial-engine_v2/backend/tests/test_evidence_label_semantics.py",
+        "cockpit-ui/lib/api-client.ts",
+        "docs/architecture/19_backend_api_surface.md",
+        "docs/architecture/21_cockpit_client_contract.md",
+        "reports/agent_jobs/query_legacy_chat_merge_readiness_audit_v1/README.md"
+      ],
+      "job_id": "query_legacy_chat_route_ownership_v1_20260531",
+      "lane": "Query Orchestration",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/query_legacy_chat_route_ownership_v1_20260531",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
