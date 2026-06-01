@@ -215,6 +215,23 @@ python scripts/extraction_gold_eval_scorecard.py \
 The emitted `pre_persistence_gate` remains an evaluation artifact only:
 `canonical_write_allowed` and `broad_backfill_authorized` stay `false`.
 
+Export an actual-payload map from explicit, already-completed extraction run ids
+without running extraction:
+
+```bash
+python scripts/export_extraction_run_actual_payloads.py \
+  --db-path /data/fe_local.db \
+  --run-id <run_uuid> \
+  --out-json reports/extraction_run_actual_payloads.json \
+  --summary-json reports/extraction_run_actual_payloads_summary.json
+```
+
+The exporter is read-only over SQLite and fails closed on missing rows,
+non-accepted statuses, invalid `structured_json`, or missing `metrics`. Its
+output is actual payload evidence for scorecard review only; it is not a gold
+label source and does not authorize canonical writes, canaries, or broad
+backfills.
+
 ## Real-document gold eval pilot
 
 The real-gold pilot keeps real document labels separate from synthetic fixtures

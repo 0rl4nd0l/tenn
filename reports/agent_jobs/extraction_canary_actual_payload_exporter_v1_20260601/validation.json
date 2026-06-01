@@ -1,0 +1,37 @@
+{
+  "issues": [],
+  "metadata": {
+    "allowed_files": [
+      "docs/agent_tasks/extraction_canary_actual_payload_exporter_v1_20260601.md",
+      "docs/claude/STATE.md",
+      "docs/extraction/metric_extraction_contract.md",
+      "scripts/export_extraction_run_actual_payloads.py",
+      "scripts/test_export_extraction_run_actual_payloads.py",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/README.md",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/status.json",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/validation.json",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/diff-check.json",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/function_quality_findings.json",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads.json",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads_summary.json",
+      "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_payload_scorecard_probe.json"
+    ],
+    "approval_required": true,
+    "github_mutation_allowed": "none",
+    "job_id": "extraction_canary_actual_payload_exporter_v1_20260601",
+    "lane": "Evaluation",
+    "mutation_mode": "safe_extension",
+    "operator_approval_source": "User asked to continue the extraction hardening handoff. This slice is non-runtime and read-only over explicit local SQLite inputs; no runtime or canonical data-store mutation is authorized.",
+    "output_dir": "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601",
+    "owner": "Codex",
+    "production_data_access": false,
+    "related_issue": 96,
+    "requested_mutation_mode": "read_only_evaluation_helper",
+    "supporting_lanes": [
+      "Financial Truth",
+      "Provenance"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}

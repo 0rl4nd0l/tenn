@@ -1,0 +1,99 @@
+{
+  "artifact_type": "extraction_run_actual_payload_export_summary_v1",
+  "boundaries": {
+    "actual_payload_only": true,
+    "broad_backfill_authorized": false,
+    "canonical_write_allowed": false,
+    "created_gold_labels": false,
+    "mutated_canonical_truth": false,
+    "mutated_database": false,
+    "ran_extraction": false
+  },
+  "errors": [],
+  "exported_payload_count": 7,
+  "failed_closed": false,
+  "input_db_path": "/data/fe_local.db",
+  "selected_run_count": 7,
+  "selected_runs": [
+    {
+      "created_at": "2026-06-01 05:23:14",
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "evidence_metric_count": 9,
+      "metric_count": 10,
+      "non_null_metric_count": 9,
+      "run_id": "14616c70-ba40-4398-bd63-23fa1508a190",
+      "status": "ok_low_confidence"
+    },
+    {
+      "created_at": "2026-06-01 05:25:44",
+      "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "evidence_metric_count": 9,
+      "metric_count": 10,
+      "non_null_metric_count": 9,
+      "run_id": "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+      "status": "ok_low_confidence"
+    },
+    {
+      "created_at": "2026-06-01 05:28:35",
+      "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "evidence_metric_count": 7,
+      "metric_count": 10,
+      "non_null_metric_count": 7,
+      "run_id": "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+      "status": "ok"
+    },
+    {
+      "created_at": "2026-06-01 05:30:58",
+      "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "evidence_metric_count": 8,
+      "metric_count": 10,
+      "non_null_metric_count": 8,
+      "run_id": "9aa658d6-c8db-4376-9698-cb33f05172f4",
+      "status": "ok"
+    },
+    {
+      "created_at": "2026-06-01 05:34:15",
+      "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "evidence_metric_count": 6,
+      "metric_count": 10,
+      "non_null_metric_count": 6,
+      "run_id": "44a86108-eab0-4b41-911e-545a4d7682c5",
+      "status": "ok_low_confidence"
+    },
+    {
+      "created_at": "2026-06-01 05:48:18",
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "evidence_metric_count": 3,
+      "metric_count": 10,
+      "non_null_metric_count": 3,
+      "run_id": "ecdfbcf1-273a-417c-84ae-a92a1360ad70",
+      "status": "ok"
+    },
+    {
+      "created_at": "2026-06-01 06:27:35",
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "evidence_metric_count": 8,
+      "metric_count": 10,
+      "non_null_metric_count": 8,
+      "run_id": "233900e7-1683-4ff4-bded-abb68824c0e3",
+      "status": "ok"
+    }
+  ],
+  "selectors": {
+    "allowed_statuses": [
+      "ok",
+      "ok_low_confidence"
+    ],
+    "document_ids": [],
+    "key": "document_id",
+    "run_ids": [
+      "14616c70-ba40-4398-bd63-23fa1508a190",
+      "74442c2b-3ce4-45b9-8eed-1581d1fa319e",
+      "c1c5fd5e-39f9-4efe-8534-e4d839558445",
+      "9aa658d6-c8db-4376-9698-cb33f05172f4",
+      "44a86108-eab0-4b41-911e-545a4d7682c5",
+      "ecdfbcf1-273a-417c-84ae-a92a1360ad70",
+      "233900e7-1683-4ff4-bded-abb68824c0e3"
+    ]
+  }
+}
