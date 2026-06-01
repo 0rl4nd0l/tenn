@@ -1,0 +1,71 @@
+{
+  "job_id": "chat_ticker_intent_misclassification_audit_v1_20260602",
+  "generated_at": "2026-06-02T04:19:38+10:00",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/chat_ticker_intent_misclassification_audit_v1_20260602.md",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/chat_ticker_intent_misclassification_audit_v1_20260602.md",
+      "result": "PASS",
+      "summary": "active_jobs empty; no overlap issues"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/chat_ticker_intent_misclassification_audit_v1_20260602.md",
+      "result": "PASS",
+      "summary": "claim active in shared registry"
+    },
+    {
+      "command": "PYTHONPATH=<worktree>/financial-engine_v2:<worktree>/financial-engine_v2/backend <shared-venv>/python -m pytest financial-engine_v2/cockpit/tests/test_chat_ticker_detection.py financial-engine_v2/cockpit/tests/test_turn_continuity.py financial-engine_v2/cockpit/tests/test_tool_executor.py::TestSearchNewsFreshnessWarning -q",
+      "result": "PASS",
+      "summary": "59 passed, 48 subtests passed in 2.18s"
+    },
+    {
+      "command": "PYTHONPATH=<worktree>/financial-engine_v2 <shared-venv>/python financial-engine_v2/scripts/test_cockpit_chat_ticker_detection.py",
+      "result": "PASS",
+      "summary": "Ran 7 tests in 0.188s; OK"
+    },
+    {
+      "command": "jq empty reports/agent_jobs/chat_ticker_intent_misclassification_audit_v1_20260602/*.json",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/chat_ticker_intent_misclassification_audit_v1_20260602.md",
+      "result": "PASS",
+      "summary": "Changed files limited to the task card and allowed report artifacts."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release chat_ticker_intent_misclassification_audit_v1_20260602",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "PASS",
+      "summary": "active_jobs empty after release"
+    }
+  ],
+  "probe_summary": {
+    "exact_gemini_prompt": "reproduces UI ticker inference",
+    "prefix_without_standalone_ui_word": "does not reproduce",
+    "ordinary_cross_surface_prompt_without_ui": "does not reproduce",
+    "explicit_ticker_forms": "preserved in current code and must remain preserved"
+  },
+  "not_run": [
+    {
+      "validation": "live browser /full-chat replay",
+      "reason": "audit-only task; starting services would widen collision risk"
+    },
+    {
+      "validation": "production data/news ingest/action execution",
+      "reason": "forbidden by task card"
+    }
+  ],
+  "non_fatal_warnings": [
+    "ChatController construction emitted OpenViking unavailable/stateless warning in the shared venv."
+  ]
+}
