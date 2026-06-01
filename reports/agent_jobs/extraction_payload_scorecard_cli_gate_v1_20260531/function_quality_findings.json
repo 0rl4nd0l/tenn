@@ -1,0 +1,50 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Operator-supplied actual payload maps are the appropriate input for report-local payload scoring.",
+      "The CLI must remain evaluation-only and must not run extraction or authorize canonical writes."
+    ],
+    "sources_used": [
+      "docs/agent_tasks/extraction_payload_scorecard_cli_gate_v1_20260531.md",
+      "scripts/extraction_gold_eval_scorecard.py",
+      "scripts/test_extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/architecture/SYSTEM_CONTRACT.md"
+    ],
+    "files_read": [
+      "scripts/extraction_gold_eval_scorecard.py",
+      "scripts/test_extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "docs/extraction/metric_extraction_contract.md"
+    ],
+    "files_modified": [
+      "scripts/extraction_gold_eval_scorecard.py",
+      "scripts/test_extraction_gold_eval_scorecard.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/claude/STATE.md"
+    ],
+    "validation_checks": [
+      "py_compile passed",
+      "focused script pytest passed: 4 passed",
+      "focused scorecard service pytest passed: 31 passed",
+      "targeted Ruff passed",
+      "sample CLI generation passed",
+      "post-edit code review passed"
+    ]
+  },
+  "result": {
+    "critical": [
+      {
+        "file": "scripts/extraction_gold_eval_scorecard.py",
+        "location": "pre-change CLI profile support",
+        "issue": "The existing scorecard CLI could emit inventory/real-gold scorecards but could not build the confirmed-metric payload scorecard or pre-persistence gate from actual payloads, leaving broader readiness evidence harder to reproduce.",
+        "fix_example": "Add an explicit confirmed_metric_payload profile that requires --actuals-json and optionally emits build_pre_persistence_scorecard_gate(payload_scorecard)."
+      }
+    ],
+    "warnings": [],
+    "suggestions": []
+  }
+}

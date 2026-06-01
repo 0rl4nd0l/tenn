@@ -86,6 +86,17 @@ Every gate artifact reports `canonical_write_allowed: false` and
 eligible for operator review; it is not approval to run a canary or persist
 financial truth.
 
+Gate artifacts also include a complete `blocking_document_summary` and
+`missing_actual_document_ids` list so broader corpus reviews can identify every
+document still lacking actual extracted payloads or carrying blocking metric
+classes. The short `blocking_examples` field remains only a bounded preview.
+
+Actual payload maps must also match the scorecard fixture scope exactly. Extra
+payload document ids that do not resolve to a fixture document or fixture file
+stem are reported as `unmatched_actual_payload_ids` and block the
+pre-persistence gate so unreviewed extraction outputs cannot be silently
+ignored.
+
 ## Source document classification
 
 Source-document classification is deterministic and source-metadata only:
@@ -148,6 +159,12 @@ policy change.
 `ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
 populate canonical `ebit`.
 
+The canonical storage upsert accepts only the current `METRIC_FIELDS` output
+set. Persisted-only columns such as `total_equity` and `interest_expense` may
+exist in the model for historical or future policy reasons, but extraction
+payloads must not populate them until they are promoted through extractor,
+evaluator, and policy support.
+
 ## Non-goals
 
 - No DB writes, no embedding calls, no retrieval.
@@ -182,6 +199,21 @@ Output is a stable JSON object with keys including:
 - `currency_correctness_summary`
 - `scale_correctness_summary`
 - `fixture_summaries`
+
+Generate a confirmed-metric payload scorecard from actual extracted payloads
+without running extraction:
+
+```bash
+python scripts/extraction_gold_eval_scorecard.py \
+  --profile confirmed_metric_payload \
+  --actuals-json /path/to/actuals.json \
+  --include-pre-persistence-gate \
+  --out-json reports/confirmed_metric_payload_gate.json
+```
+
+`actuals.json` must map `document_id` or fixture id to an extracted payload.
+The emitted `pre_persistence_gate` remains an evaluation artifact only:
+`canonical_write_allowed` and `broad_backfill_authorized` stay `false`.
 
 ## Real-document gold eval pilot
 
