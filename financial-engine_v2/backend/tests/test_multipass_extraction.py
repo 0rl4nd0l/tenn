@@ -1267,6 +1267,125 @@ def test_idr_millions_statement_unit_beats_rp_trillion_summary():
     assert _detect_scale_from_tables([summary, statement]) == "millions"
 
 
+def test_idr_millions_statement_unit_detected_from_sections_when_tables_lack_unit():
+    """ATM Docling cache keeps statement-unit wording in sections, not table headers."""
+    from app.services.multipass_extraction import _detect_scale_from_sections
+
+    sections = [
+        {
+            "page": 1,
+            "text": "Appendix 4E results summary with Rp trillion market context.",
+        },
+        {
+            "page": 27,
+            "text": (
+                "PERUSAHAAN PERSEROAN (PERSERO) PT ANEKA TAMBANG TBK AND ITS "
+                "SUBSIDIARIES CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND "
+                "OTHER COMPREHENSIVE INCOME For the Year Ended December 31, "
+                "2025 (Expressed in Millions of Rupiah, Unless Otherwise Stated)"
+            ),
+        },
+    ]
+
+    assert _detect_scale_from_sections(sections) == "millions"
+
+
+def test_run_multipass_overrides_pass1_trillions_from_idr_statement_sections():
+    """Section-level statement units must correct ATM-style Pass 1 scale."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "docling_gpu"
+        page_count = 200
+        docling_version = "test"
+        sections = [
+            {
+                "page": 1,
+                "text": "Appendix 4E results summary with Rp trillion context.",
+            },
+            {
+                "page": 27,
+                "text": (
+                    "CONSOLIDATED STATEMENT OF PROFIT OR LOSS AND OTHER "
+                    "COMPREHENSIVE INCOME For the Year Ended December 31, 2025 "
+                    "(Expressed in Millions of Rupiah, Unless Otherwise Stated)"
+                ),
+            },
+        ]
+        tables = [
+            DoclingTable(
+                page_number=27,
+                caption="",
+                headers=["", "2025", "Catatan/ Notes", "2024", ""],
+                rows=[
+                    ["", "2025", "Catatan/ Notes", "2024", ""],
+                    [
+                        "Pendapatan dari kontrak dengan pelanggan",
+                        "84.642.439",
+                        "28",
+                        "69.192.440",
+                        "Revenue from contracts with customers",
+                    ],
+                ],
+            )
+        ]
+
+    pass1_wrong_scale = {
+        "report_type": "A",
+        "period_end": "2025-12-31",
+        "currency": "IDR",
+        "scale": "trillions",
+        "classifier_confidence": 0.97,
+    }
+
+    def _fake_pass3a(_labelled, pass1, _llm_client, **_kwargs):
+        assert pass1["scale"] == "millions"
+        return [
+            {
+                "_source": "income_statement",
+                "_page_number": 27,
+                "pass3_confidence": 0.9,
+                "revenue": 84_642_439_000_000,
+                "np_attributable": 7_208_834_000_000,
+                "cash_end": 8_433_610_000_000,
+                "row_refs": {
+                    "revenue": "Revenue from contracts with customers",
+                    "np_attributable": "Owners of the parent",
+                    "cash_end": "Cash and cash equivalents",
+                },
+            }
+        ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_wrong_scale,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={"income_statement": _FakeDoc.tables[0]},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        side_effect=_fake_pass3a,
+    ):
+        result = run_multipass_extraction(
+            "/fake/atm.pdf",
+            {
+                "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+                "ticker": "ATM",
+                "title": "Full Year Statutory Accounts",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "ok_low_confidence"
+    assert result.payload["scale"] == "millions"
+    assert result.payload["metrics"]["revenue"] == 84_642_439_000_000
+
+
 def test_generic_trillion_mention_without_rupiah_marker_stays_unknown_scale():
     """Trillion support is not a broad verbal-scale upgrade."""
     from app.services.multipass_extraction import _detect_scale_from_tables

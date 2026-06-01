@@ -170,6 +170,13 @@ _IDR_MILLIONS_STATEMENT_UNIT_RE = _re.compile(
     _re.IGNORECASE,
 )
 
+_FINANCIAL_STATEMENT_UNIT_CONTEXT_RE = _re.compile(
+    r"\bstatement\s+of\s+(?:financial\s+position|profit|comprehensive|cash\s*flows?|changes\s+in\s+equity)\b"
+    r"|\bconsolidated\s+statement\s+of\s+(?:financial\s+position|profit|comprehensive|cash\s*flows?|changes\s+in\s+equity)\b"
+    r"|\blaporan\s+(?:posisi\s+keuangan|laba\s+rugi|penghasilan\s+komprehensif|arus\s+kas|perubahan\s+ekuitas)\b",
+    _re.IGNORECASE,
+)
+
 _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:A\$|\$A|\$|AUD(?:\s+dollars?)?)"
@@ -314,6 +321,22 @@ def _detect_idr_millions_statement_scale(tables) -> bool:
         if _IDR_MILLIONS_STATEMENT_UNIT_RE.search(" ".join(surfaces)):
             return True
     return False
+
+
+def _detect_scale_from_sections(sections) -> str:
+    """Detect formal statement units that Docling kept as page text sections."""
+    for section in sections or []:
+        if isinstance(section, dict):
+            text = str(section.get("text") or "")
+        else:
+            text = str(getattr(section, "text", "") or "")
+        if not text:
+            continue
+        if _IDR_MILLIONS_STATEMENT_UNIT_RE.search(
+            text
+        ) and _FINANCIAL_STATEMENT_UNIT_CONTEXT_RE.search(text):
+            return "millions"
+    return "unknown"
 
 
 def _detect_scale_from_tables(tables) -> str:
@@ -3890,14 +3913,23 @@ def run_multipass_extraction(
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
     pass1["_source_document_classification"] = source_document_classification.to_dict()
 
-    # Table-header scale detection is always authoritative — ASX filings print scale
-    # explicitly in column headers ($'000, A$M, etc.) which is more reliable than
-    # LLM text inference. Run unconditionally; fall back to Pass 1 if headers give nothing.
+    # Deterministic source-unit detection is authoritative over LLM text inference.
+    # Prefer explicit formal-statement section units when Docling keeps unit text
+    # outside the table object; otherwise use table headers/captions/body rows.
     detected = _detect_scale_from_tables(structured_doc.tables)
+    section_detected = _detect_scale_from_sections(structured_doc.sections)
+    if section_detected != "unknown":
+        if detected not in ("unknown", section_detected):
+            logger.info(
+                "scale from statement sections (%s) overrides table scan (%s)",
+                section_detected,
+                detected,
+            )
+        detected = section_detected
     if detected != "unknown":
         if pass1.get("scale", "unknown") not in (detected, "unknown", None, ""):
             logger.info(
-                "scale from table headers (%s) overrides Pass 1 (%s)",
+                "scale from deterministic source units (%s) overrides Pass 1 (%s)",
                 detected,
                 pass1.get("scale"),
             )
