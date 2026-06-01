@@ -1,0 +1,70 @@
+Discovering PDFs...
+Using docs root: /data/asx/docs
+Found 28633 financial_performance PDFs across 655 tickers
+Candidate filter retained 26462 PDFs; excluded 2171 ({'advisory_only_document': 50, 'meeting_results_notice': 2116, 'unaudited_financial_update_without_formal_statements': 5})
+Sampled 8 PDFs (seed=20260601)
+
+Running extraction on 8 PDFs...
+Estimated time: ~6 min (at ~45s/doc with llama.cpp)
+
+Using llama.cpp at http://127.0.0.1:8001/v1
+[1/8] CCR/2021-04-12_ccr-signs-suncorp-as-first-insurance-cl... [FL] 18.6s  metrics=0/10  ETA=0min
+[2/8] IMR/2022-04-28_appendix-4c-quarterly-report-and-busine... [FL] 67.4s  metrics=5/10  ETA=2min
+[3/8] ASL/2023-07-31_quarterly-activities-appendix-5b-cash-f... [OK] 114.5s  metrics=5/10  ETA=4min
+[4/8] AAM/2025-04-28_notice-of-annual-general-meeting-proxy-... [FL] 93.9s  metrics=0/10  ETA=6min
+[5/8] IXC/2025-10-24_notice-of-annual-general-meeting-proxy-... [FL] 16.0s  metrics=0/10  ETA=5min
+[6/8] CCR/2021-09-30_ccr-fy21-annual-report_cdb4fc69-d53b-42... [OK] 158.7s  metrics=8/10  ETA=3min
+[7/8] IVR/2023-10-17_quarterly-activities-and-cash-flow-repo... [OK] 62.6s  metrics=3/10  ETA=3min
+[8/8] NC6/2024-04-30_quarterly-activities-appendix-4c-cash-f... [OK] 55.6s  metrics=4/10  ETA=1min
+
+======================================================================
+  BROAD EXTRACTION TEST — 8 documents
+======================================================================
+
+STATUS DISTRIBUTION:
+  failed                       4 ( 50.0%) █████████████████████████
+  ok                           4 ( 50.0%) █████████████████████████
+
+  Success rate: 50.0%
+
+ERROR CLASSIFICATION:
+  classifier_low_confidence              3
+  validation_gate                        1
+
+METRIC COVERAGE (across 4 successful extractions):
+  revenue                   1/   4 (25.0%) ███████
+  ebit                      0/   4 ( 0.0%)
+  np_attributable           1/   4 (25.0%) ███████
+  operating_cf              4/   4 (100.0%) ██████████████████████████████
+  investing_cf              4/   4 (100.0%) ██████████████████████████████
+  financing_cf              3/   4 (75.0%) ██████████████████████
+  capex                     2/   4 (50.0%) ███████████████
+  cash_end                  4/   4 (100.0%) ██████████████████████████████
+  net_debt                  0/   4 ( 0.0%)
+  shares_outstanding        1/   4 (25.0%) ███████
+
+  Non-null metrics per doc: mean=5.0, median=4.5, range=[3,8]
+
+SANITY CHECKS:
+  revenue_positive             1/   1 (100.0%) [PASS]
+  shares_positive              1/   1 (100.0%) [PASS]
+  cash_end_positive            4/   4 (100.0%) [PASS]
+  period_end_valid             4/   4 (100.0%) [PASS]
+  period_type_valid            4/   4 (100.0%) [PASS]
+
+PERIOD TYPE DISTRIBUTION:
+  A        1
+  Q        3
+
+SCALE DISTRIBUTION:
+  millions           1
+  thousands          3
+
+TIMING:
+  Mean: 73.4s  Median: 65.0s  P95: 158.7s  P99: 158.7s
+  Range: [16.0s, 158.7s]  Total: 587s (9.8min)
+
+  Unique tickers sampled: 7
+======================================================================
+
+Results saved to: reports/agent_jobs/extraction_broad_robustness_post_hardening_sample_v1_20260601/raw/broad_test_20260601T124641Z.json
