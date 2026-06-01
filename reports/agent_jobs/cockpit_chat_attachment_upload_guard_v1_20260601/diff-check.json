@@ -1,0 +1,65 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_chat_attachment_upload_guard_v1_20260601.md",
+      "status": "A"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_cockpit_api_holdings.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_chat_attachment_upload_guard_v1_20260601.md",
+        "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/",
+        "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/README.md",
+        "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/diff-check.json",
+        "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/status.json",
+        "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/validation.json",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py",
+        "financial-engine_v2/backend/tests/test_cockpit_api_holdings.py"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_chat_attachment_upload_guard_v1_20260601",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Provenance",
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

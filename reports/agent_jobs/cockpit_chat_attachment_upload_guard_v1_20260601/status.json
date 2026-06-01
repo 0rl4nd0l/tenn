@@ -1,0 +1,24 @@
+{
+  "job_id": "cockpit_chat_attachment_upload_guard_v1_20260601",
+  "issue": 181,
+  "status": "implemented",
+  "lane": "Reporting",
+  "execution_mode": "safe_extension",
+  "collision_risk": "HIGH_MANAGED_BY_ISOLATED_WORKTREE_AND_TASK_CARD",
+  "branch": "safe/cockpit-chat-attachment-upload-guard-v1-20260601",
+  "worktree": "/home/l4nd0/tenn-cockpit-chat-attachment-upload-guard-v1-20260601",
+  "production_data_access": false,
+  "files_changed": [
+    "docs/agent_tasks/cockpit_chat_attachment_upload_guard_v1_20260601.md",
+    "financial-engine_v2/backend/app/routes/cockpit_api.py",
+    "financial-engine_v2/backend/tests/test_cockpit_api_holdings.py",
+    "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/README.md",
+    "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/diff-check.json",
+    "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/status.json",
+    "reports/agent_jobs/cockpit_chat_attachment_upload_guard_v1_20260601/validation.json"
+  ],
+  "forbidden_surfaces_touched": [],
+  "remaining_blockers": [
+    "Open PRs #159 and #167 also touch financial-engine_v2/backend/app/routes/cockpit_api.py in different hunks, so merge ordering may require normal PR rebase/review."
+  ]
+}
