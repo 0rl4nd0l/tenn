@@ -21,6 +21,14 @@ import { cn } from '@/lib/utils'
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
 const JOB_POLL_INTERVAL_MS = 1500
 
+type UniverseBackfillReview = {
+  reviewKey: string
+  command: string
+  estimatedImpact: string
+  timeoutSeconds: number
+  guardMessage: string | null
+}
+
 /** Map an action ID to the endpoint path it should POST to, or null if not wired. */
 function getActionEndpoint(actionId: string, ticker: string): { path: string; method: string } | null {
   const encoded = encodeURIComponent(ticker)
@@ -84,6 +92,11 @@ function buildUniverseBackfillArgs(years: string, processDocuments: boolean): Re
   }
 }
 
+function buildUniverseBackfillReviewKey(years: string, processDocuments: boolean): string {
+  const args = buildUniverseBackfillArgs(years, processDocuments)
+  return JSON.stringify(args)
+}
+
 function normalizeModelId(value: string | null | undefined): string {
   return String(value || '')
     .trim()
@@ -109,6 +122,7 @@ export function OperationsScreen() {
   const [universeProcessDocuments, setUniverseProcessDocuments] = useState(true)
   const [isUniverseRunning, setIsUniverseRunning] = useState(false)
   const [universeJobId, setUniverseJobId] = useState<string | null>(null)
+  const [universeBackfillReview, setUniverseBackfillReview] = useState<UniverseBackfillReview | null>(null)
   const [selectedOpsJobId, setSelectedOpsJobId] = useState<string | null>(null)
 
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
@@ -145,6 +159,10 @@ export function OperationsScreen() {
     const interval = setInterval(fetchHealth, 30_000)
     return () => clearInterval(interval)
   }, [fetchHealth])
+
+  useEffect(() => {
+    setUniverseBackfillReview(null)
+  }, [universeBackfillYears, universeProcessDocuments])
 
   const appendActionLog = useCallback((lines: string[]) => {
     setActionLog(prev => [...prev, ...lines])
@@ -186,6 +204,7 @@ export function OperationsScreen() {
 
   const handlePreviewUniverseBackfill = useCallback(async () => {
     const args = buildUniverseBackfillArgs(universeBackfillYears, universeProcessDocuments)
+    const reviewKey = buildUniverseBackfillReviewKey(universeBackfillYears, universeProcessDocuments)
 
     appendActionLog([
       `[${formatLogTimestamp()}] Preview: ASX Universe Announcement Backfill`,
@@ -196,15 +215,24 @@ export function OperationsScreen() {
         actionId: 'universe_announcement_enrichment_backfill',
         args,
       })
+      setUniverseBackfillReview({
+        reviewKey,
+        command: preview.command.join(' '),
+        estimatedImpact: preview.estimated_impact,
+        timeoutSeconds: preview.timeout_seconds,
+        guardMessage: preview.guard_message || null,
+      })
       appendActionLog([
         `  Command: ${preview.command.join(' ')}`,
         `  Impact: ${preview.estimated_impact}`,
         `  Timeout: ${preview.timeout_seconds}s`,
         preview.guard_message ? `  Guard: ${preview.guard_message}` : '',
+        '  Review: current settings are approved for Run Backfill.',
         '',
       ].filter(Boolean))
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
+      setUniverseBackfillReview(null)
       appendActionLog([
         `  Preview failed: ${message}`,
         '',
@@ -214,7 +242,17 @@ export function OperationsScreen() {
 
   const handleRunUniverseBackfill = useCallback(async () => {
     const args = buildUniverseBackfillArgs(universeBackfillYears, universeProcessDocuments)
+    const reviewKey = buildUniverseBackfillReviewKey(universeBackfillYears, universeProcessDocuments)
     const yearsLabel = Number.parseInt(universeBackfillYears, 10) || 5
+
+    if (universeBackfillReview?.reviewKey !== reviewKey) {
+      appendActionLog([
+        `[${formatLogTimestamp()}] Blocked: ASX Universe Announcement Backfill needs review`,
+        '  Run Preview Run for the current settings before dispatching the backend ops job.',
+        '',
+      ])
+      return
+    }
 
     setIsUniverseRunning(true)
     setUniverseJobId(null)
@@ -339,9 +377,12 @@ export function OperationsScreen() {
     } finally {
       setIsUniverseRunning(false)
     }
-  }, [appendActionLog, focusBackendOpsJob, setApiDefaultEnabled, universeBackfillYears, universeProcessDocuments])
+  }, [appendActionLog, focusBackendOpsJob, setApiDefaultEnabled, universeBackfillReview, universeBackfillYears, universeProcessDocuments])
 
   if (!hasHydrated) return null
+
+  const universeBackfillReviewKey = buildUniverseBackfillReviewKey(universeBackfillYears, universeProcessDocuments)
+  const universeBackfillReviewReady = universeBackfillReview?.reviewKey === universeBackfillReviewKey
 
   const handlePreview = async () => {
     const action = AVAILABLE_ACTIONS.find(a => a.id === selectedAction)
@@ -590,7 +631,15 @@ export function OperationsScreen() {
                 <Eye className="h-4 w-4 mr-2" />
                 Preview Run
               </Button>
-              <Button onClick={handleRunUniverseBackfill} disabled={isUniverseRunning || isRunning}>
+              <Button
+                onClick={handleRunUniverseBackfill}
+                disabled={isUniverseRunning || isRunning || !universeBackfillReviewReady}
+                title={
+                  universeBackfillReviewReady
+                    ? 'Run the reviewed ASX universe backfill'
+                    : 'Preview the current backfill settings before running'
+                }
+              >
                 <Play className="h-4 w-4 mr-2" />
                 {isUniverseRunning ? 'Running Backfill...' : 'Run Backfill'}
               </Button>
@@ -601,6 +650,21 @@ export function OperationsScreen() {
                   </Badge>
                 </button>
               ) : null}
+            </div>
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              {universeBackfillReviewReady ? (
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Preview reviewed for current settings.</p>
+                  <p className="break-all font-mono text-[11px]">Command: {universeBackfillReview.command}</p>
+                  <p>Impact: {universeBackfillReview.estimatedImpact}</p>
+                  <p>Timeout: {universeBackfillReview.timeoutSeconds}s</p>
+                  {universeBackfillReview.guardMessage ? (
+                    <p>Guard: {universeBackfillReview.guardMessage}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <p>Preview required before Run Backfill. Changing the history window or document-processing setting resets review.</p>
+              )}
             </div>
           </CardContent>
         </Card>
