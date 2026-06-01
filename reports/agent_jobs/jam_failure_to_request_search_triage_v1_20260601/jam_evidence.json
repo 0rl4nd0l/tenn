@@ -1,0 +1,69 @@
+{
+  "job_id": "jam_failure_to_request_search_triage_v1_20260601",
+  "issue": 40,
+  "jam_id": "438df5f2-c338-4462-9cea-a31154c69d7c",
+  "jam_url": "https://jam.dev/c/438df5f2-c338-4462-9cea-a31154c69d7c",
+  "jam_type": "screenshot",
+  "created_at": "2026-05-25T01:45:10.134Z",
+  "captured_route": "http://localhost:8081/full-chat",
+  "github_integration_issue": "https://github.com/0rl4nd0l/tenn/issues/40",
+  "postprocessing_metadata": {
+    "console": {
+      "status": "ready",
+      "has_payload": true,
+      "retrieval_result": "HTTP_404_FROM_CONNECTOR"
+    },
+    "network": {
+      "status": "ready",
+      "has_payload": true,
+      "retrieval_result": "HTTP_404_FROM_CONNECTOR"
+    },
+    "interactivity": {
+      "status": "ready",
+      "has_payload": true,
+      "retrieval_result": "HTTP_404_FROM_CONNECTOR"
+    }
+  },
+  "screenshot_observations": [
+    "Full chat prompt text is \"market update today\".",
+    "The rendered response shows evidence state \"Unsupported / not verified\" and \"Context only\".",
+    "The missing data / gaps block includes \"recent_news\".",
+    "Suggested next controls include \"Review evidence\", \"Verify against evidence (not connected)\", and \"Check recent news (not connected)\".",
+    "The answer body reports DATA_MISSING / evidence gaps and says recent-news claims need actual claim-verified news/event evidence."
+  ],
+  "confirmed_findings": [
+    "The user-visible issue is a disconnected suggested next action for recent-news/search follow-up in full chat.",
+    "The screenshot supports preserving DATA_MISSING rather than weakening evidence labels.",
+    "The screenshot alone does not prove the exact missing API route, network request, or click handler."
+  ],
+  "adjacent_trackers": [
+    {
+      "issue": 83,
+      "relationship": "adjacent news projection/materialization parity tracker; not an exact duplicate"
+    },
+    {
+      "issue": 104,
+      "relationship": "cross-route evidence-envelope matrix; broader validation tracker"
+    },
+    {
+      "issue": 107,
+      "relationship": "broader full-chat context bridge issue; not exact to the disconnected action"
+    },
+    {
+      "issue": 116,
+      "relationship": "closed News empty-state audit; adjacent but not exact"
+    },
+    {
+      "issue": 122,
+      "relationship": "closest implementation tracker for guarded suggested next actions and progress logs"
+    }
+  ],
+  "decision": "KEEP_OPEN_DATA_MISSING_LINK_122",
+  "data_missing": [
+    "browser network payloads for the suggested action",
+    "console logs for the interaction",
+    "user event timeline proving whether the not-connected action was clicked",
+    "current-route reproduction at a known branch and runtime URL",
+    "exact code route or handler responsible for Check recent news"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "job_id": "jam_failure_to_request_search_triage_v1_20260601",
+  "issue": 40,
+  "agent": "Codex",
+  "lane": "Reporting",
+  "execution_mode": "AUDIT MODE",
+  "collision_risk": "LOW",
+  "branch": "audit/jam-failure-to-request-search-triage-v1-20260601",
+  "task_card": "docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md",
+  "output_dir": "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601",
+  "status": "released_pending_pr",
+  "registry_claim_released": true,
+  "released_at": "2026-06-01T11:58:31Z",
+  "decision": "KEEP_OPEN_DATA_MISSING_LINK_122",
+  "files_changed": [
+    "docs/agent_tasks/jam_failure_to_request_search_triage_v1_20260601.md",
+    "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601/README.md",
+    "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601/diff-check.json",
+    "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601/jam_evidence.json",
+    "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601/status.json",
+    "reports/agent_jobs/jam_failure_to_request_search_triage_v1_20260601/validation.json"
+  ],
+  "files_intentionally_not_touched": [
+    "product code",
+    "backend routes",
+    "frontend chat components",
+    "retrieval services",
+    "news stores",
+    "memory stores",
+    "DB/Qdrant data",
+    "runtime/model/GPU/service config"
+  ],
+  "validation_result": "pass_with_data_missing",
+  "remaining_blockers": [
+    "Jam connector still returns HTTP 404 for console logs",
+    "Jam connector still returns HTTP 404 for network requests",
+    "Jam connector still returns HTTP 404 for user events",
+    "No current-route reproduction proves the exact handler or request path"
+  ],
+  "next_safe_step": "Leave #40 open and use #122 as the closest implementation tracker for guarded suggested next actions and progress logs."
+}
