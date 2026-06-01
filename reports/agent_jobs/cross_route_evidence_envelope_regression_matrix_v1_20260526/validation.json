@@ -1,0 +1,63 @@
+{
+  "artifact_type": "agent_job_validation_v1",
+  "generated_at": "2026-06-01T20:19:21+10:00",
+  "job_id": "cross_route_evidence_envelope_regression_matrix_v1_20260526",
+  "results": {
+    "task_card_validate_initial": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md",
+      "result": "PASS"
+    },
+    "registry_list_active": {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS: only non-overlapping stale Financial Truth job plus this claimed Evaluation job were observed"
+    },
+    "registry_check_overlap": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md --repo-root .",
+      "result": "PASS: no file overlap with active Financial Truth job"
+    },
+    "registry_claim": {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "duplicate_parent_search": {
+      "command": "gh issue list/pr list searches for cross-route evidence-envelope matrix terms",
+      "result": "PASS: exact parent duplicate not found; issue #104 is the active parent"
+    },
+    "duplicate_child_search": {
+      "command": "gh issue list/pr list searches for standalone News envelope and chat analyst local_news_context/evidenceLabels gaps",
+      "result": "PASS: no exact child duplicate found"
+    },
+    "child_issue_creation": {
+      "command": "gh issue create --repo 0rl4nd0l/tenn ...",
+      "result": "PASS: created #175"
+    },
+    "static_source_inspection": {
+      "command": "rg/nl over evidence label taxonomy, backend chat metadata, legacy chat route, chat UI hydration, Home contract, Home drawer, news status, News screen/actionability",
+      "result": "PASS"
+    },
+    "subagent_review": {
+      "command": "read-only subagent reviews for backend/BFF/UI matrix and closeout sufficiency",
+      "result": "PASS: material findings reconciled into README and matrix"
+    },
+    "json_validation": {
+      "command": "jq empty reports/agent_jobs/cross_route_evidence_envelope_regression_matrix_v1_20260526/*.json",
+      "result": "PASS"
+    },
+    "forbidden_surface_changes": {
+      "command": "planned/staged diff allowlist",
+      "result": "PASS: task card and report artifacts only"
+    },
+    "diff_check": {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "PASS"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cross_route_evidence_envelope_regression_matrix_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_release": {
+      "command": "python3 scripts/agent_job_registry.py release cross_route_evidence_envelope_regression_matrix_v1_20260526 --repo-root .",
+      "result": "PASS"
+    }
+  }
+}

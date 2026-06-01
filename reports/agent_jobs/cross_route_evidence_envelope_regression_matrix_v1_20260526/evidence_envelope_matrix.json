@@ -1,0 +1,353 @@
+{
+  "artifact_type": "cross_route_evidence_envelope_regression_matrix_v1",
+  "generated_at": "2026-06-01T20:19:21+10:00",
+  "job_id": "cross_route_evidence_envelope_regression_matrix_v1_20260526",
+  "related_issue": 104,
+  "mode": "audit_only",
+  "taxonomy": {
+    "version": "source_label_semantics_v1",
+    "source": "financial-engine_v2/shared/evidence_labels.py",
+    "labels_required_by_issue": [
+      "claim_verified",
+      "context_only",
+      "no_hit",
+      "degraded_runtime",
+      "missing_required_evidence",
+      "unknown_unclassified",
+      "memory_context",
+      "local_news_context",
+      "external_web_context",
+      "financial_truth"
+    ],
+    "additional_observed_labels": [
+      "operational_trace",
+      "local_personal_data",
+      "financial_truth_numeric",
+      "insufficient_for_recent_news"
+    ]
+  },
+  "required_fields": [
+    "source_label_taxonomy_version",
+    "evidence_labels",
+    "source_label_counts",
+    "source_coverage_status",
+    "claim_verified_source_count",
+    "sources[].evidence_label",
+    "sources[].evidence_labels",
+    "sources[].claim_verified",
+    "route_specific_data_missing_or_degraded_reasons"
+  ],
+  "allowed_values_by_field": {
+    "source_label_taxonomy_version": [
+      "source_label_semantics_v1"
+    ],
+    "evidence_labels": [
+      "claim_verified",
+      "context_only",
+      "no_hit",
+      "operational_trace",
+      "local_personal_data",
+      "memory_context",
+      "external_web_context",
+      "local_news_context",
+      "financial_truth",
+      "financial_truth_numeric",
+      "degraded_runtime",
+      "missing_required_evidence",
+      "insufficient_for_recent_news",
+      "unknown_unclassified"
+    ],
+    "sources[].evidence_label": [
+      "claim_verified",
+      "context_only",
+      "no_hit",
+      "operational_trace",
+      "local_personal_data",
+      "memory_context",
+      "external_web_context",
+      "local_news_context",
+      "financial_truth",
+      "financial_truth_numeric",
+      "degraded_runtime",
+      "missing_required_evidence",
+      "insufficient_for_recent_news",
+      "unknown_unclassified"
+    ],
+    "sources[].claim_verified": [
+      true,
+      false
+    ],
+    "source_coverage_status": [
+      "degraded_runtime",
+      "missing_required_evidence",
+      "local_personal_data",
+      "claim_verified",
+      "financial_truth",
+      "no_hit",
+      "context_only",
+      "no_visible_sources",
+      "unknown_unclassified"
+    ],
+    "home_data_state": [
+      "READY",
+      "PARTIAL",
+      "DEGRADED",
+      "DATA_MISSING"
+    ],
+    "standalone_news_readiness_reason": [
+      "DATA_MISSING",
+      "SEARCHING",
+      "DEGRADED",
+      "UNRESOLVED",
+      "STALE",
+      "PARTIAL_SOURCE_CONTEXT",
+      "SOURCE_READY",
+      "DUPLICATED"
+    ]
+  },
+  "routes": [
+    {
+      "route": "backend_chat_stream",
+      "status": "PASS",
+      "backend_support": "PASS",
+      "ui_visibility": "PASS",
+      "followup_status": "NO_FOLLOWUP",
+      "followup_reason": "Cockpit backend stream emits the required envelope fields without changing labels.",
+      "evidence": [
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:1440",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:1538",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:3351",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:3454",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py:355"
+      ],
+      "notes": "Backend chat normalizes per-source labels and emits response-level evidence labels, coverage status, taxonomy version, label counts, and claim-verified count."
+    },
+    {
+      "route": "chat_sse_hydration",
+      "status": "PASS",
+      "backend_support": "PASS",
+      "ui_visibility": "PASS",
+      "followup_status": "NO_FOLLOWUP",
+      "followup_reason": "Streaming UI hydration preserves the envelope fields that backend sends.",
+      "evidence": [
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx:393",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx:420",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx:1479"
+      ],
+      "notes": "Streaming source events preserve evidenceLabel, evidenceLabels, and claimVerified. Final metadata normalizes evidence labels and source coverage into analyst metadata."
+    },
+    {
+      "route": "saved_chat_session_reload",
+      "status": "PASS",
+      "backend_support": "PASS",
+      "ui_visibility": "PASS",
+      "followup_status": "NO_FOLLOWUP",
+      "followup_reason": "Persisted Cockpit sessions reload source labels and legacy records safely default to unknown_unclassified.",
+      "evidence": [
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:3505",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:3522",
+        "cockpit-ui/components/cockpit/chat/chat-screen.tsx:505"
+      ],
+      "notes": "Saved session reload preserves source labels and claim verification; legacy assistant records receive unknown_unclassified defaults instead of fabricated verification."
+    },
+    {
+      "route": "legacy_backend_chat_routes",
+      "status": "BOUNDARY_PARTIAL",
+      "backend_support": "PARTIAL",
+      "ui_visibility": "OUT_OF_SCOPE_FOR_COCKPIT_NEXT_CHAT",
+      "followup_status": "DATA_MISSING",
+      "followup_reason": "Legacy backend chat parity is a separate route-ownership question and is not proven by this Cockpit-focused matrix.",
+      "evidence": [
+        "financial-engine_v2/backend/app/main.py:40",
+        "financial-engine_v2/backend/app/main.py:97",
+        "financial-engine_v2/backend/app/routes/chat.py:57",
+        "financial-engine_v2/backend/app/services/tenn_chat.py:733",
+        "financial-engine_v2/backend/app/services/tenn_chat.py:750"
+      ],
+      "notes": "The backend still mounts routes/chat.py at /chat and /api. tenn_chat emits per-source labels and claim_verified flags, but this route is not the Cockpit Next.js chat path and does not expose the Cockpit routing_metadata envelope. Do not use it as proof of Cockpit chat parity."
+    },
+    {
+      "route": "chat_analyst_shell",
+      "status": "PARTIAL",
+      "backend_support": "PASS",
+      "ui_visibility": "PARTIAL",
+      "followup_issue": 175,
+      "followup_issues": [
+        175,
+        87
+      ],
+      "followup_status": "FOLLOWUP_TRACKED",
+      "followup_reason": "#175 owns generic UI envelope visibility; #87 remains A2M-specific.",
+      "evidence": [
+        "cockpit-ui/lib/cockpit-chat-actionability.ts:3",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx:222",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx:260",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx:278",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx:305",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx:611",
+        "cockpit-ui/components/cockpit/chat/terminal-message.tsx:900"
+      ],
+      "notes": "Analyst shell maps degraded_runtime, missing evidence, no_hit, claim_verified, financial_truth, local_personal_data, memory_context, and context-only states into visible answer/trust/source summary labels. It preserves but does not render local_news_context as a distinct visible state, and expanded source rows display only the primary evidenceLabel rather than all evidenceLabels. #175 owns the generic UI envelope gap; #87 remains the A2M-specific regression owner."
+    },
+    {
+      "route": "recent_sources_attachment_drawer",
+      "status": "PASS_WITH_SCOPE",
+      "backend_support": "PARTIAL",
+      "ui_visibility": "LIMITED_BY_DESIGN",
+      "predecessor_issue": 95,
+      "followup_status": "NO_FOLLOWUP",
+      "followup_reason": "The drawer is an attachment inventory, and #95 closed source-drawer semantics as predecessor evidence.",
+      "evidence": [
+        "financial-engine_v2/backend/app/api/commentary.py:472",
+        "financial-engine_v2/backend/app/api/commentary.py:492",
+        "cockpit-ui/components/cockpit/chat/sources-drawer.tsx:8",
+        "cockpit-ui/components/cockpit/chat/sources-drawer.tsx:41",
+        "cockpit-ui/components/cockpit/chat/sources-drawer.tsx:84",
+        "Issue #95 is CLOSED with NO_FOLLOWUP for source-drawer semantics"
+      ],
+      "notes": "This drawer lists recent attachable sources by source_id/source_name/source_type/approved_at and does not receive or show evidence labels. Treat as attachment inventory, not a claim-verification drawer; #95 is predecessor evidence, not an active follow-up owner."
+    },
+    {
+      "route": "home_source_label_contract",
+      "status": "PASS_WITH_SCOPE",
+      "backend_support": "PASS",
+      "ui_visibility": "PASS",
+      "followup_status": "NO_FOLLOWUP",
+      "followup_reason": "Home covers the issue-required source labels; backend-only extensions are captured as a scope caveat.",
+      "evidence": [
+        "cockpit-ui/types/cockpit-home.ts:101",
+        "cockpit-ui/lib/cockpit-home-contract.ts:13",
+        "cockpit-ui/lib/cockpit-home-contract.ts:35",
+        "cockpit-ui/lib/cockpit-home-contract.ts:87"
+      ],
+      "notes": "Home has a parallel source-label contract that covers the issue-required labels, maps labels to trust levels, and blocks unsafe chat handoff for missing/no-hit/degraded/unknown/operational states. It does not currently expose every backend-only taxonomy extension such as financial_truth_numeric or insufficient_for_recent_news."
+    },
+    {
+      "route": "home_news_panel_and_source_detail_drawer",
+      "status": "PASS_WITH_SCOPE",
+      "backend_support": "PASS",
+      "ui_visibility": "PASS",
+      "followup_status": "NO_FOLLOWUP",
+      "followup_reason": "Home source detail exposes data state, source label, evidence labels, and limits without claiming chat-envelope identity.",
+      "evidence": [
+        "cockpit-ui/lib/cockpit-home-api.ts:482",
+        "cockpit-ui/lib/cockpit-home-api.ts:528",
+        "cockpit-ui/components/cockpit/home/home-page.tsx:527",
+        "cockpit-ui/components/cockpit/home/home-page.tsx:1016",
+        "cockpit-ui/components/cockpit/home/source-detail-drawer.tsx:90",
+        "cockpit-ui/components/cockpit/home/source-detail-drawer.tsx:124",
+        "cockpit-ui/components/cockpit/home/source-detail-drawer.tsx:134"
+      ],
+      "notes": "Home news and drawer expose data_state, source_label, evidence_labels, resolvability, DATA_MISSING reasons, and source access. This is compatible with the taxonomy but not identical to chat routing_metadata shape."
+    },
+    {
+      "route": "standalone_news_screen",
+      "status": "FAIL",
+      "backend_support": "PARTIAL",
+      "ui_visibility": "PARTIAL",
+      "followup_issue": 175,
+      "followup_issues": [
+        175,
+        83
+      ],
+      "followup_status": "FOLLOWUP_TRACKED",
+      "followup_reason": "#175 owns UI envelope visibility; #83 owns backend news projection/materialization parity.",
+      "evidence": [
+        "cockpit-ui/components/cockpit/news/news-screen.tsx:47",
+        "cockpit-ui/components/cockpit/news/news-screen.tsx:214",
+        "cockpit-ui/components/cockpit/news/news-screen.tsx:242",
+        "cockpit-ui/lib/cockpit-news-actionability.ts:44",
+        "cockpit-ui/lib/cockpit-news-actionability.ts:76",
+        "cockpit-ui/lib/cockpit-news-actionability.ts:120"
+      ],
+      "notes": "Standalone News exposes readiness states for DATA_MISSING, DEGRADED, UNRESOLVED/no results, stale, duplicates, and snippet-only context, but does not carry source_label_taxonomy_version, source_coverage_status, evidence_labels, per-source source labels, or claim_verified_source_count. #175 owns UI envelope visibility; #83 remains the backend projection/materialization owner."
+    },
+    {
+      "route": "news_status_endpoint",
+      "status": "FAIL",
+      "backend_support": "PASS",
+      "ui_visibility": "MISSING",
+      "followup_issue": 83,
+      "followup_issues": [
+        83,
+        175
+      ],
+      "followup_status": "FOLLOWUP_TRACKED",
+      "followup_reason": "#83 owns projection/materialization and #175 owns bounded UI consumption/visibility.",
+      "evidence": [
+        "financial-engine_v2/backend/app/services/news_health_status.py:13",
+        "financial-engine_v2/backend/app/services/news_health_status.py:19",
+        "financial-engine_v2/backend/app/services/news_health_status.py:111",
+        "financial-engine_v2/backend/app/services/news_health_status.py:154",
+        "financial-engine_v2/backend/app/services/news_health_status.py:175",
+        "financial-engine_v2/backend/app/routes/cockpit_api.py:4053",
+        "cockpit-ui/components/cockpit/news/news-screen.tsx:232"
+      ],
+      "notes": "Backend /api/cockpit/news/status exposes a read-only A2M/news status contract and explicitly reports chat_synthesis DATA_MISSING; current standalone News uses /rag/query and no Cockpit UI consumer for this status envelope was found. #83 owns projection/materialization; #175 owns bounded UI evidence-envelope visibility."
+    },
+    {
+      "route": "announcement_context_runtime_schema",
+      "status": "FOLLOWUP",
+      "backend_support": "DATA_MISSING",
+      "ui_visibility": "DATA_MISSING",
+      "followup_issue": 84,
+      "followup_status": "FOLLOWUP_TRACKED",
+      "followup_reason": "#84 owns runtime schema/openability for announcement context.",
+      "evidence": [
+        "Issue #84 tracks cockpit_announcement_context runtime schema uncertainty"
+      ],
+      "notes": "Cross-route parity remains blocked for announcement-context routes until runtime schema availability/openability is proven."
+    },
+    {
+      "route": "a2m_visible_evidence_regression",
+      "status": "FOLLOWUP",
+      "backend_support": "PARTIAL",
+      "ui_visibility": "PARTIAL",
+      "followup_issue": 87,
+      "followup_status": "FOLLOWUP_TRACKED",
+      "followup_reason": "#87 owns the A2M-specific visible evidence regression.",
+      "evidence": [
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py:530",
+        "financial-engine_v2/backend/tests/test_cockpit_api_chat_stream.py:610",
+        "Issue #87 tracks A2M visible evidence regression"
+      ],
+      "notes": "Backend tests cover missing/local-news label behavior, but #87 remains the exact user-facing regression tracker for high-specificity claims with visible gaps."
+    }
+  ],
+  "child_followups": [
+    {
+      "issue": 83,
+      "lane": "Query Orchestration",
+      "scope": "News projection/materialization parity, standalone News envelope alignment, and UI consumption of the /api/cockpit/news/status contract."
+    },
+    {
+      "issue": 84,
+      "lane": "Provenance",
+      "scope": "Runtime schema/openability for cockpit_announcement_context."
+    },
+    {
+      "issue": 87,
+      "lane": "Query Orchestration",
+      "scope": "A2M chat answer visible evidence regression."
+    },
+    {
+      "issue": 95,
+      "lane": "Reporting",
+      "state": "CLOSED",
+      "scope": "Predecessor audit evidence for source drawer semantics; not an active follow-up owner."
+    },
+    {
+      "issue": 175,
+      "lane": "Reporting",
+      "state": "OPEN",
+      "scope": "Chat analyst shell secondary-label rendering and standalone News UI evidence-envelope visibility gaps found by this matrix."
+    }
+  ],
+  "forbidden_surface_status": {
+    "product_files_changed": false,
+    "source_labels_relaxed": false,
+    "db_qdrant_news_memory_mutated": false,
+    "canonical_financial_truth_mutated": false,
+    "runtime_model_gpu_service_config_mutated": false
+  }
+}
