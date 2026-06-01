@@ -269,6 +269,8 @@ Place fixtures under `backend/tests/fixtures/extraction_gold/*.json` using:
 - `document_id`: stable document key (e.g., filing id)
 - `period_type`, `period_end`, `currency`, `scale`: context expected by extractor
 - `metrics`: required numeric/null expectations for this pilot document
+- optional `source_document_id`: backend source document UUID used to map
+  runtime actual payload exports to this fixture for review
 - optional `tolerances`: per-metric relative tolerance
 - optional `expected_trust`: one of `trusted`, `abstain`, `quarantine`
 
@@ -317,6 +319,30 @@ python financial-engine_v2/scripts/extraction_gold_eval_scorecard.py \
 }
 ```
 
+Runtime canary actuals exported from `extraction_runs` are normally keyed by
+backend source document id. Rekey those payloads to real-gold fixture ids before
+running this scorecard:
+
+```bash
+python scripts/rekey_real_gold_actuals_by_source_document.py \
+  --fixtures-dir financial-engine_v2/backend/tests/fixtures/extraction_gold \
+  --actuals-json reports/extraction_run_actual_payloads.json \
+  --out-json reports/extraction_run_actual_payloads.real_gold_keyed.json \
+  --summary-json reports/extraction_run_actual_payloads.rekey_summary.json \
+  --require-all-actuals-matched
+```
+
+For bounded canary review, limit the real-gold scorecard to the reviewed canary
+fixtures so unrelated fixtures do not appear as missing actuals:
+
+```bash
+python financial-engine_v2/scripts/extraction_gold_eval_scorecard.py \
+  --fixtures-dir financial-engine_v2/backend/tests/fixtures/extraction_gold \
+  --actuals-json reports/extraction_run_actual_payloads.real_gold_keyed.json \
+  --document-id aau_a_2025-12-31_canary_regression \
+  --document-id am5_h_2025-12-31_canary_regression
+```
+
 The output includes per-document trust outcomes and fixture separation status:
 
 - `trusted_count`
@@ -355,11 +381,22 @@ Example of a clean non-contradictory interpretation:
 
 ### Canary regression fixtures
 
-The test-only real-gold fixture directory includes source-verified CLV and CTM
-canary regression fixtures. They lock in these behaviors:
+The test-only real-gold fixture directory includes source-verified AAU, AM5,
+AQX, ATM, CLV, CRS, and CTM canary regression fixtures. They lock in these
+behaviors:
 
+- AAU annual source values are raw USD units and attributable profit must remain
+  source-correct.
+- AM5 has other income but no revenue line; loss-before-tax is not promoted to
+  EBIT.
+- AQX revenue and cash-flow values are raw AUD units; loss-before-tax is not
+  promoted to EBIT.
+- ATM financial statements are expressed in millions of Rupiah, and expected
+  values are raw IDR values after applying that source scale.
 - CLV `$44.1 million` revenue must not score as `$44.1 billion`, and EBITDA must
   not score as canonical `ebit`.
+- CRS has interest income but no revenue line; loss-before-tax is not promoted
+  to EBIT.
 - CTM's source cash-flow table is annual and uses raw dollar units; a half-year
   `millions` payload is quarantined by period/scale context.
 

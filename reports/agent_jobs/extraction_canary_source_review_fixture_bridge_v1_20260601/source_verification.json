@@ -1,0 +1,146 @@
+{
+  "artifact_type": "canary_source_review_verification_v1",
+  "created_at_utc": "2026-06-01T07:02:54Z",
+  "verification_method": "manual pdftotext review of local source PDFs; no runtime extraction or datastore mutation",
+  "boundaries": {
+    "runtime_extraction_ran": false,
+    "canonical_write_allowed": false,
+    "broad_backfill_authorized": false,
+    "source_pdfs_modified": false,
+    "gold_labels_from_runtime_output": false
+  },
+  "documents": [
+    {
+      "ticker": "AM5",
+      "fixture_id": "am5_h_2025-12-31_canary_regression",
+      "source_document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+      "source_file": "/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf",
+      "source_sha256": "4c58af736abcc22a052d265f28efac9c677180b518bc184a977b5013f26bde89",
+      "verified_pages": [10, 11, 12, 13],
+      "context": {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "units"
+      },
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": -1359665,
+        "operating_cf": -1180006,
+        "investing_cf": -87689,
+        "financing_cf": 956516,
+        "cash_end": 1055036
+      },
+      "notes": [
+        "Other income is not promoted to revenue.",
+        "Loss before income tax is not promoted to EBIT."
+      ]
+    },
+    {
+      "ticker": "AQX",
+      "fixture_id": "aqx_h_2025-12-31_canary_regression",
+      "source_document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+      "source_file": "/data/asx/docs/AQX/financial_performance/2026-03-13_half-year-financial-report-31-december-2025_0ed0104f-f29a-4068-8ff7-370f14fead98.pdf",
+      "source_sha256": "76a9926bd9576636673155d8b2418a1a9c3a9d653fe40be996d045cee8884e9a",
+      "verified_pages": [21, 22, 23, 24],
+      "context": {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "units"
+      },
+      "metrics": {
+        "revenue": 13552,
+        "ebit": null,
+        "np_attributable": -1158426,
+        "operating_cf": -1462291,
+        "investing_cf": 32031,
+        "financing_cf": 1866935,
+        "cash_end": 802985
+      },
+      "notes": [
+        "Loss before income tax is not promoted to EBIT.",
+        "The current runtime payload maps loss before income tax to ebit; the real-gold scorecard marks that wrong."
+      ]
+    },
+    {
+      "ticker": "ATM",
+      "fixture_id": "atm_a_2025-12-31_canary_regression",
+      "source_document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+      "source_file": "/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf",
+      "source_sha256": "008935eef949a3023b35da5d2f6c0d82dd78b0f4739b18fb97d9556fc8dcc3ef",
+      "verified_pages": [1, 27, 28, 30, 31],
+      "context": {
+        "period_type": "A",
+        "period_end": "2025-12-31",
+        "currency": "IDR",
+        "scale": "millions"
+      },
+      "metrics": {
+        "revenue": 84642439000000,
+        "ebit": 8395030000000,
+        "np_attributable": 7208834000000,
+        "operating_cf": 4853256000000,
+        "investing_cf": -1506766000000,
+        "financing_cf": 299870000000,
+        "capex": -430528000000,
+        "cash_end": 8433610000000
+      },
+      "notes": [
+        "The statements are expressed in millions of Rupiah; metric expectations are raw IDR values.",
+        "Profit attributable to owners of the parent is used for np_attributable, not total profit for the year.",
+        "The current runtime payload reports scale=trillions; the real-gold scorecard quarantines this payload by context."
+      ]
+    },
+    {
+      "ticker": "CRS",
+      "fixture_id": "crs_h_2025-12-31_canary_regression",
+      "source_document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+      "source_file": "/data/asx/docs/CRS/financial_performance/2026-03-13_half-year-financial-report_b43a16fb-7660-4bf7-96ab-0db641cd4032.pdf",
+      "source_sha256": "b65432d135c20b89a10a213878a727e456760d52f0605414289f9cf88a546e7a",
+      "verified_pages": [4, 5, 6, 7],
+      "context": {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "units"
+      },
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": -1937589,
+        "operating_cf": -588790,
+        "investing_cf": -3429257,
+        "financing_cf": 997240,
+        "cash_end": 4756183
+      },
+      "notes": [
+        "Interest income is not promoted to revenue.",
+        "Loss before income tax is not promoted to EBIT."
+      ]
+    },
+    {
+      "ticker": "CLV",
+      "fixture_id": "clv_h_2026-01-31_canary_regression",
+      "source_document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "source_file": "/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+      "source_sha256": "0c4e711d4b0279363ba9ab0f129ef1f8601510df00d430829a664ca5a10db839",
+      "verification_source": "existing source-reviewed canary fixture; this task added source_document_id metadata for actual-payload matching"
+    },
+    {
+      "ticker": "CTM",
+      "fixture_id": "ctm_a_2025-12-31_canary_regression",
+      "source_document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "source_file": "/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+      "source_sha256": "689ad81d04eeb1b7adddb452e1c9c8152aa3a3cb6366f93fe8431bc5cfe6395a",
+      "verification_source": "existing source-reviewed canary fixture; this task added source_document_id metadata for actual-payload matching"
+    },
+    {
+      "ticker": "AAU",
+      "fixture_id": "aau_a_2025-12-31_canary_regression",
+      "source_document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "verification_source": "existing source-reviewed canary fixture; this task reused it for source-document-id actual scoring"
+    }
+  ]
+}

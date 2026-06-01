@@ -1,0 +1,35 @@
+{
+  "_source": "Hand-verified from local source PDF pages 10-13. The interim report states half-year ended 31 December 2025, is presented in Australian dollars, records loss after income tax attributable to owners of Antares Metals Limited of $1,359,665, and cash-flow statement values in raw dollars.",
+  "_verification": "hand-verified-pdftotext",
+  "_verification_confidence": "high",
+  "document_id": "am5_h_2025-12-31_canary_regression",
+  "ticker": "AM5",
+  "source_document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+  "source_file": "/data/asx/docs/AM5/financial_performance/2026-03-13_interim-financial-report-half-year-ended-31-december-2025_aacc4c29-3089-48cf-8b82-8004134f9387.pdf",
+  "source_sha256": "4c58af736abcc22a052d265f28efac9c677180b518bc184a977b5013f26bde89",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "units",
+  "metrics": {
+    "revenue": null,
+    "ebit": null,
+    "np_attributable": -1359665,
+    "operating_cf": -1180006,
+    "investing_cf": -87689,
+    "financing_cf": 956516,
+    "cash_end": 1055036
+  },
+  "tolerances": {
+    "np_attributable": 0.01,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.01
+  },
+  "notes": {
+    "revenue": "Expected null because the statement labels $10,137 as other income, not revenue.",
+    "ebit": "Expected null because the statement labels loss before income tax, not EBIT."
+  },
+  "expected_trust": "trusted"
+}

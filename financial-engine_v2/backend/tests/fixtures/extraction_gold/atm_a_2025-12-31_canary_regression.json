@@ -1,0 +1,39 @@
+{
+  "_source": "Hand-verified from local source PDF pages 1, 27, and 30-31. The Appendix 4E states the year ending 31 December 2025. The consolidated financial statements are expressed in millions of Rupiah unless otherwise stated, so labelled statement values are converted to raw IDR units in this fixture.",
+  "_verification": "hand-verified-pdftotext",
+  "_verification_confidence": "high",
+  "document_id": "atm_a_2025-12-31_canary_regression",
+  "ticker": "ATM",
+  "source_document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+  "source_file": "/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf",
+  "source_sha256": "008935eef949a3023b35da5d2f6c0d82dd78b0f4739b18fb97d9556fc8dcc3ef",
+  "period_type": "A",
+  "period_end": "2025-12-31",
+  "currency": "IDR",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 84642439000000,
+    "ebit": 8395030000000,
+    "np_attributable": 7208834000000,
+    "operating_cf": 4853256000000,
+    "investing_cf": -1506766000000,
+    "financing_cf": 299870000000,
+    "capex": -430528000000,
+    "cash_end": 8433610000000
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "ebit": 0.01,
+    "np_attributable": 0.01,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "capex": 0.01,
+    "cash_end": 0.01
+  },
+  "notes": {
+    "scale": "Source values are in millions of Rupiah; metric expectations are raw IDR values.",
+    "np_attributable": "Uses profit attributable to owners of the parent, not total profit for the year."
+  },
+  "expected_trust": "trusted"
+}

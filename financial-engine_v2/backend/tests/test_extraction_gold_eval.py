@@ -175,6 +175,103 @@ def _real_payloads() -> dict[str, dict]:
                 "cash_end": 3_956_993,
             },
         },
+        "am5_h_2025-12-31_canary_regression": {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "units",
+            "source_document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+            "provenance": {
+                "np_attributable": "income_statement:page_10:Loss after income tax expense for the half-year attributable to the owners of Antares Metals Limited",
+                "operating_cf": "cashflow_statement:page_13:Net cash used in operating activities",
+                "investing_cf": "cashflow_statement:page_13:Net cash from/(used in) investing activities",
+                "financing_cf": "cashflow_statement:page_13:Net cash from financing activities",
+                "cash_end": "cashflow_statement:page_13:Cash and cash equivalents at the end of the financial half-year",
+            },
+            "metrics": {
+                "revenue": None,
+                "ebit": None,
+                "np_attributable": -1_359_665,
+                "operating_cf": -1_180_006,
+                "investing_cf": -87_689,
+                "financing_cf": 956_516,
+                "cash_end": 1_055_036,
+            },
+        },
+        "aqx_h_2025-12-31_canary_regression": {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "units",
+            "source_document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+            "provenance": {
+                "revenue": "income_statement:page_21:Revenue from continuing operations",
+                "np_attributable": "income_statement:page_21:Net loss attributable to owners of the Parent Entity",
+                "operating_cf": "cashflow_statement:page_24:Net cash used in operating activities",
+                "investing_cf": "cashflow_statement:page_24:Net cash flow (used in)/from investing activities",
+                "financing_cf": "cashflow_statement:page_24:Net cash from financing activities",
+                "cash_end": "cashflow_statement:page_24:Cash and cash equivalents at the end of the period",
+            },
+            "metrics": {
+                "revenue": 13_552,
+                "ebit": None,
+                "np_attributable": -1_158_426,
+                "operating_cf": -1_462_291,
+                "investing_cf": 32_031,
+                "financing_cf": 1_866_935,
+                "cash_end": 802_985,
+            },
+        },
+        "atm_a_2025-12-31_canary_regression": {
+            "period_type": "A",
+            "period_end": "2025-12-31",
+            "currency": "IDR",
+            "scale": "millions",
+            "source_document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+            "provenance": {
+                "revenue": "income_statement:page_27:Pendapatan dari kontrak dengan pelanggan",
+                "ebit": "income_statement:page_27:LABA USAHA",
+                "np_attributable": "income_statement:page_28:Profit for the year attributable to owners of the parent",
+                "operating_cf": "cashflow_statement:page_30:Net cash provided by operating activities",
+                "investing_cf": "cashflow_statement:page_30:Net cash used in investing activities",
+                "financing_cf": "cashflow_statement:page_31:Net cash provided by financing activities",
+                "capex": "cashflow_statement:page_30:Additions to fixed assets",
+                "cash_end": "cashflow_statement:page_31:Cash and cash equivalents at end of the year",
+            },
+            "metrics": {
+                "revenue": 84_642_439_000_000,
+                "ebit": 8_395_030_000_000,
+                "np_attributable": 7_208_834_000_000,
+                "operating_cf": 4_853_256_000_000,
+                "investing_cf": -1_506_766_000_000,
+                "financing_cf": 299_870_000_000,
+                "capex": -430_528_000_000,
+                "cash_end": 8_433_610_000_000,
+            },
+        },
+        "crs_h_2025-12-31_canary_regression": {
+            "period_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "units",
+            "source_document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+            "provenance": {
+                "np_attributable": "income_statement:page_4:Loss after income tax expense for the half year",
+                "operating_cf": "cashflow_statement:page_7:Net cash used in operating activities",
+                "investing_cf": "cashflow_statement:page_7:Net cash used in investing activities",
+                "financing_cf": "cashflow_statement:page_7:Net cash generated from financing activities",
+                "cash_end": "cashflow_statement:page_7:Cash and cash equivalents at end of half year",
+            },
+            "metrics": {
+                "revenue": None,
+                "ebit": None,
+                "np_attributable": -1_937_589,
+                "operating_cf": -588_790,
+                "investing_cf": -3_429_257,
+                "financing_cf": 997_240,
+                "cash_end": 4_756_183,
+            },
+        },
     }
 
 
@@ -191,6 +288,10 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
         "clv_h_2026-01-31_canary_regression",
         "ctm_a_2025-12-31_canary_regression",
         "aau_a_2025-12-31_canary_regression",
+        "am5_h_2025-12-31_canary_regression",
+        "aqx_h_2025-12-31_canary_regression",
+        "atm_a_2025-12-31_canary_regression",
+        "crs_h_2025-12-31_canary_regression",
     }
 
     assert (
@@ -218,6 +319,22 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
     )
     assert (
         fixture_by_id["bhp_a_2025-06-30_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
+    )
+    assert (
+        fixture_by_id["am5_h_2025-12-31_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
+    )
+    assert (
+        fixture_by_id["aqx_h_2025-12-31_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
+    )
+    assert (
+        fixture_by_id["atm_a_2025-12-31_canary_regression"].expected_trust
+        == RealTrustOutcome.TRUSTED
+    )
+    assert (
+        fixture_by_id["crs_h_2025-12-31_canary_regression"].expected_trust
         == RealTrustOutcome.TRUSTED
     )
 
@@ -458,11 +575,54 @@ def test_bhp_canary_regression_fixture_trusts_source_backed_payload():
     assert all(metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics)
 
 
+def test_new_canary_source_review_fixtures_trust_source_backed_payloads():
+    for document_id in (
+        "am5_h_2025-12-31_canary_regression",
+        "aqx_h_2025-12-31_canary_regression",
+        "atm_a_2025-12-31_canary_regression",
+        "crs_h_2025-12-31_canary_regression",
+    ):
+        evaluation = evaluate_real_gold_fixture(
+            _load_real_fixture(document_id),
+            _real_payloads()[document_id],
+        )
+
+        assert evaluation.context_ok is True
+        assert evaluation.trust == RealTrustOutcome.TRUSTED
+        assert evaluation.trust_matches_expected is True
+        assert evaluation.trust_triggers == []
+        assert all(
+            metric.status == MetricEvalStatus.CORRECT for metric in evaluation.metrics
+        )
+
+
+def test_real_gold_scorecard_can_filter_document_ids():
+    scorecard = build_real_gold_scorecard(
+        REAL_FIXTURES_DIR,
+        _real_payloads(),
+        document_ids=[
+            "atm_a_2025-12-31_canary_regression",
+            "crs_h_2025-12-31_canary_regression",
+        ],
+    )
+
+    assert scorecard["total_fixture_count"] == 2
+    assert scorecard["trusted_count"] == 2
+    assert scorecard["abstained_count"] == 0
+    assert scorecard["quarantined_count"] == 0
+    assert {
+        entry["document_id"] for entry in scorecard["fixture_summaries"]
+    } == {
+        "atm_a_2025-12-31_canary_regression",
+        "crs_h_2025-12-31_canary_regression",
+    }
+
+
 def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
     scorecard = build_real_gold_scorecard(REAL_FIXTURES_DIR, _real_payloads())
     synthetic_scorecard = build_fixture_scorecard(SYNTHETIC_FIXTURES_DIR, {})
 
-    assert scorecard["trusted_count"] == 6
+    assert scorecard["trusted_count"] == 10
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
     assert all("document_id" in entry for entry in scorecard["fixture_summaries"])
@@ -478,6 +638,10 @@ def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
         "clv_h_2026-01-31_canary_regression": [],
         "ctm_a_2025-12-31_canary_regression": [],
         "aau_a_2025-12-31_canary_regression": [],
+        "am5_h_2025-12-31_canary_regression": [],
+        "aqx_h_2025-12-31_canary_regression": [],
+        "atm_a_2025-12-31_canary_regression": [],
+        "crs_h_2025-12-31_canary_regression": [],
     }
     for entry in scorecard["fixture_summaries"]:
         assert entry["trust_triggers"] == expected_triggers[entry["document_id"]]
@@ -515,10 +679,10 @@ def test_real_gold_scorecard_reports_provenance_diagnostics_without_changing_tru
         entry["document_id"]: entry for entry in scorecard["fixture_summaries"]
     }
 
-    assert scorecard["trusted_count"] == 6
+    assert scorecard["trusted_count"] == 10
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
-    assert scorecard["provenance_summary"]["available_fixture_count"] == 8
+    assert scorecard["provenance_summary"]["available_fixture_count"] == 12
     assert scorecard["provenance_summary"]["fixture_with_issues_count"] == 1
     assert scorecard["provenance_summary"]["status"] == "issues_detected"
 
