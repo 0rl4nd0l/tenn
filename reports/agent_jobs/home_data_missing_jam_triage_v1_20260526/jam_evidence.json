@@ -1,0 +1,73 @@
+{
+  "job_id": "home_data_missing_jam_triage_v1_20260526",
+  "issue": 41,
+  "jam_id": "b5925467-3c7e-4fd8-bac0-3ca558e01ab4",
+  "jam_url": "https://jam.dev/c/b5925467-3c7e-4fd8-bac0-3ca558e01ab4",
+  "jam_type": "screenshot",
+  "title": "missing data",
+  "created_at": "2026-05-25T02:48:22.714Z",
+  "captured_route": "http://localhost:3000/",
+  "browser": "Chrome 148.0.7778.168",
+  "os": "macOS 15.6.1",
+  "screen_dimensions": {
+    "width": 1920,
+    "height": 992
+  },
+  "github_integration_issue": "https://github.com/0rl4nd0l/tenn/issues/41",
+  "postprocessing_metadata": {
+    "console": {
+      "status": "ready",
+      "has_payload": true,
+      "retrieval_result": "HTTP_404_FROM_CONNECTOR"
+    },
+    "network": {
+      "status": "retrieved",
+      "has_payload": true,
+      "retrieval_result": "SUCCESS_REDACTED_SUMMARY_ONLY"
+    },
+    "user_events": {
+      "status": "retrieved",
+      "has_payload": true,
+      "retrieval_result": "SUCCESS_NAVIGATION_EVENTS_ONLY"
+    }
+  },
+  "screenshot_observations": [
+    "Cockpit Home renders Useful Now with three DATA_MISSING signals.",
+    "Portfolio gap says the backend /api/cockpit/home/portfolio endpoint timed out after 3000ms.",
+    "Portfolio gap exposes PORTFOLIO_ENDPOINT_UNAVAILABLE and MISSING_REQUIRED_EVIDENCE.",
+    "News gap says the recent commentary endpoint returned no approved commentary sources.",
+    "News gap exposes NO_RECENT_COMMENTARY and NO_HIT.",
+    "Market Movers gap says no queued market-update follow-up signals are available for Cockpit Home.",
+    "Market Movers gap exposes NO_MARKET_UPDATE_SIGNALS and NO_HIT.",
+    "Market Pulse preserves DATA_MISSING with no backend market-movers data.",
+    "My Portfolio Impact is labeled LOCAL PERSONAL DATA and shows DATA_MISSING for total value, day change, change percent, and coverage.",
+    "News & Announcements preserves DATA_MISSING and does not fabricate Home news items.",
+    "Attention Queue is READY with no queued items.",
+    "The Home chat draft says Summarize today's available Home context and is marked as opening a full chat draft with no Home-side execution."
+  ],
+  "network_observations": [
+    "Network retrieval returned browser events, but raw responses were not preserved to avoid committing host config or local operational metadata.",
+    "A GET to /api/cockpit/home was observed in the Jam network stream with net::ERR_ABORTED during one reload/navigation phase.",
+    "A GET to /api/cockpit/chat/sessions?limit=200 returned a redacted empty sessions payload.",
+    "A GET to /api/cockpit/config returned 200 with local runtime config; raw config body was intentionally not preserved.",
+    "Navigation/RSC requests to Home and full-chat draft routes returned 200.",
+    "A Vercel insights script request returned 404 and is not treated as a Home data root cause."
+  ],
+  "user_event_observations": [
+    "User-event retrieval returned navigation and reload events for http://localhost:3000/.",
+    "No click, form-submit, or widget interaction event was available to isolate a specific Home handler."
+  ],
+  "confirmed_findings": [
+    "The issue is a broad Home DATA_MISSING state, not a single isolated route failure.",
+    "The screenshot supports preserving DATA_MISSING and no-hit labels instead of fabricating Home content.",
+    "Portfolio, news/commentary, market-update signals, and narrative/workflow gaps require separate owners or follow-ups."
+  ],
+  "data_missing": [
+    "raw console logs",
+    "current Home BFF response body from a running reproduction",
+    "current backend Home portfolio response body from a running reproduction",
+    "non-navigation user-event timeline",
+    "exact root-cause handler for Home recent commentary",
+    "exact root-cause handler for Home market-update signals"
+  ]
+}

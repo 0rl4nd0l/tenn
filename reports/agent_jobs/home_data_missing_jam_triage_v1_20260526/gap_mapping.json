@@ -1,0 +1,95 @@
+{
+  "job_id": "home_data_missing_jam_triage_v1_20260526",
+  "issue": 41,
+  "decision": "KEEP_OPEN_DATA_MISSING",
+  "mapped_gaps": [
+    {
+      "visible_gap": "Useful Now",
+      "screenshot_state": "Three DATA_MISSING signals: Portfolio gap, News gap, and Market Movers gap.",
+      "mapping": "aggregate_status_only",
+      "trackers": [41],
+      "closeout_decision": "KEEP_OPEN",
+      "notes": "Useful Now is a composite of lower-level gaps and does not prove a standalone root cause."
+    },
+    {
+      "visible_gap": "Portfolio gap",
+      "screenshot_state": "Backend /api/cockpit/home/portfolio timed out after 3000ms.",
+      "codes": ["PORTFOLIO_ENDPOINT_UNAVAILABLE", "MISSING_REQUIRED_EVIDENCE"],
+      "mapping": "covered_by_existing_tracker_and_pr",
+      "trackers": [86, 179],
+      "closeout_decision": "KEEP_OPEN",
+      "notes": "#86 and draft PR #179 cover the portfolio panel audit. PR #179 keeps #86 open for product clarity after Home ownership settles."
+    },
+    {
+      "visible_gap": "My Portfolio Impact",
+      "screenshot_state": "Local personal data panel shows DATA_MISSING numeric fields and no canonical financial truth claim.",
+      "codes": ["PORTFOLIO_ENDPOINT_UNAVAILABLE"],
+      "mapping": "covered_by_existing_tracker_and_pr",
+      "trackers": [86, 179],
+      "closeout_decision": "KEEP_OPEN",
+      "notes": "Same portfolio route family as Portfolio gap; do not fabricate totals or holdings."
+    },
+    {
+      "visible_gap": "News gap",
+      "screenshot_state": "Recent commentary endpoint returned no approved commentary sources.",
+      "codes": ["NO_RECENT_COMMENTARY", "NO_HIT"],
+      "mapping": "partially_adjacent_existing_trackers",
+      "trackers": [83, 116],
+      "closeout_decision": "KEEP_OPEN_DATA_MISSING",
+      "notes": "#83 covers news projection/materialization parity and #116 covered News empty-state value. No exact Home recent-commentary producer fix is proven."
+    },
+    {
+      "visible_gap": "News & Announcements",
+      "screenshot_state": "Backend did not provide resolvable Home news items.",
+      "codes": ["NO_RECENT_COMMENTARY"],
+      "mapping": "partially_adjacent_existing_trackers",
+      "trackers": [83, 116],
+      "closeout_decision": "KEEP_OPEN_DATA_MISSING",
+      "notes": "Preserve DATA_MISSING unless an approved source-backed Home news producer is implemented."
+    },
+    {
+      "visible_gap": "Market Movers gap",
+      "screenshot_state": "No queued market-update follow-up signals are available for Cockpit Home.",
+      "codes": ["NO_MARKET_UPDATE_SIGNALS", "NO_HIT"],
+      "mapping": "no_exact_tracker_found",
+      "trackers": [41, 114],
+      "closeout_decision": "KEEP_OPEN_DATA_MISSING",
+      "notes": "#114 fixed a nightly ticker-universe input issue but does not prove queued market-update follow-up signals exist. Keep under #41 or create a separate bounded follow-up later."
+    },
+    {
+      "visible_gap": "Market Pulse",
+      "screenshot_state": "No backend market-movers data is available for Cockpit Home v1.",
+      "codes": ["NO_MARKET_UPDATE_SIGNALS"],
+      "mapping": "no_exact_tracker_found",
+      "trackers": [41, 114],
+      "closeout_decision": "KEEP_OPEN_DATA_MISSING",
+      "notes": "Same producer family as Market Movers gap."
+    },
+    {
+      "visible_gap": "Home narrative producer gaps",
+      "screenshot_state": "Adjacent Home producer gap, not directly visible in this screenshot crop.",
+      "mapping": "adjacent_existing_tracker_and_pr",
+      "trackers": [151, 159],
+      "closeout_decision": "NO_DIRECT_CLOSEOUT_FOR_41",
+      "notes": "#151 and draft PR #159 cover read-only Home narrative. This is adjacent to #41 but not sufficient to close the broad Jam issue."
+    },
+    {
+      "visible_gap": "Home partial banner truncation",
+      "screenshot_state": "Not the reported broad missing-data root cause.",
+      "mapping": "distinct_closed_tracker",
+      "trackers": [44],
+      "closeout_decision": "NO_DIRECT_CLOSEOUT_FOR_41",
+      "notes": "#44 is closed and covered a distinct banner visibility problem."
+    }
+  ],
+  "duplicate_search_result": {
+    "exact_duplicate_found": false,
+    "searches": [
+      "home data missing",
+      "NO_MARKET_UPDATE_SIGNALS",
+      "NO_RECENT_COMMENTARY",
+      "home portfolio panel no data"
+    ]
+  },
+  "next_safe_step": "Leave #41 open and reassess after #159 and #179 are merged or parked; create a separate bounded follow-up only if Home recent-commentary or market-update signal producers need implementation."
+}
