@@ -42,6 +42,27 @@ def test_validate_gate_blocks_ebitda_persisted_as_ebit():
     assert error == "validation_gate:metric_label_mismatch:ebit:ebitda"
 
 
+def test_validate_gate_blocks_pre_tax_row_persisted_as_ebit():
+    """Loss/profit before tax is not canonical EBIT without an EBIT/operating label."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(scale="units")
+    payload["metrics"]["revenue"] = 13_552
+    payload["metrics"]["ebit"] = -1_197_045
+    payload["metrics"]["np_attributable"] = -1_158_426
+    payload["metrics"]["operating_cf"] = -1_462_291
+    payload["row_refs"] = {
+        "revenue": "Revenue from continuing operations",
+        "ebit": "Loss before income tax",
+        "np_attributable": "Net loss attributable to: Owners of the Parent Entity",
+        "operating_cf": "Net cash used in operating activities",
+    }
+
+    status, error = _validate_gate(payload)
+    assert status == "failed"
+    assert error == "validation_gate:metric_label_mismatch:ebit:pre_tax"
+
+
 def test_validate_gate_blocks_explicit_source_unit_value_mismatch():
     """A $44.1 million row must not persist as $44.1 billion."""
     from app.services.multipass_extraction import _validate_gate

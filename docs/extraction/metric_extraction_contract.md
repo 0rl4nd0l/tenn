@@ -402,3 +402,23 @@ behaviors:
 
 These fixtures do not authorize a canary, backfill, database write, Qdrant
 write, source-PDF mutation, or production gold-label mutation.
+
+### Backend truth hardening from canary actuals
+
+The source-reviewed canary scorecard also defines backend extraction guardrails:
+
+- Generic `Profit/Loss before income tax`, `Profit/Loss before taxation`, and
+  `Profit/Loss before tax` rows are not canonical `ebit` unless the same row is
+  explicitly labeled EBIT or operating profit/income.
+- Total comprehensive income attributable to owners is not a substitute for
+  `np_attributable`; when the source table exposes an explicit profit-after-tax
+  or parent-owner profit row, the extractor must use that row.
+- Indonesian financial statements that say `Expressed in Millions of Rupiah`
+  or `Disajikan dalam Jutaan Rupiah` use the `millions` statement scale even if
+  a summary table elsewhere mentions Rp trillions.
+- Immediate income-statement continuation tables are part of the same source
+  truth surface when they carry owner-attributable profit rows.
+
+These guardrails are code/test hardening only. They do not prove a corrected
+runtime canary until the approved backend route is rerun and scored against the
+source-reviewed fixtures.

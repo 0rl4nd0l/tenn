@@ -808,6 +808,199 @@ def test_pass4_merges_non_overlapping_metrics():
     assert result["period_end"] == "2024-12-31"
 
 
+def test_pass4_repairs_aau_comprehensive_owner_row_to_profit_after_tax():
+    """AAU-style total-comprehensive owner rows must not populate NPAT."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 24,
+            "revenue": 187_743,
+            "ebit": 1_100_860,
+            "np_attributable": 1_002_078,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "Profit/(loss) before income tax from continuing operations",
+                "np_attributable": "Owners of the Parent Entity",
+            },
+            "_markdown": "\n".join(
+                [
+                    " | Note | 2025 US$ | 2024 US$",
+                    "--- | --- | --- | ---",
+                    "Revenue | 4 | 187,743 | 9,227",
+                    "Profit/(loss) before income tax from continuing operations |  | 1,100,860 | (542,662)",
+                    "Income tax expense | 12 | - | -",
+                    "Profit/(loss) after income tax expense for the year |  | 1,100,860 | (505,857)",
+                    "Total comprehensive income/(loss) for the year |  | 1,002,078 | (427,540)",
+                    "Attributable to: |  |  | ",
+                    "Owners of the Parent Entity |  | 1,002,078 | (427,540)",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "units"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 1_100_860
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Profit/(loss) after income tax expense for the year"
+    )
+
+
+def test_pass4_repair_uses_current_period_value_after_note_column():
+    """Small current-period values must not be mistaken for note numbers."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 24,
+            "revenue": 100,
+            "ebit": 20,
+            "np_attributable": 14,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "Operating profit",
+                "np_attributable": "Total comprehensive income attributable to owners",
+            },
+            "_markdown": "\n".join(
+                [
+                    "Item | Note | 2025 | 2024",
+                    "--- | --- | --- | ---",
+                    "Revenue | 2 | 100 | 90",
+                    "Operating profit | 3 | 20 | 18",
+                    "Profit after income tax expense for the year | 7 | 12 | 99,000",
+                    "Total comprehensive income attributable to owners | 8 | 14 | 100,000",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "units"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 12
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Profit after income tax expense for the year"
+    )
+
+
+def test_pass4_repair_accepts_single_row_owner_profit_label():
+    """Explicit self-contained owner-profit rows are valid NPAT repair sources."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 24,
+            "revenue": 100,
+            "ebit": 20,
+            "np_attributable": 16,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Revenue",
+                "ebit": "Operating profit",
+                "np_attributable": "Profit for the year",
+            },
+            "_markdown": "\n".join(
+                [
+                    "Item | 2025 | 2024",
+                    "--- | --- | ---",
+                    "Revenue | 100 | 90",
+                    "Operating profit | 20 | 18",
+                    "Profit for the year | 16 | 11",
+                    "Profit attributable to owners of the parent | 12 | 8",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "units"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 12
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Profit attributable to owners of the parent"
+    )
+
+
+def test_pass4_repairs_atm_total_profit_to_parent_owner_profit():
+    """ATM-style continued statements must use owner-attributable profit."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 27,
+            "revenue": 84_642_439_000_000,
+            "ebit": 8_395_030_000_000,
+            "np_attributable": 7_920_415_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Pendapatan dari kontrak dengan pelanggan",
+                "ebit": "LABA USAHA",
+                "np_attributable": "LABA TAHUN BERJALAN",
+            },
+            "_markdown": "\n".join(
+                [
+                    " | 2025 | Catatan/ Notes | 2024 | ",
+                    "--- | --- | --- | --- | ---",
+                    "Pendapatan dari kontrak dengan pelanggan | 84.642.439 | 28 | 69.192.440 | Revenue from contracts with customers",
+                    "LABA USAHA | 8.395.030 |  | 2.997.953 | OPERATING PROFIT",
+                    "LABA TAHUN BERJALAN | 7.920.415 |  | 3.852.218 | PROFIT FOR THE YEAR",
+                    "Laba tahun berjalan yang dapat diatribusikan kepada: |  |  |  | Profit for the year attributable to:",
+                    "Pemilik entitas induk | 7.208.834 | 35 | 3.647.210 | Owners of the parent",
+                    "Kepentingan nonpengendali | 711.581 |  | 205.008 | Non-controlling interests",
+                    "Total penghasilan komprehensif tahun berjalan yang dapat diatribusikan kepada: |  |  |  | Total comprehensive income for the year attributable to:",
+                    "Pemilik entitas induk | 7.487.305 |  | 3.892.564 | Owners of the parent",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-12-31", "scale": "millions"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 7_208_834_000_000
+    assert "Profit for the year attributable" in result["row_refs"]["np_attributable"]
+    assert "Owners of the parent" in result["row_refs"]["np_attributable"]
+
+
 # ---------------------------------------------------------------------------
 # Scale detection priority — table headers always authoritative over LLM
 # ---------------------------------------------------------------------------
@@ -1034,6 +1227,44 @@ def test_idr_rupiah_trillion_headers_detect_native_currency_and_scale():
 
     assert _detect_currency_from_tables([table]) == "IDR"
     assert _detect_scale_from_tables([table]) == "trillions"
+
+
+def test_idr_millions_statement_unit_beats_rp_trillion_summary():
+    """Formal statement units must outrank unrelated Rp-trillion summary tables."""
+    from app.services.multipass_extraction import (
+        _detect_currency_from_tables,
+        _detect_scale_from_tables,
+    )
+    from app.services.docling_extract import DoclingTable
+
+    summary = DoclingTable(
+        page_number=1,
+        caption="Appendix 4E Results for Announcement",
+        headers=["Metric", "Rp trillion"],
+        rows=[["Revenue", "84.6"], ["Profit", "7.9"]],
+    )
+    statement = DoclingTable(
+        page_number=27,
+        caption=(
+            "Consolidated Statement of Profit or Loss "
+            "(Disajikan dalam Jutaan Rupiah, Kecuali Dinyatakan Lain) "
+            "(Expressed in Millions of Rupiah, Unless Otherwise Stated)"
+        ),
+        headers=["", "2025", "Catatan/ Notes", "2024", ""],
+        rows=[
+            [
+                "Pendapatan dari kontrak dengan pelanggan",
+                "84.642.439",
+                "28",
+                "69.192.440",
+                "Revenue from contracts with customers",
+            ],
+            ["LABA USAHA", "8.395.030", "", "2.997.953", "OPERATING PROFIT"],
+        ],
+    )
+
+    assert _detect_currency_from_tables([summary, statement]) == "IDR"
+    assert _detect_scale_from_tables([summary, statement]) == "millions"
 
 
 def test_generic_trillion_mention_without_rupiah_marker_stays_unknown_scale():
@@ -2905,6 +3136,69 @@ def test_pass2_cross_guarantee_note_cannot_claim_income_statement():
     assert labelled["income_statement"] is consolidated_table, (
         "Closed-group deed note must not win the canonical income_statement slot"
     )
+
+
+def test_pass2_merges_income_statement_continuation_for_owner_profit_rows():
+    """Immediate IS continuation pages must stay available for parent-owner profit."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    first_page = DoclingTable(
+        page_number=27,
+        caption="Consolidated Statement of Profit or Loss",
+        headers=["", "2025", "Catatan/ Notes", "2024", ""],
+        rows=[
+            [
+                "Pendapatan dari kontrak dengan pelanggan",
+                "84.642.439",
+                "28",
+                "69.192.440",
+                "Revenue from contracts with customers",
+            ],
+            ["LABA USAHA", "8.395.030", "", "2.997.953", "OPERATING PROFIT"],
+            [
+                "LABA TAHUN BERJALAN",
+                "7.920.415",
+                "",
+                "3.852.218",
+                "PROFIT FOR THE YEAR",
+            ],
+        ],
+    )
+    continuation = DoclingTable(
+        page_number=28,
+        caption="Consolidated Statement of Profit or Loss and Other Comprehensive Income (continued)",
+        headers=["", "2025", "Catatan/ Notes", "2024", ""],
+        rows=[
+            [
+                "Laba tahun berjalan yang dapat diatribusikan kepada:",
+                "",
+                "",
+                "",
+                "Profit for the year attributable to:",
+            ],
+            [
+                "Pemilik entitas induk",
+                "7.208.834",
+                "35",
+                "3.647.210",
+                "Owners of the parent",
+            ],
+            [
+                "Kepentingan nonpengendali",
+                "711.581",
+                "",
+                "205.008",
+                "Non-controlling interests",
+            ],
+        ],
+    )
+
+    labelled = _run_pass2_locator([first_page, continuation])
+
+    merged = labelled["income_statement"]
+    assert merged is not first_page
+    assert any("Pemilik entitas induk" in " ".join(row) for row in merged.rows)
 
 
 # ---------------------------------------------------------------------------
