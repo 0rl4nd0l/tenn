@@ -1,44 +1,28 @@
 {
   "changed_files": [
     {
-      "path": ".claude/commands/architecture-check.md",
-      "status": "M"
-    },
-    {
-      "path": ".claude/commands/architecture-cleanup.md",
-      "status": "M"
-    },
-    {
-      "path": ".claude/commands/function-quality.md",
-      "status": "M"
-    },
-    {
-      "path": ".claude/commands/repo-audit.md",
+      "path": "AGENTS.md",
       "status": "M"
     },
     {
       "path": "docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/claude/commands.md",
       "status": "M"
     },
     {
       "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/README.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/status.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],
@@ -60,7 +44,8 @@
         ".claude/commands/architecture-cleanup.md",
         ".claude/commands/function-quality.md",
         ".claude/commands/repo-audit.md",
-        "docs/claude/commands.md"
+        "docs/claude/commands.md",
+        "AGENTS.md"
       ],
       "approval_required": false,
       "job_id": "cursor_architecture_rules_contract_reconciliation_v1",

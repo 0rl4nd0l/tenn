@@ -15,6 +15,7 @@ allowed_files:
   - .claude/commands/function-quality.md
   - .claude/commands/repo-audit.md
   - docs/claude/commands.md
+  - AGENTS.md
 approval_required: false
 allow_unapproved_safe_extension: true
 timeout_seconds: 3600
@@ -29,7 +30,7 @@ Resolve GitHub issue #139 by retiring stale command/documentation references to 
 
 ## Scope
 
-- Update current Claude command docs that still require `.cursor/rules`.
+- Update current agent and Claude command docs that still require `.cursor/rules`.
 - Preserve architecture enforcement by routing checks to `docs/architecture/SYSTEM_CONTRACT.md` and relevant `docs/architecture/*.md` documents.
 - Record `.cursor/rules` as `DATA_MISSING`, not restored from fabricated content.
 
@@ -47,6 +48,6 @@ Resolve GitHub issue #139 by retiring stale command/documentation references to 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
 - `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
 - `python3 scripts/agent_job_registry.py claim docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
-- `rg` proving active command docs no longer require `.cursor/rules`
+- `rg` proving active agent and command docs no longer require `.cursor/rules`
 - `git diff --check`
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`

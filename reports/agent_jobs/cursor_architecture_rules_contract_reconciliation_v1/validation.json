@@ -17,9 +17,9 @@
       "result": "passed"
     },
     {
-      "command": "rg -n \"\\\\.cursor/rules|\\\\.cursor/agents|backend_architecture.md|embedding_rules.md|vector_store_invariants.md|failure_policy.md\" .claude/commands docs/claude/commands.md docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md",
+      "command": "rg -n \"\\\\.cursor/rules|\\\\.cursor/agents|backend_architecture.md|embedding_rules.md|vector_store_invariants.md|failure_policy.md|cursor rule\" AGENTS.md .claude/commands docs/claude/commands.md docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md",
       "result": "passed",
-      "evidence": "No active command docs require missing .cursor/rules architecture files; remaining .cursor/agents mentions are Prompt Crafter-specific and unrelated to architecture rules."
+      "evidence": "No active agent or command docs require missing .cursor/rules architecture files; remaining .cursor/agents mentions are Prompt Crafter-specific and unrelated to architecture rules."
     },
     {
       "command": "git diff --check",

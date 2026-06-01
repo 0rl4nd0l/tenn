@@ -6,7 +6,7 @@ Resolved GitHub issue #139 by retiring current command/documentation dependencie
 
 ## Scope
 
-- Updated `/architecture-check` to use the authoritative system contract and architecture docs.
+- Updated `AGENTS.md` and `/architecture-check` to use the authoritative system contract and architecture docs.
 - Updated `/architecture-cleanup` to use the authoritative system contract and current architecture/process docs.
 - Updated `/function-quality` consistency checks to reference the system contract.
 - Updated `/repo-audit` preflight/inventory/output references so it no longer depends on missing Cursor agent/rule files.
@@ -28,7 +28,7 @@ No tracked restoration source was found for the missing architecture rule files,
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
 - `python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
 - `python3 scripts/agent_job_registry.py claim docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
-- `rg -n "\\.cursor/rules|\\.cursor/agents|backend_architecture.md|embedding_rules.md|vector_store_invariants.md|failure_policy.md" .claude/commands docs/claude/commands.md docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
+- `rg -n "\\.cursor/rules|\\.cursor/agents|backend_architecture.md|embedding_rules.md|vector_store_invariants.md|failure_policy.md|cursor rule" AGENTS.md .claude/commands docs/claude/commands.md docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
 - `git diff --check`
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md`
 
