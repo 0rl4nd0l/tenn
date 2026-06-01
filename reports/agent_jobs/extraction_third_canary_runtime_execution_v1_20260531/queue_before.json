@@ -1,0 +1,11 @@
+{
+  "queues": {
+    "embed": 0,
+    "ingest": 0,
+    "llm_cpu": 0,
+    "llm_gpu": 0,
+    "score": 3
+  },
+  "redis_connected": true,
+  "total_queued": 3
+}

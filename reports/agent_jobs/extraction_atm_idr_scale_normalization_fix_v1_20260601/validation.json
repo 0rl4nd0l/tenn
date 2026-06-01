@@ -1,0 +1,100 @@
+{
+  "code_review": {
+    "critical": [],
+    "status": "passed",
+    "suggestions_applied": [
+      "Updated scale-detection comment to mention deterministic source units, not only table headers."
+    ],
+    "warnings": []
+  },
+  "commands": {
+    "atm_cache_probe": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "-c",
+        "from app.services.docling_extract import _cache_path_for_pdf,_load_cache; from app.services.multipass_extraction import _detect_scale_from_tables,_detect_scale_from_sections; pdf='/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ATM/financial_performance/2026-04-01_full-year-statutory-accounts_96e9aabd-44dc-4c2c-be8c-74248a0a9025.pdf'; doc=_load_cache(_cache_path_for_pdf(pdf,'.docling.json')); print({'table_scale': _detect_scale_from_tables(doc.tables), 'section_scale': _detect_scale_from_sections(doc.sections)})"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{'table_scale': 'unknown', 'section_scale': 'millions'}\n"
+    },
+    "focused_scale_regressions": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "-m",
+        "pytest",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "-q",
+        "-k",
+        "idr_millions_statement_unit_detected_from_sections or run_multipass_overrides_pass1_trillions_from_idr_statement_sections or idr_millions_statement_unit_beats_rp_trillion_summary or idr_rupiah_trillion_headers_detect_native_currency_and_scale or pass3a_applies_idr_trillion_scale_without_aud_cap_fallback"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ".....                                                                    [100%]\n5 passed, 166 deselected in 0.24s\n"
+    },
+    "full_multipass_tests": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "-m",
+        "pytest",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "-q"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "........................................................................ [ 42%]\n........................................................................ [ 84%]\n...........................                                              [100%]\n171 passed in 1.87s\n"
+    },
+    "git_diff_check": {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "py_compile": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "-m",
+        "py_compile",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "ruff_touched": {
+      "argv": [
+        "financial-engine_v2/.venv/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    "task_card_validate": {
+      "argv": [
+        "python3",
+        "scripts/agent_job_contract.py",
+        "validate",
+        "docs/agent_tasks/extraction_atm_idr_scale_normalization_fix_v1_20260601.md",
+        "--write-report"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\n  \"issues\": [],\n  \"metadata\": {\n    \"allowed_files\": [\n      \"docs/agent_tasks/extraction_atm_idr_scale_normalization_fix_v1_20260601.md\",\n      \"docs/claude/STATE.md\",\n      \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n      \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n      \"reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/README.md\",\n      \"reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/status.json\",\n      \"reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/validation.json\",\n      \"reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601/diff-check.json\"\n    ],\n    \"approval_required\": true,\n    \"github_mutation_allowed\": \"none\",\n    \"job_id\": \"extraction_atm_idr_scale_normalization_fix_v1_20260601\",\n    \"lane\": \"Financial Truth\",\n    \"mutation_mode\": \"safe_extension\",\n    \"operator_approval_source\": \"User approved full production runtime necessary to complete the extraction goal; the immediately preceding bounded canary scorecard at e4a20c91 proved the remaining blocker is ATM scale quarantine.\",\n    \"output_dir\": \"reports/agent_jobs/extraction_atm_idr_scale_normalization_fix_v1_20260601\",\n    \"owner\": \"Codex\",\n    \"production_data_access\": false,\n    \"related_issue\": 96,\n    \"requested_mutation_mode\": \"atm_idr_scale_normalization_code_fix\",\n    \"supporting_lanes\": [\n      \"Evaluation\",\n      \"Provenance\"\n    ],\n    \"timeout_seconds\": 7200\n  },\n  \"ok\": true\n}\n"
+    }
+  },
+  "created_at": "2026-06-01T08:28:55.662526+00:00",
+  "initial_repro": {
+    "command": "pytest test_multipass_extraction.py -k 'idr_millions_statement_unit_detected_from_sections or run_multipass_overrides_pass1_trillions_from_idr_statement_sections'",
+    "observed_before_fix": "2 failed: _detect_scale_from_sections missing and Pass 1 scale remained trillions before Pass 3a"
+  },
+  "ok": true
+}

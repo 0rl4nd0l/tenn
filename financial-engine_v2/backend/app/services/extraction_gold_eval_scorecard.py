@@ -98,6 +98,12 @@ METRIC_NAME_MAP = {
     "shares_outstanding": "shares_outstanding",
 }
 
+SCORECARD_SAFE_METRIC_ALIAS_MAP = {
+    "cash": "cash_end",
+    "cash_and_cash_equivalents": "cash_end",
+    "closing_cash": "cash_end",
+}
+
 PRODUCTION_RELEVANCE_TIERS = {
     "revenue": "core",
     "ebit": "core",
@@ -422,6 +428,33 @@ METRIC_CONTRACT_FAMILIES = (
 )
 
 
+def _scorecard_metric_name_map() -> dict[str, str]:
+    """Return only aliases approved for scorecard value matching."""
+
+    mapping = dict(METRIC_NAME_MAP)
+    mapping.update(SCORECARD_SAFE_METRIC_ALIAS_MAP)
+    return mapping
+
+
+def _canonical_field_for_metric(metric: str) -> str | None:
+    return _scorecard_metric_name_map().get(metric)
+
+
+def _metric_contract_specs_for_key(key: str | None) -> tuple[MetricContractFamily, ...]:
+    normalised = _normalise_metric_name(str(key or ""))
+    if not normalised:
+        return ()
+
+    matches: list[MetricContractFamily] = []
+    for spec in METRIC_CONTRACT_FAMILIES:
+        names = [spec.family, *spec.aliases]
+        if spec.canonical_field is not None:
+            names.append(spec.canonical_field)
+        if any(_normalise_metric_name(name) == normalised for name in names):
+            matches.append(spec)
+    return tuple(matches)
+
+
 def get_scorecard_profiles() -> dict[str, dict[str, Any]]:
     """Return deterministic metadata for all extraction scorecard profiles."""
 
@@ -432,7 +465,7 @@ def metric_mapping_table() -> list[dict[str, Any]]:
     """Return the broader fixture metric mapping into extractor schema fields."""
 
     rows: list[dict[str, Any]] = []
-    for fixture_name, canonical_field in sorted(METRIC_NAME_MAP.items()):
+    for fixture_name, canonical_field in sorted(_scorecard_metric_name_map().items()):
         schema_supported = canonical_field in METRIC_FIELDS
         rows.append(
             {
@@ -671,15 +704,20 @@ def build_confirmed_metric_payload_scorecard(
     rows: list[dict[str, Any]] = []
     fixture_summaries: list[dict[str, Any]] = []
     expectations: list[CoverageExpectation] = []
+    matched_actual_payload_ids: set[str] = set()
 
     for path, fixture_payload in fixture_payloads:
         fixture_expectations = _expectations_for_payload(path, fixture_payload, root)
         expectations.extend(fixture_expectations)
-        actual_payload = (
-            _resolve_extracted_payload(payloads, str(fixture_payload.get("document_id") or path.stem), path)
-            if actual_payload_supplied
-            else None
-        )
+        actual_payload = None
+        if actual_payload_supplied:
+            actual_payload, matched_actual_key = _resolve_extracted_payload_with_key(
+                payloads,
+                str(fixture_payload.get("document_id") or path.stem),
+                path,
+            )
+            if matched_actual_key is not None:
+                matched_actual_payload_ids.add(matched_actual_key)
         fixture_rows = [
             _payload_score_row(
                 expectation,
@@ -694,6 +732,11 @@ def build_confirmed_metric_payload_scorecard(
         )
 
     result_class_summary = _payload_result_class_summary(rows)
+    unmatched_actual_payload_ids = sorted(
+        document_id
+        for document_id in payloads
+        if document_id not in matched_actual_payload_ids
+    )
     return {
         "artifact_type": "confirmed_metric_payload_scorecard_v1",
         "profile": "confirmed_metric_coverage",
@@ -702,6 +745,10 @@ def build_confirmed_metric_payload_scorecard(
         "fixtures_dir": str(fixture_dir),
         "actual_payload_supplied": actual_payload_supplied,
         "actual_payload_document_count": len(payloads),
+        "matched_actual_payload_document_count": len(matched_actual_payload_ids),
+        "matched_actual_payload_ids": sorted(matched_actual_payload_ids),
+        "unmatched_actual_payload_document_count": len(unmatched_actual_payload_ids),
+        "unmatched_actual_payload_ids": unmatched_actual_payload_ids,
         "total_fixture_count": len(fixture_payloads),
         "total_metric_expectations": len(expectations),
         "scored_metric_expectations": sum(1 for item in expectations if item.should_score),
@@ -749,6 +796,10 @@ def build_pre_persistence_scorecard_gate(
         for result_class in _PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES
         if result_class_summary.get(result_class, 0) > 0
     }
+    blocking_document_summary = _gate_blocking_document_summary(rows)
+    missing_actual_document_ids = _gate_missing_actual_document_ids(
+        blocking_document_summary
+    )
 
     blockers: list[dict[str, Any]] = []
     if not actual_payload_supplied:
@@ -773,6 +824,20 @@ def build_pre_persistence_scorecard_gate(
                 "code": "metric_results_missing",
                 "count": 1,
                 "policy": "pre-persistence gate requires metric result rows",
+            }
+        )
+    unmatched_actual_payload_count = _safe_int(
+        scorecard.get("unmatched_actual_payload_document_count")
+    )
+    if unmatched_actual_payload_count > 0:
+        blockers.append(
+            {
+                "code": "unmatched_actual_payload_documents",
+                "count": unmatched_actual_payload_count,
+                "policy": (
+                    "every supplied actual payload must match a scorecard "
+                    "fixture document"
+                ),
             }
         )
     for result_class, count in blocking_result_counts.items():
@@ -801,6 +866,13 @@ def build_pre_persistence_scorecard_gate(
         "actual_payload_document_count": _safe_int(
             scorecard.get("actual_payload_document_count")
         ),
+        "matched_actual_payload_document_count": _safe_int(
+            scorecard.get("matched_actual_payload_document_count")
+        ),
+        "unmatched_actual_payload_document_count": unmatched_actual_payload_count,
+        "unmatched_actual_payload_ids": list(
+            scorecard.get("unmatched_actual_payload_ids") or []
+        ),
         "metric_result_count": len(rows),
         "total_metric_expectations": _safe_int(
             scorecard.get("total_metric_expectations")
@@ -810,6 +882,10 @@ def build_pre_persistence_scorecard_gate(
         "blocking_result_classes": list(_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES),
         "result_class_summary": result_class_summary,
         "blocking_result_class_summary": blocking_result_counts,
+        "blocking_document_count": len(blocking_document_summary),
+        "blocking_document_summary": blocking_document_summary,
+        "missing_actual_document_count": len(missing_actual_document_ids),
+        "missing_actual_document_ids": missing_actual_document_ids,
         "allowed_noncanonical_abstention_count": result_class_summary.get(
             PayloadScoreStatus.UNSUPPORTED_CORRECTLY_ABSTAINED.value, 0
         ),
@@ -1832,7 +1908,7 @@ def _expectations_for_payload(
         if not isinstance(raw_metric, str):
             raise ValueError(f"metric names for {path} must be strings")
 
-        canonical_field = METRIC_NAME_MAP.get(raw_metric)
+        canonical_field = _canonical_field_for_metric(raw_metric)
         expected_value = _coerce_metric_value(raw_metrics.get(raw_metric), path)
         expectation_type = (
             "expected_null"
@@ -2013,7 +2089,7 @@ def _internal_extractor_metric_fields() -> set[str]:
 def _evaluator_supported_metric_fields() -> set[str]:
     return set(METRIC_FIELDS) | {
         canonical
-        for canonical in METRIC_NAME_MAP.values()
+        for canonical in _scorecard_metric_name_map().values()
         if canonical in METRIC_FIELDS
     }
 
@@ -2317,11 +2393,24 @@ def _resolve_extracted_payload(
     fixture_id: str,
     path: Path,
 ) -> Mapping[str, Any] | None:
+    payload, _matched_key = _resolve_extracted_payload_with_key(
+        extracted_payloads,
+        fixture_id,
+        path,
+    )
+    return payload
+
+
+def _resolve_extracted_payload_with_key(
+    extracted_payloads: Mapping[str, Mapping[str, Any]],
+    fixture_id: str,
+    path: Path,
+) -> tuple[Mapping[str, Any] | None, str | None]:
     if fixture_id in extracted_payloads:
-        return extracted_payloads[fixture_id]
+        return extracted_payloads[fixture_id], fixture_id
     if path.stem in extracted_payloads:
-        return extracted_payloads[path.stem]
-    return None
+        return extracted_payloads[path.stem], path.stem
+    return None, None
 
 
 def _normalize_extracted_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -2330,7 +2419,7 @@ def _normalize_extracted_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     metrics = raw_metrics if isinstance(raw_metrics, Mapping) else {}
     normalized_metrics: dict[str, Any] = {}
     for metric, value in metrics.items():
-        canonical = METRIC_NAME_MAP.get(str(metric), str(metric))
+        canonical = _canonical_field_for_metric(str(metric)) or str(metric)
         normalized_metrics[canonical] = value
     normalized["metrics"] = normalized_metrics
     return normalized
@@ -2486,10 +2575,7 @@ def _actual_metric_value(
     expectation: CoverageExpectation,
 ) -> float | None:
     metrics = _actual_metrics(payload)
-    keys = [expectation.metric_name]
-    if expectation.canonical_field is not None:
-        keys.append(expectation.canonical_field)
-    for key in keys:
+    for key in _actual_metric_keys(expectation):
         if key not in metrics:
             continue
         value = metrics.get(key)
@@ -2513,9 +2599,7 @@ def _metric_has_evidence(
 ) -> bool:
     if not isinstance(payload, Mapping):
         return False
-    keys = [expectation.metric_name]
-    if expectation.canonical_field is not None:
-        keys.append(expectation.canonical_field)
+    keys = _actual_metric_keys(expectation)
 
     metrics = _actual_metrics(payload)
     for key in keys:
@@ -2531,6 +2615,41 @@ def _metric_has_evidence(
             if _truthy_evidence(evidence_map.get(key)):
                 return True
     return False
+
+
+def _actual_metric_keys(expectation: CoverageExpectation) -> list[str]:
+    keys: list[str] = []
+
+    def add(raw: str | None) -> None:
+        value = str(raw or "").strip()
+        if value and value not in keys:
+            keys.append(value)
+
+    add(expectation.metric_name)
+    add(expectation.canonical_field)
+
+    if expectation.canonical_field is not None:
+        for alias, canonical_field in _scorecard_metric_name_map().items():
+            if canonical_field == expectation.canonical_field:
+                add(alias)
+
+    if expectation.support_status != CoverageSupportStatus.UNSUPPORTED_SCHEMA:
+        return keys
+
+    for spec in _metric_contract_specs_for_key(expectation.metric_name):
+        add(spec.family)
+        add(spec.canonical_field)
+        for alias in spec.aliases:
+            add(alias)
+
+    if expectation.canonical_field is not None:
+        for spec in _metric_contract_specs_for_key(expectation.canonical_field):
+            add(spec.family)
+            add(spec.canonical_field)
+            for alias in spec.aliases:
+                add(alias)
+
+    return keys
 
 
 def _truthy_evidence(raw: Any) -> bool:
@@ -2682,6 +2801,71 @@ def _gate_blocking_examples(
         if len(examples) >= limit:
             break
     return examples
+
+
+def _gate_blocking_document_summary(
+    rows: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    blocking_classes = set(_PRE_PERSISTENCE_BLOCKING_RESULT_CLASSES)
+    by_document: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        result_class = str(row.get("result_class") or "")
+        if result_class not in blocking_classes:
+            continue
+        document_id = str(row.get("document_id") or row.get("fixture_id") or "")
+        if not document_id:
+            document_id = "DATA_MISSING"
+        entry = by_document.setdefault(
+            document_id,
+            {
+                "document_id": document_id,
+                "blocking_metric_count": 0,
+                "blocking_result_class_summary": {},
+                "blocking_metrics": [],
+                "missing_actual_payload": False,
+            },
+        )
+        entry["blocking_metric_count"] += 1
+        summary = entry["blocking_result_class_summary"]
+        summary[result_class] = summary.get(result_class, 0) + 1
+        if result_class == PayloadScoreStatus.NOT_EVALUATED_NO_ACTUAL.value:
+            entry["missing_actual_payload"] = True
+        entry["blocking_metrics"].append(
+            {
+                "metric_name": row.get("metric_name"),
+                "canonical_field": row.get("canonical_field"),
+                "result_class": result_class,
+                "reason": row.get("reason"),
+            }
+        )
+
+    return [
+        {
+            **entry,
+            "blocking_result_class_summary": dict(
+                sorted(entry["blocking_result_class_summary"].items())
+            ),
+            "blocking_metrics": sorted(
+                entry["blocking_metrics"],
+                key=lambda item: (
+                    str(item.get("result_class") or ""),
+                    str(item.get("metric_name") or ""),
+                    str(item.get("canonical_field") or ""),
+                ),
+            ),
+        }
+        for _document_id, entry in sorted(by_document.items())
+    ]
+
+
+def _gate_missing_actual_document_ids(
+    blocking_document_summary: Iterable[Mapping[str, Any]],
+) -> list[str]:
+    return [
+        str(row.get("document_id"))
+        for row in blocking_document_summary
+        if row.get("missing_actual_payload") is True and row.get("document_id")
+    ]
 
 
 def _source_pdf_summary(expectations: Iterable[CoverageExpectation]) -> dict[str, int]:

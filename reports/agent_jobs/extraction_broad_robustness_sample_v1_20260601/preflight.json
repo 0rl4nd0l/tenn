@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-06-01T11:50:46Z",
+  "git_status": {
+    "cmd": "git status --short --branch",
+    "returncode": 0,
+    "stdout": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [ahead 26]\n?? docs/agent_tasks/extraction_broad_robustness_sample_v1_20260601.md",
+    "stderr": ""
+  },
+  "head": {
+    "cmd": "git rev-parse HEAD",
+    "returncode": 0,
+    "stdout": "4e8dea9116656ac937b63c7f63b0ef3a04f1a3ac",
+    "stderr": ""
+  },
+  "registry": {
+    "cmd": "python3 scripts/agent_job_registry.py list-active",
+    "returncode": 0,
+    "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_broad_robustness_sample_v1_20260601.json\",\n      \"age_seconds\": 11.997,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/extraction_broad_robustness_sample_v1_20260601.md\",\n        \"docs/claude/STATE.md\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/README.md\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/status.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/validation.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/diff-check.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/preflight.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/runtime_startup.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/runtime_shutdown.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/broad_sample_stdout.txt\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/broad_sample_results.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/broad_sample_summary.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601/failure_digest.json\"\n      ],\n      \"approval_required\": true,\n      \"branch\": \"migration/clean-runtime-baseline-reconstruct-v1\",\n      \"claimed_at\": \"2026-06-01T11:50:34.098400Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-06-01T11:50:34.098400Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"extraction_broad_robustness_sample_v1_20260601\",\n      \"lane\": \"Evaluation\",\n      \"last_seen_at\": \"2026-06-01T11:50:34.098400Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/extraction_broad_robustness_sample_v1_20260601\",\n      \"owner\": \"Codex\",\n      \"pid\": 812843,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:812843:extraction_broad_robustness_sample_v1_20260601\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-06-01T11:50:34.098400Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/extraction_broad_robustness_sample_v1_20260601.md\",\n      \"task_card_sha256\": \"9d7af0ec4c1b2d78099897a157926ff371b3dde5592b1e9a20898ce2858f7580\",\n      \"timeout_seconds\": 7200,\n      \"worktree\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": true,\n  \"ok\": true,\n  \"read_only\": false,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}",
+    "stderr": ""
+  },
+  "gpu_process_guard": {
+    "cmd": "scripts/gpu_process_guard.sh --check",
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "gpu_activity_guard": {
+    "cmd": "python3 scripts/gpu_activity_guard.py status --json",
+    "returncode": 0,
+    "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}",
+    "stderr": ""
+  },
+  "ports_8000_8001": {
+    "cmd": "ss -ltnp '( sport = :8000 or sport = :8001 )'",
+    "returncode": 0,
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess",
+    "stderr": ""
+  },
+  "docs_root_counts": {
+    "cmd": "find /data/asx/docs -maxdepth 3 -type f -path '*/financial_performance/*.pdf' 2>/dev/null | wc -l",
+    "returncode": 0,
+    "stdout": "28633",
+    "stderr": ""
+  },
+  "runtime_started": false,
+  "extraction_run_started": false
+}

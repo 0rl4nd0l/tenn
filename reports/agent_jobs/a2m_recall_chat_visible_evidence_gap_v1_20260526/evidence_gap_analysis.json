@@ -1,0 +1,89 @@
+{
+  "job_id": "a2m_recall_chat_visible_evidence_gap_v1_20260526",
+  "issue": 87,
+  "decision": "KEEP_OPEN_DATA_MISSING",
+  "current_head": "9e8dc65475cc815190c171a008657bdb04aa7df6",
+  "guard_contract": {
+    "recent_news_or_update_requires": ["recent_news_event"],
+    "market_price_or_technical_trend_requires_any": [
+      "market_data",
+      "price_series",
+      "technical_indicator"
+    ],
+    "financial_metric_requires_any": [
+      "extracted_metric",
+      "financial_statement"
+    ],
+    "tariff_regulatory_requires_any": [
+      "regulatory_source",
+      "filing",
+      "news"
+    ],
+    "recent_news_event_condition": "claim_verified event-like news source that is not context_only"
+  },
+  "reported_visible_gap_labels": [
+    "market_data_missing",
+    "unsupported_or_not_verified",
+    "metric_extraction_missing",
+    "insufficient_for_recent_news",
+    "missing_required_evidence"
+  ],
+  "positive_current_evidence": [
+    {
+      "source": "financial-engine_v2/backend/tests/test_news_retrieval_eval.py",
+      "finding": "A2M recall fixture can be retained in prompt and visible sources with local_news_context and claim_verified labels."
+    },
+    {
+      "source": "financial-engine_v2/backend/tests/test_chat_evidence_guard.py",
+      "finding": "Claim-verified news/event evidence satisfies recent-update requirements, while context-only or non-news support does not."
+    }
+  ],
+  "focused_validation": {
+    "result": "pass",
+    "tests_passed": 5,
+    "tests": [
+      "A2M recall local-news source retained in prompt and visible sources",
+      "claim-verified news event satisfies recent update",
+      "claim-verified recent-news-event role satisfies recent update",
+      "mixed context_only label blocks recent-news sufficiency",
+      "financial truth numeric context does not verify recent event claim"
+    ]
+  },
+  "adjacent_trackers": [
+    {
+      "issue_or_pr": 38,
+      "relationship": "closed earlier A2M news trace and retrieval blast-radius audit; not exact closeout for current chat response envelope"
+    },
+    {
+      "issue_or_pr": 49,
+      "relationship": "open News page lookback request-contract issue; adjacent but not chat evidence envelope"
+    },
+    {
+      "issue_or_pr": 83,
+      "relationship": "open news projection/materialization parity tracker; relevant if active news substrate proof remains missing"
+    },
+    {
+      "issue_or_pr": 104,
+      "relationship": "cross-route evidence-envelope parent; PR #176 leaves #87 as A2M-specific visible-evidence owner"
+    },
+    {
+      "issue_or_pr": 176,
+      "relationship": "draft PR for #104 evidence matrix; explicitly records #87 as remaining A2M-specific follow-up"
+    },
+    {
+      "issue_or_pr": 122,
+      "relationship": "suggested-next action wiring; not a source envelope fix"
+    }
+  ],
+  "implementation_decision": {
+    "safe_to_edit_product_code": false,
+    "reason": "The exact chat prompt/session, final sources, routing metadata, and active substrate proof are still missing.",
+    "forbidden_shortcuts": [
+      "weakening chat_evidence_guard",
+      "hardcoded A2M-only source promotion",
+      "claim_verified promotion without visible event-like news evidence",
+      "fabricating market, metric, regulatory, or recent-news support"
+    ]
+  },
+  "next_safe_step": "Run a separate captured-response replay or live smoke with explicit sources/routing_metadata capture, then choose class-level source assembly repair or answer rewrite based on evidence."
+}

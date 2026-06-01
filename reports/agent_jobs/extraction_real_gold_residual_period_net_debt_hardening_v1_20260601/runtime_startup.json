@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-06-01T21:01:48+10:00",
+  "backend_unit": "tenn-backend-residual-20260601.service",
+  "router_unit": "tenn-llama-router-residual-20260601.service",
+  "backend_health": {
+    "status": "ok"
+  },
+  "router_health": {
+    "status": "ok"
+  },
+  "target_model": {
+    "id": "model:qwen2.5-14b-instruct",
+    "state": "loaded"
+  },
+  "nvidia_smi": [
+    "0, NVIDIA GeForce GT 1030, 1, 2048, 0",
+    "1, Tesla M40 24GB, 13615, 24576, 100"
+  ],
+  "listeners": [
+    "State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                  ",
+    "LISTEN 0      512        127.0.0.1:8001      0.0.0.0:*    users:((\"llama-server\",pid=597386,fd=8))",
+    "LISTEN 0      2048         0.0.0.0:8000      0.0.0.0:*    users:((\"python\",pid=670293,fd=17))     "
+  ]
+}

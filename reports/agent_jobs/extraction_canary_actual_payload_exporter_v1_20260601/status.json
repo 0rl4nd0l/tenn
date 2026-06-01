@@ -1,0 +1,53 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_canary_actual_payload_exporter_v1_20260601.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/extraction_canary_actual_payload_exporter_v1_20260601.md",
+    "docs/claude/STATE.md",
+    "docs/extraction/metric_extraction_contract.md",
+    "scripts/export_extraction_run_actual_payloads.py",
+    "scripts/test_export_extraction_run_actual_payloads.py",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/README.md",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/status.json",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/validation.json",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/diff-check.json",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/function_quality_findings.json",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads.json",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_actual_payloads_summary.json",
+    "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601/canary_payload_scorecard_probe.json"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "claimed_at": "2026-06-01T06:40:28.569352Z",
+  "completed_at": "2026-06-01T06:47:12.301962Z",
+  "export_summary": {
+    "exported_payload_count": 7,
+    "failed_closed": false,
+    "selected_run_count": 7
+  },
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-06-01T06:40:28.569352Z",
+  "job_id": "extraction_canary_actual_payload_exporter_v1_20260601",
+  "lane": "Evaluation",
+  "last_seen_at": "2026-06-01T06:47:12.301962Z",
+  "output_dir": "reports/agent_jobs/extraction_canary_actual_payload_exporter_v1_20260601",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-06-01T06:47:12.301962Z",
+  "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "result": "completed",
+  "schema_version": 1,
+  "scorecard_probe_summary": {
+    "broad_backfill_authorized": false,
+    "canonical_write_allowed": false,
+    "gate_status": "fail",
+    "unmatched_actual_payload_document_count": 7
+  },
+  "session_id": "l4nd0-System-Product-Name:4114599:extraction_canary_actual_payload_exporter_v1_20260601",
+  "started_at": "2026-06-01T06:40:28.569352Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/extraction_canary_actual_payload_exporter_v1_20260601.md",
+  "updated_at": "2026-06-01T06:47:12.301962Z",
+  "validation_result": "passed",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

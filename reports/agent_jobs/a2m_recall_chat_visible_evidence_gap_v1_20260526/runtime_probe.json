@@ -1,0 +1,29 @@
+{
+  "job_id": "a2m_recall_chat_visible_evidence_gap_v1_20260526",
+  "checked_at": "2026-06-01T12:12:35Z",
+  "read_only": true,
+  "services_started": false,
+  "listeners": {
+    "3000": "not_listening",
+    "3001": "not_listening",
+    "8000": "not_listening",
+    "8001": "not_listening"
+  },
+  "probes": [
+    {
+      "target": "http://127.0.0.1:8000/api/health",
+      "method": "GET",
+      "result": "connection_refused"
+    },
+    {
+      "target": "http://127.0.0.1:3000/api/cockpit/chat",
+      "method": "GET",
+      "result": "connection_refused"
+    }
+  ],
+  "decision": "CURRENT_REPRODUCTION_DATA_MISSING",
+  "notes": [
+    "No service was started because this task is audit-only.",
+    "The current pass cannot capture a fresh /api/cockpit/chat response envelope."
+  ]
+}

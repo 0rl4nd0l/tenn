@@ -1,0 +1,46 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "The gate remains report-local and cannot authorize canonical writes.",
+      "Broad corpus readiness needs a complete blocking document list, not only a bounded preview."
+    ],
+    "sources_used": [
+      "docs/agent_tasks/extraction_payload_gate_blocking_summary_v1_20260531.md",
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/architecture/SYSTEM_CONTRACT.md"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "docs/extraction/metric_extraction_contract.md"
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "docs/extraction/metric_extraction_contract.md",
+      "docs/claude/STATE.md"
+    ],
+    "validation_checks": [
+      "py_compile passed",
+      "focused scorecard service pytest passed: 31 passed",
+      "targeted Ruff passed",
+      "sample gate generation passed",
+      "post-edit code review passed"
+    ]
+  },
+  "result": {
+    "critical": [
+      {
+        "file": "financial-engine_v2/backend/app/services/extraction_gold_eval_scorecard.py",
+        "location": "build_pre_persistence_scorecard_gate before this change",
+        "issue": "The gate exposed only aggregate blocker counts and a bounded examples preview, which made broad corpus payload collection less actionable because complete missing-actual document IDs were not available.",
+        "fix_example": "Add deterministic blocking_document_summary and missing_actual_document_ids derived from metric_results without changing gate pass/fail policy."
+      }
+    ],
+    "warnings": [],
+    "suggestions": []
+  }
+}
