@@ -1,0 +1,128 @@
+{
+  "commands": {
+    "git_diff_check": {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "task_card_validate": {
+      "argv": [
+        "python3",
+        "scripts/agent_job_contract.py",
+        "validate",
+        "docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md",
+        "--write-report"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\n  \"issues\": [],\n  \"metadata\": {\n    \"allowed_files\": [\n      \"docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md\",\n      \"docs/claude/STATE.md\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/README.md\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/status.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/validation.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/diff-check.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_startup.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/preflight.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_before.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/results.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_after.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_shutdown.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads_summary.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actuals_real_gold_keyed.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/source_document_rekey_summary.json\",\n      \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_real_gold_scorecard.json\"\n    ],\n    \"approval_required\": true,\n    \"github_mutation_allowed\": \"none\",\n    \"job_id\": \"extraction_post_truth_hardening_canary_rerun_v1_20260601\",\n    \"lane\": \"Financial Truth\",\n    \"mutation_mode\": \"safe_extension\",\n    \"operator_approval_source\": \"User approved full production runtime necessary to complete the extraction goal and previously approved backend/worker/GPU worker reload for the third canary. This fresh card is bounded to rerunning the same seven approved canary document IDs after commit fcbbc31e hardened AAU/AQX/ATM truth defects.\",\n    \"output_dir\": \"reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601\",\n    \"owner\": \"Codex\",\n    \"production_data_access\": false,\n    \"related_issue\": 96,\n    \"requested_mutation_mode\": \"post_truth_hardening_runtime_canary_score\",\n    \"supporting_lanes\": [\n      \"Evaluation\",\n      \"Provenance\",\n      \"Query Orchestration\"\n    ],\n    \"timeout_seconds\": 14400\n  },\n  \"ok\": true\n}\n"
+    }
+  },
+  "created_at": "2026-06-01T08:22:10.396135+00:00",
+  "json_artifact_validation": [
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actual_payloads_summary.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_actuals_real_gold_keyed.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/canary_real_gold_scorecard.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/preflight.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_after.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/queue_before.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/results.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_shutdown.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/runtime_startup.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/source_document_rekey_summary.json",
+      "returncode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_truth_hardening_canary_rerun_v1_20260601/status.json",
+      "returncode": 0,
+      "stderr": ""
+    }
+  ],
+  "ok": true,
+  "runtime_result": {
+    "accepted_run_count": 7,
+    "accepted_run_ids": [
+      "27ab81b5-94f7-4424-82dc-d8c3a7a0661e",
+      "05e96f37-0c1e-4fdc-bd3f-a0bd810245c1",
+      "27e395ee-eb54-49b5-84fa-f13302422bdb",
+      "6876e6a1-479d-4f8b-8ac2-85d091c04611",
+      "5b75802c-c8f3-415e-a767-c6c315ffc55d",
+      "c60d58a8-bb31-4b37-865f-5d1dc5487267",
+      "741f93b9-2c2a-4f07-b1cc-1bb2aae3699a"
+    ],
+    "all_runtime_submissions_accepted": true
+  },
+  "scorecard_result": {
+    "abstained_count": 0,
+    "metric_status_counts": {
+      "abstain": 0,
+      "correct": 34,
+      "missing": 0,
+      "quarantine": 8,
+      "wrong": 0
+    },
+    "quarantined_count": 1,
+    "remaining_blocker": "ATM context_mismatch:scale",
+    "total_fixture_count": 7,
+    "total_metric_expectations": 42,
+    "trust_check_summary": {
+      "expected_present": 7,
+      "matches": 6,
+      "mismatches": 1
+    },
+    "trusted_count": 6
+  },
+  "shutdown_result": {
+    "gpu_activity_active_after_clear": false,
+    "nvidia_after_stop": "0, NVIDIA GeForce GT 1030, 1 MiB, 2048 MiB\n1, Tesla M40 24GB, 0 MiB, 24576 MiB\n",
+    "ports_8000_8001_closed": true
+  }
+}

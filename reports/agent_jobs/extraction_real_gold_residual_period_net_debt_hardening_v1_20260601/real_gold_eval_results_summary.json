@@ -1,0 +1,108 @@
+{
+  "artifact_paths": {
+    "canonical_scorecard_json": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_canonical_scorecard.json",
+    "documents_csv": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_documents.csv",
+    "metrics_csv": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_metrics.csv",
+    "results_json": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results.json",
+    "summary_json": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_summary.json",
+    "summary_markdown": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_summary.md",
+    "trust_triggers_csv": "reports/agent_jobs/extraction_real_gold_residual_period_net_debt_hardening_v1_20260601/real_gold_eval_results_trust_triggers.csv"
+  },
+  "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+  "eval_policy": {
+    "actual_run": {
+      "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+      "limit": 0,
+      "method": "docling",
+      "model_override": null,
+      "prompt_variant_id": null,
+      "strict_method": true,
+      "tolerance": 0.01
+    },
+    "canonical_contract": {
+      "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+      "limit": 0,
+      "method": "docling",
+      "model_override": null,
+      "prompt_variant_id": null,
+      "strict_method": true,
+      "tolerance": 0.01
+    },
+    "kpi_eligible": true,
+    "mode": "canonical",
+    "non_canonical_reasons": [],
+    "policy_version": "2026-04-20"
+  },
+  "fixture_manifest": {
+    "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+    "fixture_content_sha256": "ff4501e04ec27354fa9dfa9f3791e88ac769ad90351fbb9b0bd3339c39236ba7",
+    "fixture_file_count": 15,
+    "fixture_git_commit": "24cfc90bc5a1e055adc7b8349f936be368d8d786",
+    "fixture_git_dirty": false
+  },
+  "requested_method": "docling",
+  "run_metadata": {
+    "backend_url": "http://127.0.0.1:8000",
+    "config_label": null,
+    "dataset_dir": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/extraction_gold_real",
+    "eval_mode": "canonical",
+    "eval_policy_version": "2026-04-20",
+    "extractor_label": "backend_real_gold_eval",
+    "kpi_eligible": true,
+    "limit": 0,
+    "method_label": "/api/extraction-eval/real-gold",
+    "model_label": null,
+    "parser_backend": "docling",
+    "provider_label": "backend_api",
+    "requested_method": "docling",
+    "strict_method": true,
+    "tolerance": 0.01
+  },
+  "strict_method": true,
+  "summary": {
+    "abstained_count": 0,
+    "context_accuracy": 1.0,
+    "context_correct_documents": 15,
+    "context_mismatch_documents": 0,
+    "context_mismatch_fields": 0,
+    "correct_count": 39,
+    "failed_documents": 0,
+    "generated_at": "2026-06-01T11:26:06.078935Z",
+    "metric_status_counts": {
+      "abstain": 0,
+      "correct": 39,
+      "missing": 0,
+      "wrong": 0
+    },
+    "missing_count": 0,
+    "per_metric_failure_counts": {
+      "net_debt": {
+        "abstain": 0,
+        "missing": 0,
+        "wrong": 0
+      },
+      "operating_cash_flow": {
+        "abstain": 0,
+        "missing": 0,
+        "wrong": 0
+      },
+      "revenue": {
+        "abstain": 0,
+        "missing": 0,
+        "wrong": 0
+      }
+    },
+    "total_accuracy": 1.0,
+    "total_documents": 15,
+    "total_metric_checks": 39,
+    "trust_distribution": {
+      "abstain": 0,
+      "quarantine": 0,
+      "trusted": 15
+    },
+    "trust_matches_expected": 15,
+    "trust_mismatches_expected": 0,
+    "trust_trigger_counts": {},
+    "wrong_count": 0
+  }
+}

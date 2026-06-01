@@ -1,0 +1,221 @@
+{
+  "abstained_count": 0,
+  "fixture_summaries": [
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 6,
+      "document_id": "aau_a_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 6,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 1,
+      "provenance_issues": [
+        {
+          "code": "low_traceability",
+          "field": "provenance_status",
+          "message": "Record is missing precise traceability details.",
+          "metric": "np_attributable",
+          "record_index": 4,
+          "severity": "warning"
+        }
+      ],
+      "provenance_record_count": 8,
+      "provenance_status": "issues_detected",
+      "provenance_status_counts": {
+        "partial": 1,
+        "precise": 7
+      },
+      "provenance_warning_count": 1,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 7,
+      "document_id": "am5_h_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 7,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 7,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 7
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 7,
+      "document_id": "aqx_h_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 7,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 8,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 8
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 8,
+      "document_id": "atm_a_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 8,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 9,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 9
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 3,
+      "document_id": "clv_h_2026-01-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 3,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 3,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 3
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 7,
+      "document_id": "crs_h_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 7,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 7,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 7
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    },
+    {
+      "abstain_count": 0,
+      "context_mismatches": [],
+      "context_ok": true,
+      "correct_count": 4,
+      "document_id": "ctm_a_2025-12-31_canary_regression",
+      "expected_trust": "trusted",
+      "metric_count": 4,
+      "missing_count": 0,
+      "provenance_available": true,
+      "provenance_error_count": 0,
+      "provenance_issue_count": 0,
+      "provenance_issues": [],
+      "provenance_record_count": 8,
+      "provenance_status": "clean",
+      "provenance_status_counts": {
+        "precise": 8
+      },
+      "provenance_warning_count": 0,
+      "quarantine_count": 0,
+      "trust": "trusted",
+      "trust_matches_expected": true,
+      "trust_triggers": [],
+      "wrong_count": 0
+    }
+  ],
+  "metric_status_counts": {
+    "abstain": 0,
+    "correct": 42,
+    "missing": 0,
+    "quarantine": 0,
+    "wrong": 0
+  },
+  "provenance_summary": {
+    "available_fixture_count": 7,
+    "clean_fixture_count": 6,
+    "error_count": 0,
+    "fixture_with_issues_count": 1,
+    "issue_count": 1,
+    "record_count": 50,
+    "status": "issues_detected",
+    "status_counts": {
+      "partial": 1,
+      "precise": 49
+    },
+    "unavailable_fixture_count": 0,
+    "warning_count": 1
+  },
+  "quarantined_count": 0,
+  "total_fixture_count": 7,
+  "total_metric_expectations": 42,
+  "trust_check_summary": {
+    "expected_present": 7,
+    "matches": 7,
+    "mismatches": 0
+  },
+  "trusted_count": 7
+}

@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-06-01T11:51:24Z",
+  "gpu_activity_token": "0033b70bb5e4427d9891aaee8d860ec6",
+  "ports_8000_8001": {
+    "cmd": "ss -ltnp '( sport = :8000 or sport = :8001 )'",
+    "returncode": 0,
+    "stdout": "State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\nLISTEN 0      512          0.0.0.0:8001      0.0.0.0:*    users:((\"llama-server\",pid=814243,fd=8))",
+    "stderr": ""
+  },
+  "models_endpoint": {
+    "ok": true,
+    "status": 200,
+    "body": "{\"data\":[{\"id\":\"Qwen3.5-35B-A3B-APEX-I-Compact\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780314684,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"Qwen3.5-35B-A3B-APEX-I-Compact\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[Qwen3.5-35B-A3B-APEX-I-Compact]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"Qwen3.5-35B-A3B-Q4_K_M\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780314684,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-type\",\"ngram-simple\",\"--alias\",\"Qwen3.5-35B-A3B-Q4_K_M\",\"--batch-size\",\"1024\",\"--ctx-size\",\"16384\",\"--model\",\"/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\",\"--main-gpu\",\"0\",\"--n-gpu-layers\",\"999\",\"--parallel\",\"1\",\"--threads\",\"4\",\"--ubatch-size\",\"512\"],\"preset\":\"[Qwen3.5-35B-A3B-Q4_K_M]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n\"}},{\"id\":\"gpt-oss-20b-mxfp4\",\"aliases\":[],\"tags\":[],\"object\":\"model\",\"owned_by\":\"llamacpp\",\"created\":1780314684,\"status\":{\"value\":\"unloaded\",\"args\":[\"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server\",\"--host\",\"127.0.0.1\",\"--no-mmap\",\"--port\",\"0\",\"--spec-t"
+  },
+  "gpu_activity_guard": {
+    "cmd": "financial-engine_v2/.venv/bin/python scripts/gpu_activity_guard.py status --json",
+    "returncode": 0,
+    "stdout": "{\"active\": true, \"active_runs\": [{\"activity_type\": \"gpu_exclusive\", \"expires_at\": 1780321863.8678238, \"expires_in_seconds\": 7179, \"host\": \"l4nd0-System-Product-Name\", \"mode\": \"bounded_report_only\", \"owner\": \"Codex\", \"reason\": \"extraction_broad_robustness_sample_v1_20260601\", \"started_at\": \"2026-06-01T11:51:03+00:00\", \"token\": \"0033b70bb5e4427d9891aaee8d860ec6\"}], \"expires_at\": 1780321863.8678238, \"expires_in_seconds\": 7179, \"kind\": \"gpu_exclusive_activity\", \"source\": \"redis\", \"token_count\": 1}",
+    "stderr": ""
+  },
+  "nvidia_smi": {
+    "cmd": "nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader,nounits",
+    "returncode": 0,
+    "stdout": "NVIDIA GeForce GT 1030, 1, 2048, 0\nTesla M40 24GB, 3, 24576, 0",
+    "stderr": ""
+  }
+}

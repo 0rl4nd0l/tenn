@@ -1,0 +1,69 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Only explicit source rows may define canonical financial metrics.",
+      "This task is backend code/test hardening only; runtime payload correction is unproven until rerun."
+    ],
+    "sources_used": [
+      "docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md",
+      "docs/architecture/SYSTEM_CONTRACT.md",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "docs/extraction/metric_extraction_contract.md"
+    ],
+    "files_read": [
+      "CLAUDE.md",
+      "docs/architecture/SYSTEM_CONTRACT.md",
+      "docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py"
+    ],
+    "files_modified": [
+      "docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md",
+      "docs/claude/STATE.md",
+      "docs/extraction/metric_extraction_contract.md",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/README.md",
+      "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/status.json",
+      "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/validation.json",
+      "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/diff-check.json",
+      "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/function_quality_findings.json"
+    ],
+    "validation_checks": [
+      "169 passed in test_multipass_extraction.py",
+      "16 passed in test_extraction_pre_canary_truth_gates.py",
+      "269 passed, 5 warnings in targeted extraction bundle",
+      "Ruff passed",
+      "py_compile passed",
+      "git diff --check passed",
+      "task-card check-diff passed"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  },
+  "truth_defects_addressed": [
+    {
+      "canary_class": "AAU",
+      "issue": "np_attributable selected total comprehensive income attributable to owners instead of an explicit profit-after-tax row.",
+      "fix": "Added deterministic repair from selected income-statement markdown when the selected NPAT row is total comprehensive or total profit and an explicit owner/statutory profit row is present."
+    },
+    {
+      "canary_class": "AQX",
+      "issue": "Generic loss before income tax was promoted to canonical ebit.",
+      "fix": "Tightened prompt semantics and validation gate to reject generic profit/loss-before-tax labels unless the same row is explicitly EBIT or operating profit/income."
+    },
+    {
+      "canary_class": "ATM",
+      "issue": "Rp-trillion summary context overrode statements expressed in millions of Rupiah, and owner-profit continuation rows were unavailable.",
+      "fix": "Added explicit Indonesian statement-unit scale precedence and immediate income-statement continuation merge."
+    }
+  ]
+}

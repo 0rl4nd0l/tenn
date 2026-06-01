@@ -1,0 +1,97 @@
+{
+  "captured_at": "2026-06-01T13:22:21.740709+00:00",
+  "head": {
+    "cmd": [
+      "git",
+      "rev-parse",
+      "--short=12",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "181ff690a75c\n",
+    "stderr": ""
+  },
+  "status_short": {
+    "cmd": [
+      "git",
+      "status",
+      "--short",
+      "--untracked-files=all"
+    ],
+    "exit_code": 0,
+    "stdout": "?? docs/agent_tasks/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.md\n",
+    "stderr": ""
+  },
+  "active_jobs": {
+    "cmd": [
+      "financial-engine_v2/.venv/bin/python",
+      "scripts/agent_job_registry.py",
+      "list-active",
+      "--read-only"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.json\",\n      \"age_seconds\": 191.707,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md\",\n        \"reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/README.md\",\n        \"reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/status.json\",\n        \"reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/validation.json\",\n        \"reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601/diff-check.json\",\n        \"cockpit-ui/components/cockpit/chat/terminal-message.tsx\",\n        \"cockpit-ui/lib/cockpit-chat-actionability.ts\",\n        \"cockpit-ui/lib/cockpit-types.ts\",\n        \"cockpit-ui/components/cockpit/news/news-screen.tsx\",\n        \"cockpit-ui/lib/cockpit-news-actionability.ts\",\n        \"cockpit-ui/components/cockpit/chat/terminal-message.test.tsx\",\n        \"cockpit-ui/components/cockpit/news/news-screen.test.tsx\",\n        \"cockpit-ui/lib/cockpit-chat-actionability.test.ts\",\n        \"cockpit-ui/lib/cockpit-news-actionability.test.ts\"\n      ],\n      \"approval_required\": false,\n      \"branch\": \"safe/cockpit-ui-evidence-envelope-visibility-gaps-v1-20260601\",\n      \"claimed_at\": \"2026-06-01T13:19:09.666910Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-06-01T13:19:09.666910Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601\",\n      \"lane\": \"Reporting\",\n      \"last_seen_at\": \"2026-06-01T13:19:09.666910Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601\",\n      \"owner\": \"Codex\",\n      \"pid\": 1055475,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:1055475:cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-06-01T13:19:09.666910Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/cockpit_ui_evidence_envelope_visibility_gaps_v1_20260601.md\",\n      \"task_card_sha256\": \"af2d65b102c8dde6e53c73b2ce6dbdf312ebdfcf8f458a4d5fc287b3fba72994\",\n      \"timeout_seconds\": 7200,\n      \"worktree\": \"/home/l4nd0/tenn-cockpit-ui-evidence-envelope-visibility-gaps-v1-20260601\"\n    },\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.json\",\n      \"age_seconds\": 39.749,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.md\",\n        \"docs/claude/STATE.md\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/README.md\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/status.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/validation.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/diff-check.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/preflight.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/runtime_startup.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/runtime_shutdown.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/broad_sample_stdout.txt\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/broad_sample_results.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/broad_sample_summary.json\",\n        \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601/failure_digest.json\"\n      ],\n      \"approval_required\": true,\n      \"branch\": \"migration/clean-runtime-baseline-reconstruct-v1\",\n      \"claimed_at\": \"2026-06-01T13:21:41.624433Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-06-01T13:21:41.624433Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"extraction_broad_robustness_after_candidate_scale_followup_v1_20260601\",\n      \"lane\": \"Evaluation\",\n      \"last_seen_at\": \"2026-06-01T13:21:41.624433Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601\",\n      \"owner\": \"Codex\",\n      \"pid\": 1061980,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:1061980:extraction_broad_robustness_after_candidate_scale_followup_v1_20260601\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-06-01T13:21:41.624433Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/extraction_broad_robustness_after_candidate_scale_followup_v1_20260601.md\",\n      \"task_card_sha256\": \"ab08b62c1f53e7f94d31db1293f6c8641f83fbb03528c2ce31a2e55d92cbd4b5\",\n      \"timeout_seconds\": 7200,\n      \"worktree\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": false,\n  \"ok\": true,\n  \"read_only\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n",
+    "stderr": ""
+  },
+  "gpu_guard": {
+    "cmd": [
+      "scripts/gpu_process_guard.sh",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "gpu_guard_json": {
+    "cmd": [
+      "scripts/gpu_process_guard.sh",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n\n  ]\n}\n",
+    "stderr": ""
+  },
+  "gpu_activity": {
+    "cmd": [
+      "financial-engine_v2/.venv/bin/python",
+      "scripts/gpu_activity_guard.py",
+      "status",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n",
+    "stderr": ""
+  },
+  "gpu_memory": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-gpu=index,name,memory.used,memory.total",
+      "--format=csv,noheader,nounits"
+    ],
+    "exit_code": 0,
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n",
+    "stderr": ""
+  },
+  "ports_8000_8001": {
+    "cmd": [
+      "bash",
+      "-lc",
+      "ss -ltnp '( sport = :8000 or sport = :8001 )' || true"
+    ],
+    "exit_code": 0,
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "stderr": ""
+  },
+  "docs_root_probe": {
+    "cmd": [
+      "bash",
+      "-lc",
+      "test -d /data/asx/docs && find /data/asx/docs -path '*/financial_performance/*.pdf' -type f | head -n 20 | wc -l"
+    ],
+    "exit_code": 0,
+    "stdout": "20\n",
+    "stderr": ""
+  },
+  "failed_gates": [],
+  "ok": true
+}

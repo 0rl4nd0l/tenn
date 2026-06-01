@@ -1,0 +1,44 @@
+{
+  "artifact_type": "agent_job_status_v1",
+  "job_id": "extraction_canary_source_review_fixture_bridge_v1_20260601",
+  "agent": "Codex",
+  "lane": "Evaluation",
+  "supporting_lanes": ["Financial Truth", "Provenance"],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "task_card": "docs/agent_tasks/extraction_canary_source_review_fixture_bridge_v1_20260601.md",
+  "status": "released",
+  "claimed_at": "2026-06-01T06:56:49.449627Z",
+  "released_at": "2026-06-01T07:08:53.881148Z",
+  "summary": "Added source-reviewed real-gold canary fixtures and a source-document-id rekey helper so exported canary actual payloads can be scored against reviewed labels.",
+  "scorecard_summary": {
+    "total_fixture_count": 7,
+    "trusted_count": 4,
+    "abstained_count": 2,
+    "quarantined_count": 1,
+    "trusted_fixtures": [
+      "am5_h_2025-12-31_canary_regression",
+      "clv_h_2026-01-31_canary_regression",
+      "crs_h_2025-12-31_canary_regression",
+      "ctm_a_2025-12-31_canary_regression"
+    ],
+    "blocking_fixtures": {
+      "aau_a_2025-12-31_canary_regression": ["np_attributable:wrong"],
+      "aqx_h_2025-12-31_canary_regression": ["ebit:wrong"],
+      "atm_a_2025-12-31_canary_regression": ["context_mismatch:scale"]
+    }
+  },
+  "boundaries": {
+    "runtime_extraction_ran": false,
+    "canonical_write_allowed": false,
+    "broad_backfill_authorized": false,
+    "source_pdfs_modified": false,
+    "github_mutation": false
+  },
+  "next_safe_step": "Harden extraction for AAU attributable-profit selection, AQX EBIT abstention, and ATM IDR scale normalization before any broad extraction graduation claim.",
+  "registry_release": {
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "active_record_removed": true
+  }
+}

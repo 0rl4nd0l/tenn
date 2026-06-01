@@ -54,6 +54,14 @@ def _parse_args() -> argparse.Namespace:
         help="JSON object mapping document_id -> extracted payload.",
     )
     parser.add_argument(
+        "--document-id",
+        action="append",
+        default=[],
+        help=(
+            "Limit scoring to one real-gold fixture document_id. May be repeated."
+        ),
+    )
+    parser.add_argument(
         "--indent",
         type=int,
         default=2,
@@ -65,7 +73,11 @@ def _parse_args() -> argparse.Namespace:
 def main() -> int:
     args = _parse_args()
     payloads = _coerce_payload_map(args.actuals_json)
-    scorecard = build_real_gold_scorecard(args.fixtures_dir, payloads)
+    scorecard = build_real_gold_scorecard(
+        args.fixtures_dir,
+        payloads,
+        document_ids=args.document_id or None,
+    )
 
     indent = None if args.indent <= 0 else args.indent
     print(json.dumps(scorecard, indent=indent, sort_keys=True))

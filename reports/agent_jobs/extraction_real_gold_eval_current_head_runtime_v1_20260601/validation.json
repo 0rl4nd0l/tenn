@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-06-01T10:07:00Z",
+  "job_id": "extraction_real_gold_eval_current_head_runtime_v1_20260601",
+  "ok": true,
+  "residual_blockers": [
+    {
+      "document_id": "14d_q_2021-03-31",
+      "reason": "missing period_end caused context quarantine"
+    },
+    {
+      "document_id": "29m_a_2025-12-31",
+      "reason": "net_debt missing"
+    },
+    {
+      "document_id": "a2m_h_2025-12-31",
+      "reason": "net_debt expected null but runtime extracted -397878000"
+    }
+  ],
+  "result_summary": {
+    "canonical": true,
+    "context_accuracy": 0.9333333333333333,
+    "correct_count": 34,
+    "failed_documents": [
+      "14d_q_2021-03-31",
+      "29m_a_2025-12-31",
+      "a2m_h_2025-12-31"
+    ],
+    "kpi_eligible": true,
+    "total_accuracy": 0.8717948717948718,
+    "total_documents": 15,
+    "total_metric_checks": 39,
+    "trust_distribution": {
+      "abstain": 2,
+      "quarantine": 1,
+      "trusted": 12
+    },
+    "trust_matches_expected": 12
+  },
+  "validations": {
+    "json_artifacts_valid": true,
+    "real_gold_eval_canonical": true,
+    "real_gold_eval_completed": true,
+    "real_gold_eval_kpi_eligible": true,
+    "registry_claim": "passed",
+    "registry_overlap": "passed",
+    "registry_release": "passed",
+    "runtime_shutdown": "passed",
+    "runtime_startup": "passed",
+    "source_path_probe": {
+      "all_resolved_existing": true,
+      "resolved_existing_count": 15,
+      "total_documents": 15
+    },
+    "task_card_validate": "passed"
+  }
+}

@@ -1,0 +1,470 @@
+{
+  "backend_health_wait": {
+    "attempts": [
+      {
+        "json": null,
+        "returncode": 7,
+        "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused\n",
+        "stdout": ""
+      },
+      {
+        "json": null,
+        "returncode": 7,
+        "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused\n",
+        "stdout": ""
+      },
+      {
+        "json": {
+          "status": "ok"
+        },
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"status\":\"ok\"}"
+      }
+    ],
+    "last": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "3",
+        "--max-time",
+        "3",
+        "http://127.0.0.1:8000/api/health"
+      ],
+      "duration_seconds": 0.013,
+      "json": {
+        "status": "ok"
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "ok": true
+  },
+  "commands": {
+    "git_head": {
+      "argv": [
+        "git",
+        "rev-parse",
+        "--short=12",
+        "HEAD"
+      ],
+      "duration_seconds": 0.003,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "fcbbc31edfc5\n"
+    },
+    "gpu_activity_after_start": {
+      "argv": [
+        "python3",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "duration_seconds": 0.046,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n"
+    },
+    "gpu_activity_before": {
+      "argv": [
+        "python3",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "status",
+        "--json"
+      ],
+      "duration_seconds": 0.046,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n"
+    },
+    "gpu_activity_start": {
+      "argv": [
+        "python3",
+        "scripts/gpu_activity_guard.py",
+        "--redis-url",
+        "redis://127.0.0.1:6379/0",
+        "start",
+        "--json",
+        "--ttl-seconds",
+        "14400",
+        "--reason",
+        "extraction_post_truth_hardening_canary_rerun_v1_20260601",
+        "--owner",
+        "Codex",
+        "--metadata",
+        "task_card=docs/agent_tasks/extraction_post_truth_hardening_canary_rerun_v1_20260601.md",
+        "--metadata",
+        "mode=runtime_canary"
+      ],
+      "duration_seconds": 0.088,
+      "returncode": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/gpu_activity_guard.py\", line 255, in <module>\n    raise SystemExit(main())\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/gpu_activity_guard.py\", line 251, in main\n    return int(args.func(args))\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/gpu_activity_guard.py\", line 166, in cmd_start\n    router_state = _load_router_state()\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/gpu_activity_guard.py\", line 39, in _load_router_state\n    from app.services import router_state\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/services/router_state.py\", line 19, in <module>\n    from app.core.config import settings\n  File \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/backend/app/core/config.py\", line 5, in <module>\n    from pydantic_settings import BaseSettings, SettingsConfigDict\nModuleNotFoundError: No module named 'pydantic_settings'\n",
+      "stdout": ""
+    },
+    "gpu_guard_before": {
+      "argv": [
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "duration_seconds": 0.043,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "nvidia_after_start": {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,memory.total",
+        "--format=csv,noheader"
+      ],
+      "duration_seconds": 0.023,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1 MiB, 2048 MiB\n1, Tesla M40 24GB, 3 MiB, 24576 MiB\n"
+    },
+    "port_health_before_router": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "3",
+        "--max-time",
+        "3",
+        "-H",
+        "Authorization: Bearer local-openai-key",
+        "http://127.0.0.1:8001/health"
+      ],
+      "duration_seconds": 0.006,
+      "json": null,
+      "returncode": 7,
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8001 after 0 ms: Connection refused\n",
+      "stdout": ""
+    },
+    "ports_after_start": {
+      "argv": [
+        "ss",
+        "-ltnp",
+        "( sport = :8000 or sport = :8001 or sport = :11434 or sport = :6379 )"
+      ],
+      "duration_seconds": 0.024,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                  \nLISTEN 0      511        127.0.0.1:6379       0.0.0.0:*                                            \nLISTEN 0      512        127.0.0.1:8001       0.0.0.0:*    users:((\"llama-server\",pid=165093,fd=8))\nLISTEN 0      2048         0.0.0.0:8000       0.0.0.0:*    users:((\"python\",pid=165250,fd=17))     \nLISTEN 0      4096       127.0.0.1:11434      0.0.0.0:*                                            \nLISTEN 0      511            [::1]:6379          [::]:*                                            \n"
+    },
+    "reset_failed_tenn-backend-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "reset-failed",
+        "tenn-backend-posthardening-20260601.service"
+      ],
+      "duration_seconds": 0.003,
+      "returncode": 1,
+      "stderr": "Failed to reset failed state of unit tenn-backend-posthardening-20260601.service: Unit tenn-backend-posthardening-20260601.service not loaded.\n",
+      "stdout": ""
+    },
+    "reset_failed_tenn-llama-router-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "reset-failed",
+        "tenn-llama-router-posthardening-20260601.service"
+      ],
+      "duration_seconds": 0.003,
+      "returncode": 1,
+      "stderr": "Failed to reset failed state of unit tenn-llama-router-posthardening-20260601.service: Unit tenn-llama-router-posthardening-20260601.service not loaded.\n",
+      "stdout": ""
+    },
+    "reset_failed_tenn-llm-gpu-worker-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "reset-failed",
+        "tenn-llm-gpu-worker-posthardening-20260601.service"
+      ],
+      "duration_seconds": 0.003,
+      "returncode": 1,
+      "stderr": "Failed to reset failed state of unit tenn-llm-gpu-worker-posthardening-20260601.service: Unit tenn-llm-gpu-worker-posthardening-20260601.service not loaded.\n",
+      "stdout": ""
+    },
+    "show_tenn-backend-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-backend-posthardening-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "duration_seconds": 0.006,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=165250\nResult=success\nExecMainPID=165250\nId=tenn-backend-posthardening-20260601.service\nLoadState=loaded\nActiveState=active\nSubState=running\n"
+    },
+    "show_tenn-llama-router-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-llama-router-posthardening-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "duration_seconds": 0.007,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=165093\nResult=success\nExecMainPID=165093\nId=tenn-llama-router-posthardening-20260601.service\nLoadState=loaded\nActiveState=active\nSubState=running\n"
+    },
+    "show_tenn-llm-gpu-worker-posthardening-20260601.service": {
+      "argv": [
+        "systemctl",
+        "--user",
+        "show",
+        "tenn-llm-gpu-worker-posthardening-20260601.service",
+        "-p",
+        "Id",
+        "-p",
+        "LoadState",
+        "-p",
+        "ActiveState",
+        "-p",
+        "SubState",
+        "-p",
+        "MainPID",
+        "-p",
+        "ExecMainPID",
+        "-p",
+        "Result",
+        "--no-pager"
+      ],
+      "duration_seconds": 0.007,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "MainPID=165506\nResult=success\nExecMainPID=165506\nId=tenn-llm-gpu-worker-posthardening-20260601.service\nLoadState=loaded\nActiveState=active\nSubState=running\n"
+    },
+    "start_backend": {
+      "argv": [
+        "systemd-run",
+        "--user",
+        "--collect",
+        "--unit=tenn-backend-posthardening-20260601.service",
+        "--property=WorkingDirectory=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "/usr/bin/env",
+        "DATA_ROOT=/data",
+        "DATABASE_URL=sqlite:////data/fe_local.db",
+        "DOCS_ROOT=/data/asx/docs",
+        "TASK_MODE=celery",
+        "AUTO_CREATE_TABLES=true",
+        "ENABLE_EXTRACTION=true",
+        "ENABLE_EMBEDDINGS=false",
+        "ENABLE_QDRANT=false",
+        "ENABLE_MARKETINDEX_FALLBACK=false",
+        "REDIS_URL=redis://127.0.0.1:6379/0",
+        "CELERY_BROKER_URL=redis://127.0.0.1:6379/0",
+        "CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1",
+        "OLLAMA_URL=http://127.0.0.1:11434",
+        "EMBEDDING_URL=http://127.0.0.1:11434",
+        "LLAMACPP_URL=http://127.0.0.1:8001",
+        "LLM_URL=http://127.0.0.1:8001",
+        "EXTRACT_MODEL=qwen2.5-14b-instruct",
+        "LLM_API_KEY=local-openai-key",
+        "LOCAL_API_KEY=local-openai-key",
+        "LOCAL_BACKEND_PROFILE=full",
+        "bash",
+        "financial-engine_v2/scripts/run_local_backend.sh"
+      ],
+      "duration_seconds": 0.021,
+      "returncode": 0,
+      "stderr": "Running as unit: tenn-backend-posthardening-20260601.service\n",
+      "stdout": ""
+    },
+    "start_router": {
+      "argv": [
+        "systemd-run",
+        "--user",
+        "--collect",
+        "--unit=tenn-llama-router-posthardening-20260601.service",
+        "--property=WorkingDirectory=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "/usr/bin/env",
+        "ALLOW_LLAMA_DURING_GPU_EXCLUSIVE=1",
+        "LLM_API_KEY=local-openai-key",
+        "LLAMA_SERVER_API_KEY=local-openai-key",
+        "LLAMA_SERVER_ROUTER_MODE=1",
+        "LLAMA_SERVER_HOST=127.0.0.1",
+        "LLAMA_SERVER_PORT=8001",
+        "bash",
+        "scripts/run_llama_server.sh"
+      ],
+      "duration_seconds": 0.02,
+      "returncode": 0,
+      "stderr": "Running as unit: tenn-llama-router-posthardening-20260601.service\n",
+      "stdout": ""
+    },
+    "start_worker": {
+      "argv": [
+        "systemd-run",
+        "--user",
+        "--collect",
+        "--unit=tenn-llm-gpu-worker-posthardening-20260601.service",
+        "--property=WorkingDirectory=/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+        "/usr/bin/env",
+        "DATA_ROOT=/data",
+        "DATABASE_URL=sqlite:////data/fe_local.db",
+        "DOCS_ROOT=/data/asx/docs",
+        "TASK_MODE=celery",
+        "AUTO_CREATE_TABLES=true",
+        "ENABLE_EXTRACTION=true",
+        "ENABLE_EMBEDDINGS=false",
+        "ENABLE_QDRANT=false",
+        "ENABLE_MARKETINDEX_FALLBACK=false",
+        "REDIS_URL=redis://127.0.0.1:6379/0",
+        "CELERY_BROKER_URL=redis://127.0.0.1:6379/0",
+        "CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1",
+        "OLLAMA_URL=http://127.0.0.1:11434",
+        "EMBEDDING_URL=http://127.0.0.1:11434",
+        "LLAMACPP_URL=http://127.0.0.1:8001",
+        "LLM_URL=http://127.0.0.1:8001",
+        "EXTRACT_MODEL=qwen2.5-14b-instruct",
+        "LLM_API_KEY=local-openai-key",
+        "LOCAL_API_KEY=local-openai-key",
+        "LOCAL_BACKEND_PROFILE=full",
+        "bash",
+        "-lc",
+        "cd financial-engine_v2 && source .venv/bin/activate && export PYTHONPATH=\"$PWD/backend\" && exec celery -A app.celery_app.celery worker --loglevel=INFO --concurrency=1 -Q llm_gpu --hostname=tenn-llm-gpu-posthardening@l4nd0-System-Product-Name"
+      ],
+      "duration_seconds": 0.026,
+      "returncode": 0,
+      "stderr": "Running as unit: tenn-llm-gpu-worker-posthardening-20260601.service\n",
+      "stdout": ""
+    }
+  },
+  "completed_at": "2026-06-01T07:56:13.238768+00:00",
+  "gpu_activity_registration_correction": {
+    "command": [
+      "financial-engine_v2/.venv/bin/python",
+      "scripts/gpu_activity_guard.py",
+      "--redis-url",
+      "redis://127.0.0.1:6379/0",
+      "status",
+      "--json"
+    ],
+    "reason": "Initial startup registration used system python and failed before submissions; repo venv registration succeeded before any document POST.",
+    "recorded_at": "2026-06-01T07:56:49.888623+00:00",
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "{\"active\": true, \"active_runs\": [{\"activity_type\": \"gpu_exclusive\", \"expires_at\": 1780314997.7041125, \"expires_in_seconds\": 14387, \"host\": \"l4nd0-System-Product-Name\", \"mode\": \"runtime_canary\", \"owner\": \"Codex\", \"reason\": \"extraction_post_truth_hardening_canary_rerun_v1_20260601\", \"started_at\": \"2026-06-01T07:56:37+00:00\", \"token\": \"59d1e9b7ca394ae58c46e0231f583030\"}], \"expires_at\": 1780314997.7041125, \"expires_in_seconds\": 14387, \"kind\": \"gpu_exclusive_activity\", \"source\": \"redis\", \"token_count\": 1}\n"
+  },
+  "gpu_activity_token_parse_error": "JSONDecodeError('Expecting value: line 1 column 1 (char 0)')",
+  "repo": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "router_health_wait": {
+    "attempts": [
+      {
+        "json": null,
+        "returncode": 7,
+        "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8001 after 0 ms: Connection refused\n",
+        "stdout": ""
+      },
+      {
+        "json": {
+          "status": "ok"
+        },
+        "returncode": 0,
+        "stderr": "",
+        "stdout": "{\"status\":\"ok\"}"
+      }
+    ],
+    "last": {
+      "argv": [
+        "curl",
+        "-fsS",
+        "--connect-timeout",
+        "3",
+        "--max-time",
+        "3",
+        "-H",
+        "Authorization: Bearer local-openai-key",
+        "http://127.0.0.1:8001/health"
+      ],
+      "duration_seconds": 0.008,
+      "json": {
+        "status": "ok"
+      },
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\"status\":\"ok\"}"
+    },
+    "ok": true
+  },
+  "started_at": "2026-06-01T07:56:03.023720+00:00",
+  "units": {
+    "backend": "tenn-backend-posthardening-20260601.service",
+    "router": "tenn-llama-router-posthardening-20260601.service",
+    "worker": "tenn-llm-gpu-worker-posthardening-20260601.service"
+  },
+  "worker_name": "tenn-llm-gpu-posthardening@l4nd0-System-Product-Name",
+  "worker_ping_attempts_tail": [
+    {
+      "argv": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery",
+        "-A",
+        "app.celery_app.celery",
+        "inspect",
+        "ping",
+        "-d",
+        "tenn-llm-gpu-posthardening@l4nd0-System-Product-Name"
+      ],
+      "duration_seconds": 1.395,
+      "returncode": 69,
+      "stderr": "Error: No nodes replied within time constraint\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/celery",
+        "-A",
+        "app.celery_app.celery",
+        "inspect",
+        "ping",
+        "-d",
+        "tenn-llm-gpu-posthardening@l4nd0-System-Product-Name"
+      ],
+      "duration_seconds": 0.395,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "->  tenn-llm-gpu-posthardening@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online.\n"
+    }
+  ],
+  "worker_ping_ok": true
+}

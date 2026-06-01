@@ -1,0 +1,440 @@
+{
+  "accepted_extraction_statuses": [
+    "ok",
+    "ok_low_confidence"
+  ],
+  "approval_packet": "reports/agent_jobs/extraction_third_canary_approval_packet_refresh_v1_20260529/canary_approval_packet.json",
+  "items": [
+    {
+      "db_summary": {
+        "financial_row_count": 1,
+        "financial_rows": [
+          {
+            "capex": -187097,
+            "cash_end": 3956993,
+            "confidence_metrics": 1.0,
+            "currency": "USD",
+            "ebit": 1100860,
+            "financing_cf": 4103422,
+            "interest_expense": null,
+            "investing_cf": 301155,
+            "net_debt": null,
+            "np_attributable": 1100860,
+            "operating_cf": -854114,
+            "period_end": "2025-12-31",
+            "period_type": "A",
+            "revenue": 187743,
+            "shares_outstanding": 2316828545,
+            "ticker": "AAU",
+            "total_equity": null,
+            "updated_at": "2026-05-31 11:47:54"
+          }
+        ],
+        "run_rows": [
+          {
+            "confidence_overall": 0.0,
+            "created_at": "2026-06-01 05:09:20",
+            "document_id": "508fc892ae8845ec981fcd9e124c8375",
+            "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+            "run_id": "4793ba9785c04fde91443a9b24e866ca",
+            "status": "failed"
+          }
+        ]
+      },
+      "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+      "final_status": {
+        "_stage_started_at": {
+          "starting": "2026-06-01T05:09:20+00:00"
+        },
+        "actual_method": "auto",
+        "completed_at": "2026-06-01T05:09:20+00:00",
+        "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+        "elapsed_ms": 0,
+        "error_codes": [
+          "pass1_failed",
+          "unknown"
+        ],
+        "errors": [
+          {
+            "code": "pass1_failed",
+            "details": {},
+            "message": "Pass 1 failed: OLLAMA_URL must be set when provider is 'ollama'",
+            "stage": "pass1_classifier",
+            "timestamp": "2026-06-01T05:09:20+00:00"
+          },
+          {
+            "code": "unknown",
+            "details": {
+              "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+              "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+              "extraction_status": "failed",
+              "failure_code": "unknown",
+              "financial_rows_written": 0,
+              "persisted": true,
+              "reviewable_metrics_count": 0,
+              "risk_note_written": 0,
+              "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+              "written_points": 0
+            },
+            "message": "Extraction finished with status failed.",
+            "stage": "failed",
+            "timestamp": "2026-06-01T05:09:20+00:00"
+          }
+        ],
+        "events": [
+          {
+            "actual_method": null,
+            "details": {
+              "trigger": "api_process_document"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 30,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 81,
+            "error_code": null,
+            "message": "Extraction run queued.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "queued",
+            "status": "pending",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 82,
+            "error_code": null,
+            "message": "Extraction run started.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "starting",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 82,
+            "error_code": null,
+            "message": "Loading document metadata and PDF path.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "document_load",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "resolved_pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AAU/financial_performance/2026-03-31_annual-report-and-full-year-statutory-accounts_508fc892-ae88-45ec-981f-cd9e124c8375.pdf"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 83,
+            "error_code": null,
+            "message": "Document metadata loaded.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "document_load",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "model_id": "qwen2.5-14b-instruct",
+              "parser_backend": null,
+              "runtime_id": "http://127.0.0.1:8001"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 85,
+            "error_code": null,
+            "message": "Extraction environment ready.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "env_check",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 85,
+            "error_code": null,
+            "message": "Loading document parser output.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "parser",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {
+              "actual_method": "docling_gpu",
+              "page_count": 66,
+              "table_count": 82
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 94,
+            "error_code": null,
+            "message": "Parsed document with docling_gpu.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "parser",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 96,
+            "error_code": null,
+            "message": "Running pass 1 classifier.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "pass1_classifier",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": null,
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 399,
+            "error_code": "pass1_failed",
+            "message": "Pass 1 failed: OLLAMA_URL must be set when provider is 'ollama'",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "pass1_classifier",
+            "status": "failed",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "auto",
+            "details": {
+              "extraction_status": "failed"
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 0,
+            "error_code": null,
+            "message": "Chunking skipped because extraction did not produce persistable sections.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "chunking",
+            "status": "skipped",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "auto",
+            "details": {
+              "chunks_created": 0,
+              "chunks_skipped": 0,
+              "extraction_status": "failed",
+              "invalid_payloads": 0,
+              "skipped_invalid_vectors": 0,
+              "written_points": 0
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 0,
+            "error_code": null,
+            "message": "Embedding skipped because extraction did not produce chunks.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "embedding",
+            "status": "skipped",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "auto",
+            "details": {},
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 0,
+            "error_code": null,
+            "message": "Persisting extraction outputs.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "persistence",
+            "status": "running",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "auto",
+            "details": {
+              "financial_rows_written": 0,
+              "persisted": true,
+              "reviewable_metrics_count": 0,
+              "risk_note_written": 0
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 0,
+            "error_code": null,
+            "message": "Persistence completed.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "persistence",
+            "status": "succeeded",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          },
+          {
+            "actual_method": "auto",
+            "details": {
+              "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+              "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+              "extraction_status": "failed",
+              "failure_code": "unknown",
+              "financial_rows_written": 0,
+              "persisted": true,
+              "reviewable_metrics_count": 0,
+              "risk_note_written": 0,
+              "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+              "written_points": 0
+            },
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "elapsed_ms": 0,
+            "error_code": "unknown",
+            "message": "Extraction finished with status failed.",
+            "requested_method": "auto",
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "stage": "failed",
+            "status": "failed",
+            "strict_method": false,
+            "timestamp": "2026-06-01T05:09:20+00:00",
+            "warning_code": null
+          }
+        ],
+        "final_summary": {
+          "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+          "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+          "extraction_status": "failed",
+          "failure_code": "unknown",
+          "financial_rows_written": 0,
+          "persisted": true,
+          "reviewable_metrics_count": 0,
+          "risk_note_written": 0,
+          "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+          "written_points": 0
+        },
+        "last_message": "Extraction finished with status failed.",
+        "queue_wait_ms": 0,
+        "queued_at": "2026-06-01T05:09:20+00:00",
+        "requested_method": "auto",
+        "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+        "stage": "failed",
+        "stage_timings_ms": {
+          "chunking": 0,
+          "document_load": 0,
+          "embedding": 0,
+          "env_check": 0,
+          "failed": 0,
+          "parser": 0,
+          "pass1_classifier": 0,
+          "persistence": 0
+        },
+        "started_at": "2026-06-01T05:09:20+00:00",
+        "status": "failed",
+        "strict_method": false,
+        "updated_at": "2026-06-01T05:09:20+00:00",
+        "warning_codes": [],
+        "warnings": [],
+        "worker_started_at": "2026-06-01T05:09:20+00:00"
+      },
+      "order": 1,
+      "post_response": {
+        "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+        "enqueued": 1,
+        "mode": "celery",
+        "requested_method": "auto",
+        "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+        "strict_method": false,
+        "task_id": "ff8667ba-d687-475d-9571-2e4063a9cf58"
+      },
+      "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+      "status_snapshots": [
+        {
+          "at": "2026-06-01T05:09:20.066800Z",
+          "error_codes": [],
+          "final_summary": null,
+          "last_message": "Extraction run queued.",
+          "stage": "queued",
+          "status": "pending",
+          "warning_codes": []
+        },
+        {
+          "at": "2026-06-01T05:09:25.069915Z",
+          "error_codes": [
+            "pass1_failed",
+            "unknown"
+          ],
+          "final_summary": {
+            "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+            "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'",
+            "extraction_status": "failed",
+            "failure_code": "unknown",
+            "financial_rows_written": 0,
+            "persisted": true,
+            "reviewable_metrics_count": 0,
+            "risk_note_written": 0,
+            "run_id": "4793ba97-85c0-4fde-9144-3a9b24e866ca",
+            "written_points": 0
+          },
+          "last_message": "Extraction finished with status failed.",
+          "stage": "failed",
+          "status": "failed",
+          "warning_codes": []
+        }
+      ],
+      "submitted_at": "2026-06-01T05:09:20.021831Z",
+      "task_id": "ff8667ba-d687-475d-9571-2e4063a9cf58",
+      "ticker": "AAU",
+      "verdict": "hard_failed"
+    }
+  ],
+  "route": "POST /api/process/document/{document_id}",
+  "started_at": "2026-06-01T05:09:20.021685Z",
+  "stop_reason": "hard_failed:508fc892-ae88-45ec-981f-cd9e124c8375:failed",
+  "stopped_early": true,
+  "updated_at": "2026-06-01T05:09:25.073656Z"
+}

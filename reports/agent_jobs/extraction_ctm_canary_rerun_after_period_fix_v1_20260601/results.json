@@ -1,0 +1,76 @@
+{
+  "db_summary": {
+    "extraction_runs": [
+      {
+        "confidence_overall": 0.917,
+        "created_at": "2026-06-01 06:10:32",
+        "document_id": "035c67587aed41a69e84ad154125d431",
+        "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+        "run_id": "fbd99043fd4046f3beaa847e8348060c",
+        "status": "failed"
+      }
+    ],
+    "financial_rows_for_source_document": [
+      {
+        "capex": -2123497,
+        "cash_end": 24577181,
+        "confidence_metrics": 0.92,
+        "currency": "AUD",
+        "ebit": -15111363,
+        "financing_cf": 22024529,
+        "investing_cf": -2167611,
+        "net_debt": 13722676,
+        "np_attributable": -14308070,
+        "operating_cf": -13225929,
+        "period_end": "2025-12-31",
+        "period_start": null,
+        "period_type": "A",
+        "revenue": null,
+        "shares_outstanding": 562827818,
+        "source_document_id": "035c67587aed41a69e84ad154125d431",
+        "ticker": "CTM",
+        "updated_at": "2026-05-31 11:51:59"
+      }
+    ]
+  },
+  "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+  "final_verdict": "failed",
+  "polls": [
+    {
+      "captured_at": "2026-06-01T06:10:52.866071+00:00",
+      "completed_at": "2026-06-01T06:10:32+00:00",
+      "elapsed_ms": 193000,
+      "error_codes": [
+        "validation_failed",
+        "unknown"
+      ],
+      "final_summary": {
+        "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+        "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+        "extraction_status": "failed",
+        "failure_code": "unknown",
+        "financial_rows_written": 0,
+        "persisted": true,
+        "reviewable_metrics_count": 8,
+        "risk_note_written": 0,
+        "run_id": "fbd99043-fd40-46f3-beaa-847e8348060c",
+        "written_points": 0
+      },
+      "last_message": "Extraction finished with status failed.",
+      "poll": 1,
+      "stage": "failed",
+      "status": "failed",
+      "status_code": 200,
+      "warning_codes": []
+    }
+  ],
+  "requested_method": "auto",
+  "route": "POST /api/process/document/{document_id}",
+  "run_id": "fbd99043-fd40-46f3-beaa-847e8348060c",
+  "started_at": "2026-06-01T06:10:52.862645+00:00",
+  "stop_reason": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+  "strict_method": false,
+  "task_id": "c117c8f1-34f3-40cb-84b7-a8a0cf3ada0f",
+  "ticker": "CTM",
+  "updated_at": "2026-06-01T06:10:52.867966+00:00"
+}

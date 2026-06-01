@@ -1,0 +1,140 @@
+{
+  "backend_health": {
+    "json": {
+      "status": "ok"
+    },
+    "status_code": 200
+  },
+  "captured_at": "2026-06-01T05:47:18.723145+00:00",
+  "document_checks": [
+    {
+      "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+      "document_key": "da9f9ea56596464faf145acf12f9b050",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+          "ticker": "CLV",
+          "title": "Clover 1H FY26 Results Announcement"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 1,
+      "pdf_path": "/data/asx/docs/CLV/financial_performance/2026-03-24_clover-1h-fy26-results-announcement_da9f9ea5-6596-464f-af14-5acf12f9b050.pdf",
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-06-01 05:34:45",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": "validation_gate:insufficient_metrics:0",
+          "run_id": "45b9c8469f0044cab8c67833f80e6342",
+          "status": "failed"
+        },
+        {
+          "created_at": "2026-05-31 10:51:36",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": null,
+          "run_id": "c057d26063dc4cf08025596cf93695cc",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 10:09:30",
+          "document_id": "da9f9ea56596464faf145acf12f9b050",
+          "error": "validation_gate:insufficient_metrics:0",
+          "run_id": "e5cefa6c11a34e1faf150a5f21328071",
+          "status": "failed"
+        }
+      ],
+      "source_path_exists": true,
+      "source_size_bytes": 232373,
+      "ticker": "CLV"
+    },
+    {
+      "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+      "document_key": "035c67587aed41a69e84ad154125d431",
+      "document_row_count": 1,
+      "document_rows": [
+        {
+          "doc_class": "quarterly",
+          "doc_subtype": "other",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "exchange": "ASX",
+          "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+          "ticker": "CTM",
+          "title": "Financial Report 31 December 2025"
+        }
+      ],
+      "has_blocking_active_run_status": false,
+      "order": 2,
+      "pdf_path": "/data/asx/docs/CTM/financial_performance/2026-03-30_financial-report-31-december-2025_035c6758-7aed-41a6-9e84-ad154125d431.pdf",
+      "recent_extraction_runs": [
+        {
+          "created_at": "2026-05-31 11:51:59",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "feb20c6b28b048b69692c15e1d32ed20",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 11:20:51",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": null,
+          "run_id": "f493fb094b554363a638be77fccac574",
+          "status": "ok"
+        },
+        {
+          "created_at": "2026-05-31 10:57:06",
+          "document_id": "035c67587aed41a69e84ad154125d431",
+          "error": "validation_gate:period_source_mismatch:payload=H:source=A:year_ended_source_phrase",
+          "run_id": "92bf4e7166dd422e9eb0e4a20fcf3234",
+          "status": "failed"
+        }
+      ],
+      "source_path_exists": true,
+      "source_size_bytes": 1761954,
+      "ticker": "CTM"
+    }
+  ],
+  "failed_gates": [],
+  "gpu_guard": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gpu_memory_query": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 10547, 24576"
+  },
+  "head_short": "4b0acebe",
+  "loaded_models": [
+    "model:qwen2.5-14b-instruct"
+  ],
+  "ok": true,
+  "queue_status": {
+    "queues": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 8
+    },
+    "redis_connected": true,
+    "total_queued": 8
+  },
+  "worker_env_evidence": {
+    "EMBEDDING_URL": "http://127.0.0.1:11434",
+    "EXTRACT_MODEL": "qwen2.5-14b-instruct",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "OLLAMA_URL": "http://127.0.0.1:11434"
+  },
+  "worker_ping": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "->  tenn-llm-gpu-canary@l4nd0-System-Product-Name: OK\n        pong\n\n1 node online."
+  }
+}

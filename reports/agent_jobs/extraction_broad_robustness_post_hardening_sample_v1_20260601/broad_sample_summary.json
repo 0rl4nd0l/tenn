@@ -1,0 +1,115 @@
+{
+  "total": 8,
+  "status_distribution": {
+    "failed": 4,
+    "ok": 4
+  },
+  "success_rate": 0.5,
+  "error_classification": {
+    "classifier_low_confidence": 3,
+    "validation_gate": 1
+  },
+  "metric_coverage": {
+    "revenue": {
+      "present": 1,
+      "total": 4,
+      "rate": 0.25
+    },
+    "ebit": {
+      "present": 0,
+      "total": 4,
+      "rate": 0.0
+    },
+    "np_attributable": {
+      "present": 1,
+      "total": 4,
+      "rate": 0.25
+    },
+    "operating_cf": {
+      "present": 4,
+      "total": 4,
+      "rate": 1.0
+    },
+    "investing_cf": {
+      "present": 4,
+      "total": 4,
+      "rate": 1.0
+    },
+    "financing_cf": {
+      "present": 3,
+      "total": 4,
+      "rate": 0.75
+    },
+    "capex": {
+      "present": 2,
+      "total": 4,
+      "rate": 0.5
+    },
+    "cash_end": {
+      "present": 4,
+      "total": 4,
+      "rate": 1.0
+    },
+    "net_debt": {
+      "present": 0,
+      "total": 4,
+      "rate": 0.0
+    },
+    "shares_outstanding": {
+      "present": 1,
+      "total": 4,
+      "rate": 0.25
+    }
+  },
+  "nonnull_metric_distribution": {
+    "mean": 5,
+    "median": 4.5,
+    "min": 3,
+    "max": 8
+  },
+  "timing": {
+    "mean_s": 73.42,
+    "median_s": 65.0,
+    "p95_s": 158.71,
+    "p99_s": 158.71,
+    "min_s": 16.0,
+    "max_s": 158.71,
+    "total_s": 587.4
+  },
+  "sanity_checks": {
+    "revenue_positive": {
+      "passed": 1,
+      "total": 1,
+      "rate": 1.0
+    },
+    "shares_positive": {
+      "passed": 1,
+      "total": 1,
+      "rate": 1.0
+    },
+    "cash_end_positive": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0
+    },
+    "period_end_valid": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0
+    },
+    "period_type_valid": {
+      "passed": 4,
+      "total": 4,
+      "rate": 1.0
+    }
+  },
+  "unique_tickers": 7,
+  "period_type_distribution": {
+    "Q": 3,
+    "A": 1
+  },
+  "scale_distribution": {
+    "thousands": 3,
+    "millions": 1
+  }
+}

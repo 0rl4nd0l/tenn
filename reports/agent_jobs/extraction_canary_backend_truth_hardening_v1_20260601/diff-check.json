@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-06-01T07:37:44Z",
+  "changed_files": [
+    "docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md",
+    "docs/claude/STATE.md",
+    "docs/extraction/metric_extraction_contract.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/README.md",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/status.json",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/validation.json",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/diff-check.json",
+    "reports/agent_jobs/extraction_canary_backend_truth_hardening_v1_20260601/function_quality_findings.json"
+  ],
+  "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_canary_backend_truth_hardening_v1_20260601.md --repo-root . --no-write-report",
+  "disallowed_files": [],
+  "ok": true
+}

@@ -1,0 +1,45 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_broad_robustness_docs_root_v1_20260601.md",
+        "financial-engine_v2/scripts/broad_extraction_test.py",
+        "financial-engine_v2/scripts/test_broad_extraction_test.py",
+        "docs/claude/STATE.md",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/README.md",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/status.json",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/validation.json",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/diff-check.json",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/source_inventory.json",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/focused_test_stdout.txt",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/ruff_stdout.txt",
+        "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601/py_compile_stdout.txt"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_broad_robustness_docs_root_v1_20260601",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_broad_robustness_docs_root_v1_20260601",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

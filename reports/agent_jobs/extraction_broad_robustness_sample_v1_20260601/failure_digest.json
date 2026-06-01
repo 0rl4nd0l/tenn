@@ -1,0 +1,74 @@
+{
+  "run_metadata": {
+    "timestamp": "20260601T115347Z",
+    "seed": 20260601,
+    "requested_count": 8,
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "docs_root": "/data/asx/docs"
+  },
+  "failure_count": 5,
+  "failures": [
+    {
+      "ticker": "GTE",
+      "pdf_path": "data/asx/docs/GTE/financial_performance/2025-09-11_annual-report-to-shareholders_a918a867-650e-40cb-91fc-8aa184f7379d.pdf",
+      "error": "validation_gate:metric_label_mismatch:ebit:pre_tax",
+      "elapsed_s": 118.12,
+      "non_null_metrics": 9,
+      "period_type": "A",
+      "period_end": "2025-06-30",
+      "scale": "units",
+      "confidence": 1
+    },
+    {
+      "ticker": "ARL",
+      "pdf_path": "data/asx/docs/ARL/financial_performance/2022-10-28_results-of-meeting_f6d952b4-61a9-4525-8d6d-6016bde62530.pdf",
+      "error": "validation_gate:scale_unknown",
+      "elapsed_s": 7.25,
+      "non_null_metrics": 0,
+      "period_type": "A",
+      "period_end": "2022-10-28",
+      "scale": "unknown",
+      "confidence": 0
+    },
+    {
+      "ticker": "HNG",
+      "pdf_path": "data/asx/docs/HNG/financial_performance/2021-05-17_financial-update_b99edab3-ce8c-4560-ad33-86c4c77b2250.pdf",
+      "error": "validation_gate:scale_unknown",
+      "elapsed_s": 9.89,
+      "non_null_metrics": 0,
+      "period_type": "H",
+      "period_end": "2021-03-31",
+      "scale": "unknown",
+      "confidence": 0
+    },
+    {
+      "ticker": "CAF",
+      "pdf_path": "data/asx/docs/CAF/financial_performance/2021-08-25_appendix-4e-fy21_2676743b-c638-40d9-be60-9b8069221d14.pdf",
+      "error": "validation_gate:scale_unknown",
+      "elapsed_s": 32.72,
+      "non_null_metrics": 2,
+      "period_type": "A",
+      "period_end": "2021-06-30",
+      "scale": "unknown",
+      "confidence": 0.667
+    },
+    {
+      "ticker": "TLS",
+      "pdf_path": "data/asx/docs/TLS/financial_performance/2022-10-11_results-of-2022-annual-general-meeting_36c30afc-00a3-45f6-acd9-163a7519441f.pdf",
+      "error": "validation_gate:scale_unknown",
+      "elapsed_s": 10.41,
+      "non_null_metrics": 0,
+      "period_type": "A",
+      "period_end": "2022-06-30",
+      "scale": "unknown",
+      "confidence": 0
+    }
+  ],
+  "warnings_observed": [
+    "scale_unknown",
+    "metric_label_mismatch:ebit:pre_tax",
+    "non_aud_currency:CAD",
+    "balance_sheet_json_timeout_retry"
+  ]
+}

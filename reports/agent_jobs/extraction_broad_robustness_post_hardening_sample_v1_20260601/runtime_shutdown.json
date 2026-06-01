@@ -1,0 +1,111 @@
+{
+  "captured_at": "2026-06-01T12:57:00.418741+00:00",
+  "unit": "tenn-llama-router-broad-post-hardening-20260601.service",
+  "gpu_activity_token": "2b95e9e8e37a4bda9ced243eeb7dc4f5",
+  "steps": [
+    {
+      "name": "systemctl_stop_router",
+      "result": {
+        "cmd": [
+          "systemctl",
+          "--user",
+          "stop",
+          "tenn-llama-router-broad-post-hardening-20260601.service"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "gpu_activity_clear",
+      "result": {
+        "cmd": [
+          "financial-engine_v2/.venv/bin/python",
+          "scripts/gpu_activity_guard.py",
+          "clear",
+          "2b95e9e8e37a4bda9ced243eeb7dc4f5"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    }
+  ],
+  "systemctl_show_after_stop": {
+    "cmd": [
+      "systemctl",
+      "--user",
+      "show",
+      "tenn-llama-router-broad-post-hardening-20260601.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ExecMainPID",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "--no-pager"
+    ],
+    "exit_code": 0,
+    "stdout": "MainPID=0\nExecMainPID=0\nActiveState=inactive\nSubState=dead\n",
+    "stderr": ""
+  },
+  "ports_after_stop": {
+    "cmd": [
+      "bash",
+      "-lc",
+      "ss -ltnp '( sport = :8000 or sport = :8001 )' || true"
+    ],
+    "exit_code": 0,
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "stderr": ""
+  },
+  "gpu_activity_after_clear": {
+    "cmd": [
+      "financial-engine_v2/.venv/bin/python",
+      "scripts/gpu_activity_guard.py",
+      "status",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n",
+    "stderr": ""
+  },
+  "gpu_guard_after_stop": {
+    "cmd": [
+      "scripts/gpu_process_guard.sh",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n    {\"pid\": 994557, \"port\": \"unknown\", \"model\": \"0\", \"vram_mb\": ROGUE, \"status\": \"\"}\n  ]\n}\n",
+    "stderr": ""
+  },
+  "gpu_memory_after_stop": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-gpu=index,name,memory.used,memory.total",
+      "--format=csv,noheader,nounits"
+    ],
+    "exit_code": 0,
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n",
+    "stderr": ""
+  },
+  "llama_lock_after_stop": {
+    "cmd": [
+      "bash",
+      "-lc",
+      "if [ -f /tmp/llama-server.lock ]; then cat /tmp/llama-server.lock; else echo absent; fi"
+    ],
+    "exit_code": 0,
+    "stdout": "967462\n",
+    "stderr": ""
+  },
+  "ok": true,
+  "cleanup_status": {
+    "activity_inactive": true,
+    "ports_clear": true,
+    "unit_inactive": true
+  }
+}

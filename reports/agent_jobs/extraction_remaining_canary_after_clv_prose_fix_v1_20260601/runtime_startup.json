@@ -1,0 +1,42 @@
+{
+  "backend_health": {
+    "json": {
+      "status": "ok"
+    },
+    "status_code": 200
+  },
+  "captured_at": "2026-06-01T05:47:18.713421+00:00",
+  "gpu_memory_query": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 10547, 24576"
+  },
+  "head_short": "4b0acebe",
+  "loaded_models": [
+    "model:qwen2.5-14b-instruct"
+  ],
+  "unit_status": {
+    "tenn-backend-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3935774\nActiveState=active\nSubState=running"
+    },
+    "tenn-llama-router-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3934188\nActiveState=active\nSubState=running"
+    },
+    "tenn-llm-gpu-worker-canary-20260601.service": {
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "MainPID=3936303\nActiveState=active\nSubState=running"
+    }
+  },
+  "worker_env_evidence": {
+    "EMBEDDING_URL": "http://127.0.0.1:11434",
+    "EXTRACT_MODEL": "qwen2.5-14b-instruct",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "OLLAMA_URL": "http://127.0.0.1:11434"
+  }
+}

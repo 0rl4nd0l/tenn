@@ -461,20 +461,16 @@ def _load_real_gold_dataset(dataset_dir: Path) -> list[RealGoldDocument]:
 
 
 def _resolve_real_gold_source_path(source_file: str) -> Path:
-    candidate = Path(source_file)
-    if candidate.is_absolute():
-        if candidate.exists():
-            return candidate
-        raise FileNotFoundError(f"source file does not exist: {candidate}")
-
-    for base in (PROJECT_ROOT, PROJECT_ROOT.parent):
-        resolved = base / candidate
-        if resolved.exists():
-            return resolved
-
-    raise FileNotFoundError(
-        f"could not resolve source_file '{source_file}' relative to {PROJECT_ROOT}"
-    )
+    try:
+        return confirmed_metric_coverage_review.resolve_confirmed_metric_coverage_source_path(
+            source_file
+        )
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"could not resolve source_file '{source_file}' in allowed source roots"
+        ) from exc
+    except (PermissionError, ValueError):
+        raise
 
 
 def _extract_ticker_from_source_path(source_path: Path) -> str:

@@ -1,0 +1,105 @@
+{
+  "captured_at": "2026-06-01T13:38:52.405846+00:00",
+  "unit": "tenn-llama-router-broad-candidate-scale-20260601.service",
+  "gpu_activity_token": "49412c6252c2446881eb89c3c163cba9",
+  "steps": [
+    {
+      "name": "stop_router_unit",
+      "result": {
+        "cmd": [
+          "systemctl",
+          "--user",
+          "stop",
+          "tenn-llama-router-broad-candidate-scale-20260601.service"
+        ],
+        "exit_code": 5,
+        "stdout": "",
+        "stderr": "Failed to stop tenn-llama-router-broad-candidate-scale-20260601.service: Unit tenn-llama-router-broad-candidate-scale-20260601.service not loaded.\n"
+      }
+    },
+    {
+      "name": "reset_failed_unit",
+      "result": {
+        "cmd": [
+          "systemctl",
+          "--user",
+          "reset-failed",
+          "tenn-llama-router-broad-candidate-scale-20260601.service"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Failed to reset failed state of unit tenn-llama-router-broad-candidate-scale-20260601.service: Unit tenn-llama-router-broad-candidate-scale-20260601.service not loaded.\n"
+      }
+    },
+    {
+      "name": "gpu_activity_clear",
+      "result": {
+        "cmd": [
+          "financial-engine_v2/.venv/bin/python",
+          "scripts/gpu_activity_guard.py",
+          "clear",
+          "49412c6252c2446881eb89c3c163cba9"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "gpu_guard_json_after_shutdown",
+      "result": {
+        "cmd": [
+          "scripts/gpu_process_guard.sh",
+          "--json"
+        ],
+        "exit_code": 0,
+        "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n\n  ]\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "gpu_activity_status_after_shutdown",
+      "result": {
+        "cmd": [
+          "financial-engine_v2/.venv/bin/python",
+          "scripts/gpu_activity_guard.py",
+          "status",
+          "--json"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "gpu_memory_after_shutdown",
+      "result": {
+        "cmd": [
+          "nvidia-smi",
+          "--query-gpu=index,name,memory.used,memory.total",
+          "--format=csv,noheader,nounits"
+        ],
+        "exit_code": 0,
+        "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "ports_8000_8001_after_shutdown",
+      "result": {
+        "cmd": [
+          "bash",
+          "-lc",
+          "ss -ltnp '( sport = :8000 or sport = :8001 )' || true"
+        ],
+        "exit_code": 0,
+        "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "processes_clear": true,
+  "activity_clear": true,
+  "ports_clear": true,
+  "ok": true
+}
