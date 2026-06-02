@@ -30,6 +30,7 @@ def _has_api_key_dependency(route: APIRoute) -> bool:
         ("/api/system/status", "GET"),
         ("/api/ingest/transcript", "POST"),
         ("/api/ingest/book", "POST"),
+        ("/api/cockpit/claims/verify", "POST"),
         ("/ingest/transcript", "POST"),
         ("/ingest/book", "POST"),
         ("/rag/query", "POST"),
