@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_failure_gate_audit_v1_20260602",
+  "source_sample_artifact": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+  "summary": {
+    "cases_audited": 5,
+    "candidate_exclusion_added": 3,
+    "scale_or_period_guard_changed": 0,
+    "confidence_gate_changed": 0,
+    "report_only_or_no_change": 2,
+    "another_random_sample_justified": false,
+    "bounded_same_size_rerun_can_be_requested_after_fresh_readiness": true,
+    "no_full_extraction_backfill_run": true
+  },
+  "taxonomy": [
+    {
+      "ticker": "CQT",
+      "document_id": "bfc0eb77-6875-4451-ac02-90542a8f6317",
+      "source_path": "data/asx/docs/CQT/financial_performance/2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77-6875-4451-ac02-90542a8f6317.pdf",
+      "previous_status": "failed",
+      "previous_gate": "classifier_low_confidence",
+      "source_class": "webinar scheduling notice",
+      "root_cause": "The source announces postponement of a quarterly results webinar and says FY23 results will be released later; it has no formal financial statements.",
+      "decision": "candidate_exclusion",
+      "guard_added": "results webinar titles now match non_financial_update_without_formal_statements",
+      "post_fix_classifier_document_class": "non_financial_update_without_formal_statements",
+      "post_fix_extraction_candidate_allowed": false
+    },
+    {
+      "ticker": "AUK",
+      "document_id": "dce6f923-7a41-4925-8363-3efefd7ecd96",
+      "source_path": "data/asx/docs/AUK/financial_performance/2025-08-29_preliminary-final-report_dce6f923-7a41-4925-8363-3efefd7ecd96.pdf",
+      "previous_status": "failed",
+      "previous_gate": "scale_validation:suspect_overscaled",
+      "source_class": "formal preliminary final report",
+      "root_cause": "The document is a real Appendix 4E preliminary final report with results for announcement to the market; extracted rows were over-scaled and correctly blocked by the existing scale validation gate.",
+      "decision": "no_classifier_change_keep_scale_hard_gate",
+      "guard_added": null,
+      "post_fix_classifier_document_class": "financial_report",
+      "post_fix_extraction_candidate_allowed": true
+    },
+    {
+      "ticker": "NCK",
+      "document_id": "f72b2537-247f-4005-a7d1-6b93885704db",
+      "source_path": "data/asx/docs/NCK/financial_performance/2021-07-23_fy21-results-teleconference_f72b2537-247f-4005-a7d1-6b93885704db.pdf",
+      "previous_status": "failed",
+      "previous_gate": "scale_unknown",
+      "source_class": "results teleconference notice",
+      "root_cause": "The source is a teleconference invitation and registration notice before the FY21 results release; it has annual period wording but no formal statement tables.",
+      "decision": "candidate_exclusion",
+      "guard_added": "results teleconference titles now match non_financial_update_without_formal_statements",
+      "post_fix_classifier_document_class": "non_financial_update_without_formal_statements",
+      "post_fix_extraction_candidate_allowed": false
+    },
+    {
+      "ticker": "CQT",
+      "document_id": "30a5c1cb-2a09-4c21-9191-4bd292d825f3",
+      "source_path": "data/asx/docs/CQT/financial_performance/2024-04-24_march-quarterly-activities-report_30a5c1cb-2a09-4c21-9191-4bd292d825f3.pdf",
+      "previous_status": "failed",
+      "previous_gate": "operational_update_without_formal_statements",
+      "source_class": "standalone quarterly activities operational update",
+      "root_cause": "The source is a March quarter operational update with revenue/funding/product highlights and no Appendix 4C/5B or formal statement marker; broad quarterly wording had allowed it as a financial report candidate.",
+      "decision": "candidate_exclusion",
+      "guard_added": "standalone quarterly activities report titles without formal statement markers now match operational_update_without_formal_statements",
+      "post_fix_classifier_document_class": "operational_update_without_formal_statements",
+      "post_fix_extraction_candidate_allowed": false
+    },
+    {
+      "ticker": "RMS",
+      "document_id": "2e0a3393-368e-4e61-aa4b-7f055f8a3bb0",
+      "source_path": "data/asx/docs/RMS/financial_performance/2026-02-20_h1-fy-results-announcement-and-facility-update_2e0a3393-368e-4e61-aa4b-7f055f8a3bb0.pdf",
+      "previous_status": "ok_low_confidence",
+      "previous_gate": "confidence_soft_gate",
+      "source_class": "formal H1 results announcement with facility update content",
+      "root_cause": "The source references Appendix 4D, Financial Statements, and a H1 performance table, but also includes facility/update prose; the existing low-confidence status is the appropriate report-only diagnostic.",
+      "decision": "no_change_keep_confidence_diagnostic",
+      "guard_added": null,
+      "post_fix_classifier_document_class": "financial_report",
+      "post_fix_extraction_candidate_allowed": true
+    }
+  ]
+}

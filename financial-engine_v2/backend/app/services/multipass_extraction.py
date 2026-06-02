@@ -2374,7 +2374,8 @@ _NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     re.compile(
         r"(?:^|[-_\s])(?:notice[-_\s]+of[-_\s]+)?"
         r"(?:(?:full|half)[-_\s]+year[-_\s]+|quarterly[-_\s]+)?"
-        r"results?[-_\s]+(?:briefing|presentations?|webcast)(?![A-Za-z0-9])",
+        r"results?[-_\s]+(?:briefing|presentations?|webcast|webinar|teleconference)"
+        r"(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
     re.compile(r"\bprogramme[-_\s]+results?\b", re.IGNORECASE),
@@ -2401,6 +2402,14 @@ _NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
         r"(?:^|[-_\s])distribution[-_\s]+of[-_\s]+shareholders(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
+)
+
+_STANDALONE_QUARTERLY_ACTIVITIES_REPORT_PATTERN = re.compile(
+    r"(?:^|[-_\s])"
+    r"(?:(?:march|june|september|december)[-_\s]+)?"
+    r"quarterly[-_\s]+activities[-_\s]+report"
+    r"(?=$|\.pdf\b|[-_\s]+[0-9a-f]{4,}(?:[-_\s][0-9a-f]{2,})*)",
+    re.IGNORECASE,
 )
 
 _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
@@ -2801,6 +2810,14 @@ def _is_operational_update_without_formal_statements(
     first_page_text: Any,
 ) -> bool:
     title_text = _combined_source_text(title)
+    text = _combined_source_text(title, first_page_text)
+    if (
+        title_text
+        and not _has_formal_financial_statement_marker(text)
+        and _STANDALONE_QUARTERLY_ACTIVITIES_REPORT_PATTERN.search(title_text)
+    ):
+        return True
+
     if (
         title_text
         and not _has_formal_financial_statement_marker(title_text)
@@ -2813,7 +2830,6 @@ def _is_operational_update_without_formal_statements(
     ):
         return True
 
-    text = _combined_source_text(title, first_page_text)
     if not text:
         return False
     if _has_formal_financial_statement_marker(text):

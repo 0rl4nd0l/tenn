@@ -3149,6 +3149,44 @@ def test_source_document_classifier_blocks_results_briefing_notice():
     assert result.canary_candidate_allowed is False
 
 
+def test_source_document_classifier_blocks_results_webinar_notice():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77.pdf",
+        (
+            "Postponement of Quarterly Results Webinar. "
+            "The webinar has been rescheduled and investors may register online."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_results_teleconference_notice():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2021-07-23_fy21-results-teleconference_f72b2537.pdf",
+        (
+            "FY21 results teleconference. "
+            "The company will release its FY21 results before the teleconference."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
 def test_source_document_classifier_blocks_capital_raising_announcement():
     from app.services.multipass_extraction import classify_source_document
 
@@ -3181,6 +3219,19 @@ def test_source_document_classifier_blocks_service_launch_update():
     assert result.canary_candidate_allowed is False
 
 
+def test_source_document_classifier_blocks_standalone_quarterly_activities_report():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-04-24_march-quarterly-activities-report_30a5c1cb.pdf",
+        "March 2024 quarter update. Cardiex achieved operational milestones.",
+    )
+
+    assert result.document_class == "operational_update_without_formal_statements"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
 def test_source_document_classifier_keeps_appendix_4c_business_update_candidate():
     from app.services.multipass_extraction import classify_source_document
 
@@ -3188,6 +3239,22 @@ def test_source_document_classifier_keeps_appendix_4c_business_update_candidate(
         "2022-04-28_appendix-4c-quarterly-report-and-business-update.pdf",
         (
             "1Q FY22 Quarterly Activities Report and Appendix 4C. "
+            "Appendix 4C Quarterly Cash Flow Report."
+        ),
+    )
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+    assert result.canary_candidate_allowed is True
+
+
+def test_source_document_classifier_keeps_standalone_quarterly_title_with_appendix_4c_text():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-04-29_march-quarterly-activities-report_73c58419.pdf",
+        (
+            "March Quarterly Activities Report and Appendix 4C. "
             "Appendix 4C Quarterly Cash Flow Report."
         ),
     )

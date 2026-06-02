@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_failure_gate_audit_v1_20260602",
+  "audited_at_utc": "2026-06-02T05:59:27Z",
+  "evidence_methods": [
+    "read saved bounded sample artifact",
+    "read previous failure taxonomy artifact",
+    "read source PDFs with pdftotext using /data/asx/docs root",
+    "ran classifier spot-checks without extraction"
+  ],
+  "cases": [
+    {
+      "case_id": "cqt_webinar_postponement",
+      "ticker": "CQT",
+      "sample_pdf_path": "data/asx/docs/CQT/financial_performance/2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77-6875-4451-ac02-90542a8f6317.pdf",
+      "resolved_pdf_path": "/data/asx/docs/CQT/financial_performance/2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77-6875-4451-ac02-90542a8f6317.pdf",
+      "source_evidence": "First page announces postponement of the quarterly results webinar and says FY23 results are due to be released later.",
+      "previous_classifier": {
+        "document_class": "unknown_document",
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "post_fix_classifier": {
+        "document_class": "non_financial_update_without_formal_statements",
+        "extraction_candidate_allowed": false,
+        "reason": "non_financial_update_without_formal_statements"
+      },
+      "decision": "candidate_exclusion"
+    },
+    {
+      "case_id": "auk_preliminary_final_overscaled",
+      "ticker": "AUK",
+      "sample_pdf_path": "data/asx/docs/AUK/financial_performance/2025-08-29_preliminary-final-report_dce6f923-7a41-4925-8363-3efefd7ecd96.pdf",
+      "resolved_pdf_path": "/data/asx/docs/AUK/financial_performance/2025-08-29_preliminary-final-report_dce6f923-7a41-4925-8363-3efefd7ecd96.pdf",
+      "source_evidence": "First page is Appendix 4E Preliminary Final Report for the year ended 30 June 2025 with results for announcement to the market and explicit current/previous period values.",
+      "previous_classifier": {
+        "document_class": "unknown_document",
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "post_fix_classifier": {
+        "document_class": "financial_report",
+        "extraction_candidate_allowed": true,
+        "reason": "year_ended_source_phrase"
+      },
+      "decision": "no_classifier_change_keep_scale_hard_gate"
+    },
+    {
+      "case_id": "nck_results_teleconference",
+      "ticker": "NCK",
+      "sample_pdf_path": "data/asx/docs/NCK/financial_performance/2021-07-23_fy21-results-teleconference_f72b2537-247f-4005-a7d1-6b93885704db.pdf",
+      "resolved_pdf_path": "/data/asx/docs/NCK/financial_performance/2021-07-23_fy21-results-teleconference_f72b2537-247f-4005-a7d1-6b93885704db.pdf",
+      "source_evidence": "First page is a FY21 results teleconference notice, says results will be released on a later date, and invites registration for a call.",
+      "previous_classifier": {
+        "document_class": "unknown_document",
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "post_fix_classifier": {
+        "document_class": "non_financial_update_without_formal_statements",
+        "extraction_candidate_allowed": false,
+        "reason": "non_financial_update_without_formal_statements"
+      },
+      "decision": "candidate_exclusion"
+    },
+    {
+      "case_id": "cqt_quarterly_activities_update",
+      "ticker": "CQT",
+      "sample_pdf_path": "data/asx/docs/CQT/financial_performance/2024-04-24_march-quarterly-activities-report_30a5c1cb-2a09-4c21-9191-4bd292d825f3.pdf",
+      "resolved_pdf_path": "/data/asx/docs/CQT/financial_performance/2024-04-24_march-quarterly-activities-report_30a5c1cb-2a09-4c21-9191-4bd292d825f3.pdf",
+      "source_evidence": "First pages are a March 2024 quarter operational update with revenue, product, funding, launch, patent, and webinar highlights; no Appendix 4C/5B marker was present in the inspected text.",
+      "previous_classifier": {
+        "document_class": "financial_report",
+        "extraction_candidate_allowed": true,
+        "reason": "quarterly_source_phrase"
+      },
+      "post_fix_classifier": {
+        "document_class": "operational_update_without_formal_statements",
+        "extraction_candidate_allowed": false,
+        "reason": "operational_update_without_formal_statements"
+      },
+      "decision": "candidate_exclusion"
+    },
+    {
+      "case_id": "rms_h1_results_low_confidence",
+      "ticker": "RMS",
+      "sample_pdf_path": "data/asx/docs/RMS/financial_performance/2026-02-20_h1-fy-results-announcement-and-facility-update_2e0a3393-368e-4e61-aa4b-7f055f8a3bb0.pdf",
+      "resolved_pdf_path": "/data/asx/docs/RMS/financial_performance/2026-02-20_h1-fy-results-announcement-and-facility-update_2e0a3393-368e-4e61-aa4b-7f055f8a3bb0.pdf",
+      "source_evidence": "First page reports H1 financial and operational performance, references Appendix 4D and Financial Statements, and includes a half-year performance table.",
+      "previous_classifier": {
+        "document_class": "unknown_document",
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "post_fix_classifier": {
+        "document_class": "financial_report",
+        "extraction_candidate_allowed": true,
+        "reason": "appendix_4d_source_phrase"
+      },
+      "decision": "no_change_keep_confidence_diagnostic"
+    }
+  ]
+}

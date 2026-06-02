@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_failure_gate_audit_v1_20260602",
+  "agent": "Codex",
+  "lane": "Financial Truth",
+  "supporting_lanes": [
+    "Evaluation",
+    "Query Orchestration",
+    "Provenance"
+  ],
+  "execution_mode": "AUDIT FIRST; SAFE EXTENSION only for narrow validated gates",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before": "38f5555c4dbe53824d8bd8e74911223a315c5076",
+  "status": "released",
+  "claimed_at_utc": "2026-06-02T05:51:52.652884Z",
+  "released_at_utc": "2026-06-02T06:03:19.885887Z",
+  "updated_at_utc": "2026-06-02T06:07:04Z",
+  "registry_release_ok": true,
+  "registry_active_jobs_after_release": [],
+  "registry_active_jobs_final": [
+    {
+      "job_id": "cockpit_feedback_codex_deploy_route_guard_v1_20260602",
+      "lane": "Reporting",
+      "worktree": "/home/l4nd0/tenn-cockpit-feedback-codex-deploy-route-guard-v1-20260602",
+      "overlaps_this_task": false
+    }
+  ],
+  "final_git_status_short": [
+    " M reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+  ],
+  "files_changed": [
+    "docs/agent_tasks/extraction_residual_failure_gate_audit_v1_20260602.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/README.md",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/status.json",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/validation.json",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/diff-check.json",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/failure_taxonomy.json",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/case_audit.json",
+    "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/side_effect_audit.json"
+  ],
+  "files_intentionally_not_touched": [
+    "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+    "source PDFs",
+    "prompts and gold labels",
+    "runtime/model/GPU config",
+    "database, Qdrant, news, and memory stores"
+  ],
+  "contested_surfaces_touched": [],
+  "collision_risk": "MEDIUM/HIGH",
+  "broad_sample_run": false,
+  "full_extraction_or_backfill_run": false,
+  "bounded_same_size_rerun_can_be_requested_after_fresh_readiness": true,
+  "another_random_sample_justified": false,
+  "operator_next_step": "A bounded same-size validation rerun can be requested only after fresh runtime readiness; another random broad sample and broad backfill remain blocked.",
+  "data_missing": [
+    "No post-fix bounded sample counts exist because running another sample was forbidden.",
+    "Prompt path scripts/broad_extraction_test.py is absent in this checkout; existing equivalent is financial-engine_v2/scripts/broad_extraction_test.py."
+  ]
+}
