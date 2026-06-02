@@ -12,18 +12,14 @@ max-cost: "$5.00"                   # max API spend per run
 max-passes: 10                      # max scan/fix iterations
 min-passes: 2                       # consecutive clean passes to confirm clean
 max-chains: 3                       # max self-continuations (6h each)
-model: ""                           # override AI model (e.g. claude-sonnet-4-5-20250929)
 github-models-model: openai/gpt-4o-mini  # model for free scan tier
 scan-scope: auto                    # auto | pr | full
 scan-provider: github-models        # github-models (free) | agent (uses fix-mode provider)
 verbose: false                      # stream agent output to logs
 max-turns: 30                       # max agent turns per invocation
 max-issues-per-pass: 0              # 0 = unlimited
-output-file: ""                     # path for full issues JSON export
 parallel-agents: 1                  # 1-8, uses git worktrees
 plugins: true                       # enable/disable plugin system
-custom-prompt: ""                   # inline custom prompt text
-custom-prompt-file: ""              # path to prompt file
 
 # ── Filtering ─────────────────────────────────
 strictness: high                    # low | medium | high

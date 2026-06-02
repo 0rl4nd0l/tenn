@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +36,8 @@ jobs:
           mode: fix
           agent: claude
           model: claude-sonnet-4-5-20250929
+          output-file: /tmp/sloppy-fix-issues.json
+          custom-prompt-file: /dev/null
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
