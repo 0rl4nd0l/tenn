@@ -1,0 +1,61 @@
+{
+  "job_id": "cockpit_accessible_controls_marketplace_assistant_v1_20260602",
+  "validated_at": "2026-06-01T18:00:45Z",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_accessible_controls_marketplace_assistant_v1_20260602.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_accessible_controls_marketplace_assistant_v1_20260602.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_accessible_controls_marketplace_assistant_v1_20260602.md",
+      "result": "passed"
+    },
+    {
+      "command": "./node_modules/.bin/vitest run components/cockpit/marketplace/marketplace-assistant.test.tsx",
+      "cwd": "cockpit-ui",
+      "result": "passed",
+      "summary": "1 test file passed, 2 tests passed"
+    },
+    {
+      "command": "./node_modules/.bin/eslint components/cockpit/marketplace/marketplace-assistant.tsx components/cockpit/marketplace/marketplace-assistant.test.tsx",
+      "cwd": "cockpit-ui",
+      "result": "passed"
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit",
+      "cwd": "cockpit-ui",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_accessible_controls_marketplace_assistant_v1_20260602/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/cockpit_accessible_controls_marketplace_assistant_v1_20260602/validation.json >/dev/null",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_accessible_controls_marketplace_assistant_v1_20260602.md",
+      "result": "passed",
+      "summary": "No disallowed files"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed"
+    }
+  ],
+  "notes": [
+    "The first focused Vitest run failed on an existing same-file expectation for a stale Deploy + run now button label; the current visible button is Save and run now.",
+    "The test assertion was updated in the allowed test file and the focused test then passed."
+  ],
+  "environment_notes": [
+    "pnpm was not available on PATH in this shell.",
+    "The sibling worktree had no local cockpit-ui/node_modules.",
+    "Validation used a temporary cockpit-ui/node_modules symlink to /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/cockpit-ui/node_modules.",
+    "The temporary symlink was removed before staging."
+  ]
+}
