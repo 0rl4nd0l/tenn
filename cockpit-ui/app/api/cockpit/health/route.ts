@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import os from 'node:os'
 import { promisify } from 'node:util'
 import { prioritizeGpusForDisplay } from '@/lib/gpu-display'
+import { redactProcessCommand } from '@/lib/process-command-redaction'
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const execFileAsync = promisify(execFile)
@@ -181,7 +182,7 @@ async function probeTopProcesses(): Promise<HostProcessSnapshot[]> {
           cpu_percent: parseMetric(match[3]),
           mem_percent: parseMetric(match[4]),
           rss_mib: Number.isFinite(rssKiB) ? Number((rssKiB / 1024).toFixed(1)) : null,
-          command: match[6].trim() || null,
+          command: redactProcessCommand(match[6].trim() || null),
         }
       })
       .filter((process): process is HostProcessSnapshot => process !== null)
@@ -350,12 +351,12 @@ async function probeGpuProcesses(gpus: GpuSnapshot[]): Promise<GpuProcessSnapsho
 
     const commands = await readProcessCommands(parsed.map((row) => row.pid))
     return parsed.map((row) => {
-      const command = commands.get(row.pid) ?? null
+      const rawCommand = commands.get(row.pid) ?? null
       return {
         ...row,
         gpu_name: row.gpu_uuid ? (gpuNameByUuid.get(row.gpu_uuid) ?? null) : null,
-        command,
-        task_label: describeGpuTask(row.process_name, command),
+        command: redactProcessCommand(rawCommand),
+        task_label: describeGpuTask(row.process_name, rawCommand),
       }
     })
   } catch {

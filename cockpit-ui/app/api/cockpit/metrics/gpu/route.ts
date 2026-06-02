@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { prioritizeGpusForDisplay } from '@/lib/gpu-display'
+import { redactProcessCommand } from '@/lib/process-command-redaction'
 
 const execFileAsync = promisify(execFile)
 
@@ -138,12 +139,12 @@ export async function GET(): Promise<Response> {
 
     const commands = await readProcessCommands(procRows.map((r) => r.pid))
     const processes = procRows.map((r) => {
-      const command = commands.get(r.pid) ?? null
+      const rawCommand = commands.get(r.pid) ?? null
       return {
         ...r,
         gpu_name: r.gpu_uuid ? (gpuNameByUuid.get(r.gpu_uuid) ?? null) : null,
-        command,
-        task_label: describeGpuTask(r.process_name, command),
+        command: redactProcessCommand(rawCommand),
+        task_label: describeGpuTask(r.process_name, rawCommand),
       }
     })
 

@@ -1,0 +1,48 @@
+{
+  "job_id": "cockpit_telemetry_command_redaction_v1_20260602",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_telemetry_command_redaction_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "pass",
+      "details": "no active jobs"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_telemetry_command_redaction_v1_20260602.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_telemetry_command_redaction_v1_20260602.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run lib/process-command-redaction.test.ts",
+      "result": "blocked",
+      "details": "isolated worktree had no local node_modules"
+    },
+    {
+      "command": "cockpit-ui/node_modules/.bin/vitest run lib/process-command-redaction.test.ts",
+      "result": "pass",
+      "details": "6 passed"
+    },
+    {
+      "command": "node_modules/.bin/eslint 'app/api/cockpit/metrics/gpu/route.ts' 'app/api/cockpit/metrics/host/route.ts' 'app/api/cockpit/health/route.ts' 'lib/process-command-redaction.ts' 'lib/process-command-redaction.test.ts'",
+      "result": "pass"
+    },
+    {
+      "command": "node_modules/.bin/tsc --noEmit --pretty false",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_telemetry_command_redaction_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ]
+}
