@@ -1,0 +1,158 @@
+{
+  "checks": [
+    {
+      "name": "task card validation",
+      "result": "passed"
+    },
+    {
+      "name": "registry claim",
+      "result": "passed"
+    },
+    {
+      "name": "runtime readiness before sample",
+      "result": "passed after minimal backend/router startup"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8001 LLM_API_KEY=local-openai-key OLLAMA_URL=http://127.0.0.1:11434 EXTRACT_MODEL=model:qwen2.5-14b-instruct financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 8 --seed 20260601 --docs-root /data/asx/docs --output-dir reports/agent_jobs/extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602",
+      "name": "bounded broad sample",
+      "result": "completed 8/8 exactly once"
+    },
+    {
+      "name": "result JSON validation",
+      "result": "passed"
+    },
+    {
+      "errors": [],
+      "json_file_count": 12,
+      "name": "report JSON validation",
+      "result": "passed"
+    },
+    {
+      "command_result": {
+        "cmd": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "name": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command_result": {
+        "cmd": [
+          "git",
+          "diff",
+          "--cached",
+          "--check"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "name": "git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "disallowed_files": [
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+      ],
+      "name": "task-card check-diff",
+      "ok": false,
+      "report_path": "reports/agent_jobs/extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602/diff-check.json",
+      "result": "blocked only by pre-existing unrelated parity-guard report dirt"
+    },
+    {
+      "name": "registry release",
+      "released_at": "2026-06-02T06:50:37.999562Z",
+      "result": "passed",
+      "status": "released"
+    },
+    {
+      "active_jobs": [
+        {
+          "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/cockpit_telemetry_route_access_guard_v1_20260602.json",
+          "age_seconds": 600.229,
+          "agent": "Codex",
+          "allowed_files": [
+            "docs/agent_tasks/cockpit_telemetry_route_access_guard_v1_20260602.md",
+            "cockpit-ui/app/api/cockpit/metrics/host/route.ts",
+            "cockpit-ui/app/api/cockpit/metrics/gpu/route.ts",
+            "cockpit-ui/app/api/cockpit/health/route.ts",
+            "cockpit-ui/lib/cockpit-bff-auth.ts",
+            "cockpit-ui/lib/cockpit-api-headers.ts",
+            "cockpit-ui/lib/cockpit-api-headers.test.ts",
+            "cockpit-ui/lib/telemetry-route-access-guard.test.ts",
+            "cockpit-ui/lib/api-client.ts",
+            "cockpit-ui/components/cockpit/gpu-activity-dialog.tsx",
+            "cockpit-ui/components/cockpit/host-activity-dialog.tsx",
+            "reports/agent_jobs/cockpit_telemetry_route_access_guard_v1_20260602/README.md",
+            "reports/agent_jobs/cockpit_telemetry_route_access_guard_v1_20260602/status.json",
+            "reports/agent_jobs/cockpit_telemetry_route_access_guard_v1_20260602/validation.json",
+            "reports/agent_jobs/cockpit_telemetry_route_access_guard_v1_20260602/diff-check.json"
+          ],
+          "approval_required": true,
+          "branch": "safe/cockpit-telemetry-route-access-guard-v1-20260602",
+          "claimed_at": "2026-06-02T06:41:25.252375Z",
+          "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+          "heartbeat_at": "2026-06-02T06:41:25.252375Z",
+          "hostname": "l4nd0-System-Product-Name",
+          "job_id": "cockpit_telemetry_route_access_guard_v1_20260602",
+          "lane": "Reporting",
+          "last_seen_at": "2026-06-02T06:41:25.252375Z",
+          "mutation_mode": "safe_extension",
+          "output_dir": "reports/agent_jobs/cockpit_telemetry_route_access_guard_v1_20260602",
+          "owner": "Codex",
+          "pid": 3604653,
+          "production_data_access": false,
+          "schema_version": 1,
+          "session_id": "l4nd0-System-Product-Name:3604653:cockpit_telemetry_route_access_guard_v1_20260602",
+          "stale": false,
+          "stale_after_seconds": 1800,
+          "started_at": "2026-06-02T06:41:25.252375Z",
+          "status": "active",
+          "task_card": "docs/agent_tasks/cockpit_telemetry_route_access_guard_v1_20260602.md",
+          "task_card_sha256": "0642995da1e8bb9238570514735d8640c74fef015c93fb4fe7a0a7cdb078c870",
+          "timeout_seconds": 7200,
+          "worktree": "/home/l4nd0/tenn-cockpit-telemetry-route-access-guard-v1-20260602"
+        }
+      ],
+      "name": "final registry list-active",
+      "result": "passed; only unrelated Reporting job active"
+    },
+    {
+      "name": "runtime cleanup",
+      "result": "passed; queues zero, no unacked keys, no runtime processes, GPU token inactive"
+    },
+    {
+      "command_result": {
+        "cmd": [
+          "git",
+          "diff",
+          "--cached",
+          "--name-only",
+          "--",
+          "data/asx/docs"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "name": "source PDFs staged",
+      "result": "passed; no source PDFs staged"
+    }
+  ],
+  "data_missing": [
+    "API-visible loaded commit: /api/version returned 404 and /api/health does not expose commit"
+  ],
+  "job_id": "extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602",
+  "known_blockers": [
+    "Pre-existing unrelated dirty file reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json blocks a clean task-card check-diff and was intentionally not touched."
+  ],
+  "schema_version": 1,
+  "status": "completed_with_known_unrelated_check_diff_blocker",
+  "updated_at_utc": "2026-06-02T06:51:25.418204+00:00"
+}

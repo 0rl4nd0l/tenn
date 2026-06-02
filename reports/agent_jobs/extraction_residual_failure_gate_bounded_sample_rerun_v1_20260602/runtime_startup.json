@@ -1,0 +1,28 @@
+{
+  "api_loaded_commit": "DATA_MISSING: /api/version returned 404",
+  "created_at_utc": "2026-06-02T06:49:19.611091+00:00",
+  "job_id": "extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602",
+  "runtime_config_changes": "none beyond minimal startup required for bounded validation",
+  "schema_version": 1,
+  "startup_actions": [
+    {
+      "command": "LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh",
+      "component": "backend",
+      "health": {
+        "status": "ok"
+      },
+      "scope": "minimal readiness/sample route startup"
+    },
+    {
+      "command": "ALLOW_LLAMA_DURING_GPU_EXCLUSIVE=1 bash scripts/run_llama_server.sh",
+      "component": "llama_router",
+      "model": "model:qwen2.5-14b-instruct",
+      "scope": "local llama.cpp router for bounded sample only"
+    },
+    {
+      "command": "scripts/gpu_activity_guard.py start --reason extraction_residual_failure_gate_bounded_sample_rerun --ttl 7200 --json",
+      "component": "gpu_activity_guard",
+      "token": "94667bd83c8d421fa71821119b69f33e"
+    }
+  ]
+}

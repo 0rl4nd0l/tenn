@@ -1,0 +1,69 @@
+Discovering PDFs...
+Using docs root: /data/asx/docs
+Found 28633 financial_performance PDFs across 655 tickers
+Candidate filter retained 21174 PDFs; excluded 7459 ({'advisory_only_document': 50, 'capital_management_update_without_formal_statements': 123, 'meeting_notice': 1660, 'meeting_results_notice': 2287, 'non_financial_update_without_formal_statements': 2020, 'operational_update_without_formal_statements': 1314, 'unaudited_financial_update_without_formal_statements': 5})
+Sampled 8 PDFs (seed=20260601)
+
+Running extraction on 8 PDFs...
+Estimated time: ~6 min (at ~45s/doc with llama.cpp)
+
+Using llama.cpp at http://127.0.0.1:8001/v1
+[1/8] CRS/2021-10-29_annual-report-to-shareholders_f5a9b44c-... [OK] 221.3s  metrics=7/10  ETA=0min
+[2/8] NSM/2022-10-17_annual-report-to-shareholders_34386eda-... [OK] 196.0s  metrics=7/10  ETA=26min
+[3/8] AZJ/2023-02-13_aurizon-announces-half-year-fy2023-resu... [FL] 10.5s  metrics=1/10  ETA=21min
+[4/8] ABE/2022-09-30_annual-report-to-shareholders_0414ebcc-... [FL] 167.0s  metrics=8/10  ETA=12min
+[5/8] NWM/2024-10-31_quarterly-activities-appendix-5b-cash-f... [OK] 52.4s  metrics=5/10  ETA=10min
+[6/8] CRS/2023-05-12_excellent-base-metals-results-extend-la... [FL] 29.9s  metrics=0/10  ETA=6min
+[7/8] NVU/2023-04-28_quarterly-activities-appendix-4c-cash-f... [OK] 58.2s  metrics=5/10  ETA=4min
+[8/8] WBC/2023-10-26_westpac-s-full-year-2023-notable-items_... [FL] 61.3s  metrics=1/10  ETA=2min
+
+======================================================================
+  BROAD EXTRACTION TEST — 8 documents
+======================================================================
+
+STATUS DISTRIBUTION:
+  failed                       4 ( 50.0%) █████████████████████████
+  ok                           4 ( 50.0%) █████████████████████████
+
+  Success rate: 50.0%
+
+ERROR CLASSIFICATION:
+  validation_gate                        4
+
+METRIC COVERAGE (across 4 successful extractions):
+  revenue                   0/   4 ( 0.0%)
+  ebit                      0/   4 ( 0.0%)
+  np_attributable           2/   4 (50.0%) ███████████████
+  operating_cf              4/   4 (100.0%) ██████████████████████████████
+  investing_cf              4/   4 (100.0%) ██████████████████████████████
+  financing_cf              4/   4 (100.0%) ██████████████████████████████
+  capex                     4/   4 (100.0%) ██████████████████████████████
+  cash_end                  4/   4 (100.0%) ██████████████████████████████
+  net_debt                  0/   4 ( 0.0%)
+  shares_outstanding        2/   4 (50.0%) ███████████████
+
+  Non-null metrics per doc: mean=6.0, median=6.0, range=[5,7]
+
+SANITY CHECKS:
+  revenue_positive             0/   0 ( 0.0%) [N/A]
+  shares_positive              2/   2 (100.0%) [PASS]
+  cash_end_positive            4/   4 (100.0%) [PASS]
+  period_end_valid             4/   4 (100.0%) [PASS]
+  period_type_valid            4/   4 (100.0%) [PASS]
+
+PERIOD TYPE DISTRIBUTION:
+  A        2
+  Q        2
+
+SCALE DISTRIBUTION:
+  thousands          2
+  units              2
+
+TIMING:
+  Mean: 99.6s  Median: 59.7s  P95: 221.3s  P99: 221.3s
+  Range: [10.5s, 221.3s]  Total: 797s (13.3min)
+
+  Unique tickers sampled: 7
+======================================================================
+
+Results saved to: reports/agent_jobs/extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602/broad_test_20260602T062634Z.json

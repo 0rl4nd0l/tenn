@@ -1,0 +1,97 @@
+{
+  "before_sample": {
+    "api_loaded_commit": "DATA_MISSING: /api/version returned 404; /api/health did not expose commit",
+    "backend_health_after_minimal_startup": {
+      "status": "ok"
+    },
+    "conflicting_jobs_before_sample": "none with overlapping lane/files; unrelated Reporting job active in sibling worktree",
+    "gpu_guard_before_sample": "passed after authorized llama router startup",
+    "redis_queues_before_sample": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 0
+    },
+    "source_paths_verified": {
+      "docs_root": "/data/asx/docs",
+      "financial_performance_pdf_count_observed": 28633,
+      "total_pdf_count_observed": 179016
+    },
+    "unacked_keys_before_sample": []
+  },
+  "created_at_utc": "2026-06-02T06:49:19.611091+00:00",
+  "data_missing": [
+    "API-visible loaded commit from backend route"
+  ],
+  "job_id": "extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602",
+  "post_run_gpu_activity_status": {
+    "active": false,
+    "active_runs": [],
+    "expires_at": null,
+    "expires_in_seconds": 0,
+    "kind": "gpu_exclusive_activity",
+    "source": "none",
+    "token_count": 0
+  },
+  "post_run_gpu_process_guard": {
+    "command_result": {
+      "cmd": [
+        "scripts/gpu_process_guard.sh",
+        "--json"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n    {\"pid\": 3630478, \"port\": \"unknown\", \"model\": \"0\", \"vram_mb\": ROGUE, \"status\": \"\"}\n  ]\n}\n"
+    },
+    "parse_error": "JSONDecodeError('Expecting value: line 7 column 66 (char 178)')"
+  },
+  "post_run_nvidia_smi": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-gpu=name,memory.used,memory.free,utilization.gpu",
+      "--format=csv,noheader,nounits"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "NVIDIA GeForce GT 1030, 1, 1998, 0\nTesla M40 24GB, 0, 24472, 0\n"
+  },
+  "post_run_queue_snapshot": {
+    "error": null,
+    "queue_lengths": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 0
+    },
+    "unacked_keys": []
+  },
+  "post_run_runtime_processes": [],
+  "post_shutdown_health_check": {
+    "cmd": [
+      "curl",
+      "-sS",
+      "--max-time",
+      "2",
+      "http://127.0.0.1:8000/api/health"
+    ],
+    "returncode": 7,
+    "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Connection refused\n",
+    "stdout": ""
+  },
+  "post_shutdown_models_check": {
+    "cmd": [
+      "curl",
+      "-sS",
+      "--max-time",
+      "2",
+      "http://127.0.0.1:8001/v1/models"
+    ],
+    "returncode": 7,
+    "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 8001 after 0 ms: Connection refused\n",
+    "stdout": ""
+  },
+  "schema_version": 1,
+  "verdict": "clean before sample after minimal isolated backend and llama router startup"
+}

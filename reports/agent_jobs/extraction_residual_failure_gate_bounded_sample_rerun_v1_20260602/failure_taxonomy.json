@@ -1,0 +1,126 @@
+{
+  "created_at_utc": "2026-06-02T06:49:19.611091+00:00",
+  "failures": [
+    {
+      "confidence": 0.72,
+      "decision": "report_only_extraction_coverage_gap",
+      "document_evidence": "First pages announce Half Year FY2023 results and include financial and operational performance tables.",
+      "document_id": "39ae65ab-e5f3-4253-b359-4ee4ee2a1316",
+      "error": "validation_gate:insufficient_metrics:1",
+      "next_safe_step": "Targeted extraction/parser audit for degraded table/text handling before broad graduation.",
+      "non_null_metric_names": [
+        "np_attributable"
+      ],
+      "non_null_metrics": 1,
+      "period_end": "2022-12-31",
+      "period_type": "H",
+      "root_cause": "Real results release, but extraction produced only one non-null metric and the validation gate blocked insufficient coverage.",
+      "scale": "millions",
+      "source_class": "formal half-year results announcement",
+      "source_path": "data/asx/docs/AZJ/financial_performance/2023-02-13_aurizon-announces-half-year-fy2023-results_39ae65ab-e5f3-4253-b359-4ee4ee2a1316.pdf",
+      "status": "failed",
+      "ticker": "AZJ",
+      "validation_gate": "insufficient_metrics:1"
+    },
+    {
+      "confidence": 0.852,
+      "decision": "scale_guard_report_only",
+      "document_evidence": "First pages identify Annual Report 2022 and contents include consolidated financial statements.",
+      "document_id": "0414ebcc-8398-4948-b741-4716d66f1480",
+      "error": "validation_gate:scale_unknown",
+      "next_safe_step": "Targeted scale-header/period evidence audit; do not weaken the scale_unknown hard gate.",
+      "non_null_metric_names": [
+        "capex",
+        "cash_end",
+        "financing_cf",
+        "investing_cf",
+        "np_attributable",
+        "operating_cf",
+        "revenue",
+        "shares_outstanding"
+      ],
+      "non_null_metrics": 8,
+      "period_end": "2022-06-30",
+      "period_type": "A",
+      "root_cause": "Real annual report with consolidated financial statements, but scale remained unknown after extraction.",
+      "scale": "unknown",
+      "source_class": "formal annual report",
+      "source_path": "data/asx/docs/ABE/financial_performance/2022-09-30_annual-report-to-shareholders_0414ebcc-8398-4948-b741-4716d66f1480.pdf",
+      "status": "failed",
+      "ticker": "ABE",
+      "validation_gate": "scale_unknown"
+    },
+    {
+      "confidence": 0.0,
+      "decision": "candidate_exclusion_candidate",
+      "document_evidence": "First page reports Phase II RC base-metals drill intersections and exploration updates, not financial statements.",
+      "document_id": "4cfbb9a3-0468-4e13-8968-702a0adcba58",
+      "error": "validation_gate:non_financial_update_without_formal_statements",
+      "next_safe_step": "Narrow candidate filter for exploration/assay/mineral results titles when no formal financial statement marker is present.",
+      "non_null_metric_names": [],
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "root_cause": "Title-level broad candidate selection still admitted an exploration results update; source-class gate blocked before metric extraction.",
+      "scale": null,
+      "source_class": "non-financial exploration/drill-results update",
+      "source_path": "data/asx/docs/CRS/financial_performance/2023-05-12_excellent-base-metals-results-extend-lady-sampson_4cfbb9a3-0468-4e13-8968-702a0adcba58.pdf",
+      "status": "failed",
+      "ticker": "CRS",
+      "validation_gate": "non_financial_update_without_formal_statements"
+    },
+    {
+      "confidence": 0.333,
+      "decision": "candidate_exclusion_or_confidence_gate_candidate",
+      "document_evidence": "First page says full-year 2023 results are scheduled later and describes notable item impacts.",
+      "document_id": "02a12a84-5905-4834-b38a-42c68082097a",
+      "error": "validation_gate:insufficient_metrics:1",
+      "next_safe_step": "Audit notable-items/pre-results announcements as a source class before another broad random sample.",
+      "non_null_metric_names": [
+        "np_attributable"
+      ],
+      "non_null_metrics": 1,
+      "period_end": "2023-10-26",
+      "period_type": "A",
+      "root_cause": "Document announces FY23 notable items before scheduled full-year results and yielded only one NPAT adjustment metric.",
+      "scale": "millions",
+      "source_class": "pre-results notable-items announcement",
+      "source_path": "data/asx/docs/WBC/financial_performance/2023-10-26_westpac-s-full-year-2023-notable-items_02a12a84-5905-4834-b38a-42c68082097a.pdf",
+      "status": "failed",
+      "ticker": "WBC",
+      "validation_gate": "insufficient_metrics:1"
+    }
+  ],
+  "job_id": "extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602",
+  "low_confidence_cases": [],
+  "previous_audit_context": {
+    "artifact": "reports/agent_jobs/extraction_residual_failure_gate_audit_v1_20260602/failure_taxonomy.json",
+    "hardening_expected_to_exclude": [
+      "CQT webinar postponement",
+      "NCK results teleconference",
+      "CQT quarterly activities report without Appendix/cash-flow markers"
+    ],
+    "post_hardening_status": "Those exact previous false-positive documents did not appear in the same-seed filtered sample; candidate filter excluded 1101 additional documents versus the previous filtered run."
+  },
+  "schema_version": 1,
+  "source_sample_artifact": "reports/agent_jobs/extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+  "summary": {
+    "another_bounded_sample_justified": false,
+    "failed_count": 4,
+    "failure_gate_counts": {
+      "insufficient_metrics:1": 2,
+      "non_financial_update_without_formal_statements": 1,
+      "scale_unknown": 1
+    },
+    "failure_source_class_counts": {
+      "formal annual report": 1,
+      "formal half-year results announcement": 1,
+      "non-financial exploration/drill-results update": 1,
+      "pre-results notable-items announcement": 1
+    },
+    "low_confidence_count": 0,
+    "next_step": "audit/harden new residual source classes before another random sample or backfill",
+    "no_full_extraction_backfill_run": true,
+    "strict_ok_count": 4
+  }
+}
