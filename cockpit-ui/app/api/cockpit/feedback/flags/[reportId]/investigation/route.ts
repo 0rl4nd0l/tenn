@@ -10,10 +10,127 @@ import {
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
+const investigationReadIntent = 'read-codex-investigation'
+const investigationReadIntentHeader = 'x-cockpit-control-intent'
+const remoteInvestigationReadTokenHeader = 'x-cockpit-control-token'
+
+type InvestigationReadGuardResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string }
+
+function denyInvestigationRead(status: number, code: string, message: string): InvestigationReadGuardResult {
+  return { ok: false, status, code, message }
+}
+
+function normalizeHostname(value: string | null): string {
+  const raw = String(value || '').trim().toLowerCase()
+  if (!raw) return ''
+  if (raw.startsWith('[')) {
+    const end = raw.indexOf(']')
+    return end > 0 ? raw.slice(1, end) : raw
+  }
+  if (raw === '::1' || raw.includes('::')) return raw
+  return raw.split(':')[0] || raw
+}
+
+function requestHostname(request: Request): string {
+  const hostHeader = request.headers.get('host')
+  if (hostHeader) return normalizeHostname(hostHeader)
+  try {
+    return normalizeHostname(new URL(request.url).hostname)
+  } catch {
+    return ''
+  }
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname)
+  return normalized === 'localhost' || normalized === '::1' || normalized.startsWith('127.')
+}
+
+function requestOrigin(request: Request): string | null {
+  try {
+    return new URL(request.url).origin
+  } catch {
+    return null
+  }
+}
+
+function sameOriginIfPresent(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  if (!origin) return true
+  const expectedOrigin = requestOrigin(request)
+  if (!expectedOrigin) return false
+  try {
+    return new URL(origin).origin === expectedOrigin
+  } catch {
+    return false
+  }
+}
+
+function hasRemoteInvestigationReadToken(request: Request): boolean {
+  const allowRemote = String(process.env.COCKPIT_CODEX_INVESTIGATION_ALLOW_REMOTE || '').trim() === '1'
+  const configuredToken = String(process.env.COCKPIT_CODEX_INVESTIGATION_TOKEN || '').trim()
+  if (!allowRemote || !configuredToken) return false
+  return request.headers.get(remoteInvestigationReadTokenHeader)?.trim() === configuredToken
+}
+
+function validateInvestigationReadRequest(request: Request): InvestigationReadGuardResult {
+  const headerIntent = String(request.headers.get(investigationReadIntentHeader) || '').trim()
+  if (headerIntent !== investigationReadIntent) {
+    return denyInvestigationRead(
+      403,
+      'codex_investigation_read_intent_required',
+      'Codex investigation reads require an explicit operator read intent header.',
+    )
+  }
+
+  const hostname = requestHostname(request)
+  if (!isLoopbackHostname(hostname) && !hasRemoteInvestigationReadToken(request)) {
+    return denyInvestigationRead(
+      403,
+      'non_loopback_codex_investigation_read_denied',
+      'Codex investigation reads are only allowed from loopback by default.',
+    )
+  }
+
+  if (!sameOriginIfPresent(request)) {
+    return denyInvestigationRead(
+      403,
+      'cross_origin_codex_investigation_read_denied',
+      'Codex investigation reads must be same-origin.',
+    )
+  }
+
+  const fetchSite = String(request.headers.get('sec-fetch-site') || '').trim().toLowerCase()
+  if (fetchSite === 'cross-site') {
+    return denyInvestigationRead(
+      403,
+      'cross_site_codex_investigation_read_denied',
+      'Cross-site Codex investigation reads are not allowed.',
+    )
+  }
+
+  return { ok: true }
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ reportId: string }> },
 ): Promise<Response> {
+  const guard = validateInvestigationReadRequest(request)
+  if (!guard.ok) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'Codex investigation read denied',
+        code: guard.code,
+        detail: guard.message,
+      },
+      { status: guard.status },
+    )
+  }
+
   try {
     const { reportId } = await context.params
     const normalizedReportId = validateReportId(reportId)
