@@ -122,6 +122,36 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2021-04-12_ccr-signs-suncorp-as-first-insurance-client-grows-q3-revenue_dddd.pdf"
             )
+            purchase_order_pdf = _touch_pdf(
+                docs_root
+                / "AUK"
+                / "financial_performance"
+                / "2024-10-02_purchase-order-from-china-southern-air-wine-sale-agreement_pppp.pdf"
+            )
+            buyback_pdf = _touch_pdf(
+                docs_root
+                / "NAB"
+                / "financial_performance"
+                / "2023-08-15_nab-to-buy-back-up-to-1-5-billion-of-ordinary-shares_qqqq.pdf"
+            )
+            share_purchase_plan_pdf = _touch_pdf(
+                docs_root
+                / "CQT"
+                / "financial_performance"
+                / "2022-09-29_results-of-share-purchase-plan_rrrr.pdf"
+            )
+            unit_purchase_plan_pdf = _touch_pdf(
+                docs_root
+                / "MXT"
+                / "financial_performance"
+                / "2024-01-31_unit-purchase-plan-results-of-final-issue_ssss.pdf"
+            )
+            company_agm_result_pdf = _touch_pdf(
+                docs_root
+                / "RIO"
+                / "financial_performance"
+                / "2022-04-11_results-of-rio-tinto-plc-agm_tttt.pdf"
+            )
             agm_abbrev_pdf = _touch_pdf(
                 docs_root
                 / "LSR"
@@ -182,6 +212,12 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2022-04-28_appendix-4c-quarterly-report-and-business-update_ffff.pdf"
             )
+            fy_results_buyback_pdf = _touch_pdf(
+                docs_root
+                / "AZJ"
+                / "financial_performance"
+                / "2024-08-12_fy2024-results-and-buyback-announcement_oooo.pdf"
+            )
 
             candidates, excluded = self.mod.filter_candidate_pdfs(
                 [
@@ -189,6 +225,11 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                     agm_notice_pdf,
                     update_pdf,
                     operational_pdf,
+                    purchase_order_pdf,
+                    buyback_pdf,
+                    share_purchase_plan_pdf,
+                    unit_purchase_plan_pdf,
+                    company_agm_result_pdf,
                     agm_abbrev_pdf,
                     drilling_pdf,
                     monthly_report_pdf,
@@ -199,11 +240,12 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                     service_launch_pdf,
                     appendix_pdf,
                     appendix_4c_pdf,
+                    fy_results_buyback_pdf,
                 ],
                 docs_root,
             )
 
-        self.assertEqual(candidates, [appendix_pdf, appendix_4c_pdf])
+        self.assertEqual(candidates, [appendix_pdf, appendix_4c_pdf, fy_results_buyback_pdf])
         self.assertEqual(
             [row["exclusion_reason"] for row in excluded],
             [
@@ -211,6 +253,11 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 "meeting_notice",
                 "unaudited_financial_update_without_formal_statements",
                 "operational_update_without_formal_statements",
+                "operational_update_without_formal_statements",
+                "capital_management_update_without_formal_statements",
+                "capital_management_update_without_formal_statements",
+                "capital_management_update_without_formal_statements",
+                "meeting_results_notice",
                 "meeting_results_notice",
                 "non_financial_update_without_formal_statements",
                 "non_financial_update_without_formal_statements",

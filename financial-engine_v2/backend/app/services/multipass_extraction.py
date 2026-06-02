@@ -117,6 +117,11 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "Source metadata identifies an unaudited headline update without formal "
         "financial statements; it must not enter canonical metric extraction."
     ),
+    "capital_management_update_without_formal_statements": (
+        "Source metadata identifies a buyback or purchase-plan result notice "
+        "without formal Appendix or financial-statement evidence; it must not "
+        "enter canonical metric extraction."
+    ),
     "operational_update_without_formal_statements": (
         "Source metadata identifies a customer, contract, or revenue update "
         "without formal Appendix or financial-statement evidence; it must not "
@@ -2201,6 +2206,12 @@ _MEETING_RESULTS_NOTICE_PATTERNS: tuple[re.Pattern[str], ...] = (
         r"(?:annual[-_\s]+general[-_\s]+meeting|agm)(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
+    re.compile(
+        r"(?:^|[-_\s])results?[-_\s]+of[-_\s]+"
+        r"(?:[A-Za-z0-9]+[-_\s]+){0,8}"
+        r"(?:annual[-_\s]+general[-_\s]+meeting|agm)(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
 )
 
 _MEETING_NOTICE_PATTERNS: tuple[re.Pattern[str], ...] = (
@@ -2244,9 +2255,70 @@ _NON_STATEMENT_FINANCIAL_UPDATE_CONTEXT: tuple[re.Pattern[str], ...] = (
     re.compile(r"\banticipates\s+the\s+following\s+headline\b", re.IGNORECASE),
 )
 
+_PROTECTED_REPORT_RESULT_TITLE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"(?:^|[-_\s])(?:annual|full[-_\s]+year|fy\d{2,4})[-_\s]+"
+        r"(?:financial[-_\s]+)?(?:report|results?|accounts?)(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:half[-_\s]+year|hy\d{2,4}|h[12]|[12]h)[-_\s]+"
+        r"(?:financial[-_\s]+)?(?:report|results?|accounts?)(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+)
+
+_CAPITAL_MANAGEMENT_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
+    re.Pattern[str], ...
+] = (
+    re.compile(
+        r"\b(?:on[-_\s]+market[-_\s]+|off[-_\s]+market[-_\s]+|selective[-_\s]+)?"
+        r"(?:ordinary[-_\s]+shares?|shares?|securities?)[-_\s]+"
+        r"buy[-_\s]*backs?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bbuy[-_\s]*backs?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bto[-_\s]+buy[-_\s]+back[-_\s]+up[-_\s]+to\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])results?[-_\s]+of[-_\s]+"
+        r"(?:share|unit|security|securities)[-_\s]+purchase[-_\s]+plan"
+        r"(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:share|unit|security|securities)[-_\s]+purchase[-_\s]+plan"
+        r"[-_\s]+(?:results?|upp[-_\s]+results?|final[-_\s]+issue|"
+        r"correction[-_\s]+to[-_\s]+announcement)(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:completion|final[-_\s]+issue)[-_\s]+of[-_\s]+"
+        r"(?:share|unit|security|securities)[-_\s]+purchase[-_\s]+plan"
+        r"(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+)
+
 _OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     re.Pattern[str], ...
 ] = (
+    re.compile(r"\bpurchase[-_\s]+orders?\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:binding[-_\s]+)?(?:sale|sales|supply|customer|client|commercial)"
+        r"[-_\s]+agreement\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:customer|client|commercial|sale|sales|purchase[-_\s]+order)"
+        r"\b.{0,80}\bagreement\b",
+        re.IGNORECASE,
+    ),
     re.compile(
         r"\bsigns?\b.{0,80}\b(?:client|customer|contract|agreement)\b",
         re.IGNORECASE,
@@ -2666,6 +2738,10 @@ def _has_formal_financial_statement_marker(text: str) -> bool:
     return any(pattern.search(text) for pattern in _FORMAL_FINANCIAL_STATEMENT_MARKERS)
 
 
+def _has_protected_report_result_title(text: str) -> bool:
+    return any(pattern.search(text) for pattern in _PROTECTED_REPORT_RESULT_TITLE_PATTERNS)
+
+
 def _is_unaudited_non_statement_financial_update(
     title: Any,
     first_page_text: Any,
@@ -2685,6 +2761,38 @@ def _is_unaudited_non_statement_financial_update(
 
     return any(
         pattern.search(text) for pattern in _NON_STATEMENT_FINANCIAL_UPDATE_CONTEXT
+    )
+
+
+def _is_capital_management_update_without_formal_statements(
+    title: Any,
+    first_page_text: Any,
+) -> bool:
+    title_text = _combined_source_text(title)
+    if (
+        title_text
+        and _has_protected_report_result_title(title_text)
+        and any(
+            pattern.search(title_text)
+            for pattern in _CAPITAL_MANAGEMENT_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS
+        )
+    ):
+        return False
+
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    if _has_formal_financial_statement_marker(text):
+        return False
+    if _detect_source_period_evidence(title, first_page_text).get("period_type") in {
+        "A",
+        "H",
+        "Q",
+    }:
+        return False
+    return any(
+        pattern.search(text)
+        for pattern in _CAPITAL_MANAGEMENT_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS
     )
 
 
@@ -3035,6 +3143,14 @@ def classify_source_document(
             canary_candidate_allowed=False,
             reason="unaudited_financial_update_without_formal_statements",
             evidence=["financial_update_without_formal_statement_pattern"],
+        )
+    if _is_capital_management_update_without_formal_statements(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="capital_management_update_without_formal_statements",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="capital_management_update_without_formal_statements",
+            evidence=["capital_management_without_formal_statement_pattern"],
         )
     if _is_operational_update_without_formal_statements(title, first_page_text):
         return SourceDocumentClassification(

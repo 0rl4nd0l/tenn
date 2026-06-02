@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_candidate_filtering_broad_sample_v1_20260602",
+  "agent": "Codex",
+  "status": "released",
+  "implementation_status": "implemented_sample_skipped",
+  "lane": "Financial Truth",
+  "supporting_lanes": [
+    "Evaluation",
+    "Query Orchestration",
+    "Provenance"
+  ],
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+  "head": "5ea3b65f074913d0c6ce3be4bad5b49b03165194",
+  "head_scope": "pre_commit_base_and_runtime_readiness_head",
+  "execution_mode": "SAFE EXTENSION + BOUNDED VALIDATION",
+  "collision_risk": "MEDIUM",
+  "decision": "implemented filters; skipped bounded sample because runtime readiness was not clean",
+  "claimed_at": "2026-06-02T04:19:20.444281Z",
+  "released_at": "2026-06-02T04:32:25.921307Z",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "session_id": "l4nd0-System-Product-Name:3153125:extraction_residual_candidate_filtering_broad_sample_v1_20260602",
+  "files_changed": [
+    "docs/agent_tasks/extraction_residual_candidate_filtering_broad_sample_v1_20260602.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "financial-engine_v2/scripts/test_broad_extraction_test.py",
+    "reports/agent_jobs/extraction_residual_candidate_filtering_broad_sample_v1_20260602/README.md",
+    "reports/agent_jobs/extraction_residual_candidate_filtering_broad_sample_v1_20260602/diff-check.json",
+    "reports/agent_jobs/extraction_residual_candidate_filtering_broad_sample_v1_20260602/status.json",
+    "reports/agent_jobs/extraction_residual_candidate_filtering_broad_sample_v1_20260602/validation.json"
+  ],
+  "filters_added": [
+    "capital management update filter for buybacks and purchase-plan result/final-issue notices",
+    "company-token AGM result title variant filter",
+    "purchase-order and customer/commercial agreement operational update filters"
+  ],
+  "valid_source_regressions_protected": [
+    "annual report incorporating Appendix 4E",
+    "half-year financial-report investor presentation",
+    "Appendix 4C quarterly report and business update",
+    "FY-results-plus-buyback title"
+  ],
+  "validation_result": "code_validation_passed; task_check_diff_blocked_by_pre_existing_unrelated_dirt",
+  "runtime_readiness_verdict": "not_clean",
+  "runtime_readiness_blocker": "Redis score queue depth was 32",
+  "bounded_broad_sample_run": false,
+  "bounded_broad_sample_result_file": null,
+  "no_full_extraction_backfill_run": true,
+  "data_missing": [
+    "API-visible loaded commit",
+    "ownership/source of pending score queue jobs",
+    "clean task-card check-diff because pre-existing unrelated extraction_contract_parity_guard report dirt remains outside this task allowlist"
+  ],
+  "project_memory_save_recommendation": "Save residual filter landing and sample skip due score=32 queue readiness blocker."
+}

@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_candidate_filtering_broad_sample_v1_20260602",
+  "repo": {
+    "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "5ea3b65f074913d0c6ce3be4bad5b49b03165194",
+    "head_scope": "pre_commit_base_and_runtime_readiness_head",
+    "remote": "origin https://github.com/0rl4nd0l/tenn.git"
+  },
+  "task_card": {
+    "path": "docs/agent_tasks/extraction_residual_candidate_filtering_broad_sample_v1_20260602.md",
+    "validated": true,
+    "claimed": true,
+    "production_data_access": false
+  },
+  "prior_report": {
+    "requested_path_exists": false,
+    "requested_path": "/home/l4nd0/tenn-extraction-broad-runtime-after-pls-evidence-v1_20260602/reports/agent_jobs/extraction_broad_runtime_after_pls_evidence_v1_20260602/README.md",
+    "corrected_path_exists": true,
+    "corrected_path": "/home/l4nd0/tenn-extraction-broad-runtime-after-pls-evidence-v1-20260602/reports/agent_jobs/extraction_broad_runtime_after_pls_evidence_v1_20260602/README.md",
+    "previous_sample": {
+      "count": 8,
+      "seed": 20260601,
+      "ok": 3,
+      "failed": 5,
+      "success_rate": 0.375,
+      "failure_classes": [
+        "classifier_low_confidence",
+        "validation_gate"
+      ],
+      "residual_failure_titles": [
+        "purchase-order-from-china-southern-air-wine-sale-agreement",
+        "nab-to-buy-back-up-to-1-5-billion-of-ordinary-shares",
+        "results-of-share-purchase-plan",
+        "unit-purchase-plan-results-of-final-issue",
+        "results-of-rio-tinto-plc-agm"
+      ]
+    }
+  },
+  "filters_added": [
+    "capital_management_update_without_formal_statements",
+    "company-name AGM result title variant matching",
+    "purchase-order and customer/commercial agreement operational matching"
+  ],
+  "valid_source_regression_protection": [
+    "PLS annual report incorporating Appendix 4E retained",
+    "MLG half-year financial-report investor presentation retained",
+    "Appendix 4C quarterly report and business update retained",
+    "FY-results-plus-buyback title retained"
+  ],
+  "candidate_inventory": {
+    "docs_root": "/data/asx/docs",
+    "input_count": 28633,
+    "candidate_count": 22275,
+    "excluded_count": 6358,
+    "excluded_reason_counts": {
+      "advisory_only_document": 50,
+      "capital_management_update_without_formal_statements": 123,
+      "meeting_notice": 1660,
+      "meeting_results_notice": 2287,
+      "non_financial_update_without_formal_statements": 1965,
+      "operational_update_without_formal_statements": 268,
+      "unaudited_financial_update_without_formal_statements": 5
+    },
+    "exact_residual_watch_excluded_count": 43,
+    "protected_candidate_watch_count": 5
+  },
+  "validation_commands": [
+    {
+      "command": "financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -q -k \"source_document_classifier or derive_period_start\"",
+      "result": "passed",
+      "summary": "29 passed, 184 deselected"
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/scripts/test_broad_extraction_test.py -q",
+      "result": "passed",
+      "summary": "6 passed"
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py -q",
+      "result": "passed",
+      "summary": "219 passed"
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "passed",
+      "summary": "All checks passed"
+    },
+    {
+      "command": "financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "result": "passed",
+      "summary": "no output"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed",
+      "summary": "no output"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed",
+      "summary": "no output"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_residual_candidate_filtering_broad_sample_v1_20260602.md --repo-root .",
+      "result": "failed_expected_unrelated_dirt",
+      "summary": "Task card validated and report-local diff-check.json was written, but check-diff returned ok=false because pre-existing reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json is outside this task allowlist."
+    }
+  ],
+  "runtime_readiness": {
+    "verdict": "not_clean",
+    "sample_allowed": false,
+    "sample_skip_reason": "queue_not_idle",
+    "initial_api_health": "connection_refused",
+    "managed_backend_health": {
+      "status": "ok",
+      "payload": {
+        "status": "ok"
+      },
+      "process_cwd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2",
+      "head": "5ea3b65f0749",
+      "api_visible_loaded_commit": null,
+      "api_visible_loaded_commit_status": "DATA_MISSING"
+    },
+    "queue": {
+      "cockpit_queue": {
+        "pending": 32,
+        "active": 0,
+        "completed": 0,
+        "failed": 0
+      },
+      "redis_queue_depths": {
+        "ingest": 0,
+        "embed": 0,
+        "score": 32,
+        "llm_gpu": 0,
+        "llm_cpu": 0
+      }
+    },
+    "gpu": {
+      "activity_token_active": false,
+      "process_guard": "clean",
+      "m40_memory_used_mib": 0,
+      "m40_memory_total_mib": 24576,
+      "m40_utilization_percent": 0
+    },
+    "source_paths": {
+      "docs_root": "/data/asx/docs",
+      "financial_performance_pdf_count": 28633,
+      "status": "ok"
+    },
+    "llamacpp": {
+      "port": 8001,
+      "status": "down",
+      "started": false,
+      "reason_not_started": "queue readiness was blocked before model startup"
+    },
+    "cleanup": {
+      "backend_stopped": true,
+      "api_health_after_stop": "connection_refused",
+      "runtime_processes_remaining": false,
+      "gpu_activity_token_active": false,
+      "gpu_process_guard": "clean",
+      "m40_memory_used_mib": 0
+    }
+  },
+  "bounded_broad_sample": {
+    "run": false,
+    "requested_same_size_count": 8,
+    "seed": 20260601,
+    "result_file": null,
+    "reason": "runtime readiness not clean: Redis score queue depth was 32"
+  },
+  "forbidden_actions": {
+    "full_extraction_backfill_run": false,
+    "production_db_mutation": false,
+    "qdrant_news_memory_mutation": false,
+    "canonical_truth_promotion_change": false,
+    "source_pdf_mutation": false,
+    "prompt_or_gold_label_change": false,
+    "runtime_model_gpu_config_change": false,
+    "cockpit_ui_or_schema_change": false
+  },
+  "data_missing": [
+    "API-visible loaded commit; /api/health exposes only status",
+    "Ownership/source of 32 pending score queue jobs",
+    "Clean task-card check-diff; pre-existing unrelated extraction_contract_parity_guard report dirt remains outside this task allowlist"
+  ]
+}

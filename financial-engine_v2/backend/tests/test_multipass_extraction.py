@@ -2898,6 +2898,20 @@ def test_source_document_classifier_blocks_agm_abbreviation_results_title_only()
     assert result.reason == "meeting_results_notice"
 
 
+def test_source_document_classifier_blocks_company_name_agm_results_title_only():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-04-11_results-of-rio-tinto-plc-agm.pdf",
+        "",
+    )
+
+    assert result.document_class == "meeting_results_notice"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "meeting_results_notice"
+
+
 def test_source_document_classifier_blocks_agm_notice_proxy_forms_title_only():
     from app.services.multipass_extraction import classify_source_document
 
@@ -2927,6 +2941,80 @@ def test_source_document_classifier_blocks_upcoming_agm_notice_with_text():
     assert result.document_class == "meeting_notice"
     assert result.extraction_candidate_allowed is False
     assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_purchase_order_customer_agreement():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-10-02_purchase-order-from-china-southern-air-wine-sale-agreement.pdf",
+        "",
+    )
+
+    assert result.document_class == "operational_update_without_formal_statements"
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_buyback_announcement():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-08-15_nab-to-buy-back-up-to-1-5-billion-of-ordinary-shares.pdf",
+        "",
+    )
+
+    assert (
+        result.document_class
+        == "capital_management_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "capital_management_update_without_formal_statements"
+
+
+def test_source_document_classifier_blocks_share_purchase_plan_results():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2022-09-29_results-of-share-purchase-plan.pdf",
+        "",
+    )
+
+    assert (
+        result.document_class
+        == "capital_management_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_unit_purchase_plan_final_issue():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-01-31_unit-purchase-plan-results-of-final-issue.pdf",
+        "",
+    )
+
+    assert (
+        result.document_class
+        == "capital_management_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_keeps_fy_results_with_buyback_candidate():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2024-08-12_fy2024-results-and-buyback-announcement.pdf",
+        "",
+    )
+
+    assert result.extraction_candidate_allowed is True
+    assert result.canary_candidate_allowed is True
 
 
 def test_source_document_classifier_blocks_unaudited_non_statement_update():
