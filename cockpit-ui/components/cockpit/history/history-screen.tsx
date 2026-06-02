@@ -77,7 +77,13 @@ function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
         onClick={onToggle}
       >
         <TableCell>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            aria-label={`${isOpen ? 'Collapse' : 'Expand'} job ${job.id}`}
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          >
             {isOpen ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
@@ -362,7 +368,9 @@ export function HistoryScreen() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead className="w-[40px]">
+                        <span className="sr-only">Job details</span>
+                      </TableHead>
                       <TableHead className="w-[100px]">Job ID</TableHead>
                       <TableHead>Action</TableHead>
                       <TableHead>Arguments</TableHead>

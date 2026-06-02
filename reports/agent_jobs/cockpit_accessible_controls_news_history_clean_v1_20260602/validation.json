@@ -1,0 +1,68 @@
+{
+  "job_id": "cockpit_accessible_controls_news_history_clean_v1_20260602",
+  "updated_at": "2026-06-02T18:56:10+10:00",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_accessible_controls_news_history_clean_v1_20260602.md --write-report",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed",
+      "details": "No active jobs before claim."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_accessible_controls_news_history_clean_v1_20260602.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_accessible_controls_news_history_clean_v1_20260602.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui install --frozen-lockfile",
+      "result": "passed",
+      "details": "Lockfile install completed; build scripts warning left unchanged."
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run components/cockpit/news/news-screen.test.tsx components/cockpit/history/history-screen.test.tsx",
+      "result": "passed",
+      "details": "2 files passed; 4 tests passed."
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec eslint components/cockpit/news/news-screen.tsx components/cockpit/news/news-screen.test.tsx components/cockpit/history/history-screen.tsx components/cockpit/history/history-screen.test.tsx",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec tsc --noEmit --pretty false",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/cockpit_accessible_controls_news_history_clean_v1_20260602/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/cockpit_accessible_controls_news_history_clean_v1_20260602/validation.json >/dev/null",
+      "result": "passed"
+    },
+    {
+      "command": "code-reviewer skill over current UI diff",
+      "result": "passed",
+      "details": "No critical, warning, or suggestion findings."
+    },
+    {
+      "command": "git diff --check && git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_accessible_controls_news_history_clean_v1_20260602.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py release cockpit_accessible_controls_news_history_clean_v1_20260602",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active",
+      "result": "passed",
+      "details": "No active jobs after release."
+    }
+  ],
+  "pending_commands": []
+}
