@@ -13,6 +13,7 @@ jobs:
       pull-requests: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CODEX_MODEL: gpt-5.2-codex
     steps:
       - uses: actions/checkout@v4
 
@@ -20,31 +21,34 @@ jobs:
         id: auth
         shell: bash
         env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          if [[ -n "${ANTHROPIC_API_KEY}" || -n "${CLAUDE_CODE_OAUTH_TOKEN}" ]]; then
+          if [[ -n "${OPENAI_API_KEY}" || -n "${ANTHROPIC_API_KEY}" || -n "${CLAUDE_CODE_OAUTH_TOKEN}" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Sloppy fix (Claude)
+      - name: Sloppy fix (Codex)
         if: ${{ steps.auth.outputs.enabled == 'true' }}
         uses: braedonsaunders/sloppy@main
         with:
           mode: fix
-          agent: claude
-          model: claude-sonnet-4-5-20250929
+          agent: codex
+          model: ${{ env.CODEX_MODEL }}
+          verbose: true
           output-file: /tmp/sloppy-fix-issues.json
           custom-prompt-file: /dev/null
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-      - name: Skip sloppy fix (no Claude credentials)
+      - name: Skip sloppy fix (no fix credentials)
         if: ${{ steps.auth.outputs.enabled != 'true' }}
         shell: bash
         run: |
-          echo "Skipping sloppy-fix because no Claude credentials are available."
+          echo "Skipping sloppy-fix because no sloppy-fix agent credentials are available."
