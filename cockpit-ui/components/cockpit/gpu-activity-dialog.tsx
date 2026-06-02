@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { buildCockpitApiHeaders } from '@/lib/cockpit-api-headers'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 
 interface GpuActivityDialogProps {
@@ -151,7 +152,10 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
     async function poll() {
       setPolling(true)
       try {
-        const res = await fetch('/api/cockpit/metrics/gpu', { cache: 'no-store' })
+        const res = await fetch('/api/cockpit/metrics/gpu', {
+          cache: 'no-store',
+          headers: buildCockpitApiHeaders(),
+        })
         if (!res.ok) throw new Error(`${res.status}`)
         const data = await res.json() as { details?: { gpus?: GpuRecord[]; processes?: GpuRecord[] }; error?: string }
         setLiveGpus(Array.isArray(data.details?.gpus) ? data.details!.gpus! : [])

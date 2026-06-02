@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import os from 'node:os'
 import { promisify } from 'node:util'
+import { requireCockpitBffApiKey } from '@/lib/cockpit-bff-auth'
 import { prioritizeGpusForDisplay } from '@/lib/gpu-display'
 import { redactProcessCommand } from '@/lib/process-command-redaction'
 
@@ -431,7 +432,10 @@ async function probeHostGpu(): Promise<ServiceHealth> {
   }
 }
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  const auth = requireCockpitBffApiKey(request)
+  if (!auth.ok) return auth.response
+
   try {
     const backendHealth = await readJsonResponse(`${backendUrl}/api/health`)
     if (!backendHealth.ok) {
