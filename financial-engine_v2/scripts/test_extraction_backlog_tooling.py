@@ -23,8 +23,16 @@ if "app.core.config" not in sys.modules:
     cfg_stub.PROJECT_ROOT = REPO_ROOT
     cfg_stub.settings = SimpleNamespace(
         database_url="sqlite:////tmp/fe_local.db",
+        celery_broker_url="memory://",
+        celery_result_backend="cache+memory://",
         enable_embeddings=True,
         enable_qdrant=True,
+        enable_importance_classification=False,
+        importance_output_root=None,
+        importance_materialize_output=False,
+        importance_include_pdf_text=False,
+        importance_link_mode="symlink",
+        importance_sort_source_docs=False,
     )
     sys.modules["app.core.config"] = cfg_stub
 
@@ -50,7 +58,10 @@ if "app.services.pipeline" not in sys.modules:
         return "unknown"
 
     pipe_stub.classify_extraction_failure = _classify  # type: ignore[attr-defined]
+    pipe_stub.discover_and_insert_documents = lambda *args, **kwargs: {}
+    pipe_stub.download_pdf_for_document = lambda *args, **kwargs: None
     pipe_stub.process_document = lambda document_id: {"document_id": document_id, "extraction_status": "ok"}  # type: ignore[attr-defined]
+    pipe_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
     sys.modules["app.services.pipeline"] = pipe_stub
 
 

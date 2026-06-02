@@ -50,10 +50,20 @@ class _Field:
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
     db_stub.SessionLocal = lambda: None
+    db_stub.engine = None
+    def get_db():
+        db = db_stub.SessionLocal()
+        try:
+            yield db
+        finally:
+            pass
+    db_stub.get_db = get_db
     sys.modules["app.core.db"] = db_stub
 if "app.core.config" not in sys.modules:
     cfg_stub = types.ModuleType("app.core.config")
     cfg_stub.settings = SimpleNamespace(
+        celery_broker_url="memory://",
+        celery_result_backend="cache+memory://",
         enable_embeddings=True,
         enable_qdrant=True,
         importance_output_root=None,
@@ -81,8 +91,10 @@ if "app.services.announcement_importance" not in sys.modules:
     sys.modules["app.services.announcement_importance"] = importance_stub
 if "app.services.pipeline" not in sys.modules:
     pipeline_stub = types.ModuleType("app.services.pipeline")
+    pipeline_stub.discover_and_insert_documents = lambda *args, **kwargs: {}
     pipeline_stub.download_pdf_for_document = lambda *args, **kwargs: None
     pipeline_stub.process_document = lambda *args, **kwargs: {"extraction_status": "ok"}
+    pipeline_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
     sys.modules["app.services.pipeline"] = pipeline_stub
 
 
