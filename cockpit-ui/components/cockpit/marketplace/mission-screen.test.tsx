@@ -278,21 +278,26 @@ describe('MarketplaceMissionScreen', () => {
       expect(fetchMock).toHaveBeenCalledTimes(4)
     })
 
-    await userEvent.type(screen.getByPlaceholderText(/vintage watches/i), 'RTX 3090')
-    await userEvent.type(screen.getByPlaceholderText(/e\.g\. 1500/i), '900')
-    await userEvent.type(
-      screen.getByPlaceholderText(/describe what you are looking for/i),
-      'Find a clean RTX 3090 around Melbourne with no repair history.',
-    )
-    await userEvent.type(screen.getByPlaceholderText(/rolex, omega, tudor/i), 'RTX 3090, NVIDIA')
-    await userEvent.type(screen.getByPlaceholderText(/melbourne, richmond, box hill/i), 'Melbourne')
-    await userEvent.click(screen.getByRole('switch', { name: /auto scan for new mission/i }))
-    await userEvent.clear(screen.getByPlaceholderText(/e\.g\. 5/i))
-    await userEvent.type(screen.getByPlaceholderText(/e\.g\. 5/i), '3')
     const createMissionCard = screen.getByText(/create new mission/i).closest('[data-slot="card"]')
     expect(createMissionCard).toBeTruthy()
+    const createMissionForm = within(createMissionCard as HTMLElement)
+
+    expect(createMissionForm.getByRole('textbox', { name: /exclude keywords/i })).toBeInTheDocument()
+    expect(createMissionForm.getByRole('textbox', { name: /preferred brands/i })).toBeInTheDocument()
+    await userEvent.type(createMissionForm.getByRole('textbox', { name: /mission name/i }), 'RTX 3090')
+    await userEvent.type(createMissionForm.getByRole('spinbutton', { name: /max price/i }), '900')
+    await userEvent.type(
+      createMissionForm.getByRole('textbox', { name: /search brief/i }),
+      'Find a clean RTX 3090 around Melbourne with no repair history.',
+    )
+    await userEvent.type(createMissionForm.getByRole('textbox', { name: /include keywords/i }), 'RTX 3090, NVIDIA')
+    await userEvent.type(createMissionForm.getByRole('textbox', { name: /locations/i }), 'Melbourne')
+    await userEvent.click(createMissionForm.getByRole('switch', { name: /auto scan for new mission/i }))
+    const scanIntervalInput = createMissionForm.getByRole('spinbutton', { name: /scan every/i })
+    await userEvent.clear(scanIntervalInput)
+    await userEvent.type(scanIntervalInput, '3')
     await userEvent.click(
-      within(createMissionCard as HTMLElement).getByRole('button', { name: /^save recurring search$/i }),
+      createMissionForm.getByRole('button', { name: /^save recurring search$/i }),
     )
 
     await waitFor(() => {
