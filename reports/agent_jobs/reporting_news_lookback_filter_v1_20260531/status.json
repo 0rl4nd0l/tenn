@@ -1,0 +1,32 @@
+{
+  "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/reporting_news_lookback_filter_v1_20260531.json",
+  "agent": "Codex",
+  "allowed_files": [
+    "docs/agent_tasks/reporting_news_lookback_filter_v1_20260531.md",
+    "reports/agent_jobs/reporting_news_lookback_filter_v1_20260531/README.md",
+    "reports/agent_jobs/reporting_news_lookback_filter_v1_20260531/status.json",
+    "reports/agent_jobs/reporting_news_lookback_filter_v1_20260531/diff-check.json",
+    "cockpit-ui/components/cockpit/news/news-screen.tsx",
+    "cockpit-ui/components/cockpit/news/news-screen.test.tsx"
+  ],
+  "branch": "safe/reporting-local-console-cleanliness-v1-20260531",
+  "claimed_at": "2026-05-31T12:02:56.954771Z",
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "heartbeat_at": "2026-05-31T12:03:34.318530Z",
+  "job_id": "reporting_news_lookback_filter_v1_20260531",
+  "lane": "Reporting",
+  "last_seen_at": "2026-05-31T12:04:45.229528Z",
+  "output_dir": "reports/agent_jobs/reporting_news_lookback_filter_v1_20260531",
+  "owner": "Codex",
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "released_at": "2026-05-31T12:04:45.229528Z",
+  "repo_root": "/home/l4nd0/tenn-reporting-local-console-cleanliness-v1-20260531",
+  "schema_version": 1,
+  "session_id": "l4nd0-System-Product-Name:1777552:reporting_news_lookback_filter_v1_20260531",
+  "started_at": "2026-05-31T12:02:56.954771Z",
+  "status": "released",
+  "task_card": "docs/agent_tasks/reporting_news_lookback_filter_v1_20260531.md",
+  "updated_at": "2026-05-31T12:04:45.229528Z",
+  "worktree": "/home/l4nd0/tenn-reporting-local-console-cleanliness-v1-20260531"
+}
