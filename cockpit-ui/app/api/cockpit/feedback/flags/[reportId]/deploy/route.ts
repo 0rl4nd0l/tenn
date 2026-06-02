@@ -12,6 +12,101 @@ import { resolveBackendUrl } from '@/lib/proxy'
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
+const investigationDeployIntent = 'deploy-codex-investigation'
+const investigationDeployIntentHeader = 'x-cockpit-control-intent'
+
+type InvestigationDeployGuardResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string }
+
+function denyInvestigationDeploy(status: number, code: string, message: string): InvestigationDeployGuardResult {
+  return { ok: false, status, code, message }
+}
+
+function normalizeHostname(value: string | null): string {
+  const raw = String(value || '').trim().toLowerCase()
+  if (!raw) return ''
+  if (raw.startsWith('[')) {
+    const end = raw.indexOf(']')
+    return end > 0 ? raw.slice(1, end) : raw
+  }
+  if (raw === '::1' || raw.includes('::')) return raw
+  return raw.split(':')[0] || raw
+}
+
+function requestHostname(request: Request): string {
+  const hostHeader = request.headers.get('host')
+  if (hostHeader) return normalizeHostname(hostHeader)
+  try {
+    return normalizeHostname(new URL(request.url).hostname)
+  } catch {
+    return ''
+  }
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname)
+  return normalized === 'localhost' || normalized === '::1' || normalized.startsWith('127.')
+}
+
+function requestOrigin(request: Request): string | null {
+  try {
+    return new URL(request.url).origin
+  } catch {
+    return null
+  }
+}
+
+function sameOriginIfPresent(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  if (!origin) return true
+  const expectedOrigin = requestOrigin(request)
+  if (!expectedOrigin) return false
+  try {
+    return new URL(origin).origin === expectedOrigin
+  } catch {
+    return false
+  }
+}
+
+function validateInvestigationDeployRequest(request: Request): InvestigationDeployGuardResult {
+  const headerIntent = String(request.headers.get(investigationDeployIntentHeader) || '').trim()
+  if (headerIntent !== investigationDeployIntent) {
+    return denyInvestigationDeploy(
+      403,
+      'codex_investigation_deploy_intent_required',
+      'Codex investigation deploys require an explicit operator deploy intent header.',
+    )
+  }
+
+  if (!isLoopbackHostname(requestHostname(request))) {
+    return denyInvestigationDeploy(
+      403,
+      'non_loopback_codex_investigation_deploy_denied',
+      'Codex investigation deploys are only allowed from loopback.',
+    )
+  }
+
+  if (!sameOriginIfPresent(request)) {
+    return denyInvestigationDeploy(
+      403,
+      'cross_origin_codex_investigation_deploy_denied',
+      'Codex investigation deploys must be same-origin.',
+    )
+  }
+
+  const fetchSite = String(request.headers.get('sec-fetch-site') || '').trim().toLowerCase()
+  if (fetchSite === 'cross-site') {
+    return denyInvestigationDeploy(
+      403,
+      'cross_site_codex_investigation_deploy_denied',
+      'Cross-site Codex investigation deploys are not allowed.',
+    )
+  }
+
+  return { ok: true }
+}
+
 async function refreshBackendFlagPacket(reportId: string): Promise<void> {
   try {
     await fetch(`${resolveBackendUrl()}/api/cockpit/feedback/flags/${encodeURIComponent(reportId)}`, {
@@ -24,9 +119,22 @@ async function refreshBackendFlagPacket(reportId: string): Promise<void> {
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ reportId: string }> },
 ): Promise<Response> {
+  const guard = validateInvestigationDeployRequest(request)
+  if (!guard.ok) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'Codex investigation deploy denied',
+        code: guard.code,
+        detail: guard.message,
+      },
+      { status: guard.status },
+    )
+  }
+
   try {
     const { reportId } = await context.params
     const normalizedReportId = validateReportId(reportId)

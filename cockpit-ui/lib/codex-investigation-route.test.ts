@@ -5,7 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { POST as deployCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/deploy/route'
 import { GET as getCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/investigation/route'
+import { POST as deployLocalCodexInvestigation } from '@/app/cockpit-local/feedback/flags/[reportId]/deploy/route'
 import { GET as getLocalCodexInvestigation } from '@/app/cockpit-local/feedback/flags/[reportId]/investigation/route'
+
+const deployIntentHeaders = {
+  'X-Cockpit-Control-Intent': 'deploy-codex-investigation',
+}
 
 const readIntentHeaders = {
   'X-Cockpit-Control-Intent': 'read-codex-investigation',
@@ -61,6 +66,122 @@ describe('Codex investigation deploy route', () => {
     vi.unstubAllGlobals()
   })
 
+  it('rejects missing deploy intent before resolving local artifacts or spawning', async () => {
+    process.env.COCKPIT_WORKSPACE_ROOT = path.join(os.tmpdir(), 'missing-cockpit-workspace')
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await deployCodexInvestigation(
+      new Request('http://localhost/api/cockpit/feedback/flags/flag_20260430_abc123/deploy', {
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ reportId: '../bad' }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'codex_investigation_deploy_intent_required',
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects wrong deploy intent before resolving local artifacts or spawning', async () => {
+    process.env.COCKPIT_WORKSPACE_ROOT = path.join(os.tmpdir(), 'missing-cockpit-workspace')
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await deployCodexInvestigation(
+      new Request('http://localhost/api/cockpit/feedback/flags/flag_20260430_abc123/deploy', {
+        method: 'POST',
+        headers: {
+          'X-Cockpit-Control-Intent': 'read-codex-investigation',
+        },
+      }),
+      { params: Promise.resolve({ reportId: 'flag_20260430_abc123' }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'codex_investigation_deploy_intent_required',
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('applies the same deploy guard through the cockpit-local alias', async () => {
+    process.env.COCKPIT_WORKSPACE_ROOT = path.join(os.tmpdir(), 'missing-cockpit-workspace')
+
+    const response = await deployLocalCodexInvestigation(
+      new Request('http://localhost/cockpit-local/feedback/flags/flag_20260430_abc123/deploy', {
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ reportId: 'flag_20260430_abc123' }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'codex_investigation_deploy_intent_required',
+    })
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects non-loopback deploy requests before spawning', async () => {
+    const { workspace, reportId } = createQueuedReport()
+    process.env.COCKPIT_WORKSPACE_ROOT = workspace
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await deployCodexInvestigation(
+      new Request(`http://192.168.1.10/api/cockpit/feedback/flags/${reportId}/deploy`, {
+        method: 'POST',
+        headers: {
+          ...deployIntentHeaders,
+          host: '192.168.1.10',
+        },
+      }),
+      { params: Promise.resolve({ reportId }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'non_loopback_codex_investigation_deploy_denied',
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects cross-origin deploy requests before spawning', async () => {
+    const { workspace, reportId } = createQueuedReport()
+    process.env.COCKPIT_WORKSPACE_ROOT = workspace
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await deployCodexInvestigation(
+      new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/deploy`, {
+        method: 'POST',
+        headers: {
+          ...deployIntentHeaders,
+          origin: 'https://example.invalid',
+          'sec-fetch-site': 'cross-site',
+        },
+      }),
+      { params: Promise.resolve({ reportId }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'cross_origin_codex_investigation_deploy_denied',
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
   it('starts the local runner for an existing queued report', async () => {
     const { workspace, reportId } = createQueuedReport()
     process.env.COCKPIT_WORKSPACE_ROOT = workspace
@@ -70,6 +191,7 @@ describe('Codex investigation deploy route', () => {
     const response = await deployCodexInvestigation(
       new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/deploy`, {
         method: 'POST',
+        headers: deployIntentHeaders,
       }),
       { params: Promise.resolve({ reportId }) },
     )
@@ -110,6 +232,7 @@ describe('Codex investigation deploy route', () => {
     const response = await deployCodexInvestigation(
       new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/deploy`, {
         method: 'POST',
+        headers: deployIntentHeaders,
       }),
       { params: Promise.resolve({ reportId }) },
     )

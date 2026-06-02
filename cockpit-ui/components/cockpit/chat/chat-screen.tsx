@@ -1952,6 +1952,9 @@ export function ChatScreen() {
       const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/deploy`, {
         method: 'POST',
         cache: 'no-store',
+        headers: {
+          'X-Cockpit-Control-Intent': 'deploy-codex-investigation',
+        },
       })
       const payload = await readPayload(response)
       const status = String(payload.status || 'launching') as CodexDeployStatus
