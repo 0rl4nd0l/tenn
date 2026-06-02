@@ -1,0 +1,67 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.test.tsx",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.tsx",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cockpit_accessible_controls_thesis_audit_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_accessible_controls_thesis_audit_v1_20260602.md",
+        "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/README.md",
+        "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/status.json",
+        "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/validation.json",
+        "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602/diff-check.json",
+        "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.tsx",
+        "cockpit-ui/components/cockpit/thesis-audit/thesis-audit-screen.test.tsx"
+      ],
+      "allowed_github_mutation": [
+        "read issue #53 and adjacent accessible-control pull requests",
+        "open one pull request referencing issue #53 after validation passes"
+      ],
+      "approval_required": false,
+      "job_id": "cockpit_accessible_controls_thesis_audit_v1_20260602",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_accessible_controls_thesis_audit_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
