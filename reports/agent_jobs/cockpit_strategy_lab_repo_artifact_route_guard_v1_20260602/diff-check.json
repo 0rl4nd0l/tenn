@@ -1,0 +1,43 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602.md",
+        "cockpit-ui/app/api/cockpit/strategy-lab/status/route.ts",
+        "cockpit-ui/app/api/cockpit/strategy-lab/artifacts/route.ts",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-status-card.test.tsx",
+        "cockpit-ui/components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx",
+        "cockpit-ui/lib/strategy-lab-status.test.ts",
+        "cockpit-ui/lib/strategy-lab-artifacts.test.ts",
+        "cockpit-ui/lib/cockpit-bff-auth.ts",
+        "cockpit-ui/lib/cockpit-api-headers.ts",
+        "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602/README.md",
+        "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602/status.json",
+        "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602/validation.json",
+        "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

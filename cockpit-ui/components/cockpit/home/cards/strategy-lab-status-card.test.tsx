@@ -10,6 +10,7 @@ import { StrategyLabStatusCard } from './strategy-lab-status-card';
 
 describe('StrategyLabStatusCard', () => {
   afterEach(() => {
+    delete process.env.NEXT_PUBLIC_API_KEY;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -26,6 +27,7 @@ describe('StrategyLabStatusCard', () => {
         availability: 'available',
       })),
     });
+    process.env.NEXT_PUBLIC_API_KEY = 'operator-key';
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -42,11 +44,11 @@ describe('StrategyLabStatusCard', () => {
     expect(screen.getByText('10/10 available')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View details/i })).toHaveAttribute(
       'href',
-      '/api/cockpit/strategy-lab/artifacts',
+      '#strategy-lab-artifacts-review-card',
     );
     expect(screen.getByRole('link', { name: /Open Strategy Lab/i })).toHaveAttribute(
       'href',
-      '/api/cockpit/strategy-lab/status',
+      '#strategy-lab-status-card',
     );
     expect(screen.queryByText('VERIFIED_READ_ONLY_SIDECAR_SANDBOX_VIABILITY')).not.toBeInTheDocument();
     expect(screen.queryByText('SMOKE_PASSED')).not.toBeInTheDocument();
@@ -57,7 +59,10 @@ describe('StrategyLabStatusCard', () => {
     expect(screen.queryByText('NO STORE WRITES')).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/cockpit/strategy-lab/status',
-      expect.objectContaining({ cache: 'no-store' }),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.objectContaining({ 'X-API-Key': 'operator-key' }),
+      }),
     );
   });
 });

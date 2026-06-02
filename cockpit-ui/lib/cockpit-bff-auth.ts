@@ -28,7 +28,7 @@ export function requireCockpitBffApiKey(request: Request): CockpitBffAuthResult 
     return deny(
       503,
       'cockpit_api_key_not_configured',
-      'Cockpit telemetry routes require a configured API key.',
+      'Cockpit operator routes require a configured API key.',
     )
   }
 
@@ -37,7 +37,7 @@ export function requireCockpitBffApiKey(request: Request): CockpitBffAuthResult 
     return deny(
       403,
       'cockpit_api_key_required',
-      'Cockpit telemetry routes require a valid API key.',
+      'Cockpit operator routes require a valid API key.',
     )
   }
 

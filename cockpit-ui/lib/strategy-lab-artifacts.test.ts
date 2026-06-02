@@ -8,11 +8,20 @@ import type { StrategyLabArtifactsResponse } from './strategy-lab-artifacts';
 import { readStrategyLabArtifacts } from './strategy-lab-artifacts-server';
 import { buildStrategyLabReviewWorkflow } from './strategy-lab-review-queue';
 
+function routeRequest(apiKey?: string): Request {
+  return new Request('http://localhost/api/cockpit/strategy-lab/artifacts', {
+    method: 'GET',
+    headers: apiKey ? { 'X-API-Key': apiKey } : {},
+  });
+}
+
 describe('Strategy Lab artifacts contract', () => {
   let workspace: string | null = null;
 
   afterEach(() => {
     delete process.env.COCKPIT_WORKSPACE_ROOT;
+    delete process.env.COCKPIT_API_KEY;
+    delete process.env.NEXT_PUBLIC_API_KEY;
     if (workspace) {
       rmSync(workspace, { recursive: true, force: true });
       workspace = null;
@@ -146,7 +155,19 @@ describe('Strategy Lab artifacts contract', () => {
     expect(smoke?.data_missing).toContain('report_file');
   });
 
-  it('serves the read-only artifact route with no-store caching', async () => {
+  it('denies the artifact route without the configured operator key', async () => {
+    process.env.NEXT_PUBLIC_API_KEY = 'operator-key';
+
+    const response = await getStrategyLabArtifactsRoute(routeRequest());
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'cockpit_api_key_required',
+    });
+  });
+
+  it('serves the authenticated read-only artifact route with no-store caching', async () => {
     const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-artifacts-route-'));
     workspace = workspaceRoot;
     const reportPath = path.join(
@@ -156,8 +177,9 @@ describe('Strategy Lab artifacts contract', () => {
     mkdirSync(path.dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, '# Strategy Lab Phase 2\n');
     process.env.COCKPIT_WORKSPACE_ROOT = workspaceRoot;
+    process.env.NEXT_PUBLIC_API_KEY = 'operator-key';
 
-    const response = await getStrategyLabArtifactsRoute();
+    const response = await getStrategyLabArtifactsRoute(routeRequest('operator-key'));
     const payload = (await response.json()) as StrategyLabArtifactsResponse;
 
     expect(response.status).toBe(200);

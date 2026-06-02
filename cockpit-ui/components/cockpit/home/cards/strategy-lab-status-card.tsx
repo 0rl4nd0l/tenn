@@ -6,6 +6,7 @@ import { ArrowUpRight, Ban, FlaskConical, Loader2, ShieldAlert, ShieldCheck } fr
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { buildCockpitApiHeaders } from '@/lib/cockpit-api-headers';
 import {
   buildStrategyLabHomeSummary,
   type StrategyLabHomeSummary,
@@ -28,6 +29,7 @@ export function StrategyLabStatusCard() {
       try {
         const response = await fetch('/api/cockpit/strategy-lab/status', {
           cache: 'no-store',
+          headers: buildCockpitApiHeaders(),
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -51,7 +53,7 @@ export function StrategyLabStatusCard() {
 
   if (state.status === 'loading') {
     return (
-      <Card className="terminal-panel" data-testid="strategy-lab-status-card">
+      <Card id="strategy-lab-status-card" className="terminal-panel" data-testid="strategy-lab-status-card">
         <CardContent className="p-4 flex items-center gap-3">
           <Loader2 className="w-4 h-4 text-cyan-500 animate-spin" />
           <div>
@@ -65,7 +67,7 @@ export function StrategyLabStatusCard() {
 
   if (state.status === 'error') {
     return (
-      <Card className="terminal-panel border-amber-500/30" data-testid="strategy-lab-status-card">
+      <Card id="strategy-lab-status-card" className="terminal-panel border-amber-500/30" data-testid="strategy-lab-status-card">
         <CardContent className="p-4 flex items-center gap-3">
           <ShieldAlert className="w-4 h-4 text-amber-500" />
           <div>
@@ -84,7 +86,7 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
   const summary = buildStrategyLabHomeSummary(payload);
 
   return (
-    <Card className="terminal-panel" data-testid="strategy-lab-status-card">
+    <Card id="strategy-lab-status-card" className="terminal-panel" data-testid="strategy-lab-status-card">
       <CardHeader className="py-3 px-4 flex flex-row items-start justify-between gap-4 space-y-0 border-b border-border/40">
         <div className="min-w-0">
           <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -159,13 +161,13 @@ function ReadyStrategyLabStatusCard({ payload }: { payload: StrategyLabStatusRes
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm" className="h-8 text-[11px]">
-              <a href={summary.detailRoute} target="_blank" rel="noreferrer">
+              <a href="#strategy-lab-artifacts-review-card">
                 <ArrowUpRight className="w-3.5 h-3.5" />
                 View details
               </a>
             </Button>
             <Button asChild variant="ghost" size="sm" className="h-8 text-[11px]">
-              <a href={summary.statusRoute} target="_blank" rel="noreferrer">
+              <a href="#strategy-lab-status-card">
                 Open Strategy Lab
               </a>
             </Button>

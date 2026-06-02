@@ -6,6 +6,7 @@ import { FileSearch, Loader2, Search, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { buildCockpitApiHeaders } from '@/lib/cockpit-api-headers';
 import type {
   StrategyLabArtifactsResponse,
   StrategyLabReviewArtifact,
@@ -29,6 +30,7 @@ export function StrategyLabArtifactsReviewCard() {
       try {
         const response = await fetch('/api/cockpit/strategy-lab/artifacts', {
           cache: 'no-store',
+          headers: buildCockpitApiHeaders(),
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -52,7 +54,11 @@ export function StrategyLabArtifactsReviewCard() {
 
   if (state.status === 'loading') {
     return (
-      <Card className="terminal-panel" data-testid="strategy-lab-artifacts-review-card">
+      <Card
+        id="strategy-lab-artifacts-review-card"
+        className="terminal-panel"
+        data-testid="strategy-lab-artifacts-review-card"
+      >
         <CardContent className="p-4 flex items-center gap-3">
           <Loader2 className="w-4 h-4 text-cyan-500 animate-spin" />
           <div>
@@ -67,6 +73,7 @@ export function StrategyLabArtifactsReviewCard() {
   if (state.status === 'error') {
     return (
       <Card
+        id="strategy-lab-artifacts-review-card"
         className="terminal-panel border-amber-500/30"
         data-testid="strategy-lab-artifacts-review-card"
       >
@@ -106,7 +113,11 @@ function ReadyStrategyLabArtifactsReviewCard({ payload }: { payload: StrategyLab
   const blockedQueue = workflow.review_queue.filter((item) => item.decision_state === 'PROMOTION_BLOCKED').length;
 
   return (
-    <Card className="terminal-panel" data-testid="strategy-lab-artifacts-review-card">
+    <Card
+      id="strategy-lab-artifacts-review-card"
+      className="terminal-panel"
+      data-testid="strategy-lab-artifacts-review-card"
+    >
       <CardHeader className="py-3 px-4 flex flex-row items-start justify-between gap-4 space-y-0 border-b border-border/40">
         <div className="min-w-0">
           <CardTitle className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
