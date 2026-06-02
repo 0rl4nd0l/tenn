@@ -544,6 +544,18 @@ async function sendChat(page: Page, prompt: string, expectedText: string | RegEx
   await expect(page.getByText(expectedText).first()).toBeVisible({ timeout: 15_000 })
 }
 
+async function expectNormalDiagnosticHandoffHidden(page: Page, reportId: string): Promise<void> {
+  await expect(page.getByText('Potential issue captured for operator review.').last()).toBeVisible()
+  await expect(page.getByText('Evidence state: DATA_MISSING').last()).toBeVisible()
+  await expect(page.getByText(`report: ${reportId}`)).toHaveCount(0)
+  await expect(page.getByText(reportId)).toHaveCount(0)
+  await expect(page.getByText('View diagnostic', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Draft repair prompt', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Investigation packet', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Deploy Codex' })).toHaveCount(0)
+  await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
+}
+
 test.describe.configure({ mode: 'serial' })
 
 test.afterAll(() => {
@@ -555,16 +567,16 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
     await mockCockpitApis(page, counters)
 
-    const response = await page.goto('/')
+    const response = await page.goto('/full-chat')
     await expect(page).toHaveTitle(/Financial Cockpit/)
     await expect(page.getByPlaceholder('Enter command or query...')).toBeVisible()
     const status = response?.status() ?? 0
     expect(status).toBe(200)
 
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Server and chat shell',
-      expected: ':8081 or configured base URL returns 200 and renders chat input',
+      expected: 'Configured base URL returns 200 for /full-chat and renders chat input',
       observed: `HTTP ${status}; title "${await page.title()}"; chat input visible`,
       status: 'PASS',
       notes: verificationTarget,
@@ -574,7 +586,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
   test('mocked chat states preserve analyst shell, action, diagnostic, source, feedback, and guard behavior', async ({ page }) => {
     const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
     await mockCockpitApis(page, counters)
-    await page.goto('/')
+    await page.goto('/full-chat')
     await expect(page.getByPlaceholder('Enter command or query...')).toBeVisible()
 
     await sendChat(page, 'plain conversational response', 'Sure, I can help narrow that down.')
@@ -583,7 +595,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await expect(page.getByText(/^Error:/)).toHaveCount(0)
     await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Plain conversational message',
       expected: 'Lightweight answer with no analyst shell, no error card, and no raw operator text',
       observed: 'Plain mocked answer rendered without Sources/Trust shell labels or raw diagnostic text',
@@ -600,7 +612,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await expect(page.getByText('Missing data / gaps').first()).toBeVisible()
     await expect(page.getByText('market_context').first()).toBeVisible()
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Analyst shell message',
       expected: 'Ticker, answer type, source count, evidence summary, key facts, and gap banner render',
       observed: 'BHP partial-evidence shell rendered with source count 2, filings + news evidence, key facts, and market_context gap',
@@ -615,7 +627,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await page.getByRole('button', { name: 'Review evidence' }).first().click()
     await expect(page.getByText('BHP FY25 annual report').first()).toBeVisible()
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Source list',
       expected: 'Source list can close and reopen; rendered count matches metadata',
       observed: 'Inline [2 sources] list closed, Review evidence reopened it, and two-source metadata remained visible',
@@ -634,7 +646,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await page.getByRole('button', { name: 'Cancel' }).first().click()
     await expect(page.getByText('Action cancelled: Run company analysis').first()).toBeVisible()
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Action proposal card',
       expected: 'Confirmation state and confirm/cancel controls render without auto-execution',
       observed: `Action card rendered; backend action POST count stayed ${counters.actionJobPostCount} until cancelled`,
@@ -648,7 +660,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await expect(page.getByText('Save thesis note').first()).toBeVisible()
     await expect(page.getByText('Entity: NOTE')).toHaveCount(0)
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Thesis-note proposal',
       expected: 'NOTE is not treated as ticker; referenced entity and memory/write confirmation are visible',
       observed: 'Entity BHP rendered, Entity NOTE absent, Memory write and confirmation labels visible',
@@ -657,28 +669,24 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     })
 
     await sendChat(page, 'unsupported financial claim guard response', 'I cannot verify that financial claim from visible evidence.')
-    await expect(page.getByText('Unsupported claim blocked').first()).toBeVisible()
+    await expect(page.getByText('Unsupported / not verified').last()).toBeVisible()
     await expect(page.getByText('Data missing').first()).toBeVisible()
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Unsupported financial claim guard',
       expected: 'Unsupported claim guard remains represented in UI when routing metadata requires it',
-      observed: 'Unsupported claim blocked trust label and Data missing answer type rendered',
+      observed: 'Unsupported / not verified trust label and Data missing answer type rendered',
       status: 'PASS',
       notes: 'No financial truth, extraction, or prompt behavior changed',
     })
 
     await sendChat(page, 'diagnostic flag response', 'Potential issue detected.')
-    await expect(page.getByText('report: auto_browser_regression').first()).toBeVisible()
-    await expect(page.getByText('View diagnostic').first()).toBeVisible()
-    await expect(page.getByText('Draft repair prompt').first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Deploy Codex' }).first()).toBeVisible()
-    await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
+    await expectNormalDiagnosticHandoffHidden(page, 'auto_browser_regression')
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Diagnostic/flag card hygiene',
-      expected: 'Compact diagnostic card visible; raw Codex CLI and repair prompt hidden by default',
-      observed: 'Diagnostic controls rendered while raw CODEX PROMPT and codex exec strings remained hidden',
+      expected: 'Normal users see DATA_MISSING recovery text without operator report paths, diagnostic links, repair prompts, or Deploy Codex controls',
+      observed: 'Normal diagnostic handoff rendered DATA_MISSING recovery text; report id, diagnostic link, repair prompt, investigation packet, Deploy Codex, raw prompt, and CLI text were absent',
       status: 'PASS',
       notes: 'Auto-flag payload mocked in SSE done event',
     })
@@ -687,14 +695,46 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await expect(page.getByRole('dialog', { name: 'Flag response' })).toBeVisible()
     await page.getByPlaceholder(/Optional note/).fill('browser regression flag flow')
     await page.getByRole('button', { name: 'Save flag' }).click()
-    await expect(page.getByText('report: flag_browser_regression').first()).toBeVisible()
+    await expectNormalDiagnosticHandoffHidden(page, 'flag_browser_regression')
     expect(counters.feedbackFlagPostCount).toBe(1)
-    await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
     addReportRow({
-      route: '/',
+      route: '/full-chat',
       area: 'Feedback flag flow',
-      expected: 'Flag dialog opens and safe mocked flag result renders without raw prompt dump',
-      observed: `Flag saved through mocked route; feedback POST count ${counters.feedbackFlagPostCount}; raw prompt/CLI hidden`,
+      expected: 'Flag dialog opens and mocked normal-user flag result renders DATA_MISSING recovery without operator controls or raw prompt dump',
+      observed: `Flag saved through mocked route; feedback POST count ${counters.feedbackFlagPostCount}; operator report id, links, Deploy Codex, raw prompt, and CLI text hidden`,
+      status: 'PASS',
+      notes: 'No destructive backend action required',
+    })
+  })
+
+  test('/full-chat hides operator diagnostics for normal users', async ({ page }) => {
+    const counters = { actionJobPostCount: 0, feedbackFlagPostCount: 0 }
+    await mockCockpitApis(page, counters)
+    await page.goto('/full-chat')
+    await expect(page.getByPlaceholder('Enter command or query...')).toBeVisible()
+
+    await sendChat(page, 'diagnostic flag response', 'Potential issue detected.')
+    await expectNormalDiagnosticHandoffHidden(page, 'auto_browser_regression')
+    addReportRow({
+      route: '/full-chat',
+      area: 'Diagnostic/flag card hygiene',
+      expected: 'Normal users see DATA_MISSING recovery text without operator report paths, diagnostic links, repair prompts, or Deploy Codex controls',
+      observed: 'Mocked auto_flag rendered normal recovery text; report id, diagnostic link, repair prompt, investigation packet, Deploy Codex, raw prompt, and CLI text were absent',
+      status: 'PASS',
+      notes: 'Auto-flag payload mocked in SSE done event',
+    })
+
+    await page.getByRole('button', { name: '[flag response]' }).last().click()
+    await expect(page.getByRole('dialog', { name: 'Flag response' })).toBeVisible()
+    await page.getByPlaceholder(/Optional note/).fill('browser regression flag flow')
+    await page.getByRole('button', { name: 'Save flag' }).click()
+    await expectNormalDiagnosticHandoffHidden(page, 'flag_browser_regression')
+    expect(counters.feedbackFlagPostCount).toBe(1)
+    addReportRow({
+      route: '/full-chat',
+      area: 'Feedback flag flow',
+      expected: 'Manual flag flow saves feedback without exposing operator report ids, paths, diagnostic links, repair prompts, or Deploy Codex controls',
+      observed: `Flag saved through mocked route; feedback POST count ${counters.feedbackFlagPostCount}; normal recovery text visible and operator controls hidden`,
       status: 'PASS',
       notes: 'No destructive backend action required',
     })
