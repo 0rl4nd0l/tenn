@@ -252,6 +252,7 @@ function ProposalRow({
             className="ml-auto h-8 gap-2"
             disabled={disabled}
             onClick={onStage}
+            aria-label={`Stage thesis memory proposal ${index + 1}`}
           >
             <Save className="h-4 w-4" />
             Stage
@@ -299,7 +300,7 @@ function HistoryList({
               type="button"
               className="invisible shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground group-hover:visible"
               onClick={(e) => { e.stopPropagation(); onDelete(entry.audit_id) }}
-              aria-label="Remove"
+              aria-label={`Remove thesis audit history ${entry.ticker} ${entry.filename || entry.focus || entry.audit_id.slice(0, 8)}`}
             >
               <X className="h-3 w-3" />
             </button>
@@ -358,16 +359,18 @@ function AlertList({ alerts, onDismiss, loading }: AlertListProps) {
                 <span className="text-[10px] text-muted-foreground">{new Date(alert.created_at).toLocaleDateString()}</span>
               </div>
               <button
+                type="button"
                 onClick={() => onDismiss(alert.alert_id)}
                 className="opacity-0 transition-opacity group-hover:opacity-100"
                 title="Dismiss alert"
+                aria-label={`Dismiss thesis watchdog alert ${alert.alert_id}`}
               >
                 <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </button>
             </div>
             <p className="font-medium leading-tight text-foreground">{alert.finding}</p>
             {alert.metadata.excerpt ? (
-              <p className="mt-2 line-clamp-2 italic text-muted-foreground">"{alert.metadata.excerpt}"</p>
+              <p className="mt-2 line-clamp-2 italic text-muted-foreground">&quot;{alert.metadata.excerpt}&quot;</p>
             ) : null}
           </div>
         ))}
@@ -652,7 +655,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
         setAlerts((prev) => prev.filter((a) => a.alert_id !== alertId))
         toast.success('Alert dismissed')
       }
-    } catch (e) {
+    } catch {
       toast.error('Failed to dismiss alert')
     }
   }
@@ -665,6 +668,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
             value={ticker}
             onChange={(event) => setTicker(event.target.value.toUpperCase())}
             placeholder="Ticker"
+            aria-label="Ticker for thesis audit"
             className="h-10 font-mono uppercase"
             maxLength={10}
           />
@@ -672,6 +676,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
             value={focus}
             onChange={(event) => setFocus(event.target.value)}
             placeholder="Focus"
+            aria-label="Thesis audit focus"
             className="h-10"
           />
           <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-muted-foreground hover:bg-muted/40">
@@ -682,6 +687,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
               accept=".pdf,.docx,.txt,.md,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="sr-only"
               onChange={handleFileChange}
+              aria-label="Upload thesis source report"
             />
           </label>
           <Button className="h-10 gap-2" disabled={loading} onClick={handleAudit}>
@@ -703,6 +709,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
               }
             }}
             title="Refresh Coverage"
+            aria-label="Refresh thesis coverage"
           >
             <Clock className={cn('h-4 w-4', coverageLoading && 'animate-spin')} />
           </Button>
@@ -746,6 +753,7 @@ export function ThesisAuditScreen({ apiKey }: ThesisAuditScreenProps) {
                 value={reportText}
                 onChange={(event) => setReportText(event.target.value)}
                 placeholder="Paste report text"
+                aria-label="Paste thesis report text"
                 className="min-h-52 resize-none font-mono text-xs"
               />
             </div>
