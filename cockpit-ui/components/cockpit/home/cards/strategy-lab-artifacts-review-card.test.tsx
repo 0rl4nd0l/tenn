@@ -7,6 +7,7 @@ import { StrategyLabArtifactsReviewCard } from './strategy-lab-artifacts-review-
 
 describe('StrategyLabArtifactsReviewCard', () => {
   afterEach(() => {
+    delete process.env.NEXT_PUBLIC_API_KEY;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -184,6 +185,7 @@ describe('StrategyLabArtifactsReviewCard', () => {
         ],
       }),
     });
+    process.env.NEXT_PUBLIC_API_KEY = 'operator-key';
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -223,7 +225,10 @@ describe('StrategyLabArtifactsReviewCard', () => {
     expect(screen.getAllByText('DATA_MISSING').length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/cockpit/strategy-lab/artifacts',
-      expect.objectContaining({ cache: 'no-store' }),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.objectContaining({ 'X-API-Key': 'operator-key' }),
+      }),
     );
   });
 });

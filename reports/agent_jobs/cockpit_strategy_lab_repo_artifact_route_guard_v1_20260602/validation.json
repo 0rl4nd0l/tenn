@@ -1,0 +1,42 @@
+{
+  "job_id": "cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602",
+  "validated_at": "2026-06-02T07:06:40Z",
+  "results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_strategy_lab_repo_artifact_route_guard_v1_20260602.md",
+      "result": "pass",
+      "notes": "ok true, issues empty"
+    },
+    {
+      "command": "node_modules/.bin/vitest run lib/strategy-lab-status.test.ts lib/strategy-lab-artifacts.test.ts components/cockpit/home/cards/strategy-lab-status-card.test.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx lib/telemetry-route-access-guard.test.ts lib/cockpit-api-headers.test.ts",
+      "cwd": "cockpit-ui",
+      "result": "pass",
+      "tests": 21,
+      "files": 6
+    },
+    {
+      "command": "node_modules/.bin/eslint app/api/cockpit/strategy-lab/status/route.ts app/api/cockpit/strategy-lab/artifacts/route.ts components/cockpit/home/cards/strategy-lab-status-card.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.tsx components/cockpit/home/cards/strategy-lab-status-card.test.tsx components/cockpit/home/cards/strategy-lab-artifacts-review-card.test.tsx lib/strategy-lab-status.test.ts lib/strategy-lab-artifacts.test.ts lib/cockpit-bff-auth.ts lib/cockpit-api-headers.ts",
+      "cwd": "cockpit-ui",
+      "result": "pass"
+    },
+    {
+      "command": "node_modules/.bin/tsc --noEmit --pretty false",
+      "cwd": "cockpit-ui",
+      "result": "pass"
+    },
+    {
+      "command": "code-reviewer pass over modified and added files",
+      "result": "pass",
+      "notes": "No critical issues after raw guarded API links were replaced with in-page anchors."
+    }
+  ],
+  "negative_scope": [
+    "No production data access.",
+    "No backend route, query orchestration, extraction, parser, prompt, gold-label, Qdrant, database, memory, runtime/model/GPU service configuration, Strategy Lab runtime, QuantDinger runtime, or financial truth changes.",
+    "No Strategy Lab artifact mutation and no runtime probes."
+  ]
+}

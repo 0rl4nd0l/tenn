@@ -13,11 +13,20 @@ import {
 } from './strategy-lab-status';
 import { readStrategyLabStatus } from './strategy-lab-status-server';
 
+function routeRequest(apiKey?: string): Request {
+  return new Request('http://localhost/api/cockpit/strategy-lab/status', {
+    method: 'GET',
+    headers: apiKey ? { 'X-API-Key': apiKey } : {},
+  });
+}
+
 describe('Strategy Lab status contract', () => {
   let workspace: string | null = null;
 
   afterEach(() => {
     delete process.env.COCKPIT_WORKSPACE_ROOT;
+    delete process.env.COCKPIT_API_KEY;
+    delete process.env.NEXT_PUBLIC_API_KEY;
     if (workspace) {
       rmSync(workspace, { recursive: true, force: true });
       workspace = null;
@@ -152,7 +161,19 @@ describe('Strategy Lab status contract', () => {
     ).toBe('missing');
   });
 
-  it('serves the read-only status route with no-store caching', async () => {
+  it('denies the status route without the configured operator key', async () => {
+    process.env.NEXT_PUBLIC_API_KEY = 'operator-key';
+
+    const response = await getStrategyLabStatusRoute(routeRequest());
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'cockpit_api_key_required',
+    });
+  });
+
+  it('serves the authenticated read-only status route with no-store caching', async () => {
     const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'strategy-lab-route-'));
     workspace = workspaceRoot;
     const reportPath = path.join(
@@ -162,8 +183,9 @@ describe('Strategy Lab status contract', () => {
     mkdirSync(path.dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, '# Strategy Lab Phase 3G Mergeback\n');
     process.env.COCKPIT_WORKSPACE_ROOT = workspaceRoot;
+    process.env.NEXT_PUBLIC_API_KEY = 'operator-key';
 
-    const response = await getStrategyLabStatusRoute();
+    const response = await getStrategyLabStatusRoute(routeRequest('operator-key'));
     const payload = (await response.json()) as StrategyLabStatusResponse;
 
     expect(response.status).toBe(200);
