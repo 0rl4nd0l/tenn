@@ -1,0 +1,38 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602/status.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_telemetry_command_redaction_v1_20260602.md",
+        "cockpit-ui/app/api/cockpit/metrics/gpu/route.ts",
+        "cockpit-ui/app/api/cockpit/metrics/host/route.ts",
+        "cockpit-ui/app/api/cockpit/health/route.ts",
+        "cockpit-ui/lib/process-command-redaction.ts",
+        "cockpit-ui/lib/process-command-redaction.test.ts",
+        "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602/README.md",
+        "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602/status.json",
+        "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602/validation.json",
+        "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "cockpit_telemetry_command_redaction_v1_20260602",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_telemetry_command_redaction_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
