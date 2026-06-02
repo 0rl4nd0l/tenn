@@ -17,6 +17,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Codex CLI compatibility shim
+        shell: bash
+        run: |
+          mkdir -p .github/bin
+          cat > .github/bin/codex <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          args=()
+          for arg in "$@"; do
+            if [[ "$arg" == "--quiet" ]]; then
+              continue
+            fi
+            args+=("$arg")
+          done
+
+          npm_root="$(npm root -g 2>/dev/null || true)"
+          for candidate in \
+            "$npm_root/@openai/codex/bin/codex.js" \
+            "$npm_root/@openai/codex/dist/cli.js" \
+            "$npm_root/@openai/codex/cli.js"; do
+            if [[ -f "$candidate" ]]; then
+              exec node "$candidate" "${args[@]}"
+            fi
+          done
+
+          exec npx -y @openai/codex "${args[@]}"
+          EOF
+          chmod +x .github/bin/codex
+          echo "$PWD/.github/bin" >> "$GITHUB_PATH"
+
       - name: Detect Claude auth
         id: auth
         shell: bash
