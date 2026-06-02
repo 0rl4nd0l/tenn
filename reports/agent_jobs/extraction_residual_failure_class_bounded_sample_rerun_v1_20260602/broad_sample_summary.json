@@ -1,0 +1,265 @@
+{
+  "baseline": {
+    "failed": 4,
+    "ok": 4,
+    "ok_low_confidence": 0
+  },
+  "captured_at": "2026-06-02T08:46:32.390450+00:00",
+  "code_head": "902d03b4aa43a8c5729f9ddec36dc374674045a6",
+  "current": {
+    "failed": 0,
+    "ok": 6,
+    "ok_low_confidence": 2
+  },
+  "delta": {
+    "failed": -4,
+    "ok": 2,
+    "ok_low_confidence": 2
+  },
+  "interpretation": {
+    "failures_improved": true,
+    "low_confidence_cases_remaining": 2,
+    "no_full_extraction_or_backfill_run": true,
+    "not_full_graduation": true,
+    "strict_ok_improved": true
+  },
+  "run_metadata": {
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "candidate_filter": {
+      "candidate_count": 21163,
+      "excluded_count": 7470,
+      "excluded_reason_counts": {
+        "advisory_only_document": 50,
+        "capital_management_update_without_formal_statements": 123,
+        "meeting_notice": 1660,
+        "meeting_results_notice": 2287,
+        "non_financial_update_without_formal_statements": 2022,
+        "operational_update_without_formal_statements": 1314,
+        "pre_results_update_without_formal_statements": 9,
+        "unaudited_financial_update_without_formal_statements": 5
+      },
+      "input_count": 28633
+    },
+    "docs_root": "/data/asx/docs",
+    "requested_count": 8,
+    "seed": 20260601,
+    "timestamp": "20260602T083229Z"
+  },
+  "sample_inputs": [
+    "data/asx/docs/CRS/financial_performance/2021-10-29_quarterly-activities-appendix-5b-cash-flow-report_e92ad3bc-d9a0-4916-8867-78635487bea8.pdf",
+    "data/asx/docs/NSM/financial_performance/2023-03-15_half-yearly-report-and-accounts_db3717b6-fe21-4e62-9ca7-31de22d40f50.pdf",
+    "data/asx/docs/AZJ/financial_performance/2023-02-13_aurizon-network-pty-ltd-half-year-report_95c99aec-a4c1-4d6e-bd89-ee7347218124.pdf",
+    "data/asx/docs/ABE/financial_performance/2022-09-30_annual-report-to-shareholders_0414ebcc-8398-4948-b741-4716d66f1480.pdf",
+    "data/asx/docs/NWM/financial_performance/2025-04-30_quarterly-activities-appendix-5b-cash-flow-report_90e69a82-c609-4ca9-83ce-ac9c15d17a7a.pdf",
+    "data/asx/docs/CRS/financial_performance/2023-09-28_full-year-statutory-accounts_6b3754ce-d0ee-46b7-9bed-e07182d39fa2.pdf",
+    "data/asx/docs/NVU/financial_performance/2024-01-31_quarterly-appendix-4c-cash-flow-report_e5987b49-a90d-445d-a338-619990c4069c.pdf",
+    "data/asx/docs/WBC/financial_performance/2024-02-19_westpac-1q24-update_3899b7ba-df77-4788-be1c-a6d5d65f947f.pdf"
+  ],
+  "sample_outputs": [
+    {
+      "confidence": 1.0,
+      "error": null,
+      "non_null_metrics": 5,
+      "pdf_path": "data/asx/docs/CRS/financial_performance/2021-10-29_quarterly-activities-appendix-5b-cash-flow-report_e92ad3bc-d9a0-4916-8867-78635487bea8.pdf",
+      "period_end": "2021-09-30",
+      "period_type": "Q",
+      "scale": "thousands",
+      "status": "ok",
+      "ticker": "CRS"
+    },
+    {
+      "confidence": 0.695,
+      "error": null,
+      "non_null_metrics": 6,
+      "pdf_path": "data/asx/docs/NSM/financial_performance/2023-03-15_half-yearly-report-and-accounts_db3717b6-fe21-4e62-9ca7-31de22d40f50.pdf",
+      "period_end": "2022-12-31",
+      "period_type": "H",
+      "scale": "units",
+      "status": "ok_low_confidence",
+      "ticker": "NSM"
+    },
+    {
+      "confidence": 0.926,
+      "error": null,
+      "non_null_metrics": 9,
+      "pdf_path": "data/asx/docs/AZJ/financial_performance/2023-02-13_aurizon-network-pty-ltd-half-year-report_95c99aec-a4c1-4d6e-bd89-ee7347218124.pdf",
+      "period_end": "2022-12-31",
+      "period_type": "H",
+      "scale": "millions",
+      "status": "ok",
+      "ticker": "AZJ"
+    },
+    {
+      "confidence": 0.852,
+      "error": null,
+      "non_null_metrics": 8,
+      "pdf_path": "data/asx/docs/ABE/financial_performance/2022-09-30_annual-report-to-shareholders_0414ebcc-8398-4948-b741-4716d66f1480.pdf",
+      "period_end": "2022-06-30",
+      "period_type": "A",
+      "scale": "units",
+      "status": "ok",
+      "ticker": "ABE"
+    },
+    {
+      "confidence": 1.0,
+      "error": null,
+      "non_null_metrics": 5,
+      "pdf_path": "data/asx/docs/NWM/financial_performance/2025-04-30_quarterly-activities-appendix-5b-cash-flow-report_90e69a82-c609-4ca9-83ce-ac9c15d17a7a.pdf",
+      "period_end": "2025-03-31",
+      "period_type": "Q",
+      "scale": "thousands",
+      "status": "ok",
+      "ticker": "NWM"
+    },
+    {
+      "confidence": 1.0,
+      "error": null,
+      "non_null_metrics": 6,
+      "pdf_path": "data/asx/docs/CRS/financial_performance/2023-09-28_full-year-statutory-accounts_6b3754ce-d0ee-46b7-9bed-e07182d39fa2.pdf",
+      "period_end": "2023-06-30",
+      "period_type": "A",
+      "scale": "units",
+      "status": "ok",
+      "ticker": "CRS"
+    },
+    {
+      "confidence": 0.8,
+      "error": null,
+      "non_null_metrics": 4,
+      "pdf_path": "data/asx/docs/NVU/financial_performance/2024-01-31_quarterly-appendix-4c-cash-flow-report_e5987b49-a90d-445d-a338-619990c4069c.pdf",
+      "period_end": "2023-12-31",
+      "period_type": "Q",
+      "scale": "thousands",
+      "status": "ok",
+      "ticker": "NVU"
+    },
+    {
+      "confidence": 0.667,
+      "error": null,
+      "non_null_metrics": 2,
+      "pdf_path": "data/asx/docs/WBC/financial_performance/2024-02-19_westpac-1q24-update_3899b7ba-df77-4788-be1c-a6d5d65f947f.pdf",
+      "period_end": "2023-12-31",
+      "period_type": "Q",
+      "scale": "millions",
+      "status": "ok_low_confidence",
+      "ticker": "WBC"
+    }
+  ],
+  "schema_version": 1,
+  "summary": {
+    "error_classification": {},
+    "metric_coverage": {
+      "capex": {
+        "present": 6,
+        "rate": 0.75,
+        "total": 8
+      },
+      "cash_end": {
+        "present": 7,
+        "rate": 0.875,
+        "total": 8
+      },
+      "ebit": {
+        "present": 1,
+        "rate": 0.125,
+        "total": 8
+      },
+      "financing_cf": {
+        "present": 6,
+        "rate": 0.75,
+        "total": 8
+      },
+      "investing_cf": {
+        "present": 7,
+        "rate": 0.875,
+        "total": 8
+      },
+      "net_debt": {
+        "present": 1,
+        "rate": 0.125,
+        "total": 8
+      },
+      "np_attributable": {
+        "present": 4,
+        "rate": 0.5,
+        "total": 8
+      },
+      "operating_cf": {
+        "present": 7,
+        "rate": 0.875,
+        "total": 8
+      },
+      "revenue": {
+        "present": 3,
+        "rate": 0.375,
+        "total": 8
+      },
+      "shares_outstanding": {
+        "present": 3,
+        "rate": 0.375,
+        "total": 8
+      }
+    },
+    "nonnull_metric_distribution": {
+      "max": 9,
+      "mean": 5.62,
+      "median": 5.5,
+      "min": 2
+    },
+    "period_type_distribution": {
+      "A": 2,
+      "H": 2,
+      "Q": 4
+    },
+    "sanity_checks": {
+      "cash_end_positive": {
+        "passed": 7,
+        "rate": 1.0,
+        "total": 7
+      },
+      "period_end_valid": {
+        "passed": 8,
+        "rate": 1.0,
+        "total": 8
+      },
+      "period_type_valid": {
+        "passed": 8,
+        "rate": 1.0,
+        "total": 8
+      },
+      "revenue_positive": {
+        "passed": 3,
+        "rate": 1.0,
+        "total": 3
+      },
+      "shares_positive": {
+        "passed": 3,
+        "rate": 1.0,
+        "total": 3
+      }
+    },
+    "scale_distribution": {
+      "millions": 2,
+      "thousands": 3,
+      "units": 3
+    },
+    "status_distribution": {
+      "ok": 6,
+      "ok_low_confidence": 2
+    },
+    "success_rate": 1.0,
+    "timing": {
+      "max_s": 167.4,
+      "mean_s": 93.73,
+      "median_s": 88.72,
+      "min_s": 33.68,
+      "p95_s": 167.4,
+      "p99_s": 167.4,
+      "total_s": 749.9
+    },
+    "total": 8,
+    "unique_tickers": 7
+  },
+  "task_card": "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md"
+}

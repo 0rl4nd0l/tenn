@@ -1,0 +1,35 @@
+{
+  "captured_at": "2026-06-02T08:47:04.076796+00:00",
+  "corrected_cleanup_captured_at": "2026-06-02T08:48:00.316889+00:00",
+  "gpu_activity_inactive_after_run": true,
+  "gpu_guard_no_llama_after_shutdown": true,
+  "no_full_extraction_or_backfill_run": true,
+  "notes": [
+    "Generated raw broad_test JSON was staged under /tmp and copied into bounded_broad_sample_results.json to keep the task-card allowlist fixed.",
+    "No source PDF edits or staging were detected by git status."
+  ],
+  "ports_clear_after_shutdown": true,
+  "queues_zero_after_run": true,
+  "repo_status_short": {
+    "cmd": [
+      "git",
+      "status",
+      "--short",
+      "--branch"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [ahead 42]\n M reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json\n?? docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md\n"
+  },
+  "runtime_processes_clear_after_shutdown": true,
+  "schema_version": 1,
+  "source_pdfs_staged": {
+    "cmd": [
+      "git status --short -- '*.pdf' /data/asx/docs 2>/dev/null || true"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "unrelated_dirty_file_preserved": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+}

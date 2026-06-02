@@ -1,0 +1,106 @@
+{
+  "backend_unit_status": {
+    "cmd": [
+      "systemctl --user show tenn-backend-extraction-residual-gate-rerun-20260602.service -p MainPID -p ExecMainPID -p ActiveState -p SubState --no-pager"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "MainPID=0\nExecMainPID=0\nActiveState=inactive\nSubState=dead\n"
+  },
+  "captured_at": "2026-06-02T08:47:04.076796+00:00",
+  "cleanup_status": {
+    "activity_inactive": true,
+    "gpu_guard_no_llama": true,
+    "ports_clear": true,
+    "queues_zero": true,
+    "runtime_processes_clear": true
+  },
+  "corrected_cleanup_captured_at": "2026-06-02T08:48:00.316889+00:00",
+  "gpu_activity_after_clear": {
+    "cmd": [
+      "financial-engine_v2/.venv/bin/python",
+      "scripts/gpu_activity_guard.py",
+      "status",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "{\"active\": false, \"active_runs\": [], \"expires_at\": null, \"expires_in_seconds\": 0, \"kind\": \"gpu_exclusive_activity\", \"source\": \"none\", \"token_count\": 0}\n"
+  },
+  "gpu_guard_after_stop": {
+    "cmd": [
+      "scripts/gpu_process_guard.sh",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n    {\"pid\": 3940514, \"port\": \"unknown\", \"model\": \"0\", \"vram_mb\": ROGUE, \"status\": \"\"}\n  ]\n}\n"
+  },
+  "gpu_guard_after_stop_standalone": {
+    "cmd": [
+      "scripts/gpu_process_guard.sh",
+      "--json"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "{\n  \"vram_total_mb\": 24576,\n  \"vram_used_mb\": 1,\n  \"vram_free_mb\": 24575,\n  \"vram_critical\": 0,\n  \"processes\": [\n\n  ]\n}\n"
+  },
+  "gpu_memory_after_stop": {
+    "cmd": [
+      "nvidia-smi",
+      "--query-gpu=index,name,memory.used,memory.total",
+      "--format=csv,noheader,nounits"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576\n"
+  },
+  "ports_after_stop": {
+    "cmd": [
+      "ss -ltnp '( sport = :8000 or sport = :8001 or sport = :8002 )' || true"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n"
+  },
+  "ports_after_stop_standalone": {
+    "cmd": [
+      "ss -ltnp '( sport = :8000 or sport = :8001 or sport = :8002 )' || true"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n"
+  },
+  "queues_after_run": {
+    "cmd": [
+      "for q in ingest embed score llm_gpu llm_cpu; do printf '%s=' \"$q\"; redis-cli llen \"$q\"; done; printf 'unacked_keys='; redis-cli --scan --pattern '*unacked*' | wc -l"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "ingest=0\nembed=0\nscore=0\nllm_gpu=0\nllm_cpu=0\nunacked_keys=0\n"
+  },
+  "router_unit_status": {
+    "cmd": [
+      "systemctl --user show tenn-llama-router-extraction-residual-class-rerun-20260602.service -p MainPID -p ExecMainPID -p ActiveState -p SubState --no-pager"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "MainPID=0\nExecMainPID=0\nActiveState=inactive\nSubState=dead\n"
+  },
+  "runtime_processes_after_stop": {
+    "cmd": [
+      "pgrep -af 'broad_extraction_test|run_local_backend|uvicorn|llama-server|celery|process_document|backfill_ticker' || true"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "3940514 /bin/bash -c systemctl --user stop tenn-llama-router-extraction-residual-class-rerun-20260602.service >/dev/null 2>&1 || true financial-engine_v2/.venv/bin/python scripts/gpu_activity_guard.py clear de042adc689149769e86aa60cae649a2 || true systemctl --user stop tenn-backend-extraction-residual-gate-rerun-20260602.service >/dev/null 2>&1 || true sleep 2 financial-engine_v2/.venv/bin/python - <<'PY' from __future__ import annotations import json, subprocess, datetime, pathlib ROOT=pathlib.Path.cwd(); OUT=ROOT/'reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602' def run(cmd, shell=False, timeout=30):     try:         p=subprocess.run(cmd,cwd=ROOT,shell=shell,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout)         return {'cmd': cmd if isinstance(cmd,list) else [cmd], 'exit_code': p.returncode, 'stdout': p.stdout, 'stderr': p.stderr}     except subprocess.TimeoutExpired as exc:         return {'cmd': cmd if isinstance(cmd,list) else [cmd], 'exit_code': None, 'stdout': exc.stdout or '', 'stderr': (exc.stderr or '')+'\\nTIMEOUT'} queue_script=\"for q in ingest embed score llm_gpu llm_cpu; do printf '%s=' \\\"$q\\\"; redis-cli llen \\\"$q\\\"; done; printf 'unacked_keys='; redis-cli --scan --pattern '*unacked*' | wc -l\" shutdown={  'captured_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),  'router_unit_status': run('systemctl --user show tenn-llama-router-extraction-residual-class-rerun-20260602.service -p MainPID -p ExecMainPID -p ActiveState -p SubState --no-pager', shell=True),  'backend_unit_status': run('systemctl --user show tenn-backend-extraction-residual-gate-rerun-20260602.service -p MainPID -p ExecMainPID -p ActiveState -p SubState --no-pager', shell=True),  'gpu_activity_after_clear': run(['financial-engine_v2/.venv/bin/python','scripts/gpu_activity_guard.py','status','--json']),  'gpu_guard_after_stop': run(['scripts/gpu_process_guard.sh','--json']),  'gpu_memory_after_stop': run(['nvidia-smi','--query-gpu=index,name,memory.used,memory.total','--format=csv,noheader,nounits']),  'ports_after_stop': run(\"ss -ltnp '( sport = :8000 or sport = :8001 or sport = :8002 )' || true\", shell=True),  'queues_after_run': run(queue_script, shell=True),  'runtime_processes_after_stop': run(\"pgrep -af 'broad_extraction_test|run_local_backend|uvicorn|llama-server|celery|process_document|backfill_ticker' || true\", shell=True), } shutdown['cleanup_status']={  'activity_inactive': '\"active\": false' in shutdown['gpu_activity_after_clear']['stdout'],  'ports_clear': 'LISTEN' not in shutdown['ports_after_stop']['stdout'],  'queues_zero': 'ingest=0\\nembed=0\\nscore=0\\nllm_gpu=0\\nllm_cpu=0\\nunacked_keys=0' in shutdown['queues_after_run']['stdout'],  'gpu_guard_no_llama': '\"processes\": [\\n\\n  ]' in shutdown['gpu_guard_after_stop']['stdout'] or '\"processes\": []' in shutdown['gpu_guard_after_stop']['stdout'], } (OUT/'runtime_shutdown.json').write_text(json.dumps(shutdown, indent=2, sort_keys=True)+'\\n') side_effect={  'schema_version': 1,  'captured_at': shutdown['captured_at'],  'no_full_extraction_or_backfill_run': True,  'queues_zero_after_run': shutdown['cleanup_status']['queues_zero'],  'gpu_activity_inactive_after_run': shutdown['cleanup_status']['activity_inactive'],  'ports_clear_after_shutdown': shutdown['cleanup_status']['ports_clear'],  'gpu_guard_no_llama_after_shutdown': shutdown['cleanup_status']['gpu_guard_no_llama'],  'source_pdfs_staged': run(\"git status --short -- '*.pdf' /data/asx/docs 2>/dev/null || true\", shell=True),  'repo_status_short': run(['git','status','--short','--branch']),  'unrelated_dirty_file_preserved': 'reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json',  'notes': [    'Generated raw broad_test JSON was staged under /tmp and copied into bounded_broad_sample_results.json to keep the task-card allowlist fixed.',    'No source PDF edits or staging were detected by git status.',  ], } (OUT/'side_effect_audit.json').write_text(json.dumps(side_effect, indent=2, sort_keys=True)+'\\n') print(json.dumps({'runtime_shutdown': str(OUT/'runtime_shutdown.json'), 'side_effect_audit': str(OUT/'side_effect_audit.json'), 'cleanup_status': shutdown['cleanup_status']}, indent=2)) PY\n3940741 /bin/sh -c pgrep -af 'broad_extraction_test|run_local_backend|uvicorn|llama-server|celery|process_document|backfill_ticker' || true\n"
+  },
+  "runtime_processes_after_stop_standalone": {
+    "cmd": [
+      "ps -eo pid,args | rg '[b]road_extraction_test|[u]vicorn app.main:app|[r]un_local_backend|[l]lama-server|[c]elery|[p]rocess_document|[b]ackfill_ticker' || true"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  }
+}

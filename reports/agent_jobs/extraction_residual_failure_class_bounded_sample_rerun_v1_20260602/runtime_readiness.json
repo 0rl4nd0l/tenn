@@ -1,0 +1,16 @@
+{
+  "backend_branch_visible": true,
+  "backend_health_ok": true,
+  "captured_at": "2026-06-02T08:31:10.543943+00:00",
+  "conflicting_jobs": [],
+  "gpu_activity_inactive_before_run": true,
+  "gpu_guard_clean": true,
+  "notes": [
+    "Existing unrelated dirty file preserved: reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+    "API-visible loaded commit unavailable; git HEAD/process cwd used as current-turn evidence."
+  ],
+  "queues_zero": true,
+  "readiness_clean": true,
+  "repo_head_short": "902d03b4aa43",
+  "source_pdf_count": 28633
+}

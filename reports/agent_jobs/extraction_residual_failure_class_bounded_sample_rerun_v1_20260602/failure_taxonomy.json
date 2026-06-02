@@ -1,0 +1,53 @@
+{
+  "baseline": {
+    "failed": 4,
+    "ok": 4,
+    "ok_low_confidence": 0
+  },
+  "captured_at": "2026-06-02T08:46:32.390450+00:00",
+  "current": {
+    "failed": 0,
+    "ok": 6,
+    "ok_low_confidence": 2
+  },
+  "delta": {
+    "failed": -4,
+    "ok": 2,
+    "ok_low_confidence": 2
+  },
+  "failure_count": 0,
+  "failures": [],
+  "low_confidence_cases": [
+    {
+      "classification": "real_half_year_report_low_confidence_metric_coverage",
+      "confidence": 0.695,
+      "next_safe_step": "targeted source/coverage audit only if this class is material; do not promote as canonical truth from broad sample alone",
+      "non_null_metrics": 6,
+      "pdf_path": "data/asx/docs/NSM/financial_performance/2023-03-15_half-yearly-report-and-accounts_db3717b6-fe21-4e62-9ca7-31de22d40f50.pdf",
+      "period_end": "2022-12-31",
+      "period_type": "H",
+      "scale": "units",
+      "status": "ok_low_confidence",
+      "ticker": "NSM"
+    },
+    {
+      "classification": "quarterly_update_low_confidence_metric_coverage",
+      "confidence": 0.667,
+      "next_safe_step": "targeted source/coverage audit only if this class is material; do not promote as canonical truth from broad sample alone",
+      "non_null_metrics": 2,
+      "pdf_path": "data/asx/docs/WBC/financial_performance/2024-02-19_westpac-1q24-update_3899b7ba-df77-4788-be1c-a6d5d65f947f.pdf",
+      "period_end": "2023-12-31",
+      "period_type": "Q",
+      "scale": "millions",
+      "status": "ok_low_confidence",
+      "ticker": "WBC"
+    }
+  ],
+  "low_confidence_count": 2,
+  "notes": [
+    "No failed or exception statuses in the post-902d03b4 bounded sample.",
+    "Low-confidence cases are not broad robustness failures, but they are not clean strict-ok evidence either.",
+    "AZJ and ABE sampled successfully in this run; AZJ remains known broader parser/metric-coverage work outside this bounded sample."
+  ],
+  "schema_version": 1
+}

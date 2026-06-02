@@ -1,0 +1,112 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [
+    "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+  ],
+  "issues": [
+    {
+      "field": "changed_files",
+      "message": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json is outside allowed_files"
+    }
+  ],
+  "ok": false,
+  "report_path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+        "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt"
+      ],
+      "approval_required": true,
+      "github_mutation_allowed": "none",
+      "job_id": "extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "User requested one bounded same-size broad extraction validation sample on 2026-06-02 after residual failure-class hardening commit 902d03b4aa43.",
+      "output_dir": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Query Orchestration",
+        "Provenance"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

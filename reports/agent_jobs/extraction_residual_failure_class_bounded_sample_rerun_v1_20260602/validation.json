@@ -1,0 +1,351 @@
+{
+  "active_jobs_empty_after_release": true,
+  "captured_at": "2026-06-02T08:48:47.751211+00:00",
+  "expected_check_diff_blocker": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+  "final_git_status_before_commit": {
+    "cmd": [
+      "git",
+      "status",
+      "--short",
+      "--branch",
+      "--untracked-files=all"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "## migration/clean-runtime-baseline-reconstruct-v1...origin/migration/clean-runtime-baseline-reconstruct-v1 [ahead 42]\nA  docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md\n M reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json\nAM reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json\nA  reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json\n"
+  },
+  "final_list_active": {
+    "cmd": [
+      "python3",
+      "scripts/agent_job_registry.py",
+      "list-active",
+      "--read-only"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": false,\n  \"ok\": true,\n  \"read_only\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}\n"
+  },
+  "final_queues": {
+    "cmd": [
+      "for q in ingest embed score llm_gpu llm_cpu; do printf '%s=' \"$q\"; redis-cli llen \"$q\"; done; printf 'unacked_keys='; redis-cli --scan --pattern '*unacked*' | wc -l"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "ingest=0\nembed=0\nscore=0\nllm_gpu=0\nllm_cpu=0\nunacked_keys=0\n"
+  },
+  "final_release_captured_at": "2026-06-02T08:50:18.404039+00:00",
+  "final_staged_validation_captured_at": "2026-06-02T08:49:44.523997+00:00",
+  "final_status_json": {
+    "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.json",
+    "agent": "Codex",
+    "allowed_files": [
+      "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+      "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt"
+    ],
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "claimed_at": "2026-06-02T08:30:28.501703Z",
+    "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+    "heartbeat_at": "2026-06-02T08:30:28.501703Z",
+    "job_id": "extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+    "lane": "Evaluation",
+    "last_seen_at": "2026-06-02T08:49:53.806912Z",
+    "output_dir": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+    "owner": "Codex",
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "released_at": "2026-06-02T08:49:53.806912Z",
+    "repo_root": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+    "schema_version": 1,
+    "session_id": "l4nd0-System-Product-Name:3893610:extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+    "started_at": "2026-06-02T08:30:28.501703Z",
+    "status": "released",
+    "task_card": "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+    "updated_at": "2026-06-02T08:49:53.806912Z",
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "git_diff_cached_check": {
+    "cmd": [
+      "git",
+      "diff",
+      "--cached",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "git_diff_cached_check_final": {
+    "cmd": [
+      "git",
+      "diff",
+      "--cached",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "git_diff_check": {
+    "cmd": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "git_diff_check_final": {
+    "cmd": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "json_files": [
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+    "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json"
+  ],
+  "json_validation": {
+    "cmd": [
+      "for f in reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/*.json; do jq -e . \"$f\" >/dev/null || exit 1; done"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "no_full_extraction_or_backfill_run": true,
+  "ok_except_preexisting_check_diff_blocker": true,
+  "ok_except_preexisting_check_diff_blocker_final_staged": true,
+  "queues_after_run": {
+    "cmd": [
+      "for q in ingest embed score llm_gpu llm_cpu; do printf '%s=' \"$q\"; redis-cli llen \"$q\"; done; printf 'unacked_keys='; redis-cli --scan --pattern '*unacked*' | wc -l"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "ingest=0\nembed=0\nscore=0\nllm_gpu=0\nllm_cpu=0\nunacked_keys=0\n"
+  },
+  "registry_released": true,
+  "runtime_cleanup": {
+    "activity_inactive": true,
+    "gpu_guard_no_llama": true,
+    "ports_clear": true,
+    "queues_zero": true,
+    "runtime_processes_clear": true
+  },
+  "schema_version": 1,
+  "source_pdf_status": {
+    "cmd": [
+      "git status --short -- '*.pdf' /data/asx/docs 2>/dev/null || true; git diff --name-only -- '*.pdf' | wc -l; git diff --cached --name-only -- '*.pdf' | wc -l"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0\n0\n"
+  },
+  "staged_files_final": {
+    "cmd": [
+      "git",
+      "diff",
+      "--cached",
+      "--name-status"
+    ],
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "A\tdocs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json\nA\treports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json\n"
+  },
+  "task_card_check_diff_result": {
+    "changed_files": [
+      {
+        "path": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+        "status": "M"
+      },
+      {
+        "path": "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+        "status": "??"
+      }
+    ],
+    "disallowed_files": [
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+    ],
+    "issues": [
+      {
+        "field": "changed_files",
+        "message": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json is outside allowed_files"
+      }
+    ],
+    "ok": false,
+    "report_path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+    "validation": {
+      "issues": [],
+      "metadata": {
+        "allowed_files": [
+          "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt"
+        ],
+        "approval_required": true,
+        "github_mutation_allowed": "none",
+        "job_id": "extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+        "lane": "Evaluation",
+        "mutation_mode": "safe_extension",
+        "operator_approval_source": "User requested one bounded same-size broad extraction validation sample on 2026-06-02 after residual failure-class hardening commit 902d03b4aa43.",
+        "output_dir": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+        "owner": "Codex",
+        "production_data_access": false,
+        "supporting_lanes": [
+          "Financial Truth",
+          "Query Orchestration",
+          "Provenance"
+        ],
+        "timeout_seconds": 7200
+      },
+      "ok": true
+    }
+  },
+  "task_card_check_diff_result_final_staged": {
+    "changed_files": [
+      {
+        "path": "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+        "status": "M"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json",
+        "status": "A"
+      },
+      {
+        "path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json",
+        "status": "A"
+      }
+    ],
+    "disallowed_files": [
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+    ],
+    "issues": [
+      {
+        "field": "changed_files",
+        "message": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json is outside allowed_files"
+      }
+    ],
+    "ok": false,
+    "report_path": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+    "validation": {
+      "issues": [],
+      "metadata": {
+        "allowed_files": [
+          "docs/agent_tasks/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602.md",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/README.md",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/status.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/validation.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/diff-check.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/preflight.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_readiness.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_startup.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/runtime_shutdown.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/side_effect_audit.json",
+          "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_stdout.txt"
+        ],
+        "approval_required": true,
+        "github_mutation_allowed": "none",
+        "job_id": "extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+        "lane": "Evaluation",
+        "mutation_mode": "safe_extension",
+        "operator_approval_source": "User requested one bounded same-size broad extraction validation sample on 2026-06-02 after residual failure-class hardening commit 902d03b4aa43.",
+        "output_dir": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602",
+        "owner": "Codex",
+        "production_data_access": false,
+        "supporting_lanes": [
+          "Financial Truth",
+          "Query Orchestration",
+          "Provenance"
+        ],
+        "timeout_seconds": 7200
+      },
+      "ok": true
+    }
+  }
+}

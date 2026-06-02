@@ -1,0 +1,402 @@
+{
+  "run_metadata": {
+    "timestamp": "20260602T083229Z",
+    "seed": 20260601,
+    "requested_count": 8,
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "docs_root": "/data/asx/docs",
+    "candidate_filter": {
+      "input_count": 28633,
+      "candidate_count": 21163,
+      "excluded_count": 7470,
+      "excluded_reason_counts": {
+        "advisory_only_document": 50,
+        "capital_management_update_without_formal_statements": 123,
+        "meeting_notice": 1660,
+        "meeting_results_notice": 2287,
+        "non_financial_update_without_formal_statements": 2022,
+        "operational_update_without_formal_statements": 1314,
+        "pre_results_update_without_formal_statements": 9,
+        "unaudited_financial_update_without_formal_statements": 5
+      }
+    }
+  },
+  "summary": {
+    "total": 8,
+    "status_distribution": {
+      "ok": 6,
+      "ok_low_confidence": 2
+    },
+    "success_rate": 1.0,
+    "error_classification": {},
+    "metric_coverage": {
+      "revenue": {
+        "present": 3,
+        "total": 8,
+        "rate": 0.375
+      },
+      "ebit": {
+        "present": 1,
+        "total": 8,
+        "rate": 0.125
+      },
+      "np_attributable": {
+        "present": 4,
+        "total": 8,
+        "rate": 0.5
+      },
+      "operating_cf": {
+        "present": 7,
+        "total": 8,
+        "rate": 0.875
+      },
+      "investing_cf": {
+        "present": 7,
+        "total": 8,
+        "rate": 0.875
+      },
+      "financing_cf": {
+        "present": 6,
+        "total": 8,
+        "rate": 0.75
+      },
+      "capex": {
+        "present": 6,
+        "total": 8,
+        "rate": 0.75
+      },
+      "cash_end": {
+        "present": 7,
+        "total": 8,
+        "rate": 0.875
+      },
+      "net_debt": {
+        "present": 1,
+        "total": 8,
+        "rate": 0.125
+      },
+      "shares_outstanding": {
+        "present": 3,
+        "total": 8,
+        "rate": 0.375
+      }
+    },
+    "nonnull_metric_distribution": {
+      "mean": 5.62,
+      "median": 5.5,
+      "min": 2,
+      "max": 9
+    },
+    "timing": {
+      "mean_s": 93.73,
+      "median_s": 88.72,
+      "p95_s": 167.4,
+      "p99_s": 167.4,
+      "min_s": 33.68,
+      "max_s": 167.4,
+      "total_s": 749.9
+    },
+    "sanity_checks": {
+      "revenue_positive": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "shares_positive": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "cash_end_positive": {
+        "passed": 7,
+        "total": 7,
+        "rate": 1.0
+      },
+      "period_end_valid": {
+        "passed": 8,
+        "total": 8,
+        "rate": 1.0
+      },
+      "period_type_valid": {
+        "passed": 8,
+        "total": 8,
+        "rate": 1.0
+      }
+    },
+    "unique_tickers": 7,
+    "period_type_distribution": {
+      "Q": 4,
+      "H": 2,
+      "A": 2
+    },
+    "scale_distribution": {
+      "thousands": 3,
+      "units": 3,
+      "millions": 2
+    }
+  },
+  "results": [
+    {
+      "pdf_path": "data/asx/docs/CRS/financial_performance/2021-10-29_quarterly-activities-appendix-5b-cash-flow-report_e92ad3bc-d9a0-4916-8867-78635487bea8.pdf",
+      "ticker": "CRS",
+      "document_id": "e92ad3bc-d9a0-4916-8867-78635487bea8",
+      "status": "ok",
+      "error": null,
+      "elapsed_s": 72.25,
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": null,
+        "operating_cf": -437000.0,
+        "investing_cf": -1044000.0,
+        "financing_cf": -11000.0,
+        "capex": -1044000.0,
+        "cash_end": 1823000.0,
+        "net_debt": null,
+        "shares_outstanding": null
+      },
+      "period_type": "Q",
+      "period_end": "2021-09-30",
+      "scale": "thousands",
+      "confidence": 1.0,
+      "non_null_metrics": 5,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/NSM/financial_performance/2023-03-15_half-yearly-report-and-accounts_db3717b6-fe21-4e62-9ca7-31de22d40f50.pdf",
+      "ticker": "NSM",
+      "document_id": "db3717b6-fe21-4e62-9ca7-31de22d40f50",
+      "status": "ok_low_confidence",
+      "error": null,
+      "elapsed_s": 136.97,
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": -950304.0,
+        "operating_cf": -706804.0,
+        "investing_cf": -959687.0,
+        "financing_cf": null,
+        "capex": -1355841.0,
+        "cash_end": 5003177.0,
+        "net_debt": null,
+        "shares_outstanding": 18913652.0
+      },
+      "period_type": "H",
+      "period_end": "2022-12-31",
+      "scale": "units",
+      "confidence": 0.695,
+      "non_null_metrics": 6,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "shares_positive": true,
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/AZJ/financial_performance/2023-02-13_aurizon-network-pty-ltd-half-year-report_95c99aec-a4c1-4d6e-bd89-ee7347218124.pdf",
+      "ticker": "AZJ",
+      "document_id": "95c99aec-a4c1-4d6e-bd89-ee7347218124",
+      "status": "ok",
+      "error": null,
+      "elapsed_s": 105.18,
+      "metrics": {
+        "revenue": 613700000.0,
+        "ebit": 188400000.0,
+        "np_attributable": 86900000.0,
+        "operating_cf": 245900000.0,
+        "investing_cf": -164500000.0,
+        "financing_cf": -87900000.0,
+        "capex": -164900000.0,
+        "cash_end": 8800000.0,
+        "net_debt": 3298300000.0,
+        "shares_outstanding": null
+      },
+      "period_type": "H",
+      "period_end": "2022-12-31",
+      "scale": "millions",
+      "confidence": 0.926,
+      "non_null_metrics": 9,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "revenue_positive": true,
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/ABE/financial_performance/2022-09-30_annual-report-to-shareholders_0414ebcc-8398-4948-b741-4716d66f1480.pdf",
+      "ticker": "ABE",
+      "document_id": "0414ebcc-8398-4948-b741-4716d66f1480",
+      "status": "ok",
+      "error": null,
+      "elapsed_s": 118.45,
+      "metrics": {
+        "revenue": 2029717.0,
+        "ebit": null,
+        "np_attributable": -3642758.0,
+        "operating_cf": -5708407.0,
+        "investing_cf": -587320.0,
+        "financing_cf": 13901997.0,
+        "capex": -17069.0,
+        "cash_end": 9046931.0,
+        "net_debt": null,
+        "shares_outstanding": 21129562.0
+      },
+      "period_type": "A",
+      "period_end": "2022-06-30",
+      "scale": "units",
+      "confidence": 0.852,
+      "non_null_metrics": 8,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "revenue_positive": true,
+        "shares_positive": true,
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/NWM/financial_performance/2025-04-30_quarterly-activities-appendix-5b-cash-flow-report_90e69a82-c609-4ca9-83ce-ac9c15d17a7a.pdf",
+      "ticker": "NWM",
+      "document_id": "90e69a82-c609-4ca9-83ce-ac9c15d17a7a",
+      "status": "ok",
+      "error": null,
+      "elapsed_s": 64.19,
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": null,
+        "operating_cf": -178000.0,
+        "investing_cf": -317000.0,
+        "financing_cf": 2344000.0,
+        "capex": -317000.0,
+        "cash_end": 275000.0,
+        "net_debt": null,
+        "shares_outstanding": null
+      },
+      "period_type": "Q",
+      "period_end": "2025-03-31",
+      "scale": "thousands",
+      "confidence": 1.0,
+      "non_null_metrics": 5,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/CRS/financial_performance/2023-09-28_full-year-statutory-accounts_6b3754ce-d0ee-46b7-9bed-e07182d39fa2.pdf",
+      "ticker": "CRS",
+      "document_id": "6b3754ce-d0ee-46b7-9bed-e07182d39fa2",
+      "status": "ok",
+      "error": null,
+      "elapsed_s": 167.4,
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": null,
+        "operating_cf": -919650.0,
+        "investing_cf": -1571713.0,
+        "financing_cf": 1218383.0,
+        "capex": -99217.0,
+        "cash_end": 685771.0,
+        "net_debt": null,
+        "shares_outstanding": 116756931.0
+      },
+      "period_type": "A",
+      "period_end": "2023-06-30",
+      "scale": "units",
+      "confidence": 1.0,
+      "non_null_metrics": 6,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "shares_positive": true,
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/NVU/financial_performance/2024-01-31_quarterly-appendix-4c-cash-flow-report_e5987b49-a90d-445d-a338-619990c4069c.pdf",
+      "ticker": "NVU",
+      "document_id": "e5987b49-a90d-445d-a338-619990c4069c",
+      "status": "ok",
+      "error": null,
+      "elapsed_s": 51.75,
+      "metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": null,
+        "operating_cf": -442000.0,
+        "investing_cf": 14000.0,
+        "financing_cf": 150000.0,
+        "capex": null,
+        "cash_end": 75000.0,
+        "net_debt": null,
+        "shares_outstanding": null
+      },
+      "period_type": "Q",
+      "period_end": "2023-12-31",
+      "scale": "thousands",
+      "confidence": 0.8,
+      "non_null_metrics": 4,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    },
+    {
+      "pdf_path": "data/asx/docs/WBC/financial_performance/2024-02-19_westpac-1q24-update_3899b7ba-df77-4788-be1c-a6d5d65f947f.pdf",
+      "ticker": "WBC",
+      "document_id": "3899b7ba-df77-4788-be1c-a6d5d65f947f",
+      "status": "ok_low_confidence",
+      "error": null,
+      "elapsed_s": 33.68,
+      "metrics": {
+        "revenue": 4602000000.0,
+        "ebit": null,
+        "np_attributable": 1597000000.0,
+        "operating_cf": null,
+        "investing_cf": null,
+        "financing_cf": null,
+        "capex": null,
+        "cash_end": null,
+        "net_debt": null,
+        "shares_outstanding": null
+      },
+      "period_type": "Q",
+      "period_end": "2023-12-31",
+      "scale": "millions",
+      "confidence": 0.667,
+      "non_null_metrics": 2,
+      "table_count": null,
+      "page_count": null,
+      "sanity": {
+        "revenue_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      }
+    }
+  ]
+}
