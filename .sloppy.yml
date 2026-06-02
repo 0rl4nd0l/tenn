@@ -12,7 +12,7 @@ max-cost: "$5.00"                   # max API spend per run
 max-passes: 10                      # max scan/fix iterations
 min-passes: 2                       # consecutive clean passes to confirm clean
 max-chains: 3                       # max self-continuations (6h each)
-github-models-model: openai/gpt-4o-mini  # model for free scan tier
+github-models-model: openai/gpt-4o-mini
 scan-scope: auto                    # auto | pr | full
 scan-provider: github-models        # github-models (free) | agent (uses fix-mode provider)
 verbose: false                      # stream agent output to logs
