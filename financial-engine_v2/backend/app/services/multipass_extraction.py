@@ -1782,13 +1782,23 @@ def _extract_single_table(
             weighted_average_only = bool(row_labels) and all(
                 "weightedaverage" in label or not label for label in row_labels[1:]
             )
+            dollar_column_value = _shares_value_matches_dollar_column(
+                table, float(shares_val)
+            )
             # An absolute count (≥ 1M) is self-evident: the LLM was instructed
             # to return the absolute share count, so a value this large cannot
             # be an unscaled row number from a dollar-denominated column.
             # Only apply the null guard when the value is small enough that it
             # could be a scaled placeholder rather than a genuine count.
             _already_absolute = abs(shares_val) >= _MIN_PLAUSIBLE_SHARES
-            if weighted_average_only or (
+            if dollar_column_value:
+                logger.info(
+                    "Nulling shares_outstanding from %s due to dollar-denominated column evidence",
+                    table_type,
+                )
+                extracted["shares_outstanding"] = None
+                shares_val = None
+            elif weighted_average_only or (
                 not has_share_count_evidence and not _already_absolute
             ):
                 logger.info(
@@ -3386,6 +3396,50 @@ def _parse_table_numeric_cell(cell: Any) -> float | None:
     except ValueError:
         return None
     return -value if negative else value
+
+
+def _numeric_cells_match(left: float, right: float) -> bool:
+    """Return True when two parsed table values are equal within float noise."""
+    return abs(left - right) <= max(1e-6, abs(right) * 1e-9)
+
+
+def _share_table_column_context(table: Any, col_idx: int) -> str:
+    """Collect header-like cells for one table column."""
+    parts: list[str] = []
+    headers = getattr(table, "headers", []) or []
+    if col_idx < len(headers):
+        parts.append(str(headers[col_idx] or ""))
+    for row in (getattr(table, "rows", []) or [])[:3]:
+        if col_idx < len(row):
+            parts.append(str(row[col_idx] or ""))
+    return " ".join(parts)
+
+
+def _is_dollar_denominated_share_column(table: Any, col_idx: int) -> bool:
+    context = _share_table_column_context(table, col_idx)
+    if not context:
+        return False
+    return bool(
+        _re.search(
+            r"(?:A\$|\$A|US\$|\$US|\$|AUD\s*\$|USD\s*\$)",
+            context,
+            _re.IGNORECASE,
+        )
+    )
+
+
+def _shares_value_matches_dollar_column(table: Any, shares_val: float) -> bool:
+    """Detect when shares_outstanding came from share-capital dollars, not count."""
+    for row in getattr(table, "rows", []) or []:
+        for col_idx, cell in enumerate(row[1:], start=1):
+            parsed = _parse_table_numeric_cell(cell)
+            if parsed is None:
+                continue
+            if not _numeric_cells_match(parsed, shares_val):
+                continue
+            if _is_dollar_denominated_share_column(table, col_idx):
+                return True
+    return False
 
 
 def _parse_statement_numeric_cell(cell: Any) -> float | None:

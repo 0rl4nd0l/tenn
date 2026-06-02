@@ -5525,9 +5525,7 @@ class TestSharesOutstandingMarkers:
         """LLM-returned value >= 1M bypasses the weak-evidence null guard.
 
         The extraction prompt instructs the LLM to return absolute counts, so a value
-        this large cannot be an unscaled row number from a dollar-denominated column.
-        A table with no recognisable marker labels but a large absolute value must
-        still produce a non-null shares_outstanding.
+        this large in a non-dollar column should not need weak marker evidence.
         """
         from unittest.mock import patch
 
@@ -5576,6 +5574,98 @@ class TestSharesOutstandingMarkers:
         assert shares is not None, (
             "Large absolute LLM-returned share count must bypass the weak-evidence null guard"
         )
+
+    def test_share_capital_dollar_column_is_nulled(self) -> None:
+        """A share-capital dollar amount must not persist as shares_outstanding."""
+        from unittest.mock import patch
+
+        from app.services.multipass_extraction import _run_pass3a_metric_extractor
+        from app.services.docling_extract import DoclingTable
+
+        table = DoclingTable(
+            page_number=13,
+            caption="Issued Capital",
+            rows=[
+                ["", "Number of shares", "$"],
+                ["Fully paid ordinary shares", "120,127,000", "18,913,652"],
+            ],
+            headers=["", "Number of shares", "$"],
+        )
+        labelled = {
+            "cashflow_statement": None,
+            "income_statement": None,
+            "balance_sheet": None,
+            "highlights": None,
+            "share_capital": table,
+            "net_debt_note": None,
+            "unmatched": [],
+        }
+        pass1 = {
+            "report_type": "H",
+            "period_end": "2022-12-31",
+            "currency": "AUD",
+            "scale": "units",
+        }
+        mock_raw = {
+            "shares_outstanding": 18_913_652,
+            "period_col": "$",
+            "pass3_confidence": 0.88,
+            "row_refs": {"shares_outstanding": "Fully paid ordinary shares"},
+        }
+
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+        ):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+        assert len(results) == 1
+        assert results[0].get("shares_outstanding") is None
+
+    def test_share_capital_number_column_survives_dollar_column_guard(self) -> None:
+        """A valid share-count column must survive when an adjacent dollar column exists."""
+        from unittest.mock import patch
+
+        from app.services.multipass_extraction import _run_pass3a_metric_extractor
+        from app.services.docling_extract import DoclingTable
+
+        table = DoclingTable(
+            page_number=13,
+            caption="Issued Capital",
+            rows=[
+                ["", "Number of shares", "$"],
+                ["Fully paid ordinary shares", "120,127,000", "18,913,652"],
+            ],
+            headers=["", "Number of shares", "$"],
+        )
+        labelled = {
+            "cashflow_statement": None,
+            "income_statement": None,
+            "balance_sheet": None,
+            "highlights": None,
+            "share_capital": table,
+            "net_debt_note": None,
+            "unmatched": [],
+        }
+        pass1 = {
+            "report_type": "H",
+            "period_end": "2022-12-31",
+            "currency": "AUD",
+            "scale": "units",
+        }
+        mock_raw = {
+            "shares_outstanding": 120_127_000,
+            "period_col": "Number of shares",
+            "pass3_confidence": 0.88,
+            "row_refs": {"shares_outstanding": "Fully paid ordinary shares"},
+        }
+
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+        ):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+        assert len(results) == 1
+        assert results[0].get("shares_outstanding") == 120_127_000
 
 
 # ---------------------------------------------------------------------------

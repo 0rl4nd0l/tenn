@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-06-02T09:06:49Z",
+  "task_card": "docs/agent_tasks/extraction_low_confidence_case_audit_v1_20260602.md",
+  "no_full_extraction_or_backfill_run": true,
+  "no_additional_sample_run": true,
+  "no_source_pdf_edits": true,
+  "no_db_qdrant_news_memory_mutation": true,
+  "no_prompt_or_gold_label_change": true,
+  "no_runtime_model_gpu_change_by_codex": true,
+  "no_service_restart_by_codex": true,
+  "safe_extension_files_changed": [
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+  ],
+  "external_state_notes": [
+    "User reported that a new backend had been started during the audit.",
+    "Codex did not restart services and did not depend on a backend mutation for the audit findings."
+  ],
+  "temp_artifacts_outside_repo": [
+    "/tmp/tenn_low_confidence_pdf_audit/nsm-10.png",
+    "/tmp/tenn_low_confidence_pdf_audit/nsm-11.png",
+    "/tmp/tenn_low_confidence_pdf_audit/nsm-13.png",
+    "/tmp/tenn_low_confidence_pdf_audit/wbc-2.png",
+    "/tmp/tenn_low_confidence_pdf_audit/wbc-3.png"
+  ],
+  "unrelated_dirty_file_preserved": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+}

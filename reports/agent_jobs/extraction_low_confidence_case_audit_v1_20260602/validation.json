@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-06-02T09:06:49Z",
+  "task_card": "docs/agent_tasks/extraction_low_confidence_case_audit_v1_20260602.md",
+  "validation": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_low_confidence_case_audit_v1_20260602.md",
+      "status": "passed"
+    },
+    {
+      "name": "focused_pytest",
+      "command": "PYTHONPATH=financial-engine_v2/backend financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -q -k 'SharesOutstandingMarkers'",
+      "status": "passed",
+      "stdout_summary": "5 passed, 219 deselected"
+    },
+    {
+      "name": "py_compile",
+      "command": "financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "passed"
+    },
+    {
+      "name": "ruff",
+      "command": "financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "passed",
+      "stdout_summary": "All checks passed!"
+    },
+    {
+      "name": "report_json_validation",
+      "command": "jq empty reports/agent_jobs/extraction_low_confidence_case_audit_v1_20260602/case_audit.json reports/agent_jobs/extraction_low_confidence_case_audit_v1_20260602/side_effect_audit.json reports/agent_jobs/extraction_low_confidence_case_audit_v1_20260602/status.json",
+      "status": "passed"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "name": "git_diff_cached_check",
+      "command": "git diff --cached --check",
+      "status": "passed"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_low_confidence_case_audit_v1_20260602.md",
+      "status": "blocked_by_pre_existing_unrelated_dirty_file",
+      "report_path": "reports/agent_jobs/extraction_low_confidence_case_audit_v1_20260602/diff-check.json",
+      "disallowed_files": [
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+      ],
+      "note": "Pre-existing unrelated parity-guard diff-check dirt was preserved and not cleaned."
+    },
+    {
+      "name": "source_pdf_staging_check",
+      "command": "git status --short -- '*.pdf' /data/asx/docs 2>/dev/null || true",
+      "status": "passed",
+      "stdout_summary": "No source PDFs staged."
+    }
+  ],
+  "forbidden_actions": {
+    "full_extraction_or_backfill_run": false,
+    "additional_sample_run": false,
+    "source_pdf_edit": false,
+    "service_restart_by_codex": false,
+    "db_qdrant_news_memory_mutation": false,
+    "prompt_or_gold_label_change": false,
+    "runtime_model_gpu_change": false
+  },
+  "data_missing": [
+    "The committed sample lacks row_refs/provenance/full payloads for the two low-confidence cases.",
+    "Task-card check-diff cannot pass cleanly while the unrelated parity-guard diff-check artifact remains dirty."
+  ]
+}

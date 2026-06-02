@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-06-02T09:06:49Z",
+  "task_card": "docs/agent_tasks/extraction_low_confidence_case_audit_v1_20260602.md",
+  "execution_mode": "audit_only",
+  "source_sample_commit": "758a2861508269e85bf81a641079e9c48e395173",
+  "source_sample_artifacts": {
+    "summary": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/broad_sample_summary.json",
+    "results": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+    "taxonomy": "reports/agent_jobs/extraction_residual_failure_class_bounded_sample_rerun_v1_20260602/failure_taxonomy.json"
+  },
+  "contract_evidence": {
+    "source_document_classification": "docs/extraction/metric_extraction_contract.md:100-114 says unknown documents may proceed through normal downstream gates and classification must not infer financial facts.",
+    "scale_policy": "docs/extraction/metric_extraction_contract.md:118-136 says explicit units map deterministically and the policy accepts, fails, or marks lower confidence after hard gates.",
+    "low_confidence_gate": "financial-engine_v2/backend/app/services/multipass_extraction.py:4507-4525 fails confidence below 0.60 and marks AUD payloads with confidence below 0.70 as ok_low_confidence."
+  },
+  "gate_reason": {
+    "nsm": "AUD payload passed hard gates but confidence_metrics was 0.695, below the strict-ok cutoff of 0.70.",
+    "wbc": "AUD payload passed hard gates but confidence_metrics was 0.667, below the strict-ok cutoff of 0.70."
+  },
+  "cases": [
+    {
+      "ticker": "NSM",
+      "document_id": "db3717b6-fe21-4e62-9ca7-31de22d40f50",
+      "pdf_path": "data/asx/docs/NSM/financial_performance/2023-03-15_half-yearly-report-and-accounts_db3717b6-fe21-4e62-9ca7-31de22d40f50.pdf",
+      "absolute_pdf_path": "/data/asx/docs/NSM/financial_performance/2023-03-15_half-yearly-report-and-accounts_db3717b6-fe21-4e62-9ca7-31de22d40f50.pdf",
+      "sample_status": "ok_low_confidence",
+      "taxonomy_classification": "real_half_year_report_low_confidence_metric_coverage",
+      "confidence_metrics": 0.695,
+      "non_null_metrics": 6,
+      "period_type": "H",
+      "period_end": "2022-12-31",
+      "scale": "units",
+      "classifier_probe": {
+        "document_class": "financial_report",
+        "extraction_candidate_allowed": true,
+        "reason": "half_year_source_phrase",
+        "evidence": [
+          "half_year_source_phrase"
+        ]
+      },
+      "extracted_metrics": {
+        "revenue": null,
+        "ebit": null,
+        "np_attributable": -950304,
+        "operating_cf": -706804,
+        "investing_cf": -959687,
+        "financing_cf": null,
+        "capex": -1355841,
+        "cash_end": 5003177,
+        "net_debt": null,
+        "shares_outstanding": 18913652
+      },
+      "source_evidence": {
+        "document_type": "pdftotext lines 7-10 show 2022 interim financial report for the half-year ended 31 December 2022.",
+        "currency_scale": "pdftotext line 35 says the financial report is presented in Australian dollars; statement headers on lines 338-340 and 368-369 use plain dollar columns.",
+        "np_attributable": "pdftotext lines 348-352 show net loss after income tax benefit and total comprehensive loss of (950,304).",
+        "cash_end": "pdftotext lines 373-374 and 591-600 show cash and cash equivalents of 5,003,177.",
+        "shares_outstanding": "pdftotext lines 602-614 show fully paid ordinary shares balance at 31 December 2022 of 120,127,000 shares and dollar issued capital of 18,913,652; the sample captured the dollar issued-capital value, not the share count.",
+        "operating_cf": "pdftotext lines 457-462 show net cash used in operating activities of (706,804).",
+        "investing_cf": "pdftotext lines 463-468 show net cash used in investing activities of (959,687).",
+        "capex": "pdftotext lines 465-467 show payments for exploration and evaluation assets of (1,355,841), a specific investing line item for the exploration issuer.",
+        "missing_revenue": "The formal profit/loss statement contains Interest income but no explicit Revenue row; the prompt forbids using Interest income as revenue.",
+        "missing_ebit": "The formal profit/loss statement contains Loss before income tax expense but the prompt and gate forbid using generic pre-tax profit/loss as ebit.",
+        "missing_financing_cf": "The cash-flow statement shows dash values for financing rows; the sample retained null rather than inferring zero.",
+        "missing_net_debt": "The balance sheet does not show an explicit net debt row and the document has net cash rather than debt evidence."
+      },
+      "visual_pages_reviewed": [
+        "/tmp/tenn_low_confidence_pdf_audit/nsm-10.png",
+        "/tmp/tenn_low_confidence_pdf_audit/nsm-11.png",
+        "/tmp/tenn_low_confidence_pdf_audit/nsm-13.png"
+      ],
+      "root_cause": "The low-confidence status is a soft confidence-threshold downgrade on a formal half-year report, and the sampled shares_outstanding value exposes a real evidence-quality defect: the value matches the dollar issued-capital column rather than the number-of-shares column.",
+      "decision": "safe_extension_applied; shares_outstanding values that match a dollar-denominated share-capital column now abstain instead of persisting as share counts.",
+      "safe_extension": {
+        "files_changed": [
+          "financial-engine_v2/backend/app/services/multipass_extraction.py",
+          "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+        ],
+        "behavior": "If the extracted shares_outstanding value matches a table cell from a dollar-denominated column, the extractor nulls shares_outstanding before the absolute-count bypass.",
+        "focused_tests": [
+          "test_share_capital_dollar_column_is_nulled",
+          "test_share_capital_number_column_survives_dollar_column_guard"
+        ]
+      },
+      "recommended_next_step": "For the next bounded sample or diagnostic, preserve full payload row_refs/provenance for low-confidence cases so row-level evidence is available without rerunning extraction."
+    },
+    {
+      "ticker": "WBC",
+      "document_id": "3899b7ba-df77-4788-be1c-a6d5d65f947f",
+      "pdf_path": "data/asx/docs/WBC/financial_performance/2024-02-19_westpac-1q24-update_3899b7ba-df77-4788-be1c-a6d5d65f947f.pdf",
+      "absolute_pdf_path": "/data/asx/docs/WBC/financial_performance/2024-02-19_westpac-1q24-update_3899b7ba-df77-4788-be1c-a6d5d65f947f.pdf",
+      "sample_status": "ok_low_confidence",
+      "taxonomy_classification": "quarterly_update_low_confidence_metric_coverage",
+      "confidence_metrics": 0.667,
+      "non_null_metrics": 2,
+      "period_type": "Q",
+      "period_end": "2023-12-31",
+      "scale": "millions",
+      "classifier_probe": {
+        "document_class": "unknown_document",
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected",
+        "evidence": []
+      },
+      "extracted_metrics": {
+        "revenue": 4602000000,
+        "ebit": null,
+        "np_attributable": 1597000000,
+        "operating_cf": null,
+        "investing_cf": null,
+        "financing_cf": null,
+        "capex": null,
+        "cash_end": null,
+        "net_debt": null,
+        "shares_outstanding": null
+      },
+      "source_evidence": {
+        "document_type": "pdftotext lines 15-18 show Westpac 1Q24 update for the three months ended 31 December 2023.",
+        "currency_scale": "pdftotext lines 115-118 show the Financial summary table labelled $m; lines 152-153 say all amounts are in Australian dollars.",
+        "np_attributable": "pdftotext lines 35-37 and 57-63 show unaudited net profit of $1.5bn; lines 115-125 show tabular Net profit of 1,597 in $m.",
+        "revenue": "pdftotext lines 115-121 show Net interest income of 4,602 and Net operating income of 5,321 in $m; current prompt policy allows bank Net interest income as a revenue equivalent.",
+        "missing_cash_flow_balance_sheet_share_count": "The 4-page update does not contain formal cash-flow statement, balance sheet, or share-count tables."
+      },
+      "visual_pages_reviewed": [
+        "/tmp/tenn_low_confidence_pdf_audit/wbc-2.png",
+        "/tmp/tenn_low_confidence_pdf_audit/wbc-3.png"
+      ],
+      "root_cause": "The low-confidence status is structural metric sparsity in an explicit but non-formal quarterly update. The current source classifier returns unknown_document, which is allowed through downstream gates by contract, and the sample extracted only two canonical metrics.",
+      "decision": "accept_as_ok_low_confidence_report_only; do not treat as strict-ok canonical truth and do not add a filter in this task. Filtering 1Q bank updates would be a policy decision broader than this source-bound audit.",
+      "recommended_next_step": "Keep WBC-like quarterly updates in low-confidence taxonomy unless a separate policy decides that non-formal quarterly updates should be excluded before candidate selection."
+    }
+  ],
+  "larger_bounded_sample_verdict": {
+    "justified": true,
+    "rationale": "WBC explains as structural low-confidence/report-only, and the NSM source-evidence defect was addressed with a narrow abstention guard. A larger bounded sample is justified as the next validation step, but not as canonical promotion evidence.",
+    "conditions": [
+      "Do not run full extraction or broad backfill.",
+      "Keep strict ok and ok_low_confidence separate in the next sample summary.",
+      "Preserve full payload row_refs/provenance for any low-confidence case.",
+      "Do not promote low-confidence rows as canonical truth from broad-sample evidence alone."
+    ]
+  },
+  "data_missing": [
+    "The committed bounded sample does not include per-metric row_refs, provenance, thinking, source page numbers, or full structured payloads for NSM/WBC.",
+    "The raw broad_test JSON was reported as staged under /tmp in the previous side-effect audit and is not present in the committed report bundle.",
+    "No current-run extraction payload was generated because this task forbids another sample or extraction rerun.",
+    "The exact NSM extraction row_ref is still missing because the committed sample is simplified, but the source PDF and sampled value are sufficient to prove the dollar-column abstention guard is needed."
+  ],
+  "forbidden_actions_observed": {
+    "full_extraction_or_backfill_run": false,
+    "another_sample_run": false,
+    "service_restart_by_codex": false,
+    "db_qdrant_news_memory_mutation": false,
+    "source_pdf_edit": false,
+    "prompt_or_gold_label_change": false,
+    "runtime_model_gpu_change": false
+  }
+}
