@@ -5,6 +5,7 @@ import re
 import shlex
 import sqlite3
 import subprocess
+import sys
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,7 +27,7 @@ class ActionPreview:
 class ActionRegistry:
     def __init__(self, repo_root: Path, confirm_required: bool = True) -> None:
         self.repo_root = repo_root
-        py = str(repo_root / ".venv" / "bin" / "python")
+        py = self._resolve_python_bin(repo_root)
         self._actions: dict[str, ActionSpec] = {
             "full_history": ActionSpec(
                 id="full_history",
@@ -408,6 +409,17 @@ class ActionRegistry:
                 timeout_seconds=7200,
             ),
         }
+
+    @staticmethod
+    def _resolve_python_bin(repo_root: Path) -> str:
+        candidates = [
+            repo_root / ".venv" / "bin" / "python",
+            repo_root.parent / ".venv" / "bin" / "python",
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
+        return str(Path(sys.executable))
 
     def list_actions(self) -> list[ActionSpec]:
         return list(self._actions.values())

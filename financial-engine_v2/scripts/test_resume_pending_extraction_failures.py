@@ -27,10 +27,13 @@ if "httpx" not in sys.modules:
     httpx_stub.TimeoutException = TimeoutError  # type: ignore[attr-defined]
     httpx_stub.NetworkError = OSError  # type: ignore[attr-defined]
     sys.modules["httpx"] = httpx_stub
-if "sqlalchemy" not in sys.modules:
-    sqlalchemy_stub = types.ModuleType("sqlalchemy")
-    sqlalchemy_stub.or_ = lambda *args, **kwargs: None  # type: ignore[attr-defined]
-    sys.modules["sqlalchemy"] = sqlalchemy_stub
+try:
+    import sqlalchemy  # noqa: F401
+except Exception:
+    if "sqlalchemy" not in sys.modules:
+        sqlalchemy_stub = types.ModuleType("sqlalchemy")
+        sqlalchemy_stub.or_ = lambda *args, **kwargs: None  # type: ignore[attr-defined]
+        sys.modules["sqlalchemy"] = sqlalchemy_stub
 
 
 class _Field:
@@ -49,11 +52,16 @@ class _Field:
 
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
+    db_stub.engine = None
     db_stub.SessionLocal = lambda: None
+    db_stub.get_db = lambda: iter(())
     sys.modules["app.core.db"] = db_stub
 if "app.core.config" not in sys.modules:
     cfg_stub = types.ModuleType("app.core.config")
     cfg_stub.settings = SimpleNamespace(
+        celery_broker_url="memory://",
+        celery_result_backend="cache+memory://",
+        task_mode="sync",
         enable_embeddings=True,
         enable_qdrant=True,
         importance_output_root=None,
@@ -83,6 +91,7 @@ if "app.services.pipeline" not in sys.modules:
     pipeline_stub = types.ModuleType("app.services.pipeline")
     pipeline_stub.download_pdf_for_document = lambda *args, **kwargs: None
     pipeline_stub.process_document = lambda *args, **kwargs: {"extraction_status": "ok"}
+    pipeline_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
     sys.modules["app.services.pipeline"] = pipeline_stub
 
 
@@ -162,6 +171,7 @@ class ResumePendingExtractionFailureTests(unittest.TestCase):
                 mock.patch.object(mod, "parse_args", return_value=args),
                 mock.patch.object(mod, "SessionLocal", return_value=fake_db),
                 mock.patch.object(mod, "Document", document_stub),
+                mock.patch.object(mod, "or_", lambda *args, **kwargs: None),
                 mock.patch.object(mod, "download_pdf_for_document", return_value=None),
                 mock.patch.object(mod, "process_document", return_value={"extraction_status": "failed"}),
             ):
