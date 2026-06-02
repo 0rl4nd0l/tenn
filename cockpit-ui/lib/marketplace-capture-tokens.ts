@@ -26,15 +26,17 @@ export function issueMarketplaceCaptureToken(apiKey: string) {
   return { token, expiresAt }
 }
 
-export function getMarketplaceCaptureToken(token: string) {
+export function consumeMarketplaceCaptureToken(token: string) {
   const now = Date.now()
   pruneExpiredTokens(now)
-  const entry = marketplaceCaptureTokens.get(String(token || '').trim())
+  const normalizedToken = String(token || '').trim()
+  const entry = marketplaceCaptureTokens.get(normalizedToken)
   if (!entry || entry.expiresAt <= now) {
     if (entry) {
-      marketplaceCaptureTokens.delete(String(token || '').trim())
+      marketplaceCaptureTokens.delete(normalizedToken)
     }
     return null
   }
+  marketplaceCaptureTokens.delete(normalizedToken)
   return entry
 }

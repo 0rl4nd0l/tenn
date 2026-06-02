@@ -1,0 +1,64 @@
+{
+  "changed_files": [
+    {
+      "path": "cockpit-ui/app/api/cockpit/commentary/marketplace-capture/submit/route.ts",
+      "status": "M"
+    },
+    {
+      "path": "cockpit-ui/lib/marketplace-capture-tokens.test.ts",
+      "status": "A"
+    },
+    {
+      "path": "cockpit-ui/lib/marketplace-capture-tokens.ts",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/marketplace_capture_single_use_token_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/marketplace_capture_single_use_token_v1_20260602.md",
+        "cockpit-ui/lib/marketplace-capture-tokens.ts",
+        "cockpit-ui/lib/marketplace-capture-tokens.test.ts",
+        "cockpit-ui/app/api/cockpit/commentary/marketplace-capture/submit/route.ts",
+        "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/README.md",
+        "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/status.json",
+        "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/validation.json",
+        "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "marketplace_capture_single_use_token_v1_20260602",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/marketplace_capture_single_use_token_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
