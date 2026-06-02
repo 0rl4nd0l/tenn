@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_failure_class_hardening_v1_20260602",
+  "probe_type": "deterministic_no_llm_no_runtime",
+  "probes": [
+    {
+      "name": "CRS title-only candidate filter",
+      "input_title": "2023-05-12_excellent-base-metals-results-extend-lady-sampson_4cfbb9a3.pdf",
+      "classification": "non_financial_update_without_formal_statements",
+      "extraction_candidate_allowed": false,
+      "canary_candidate_allowed": false
+    },
+    {
+      "name": "WBC title-only candidate filter",
+      "input_title": "2023-10-26_westpac-s-full-year-2023-notable-items_02a12a84.pdf",
+      "classification": "pre_results_update_without_formal_statements",
+      "extraction_candidate_allowed": false,
+      "canary_candidate_allowed": false
+    },
+    {
+      "name": "AZJ real half-year results remains eligible",
+      "input_title": "2023-02-13_aurizon-announces-half-year-fy2023-results_39ae65ab.pdf",
+      "classification": "financial_report",
+      "extraction_candidate_allowed": true,
+      "canary_candidate_allowed": true
+    },
+    {
+      "name": "ABE cached docling scale",
+      "input_source": "data/asx/docs/ABE/financial_performance/2022-09-30_annual-report-to-shareholders_0414ebcc-8398-4948-b741-4716d66f1480.pdf",
+      "scale_after_hardening": "units"
+    }
+  ],
+  "no_full_extraction_backfill_run": true
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_failure_class_hardening_v1_20260602",
+  "baseline_commit": "32e39089527137a1197a5a169ab1e8699c9155a8",
+  "residual_failure_classes": {
+    "source_candidate_false_positive": {
+      "count": 2,
+      "cases": [
+        "CRS base-metals exploration results update",
+        "WBC FY2023 notable-items pre-results notice"
+      ],
+      "hardening": "Added deterministic title/text source-document exclusions before metric extraction and broad candidate selection.",
+      "status_after_hardening": "fixed_by_classifier_tests"
+    },
+    "source_unit_scale_detection_gap": {
+      "count": 1,
+      "cases": [
+        "ABE 2022 annual report"
+      ],
+      "hardening": "Late raw-dollar formal cash-flow statement tables now resolve document scale to `units` when statement row context is present.",
+      "status_after_hardening": "fixed_by_scale_tests"
+    },
+    "real_results_release_metric_coverage_gap": {
+      "count": 1,
+      "cases": [
+        "AZJ half-year FY2023 results"
+      ],
+      "hardening": "Report-only diagnostics; no guard added because the source is a real half-year results release.",
+      "status_after_hardening": "open_parser_or_policy_work"
+    }
+  },
+  "another_bounded_sample_justified": {
+    "decision": "conditional_yes",
+    "conditions": [
+      "Run only after this hardening is committed and validated.",
+      "Use a separate task card and exactly one bounded validation sample.",
+      "Do not treat the result as broad graduation or backfill authorization."
+    ],
+    "caveat": "AZJ remains unresolved, so a follow-up sample can measure candidate/scale hardening but cannot prove all residual real-report coverage gaps are fixed."
+  },
+  "no_full_extraction_backfill_run": true
+}

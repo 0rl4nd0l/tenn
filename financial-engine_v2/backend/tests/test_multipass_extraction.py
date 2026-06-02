@@ -1836,6 +1836,35 @@ def test_plain_aud_dollar_statement_header_detects_units_scale():
     assert _detect_scale_from_tables([table]) == "units"
 
 
+def test_late_raw_dollar_cashflow_statement_detects_units_scale():
+    """Late formal statement tables with raw-dollar headers must not stay unknown."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    filler_tables = [
+        DoclingTable(
+            page_number=page,
+            caption="Directors Report",
+            headers=["Metric", "Current period"],
+            rows=[["Business update", "1"]],
+        )
+        for page in range(1, 22)
+    ]
+    statement_table = DoclingTable(
+        page_number=31,
+        caption="",
+        headers=["", "Note", "2022 $", "2021 $"],
+        rows=[
+            ["", "Note", "2022 $", "2021 $"],
+            ["CASH FLOWS FROMOPERATING ACTIVITIES:", "", "", ""],
+            ["Receipts from customers", "", "106,576,682", "69,369,525"],
+            ["Net cash used in operating activities", "28", "(5,708,407)", "55,028"],
+        ],
+    )
+
+    assert _detect_scale_from_tables([*filler_tables, statement_table]) == "units"
+
+
 def test_plain_dollar_units_do_not_override_explicit_thousands_header():
     """Explicit scaled table units remain higher priority than raw-dollar hints."""
     from app.services.multipass_extraction import _detect_scale_from_tables
@@ -3075,6 +3104,23 @@ def test_source_document_classifier_blocks_drilling_programme_results():
     assert result.reason == "non_financial_update_without_formal_statements"
 
 
+def test_source_document_classifier_blocks_base_metals_results_title_only():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-05-12_excellent-base-metals-results-extend-lady-sampson.pdf",
+        "",
+    )
+
+    assert (
+        result.document_class
+        == "non_financial_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == "non_financial_update_without_formal_statements"
+
+
 def test_source_document_classifier_blocks_monthly_fund_report():
     from app.services.multipass_extraction import classify_source_document
 
@@ -3185,6 +3231,53 @@ def test_source_document_classifier_blocks_results_teleconference_notice():
     )
     assert result.extraction_candidate_allowed is False
     assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_pre_results_notable_items_title_only():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-10-26_westpac-s-full-year-2023-notable-items_02a12a84.pdf",
+        "",
+    )
+
+    assert (
+        result.document_class
+        == "pre_results_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_blocks_pre_results_notable_items_text():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-10-26_westpac-s-full-year-2023-notable-items_02a12a84.pdf",
+        (
+            "Westpac's Full Year 2023 Notable Items. "
+            "Full Year 2023 results are scheduled to be announced on Monday."
+        ),
+    )
+
+    assert (
+        result.document_class
+        == "pre_results_update_without_formal_statements"
+    )
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+
+
+def test_source_document_classifier_keeps_protected_results_title_with_notable_items():
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(
+        "2023-11-06_fy2023-results-and-notable-items.pdf",
+        "",
+    )
+
+    assert result.extraction_candidate_allowed is True
+    assert result.canary_candidate_allowed is True
 
 
 def test_source_document_classifier_blocks_capital_raising_announcement():

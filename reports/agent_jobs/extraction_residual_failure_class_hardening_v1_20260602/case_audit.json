@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_residual_failure_class_hardening_v1_20260602",
+  "baseline_commit": "32e39089527137a1197a5a169ab1e8699c9155a8",
+  "baseline_artifact": "reports/agent_jobs/extraction_residual_failure_gate_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+  "no_full_extraction_backfill_run": true,
+  "cases": [
+    {
+      "ticker": "AZJ",
+      "source_path": "data/asx/docs/AZJ/financial_performance/2023-02-13_aurizon-announces-half-year-fy2023-results_39ae65ab-e5f3-4253-b359-4ee4ee2a1316.pdf",
+      "baseline_status": "failed",
+      "baseline_error": "validation_gate:insufficient_metrics:1",
+      "baseline_non_null_metrics": [
+        "np_attributable"
+      ],
+      "classification_after_hardening": "financial_report",
+      "decision": "report_only_extraction_coverage_gap",
+      "root_cause": "Real half-year results release stayed eligible and had a source `$m` performance table, but the prior runtime emitted only `np_attributable`; deterministic inspection sees only a summary performance table, not full formal cash-flow or balance-sheet statements.",
+      "source_evidence": [
+        "PDF has 4 pages.",
+        "First-page release announces Half Year FY2023 results.",
+        "Performance table header is `$m (continuing operations)` with revenue, EBITDA, NPAT, free cashflow, EPS, ROIC, and DPS rows."
+      ],
+      "deterministic_diagnostics": {
+        "docling_cache_method": "docling_gpu",
+        "docling_cache_tables": 2,
+        "detected_scale": "millions",
+        "pass2_labels_present": [
+          "income_statement"
+        ],
+        "not_fixed_by_this_task": true
+      },
+      "next_safe_step": "Targeted parser/metric-extraction coverage work for summary-only real results releases, or an explicit policy decision on whether such releases should be downgraded when they lack formal statements."
+    },
+    {
+      "ticker": "ABE",
+      "source_path": "data/asx/docs/ABE/financial_performance/2022-09-30_annual-report-to-shareholders_0414ebcc-8398-4948-b741-4716d66f1480.pdf",
+      "baseline_status": "failed",
+      "baseline_error": "validation_gate:scale_unknown",
+      "baseline_non_null_metrics": [
+        "capex",
+        "cash_end",
+        "financing_cf",
+        "investing_cf",
+        "np_attributable",
+        "operating_cf",
+        "revenue",
+        "shares_outstanding"
+      ],
+      "classification_after_hardening": "financial_report",
+      "decision": "source_bound_scale_guard_fixed",
+      "root_cause": "Docling surfaced the formal cash-flow table late in the 74-page annual report with raw-dollar headers, but the previous detector only accepted raw-dollar headers from the first 15 tables or from narrower statement-context wording.",
+      "source_evidence": [
+        "PDF has 74 pages.",
+        "Annual report contents list consolidated financial statements.",
+        "Docling cached table page 31 has headers `2022 $` and `2021 $` and a `CASH FLOWS FROMOPERATING ACTIVITIES` row."
+      ],
+      "deterministic_diagnostics": {
+        "docling_cache_method": "docling_gpu",
+        "docling_cache_tables": 72,
+        "scale_before_hardening": "unknown",
+        "scale_after_hardening": "units",
+        "pass2_labels_present": [
+          "cashflow_statement",
+          "income_statement",
+          "balance_sheet",
+          "share_capital"
+        ]
+      },
+      "next_safe_step": "A bounded validation run can verify the annual-report `scale_unknown` failure no longer recurs for this sample case."
+    },
+    {
+      "ticker": "CRS",
+      "source_path": "data/asx/docs/CRS/financial_performance/2023-05-12_excellent-base-metals-results-extend-lady-sampson_4cfbb9a3-0468-4e13-8968-702a0adcba58.pdf",
+      "baseline_status": "failed",
+      "baseline_error": "validation_gate:non_financial_update_without_formal_statements",
+      "baseline_non_null_metrics": [],
+      "classification_after_hardening": "non_financial_update_without_formal_statements",
+      "decision": "candidate_exclusion_fixed",
+      "root_cause": "Title-only broad candidate selection admitted an exploration results update whose first page was later blocked by the source-document gate; the title did not contain the existing drilling/assay terms.",
+      "source_evidence": [
+        "PDF has 17 pages.",
+        "First page is an ASX release about Phase II RC base-metals results and exploration updates.",
+        "No formal Appendix or financial-statement marker was found."
+      ],
+      "deterministic_diagnostics": {
+        "title_only_before_hardening": "unknown_document",
+        "title_only_after_hardening": "non_financial_update_without_formal_statements",
+        "extraction_candidate_allowed_after_hardening": false
+      },
+      "next_safe_step": "No parser work needed for this document class; it should be excluded before runtime."
+    },
+    {
+      "ticker": "WBC",
+      "source_path": "data/asx/docs/WBC/financial_performance/2023-10-26_westpac-s-full-year-2023-notable-items_02a12a84-5905-4834-b38a-42c68082097a.pdf",
+      "baseline_status": "failed",
+      "baseline_error": "validation_gate:insufficient_metrics:1",
+      "baseline_non_null_metrics": [
+        "np_attributable"
+      ],
+      "classification_after_hardening": "pre_results_update_without_formal_statements",
+      "decision": "candidate_exclusion_fixed",
+      "root_cause": "Pre-results notable-items notice entered extraction because title/text classification had no class for notable-items documents; it then emitted one NPAT adjustment metric and failed insufficient coverage.",
+      "source_evidence": [
+        "PDF has 4 pages.",
+        "The notice describes FY2023 notable-item impacts.",
+        "The notice says full-year FY2023 results are scheduled to be announced later."
+      ],
+      "deterministic_diagnostics": {
+        "title_only_before_hardening": "unknown_document",
+        "title_only_after_hardening": "pre_results_update_without_formal_statements",
+        "text_backed_after_hardening": "pre_results_update_without_formal_statements",
+        "extraction_candidate_allowed_after_hardening": false
+      },
+      "next_safe_step": "No parser work needed for this document class; it should be excluded before runtime."
+    }
+  ]
+}

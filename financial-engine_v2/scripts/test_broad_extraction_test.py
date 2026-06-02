@@ -164,6 +164,12 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "financial_performance"
                 / "2022-08-29_baker-rc-programme-results-complete_hhhh.pdf"
             )
+            base_metals_pdf = _touch_pdf(
+                docs_root
+                / "CRS"
+                / "financial_performance"
+                / "2023-05-12_excellent-base-metals-results-extend-lady-sampson_uuuu.pdf"
+            )
             monthly_report_pdf = _touch_pdf(
                 docs_root
                 / "LSF"
@@ -187,6 +193,12 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 / "MFG"
                 / "financial_performance"
                 / "2023-08-07_full-year-results-briefing-18-august-2023-at-11-30-am_llll.pdf"
+            )
+            notable_items_pdf = _touch_pdf(
+                docs_root
+                / "WBC"
+                / "financial_performance"
+                / "2023-10-26_westpac-s-full-year-2023-notable-items_vvvv.pdf"
             )
             capital_raise_pdf = _touch_pdf(
                 docs_root
@@ -232,10 +244,12 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                     company_agm_result_pdf,
                     agm_abbrev_pdf,
                     drilling_pdf,
+                    base_metals_pdf,
                     monthly_report_pdf,
                     shareholder_summary_pdf,
                     agm_presentation_pdf,
                     results_briefing_pdf,
+                    notable_items_pdf,
                     capital_raise_pdf,
                     service_launch_pdf,
                     appendix_pdf,
@@ -264,6 +278,8 @@ class BroadExtractionDocsRootTests(unittest.TestCase):
                 "non_financial_update_without_formal_statements",
                 "non_financial_update_without_formal_statements",
                 "non_financial_update_without_formal_statements",
+                "non_financial_update_without_formal_statements",
+                "pre_results_update_without_formal_statements",
                 "operational_update_without_formal_statements",
                 "operational_update_without_formal_statements",
             ],

@@ -122,14 +122,19 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "without formal Appendix or financial-statement evidence; it must not "
         "enter canonical metric extraction."
     ),
+    "pre_results_update_without_formal_statements": (
+        "Source metadata identifies a pre-results or notable-items announcement "
+        "without formal Appendix or financial-statement evidence; it must not "
+        "enter canonical metric extraction."
+    ),
     "operational_update_without_formal_statements": (
         "Source metadata identifies a customer, contract, or revenue update "
         "without formal Appendix or financial-statement evidence; it must not "
         "enter canonical metric extraction."
     ),
     "non_financial_update_without_formal_statements": (
-        "Source metadata identifies a drilling, programme, monthly fund, or "
-        "shareholder-summary update without formal Appendix or "
+        "Source metadata identifies a drilling, exploration-results, programme, "
+        "monthly fund, or shareholder-summary update without formal Appendix or "
         "financial-statement evidence; it must not enter canonical metric "
         "extraction."
     ),
@@ -216,6 +221,9 @@ _IDR_MILLIONS_STATEMENT_UNIT_RE = _re.compile(
 _FINANCIAL_STATEMENT_UNIT_CONTEXT_RE = _re.compile(
     r"\bstatement\s+of\s+(?:financial\s+position|profit|comprehensive|cash\s*flows?|changes\s+in\s+equity)\b"
     r"|\bconsolidated\s+statement\s+of\s+(?:financial\s+position|profit|comprehensive|cash\s*flows?|changes\s+in\s+equity)\b"
+    r"|\bcash\s*flows?\s+from\s*operating\s+activities\b"
+    r"|\bcash\s*flows?\s+from\s*investing\s+activities\b"
+    r"|\bcash\s*flows?\s+from\s*financing\s+activities\b"
     r"|\blaporan\s+(?:posisi\s+keuangan|laba\s+rugi|penghasilan\s+komprehensif|arus\s+kas|perubahan\s+ekuitas)\b",
     _re.IGNORECASE,
 )
@@ -475,6 +483,13 @@ def _detect_scale_from_tables(tables) -> str:
             if row
         ]
         if _APPENDIX_FULL_DOLLAR_VALUE_RE.search(" ".join(surfaces)):
+            return "units"
+
+    for table in tables or []:
+        combined = " ".join(_table_text_surfaces(table, row_limit=8))
+        if _has_financial_statement_context(combined) and _RAW_DOLLAR_UNIT_RE.search(
+            combined
+        ):
             return "units"
 
     # Scale Policy V1: a plain currency/$ column unit is an explicit raw-dollar
@@ -2305,6 +2320,23 @@ _CAPITAL_MANAGEMENT_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     ),
 )
 
+_PRE_RESULTS_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
+    re.Pattern[str], ...
+] = (
+    re.compile(
+        r"(?:^|[-_\s])(?:notable[-_\s]+items?|pre[-_\s]+results?)(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:full|half)[-_\s]+year[-_\s]+\d{2,4}[-_\s]+notable[-_\s]+items?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bresults?\s+are\s+scheduled\s+to\s+be\s+announced\b",
+        re.IGNORECASE,
+    ),
+)
+
 _OPERATIONAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     re.Pattern[str], ...
 ] = (
@@ -2364,6 +2396,11 @@ _NON_FINANCIAL_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS: tuple[
     re.compile(
         r"\bresults?\b[-_\s\w,.%/@]{0,120}"
         r"\b(?:drill(?:ing)?|assay|rc|diamond)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[-_\s])(?:excellent[-_\s]+)?base[-_\s]+metals[-_\s]+results?"
+        r"(?![A-Za-z0-9])",
         re.IGNORECASE,
     ),
     re.compile(
@@ -2805,6 +2842,24 @@ def _is_capital_management_update_without_formal_statements(
     )
 
 
+def _is_pre_results_update_without_formal_statements(
+    title: Any,
+    first_page_text: Any,
+) -> bool:
+    title_text = _combined_source_text(title)
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    if _has_formal_financial_statement_marker(text):
+        return False
+    if title_text and _has_protected_report_result_title(title_text):
+        return False
+    return any(
+        pattern.search(text)
+        for pattern in _PRE_RESULTS_UPDATE_WITHOUT_FORMAL_STATEMENT_MARKERS
+    )
+
+
 def _is_operational_update_without_formal_statements(
     title: Any,
     first_page_text: Any,
@@ -3167,6 +3222,14 @@ def classify_source_document(
             canary_candidate_allowed=False,
             reason="capital_management_update_without_formal_statements",
             evidence=["capital_management_without_formal_statement_pattern"],
+        )
+    if _is_pre_results_update_without_formal_statements(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="pre_results_update_without_formal_statements",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="pre_results_update_without_formal_statements",
+            evidence=["pre_results_without_formal_statement_pattern"],
         )
     if _is_operational_update_without_formal_statements(title, first_page_text):
         return SourceDocumentClassification(
