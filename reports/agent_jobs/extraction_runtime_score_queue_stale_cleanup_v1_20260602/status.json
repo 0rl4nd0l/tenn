@@ -1,0 +1,538 @@
+{
+  "artifacts": {
+    "post_cleanup_score_queue_snapshot": "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/post_cleanup_score_queue_snapshot.json",
+    "pre_cleanup_score_queue_snapshot": "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/pre_cleanup_score_queue_snapshot.json",
+    "readme": "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/README.md",
+    "status": "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/status.json"
+  },
+  "cleanup": {
+    "method": "exact LREM score 1 <serialized Celery payload> for each pre-snapshot target raw_sha256",
+    "performed": true,
+    "preserved_count": 0,
+    "preserved_messages": [],
+    "removed_count": 32,
+    "removed_messages": [
+      {
+        "document_id": "6d73f250-a5e8-42b0-b35e-f6b8441e6416",
+        "index": 0,
+        "origin": "gen1883596@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "a63d9970ea4be5f4b76cc087eb78bfee84a3e31bddbde10b7998dddb720cd847",
+        "task_id": "0af4ccce-7b8e-439c-b067-2b2ce621128c",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence periodic"
+      },
+      {
+        "document_id": "5bc1f084-d843-4af7-bb61-86e89c310c88",
+        "index": 1,
+        "origin": "gen1883596@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "2dd3db37351a66fd25d171cf955dc299e06f5af61c342be05d0c2450c7e7904d",
+        "task_id": "9ee42094-8915-4448-9a41-1a90e2c97675",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "",
+        "title": "Invalid ticker doc"
+      },
+      {
+        "document_id": "b58e9de2-cd96-4cf2-8e1f-411aca2001f8",
+        "index": 2,
+        "origin": "gen1883596@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "4c61a10933247a462ccbb02d31de11d71144f433e824033ed0c3a1cd65d1bcd3",
+        "task_id": "abbe3f33-624a-48e8-9352-922c63649e31",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Valid doc"
+      },
+      {
+        "document_id": "68eb041e-20e7-403f-af8b-6a2d3a448d9a",
+        "index": 3,
+        "origin": "gen1877759@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "52dc230ed2f83d9eb4e9a17110a7ba5cc436ca37f4495640e881259675eaa7fd",
+        "task_id": "da433c93-daa6-488e-8dfc-f2a2fc0f038e",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence periodic"
+      },
+      {
+        "document_id": "84faf544-5450-4de0-8ecf-358010205c0c",
+        "index": 4,
+        "origin": "gen1877759@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "2db3b833bb6b59bf3ecaf9ecf0f2f269de4335c7d9df428008dd5c1cf4fa13ec",
+        "task_id": "89113d9e-ca9e-42ca-acd5-6499041676b8",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "",
+        "title": "Invalid ticker doc"
+      },
+      {
+        "document_id": "dd695a89-49f1-4289-8e4b-52293adc8856",
+        "index": 5,
+        "origin": "gen1877759@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "f1a1d5310c88de55e96f82a34b6577f55955ac1106e7772595b6bdc63598d6e5",
+        "task_id": "18e682c0-e48e-4bb6-b26a-52e8822dd5cb",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Valid doc"
+      },
+      {
+        "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+        "index": 6,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "08adacdbb486eb80b108ec17bc8acccee748e9cb1cad25fde98a6b988c46fff0",
+        "task_id": "6e420d95-a81e-40a4-a0c6-38340e8add16",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CTM",
+        "title": "Financial Report 31 December 2025"
+      },
+      {
+        "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+        "index": 7,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "8b34c5d608a48ac52424a635ff1a18c734c1ce65ae511a0d9cd163e21a9d1804",
+        "task_id": "cc58616b-ce1c-464f-8c9e-8715770b4865",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CLV",
+        "title": "Clover 1H FY26 Results Announcement"
+      },
+      {
+        "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+        "index": 8,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "6cd6d49410073c53984c4f557766803c84d9ae21f4f4ec5c9e93b181ec7c709d",
+        "task_id": "2573b00d-b492-4cfd-baf3-055a3e65797a",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CRS",
+        "title": "Half Year Financial Report"
+      },
+      {
+        "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+        "index": 9,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "2f4254fe61bf9db72d757b35dd4b944372194ef8390feb5a9c4f40c22d7e9b2f",
+        "task_id": "74943772-28e5-4d22-a9ca-348d48967568",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AQX",
+        "title": "HALF-YEAR FINANCIAL REPORT - 31 DECEMBER 2025"
+      },
+      {
+        "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+        "index": 10,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "665b948f7c62fc6ba33338e5831a17f7ecf7f4ad59a9c8acbe2a9b582c385486",
+        "task_id": "43c4b366-3365-4a53-b5da-dc96c1181590",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AM5",
+        "title": "Interim Financial Report - Half Year Ended 31 December 2025"
+      },
+      {
+        "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+        "index": 11,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "bcf562d010180ba08d94ce2c8879dfdc418fc086f05486efdc9130f9dd212b71",
+        "task_id": "43b38118-6018-42d0-a47d-9ed0683168cc",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ATM",
+        "title": "Full Year Statutory Accounts"
+      },
+      {
+        "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+        "index": 12,
+        "origin": "gen278110@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "f9efe8d5843e1f7cd210ac27baa71ac18b95433f0defbd39007b53527f57cf69",
+        "task_id": "d7444db2-a98f-4af9-a743-7bde27919ead",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AAU",
+        "title": "Annual Report and Full Year Statutory Accounts"
+      },
+      {
+        "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+        "index": 13,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "e8f7b1d0d811d49abb5c22ee27ffafd1103cf505c7d349cda154224dc7e11adb",
+        "task_id": "4edbd6b6-e33c-438f-bde2-8286e1a9de47",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CTM",
+        "title": "Financial Report 31 December 2025"
+      },
+      {
+        "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+        "index": 14,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "809514b7e9b2c12fcb3f48464dfaa1c2b4b50efbc2cdcba37cbcaf7ad307f94b",
+        "task_id": "2da240a1-132f-47ca-9e6f-0df9ae11c019",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CLV",
+        "title": "Clover 1H FY26 Results Announcement"
+      },
+      {
+        "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+        "index": 15,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "5cd04772244855c927141c616a1a0d19e00cb690605aa064fd647d0a23b07b6d",
+        "task_id": "8e0b2e8d-c779-4af6-82f5-9cfd43b69e4c",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CRS",
+        "title": "Half Year Financial Report"
+      },
+      {
+        "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+        "index": 16,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "7d1bed7265f678c990746660607fac88d503dc4bb6a4f6e125dd5567c0719ab6",
+        "task_id": "2d72751f-d0f1-4331-bd16-2fb5216d9e4d",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AQX",
+        "title": "HALF-YEAR FINANCIAL REPORT - 31 DECEMBER 2025"
+      },
+      {
+        "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+        "index": 17,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "0ce530ca37ddc1643ff6c1dcae7ed49d095e34992ea0ad2fcd38a70ac44d7fb9",
+        "task_id": "4f74a6e6-0949-49a1-90fc-e7aba9f2a62b",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AM5",
+        "title": "Interim Financial Report - Half Year Ended 31 December 2025"
+      },
+      {
+        "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+        "index": 18,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "8f5de98750f235497d605b78e565271071b685e9d7e70e61c52d856c387aa1c1",
+        "task_id": "d871fcd0-d5fb-4666-9320-897e9ec12c56",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ATM",
+        "title": "Full Year Statutory Accounts"
+      },
+      {
+        "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+        "index": 19,
+        "origin": "gen165609@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "582acd7658f60c54830b05ce4843d279ca0b777cc43ba758804d03fdb3e8f6ea",
+        "task_id": "dfbd9bb4-f9ee-4b72-8b0f-0bc4406fe9d6",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AAU",
+        "title": "Annual Report and Full Year Statutory Accounts"
+      },
+      {
+        "document_id": "13b9eb9d-9af1-4d55-a6ea-634b859879ca",
+        "index": 20,
+        "origin": "gen108816@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "606ad8271ecd08dd5a0407cc219d576f5bc0f640e8fc81d3529a125bd086e30b",
+        "task_id": "c2f6f69a-7d03-4113-bb9b-987300859855",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence doc"
+      },
+      {
+        "document_id": "8934af28-f4a8-45d4-9660-e92cd34ccdf1",
+        "index": 21,
+        "origin": "gen88267@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "82b80464177537bc6bc9880e4a7cdb9ba06986cdfe87dd325c33c87eb46c8207",
+        "task_id": "90820556-5fd8-4ead-8853-143518fa1527",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence doc"
+      },
+      {
+        "document_id": "035c6758-7aed-41a6-9e84-ad154125d431",
+        "index": 22,
+        "origin": "gen4055000@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "df2552929300855c0ce0e8eb649348345e0640e0627818da6e5e7253e83354b0",
+        "task_id": "cabc4026-6bc9-4569-9901-9ebae75bda99",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CTM",
+        "title": "Financial Report 31 December 2025"
+      },
+      {
+        "document_id": "da9f9ea5-6596-464f-af14-5acf12f9b050",
+        "index": 23,
+        "origin": "gen3936377@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "b72af4ea982a2e44b6f5fc38d5f76780bdde843790853918668c31566a13df42",
+        "task_id": "26ffc5b0-43b5-4905-83e5-4fcb083df3d1",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CLV",
+        "title": "Clover 1H FY26 Results Announcement"
+      },
+      {
+        "document_id": "b43a16fb-7660-4bf7-96ab-0db641cd4032",
+        "index": 24,
+        "origin": "gen3877127@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "573bb80117a7958daf6cdcd43bce5ac33e136c67fa88a4791a430dba26246210",
+        "task_id": "85be54b6-7a99-4c41-a45a-5f3863d9e606",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "CRS",
+        "title": "Half Year Financial Report"
+      },
+      {
+        "document_id": "0ed0104f-f29a-4068-8ff7-370f14fead98",
+        "index": 25,
+        "origin": "gen3877127@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "c56b1992256b0aec4267ef1f7fb3c2826d12834645e46c907ecaedb42a418ec9",
+        "task_id": "7fbeb496-e39d-4a5d-9942-47a0a87f7f15",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AQX",
+        "title": "HALF-YEAR FINANCIAL REPORT - 31 DECEMBER 2025"
+      },
+      {
+        "document_id": "aacc4c29-3089-48cf-8b82-8004134f9387",
+        "index": 26,
+        "origin": "gen3877127@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "974eaf87d9106a92e7d7eb0f83d35fcb10587406533fc5f4a3e8c032b84163d4",
+        "task_id": "7719ec5c-460e-42f6-9eee-f904fb220d58",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AM5",
+        "title": "Interim Financial Report - Half Year Ended 31 December 2025"
+      },
+      {
+        "document_id": "96e9aabd-44dc-4c2c-be8c-74248a0a9025",
+        "index": 27,
+        "origin": "gen3877127@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "4ad4a1115bbdedbe78be330743dbb66bb67d31f23bcef21e4ba390aaaf8e3a78",
+        "task_id": "dbac2a07-c536-4dbb-bf35-93ce39ac7866",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ATM",
+        "title": "Full Year Statutory Accounts"
+      },
+      {
+        "document_id": "508fc892-ae88-45ec-981f-cd9e124c8375",
+        "index": 28,
+        "origin": "gen3877127@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "8b97759365a4ed015586878d8fe9b99ff2d1959662bc18fcb2684ce6125b5d16",
+        "task_id": "0ac66bcd-496f-4d47-a4f6-727eae11cf50",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "AAU",
+        "title": "Annual Report and Full Year Statutory Accounts"
+      },
+      {
+        "document_id": "a35dca7b-102c-43cb-a4b8-6836d9ca039c",
+        "index": 29,
+        "origin": "gen3821812@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "f3b9cf2c490afc28cea08842bd0d9b830a6cbd9fdb6db7fb0d71b0ff0f78191a",
+        "task_id": "cf8cc5a7-a638-47da-ab89-4afd0bdf3b70",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence doc"
+      },
+      {
+        "document_id": "0cb02ca7-bf4e-4bbd-b29e-e223ad77ac0f",
+        "index": 30,
+        "origin": "gen1905178@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "6de60a90cf85c1e647ef2b4467958a6083ae5a6baf3a280b55a2df970f8cfd46",
+        "task_id": "468a8631-2231-4a90-9338-b2c957b0e6cb",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence doc"
+      },
+      {
+        "document_id": "e64e8392-9b59-4a52-ab8b-a8bfade24f76",
+        "index": 31,
+        "origin": "gen1903468@l4nd0-System-Product-Name",
+        "origin_pid_alive": false,
+        "raw_sha256": "8c4989b506da030410f2f94057e74ab5eebc49248460d1ce0a52ff2e98e5048d",
+        "task_id": "82218a30-c706-4014-8ee7-3d0678e72d92",
+        "task_name": "thesis_watchdog_check",
+        "ticker": "ABC",
+        "title": "Low confidence doc"
+      }
+    ]
+  },
+  "commands": {
+    "git_status": {
+      "args": [
+        "git",
+        "status",
+        "--short",
+        "--untracked-files=all"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "M reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json\n?? docs/agent_tasks/extraction_runtime_score_queue_stale_cleanup_v1_20260602.md"
+    },
+    "gpu_guard": {
+      "args": [
+        "scripts/gpu_process_guard.sh",
+        "--check"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "nvidia_smi": {
+      "args": [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,memory.total",
+        "--format=csv,noheader,nounits"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "0, NVIDIA GeForce GT 1030, 1, 2048\n1, Tesla M40 24GB, 0, 24576"
+    },
+    "process_check": {
+      "matches": [],
+      "method": "/proc cmdline scan excluding current process ancestors"
+    },
+    "registry_after_release": {
+      "args": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": true,\n  \"ok\": true,\n  \"read_only\": false,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}"
+    },
+    "registry_latest_after_report_update": {
+      "args": [
+        "python3",
+        "scripts/agent_job_registry.py",
+        "list-active"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": true,\n  \"ok\": true,\n  \"read_only\": false,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}"
+    }
+  },
+  "created_at": "2026-06-02T05:16:18.375140Z",
+  "data_missing": [
+    "Requested prior readiness audit directory is absent in this checkout: reports/agent_jobs/extraction_runtime_score_queue_readiness_audit_v1_20260602",
+    "Redis/Celery score messages do not include enqueue timestamps, so staleness is established from dead producer PIDs, no active owners, no workers, and no unacked keys rather than message age."
+  ],
+  "execution_mode": "CONTROLLED QUEUE CLEANUP / READINESS ONLY",
+  "job_id": "extraction_runtime_score_queue_stale_cleanup_v1_20260602",
+  "lane": "Query Orchestration",
+  "repo": {
+    "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+    "git_status_short_untracked_all": "M reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+    "head": "2465754a2cf842f970de65c77eddd90b5bc2079a",
+    "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "risk": "MEDIUM",
+  "schema_version": 1,
+  "status": "completed",
+  "supporting_lanes": [
+    "Evaluation",
+    "Runtime"
+  ],
+  "task_card": "docs/agent_tasks/extraction_runtime_score_queue_stale_cleanup_v1_20260602.md",
+  "validation": {
+    "all_queues_zero_after": true,
+    "bounded_broad_sample_can_now_be_requested": true,
+    "bounded_broad_sample_request_caveat": "Queue/runtime readiness is clean; the next sample task must still run its own fresh preflight before execution.",
+    "gpu_guard_returncode": 0,
+    "gpu_guard_stderr": "",
+    "gpu_guard_stdout": "",
+    "m40_memory_used_mib": 0,
+    "no_backend_worker_or_broad_processes": true,
+    "no_extraction_backfill_or_sample_run_by_this_task": true,
+    "ports_open": {
+      "8000": false,
+      "8001": false,
+      "8002": false
+    },
+    "pre_cleanup_target_validation": {
+      "actual_score_count": 32,
+      "all_origin_pids_dead": true,
+      "all_routing_keys_are_score": true,
+      "all_score_messages_are_thesis_watchdog_check": true,
+      "all_sources_absent": true,
+      "all_targets_eligible_for_exact_payload_removal": true,
+      "expected_score_count": 32,
+      "non_score_queues_zero": true,
+      "note": "The prompt title examples were not exhaustive; 21 target messages carried canary/gold fixture titles but still matched the stale thesis_watchdog_check gate by task, queue, absent source, dead producer PID, no owners, and no unacked keys.",
+      "origin_pids": [
+        1883596,
+        1883596,
+        1883596,
+        1877759,
+        1877759,
+        1877759,
+        278110,
+        278110,
+        278110,
+        278110,
+        278110,
+        278110,
+        278110,
+        165609,
+        165609,
+        165609,
+        165609,
+        165609,
+        165609,
+        165609,
+        108816,
+        88267,
+        4055000,
+        3936377,
+        3877127,
+        3877127,
+        3877127,
+        3877127,
+        3877127,
+        3821812,
+        1905178,
+        1903468
+      ],
+      "target_count": 32,
+      "unacked_keys_absent": true
+    },
+    "preserved_count": 0,
+    "queue_lengths_after": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 0
+    },
+    "queue_lengths_before": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 32
+    },
+    "registry_active_jobs_after_release": [],
+    "registry_active_jobs_latest": [],
+    "registry_clean_after_release": true,
+    "registry_clean_after_release_observed": true,
+    "registry_clean_latest": true,
+    "removal_failures": [],
+    "removed_count": 32,
+    "runtime_process_check_method": "/proc cmdline scan excluding current process ancestors",
+    "runtime_process_check_returncode": 0,
+    "runtime_process_matches": [],
+    "unacked_keys_absent_after": true,
+    "unacked_keys_after": [],
+    "unacked_keys_before": []
+  }
+}

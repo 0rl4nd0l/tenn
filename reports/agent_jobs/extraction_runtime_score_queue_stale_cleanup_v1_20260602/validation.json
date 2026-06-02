@@ -1,0 +1,29 @@
+{
+  "issues": [],
+  "metadata": {
+    "allowed_files": [
+      "docs/agent_tasks/extraction_runtime_score_queue_stale_cleanup_v1_20260602.md",
+      "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/README.md",
+      "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/status.json",
+      "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/pre_cleanup_score_queue_snapshot.json",
+      "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/post_cleanup_score_queue_snapshot.json",
+      "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/validation.json",
+      "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602/diff-check.json"
+    ],
+    "approval_required": true,
+    "github_mutation_allowed": "none",
+    "job_id": "extraction_runtime_score_queue_stale_cleanup_v1_20260602",
+    "lane": "Query Orchestration",
+    "mutation_mode": "safe_extension",
+    "operator_approval_source": "User requested controlled cleanup of only stale test-origin thesis_watchdog_check score queue messages on 2026-06-02.",
+    "output_dir": "reports/agent_jobs/extraction_runtime_score_queue_stale_cleanup_v1_20260602",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation",
+      "Runtime"
+    ],
+    "timeout_seconds": 1800
+  },
+  "ok": true
+}
