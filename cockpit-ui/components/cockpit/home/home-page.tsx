@@ -64,8 +64,26 @@ const DEMO_MISSING_SIGNAL: CockpitHomeDataMissingSignal = {
   source_label: 'unknown_unclassified',
 };
 
+function readConfiguredApiKey(): string {
+  const envKey = process.env.NEXT_PUBLIC_API_KEY ?? '';
+  if (typeof window === 'undefined') {
+    return envKey;
+  }
+  try {
+    return localStorage.getItem('cockpit.apiKey')?.trim() || envKey;
+  } catch {
+    return envKey;
+  }
+}
+
+function buildHomeBffHeaders(apiKey: string): HeadersInit | undefined {
+  const normalized = apiKey.trim();
+  return normalized ? { 'X-API-Key': normalized } : undefined;
+}
+
 export function CockpitHomePage() {
   const [loadState, setLoadState] = useState<HomeLoadState>({ status: 'loading' });
+  const [apiKey] = useState(readConfiguredApiKey);
   const [demoSession, setDemoSession] = useState<MarketSessionState | null>(null);
   const [selectedItem, setSelectedItem] = useState<NewsItem | null>(null);
   const [assistantContext, setAssistantContext] = useState<NewsItem | null>(null);
@@ -84,6 +102,7 @@ export function CockpitHomePage() {
       try {
         const response = await fetch('/api/cockpit/home', {
           cache: 'no-store',
+          headers: buildHomeBffHeaders(apiKey),
           signal: controller.signal,
         });
         const payload = (await response.json()) as CockpitHomeBffResponse;
@@ -105,7 +124,7 @@ export function CockpitHomePage() {
     void loadHome();
 
     return () => controller.abort();
-  }, []);
+  }, [apiKey]);
 
   const handleSelectItem = (item: NewsItem) => {
     setSelectedItem(item);
@@ -152,6 +171,7 @@ export function CockpitHomePage() {
         onCloseDrawer={() => setIsDrawerOpen(false)}
         onAnalyze={handleAnalyze}
         onClearContext={() => setAssistantContext(null)}
+        apiKey={apiKey}
         banner={
           <HomeStateBanner
             state="DATA_MISSING"
@@ -183,6 +203,7 @@ export function CockpitHomePage() {
         onCloseDrawer={() => setIsDrawerOpen(false)}
         onAnalyze={handleAnalyze}
         onClearContext={() => setAssistantContext(null)}
+        apiKey={apiKey}
         banner={null}
       >
         <LoadingWorkspace />
@@ -216,6 +237,7 @@ export function CockpitHomePage() {
         onCloseDrawer={() => setIsDrawerOpen(false)}
         onAnalyze={handleAnalyze}
         onClearContext={() => setAssistantContext(null)}
+        apiKey={apiKey}
         banner={
           <HomeStateBanner
             state="DATA_MISSING"
@@ -251,6 +273,7 @@ export function CockpitHomePage() {
       onCloseDrawer={() => setIsDrawerOpen(false)}
       onAnalyze={handleAnalyze}
       onClearContext={() => setAssistantContext(null)}
+      apiKey={apiKey}
       banner={
         response.data_state === 'READY' ? null : (
           <HomeStateBanner
@@ -283,6 +306,7 @@ function HomeShell({
   onCloseDrawer,
   onAnalyze,
   onClearContext,
+  apiKey,
   banner,
   children,
 }: {
@@ -301,6 +325,7 @@ function HomeShell({
   onCloseDrawer: () => void;
   onAnalyze: (item: NewsItem) => void;
   onClearContext: () => void;
+  apiKey: string;
   banner: React.ReactNode;
   children: ReactNode;
 }) {
@@ -350,6 +375,7 @@ function HomeShell({
         isOpen={isDrawerOpen}
         onClose={onCloseDrawer}
         onAnalyze={onAnalyze}
+        apiKey={apiKey}
       />
     </div>
   );

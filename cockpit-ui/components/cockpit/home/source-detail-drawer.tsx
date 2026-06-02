@@ -15,6 +15,7 @@ interface SourceDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onAnalyze: (item: NewsItem) => void;
+  apiKey?: string;
 }
 
 type SourceDetailState =
@@ -41,7 +42,16 @@ interface SourceTakeaway {
   text?: string;
 }
 
-export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceDetailDrawerProps) {
+function buildSourceDetailHeaders(apiKey?: string): HeadersInit {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const normalized = apiKey?.trim();
+  if (normalized) {
+    headers['X-API-Key'] = normalized;
+  }
+  return headers;
+}
+
+export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze, apiKey }: SourceDetailDrawerProps) {
   const [sourceDetail, setSourceDetail] = useState<SourceDetailState>({ status: 'idle' });
   const sourceActionability = item ? getHomeSourceActionability(item) : null;
 
@@ -59,7 +69,7 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
       try {
         const response = await fetch('/api/cockpit/commentary/takeaways', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildSourceDetailHeaders(apiKey),
           body: JSON.stringify({ source_id: sourceId, limit: 3 }),
           cache: 'no-store',
           signal: controller.signal,
@@ -83,7 +93,7 @@ export function SourceDetailDrawer({ item, isOpen, onClose, onAnalyze }: SourceD
     void loadSourceDetail();
 
     return () => controller.abort();
-  }, [isOpen, item?.sourceId, sourceActionability?.canInspect]);
+  }, [apiKey, isOpen, item?.sourceId, sourceActionability?.canInspect]);
 
   if (!item) return null;
 
