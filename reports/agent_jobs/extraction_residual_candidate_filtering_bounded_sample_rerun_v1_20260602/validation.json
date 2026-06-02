@@ -1,0 +1,80 @@
+{
+  "checks": [
+    {
+      "name": "task card validation",
+      "result": "passed"
+    },
+    {
+      "name": "registry claim",
+      "result": "passed"
+    },
+    {
+      "name": "runtime readiness before sample",
+      "result": "passed after minimal backend/router startup"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8001 LLM_API_KEY=local-openai-key OLLAMA_URL=http://127.0.0.1:11434 EXTRACT_MODEL=model:qwen2.5-14b-instruct financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 8 --seed 20260601 --docs-root /data/asx/docs --output-dir reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+      "name": "bounded broad sample",
+      "result": "completed 8/8 exactly once"
+    },
+    {
+      "name": "result JSON validation",
+      "result": "passed"
+    },
+    {
+      "name": "report JSON validation",
+      "result": "passed"
+    },
+    {
+      "name": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "name": "git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "disallowed_files": [
+        "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+      ],
+      "name": "task-card check-diff",
+      "ok": false,
+      "result": "blocked only by pre-existing unrelated parity-guard report dirt"
+    },
+    {
+      "name": "registry release",
+      "released_at": "2026-06-02T05:47:07.457809Z",
+      "result": "passed"
+    },
+    {
+      "name": "final registry list-active",
+      "result": "passed; active_jobs=[]"
+    },
+    {
+      "name": "runtime cleanup",
+      "result": "passed; queues zero, no unacked keys, no runtime processes, GPU token inactive"
+    },
+    {
+      "name": "source PDFs staged",
+      "result": "passed; no source PDFs staged"
+    }
+  ],
+  "data_missing": [
+    "API-visible loaded commit: /api/version returned 404 and /api/health does not expose commit",
+    "Clean task-card check-diff because pre-existing unrelated extraction_contract_parity_guard report dirt remains outside this task allowlist"
+  ],
+  "final_active_jobs_command": {
+    "cmd": [
+      "python3",
+      "scripts/agent_job_registry.py",
+      "list-active"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": true,\n  \"ok\": true,\n  \"read_only\": false,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1\",\n  \"warnings\": []\n}"
+  },
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "schema_version": 1,
+  "status": "completed_with_known_unrelated_check_diff_blocker",
+  "updated_at": "2026-06-02T05:47:51.117383+00:00"
+}

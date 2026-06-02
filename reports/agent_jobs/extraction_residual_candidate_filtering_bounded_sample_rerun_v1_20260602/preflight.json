@@ -1,0 +1,83 @@
+{
+  "captured_at": "2026-06-02T05:45:53.270797+00:00",
+  "collision_risk": "MEDIUM/HIGH",
+  "contract": {
+    "must_not_change": [
+      "source PDFs",
+      "database rows",
+      "Qdrant",
+      "news",
+      "memory",
+      "prompts",
+      "gold labels",
+      "runtime model/GPU config",
+      "unrelated dirty files"
+    ],
+    "rules": [
+      "Backend remains sole authority for canonical stores",
+      "Metric extraction outputs are diagnostic only in this report-only sample",
+      "No inference, substitution, canonical truth promotion, or source PDF mutation",
+      "GPU process topology restricted to authorized llama-server port 8001"
+    ],
+    "target_layers": [
+      "Evaluation",
+      "Extraction runtime path"
+    ]
+  },
+  "decision": "proceeded only after Redis/backend/router/GPU/registry readiness became clean",
+  "execution_mode": "BOUNDED VALIDATION ONLY",
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "lane": "Evaluation",
+  "readiness": {
+    "backend_health": {
+      "status": "ok"
+    },
+    "conflicting_processes_before_sample": [],
+    "dirty_worktree_preserved": [
+      "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+    ],
+    "gpu_activity_token_active_before_sample": true,
+    "gpu_process_guard": {
+      "exit_code": 0,
+      "status": "clean"
+    },
+    "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+    "llama_router_models_checked": true,
+    "loaded_commit_api": "DATA_MISSING: no commit-bearing API endpoint found during preflight",
+    "queues_before_sample": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 0
+    },
+    "registry_before_sample": "only this claimed job active",
+    "repo": {
+      "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+      "head": "8f1ff9c6b8304ff213412d3e96830d7e44f26a26",
+      "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1",
+      "remote": "https://github.com/0rl4nd0l/tenn.git",
+      "residual_filtering_commit": "2465754a2cf842f970de65c77eddd90b5bc2079a",
+      "residual_filtering_commit_is_ancestor": true
+    },
+    "sample_allowed": true,
+    "schema_version": 1,
+    "source_paths": {
+      "docs_root": "/data/asx/docs",
+      "docs_root_exists": true,
+      "financial_performance_pdf_count": 28633,
+      "pdf_count": 179016
+    },
+    "unacked_keys_before_sample": [],
+    "verdict": "clean_after_minimal_backend_and_router_startup"
+  },
+  "schema_version": 1,
+  "supporting_lanes": [
+    "Financial Truth",
+    "Query Orchestration",
+    "Provenance"
+  ],
+  "task_card": "docs/agent_tasks/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602.md",
+  "task_card_claimed": true,
+  "task_card_validated": true
+}

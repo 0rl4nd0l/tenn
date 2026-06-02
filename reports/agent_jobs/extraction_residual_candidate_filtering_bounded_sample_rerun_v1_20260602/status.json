@@ -1,0 +1,131 @@
+{
+  "agent": "Codex",
+  "another_canary_or_sample_verdict": "blocked_for_broad_graduation; narrow follow-up on residual non-candidate titles and formal overscale failures is safer than another random sample",
+  "baseline_comparison": {
+    "baseline_file": "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/broad_test_20260601T140000Z.json",
+    "baseline_status_distribution": {
+      "failed": 5,
+      "ok": 3
+    },
+    "candidate_count_delta": -1567,
+    "current_status_distribution": {
+      "failed": 4,
+      "ok": 3,
+      "ok_low_confidence": 1
+    },
+    "excluded_count_delta": 1567,
+    "failed_delta": -1,
+    "non_failed_delta": 1,
+    "strict_ok_delta": 0,
+    "verdict": "modest improvement: failed count reduced from 5 to 4 and one additional non-failed low-confidence result appeared; strict ok count stayed 3"
+  },
+  "bounded_broad_sample_command": "PYTHONPATH=financial-engine_v2/backend LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8001 LLM_API_KEY=local-openai-key OLLAMA_URL=http://127.0.0.1:11434 EXTRACT_MODEL=model:qwen2.5-14b-instruct financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 8 --seed 20260601 --docs-root /data/asx/docs --output-dir reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "bounded_broad_sample_result": {
+    "failed": 4,
+    "ok": 3,
+    "ok_low_confidence": 1,
+    "success_rate": 0.5,
+    "total_runtime_seconds": 572.0
+  },
+  "bounded_broad_sample_result_file": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+  "bounded_broad_sample_run": true,
+  "branch": "migration/clean-runtime-baseline-reconstruct-v1",
+  "candidate_filter": {
+    "candidate_count": 22275,
+    "excluded_count": 6358,
+    "excluded_reason_counts": {
+      "advisory_only_document": 50,
+      "capital_management_update_without_formal_statements": 123,
+      "meeting_notice": 1660,
+      "meeting_results_notice": 2287,
+      "non_financial_update_without_formal_statements": 1965,
+      "operational_update_without_formal_statements": 268,
+      "unaudited_financial_update_without_formal_statements": 5
+    },
+    "input_count": 28633
+  },
+  "collision_risk": "MEDIUM/HIGH",
+  "data_missing": [
+    "API-visible loaded commit: /api/version returned 404 and /api/health does not expose commit",
+    "Clean task-card check-diff because pre-existing unrelated extraction_contract_parity_guard report dirt remains outside this task allowlist"
+  ],
+  "execution_mode": "BOUNDED VALIDATION ONLY",
+  "failure_taxonomy": {
+    "degraded_success_count": 1,
+    "failed_count": 4,
+    "failure_gate_counts": {
+      "classifier_low_confidence": 1,
+      "operational_update_without_formal_statements": 1,
+      "scale_unknown": 1,
+      "scale_validation:suspect_overscaled": 1
+    },
+    "failure_source_class_counts": {
+      "formal preliminary final report": 1,
+      "quarterly activities update without formal statements": 1,
+      "residual event/webinar scheduling update": 1,
+      "residual results teleconference notice/presentation": 1
+    }
+  },
+  "head": "8f1ff9c6b8304ff213412d3e96830d7e44f26a26",
+  "improvement_summary": "failed count improved 5 -> 4; non-failed improved 3 -> 4; strict ok unchanged at 3",
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "lane": "Evaluation",
+  "no_full_extraction_backfill_run": true,
+  "previous_baseline": {
+    "failed": 5,
+    "ok": 3,
+    "ok_low_confidence": 0
+  },
+  "registry_release": {
+    "final_active_jobs": [],
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "released_at": "2026-06-02T05:47:07.457809Z"
+  },
+  "residual_filtering_improved_broad_robustness": true,
+  "runtime_readiness_verdict": "clean_after_minimal_backend_and_router_startup",
+  "schema_version": 1,
+  "script_result_file": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/broad_test_20260602T053226Z.json",
+  "side_effect_audit": {
+    "backend_started_for_health_only": true,
+    "bounded_sample_run_count": 1,
+    "broad_backfill_run": false,
+    "canary_run": false,
+    "database_direct_write_performed": false,
+    "full_ticker_universe_extraction_run": false,
+    "gpu_processes_after": [],
+    "gpu_token_cleared": true,
+    "ignored_script_timestamp_output": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/broad_test_20260602T053226Z.json",
+    "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+    "llama_router_started_for_sample_only": true,
+    "no_full_extraction_backfill_run": true,
+    "qdrant_news_memory_mutation_performed": false,
+    "queues_after": {
+      "embed": 0,
+      "ingest": 0,
+      "llm_cpu": 0,
+      "llm_gpu": 0,
+      "score": 0
+    },
+    "runtime_processes_after": [],
+    "schema_version": 1,
+    "source_pdfs_mutated": false,
+    "source_pdfs_staged": false,
+    "unacked_keys_after": [],
+    "unrelated_dirty_file_preserved": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+    "worker_started": false
+  },
+  "status": "released_sample_completed_runtime_cleaned",
+  "supporting_lanes": [
+    "Financial Truth",
+    "Query Orchestration",
+    "Provenance"
+  ],
+  "task_card_check_diff_disallowed_files": [
+    "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json"
+  ],
+  "task_card_check_diff_ok": false,
+  "updated_at": "2026-06-02T05:47:51.117383+00:00",
+  "validation_result": "passed except task-card check-diff blocked by pre-existing unrelated parity-guard report dirt",
+  "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+}

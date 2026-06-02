@@ -1,0 +1,109 @@
+{
+  "degraded_success_count": 1,
+  "degraded_successes": [
+    {
+      "confidence": 0.627,
+      "document_id": "2e0a3393-368e-4e61-aa4b-7f055f8a3bb0",
+      "non_null_metrics": 5,
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "scale": "millions",
+      "source_class": "formal result announcement with low confidence / facility update blend",
+      "source_path": "data/asx/docs/RMS/financial_performance/2026-02-20_h1-fy-results-announcement-and-facility-update_2e0a3393-368e-4e61-aa4b-7f055f8a3bb0.pdf",
+      "status": "ok_low_confidence",
+      "ticker": "RMS"
+    }
+  ],
+  "failed_count": 4,
+  "failure_gate_counts": {
+    "classifier_low_confidence": 1,
+    "operational_update_without_formal_statements": 1,
+    "scale_unknown": 1,
+    "scale_validation:suspect_overscaled": 1
+  },
+  "failure_source_class_counts": {
+    "formal preliminary final report": 1,
+    "quarterly activities update without formal statements": 1,
+    "residual event/webinar scheduling update": 1,
+    "residual results teleconference notice/presentation": 1
+  },
+  "failures": [
+    {
+      "classifier_allowed": true,
+      "classifier_document_class": "unknown_document",
+      "classifier_reason": "not_detected",
+      "document_id": "bfc0eb77-6875-4451-ac02-90542a8f6317",
+      "error": "classifier_low_confidence:0.0",
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "scale": null,
+      "source_class": "residual event/webinar scheduling update",
+      "source_path": "data/asx/docs/CQT/financial_performance/2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77-6875-4451-ac02-90542a8f6317.pdf",
+      "status": "failed",
+      "ticker": "CQT",
+      "validation_gate": "classifier_low_confidence"
+    },
+    {
+      "classifier_allowed": true,
+      "classifier_document_class": "unknown_document",
+      "classifier_reason": "not_detected",
+      "document_id": "dce6f923-7a41-4925-8363-3efefd7ecd96",
+      "error": "validation_gate:scale_validation:suspect_overscaled",
+      "non_null_metrics": 8,
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "scale": "millions",
+      "source_class": "formal preliminary final report",
+      "source_path": "data/asx/docs/AUK/financial_performance/2025-08-29_preliminary-final-report_dce6f923-7a41-4925-8363-3efefd7ecd96.pdf",
+      "status": "failed",
+      "ticker": "AUK",
+      "validation_gate": "scale_validation:suspect_overscaled"
+    },
+    {
+      "classifier_allowed": true,
+      "classifier_document_class": "unknown_document",
+      "classifier_reason": "not_detected",
+      "document_id": "f72b2537-247f-4005-a7d1-6b93885704db",
+      "error": "validation_gate:scale_unknown",
+      "non_null_metrics": 0,
+      "period_end": "2021-06-30",
+      "period_type": "A",
+      "scale": "unknown",
+      "source_class": "residual results teleconference notice/presentation",
+      "source_path": "data/asx/docs/NCK/financial_performance/2021-07-23_fy21-results-teleconference_f72b2537-247f-4005-a7d1-6b93885704db.pdf",
+      "status": "failed",
+      "ticker": "NCK",
+      "validation_gate": "scale_unknown"
+    },
+    {
+      "classifier_allowed": true,
+      "classifier_document_class": "financial_report",
+      "classifier_reason": "quarterly_source_phrase",
+      "document_id": "30a5c1cb-2a09-4c21-9191-4bd292d825f3",
+      "error": "validation_gate:operational_update_without_formal_statements",
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "scale": null,
+      "source_class": "quarterly activities update without formal statements",
+      "source_path": "data/asx/docs/CQT/financial_performance/2024-04-24_march-quarterly-activities-report_30a5c1cb-2a09-4c21-9191-4bd292d825f3.pdf",
+      "status": "failed",
+      "ticker": "CQT",
+      "validation_gate": "operational_update_without_formal_statements"
+    }
+  ],
+  "interpretation": {
+    "failed_change_vs_baseline": -1,
+    "non_failed_change_vs_baseline": 1,
+    "residual_filtering_improved_broad_robustness": true,
+    "still_blocked_reasons": [
+      "strict ok count did not increase from the previous baseline",
+      "sample still includes residual non-candidate or low-quality update classes",
+      "formal preliminary-final extraction still hit suspect_overscaled validation gate"
+    ],
+    "strict_ok_change_vs_baseline": 0
+  },
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "schema_version": 1
+}

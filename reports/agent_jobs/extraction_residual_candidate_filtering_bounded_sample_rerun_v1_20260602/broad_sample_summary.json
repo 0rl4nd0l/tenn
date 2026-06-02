@@ -1,0 +1,213 @@
+{
+  "baseline_comparison": {
+    "baseline_file": "reports/agent_jobs/extraction_broad_runtime_after_residual_filter_v1_20260601/broad_test_20260601T140000Z.json",
+    "baseline_status_distribution": {
+      "failed": 5,
+      "ok": 3
+    },
+    "candidate_count_delta": -1567,
+    "current_status_distribution": {
+      "failed": 4,
+      "ok": 3,
+      "ok_low_confidence": 1
+    },
+    "excluded_count_delta": 1567,
+    "failed_delta": -1,
+    "non_failed_delta": 1,
+    "strict_ok_delta": 0,
+    "verdict": "modest improvement: failed count reduced from 5 to 4 and one additional non-failed low-confidence result appeared; strict ok count stayed 3"
+  },
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "result_file": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/bounded_broad_sample_results.json",
+  "run_metadata": {
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "candidate_filter": {
+      "candidate_count": 22275,
+      "excluded_count": 6358,
+      "excluded_reason_counts": {
+        "advisory_only_document": 50,
+        "capital_management_update_without_formal_statements": 123,
+        "meeting_notice": 1660,
+        "meeting_results_notice": 2287,
+        "non_financial_update_without_formal_statements": 1965,
+        "operational_update_without_formal_statements": 268,
+        "unaudited_financial_update_without_formal_statements": 5
+      },
+      "input_count": 28633
+    },
+    "docs_root": "/data/asx/docs",
+    "requested_count": 8,
+    "seed": 20260601,
+    "timestamp": "20260602T053226Z"
+  },
+  "sample_command": "PYTHONPATH=financial-engine_v2/backend LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8001 LLM_API_KEY=local-openai-key OLLAMA_URL=http://127.0.0.1:11434 EXTRACT_MODEL=model:qwen2.5-14b-instruct financial-engine_v2/.venv/bin/python financial-engine_v2/scripts/broad_extraction_test.py --count 8 --seed 20260601 --docs-root /data/asx/docs --output-dir reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "sample_inputs": [
+    {
+      "document_id": "bfc0eb77-6875-4451-ac02-90542a8f6317",
+      "source_path": "data/asx/docs/CQT/financial_performance/2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77-6875-4451-ac02-90542a8f6317.pdf",
+      "status": "failed",
+      "ticker": "CQT"
+    },
+    {
+      "document_id": "66377f71-eb8e-4ff4-8d52-bab8c0796425",
+      "source_path": "data/asx/docs/MPL/financial_performance/2023-02-23_hy23-results-appendix-4d-and-financial-report_66377f71-eb8e-4ff4-8d52-bab8c0796425.pdf",
+      "status": "ok",
+      "ticker": "MPL"
+    },
+    {
+      "document_id": "dce6f923-7a41-4925-8363-3efefd7ecd96",
+      "source_path": "data/asx/docs/AUK/financial_performance/2025-08-29_preliminary-final-report_dce6f923-7a41-4925-8363-3efefd7ecd96.pdf",
+      "status": "failed",
+      "ticker": "AUK"
+    },
+    {
+      "document_id": "0ccadb71-4937-4fb8-94c4-9f90f83d67b9",
+      "source_path": "data/asx/docs/ABE/financial_performance/2022-08-31_preliminary-final-report_0ccadb71-4937-4fb8-94c4-9f90f83d67b9.pdf",
+      "status": "ok",
+      "ticker": "ABE"
+    },
+    {
+      "document_id": "f72b2537-247f-4005-a7d1-6b93885704db",
+      "source_path": "data/asx/docs/NCK/financial_performance/2021-07-23_fy21-results-teleconference_f72b2537-247f-4005-a7d1-6b93885704db.pdf",
+      "status": "failed",
+      "ticker": "NCK"
+    },
+    {
+      "document_id": "30a5c1cb-2a09-4c21-9191-4bd292d825f3",
+      "source_path": "data/asx/docs/CQT/financial_performance/2024-04-24_march-quarterly-activities-report_30a5c1cb-2a09-4c21-9191-4bd292d825f3.pdf",
+      "status": "failed",
+      "ticker": "CQT"
+    },
+    {
+      "document_id": "b9a3a47f-6731-46ee-b1ff-2a52f13b4535",
+      "source_path": "data/asx/docs/NAN/financial_performance/2021-08-24_2021-full-year-financial-results_b9a3a47f-6731-46ee-b1ff-2a52f13b4535.pdf",
+      "status": "ok",
+      "ticker": "NAN"
+    },
+    {
+      "document_id": "2e0a3393-368e-4e61-aa4b-7f055f8a3bb0",
+      "source_path": "data/asx/docs/RMS/financial_performance/2026-02-20_h1-fy-results-announcement-and-facility-update_2e0a3393-368e-4e61-aa4b-7f055f8a3bb0.pdf",
+      "status": "ok_low_confidence",
+      "ticker": "RMS"
+    }
+  ],
+  "schema_version": 1,
+  "script_result_file": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/broad_test_20260602T053226Z.json",
+  "summary": {
+    "error_classification": {
+      "classifier_low_confidence": 1,
+      "validation_gate": 3
+    },
+    "metric_coverage": {
+      "capex": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "cash_end": {
+        "present": 2,
+        "rate": 0.5,
+        "total": 4
+      },
+      "ebit": {
+        "present": 2,
+        "rate": 0.5,
+        "total": 4
+      },
+      "financing_cf": {
+        "present": 2,
+        "rate": 0.5,
+        "total": 4
+      },
+      "investing_cf": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "net_debt": {
+        "present": 0,
+        "rate": 0.0,
+        "total": 4
+      },
+      "np_attributable": {
+        "present": 4,
+        "rate": 1.0,
+        "total": 4
+      },
+      "operating_cf": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "revenue": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "shares_outstanding": {
+        "present": 1,
+        "rate": 0.25,
+        "total": 4
+      }
+    },
+    "nonnull_metric_distribution": {
+      "max": 8,
+      "mean": 5.75,
+      "median": 6.0,
+      "min": 3
+    },
+    "period_type_distribution": {
+      "A": 2,
+      "H": 2
+    },
+    "sanity_checks": {
+      "cash_end_positive": {
+        "passed": 2,
+        "rate": 1.0,
+        "total": 2
+      },
+      "period_end_valid": {
+        "passed": 4,
+        "rate": 1.0,
+        "total": 4
+      },
+      "period_type_valid": {
+        "passed": 4,
+        "rate": 1.0,
+        "total": 4
+      },
+      "revenue_positive": {
+        "passed": 3,
+        "rate": 1.0,
+        "total": 3
+      },
+      "shares_positive": {
+        "passed": 1,
+        "rate": 1.0,
+        "total": 1
+      }
+    },
+    "scale_distribution": {
+      "millions": 3,
+      "units": 1
+    },
+    "status_distribution": {
+      "failed": 4,
+      "ok": 3,
+      "ok_low_confidence": 1
+    },
+    "success_rate": 0.5,
+    "timing": {
+      "max_s": 149.3,
+      "mean_s": 71.5,
+      "median_s": 54.13,
+      "min_s": 3.75,
+      "p95_s": 149.3,
+      "p99_s": 149.3,
+      "total_s": 572.0
+    },
+    "total": 8,
+    "unique_tickers": 7
+  }
+}

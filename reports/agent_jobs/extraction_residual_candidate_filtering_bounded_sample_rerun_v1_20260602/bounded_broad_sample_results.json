@@ -1,0 +1,393 @@
+{
+  "results": [
+    {
+      "confidence": 0.0,
+      "document_id": "bfc0eb77-6875-4451-ac02-90542a8f6317",
+      "elapsed_s": 20.47,
+      "error": "classifier_low_confidence:0.0",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/CQT/financial_performance/2023-08-07_postponement-of-quarterly-results-webinar_bfc0eb77-6875-4451-ac02-90542a8f6317.pdf",
+      "period_end": null,
+      "period_type": null,
+      "sanity": {},
+      "scale": null,
+      "status": "failed",
+      "table_count": null,
+      "ticker": "CQT"
+    },
+    {
+      "confidence": 0.905,
+      "document_id": "66377f71-eb8e-4ff4-8d52-bab8c0796425",
+      "elapsed_s": 137.87,
+      "error": null,
+      "metrics": {
+        "capex": -12900000.0,
+        "cash_end": 406700000.0,
+        "ebit": null,
+        "financing_cf": -225500000.0,
+        "investing_cf": 160000000.0,
+        "net_debt": null,
+        "np_attributable": 233300000.0,
+        "operating_cf": -124500000.0,
+        "revenue": 3629900000.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 7,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/MPL/financial_performance/2023-02-23_hy23-results-appendix-4d-and-financial-report_66377f71-eb8e-4ff4-8d52-bab8c0796425.pdf",
+      "period_end": "2022-12-31",
+      "period_type": "H",
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "millions",
+      "status": "ok",
+      "table_count": null,
+      "ticker": "MPL"
+    },
+    {
+      "confidence": 0.889,
+      "document_id": "dce6f923-7a41-4925-8363-3efefd7ecd96",
+      "elapsed_s": 143.67,
+      "error": "validation_gate:scale_validation:suspect_overscaled",
+      "metrics": {
+        "capex": -6895000000.0,
+        "cash_end": 1676956.0,
+        "ebit": null,
+        "financing_cf": 3934076.0,
+        "investing_cf": -38831000000.0,
+        "net_debt": null,
+        "np_attributable": -3401197000000.0,
+        "operating_cf": -4257078.0,
+        "revenue": 39769238.0,
+        "shares_outstanding": 64566974.0
+      },
+      "non_null_metrics": 8,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/AUK/financial_performance/2025-08-29_preliminary-final-report_dce6f923-7a41-4925-8363-3efefd7ecd96.pdf",
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true,
+        "shares_positive": true
+      },
+      "scale": "millions",
+      "status": "failed",
+      "table_count": null,
+      "ticker": "AUK"
+    },
+    {
+      "confidence": 0.852,
+      "document_id": "0ccadb71-4937-4fb8-94c4-9f90f83d67b9",
+      "elapsed_s": 149.3,
+      "error": null,
+      "metrics": {
+        "capex": -17069.0,
+        "cash_end": 9046931.0,
+        "ebit": null,
+        "financing_cf": 13901997.0,
+        "investing_cf": -587320.0,
+        "net_debt": null,
+        "np_attributable": -3642758.0,
+        "operating_cf": -5708407.0,
+        "revenue": 2029717.0,
+        "shares_outstanding": 21329562.0
+      },
+      "non_null_metrics": 8,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/ABE/financial_performance/2022-08-31_preliminary-final-report_0ccadb71-4937-4fb8-94c4-9f90f83d67b9.pdf",
+      "period_end": "2022-06-30",
+      "period_type": "A",
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true,
+        "shares_positive": true
+      },
+      "scale": "units",
+      "status": "ok",
+      "table_count": null,
+      "ticker": "ABE"
+    },
+    {
+      "confidence": 0.0,
+      "document_id": "f72b2537-247f-4005-a7d1-6b93885704db",
+      "elapsed_s": 8.71,
+      "error": "validation_gate:scale_unknown",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/NCK/financial_performance/2021-07-23_fy21-results-teleconference_f72b2537-247f-4005-a7d1-6b93885704db.pdf",
+      "period_end": "2021-06-30",
+      "period_type": "A",
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "unknown",
+      "status": "failed",
+      "table_count": null,
+      "ticker": "NCK"
+    },
+    {
+      "confidence": 0.0,
+      "document_id": "30a5c1cb-2a09-4c21-9191-4bd292d825f3",
+      "elapsed_s": 3.75,
+      "error": "validation_gate:operational_update_without_formal_statements",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/CQT/financial_performance/2024-04-24_march-quarterly-activities-report_30a5c1cb-2a09-4c21-9191-4bd292d825f3.pdf",
+      "period_end": null,
+      "period_type": null,
+      "sanity": {},
+      "scale": null,
+      "status": "failed",
+      "table_count": null,
+      "ticker": "CQT"
+    },
+    {
+      "confidence": 1.0,
+      "document_id": "b9a3a47f-6731-46ee-b1ff-2a52f13b4535",
+      "elapsed_s": 41.86,
+      "error": null,
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": 10800000000.0,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": 8600000000.0,
+        "operating_cf": null,
+        "revenue": 103100000000.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 3,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/NAN/financial_performance/2021-08-24_2021-full-year-financial-results_b9a3a47f-6731-46ee-b1ff-2a52f13b4535.pdf",
+      "period_end": "2021-06-30",
+      "period_type": "A",
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "millions",
+      "status": "ok",
+      "table_count": null,
+      "ticker": "NAN"
+    },
+    {
+      "confidence": 0.627,
+      "document_id": "2e0a3393-368e-4e61-aa4b-7f055f8a3bb0",
+      "elapsed_s": 66.4,
+      "error": null,
+      "metrics": {
+        "capex": -211400000.0,
+        "cash_end": null,
+        "ebit": 31300000.0,
+        "financing_cf": null,
+        "investing_cf": -211400000.0,
+        "net_debt": null,
+        "np_attributable": -11700000.0,
+        "operating_cf": 311600000.0,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 5,
+      "page_count": null,
+      "pdf_path": "data/asx/docs/RMS/financial_performance/2026-02-20_h1-fy-results-announcement-and-facility-update_2e0a3393-368e-4e61-aa4b-7f055f8a3bb0.pdf",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "millions",
+      "status": "ok_low_confidence",
+      "table_count": null,
+      "ticker": "RMS"
+    }
+  ],
+  "run_metadata": {
+    "actual_count": 8,
+    "backend": "llamacpp",
+    "candidate_filter": {
+      "candidate_count": 22275,
+      "excluded_count": 6358,
+      "excluded_reason_counts": {
+        "advisory_only_document": 50,
+        "capital_management_update_without_formal_statements": 123,
+        "meeting_notice": 1660,
+        "meeting_results_notice": 2287,
+        "non_financial_update_without_formal_statements": 1965,
+        "operational_update_without_formal_statements": 268,
+        "unaudited_financial_update_without_formal_statements": 5
+      },
+      "input_count": 28633
+    },
+    "docs_root": "/data/asx/docs",
+    "requested_count": 8,
+    "seed": 20260601,
+    "timestamp": "20260602T053226Z"
+  },
+  "summary": {
+    "error_classification": {
+      "classifier_low_confidence": 1,
+      "validation_gate": 3
+    },
+    "metric_coverage": {
+      "capex": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "cash_end": {
+        "present": 2,
+        "rate": 0.5,
+        "total": 4
+      },
+      "ebit": {
+        "present": 2,
+        "rate": 0.5,
+        "total": 4
+      },
+      "financing_cf": {
+        "present": 2,
+        "rate": 0.5,
+        "total": 4
+      },
+      "investing_cf": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "net_debt": {
+        "present": 0,
+        "rate": 0.0,
+        "total": 4
+      },
+      "np_attributable": {
+        "present": 4,
+        "rate": 1.0,
+        "total": 4
+      },
+      "operating_cf": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "revenue": {
+        "present": 3,
+        "rate": 0.75,
+        "total": 4
+      },
+      "shares_outstanding": {
+        "present": 1,
+        "rate": 0.25,
+        "total": 4
+      }
+    },
+    "nonnull_metric_distribution": {
+      "max": 8,
+      "mean": 5.75,
+      "median": 6.0,
+      "min": 3
+    },
+    "period_type_distribution": {
+      "A": 2,
+      "H": 2
+    },
+    "sanity_checks": {
+      "cash_end_positive": {
+        "passed": 2,
+        "rate": 1.0,
+        "total": 2
+      },
+      "period_end_valid": {
+        "passed": 4,
+        "rate": 1.0,
+        "total": 4
+      },
+      "period_type_valid": {
+        "passed": 4,
+        "rate": 1.0,
+        "total": 4
+      },
+      "revenue_positive": {
+        "passed": 3,
+        "rate": 1.0,
+        "total": 3
+      },
+      "shares_positive": {
+        "passed": 1,
+        "rate": 1.0,
+        "total": 1
+      }
+    },
+    "scale_distribution": {
+      "millions": 3,
+      "units": 1
+    },
+    "status_distribution": {
+      "failed": 4,
+      "ok": 3,
+      "ok_low_confidence": 1
+    },
+    "success_rate": 0.5,
+    "timing": {
+      "max_s": 149.3,
+      "mean_s": 71.5,
+      "median_s": 54.13,
+      "min_s": 3.75,
+      "p95_s": 149.3,
+      "p99_s": 149.3,
+      "total_s": 572.0
+    },
+    "total": 8,
+    "unique_tickers": 7
+  }
+}

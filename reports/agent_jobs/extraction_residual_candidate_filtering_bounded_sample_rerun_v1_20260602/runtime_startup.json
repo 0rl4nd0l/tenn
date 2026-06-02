@@ -1,0 +1,25 @@
+{
+  "api_visible_loaded_commit": null,
+  "api_visible_loaded_commit_status": "DATA_MISSING: /api/version returned 404 and /api/health only returned status",
+  "backend_command": "LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh",
+  "backend_health_after_start": {
+    "reachable": true,
+    "response": {
+      "status": "ok"
+    }
+  },
+  "backend_health_before_start": {
+    "error": "connection refused on 127.0.0.1:8000",
+    "reachable": false
+  },
+  "backend_profile": "isolated",
+  "backend_started_by_this_job": true,
+  "gpu_activity_reason": "bounded_broad_extraction_sample_rerun",
+  "gpu_activity_token": "56db9466dfd549dab2a9c2cb63f872ac",
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "llama_command": "ALLOW_LLAMA_DURING_GPU_EXCLUSIVE=1 bash scripts/run_llama_server.sh",
+  "llama_model_used": "model:qwen2.5-14b-instruct",
+  "llama_router_url": "http://127.0.0.1:8001",
+  "llama_started_by_this_job": true,
+  "schema_version": 1
+}

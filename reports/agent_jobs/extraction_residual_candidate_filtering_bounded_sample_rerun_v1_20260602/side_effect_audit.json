@@ -1,0 +1,29 @@
+{
+  "backend_started_for_health_only": true,
+  "bounded_sample_run_count": 1,
+  "broad_backfill_run": false,
+  "canary_run": false,
+  "database_direct_write_performed": false,
+  "full_ticker_universe_extraction_run": false,
+  "gpu_processes_after": [],
+  "gpu_token_cleared": true,
+  "ignored_script_timestamp_output": "reports/agent_jobs/extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602/broad_test_20260602T053226Z.json",
+  "job_id": "extraction_residual_candidate_filtering_bounded_sample_rerun_v1_20260602",
+  "llama_router_started_for_sample_only": true,
+  "no_full_extraction_backfill_run": true,
+  "qdrant_news_memory_mutation_performed": false,
+  "queues_after": {
+    "embed": 0,
+    "ingest": 0,
+    "llm_cpu": 0,
+    "llm_gpu": 0,
+    "score": 0
+  },
+  "runtime_processes_after": [],
+  "schema_version": 1,
+  "source_pdfs_mutated": false,
+  "source_pdfs_staged": false,
+  "unacked_keys_after": [],
+  "unrelated_dirty_file_preserved": "reports/agent_jobs/extraction_contract_parity_guard_v1_20260526/diff-check.json",
+  "worker_started": false
+}
