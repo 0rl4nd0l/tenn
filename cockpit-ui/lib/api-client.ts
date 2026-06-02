@@ -1,4 +1,5 @@
 import { useCockpitStore } from './cockpit-store'
+import { buildCockpitApiHeaders } from './cockpit-api-headers'
 import type {
   AvailableModelsResponse,
   ClaimVerificationResponse,
@@ -31,16 +32,8 @@ import type {
   VerificationContextResponse,
 } from './cockpit-types'
 
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
-
 function withApiKey(headers?: HeadersInit): HeadersInit {
-  const merged: Record<string, string> = {
-    ...(headers as Record<string, string> | undefined),
-  }
-  if (API_KEY) {
-    merged['X-API-Key'] = API_KEY
-  }
-  return merged
+  return buildCockpitApiHeaders(headers)
 }
 
 // ── Error class ────────────────────────────────────────────────────────────
@@ -411,7 +404,9 @@ export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs
 
 /** Health check – GET /api/cockpit/health (aggregated) */
 export async function checkHealth(): Promise<HealthResponse> {
-  return apiFetch<HealthResponse>("/api/cockpit/health")
+  return apiFetch<HealthResponse>("/api/cockpit/health", {
+    headers: withApiKey(),
+  })
 }
 
 export function isHealthyService(service?: ServiceHealth): boolean {

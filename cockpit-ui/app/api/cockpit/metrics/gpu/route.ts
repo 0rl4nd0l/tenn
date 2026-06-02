@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { requireCockpitBffApiKey } from '@/lib/cockpit-bff-auth'
 import { prioritizeGpusForDisplay } from '@/lib/gpu-display'
 import { redactProcessCommand } from '@/lib/process-command-redaction'
 
@@ -61,7 +62,10 @@ async function readProcessCommands(pids: number[]): Promise<Map<number, string>>
   }
 }
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  const auth = requireCockpitBffApiKey(request)
+  if (!auth.ok) return auth.response
+
   try {
     const { stdout: gpuOut } = await execFileAsync('nvidia-smi', [
       '--query-gpu=uuid,name,temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,power.limit,fan.speed,utilization.memory,clocks.gr,clocks.mem,pstate',

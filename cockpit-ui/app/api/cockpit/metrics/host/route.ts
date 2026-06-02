@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import os from 'node:os'
 import { promisify } from 'node:util'
+import { requireCockpitBffApiKey } from '@/lib/cockpit-bff-auth'
 import { redactProcessCommand } from '@/lib/process-command-redaction'
 
 const execFileAsync = promisify(execFile)
@@ -93,7 +94,10 @@ async function probeTopProcesses(): Promise<HostProcessSnapshot[]> {
   }
 }
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  const auth = requireCockpitBffApiKey(request)
+  if (!auth.ok) return auth.response
+
   try {
     const [disks, top_processes] = await Promise.all([probeDisks(), probeTopProcesses()])
 

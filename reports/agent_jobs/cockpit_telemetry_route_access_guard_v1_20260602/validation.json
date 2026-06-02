@@ -1,0 +1,43 @@
+{
+  "job_id": "cockpit_telemetry_route_access_guard_v1_20260602",
+  "validated_at": "2026-06-02T06:49:00Z",
+  "results": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_telemetry_route_access_guard_v1_20260602.md",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_telemetry_route_access_guard_v1_20260602.md",
+      "result": "pass",
+      "notes": "ok true, issues empty"
+    },
+    {
+      "command": "node_modules/.bin/vitest run lib/cockpit-api-headers.test.ts lib/telemetry-route-access-guard.test.ts",
+      "cwd": "cockpit-ui",
+      "result": "pass",
+      "tests": 10,
+      "files": 2
+    },
+    {
+      "command": "node_modules/.bin/eslint app/api/cockpit/metrics/gpu/route.ts app/api/cockpit/metrics/host/route.ts app/api/cockpit/health/route.ts lib/cockpit-bff-auth.ts lib/cockpit-api-headers.ts lib/cockpit-api-headers.test.ts lib/telemetry-route-access-guard.test.ts lib/api-client.ts components/cockpit/gpu-activity-dialog.tsx components/cockpit/host-activity-dialog.tsx",
+      "cwd": "cockpit-ui",
+      "result": "pass"
+    },
+    {
+      "command": "node_modules/.bin/tsc --noEmit --pretty false",
+      "cwd": "cockpit-ui",
+      "result": "pass"
+    },
+    {
+      "command": "code-reviewer pass over modified and added files",
+      "result": "pass",
+      "notes": "No critical issues after fixing browser stored-key support."
+    }
+  ],
+  "negative_scope": [
+    "No production data access.",
+    "No backend query orchestration changes.",
+    "No extraction, parser, prompt, gold-label, Qdrant, database, memory, runtime/model/GPU service configuration, or financial truth changes.",
+    "No live telemetry probes beyond mocked/focused route tests."
+  ]
+}

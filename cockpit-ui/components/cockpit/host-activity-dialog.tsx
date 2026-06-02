@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { buildCockpitApiHeaders } from '@/lib/cockpit-api-headers'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 
 interface HostActivityDialogProps {
@@ -124,7 +125,10 @@ export function HostActivityDialog({ hostHealth, children }: HostActivityDialogP
     async function poll() {
       setPolling(true)
       try {
-        const res = await fetch('/api/cockpit/metrics/host', { cache: 'no-store' })
+        const res = await fetch('/api/cockpit/metrics/host', {
+          cache: 'no-store',
+          headers: buildCockpitApiHeaders(),
+        })
         if (!res.ok) throw new Error(`${res.status}`)
         const data = await res.json() as { details?: HostDetails; error?: string }
         setDetails(data.details ?? {})
