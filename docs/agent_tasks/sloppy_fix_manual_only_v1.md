@@ -76,3 +76,16 @@ Expected trigger shape after change should be manual-only, for example:
 on:
   workflow_dispatch:
 ```
+
+# Post-merge status
+
+This task card is a historical artifact for the manual-only mitigation.
+Current source still keeps Sloppy Fix operator-triggered only in
+`.github/workflows/sloppy-fix.yml`, but later changes moved fix execution from
+Codex/OpenAI to Claude credentials:
+
+- Claude auth is detected from `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`.
+- The fix step runs `braedonsaunders/sloppy@main` with `mode: fix` and
+  `agent: claude`.
+- If Claude credentials are unavailable, the workflow logs a skip message
+  instead of running a fix.

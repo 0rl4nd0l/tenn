@@ -46,8 +46,19 @@ curl -X POST "http://127.0.0.1:8000/api/backfill/ticker/BHP?years=1&process_docu
 curl "http://127.0.0.1:8000/api/docs?ticker=BHP"
 ```
 
+### CI and code quality automation
+- No flake8/ruff/mypy tooling is configured in this repo. GitHub Actions use the external `braedonsaunders/sloppy@main` action for scan/fix automation.
+- Sloppy Scan lives at `.github/workflows/sloppy-scan.yml`:
+  - Runs on pull requests and manual `workflow_dispatch`.
+  - Defaults to `scan_provider=github-models`; manual dispatch can select `agent`, which uses Codex with `OPENAI_API_KEY`.
+  - Runs in scan mode only and can comment on PRs, but it does not request write permissions to repository contents.
+- Sloppy Fix lives at `.github/workflows/sloppy-fix.yml`:
+  - Manual `workflow_dispatch` only. Do not re-add schedules without explicit Tenn approval; it has `contents: write` and `pull-requests: write`.
+  - Uses Claude (`agent: claude`, model set in the workflow) when `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` is present.
+  - Skips cleanly when Claude credentials are absent.
+- `.sloppy.yml` is the repository-level Sloppy configuration/reference. The fix workflow overrides sensitive runtime details such as mode, agent, model, output file, and prompt file in workflow YAML, so check both files before changing Sloppy behavior.
+
 ### Gotchas
 - The `.env.example` in `financial-engine_v2/` targets Docker mode (Postgres URLs, `TASK_MODE=celery`). For local dev, override env vars as shown above or use `run_local_backend.sh`.
 - Playwright Chromium is needed for MarketIndex PDF downloads. Install with: `/workspace/.venv/bin/python -m playwright install chromium`.
-- No lint tooling (flake8/ruff/mypy) is configured in this repo. CI uses an external "Sloppy" scan tool.
 - Tests live in `financial-engine_v2/scripts/test_*.py` (not a standard `tests/` directory). They use `unittest` and `pytest`, with `sys.path` manipulation to import from `backend/`.

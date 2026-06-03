@@ -27,6 +27,12 @@
 - Canonical datasets: `canonical_datasets.md`
 - News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
 
+### Automation / CI
+
+- Agent and CI operating notes: `../AGENTS.md`
+- Evaluation-lane task cards: `agent_tasks/`
+- Sloppy Fix manual-only task card: `agent_tasks/sloppy_fix_manual_only_v1.md`
+
 ### Migration / historical
 
 - Migration report: `migration/MIGRATION_REPORT.md`
