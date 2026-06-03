@@ -200,7 +200,7 @@ Per runtime README:
 
 ## 6. Verified Defects and Risks
 
-### 6.1 Verified in Current Tree
+### 6.1 Originally Verified Defects and Current Status
 
 This report was originally prepared on 2026-02-26. The following defects were
 verified then; later remediation status should be checked against current
@@ -330,8 +330,9 @@ Pre-cutover recommendations:
    - health snapshot
    - canonical checks
 
-## 11. Deliverables Pair
+## 11. Follow-up Artifact Status
 
-This report is paired with:
-1. `docs/migration/MIGRATION_RUNBOOK.md` (execution steps and rollback)
+Only this migration report is currently checked in under `docs/migration/`.
+If a target-project migration proceeds, create or restore a dedicated runbook
+for execution steps, rollback, and acceptance evidence.
 
