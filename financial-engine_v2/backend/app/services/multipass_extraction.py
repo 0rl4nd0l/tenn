@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
@@ -29,6 +30,131 @@ SCALE_MULTIPLIERS = {
     "thousands": 1_000.0,
     "millions": 1_000_000.0,
 }
+
+SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
+    "financial_report": (
+        "Source metadata has explicit annual, half-year, quarterly, or appendix "
+        "financial-report evidence and may proceed through normal extraction gates."
+    ),
+    "advisory_only_document": (
+        "Source metadata identifies an advisory-only announcement; it must not "
+        "enter canary selection or metric extraction."
+    ),
+    "unknown_document": (
+        "Source metadata is insufficient to classify the document; normal "
+        "downstream gates still decide whether extraction is safe."
+    ),
+}
+
+
+@dataclass(frozen=True)
+class SourceDocumentClassification:
+    document_class: str
+    extraction_candidate_allowed: bool
+    canary_candidate_allowed: bool
+    reason: str
+    evidence: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "document_class": self.document_class,
+            "extraction_candidate_allowed": self.extraction_candidate_allowed,
+            "canary_candidate_allowed": self.canary_candidate_allowed,
+            "reason": self.reason,
+            "evidence": list(self.evidence),
+            "definition": SOURCE_DOCUMENT_CLASS_DEFINITIONS.get(
+                self.document_class,
+                SOURCE_DOCUMENT_CLASS_DEFINITIONS["unknown_document"],
+            ),
+        }
+
+
+_ADVISORY_ONLY_DOCUMENT_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bquarterly\s+(?:activities\s+)?report\s+advisory\b", re.IGNORECASE),
+    re.compile(r"\bappendix\s+4[cd]\s+advisory\b", re.IGNORECASE),
+)
+
+_SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
+    ("A", "annual_report_title", re.compile(r"\bannual\s+report\b", re.IGNORECASE)),
+    ("A", "year_ended_source_phrase", re.compile(r"(?<!half[-\s])\byear\s+ended\b", re.IGNORECASE)),
+    ("H", "half_year_source_phrase", re.compile(r"\bhalf[-\s]?year\b", re.IGNORECASE)),
+    ("H", "six_months_ended_source_phrase", re.compile(r"\b(?:six|6)\s+months?\s+ended\b", re.IGNORECASE)),
+    ("H", "appendix_4d_source_phrase", re.compile(r"\bappendix\s+4d\b", re.IGNORECASE)),
+    ("Q", "appendix_4c_source_phrase", re.compile(r"\bappendix\s+4c\b", re.IGNORECASE)),
+    ("Q", "quarterly_source_phrase", re.compile(r"\bquarterly\s+(?:cash\s+flow|activities|report)\b", re.IGNORECASE)),
+)
+
+
+def is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
+    text = _combined_source_text(title, first_page_text)
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _ADVISORY_ONLY_DOCUMENT_PATTERNS)
+
+
+def _is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
+    return is_advisory_only_document(title, first_page_text)
+
+
+def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str, Any]:
+    """Detect explicit source-period wording without changing the extracted period."""
+    text = _combined_source_text(title, first_page_text)
+    hits: list[dict[str, str]] = []
+    for period_type, reason, pattern in _SOURCE_PERIOD_PATTERNS:
+        if pattern.search(text):
+            hits.append({"period_type": period_type, "reason": reason})
+
+    seen_types = sorted({hit["period_type"] for hit in hits})
+    if len(seen_types) == 1:
+        return {
+            "period_type": seen_types[0],
+            "reason": hits[0]["reason"],
+            "hits": hits,
+        }
+    if len(seen_types) > 1:
+        return {"period_type": None, "reason": "ambiguous", "hits": hits}
+    return {"period_type": None, "reason": "not_detected", "hits": []}
+
+
+def classify_source_document(
+    title: Any,
+    first_page_text: Any,
+) -> SourceDocumentClassification:
+    """Classify source-document eligibility without inferring financial truth."""
+
+    text = _combined_source_text(title, first_page_text)
+    if is_advisory_only_document(title, first_page_text):
+        return SourceDocumentClassification(
+            document_class="advisory_only_document",
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason="advisory_only_document",
+            evidence=["advisory_only_pattern"],
+        )
+
+    period_evidence = _detect_source_period_evidence(title, first_page_text)
+    if period_evidence.get("period_type") in {"A", "H", "Q"}:
+        return SourceDocumentClassification(
+            document_class="financial_report",
+            extraction_candidate_allowed=True,
+            canary_candidate_allowed=True,
+            reason=str(period_evidence.get("reason") or "source_period_evidence"),
+            evidence=[
+                str(hit.get("reason") or hit.get("period_type") or "")
+                for hit in period_evidence.get("hits", [])
+                if isinstance(hit, dict)
+            ],
+        )
+
+    return SourceDocumentClassification(
+        document_class="unknown_document",
+        extraction_candidate_allowed=True,
+        canary_candidate_allowed=True,
+        reason="missing_explicit_source_document_classification"
+        if not text
+        else str(period_evidence.get("reason") or "unknown_document"),
+        evidence=[],
+    )
 
 _NPAT_OWNER_MARKERS = (
     "owners of the parent",
