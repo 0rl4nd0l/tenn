@@ -14,7 +14,10 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
-import { deriveChatEvidenceActionability } from '@/lib/cockpit-chat-actionability'
+import {
+  deriveChatEvidenceActionability,
+  type ChatEvidenceActionKey,
+} from '@/lib/cockpit-chat-actionability'
 import {
   Dialog,
   DialogContent,
@@ -30,7 +33,14 @@ interface TerminalMessageProps {
   codexDeployStatus?: string | null
   onConfirmAction?: (actionPreview: ChatMessageType['actionPreview']) => void
   onCancelAction?: (actionPreview: ChatMessageType['actionPreview']) => void
+  onSuggestedAction?: (action: SuggestedChatActionRequest) => void
   onDeployCodexFlag?: (reportId: string) => void
+}
+
+export type SuggestedChatActionRequest = {
+  actionKey: ChatEvidenceActionKey
+  label: string
+  ticker: string
 }
 
 function formatDurationLabel(durationMs: number): string {
@@ -99,6 +109,11 @@ function stringArray(value: unknown): string[] {
 function extractTickerFromAction(message: ChatMessageType): string | null {
   const args = asRecord(message.actionPreview?.args)
   const ticker = String(args.ticker || args.symbol || '').trim().toUpperCase()
+  return /^[A-Z0-9]{2,6}$/.test(ticker) ? ticker : null
+}
+
+function actionableTicker(value: string | null): string | null {
+  const ticker = String(value || '').trim().toUpperCase()
   return /^[A-Z0-9]{2,6}$/.test(ticker) ? ticker : null
 }
 
@@ -198,15 +213,22 @@ function sourceStatusWarnings(sourceStatus: Record<string, unknown> | undefined)
 function buildAnalystShell(
   message: ChatMessageType,
   openSources: () => void,
+  onSuggestedAction?: (action: SuggestedChatActionRequest) => void,
 ): AnalystShell {
   const analyst = message.metadata?.analyst
   const routing = asRecord(message.metadata?.routing)
+  const routeTicker = String(asRecord(routing.entities).primary_ticker || '').trim().toUpperCase()
   const entityLabel =
     analyst?.entity
     || analyst?.ticker
-    || String(asRecord(routing.entities).primary_ticker || '').trim().toUpperCase()
+    || routeTicker
     || extractTickerFromAction(message)
     || null
+  const suggestedTicker =
+    actionableTicker(analyst?.ticker || null)
+    || actionableTicker(routeTicker)
+    || actionableTicker(extractTickerFromAction(message))
+    || actionableTicker(entityLabel)
   const sourceCount = message.sources?.length || 0
   const toolCount = message.toolTraces?.length || 0
   const evidenceActionability = deriveChatEvidenceActionability(message)
@@ -326,6 +348,7 @@ function buildAnalystShell(
   }
 
   const nextActions: AnalystShell['nextActions'] = []
+  const suggestedActionIds = new Set(evidenceActionability.suggestedActions.map((action) => action.id))
   if (sourceCount > 0) {
     nextActions.push({ label: 'Review evidence', enabled: true, onClick: openSources })
     nextActions.push({ label: 'Verify against evidence', enabled: false })
@@ -333,11 +356,27 @@ function buildAnalystShell(
   if (gaps.some((gap) => /news|announcement|recent|market_context/i.test(gap))) {
     nextActions.push({ label: 'Check recent news', enabled: false })
   }
-  if (gaps.some((gap) => /financial|rows/i.test(gap))) {
+  if (gaps.some((gap) => /financial|rows/i.test(gap)) && !suggestedActionIds.has('run_metric_extraction')) {
     nextActions.push({ label: 'Backfill financials', enabled: false })
   }
   for (const action of evidenceActionability.suggestedActions) {
     if (!nextActions.some((item) => item.label === action.label)) {
+      if (action.id === 'review_filing_group') {
+        nextActions.push({ label: action.label, enabled: true, onClick: openSources })
+        continue
+      }
+      if (suggestedTicker && onSuggestedAction) {
+        nextActions.push({
+          label: action.label,
+          enabled: true,
+          onClick: () => onSuggestedAction({
+            actionKey: action.id,
+            label: action.label,
+            ticker: suggestedTicker,
+          }),
+        })
+        continue
+      }
       nextActions.push(action)
     }
   }
@@ -388,6 +427,7 @@ export function TerminalMessage({
   codexDeployStatus,
   onConfirmAction,
   onCancelAction,
+  onSuggestedAction,
   onDeployCodexFlag,
 }: TerminalMessageProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(Boolean(showSources))
@@ -395,7 +435,7 @@ export function TerminalMessage({
   const [rawDumpExpanded, setRawDumpExpanded] = useState(false)
   const [chartDialogOpen, setChartDialogOpen] = useState(false)
   const [autoOpenedFilestatsChart, setAutoOpenedFilestatsChart] = useState(false)
-  const analystShell = buildAnalystShell(message, () => setSourcesExpanded(true))
+  const analystShell = buildAnalystShell(message, () => setSourcesExpanded(true), onSuggestedAction)
 
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'

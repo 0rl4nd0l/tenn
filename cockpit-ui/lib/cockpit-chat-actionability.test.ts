@@ -49,7 +49,11 @@ describe('deriveChatEvidenceActionability', () => {
     expect(result.stateCodes).toContain('unsupported_or_not_verified')
     expect(result.stateCodes).not.toContain('claim_verified')
     expect(result.gaps).toContain('market_data_missing')
-    expect(result.suggestedActions).toContainEqual({ label: 'Pull market data', enabled: false })
+    expect(result.suggestedActions).toContainEqual({
+      id: 'pull_market_data',
+      label: 'Pull market data',
+      enabled: false,
+    })
   })
 
   it('does not mark trend language missing when visible price evidence exists', () => {
@@ -145,7 +149,11 @@ describe('deriveChatEvidenceActionability', () => {
     expect(result.stateCodes).toContain('metric_extraction_missing')
     expect(result.stateCodes).toContain('unsupported_or_not_verified')
     expect(result.gaps).toContain('metric_extraction_missing')
-    expect(result.suggestedActions).toContainEqual({ label: 'Run metric extraction', enabled: false })
+    expect(result.suggestedActions).toContainEqual({
+      id: 'run_metric_extraction',
+      label: 'Run metric extraction',
+      enabled: false,
+    })
   })
 
   it('surfaces degraded runtime without hiding it', () => {

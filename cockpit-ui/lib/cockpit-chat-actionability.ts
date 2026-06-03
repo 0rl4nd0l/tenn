@@ -16,7 +16,13 @@ export type ChatEvidenceStateCode =
   | 'draft_only'
   | 'unsupported_or_not_verified'
 
+export type ChatEvidenceActionKey =
+  | 'pull_market_data'
+  | 'run_metric_extraction'
+  | 'review_filing_group'
+
 export type ChatEvidenceAction = {
+  id: ChatEvidenceActionKey
   label: string
   enabled: boolean
 }
@@ -267,13 +273,13 @@ export function deriveChatEvidenceActionability(message: ChatMessage): ChatEvide
 
   const suggestedActions: ChatEvidenceAction[] = []
   if (states.has('market_data_missing')) {
-    suggestedActions.push({ label: 'Pull market data', enabled: false })
+    suggestedActions.push({ id: 'pull_market_data', label: 'Pull market data', enabled: false })
   }
   if (states.has('metric_extraction_missing')) {
-    suggestedActions.push({ label: 'Run metric extraction', enabled: false })
+    suggestedActions.push({ id: 'run_metric_extraction', label: 'Run metric extraction', enabled: false })
   }
   if (hasRepeatedFilingContext(sources)) {
-    suggestedActions.push({ label: 'Review filing group', enabled: false })
+    suggestedActions.push({ id: 'review_filing_group', label: 'Review filing group', enabled: false })
   }
 
   const stateCodes = STATE_ORDER.filter((code) => states.has(code))

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { TerminalMessage } from './terminal-message'
+import { TerminalMessage, type SuggestedChatActionRequest } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { MessageClaimVerification } from './message-claim-verification'
 import {
@@ -33,6 +33,7 @@ import {
   streamChat,
   sendChatMessage,
   restartBackend,
+  previewAction,
   startActionJob,
   getActionJob,
   getChatSessionMessages,
@@ -227,6 +228,61 @@ function sanitizeActionMessage(content: string, actionPreview?: ActionPreview): 
     )
 
   return lines.join('\n').trim()
+}
+
+type SuggestedActionConfig = {
+  actionId: string
+  name: string
+  description: string
+  buildArgs: (ticker: string) => Record<string, unknown>
+  isMutating: boolean
+}
+
+const SUGGESTED_ACTION_CONFIGS: Record<SuggestedChatActionRequest['actionKey'], SuggestedActionConfig> = {
+  pull_market_data: {
+    actionId: 'show_candlestick',
+    name: 'Pull market data',
+    description: 'Fetch a fresh price chart before relying on technical claims.',
+    buildArgs: (ticker) => ({
+      ticker,
+      timeframe: '1d',
+    }),
+    isMutating: false,
+  },
+  run_metric_extraction: {
+    actionId: 'metric_extraction',
+    name: 'Run metric extraction',
+    description: 'Extract ticker financial metrics from the available document set.',
+    buildArgs: (ticker) => ({
+      ticker,
+    }),
+    isMutating: true,
+  },
+  review_filing_group: {
+    actionId: '',
+    name: 'Review filing group',
+    description: 'Review the filing group in the source drawer.',
+    buildArgs: () => ({}),
+    isMutating: false,
+  },
+}
+
+function buildSuggestedActionPreview(
+  request: SuggestedChatActionRequest,
+  config: SuggestedActionConfig,
+  preview: Awaited<ReturnType<typeof previewAction>>,
+): ActionPreview {
+  return {
+    id: String(preview.action_id || config.actionId).trim() || config.actionId,
+    name: config.name,
+    description: String(preview.summary || '').trim() || config.description,
+    args: config.buildArgs(request.ticker),
+    requiresConfirmation: true,
+    impact: String(preview.estimated_impact || '').trim() || undefined,
+    timeoutSeconds: typeof preview.timeout_seconds === 'number' ? preview.timeout_seconds : undefined,
+    isMutating: config.isMutating,
+    command: Array.isArray(preview.command) ? preview.command : undefined,
+  }
 }
 
 async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
@@ -737,6 +793,58 @@ export function ChatScreen() {
     },
     [apiKey],
   )
+
+  const handleSuggestedAction = useCallback(async (request: SuggestedChatActionRequest) => {
+    const config = SUGGESTED_ACTION_CONFIGS[request.actionKey]
+    if (!config || !config.actionId) {
+      appendSystemMessage(`Suggested action is not executable yet: ${request.label}`)
+      return
+    }
+
+    const ticker = String(request.ticker || '').trim().toUpperCase()
+    if (!/^[A-Z0-9]{2,6}$/.test(ticker)) {
+      appendSystemMessage(`Cannot prepare ${request.label}: missing valid ticker context`)
+      return
+    }
+
+    try {
+      const preview = await previewAction({
+        actionId: config.actionId,
+        args: config.buildArgs(ticker),
+      })
+      const actionPreview = buildSuggestedActionPreview(
+        { ...request, ticker },
+        config,
+        preview,
+      )
+      const previewMessage = [
+        `Action ready: ${config.name}.`,
+        actionPreview.description,
+        actionPreview.impact ? `Impact: ${actionPreview.impact}` : null,
+        'Confirm below or type yes/no.',
+      ].filter(Boolean).join('\n\n')
+
+      setPendingActionPreview(actionPreview)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: 'assistant',
+          content: previewMessage,
+          timestamp: new Date(),
+          metadata: {
+            source: 'cockpit',
+          },
+          actionPreview,
+        },
+      ])
+      toast.info(`${config.name} is ready to confirm`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown action preview error'
+      appendSystemMessage(`Failed to prepare ${request.label}: ${message}`)
+      toast.error(`Failed to prepare ${request.label}`)
+    }
+  }, [appendSystemMessage])
 
   const openCitation = useCallback((citation: TakeawayCitation) => {
     if (!latestVideoUrl || typeof window === 'undefined') {
@@ -2387,6 +2495,7 @@ export function ChatScreen() {
 	                    : null}
 	                  onConfirmAction={handleConfirmAction}
 	                  onCancelAction={handleCancelAction}
+	                  onSuggestedAction={handleSuggestedAction}
 	                  onDeployCodexFlag={handleDeployCodexFlag}
 	                />
                 {msg.role === 'assistant' && (
@@ -2441,6 +2550,7 @@ export function ChatScreen() {
                 }} 
                 isStreaming={true}
                 showSources={preferences.showSources}
+                onSuggestedAction={handleSuggestedAction}
               />
             </div>
           )}
