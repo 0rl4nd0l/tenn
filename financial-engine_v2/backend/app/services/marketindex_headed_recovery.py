@@ -133,8 +133,14 @@ def map_failure_marker(outcome):
     return MARKER_HEADED_ERROR
 
 
-def marker_bucket(value):
-    marker = (value or "").strip()
+def marker_bucket(row):
+    status = str(getattr(row, "download_status", "") or "").strip()
+    error_code = str(getattr(row, "download_error_code", "") or "").strip()
+    marker = str(getattr(row, "pdf_sha256", "") or "").strip()
+    if status == "blocked" and error_code:
+        return error_code
+    if status:
+        return status
     if marker == "":
         return "empty"
     if marker.startswith("blocked_"):
@@ -145,7 +151,7 @@ def marker_bucket(value):
 def summarize_status_counts(rows):
     counts = Counter()
     for row in rows:
-        counts[marker_bucket(row.pdf_sha256)] += 1
+        counts[marker_bucket(row)] += 1
     return dict(counts)
 
 
@@ -371,9 +377,11 @@ async def attempt_download_candidate_links(page, candidate_links, target_file):
 async def recover_marketindex_documents_headed(db, ticker_filters=None, limit=0, dry_run=False, logger=print):
     ticker_filters = parse_ticker_filters(ticker_filters)
     marker_predicate = or_(
+        Document.download_status.in_(["pending", "blocked", "failed"]),
         Document.pdf_sha256.is_(None),
         Document.pdf_sha256 == "",
         Document.pdf_sha256.in_(list(TARGET_MARKERS - {""})),
+        Document.download_error_code.in_(list(TARGET_MARKERS - {""})),
     )
     query = (
         db.query(Document)
@@ -439,7 +447,10 @@ async def recover_marketindex_documents_headed(db, ticker_filters=None, limit=0,
                 report["skipped"] += 1
                 result["outcome"] = MARKER_NO_CANDIDATE
                 if not dry_run:
-                    row.pdf_sha256 = MARKER_NO_CANDIDATE
+                    row.pdf_sha256 = ""
+                    row.download_status = "blocked"
+                    row.download_error_code = MARKER_NO_CANDIDATE
+                    row.download_error_detail = "No candidate MarketIndex PDF link found."
                     db.commit()
                 report["results"].append(result)
                 continue
@@ -457,6 +468,9 @@ async def recover_marketindex_documents_headed(db, ticker_filters=None, limit=0,
 
                 if status == "downloaded":
                     row.pdf_sha256 = sha256_file(row.pdf_path)
+                    row.download_status = "downloaded"
+                    row.download_error_code = None
+                    row.download_error_detail = None
                     db.commit()
                     report["recovered"] += 1
                     result["outcome"] = "downloaded"
@@ -464,13 +478,19 @@ async def recover_marketindex_documents_headed(db, ticker_filters=None, limit=0,
                     result["resolved_link"] = outcome.get("resolved_link")
                 else:
                     marker = map_failure_marker(outcome)
-                    row.pdf_sha256 = marker
+                    row.pdf_sha256 = ""
+                    row.download_status = "blocked"
+                    row.download_error_code = marker
+                    row.download_error_detail = str(outcome.get("fetch_failures") or outcome.get("status") or "")
                     db.commit()
                     report["failed"] += 1
                     result["outcome"] = marker
                     result["error"] = outcome.get("fetch_failures") or outcome.get("status")
             except Exception as error:
-                row.pdf_sha256 = MARKER_HEADED_ERROR
+                row.pdf_sha256 = ""
+                row.download_status = "failed"
+                row.download_error_code = MARKER_HEADED_ERROR
+                row.download_error_detail = str(error)
                 db.commit()
                 report["failed"] += 1
                 result["outcome"] = MARKER_HEADED_ERROR

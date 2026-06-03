@@ -1,0 +1,6 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+body { margin: 0; background: #0b1020; color: #e5e7eb; }
+a { color: #93c5fd; }
+main { max-width: 960px; margin: 0 auto; padding: 32px; }
+.card { border: 1px solid #334155; border-radius: 12px; padding: 16px; background: #111827; margin: 12px 0; }
+code { background: #020617; padding: 2px 6px; border-radius: 6px; }

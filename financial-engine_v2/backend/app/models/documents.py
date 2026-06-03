@@ -17,4 +17,7 @@ class Document(Base):
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True, unique=True, index=True)
     pdf_path: Mapped[str] = mapped_column(Text)
     pdf_sha256: Mapped[str] = mapped_column(String(64), index=True)
+    download_status: Mapped[str] = mapped_column(String(32), default="pending", server_default="pending", index=True)
+    download_error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    download_error_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     ingested_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())

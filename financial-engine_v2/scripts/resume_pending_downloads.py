@@ -96,7 +96,7 @@ def parse_args():
 def main():
     args = parse_args()
     tickers = _parse_tickers(args.ticker) or ASX20[:10]
-    if args.dry_run:
+    if bool(getattr(args, "dry_run", False)):
         pending_by_ticker: dict[str, int] = {}
         db = SessionLocal()
         try:
@@ -104,7 +104,7 @@ def main():
                 query = (
                     db.query(Document)
                     .filter(Document.ticker == ticker)
-                    .filter(or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
+                    .filter(or_(Document.download_status == "pending", Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
                     .order_by(Document.published_at.desc().nullslast())
                 )
                 if args.limit_per_ticker and args.limit_per_ticker > 0:
@@ -149,6 +149,9 @@ def main():
             "pending_selected": 0,
             "processed": 0,
             "skipped_download": 0,
+            "extraction_failed_count": 0,
+            "extraction_unknown_count": 0,
+            "extraction_status_counts": {},
             "errors": 0,
         },
     }
@@ -159,7 +162,7 @@ def main():
             query = (
                 db.query(Document)
                 .filter(Document.ticker == ticker)
-                .filter(or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
+                .filter(or_(Document.download_status == "pending", Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
                 .order_by(Document.published_at.desc().nullslast())
             )
             if args.limit_per_ticker and args.limit_per_ticker > 0:
@@ -183,6 +186,9 @@ def main():
                 "pending_duplicate_source_rows_skipped": duplicate_source_rows,
                 "processed": 0,
                 "skipped_download": 0,
+                "extraction_failed_count": 0,
+                "extraction_unknown_count": 0,
+                "extraction_status_counts": {},
                 "errors": [],
                 "importance_classification": None,
             }
@@ -197,14 +203,44 @@ def main():
                     try:
                         download_pdf_for_document(db, row.document_id)
                         if args.process_documents:
-                            process_document(row.document_id)
+                            extraction_result = process_document(row.document_id)
+                            extraction_status = str((extraction_result or {}).get("extraction_status") or "").strip().lower()
+                            status_key = extraction_status or "missing"
+                            ticker_result["extraction_status_counts"][status_key] = ticker_result["extraction_status_counts"].get(status_key, 0) + 1
+                            if extraction_status == "failed":
+                                ticker_result["extraction_failed_count"] += 1
+                                ticker_result["errors"].append(
+                                    {
+                                        "document_id": str(row.document_id),
+                                        "stage": "process_document",
+                                        "error": "extraction_failed",
+                                        "extraction_status": extraction_status,
+                                        "details": extraction_result,
+                                        "attempts": attempts_used,
+                                    }
+                                )
+                            elif extraction_status not in {"ok", "skipped"}:
+                                ticker_result["extraction_unknown_count"] += 1
+                                ticker_result["errors"].append(
+                                    {
+                                        "document_id": str(row.document_id),
+                                        "stage": "process_document",
+                                        "error": "extraction_status_unknown",
+                                        "extraction_status": status_key,
+                                        "details": extraction_result,
+                                        "attempts": attempts_used,
+                                    }
+                                )
                         ticker_result["processed"] += 1
                         processed_document_ids.append(str(row.document_id))
                         last_error = None
                         break
                     except RuntimeError as exc:
                         if "marketindex_headed_required" in str(exc):
-                            row.pdf_sha256 = "blocked_marketindex_headed_required"
+                            row.pdf_sha256 = ""
+                            row.download_status = "blocked"
+                            row.download_error_code = "blocked_marketindex_headed_required"
+                            row.download_error_detail = str(exc)
                             db.commit()
                             ticker_result["skipped_download"] += 1
                             last_error = None
@@ -215,7 +251,10 @@ def main():
                     except httpx.HTTPStatusError as exc:
                         request_url = str(exc.request.url)
                         if exc.response.status_code == 403 and "marketindex.com.au" in request_url:
-                            row.pdf_sha256 = "blocked_marketindex_403"
+                            row.pdf_sha256 = ""
+                            row.download_status = "blocked"
+                            row.download_error_code = "blocked_marketindex_403"
+                            row.download_error_detail = str(exc)
                             db.commit()
                             ticker_result["skipped_download"] += 1
                             last_error = None
@@ -265,6 +304,10 @@ def main():
             report["totals"]["pending_selected"] += ticker_result["pending_selected"]
             report["totals"]["processed"] += ticker_result["processed"]
             report["totals"]["skipped_download"] += ticker_result["skipped_download"]
+            report["totals"]["extraction_failed_count"] += ticker_result["extraction_failed_count"]
+            report["totals"]["extraction_unknown_count"] += ticker_result["extraction_unknown_count"]
+            for status, count in ticker_result["extraction_status_counts"].items():
+                report["totals"]["extraction_status_counts"][status] = report["totals"]["extraction_status_counts"].get(status, 0) + count
             report["totals"]["errors"] += ticker_result["error_count"]
 
             print(

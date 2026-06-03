@@ -12,6 +12,8 @@ from app.models.documents import Document
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services import pipeline as pipeline_core
 
+ALLOWED_EXTRACTION_STATUSES = {"ok", "failed", "skipped"}
+
 
 @dataclass
 class PipelineJobSpec:
@@ -29,6 +31,8 @@ class PipelineResult(TypedDict):
     processed: int
     processed_ok_count: int
     extraction_failed_count: int
+    extraction_unknown_count: int
+    extraction_status_counts: dict[str, int]
     skipped_download: int
     process_documents: bool
     importance_classification: dict[str, Any] | None
@@ -42,6 +46,15 @@ def _coerce_uuid(value: Any) -> uuid.UUID:
     if isinstance(value, uuid.UUID):
         return value
     return uuid.UUID(str(value))
+
+
+def _normalize_extraction_status(extraction_result: dict[str, Any] | None) -> str:
+    return str((extraction_result or {}).get("extraction_status") or "").strip().lower()
+
+
+def _bump_status(status_counts: dict[str, int], status: str) -> None:
+    key = status or "missing"
+    status_counts[key] = status_counts.get(key, 0) + 1
 
 
 def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
@@ -61,6 +74,8 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
         processed = 0
         processed_ok_count = 0
         extraction_failed_count = 0
+        extraction_unknown_count = 0
+        extraction_status_counts: dict[str, int] = {}
         skipped_download = 0
         errors: list[dict[str, Any]] = []
 
@@ -70,7 +85,8 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                 extraction_result: dict[str, Any] | None = None
                 if bool(spec.process_documents):
                     extraction_result = pipeline_core.process_document(document_id)
-                    extraction_status = str((extraction_result or {}).get("extraction_status") or "").strip().lower()
+                    extraction_status = _normalize_extraction_status(extraction_result)
+                    _bump_status(extraction_status_counts, extraction_status)
                     if extraction_status == "failed":
                         extraction_failed_count += 1
                         errors.append(
@@ -82,9 +98,21 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                                 "details": extraction_result,
                             }
                         )
-                    else:
+                    elif extraction_status in {"ok", "skipped"}:
                         processed_ok_count += 1
+                    else:
+                        extraction_unknown_count += 1
+                        errors.append(
+                            {
+                                "document_id": document_id,
+                                "stage": "process_document",
+                                "error": "extraction_status_unknown",
+                                "extraction_status": extraction_status or "missing",
+                                "details": extraction_result,
+                            }
+                        )
                 else:
+                    extraction_status_counts["not_requested"] = extraction_status_counts.get("not_requested", 0) + 1
                     processed_ok_count += 1
                 processed += 1
             except RuntimeError as exc:
@@ -93,7 +121,10 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                         Document.document_id == _coerce_uuid(document_id)
                     ).first()
                     if doc:
-                        doc.pdf_sha256 = "blocked_marketindex_headed_required"
+                        doc.pdf_sha256 = ""
+                        doc.download_status = "blocked"
+                        doc.download_error_code = "blocked_marketindex_headed_required"
+                        doc.download_error_detail = str(exc)
                         db.commit()
                     skipped_download += 1
                     continue
@@ -106,7 +137,10 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                         Document.document_id == _coerce_uuid(document_id)
                     ).first()
                     if doc:
-                        doc.pdf_sha256 = "blocked_marketindex_403"
+                        doc.pdf_sha256 = ""
+                        doc.download_status = "blocked"
+                        doc.download_error_code = "blocked_marketindex_403"
+                        doc.download_error_detail = str(exc)
                         db.commit()
                     skipped_download += 1
                     continue
@@ -139,6 +173,8 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             "processed": processed,
             "processed_ok_count": processed_ok_count,
             "extraction_failed_count": extraction_failed_count,
+            "extraction_unknown_count": extraction_unknown_count,
+            "extraction_status_counts": extraction_status_counts,
             "skipped_download": skipped_download,
             "process_documents": bool(spec.process_documents),
             "importance_classification": importance_classification,

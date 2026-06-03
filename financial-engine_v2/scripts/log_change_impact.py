@@ -52,6 +52,18 @@ def _default_author() -> str:
     return _run_git("config", "user.name") or "unknown"
 
 
+REQUIRED_NON_TBD_FIELDS = ("scope", "why", "expected_impact", "validation", "rollback")
+
+
+def _validate_required(args: argparse.Namespace) -> tuple[bool, list[str]]:
+    missing: list[str] = []
+    for field in REQUIRED_NON_TBD_FIELDS:
+        value = str(getattr(args, field, "") or "").strip()
+        if not value or value.upper() == "TBD":
+            missing.append(field)
+    return not missing, missing
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Append a structured entry to reports/change_impact_log.md.")
     parser.add_argument("--change-id", default=_default_change_id())
@@ -67,6 +79,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
+    ok, missing = _validate_required(args)
+    if not ok:
+        print(f"Missing required non-TBD fields: {', '.join(missing)}")
+        return 2
     files = _changed_files()
     date_text = datetime.now(timezone.utc).date().isoformat()
 

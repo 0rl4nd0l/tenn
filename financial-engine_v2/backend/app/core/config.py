@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -42,6 +43,7 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
     extract_model: str = "llama3:latest"
+    api_key: str = ""
 
     # Runtime controls for local isolated execution.
     task_mode: str = "celery"  # celery | sync
@@ -58,12 +60,12 @@ class Settings(BaseSettings):
     importance_link_mode: str = "symlink"
     importance_sort_source_docs: bool = True
 
-    class Config:
-        env_file = str(PROJECT_ROOT / ".env")
-        extra = "ignore"
+    model_config = SettingsConfigDict(env_file=str(PROJECT_ROOT / ".env"), extra="ignore")
 
 
 settings = Settings()
+if not settings.api_key:
+    settings.api_key = str(os.environ.get("TENN_API_KEY", "") or "").strip()
 settings.database_url = _normalize_database_url(settings.database_url)
 settings.docs_root = _resolve_project_path(settings.docs_root)
 settings.marketindex_announcements_file = _resolve_project_path(settings.marketindex_announcements_file)

@@ -8,7 +8,6 @@ import tempfile
 import types
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest import mock
 
 
@@ -45,45 +44,6 @@ class _Field:
 
     def nullslast(self):
         return self
-
-
-if "app.core.db" not in sys.modules:
-    db_stub = types.ModuleType("app.core.db")
-    db_stub.SessionLocal = lambda: None
-    sys.modules["app.core.db"] = db_stub
-if "app.core.config" not in sys.modules:
-    cfg_stub = types.ModuleType("app.core.config")
-    cfg_stub.settings = SimpleNamespace(
-        enable_embeddings=True,
-        enable_qdrant=True,
-        importance_output_root=None,
-        importance_materialize_output=False,
-        importance_include_pdf_text=False,
-        importance_link_mode="symlink",
-        importance_sort_source_docs=False,
-    )
-    sys.modules["app.core.config"] = cfg_stub
-if "app.models.documents" not in sys.modules:
-    docs_stub = types.ModuleType("app.models.documents")
-    docs_stub.Document = type(
-        "Document",
-        (),
-        {"ticker": _Field(), "pdf_sha256": _Field(), "published_at": _Field()},
-    )
-    sys.modules["app.models.documents"] = docs_stub
-if "app.providers.universe" not in sys.modules:
-    universe_stub = types.ModuleType("app.providers.universe")
-    universe_stub.ASX20 = ["BHP"]
-    sys.modules["app.providers.universe"] = universe_stub
-if "app.services.announcement_importance" not in sys.modules:
-    importance_stub = types.ModuleType("app.services.announcement_importance")
-    importance_stub.classify_documents_and_materialize = lambda *args, **kwargs: {"classified_count": 0}
-    sys.modules["app.services.announcement_importance"] = importance_stub
-if "app.services.pipeline" not in sys.modules:
-    pipeline_stub = types.ModuleType("app.services.pipeline")
-    pipeline_stub.download_pdf_for_document = lambda *args, **kwargs: None
-    pipeline_stub.process_document = lambda *args, **kwargs: {"extraction_status": "ok"}
-    sys.modules["app.services.pipeline"] = pipeline_stub
 
 
 def _load_module():
@@ -143,7 +103,7 @@ class ResumePendingExtractionFailureTests(unittest.TestCase):
         document_stub = type(
             "Document",
             (),
-            {"ticker": _Field(), "pdf_sha256": _Field(), "published_at": _Field()},
+            {"ticker": _Field(), "pdf_sha256": _Field(), "download_status": _Field(), "published_at": _Field()},
         )
         with tempfile.TemporaryDirectory() as td:
             report_path = Path(td) / "resume_report.json"
@@ -162,6 +122,7 @@ class ResumePendingExtractionFailureTests(unittest.TestCase):
                 mock.patch.object(mod, "parse_args", return_value=args),
                 mock.patch.object(mod, "SessionLocal", return_value=fake_db),
                 mock.patch.object(mod, "Document", document_stub),
+                mock.patch.object(mod, "or_", lambda *args, **kwargs: None),
                 mock.patch.object(mod, "download_pdf_for_document", return_value=None),
                 mock.patch.object(mod, "process_document", return_value={"extraction_status": "failed"}),
             ):
