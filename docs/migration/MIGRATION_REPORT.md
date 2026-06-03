@@ -13,7 +13,7 @@ The system is functional for ingestion, download, extraction, and structured per
 Primary migration priorities:
 1. Preserve path and env assumptions used by scripts and providers.
 2. Resolve worker/task path divergence.
-3. Resolve `update_ticker_financials` script/test drift.
+3. Re-check previously remediated quality-gate drift in the target project.
 4. Re-validate with canonical checks and health gates in the target project.
 
 ## 2. Scope and Evidence Base
@@ -302,15 +302,22 @@ Migration implication:
 ### 9.2 Not Ready Without Remediation
 
 1. Worker path divergence unresolved.
-2. `update_ticker_financials` script/test drift unresolved.
-3. Celery route parameter propagation gap unresolved.
-4. Target project needs explicit runtime profile contract to avoid accidental mode switching.
+2. Celery route parameter propagation gap unresolved.
+3. Target project needs explicit runtime profile contract to avoid accidental mode switching.
+
+Remediated since this report was first written:
+
+- `update_ticker_financials` parser/runtime/test contract drift was addressed by
+  adding `--zero-rows-policy` and report-level `quality_gate` status. Re-check
+  this behavior during migration rather than treating it as an unresolved
+  blocker.
 
 ## 10. Migration Recommendations
 
 Pre-cutover recommendations:
 1. Choose one authoritative Celery task implementation and remove/retire the other path.
-2. Fix `update_ticker_financials` parser/runtime/test contract and make suite green.
+2. Run the `update_ticker_financials` quality-gate regression checks in the
+   target project to confirm the remediation still holds.
 3. Update API enqueue routes to pass `years` and `process_documents` when enqueuing.
 4. Define profile contracts:
    - local-isolated
