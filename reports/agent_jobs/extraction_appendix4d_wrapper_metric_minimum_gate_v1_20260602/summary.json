@@ -1,0 +1,21 @@
+{
+  "job_id": "extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602",
+  "status": "implemented",
+  "gate_policy": "wrapper-only exception with source-bound wrapper evidence",
+  "tests": {
+    "pytest": [
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_extraction_capability_guards.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py"
+    ],
+    "pytest_result": "17 passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "verification": {
+    "targeted_gpt_appendix_4d": "resolved via direct gate simulation on the known target payload",
+    "insufficient_metrics_2_resolved": "resolved for confident Appendix 4D/4E wrapper documents",
+    "data_missing": false,
+    "broad_extraction_backfill": "not run"
+  }
+}

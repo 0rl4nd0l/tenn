@@ -1,0 +1,29 @@
+{
+  "job_id": "extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602",
+  "branch": "tmp/sloppy-fix-demo",
+  "head": "working-tree",
+  "final_status": "implemented",
+  "insufficient_metrics_2": "resolved_for_confident_appendix4d_4e_wrappers",
+  "document_passes": true,
+  "canonical_metrics": {
+    "revenue": {
+      "canonical_value": 150804000
+    },
+    "np_attributable": {
+      "canonical_value": 15463000,
+      "alias_source": "Net profit after income tax expense from ordinary activities"
+    }
+  },
+  "wrapper_disclosures": [
+    "Net profit after income tax expense attributable to members",
+    "Dividends",
+    "Record date for determining entitlement to the",
+    "Net tangible assets per security",
+    "Details of associates and joint ventures entities"
+  ],
+  "period": "2024-06-30",
+  "scale": "thousands",
+  "validation_gate": "ok",
+  "count_16_rerun_justified": false,
+  "no_broad_extraction_backfill": true
+}
