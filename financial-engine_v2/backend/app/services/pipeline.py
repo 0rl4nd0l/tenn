@@ -158,10 +158,31 @@ def _coerce_float(value):
         return None
     if text.lower() in {"none", "null", "na", "n/a", "nan", "unknown"}:
         return None
+
+    negative = False
+    if re.match(r"^\(.*\)$", text):
+        negative = True
+        text = text.strip()[1:-1]
+
+    multiplier = 1.0
+    lowered = text.lower()
+    if re.search(r"(?:(?<=\d)\s*bn\b|\bbillion\b)", lowered):
+        multiplier = 1_000_000_000.0
+    elif re.search(r"(?:(?<=\d)\s*(?:m|mn)\b|\bmillion\b)", lowered):
+        multiplier = 1_000_000.0
+    elif re.search(r"(?:(?<=\d)\s*k\b|\bthousand\b)", lowered):
+        multiplier = 1_000.0
+
+    cleaned = re.sub(r"(?i)\b(aud|usd|cad|nzd|gbp|eur|a\$|us\$|\$|cents?|shares?|million|billion|thousand|mn|bn|m|k)\b", "", text)
+    cleaned = cleaned.replace(",", "").replace("$", "")
+    match = re.search(r"[-+]?\d+(?:\.\d+)?", cleaned)
+    if not match:
+        return None
     try:
-        return float(text)
+        number = float(match.group(0)) * multiplier
     except (TypeError, ValueError):
         return None
+    return -abs(number) if negative else number
 
 
 def _coerce_text(value, *, join_lists: bool = False):
@@ -359,6 +380,7 @@ def insert_discovered_documents(db, discovered_docs):
                 title=discovered_doc.title,
             ),
             pdf_sha256="",
+            download_status="pending",
         )
         db.add(row)
         inserted += 1
@@ -397,6 +419,7 @@ def insert_discovered_documents(db, discovered_docs):
                     title=discovered_doc.title,
                 ),
                 pdf_sha256="",
+                download_status="pending",
             )
             db.add(row)
             try:
@@ -425,7 +448,8 @@ def discover_and_insert_documents(db, ticker, years=5):
     ticker = ticker.upper()
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=365 * years)
-    discovered = ASXProvider().discover(ticker, start, end)
+    provider = ASXProvider()
+    discovered = provider.discover(ticker, start, end)
     if settings.enable_marketindex_fallback:
         marketindex_docs = MarketIndexProvider(settings.marketindex_announcements_file).discover(ticker, start, end)
         discovered_by_url = {item.source_url: item for item in discovered}
@@ -439,6 +463,8 @@ def discover_and_insert_documents(db, ticker, years=5):
         "found": len(discovered),
         "inserted": inserted_payload["inserted"],
         "new_document_ids": inserted_payload["new_document_ids"],
+        "provider_metrics": dict(getattr(provider, "last_discovery_metrics", {}) or {}),
+        "provider_failures_sample": list(getattr(provider, "last_discovery_failures", []) or [])[:25],
     }
 
 
@@ -470,6 +496,9 @@ def download_pdf_for_document(db, document_id):
 
     write_bytes(doc.pdf_path, content)
     doc.pdf_sha256 = sha256_file(doc.pdf_path)
+    doc.download_status = "downloaded"
+    doc.download_error_code = None
+    doc.download_error_detail = None
     db.commit()
 
     return {"document_id": str(doc.document_id), "bytes": len(content)}
@@ -514,6 +543,7 @@ def _upsert_financial_rows(db, doc, structured):
             setattr(row, field, _coerce_float(metrics.get(field, None)))
         row.source_document_id = doc.document_id
         row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
+        row.metric_provenance = structured.get("metric_provenance") or structured.get("source_evidence") or None
 
     risk_note = db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
     if not risk_note:
@@ -604,70 +634,19 @@ def process_document(document_id):
 
 
 def backfill_ticker_sync(ticker, years=5, process_documents=True):
-    db = SessionLocal()
-    try:
-        discovery = discover_and_insert_documents(db, ticker=ticker, years=years)
-        processed = 0
-        skipped_download = 0
-        errors = []
+    """Compatibility wrapper around the canonical pipeline service.
 
-        for document_id in discovery["new_document_ids"]:
-            try:
-                download_pdf_for_document(db, document_id)
-                if process_documents:
-                    process_document(document_id)
-                processed += 1
-            except RuntimeError as exc:
-                if "marketindex_headed_required" in str(exc):
-                    doc = db.query(Document).filter(Document.document_id == _coerce_uuid(document_id)).first()
-                    if doc:
-                        doc.pdf_sha256 = "blocked_marketindex_headed_required"
-                        db.commit()
-                    skipped_download += 1
-                    continue
-                db.rollback()
-                errors.append({"document_id": document_id, "error": str(exc)})
-            except httpx.HTTPStatusError as exc:
-                request_url = str(exc.request.url)
-                if exc.response.status_code == 403 and "marketindex.com.au" in request_url:
-                    doc = db.query(Document).filter(Document.document_id == _coerce_uuid(document_id)).first()
-                    if doc:
-                        doc.pdf_sha256 = "blocked_marketindex_403"
-                        db.commit()
-                    skipped_download += 1
-                    continue
-                db.rollback()
-                errors.append({"document_id": document_id, "error": str(exc)})
-            except Exception as exc:
-                db.rollback()
-                errors.append({"document_id": document_id, "error": str(exc)})
+    Keep this public function for older scripts/tests, but route all sync backfill
+    accounting through ``pipeline_service.run_pipeline_sync`` so API, scripts, and
+    Celery wrappers share one result contract.
+    """
+    from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
 
-        importance_classification = None
-        if settings.enable_importance_classification:
-            try:
-                importance_classification = classify_documents_and_materialize(
-                    db,
-                    ticker=ticker,
-                    document_ids=discovery["new_document_ids"],
-                    output_root=settings.importance_output_root,
-                    materialize_output=settings.importance_materialize_output,
-                    include_pdf_text=settings.importance_include_pdf_text,
-                    link_mode=settings.importance_link_mode,
-                    sort_source_docs=settings.importance_sort_source_docs,
-                )
-            except Exception as exc:
-                importance_classification = {"error": str(exc)}
-
-        return {
-            "ticker": discovery["ticker"],
-            "found": discovery["found"],
-            "inserted": discovery["inserted"],
-            "processed": processed,
-            "skipped_download": skipped_download,
-            "process_documents": process_documents,
-            "importance_classification": importance_classification,
-            "errors": errors,
-            "error_count": len(errors),
-        }
-    finally:
-        db.close()
+    return run_pipeline_sync(
+        PipelineJobSpec(
+            ticker=ticker,
+            years=years,
+            process_documents=process_documents,
+            mode="sync",
+        )
+    )

@@ -3,6 +3,10 @@ __pycache__/
 *.log
 .DS_Store
 reports/
+cockpit-ui/.next/
+cockpit-ui/node_modules/
+cockpit-ui/test-results/
+cockpit-ui/tsconfig.tsbuildinfo
 financial-engine_v2/.env
 financial-engine_v2/.env.local
 financial-engine_v2/.env.docker

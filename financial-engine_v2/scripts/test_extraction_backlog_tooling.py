@@ -4,7 +4,6 @@ import json
 import sqlite3
 import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -17,42 +16,6 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-
-if "app.core.config" not in sys.modules:
-    cfg_stub = types.ModuleType("app.core.config")
-    cfg_stub.PROJECT_ROOT = REPO_ROOT
-    cfg_stub.settings = SimpleNamespace(
-        database_url="sqlite:////tmp/fe_local.db",
-        enable_embeddings=True,
-        enable_qdrant=True,
-    )
-    sys.modules["app.core.config"] = cfg_stub
-
-if "app.services.pipeline" not in sys.modules:
-    pipe_stub = types.ModuleType("app.services.pipeline")
-    pipe_stub.EXTRACTION_FAILURE_TAXONOMY = (
-        "ocr_or_text_unavailable",
-        "parser_timeout",
-        "llm_invalid_json",
-        "provider_network",
-        "corrupted_pdf",
-        "unknown",
-    )
-
-    def _classify(error_text, structured_json=None):  # noqa: ANN001, ANN201
-        text = str(error_text or "").lower()
-        if "json" in text:
-            return "llm_invalid_json"
-        if "connection" in text:
-            return "provider_network"
-        if "timeout" in text:
-            return "parser_timeout"
-        return "unknown"
-
-    pipe_stub.classify_extraction_failure = _classify  # type: ignore[attr-defined]
-    pipe_stub.process_document = lambda document_id: {"document_id": document_id, "extraction_status": "ok"}  # type: ignore[attr-defined]
-    sys.modules["app.services.pipeline"] = pipe_stub
-
 
 def load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, str(path))

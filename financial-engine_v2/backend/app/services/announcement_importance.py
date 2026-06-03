@@ -385,7 +385,8 @@ def classify_documents_and_materialize(
     for row in rows:
         path = Path(row.pdf_path or "")
         marker = (row.pdf_sha256 or "").strip().lower()
-        if not path.exists() or not marker or marker.startswith("blocked_"):
+        download_status = str(getattr(row, "download_status", "") or "").strip().lower()
+        if not path.exists() or not marker or marker.startswith("blocked_") or download_status in {"blocked", "failed"}:
             skipped += 1
             continue
         if only_unsorted:

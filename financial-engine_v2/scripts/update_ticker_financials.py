@@ -54,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--python", default=sys.executable, help="Python executable for child scripts.")
     parser.add_argument(
+        "--zero-rows-policy",
+        choices=["warn", "fail", "auto_rebuild_fail"],
+        default="warn",
+        help="Quality gate policy when no financial rows exist after update.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print plan/estimates and exit without writing DB/files.",
@@ -207,7 +213,7 @@ def main() -> None:
         raise SystemExit("--max-backfill-retries must be > 0")
 
     database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
-    if args.dry_run:
+    if bool(getattr(args, "dry_run", False)):
         resume_report = Path(args.report).with_name(f"{Path(args.report).stem}_resume.json")
         resume_cmd = [
             args.python,
@@ -352,9 +358,74 @@ def main() -> None:
         repo_root=REPO_ROOT,
         limit=40,
     )
-    summary["ended_at"] = utc_now()
+
     backfill_errors = int((summary["backfill"] or {}).get("error_count", 0))
-    summary["status"] = "success" if backfill_result and backfill_errors == 0 and resume_rc == 0 else "failed"
+    extraction_failed_count = int((summary["backfill"] or {}).get("extraction_failed_count", 0))
+    extraction_unknown_count = int((summary["backfill"] or {}).get("extraction_unknown_count", 0))
+    after_rows = int((summary.get("after") or {}).get("rows", 0) or 0)
+    quality_gate: dict[str, Any] = {
+        "policy": args.zero_rows_policy,
+        "passed": True,
+        "before_rows": int((summary.get("before") or {}).get("rows", 0) or 0),
+        "after_rows": after_rows,
+        "reasons": [],
+        "rebuild": None,
+    }
+
+    if after_rows <= 0:
+        if args.zero_rows_policy == "warn":
+            quality_gate["reasons"].append("Zero financial rows after update; warn mode keeps run successful.")
+        elif args.zero_rows_policy == "fail":
+            quality_gate["passed"] = False
+            quality_gate["reasons"].append("Zero financial rows after update.")
+        elif args.zero_rows_policy == "auto_rebuild_fail":
+            rebuild_report = report_path.with_name(f"{report_path.stem}_rebuild.json")
+            rebuild_cmd = [
+                args.python,
+                str(REPO_ROOT / "scripts" / "rebuild_ticker_financials_from_docs.py"),
+                "--ticker",
+                ticker,
+                "--limit",
+                "120",
+                "--force",
+                "--report",
+                str(rebuild_report),
+            ]
+            env = os.environ.copy()
+            existing_pythonpath = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = f"backend{os.pathsep}{existing_pythonpath}" if existing_pythonpath else "backend"
+            env.setdefault("DATABASE_URL", database_url)
+            completed = subprocess.run(rebuild_cmd, cwd=str(REPO_ROOT), env=env, check=False)
+            rebuilt_state = _query_financial_state(database_url, ticker)
+            quality_gate["rebuild"] = {
+                "command": rebuild_cmd,
+                "returncode": completed.returncode,
+                "report_path": str(rebuild_report),
+                "after": rebuilt_state,
+            }
+            quality_gate["after_rows"] = int((rebuilt_state or {}).get("rows", 0) or 0)
+            if completed.returncode != 0 or quality_gate["after_rows"] <= 0:
+                quality_gate["passed"] = False
+                quality_gate["reasons"].append("Zero financial rows after automatic rebuild.")
+
+    summary["quality_gate"] = quality_gate
+    summary["extraction_failures"] = {
+        "total": extraction_failed_count,
+        "unknown_total": extraction_unknown_count,
+        "status_counts": (summary["backfill"] or {}).get("extraction_status_counts", {}),
+        "failed": extraction_failed_count > 0 or extraction_unknown_count > 0,
+    }
+    summary["ended_at"] = utc_now()
+    summary["status"] = (
+        "success"
+        if backfill_result
+        and backfill_errors == 0
+        and extraction_failed_count == 0
+        and extraction_unknown_count == 0
+        and resume_rc == 0
+        and bool(quality_gate.get("passed"))
+        else "failed"
+    )
 
     report_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     print(f"[update] status={summary['status']} report={report_path}", flush=True)

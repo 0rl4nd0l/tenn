@@ -34,6 +34,12 @@ class DiscoveredDoc:
     published_at:Optional[datetime]=None
     period_end:Optional[datetime]=None
 
+
+class ASXDiscoveryError(RuntimeError):
+    def __init__(self, kind: str, message: str):
+        self.kind = kind
+        super().__init__(message)
+
 def _classify(title:str)->Tuple[str,str]:
     t=(title or "").lower()
     if "appendix 4c" in t: return "quarterly","4C"
@@ -42,7 +48,7 @@ def _classify(title:str)->Tuple[str,str]:
     if any(k in t for k in ["half year","half-year","interim"]): return "half_year","report"
     if any(k in t for k in ["annual","full year","year ended","annual report"]): return "annual","report"
     if any(k in t for k in ["quarterly","quarter","activities","cashflow","cash flow","production"]): return "quarterly","activities"
-    return "quarterly","other"
+    return "announcement","other"
 
 def _try_period_end(title:str)->Optional[datetime]:
     m=re.search(r"(?:ended|year ended|half year ended|quarter ended)\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})", title or "", flags=re.I)
@@ -83,6 +89,20 @@ def _infer_ticker(href: str, row_text: str, fallback: str | None = None) -> str 
 class ASXProvider:
     def __init__(self, timeout:float=60.0):
         self.timeout=timeout
+        self.last_discovery_metrics: dict[str, int] = {}
+        self.last_discovery_failures: list[dict[str, str]] = []
+
+    def _reset_observability(self) -> None:
+        self.last_discovery_metrics = {
+            "request_ok": 0,
+            "request_fail": 0,
+            "docs_found": 0,
+        }
+        self.last_discovery_failures = []
+
+    def _record_failure(self, kind: str, message: str) -> None:
+        self.last_discovery_metrics[kind] = self.last_discovery_metrics.get(kind, 0) + 1
+        self.last_discovery_failures.append({"kind": kind, "message": message})
 
     def _discover_with_params(
         self,
@@ -96,8 +116,12 @@ class ASXProvider:
     ) -> list[DiscoveredDoc]:
         docs: list[DiscoveredDoc] = []
         seen_urls = seen if seen is not None else set()
-        r = c.get(ASX_ANNOUNCEMENTS_URL, params=params, headers={"User-Agent":"Mozilla/5.0"})
-        r.raise_for_status()
+        try:
+            r = c.get(ASX_ANNOUNCEMENTS_URL, params=params, headers={"User-Agent":"Mozilla/5.0"})
+            r.raise_for_status()
+            self.last_discovery_metrics["request_ok"] = self.last_discovery_metrics.get("request_ok", 0) + 1
+        except Exception as exc:
+            raise ASXDiscoveryError("request_fail", str(exc)) from exc
         soup = BeautifulSoup(r.text, "lxml")
         anchors = soup.find_all("a", href=True)
         pdf = [
@@ -149,9 +173,11 @@ class ASXProvider:
                     period_end=_try_period_end(title),
                 )
             )
+        self.last_discovery_metrics["docs_found"] = self.last_discovery_metrics.get("docs_found", 0) + len(docs)
         return docs
 
     def discover(self, ticker:str, start:datetime, end:datetime)->List[DiscoveredDoc]:
+        self._reset_observability()
         ticker=ticker.upper()
         docs:List[DiscoveredDoc]=[]
         with httpx.Client(timeout=self.timeout, follow_redirects=True) as c:
@@ -159,20 +185,25 @@ class ASXProvider:
             years=range(start.year, end.year+1)
             for year in years:
                 params={"asxCode":ticker,"by":"asxCode","timeframe":"Y","year":str(year)}
-                batch = self._discover_with_params(
-                    c,
-                    start=start,
-                    end=end,
-                    params=params,
-                    ticker_hint=ticker,
-                    seen=seen,
-                )
+                try:
+                    batch = self._discover_with_params(
+                        c,
+                        start=start,
+                        end=end,
+                        params=params,
+                        ticker_hint=ticker,
+                        seen=seen,
+                    )
+                except ASXDiscoveryError as exc:
+                    self._record_failure(exc.kind, str(exc))
+                    continue
                 if not batch:
                     continue
                 docs.extend(batch)
         return docs
 
     def discover_marketwide(self, start: datetime, end: datetime) -> List[DiscoveredDoc]:
+        self._reset_observability()
         docs: list[DiscoveredDoc] = []
         seen: set[str] = set()
         candidate_params = [
@@ -194,7 +225,11 @@ class ASXProvider:
                             seen=seen,
                         )
                     )
-                except Exception:
+                except ASXDiscoveryError as exc:
+                    self._record_failure(exc.kind, str(exc))
+                    continue
+                except Exception as exc:
+                    self._record_failure("unknown", str(exc))
                     continue
         return docs
 
