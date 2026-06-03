@@ -2328,78 +2328,80 @@ export function ChatScreen() {
       ) : null}
 
       {/* Terminal header */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-black/20 relative z-10">
-        <div className="flex gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500/80" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-          <div className="w-3 h-3 rounded-full bg-green-500/80" />
-        </div>
-        <span className="font-mono text-xs terminal-text-dim ml-2">
-          cockpit@financial-ai ~ /chat
-        </span>
-        {/* Ticker context control */}
-        {showTickerInput ? (
-          <form
-            className="flex items-center gap-1 ml-1"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const val = tickerDraft.trim().toUpperCase()
-              if (val && val.length >= 2 && val.length <= 5) {
-                setActiveTicker(val)
-              }
-              setTickerDraft('')
-              setShowTickerInput(false)
-            }}
-          >
-            <input
-              type="text"
-              autoFocus
-              value={tickerDraft}
-              onChange={(e) => setTickerDraft(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setTickerDraft('')
-                  setShowTickerInput(false)
+      <div className="relative z-10 flex flex-wrap items-center gap-2 border-b border-border/30 bg-black/20 px-4 py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex shrink-0 gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-red-500/80" />
+            <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
+            <div className="h-3 w-3 rounded-full bg-green-500/80" />
+          </div>
+          <span className="min-w-0 flex-1 truncate font-mono text-[11px] terminal-text-dim sm:text-xs">
+            cockpit@financial-ai ~ /chat
+          </span>
+          {/* Ticker context control */}
+          {showTickerInput ? (
+            <form
+              className="flex shrink-0 items-center gap-1"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const val = tickerDraft.trim().toUpperCase()
+                if (val && val.length >= 2 && val.length <= 5) {
+                  setActiveTicker(val)
                 }
+                setTickerDraft('')
+                setShowTickerInput(false)
               }}
-              placeholder="ASX ticker"
-              maxLength={5}
-              className="w-16 bg-transparent border border-border/40 rounded px-1 py-0.5 font-mono text-[11px] text-emerald-400 placeholder:text-muted-foreground/40 focus:outline-none focus:border-emerald-500/50"
-            />
-            <button type="submit" className="font-mono text-[11px] text-emerald-400 hover:text-emerald-300">set</button>
+            >
+              <input
+                type="text"
+                autoFocus
+                value={tickerDraft}
+                onChange={(e) => setTickerDraft(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setTickerDraft('')
+                    setShowTickerInput(false)
+                  }
+                }}
+                placeholder="ASX ticker"
+                maxLength={5}
+                className="w-16 rounded border border-border/40 bg-transparent px-1 py-0.5 font-mono text-[11px] text-emerald-400 placeholder:text-muted-foreground/40 focus:border-emerald-500/50 focus:outline-none"
+              />
+              <button type="submit" className="font-mono text-[11px] text-emerald-400 hover:text-emerald-300">set</button>
+              <button
+                type="button"
+                onClick={() => { setTickerDraft(''); setShowTickerInput(false) }}
+                className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                esc
+              </button>
+            </form>
+          ) : (
             <button
               type="button"
-              onClick={() => { setTickerDraft(''); setShowTickerInput(false) }}
-              className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={() => setShowTickerInput(true)}
+              className="shrink-0 rounded border border-border/30 px-1.5 py-0.5 font-mono text-[11px] transition-colors hover:border-border/60"
+              title={activeTicker ? 'Click to change ticker' : 'Click to set ticker'}
             >
-              esc
+              {activeTicker ? (
+                <span className="text-emerald-400">{activeTicker}</span>
+              ) : (
+                <span className="text-muted-foreground/60 italic">no ticker</span>
+              )}
             </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowTickerInput(true)}
-            className="font-mono text-[11px] ml-1 px-1.5 py-0.5 rounded border border-border/30 hover:border-border/60 transition-colors"
-            title={activeTicker ? 'Click to change ticker' : 'Click to set ticker'}
-          >
-            {activeTicker ? (
-              <span className="text-emerald-400">{activeTicker}</span>
-            ) : (
-              <span className="text-muted-foreground/60 italic">no ticker</span>
-            )}
-          </button>
-        )}
-        {activeTicker && !showTickerInput && (
-          <button
-            type="button"
-            onClick={() => setActiveTicker('')}
-            className="font-mono text-[10px] text-muted-foreground/50 hover:text-red-400 transition-colors"
-            title="Clear ticker context"
-          >
-            ✕
-          </button>
-        )}
-        <div className="ml-auto flex items-center gap-2">
+          )}
+          {activeTicker && !showTickerInput && (
+            <button
+              type="button"
+              onClick={() => setActiveTicker('')}
+              className="shrink-0 font-mono text-[10px] text-muted-foreground/50 transition-colors hover:text-red-400"
+              title="Clear ticker context"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <div className="flex w-full items-center justify-end gap-2 sm:ml-auto sm:w-auto">
           <button
             type="button"
             onClick={() => { void handleClearMessages() }}
