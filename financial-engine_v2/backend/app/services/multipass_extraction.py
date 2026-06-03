@@ -2461,6 +2461,16 @@ _STANDALONE_QUARTERLY_ACTIVITIES_REPORT_PATTERN = re.compile(
 
 _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
+        "H",
+        "appendix_4d_source_phrase",
+        re.compile(r"\bappendix\s+4d\b", re.IGNORECASE),
+    ),
+    (
+        "A",
+        "appendix_4e_source_phrase",
+        re.compile(r"\bappendix\s+4e\b", re.IGNORECASE),
+    ),
+    (
         "A",
         "annual_report_title",
         re.compile(r"\bannual\s+report\b", re.IGNORECASE),
@@ -2482,11 +2492,6 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
     (
         "H",
-        "appendix_4d_source_phrase",
-        re.compile(r"\bappendix\s+4d\b", re.IGNORECASE),
-    ),
-    (
-        "Q",
         "appendix_4c_source_phrase",
         re.compile(r"\bappendix\s+4c\b", re.IGNORECASE),
     ),
@@ -3283,6 +3288,149 @@ def classify_source_document(
     )
 
 
+def _has_appendix_4d_source_period_evidence(
+    source_period_evidence: dict[str, Any],
+) -> bool:
+    return any(
+        isinstance(hit, dict) and hit.get("reason") == "appendix_4d_source_phrase"
+        for hit in source_period_evidence.get("hits", [])
+    )
+
+
+def _has_appendix_4d_4e_source_period_evidence(
+    source_period_evidence: dict[str, Any],
+) -> bool:
+    return any(
+        isinstance(hit, dict)
+        and hit.get("reason") in {"appendix_4d_source_phrase", "appendix_4e_source_phrase"}
+        for hit in source_period_evidence.get("hits", [])
+    )
+
+
+def _has_source_bound_appendix_4d_classifier_evidence(
+    pass1: dict[str, Any],
+    *,
+    source_period_evidence: dict[str, Any],
+    source_period_end_evidence: dict[str, Any],
+    source_document_classification: SourceDocumentClassification,
+) -> bool:
+    """Allow a low-confidence Pass 1 only when deterministic Appendix 4D evidence is complete."""
+
+    return (
+        source_document_classification.document_class == "financial_report"
+        and _has_appendix_4d_source_period_evidence(source_period_evidence)
+        and pass1.get("report_type") == "H"
+        and bool(pass1.get("period_end"))
+        and source_period_end_evidence.get("period_type") == "H"
+        and bool(source_period_end_evidence.get("period_end"))
+        and pass1.get("scale") not in {None, "", "unknown"}
+    )
+
+
+_APPENDIX_4D_4E_NTA_ROW_MARKERS = (
+    "net tangible assets per security",
+    "net tangible asset per security",
+    "net tangible asset backing per security",
+    "net tangible assets backing per security",
+    "nta per security",
+)
+
+_APPENDIX_4D_4E_DIVIDEND_ROW_MARKERS = (
+    "dividends",
+    "dividend",
+    "distribution",
+    "distributions",
+)
+
+_APPENDIX_4D_4E_RECORD_DATE_ROW_MARKERS = (
+    "record date",
+    "record date for determining entitlement",
+    "record date for entitlement",
+    "entitlement date",
+)
+
+
+def _appendix_4d_4e_wrapper_disclosure_evidence(
+    pass3a_results: list[dict[str, Any]],
+    pass1_result: dict[str, Any],
+) -> dict[str, Any]:
+    """Collect explicit Appendix 4D/4E wrapper disclosures without promoting them canonically."""
+
+    source_period_evidence = pass1_result.get("_source_period_evidence")
+    source_document_classification = pass1_result.get("_source_document_classification")
+    applies = (
+        isinstance(source_period_evidence, dict)
+        and _has_appendix_4d_4e_source_period_evidence(source_period_evidence)
+        and isinstance(source_document_classification, dict)
+        and source_document_classification.get("document_class") == "financial_report"
+    )
+
+    evidence: dict[str, Any] = {}
+
+    def _record(
+        family: str,
+        extraction: dict[str, Any],
+        row: list[str],
+        *,
+        marker: str,
+    ) -> None:
+        if family in evidence:
+            return
+        row_text = " | ".join(
+            str(cell or "").strip() for cell in row if str(cell or "").strip()
+        )
+        evidence[family] = {
+            "source": extraction.get("_source"),
+            "page": extraction.get("_page_number"),
+            "row_ref": _statement_row_label(row),
+            "row_text": row_text,
+            "marker": marker,
+        }
+
+    for extraction in pass3a_results:
+        rows = _markdown_table_rows(extraction.get("_markdown"))
+        for row in rows:
+            label = _normalise_evidence_row_ref(_statement_row_label(row))
+            if not label:
+                continue
+            if "record date" in label and any(
+                marker in label for marker in _APPENDIX_4D_4E_RECORD_DATE_ROW_MARKERS
+            ):
+                _record(
+                    "record_date",
+                    extraction,
+                    row,
+                    marker="record_date",
+                )
+                continue
+            if any(marker in label for marker in _APPENDIX_4D_4E_NTA_ROW_MARKERS):
+                _record(
+                    "nta_per_security",
+                    extraction,
+                    row,
+                    marker="nta_per_security",
+                )
+                continue
+            if any(marker in label for marker in _APPENDIX_4D_4E_DIVIDEND_ROW_MARKERS):
+                if "record date" in label:
+                    continue
+                _record(
+                    "dividends_distributions",
+                    extraction,
+                    row,
+                    marker="dividends_distributions",
+                )
+
+    required = ("nta_per_security", "dividends_distributions", "record_date")
+    missing = [family for family in required if family not in evidence]
+    return {
+        "applies": applies,
+        "evidence": evidence,
+        "required_families": list(required),
+        "missing_families": missing,
+        "complete": applies and not missing,
+    }
+
 # ---------------------------------------------------------------------------
 # Pass 4 — Reconciler (deterministic)
 # ---------------------------------------------------------------------------
@@ -3569,6 +3717,8 @@ _NPAT_TOTAL_PROFIT_ROW_MARKERS = (
     "profit for the year",
     "net profit for the year",
     "net loss for the year",
+    "net profit after income tax expense from ordinary activities",
+    "profit after income tax expense from ordinary activities",
 )
 
 _NPAT_PROFIT_AFTER_TAX_ROW_MARKERS = (
@@ -3577,6 +3727,8 @@ _NPAT_PROFIT_AFTER_TAX_ROW_MARKERS = (
     "profit/(loss) after income tax expense for the half-year",
     "profit after income tax expense for the year",
     "loss after income tax expense for the year",
+    "net profit after income tax expense from ordinary activities",
+    "profit after income tax expense from ordinary activities",
 )
 
 
@@ -4135,6 +4287,10 @@ def _run_pass4_reconciler(
         markdown_map=markdown_map,
         pass1_result=pass1_result,
     )
+    appendix_4d_4e_wrapper_evidence = _appendix_4d_4e_wrapper_disclosure_evidence(
+        pass3a_results,
+        pass1_result,
+    )
 
     # Prose fallback: shares_outstanding from note sections when tables yield null.
     # Banking filings (ANZ, WBC) often report share counts in prose Note 13/14
@@ -4189,6 +4345,7 @@ def _run_pass4_reconciler(
         "source_document_classification": pass1_result.get(
             "_source_document_classification"
         ),
+        "appendix_4d_4e_wrapper_evidence": appendix_4d_4e_wrapper_evidence,
         "metrics": merged_metrics,
         "row_refs": row_refs,
         "thinking": thinking_map,
@@ -4478,6 +4635,46 @@ def _period_end_source_mismatch(payload: dict) -> tuple[str, str, str] | None:
     return payload_date.isoformat(), source_date.isoformat(), reason
 
 
+def _appendix_4d_4e_wrapper_gate_state(payload: dict) -> dict[str, Any]:
+    """Return narrow wrapper-gate state derived from report-local evidence."""
+
+    source_document_classification = payload.get("source_document_classification")
+    source_period_evidence = payload.get("source_period_evidence")
+    wrapper_evidence = payload.get("appendix_4d_4e_wrapper_evidence")
+    wrapper_reason = ""
+    if isinstance(source_period_evidence, dict):
+        wrapper_reason = str(source_period_evidence.get("reason") or "").strip()
+
+    applies = (
+        isinstance(source_document_classification, dict)
+        and source_document_classification.get("document_class") == "financial_report"
+        and isinstance(source_period_evidence, dict)
+        and _has_appendix_4d_4e_source_period_evidence(source_period_evidence)
+    )
+    evidence_map = {}
+    if isinstance(wrapper_evidence, dict):
+        nested = wrapper_evidence.get("evidence")
+        if isinstance(nested, dict):
+            evidence_map = nested
+        else:
+            evidence_map = wrapper_evidence
+    required_families = ("nta_per_security", "dividends_distributions", "record_date")
+    missing_families = [family for family in required_families if family not in evidence_map]
+    complete = applies and not missing_families
+    return {
+        "applies": applies,
+        "complete": complete,
+        "missing_families": missing_families,
+        "required_families": list(required_families),
+        "source_period_reason": wrapper_reason,
+        "source_period_type": (
+            str(source_period_evidence.get("period_type") or "").strip()
+            if isinstance(source_period_evidence, dict)
+            else ""
+        ),
+    }
+
+
 def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     """
     Validate the reconciled payload before DB upsert.
@@ -4544,14 +4741,32 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
         )
 
     non_null = [v for v in metrics.values() if v is not None]
+    wrapper_gate = _appendix_4d_4e_wrapper_gate_state(payload)
     # Quarterly Appendix 5B filings are structurally limited to cash-flow metrics;
     # they never contain income-statement or balance-sheet rows.  A minimum of 1
     # non-null metric is sufficient to confirm a legitimate quarterly extraction,
     # provided all other gates (scale, period_end, confidence, sanity cap) pass.
     # Annual and half-year reports must still provide at least 3 non-null metrics.
     min_metrics = 1 if payload.get("period_type") == "Q" else 3
+    if (
+        wrapper_gate["applies"]
+        and len(non_null) >= 2
+        and len(non_null) < 3
+    ):
+        min_metrics = 2
     if len(non_null) < min_metrics:
         return "failed", f"validation_gate:insufficient_metrics:{len(non_null)}"
+    if (
+        wrapper_gate["applies"]
+        and len(non_null) == 2
+        and not wrapper_gate["complete"]
+    ):
+        missing_family = wrapper_gate["missing_families"][0]
+        return (
+            "failed",
+            "validation_gate:appendix_4d_4e_wrapper_missing_disclosure:"
+            f"{missing_family}",
+        )
 
     sanity_cap = _native_currency_sanity_cap(payload.get("currency"))
     for m, v in metrics.items():

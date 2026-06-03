@@ -130,6 +130,15 @@ Current repo fixture pool: 13 JSON fixtures under `backend/tests/eval_fixtures/`
 
 **Quarterly fixtures** (GRE, EQR): Both are value-asserted with hand-verified cash-flow values from PDF. `expected_nulls` asserts that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow tolerances remain 1% for flow metrics and 0.1% for `cash_end`.
 
+Appendix 4D/4E fixtures may also expose source-bound profit-after-tax aliases such as
+`Net profit after income tax expense from ordinary activities`. Those aliases are
+valid evidence for `np_attributable`, while NTA, dividends/distributions, and
+record-date rows remain disclosure-only and do not count toward canonical metric
+families. A separate wrapper-specific validation gate may allow a short Appendix
+4D/4E wrapper to pass with two canonical metrics only when the required wrapper
+disclosures are captured as source-bound evidence metadata. This does not change
+the canonical metric ontology or relax ordinary annual / half-year filings.
+
 ### Accuracy thresholds
 
 Defined in `eval_config.json`:

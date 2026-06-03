@@ -113,6 +113,23 @@ Source-document classification is deterministic and source-metadata only:
 
 Classification does not infer financial facts or correct payload fields.
 
+## Appendix 4D/4E wrapper validation
+
+Short Appendix 4D/4E wrapper documents may use a narrow wrapper-specific
+validation path when, and only when, explicit source evidence shows that the
+document is a wrapper filing and the wrapper disclosures are present in the
+source rows.
+
+The wrapper path keeps the canonical metric ontology unchanged:
+
+- Canonical metrics still come only from `METRIC_FIELDS`.
+- `nta_per_security`, `dividends/distributions`, and `record_date` remain
+  disclosure/control metadata, not canonical metrics.
+- The relaxed wrapper gate applies only when the document has exactly two
+  supported canonical metrics and explicit wrapper disclosure evidence.
+- Ordinary annual and half-year reports without wrapper evidence still require
+  the standard three-metric minimum.
+
 ## Scale Policy V1
 
 Extractor payload metric values are normalized absolute values before
@@ -412,7 +429,9 @@ The source-reviewed canary scorecard also defines backend extraction guardrails:
   explicitly labeled EBIT or operating profit/income.
 - Total comprehensive income attributable to owners is not a substitute for
   `np_attributable`; when the source table exposes an explicit profit-after-tax
-  or parent-owner profit row, the extractor must use that row.
+  or parent-owner profit row, including Appendix 4D/4E aliases such as
+  "Net profit after income tax expense from ordinary activities", the
+  extractor must use that row.
 - Indonesian financial statements that say `Expressed in Millions of Rupiah`
   or `Disajikan dalam Jutaan Rupiah` use the `millions` statement scale even if
   a summary table elsewhere mentions Rp trillions.

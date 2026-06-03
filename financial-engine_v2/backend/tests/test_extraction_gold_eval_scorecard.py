@@ -370,6 +370,21 @@ def test_metric_contract_parity_broad_catalogue_is_not_automatically_canonical(
     assert MetricContractStatus.PERSISTED_ONLY.value in metric_contract_status_names()
 
 
+def test_metric_contract_parity_keeps_appendix_4d_wrapper_disclosures_non_canonical(
+    tmp_path,
+):
+    matrix = _empty_contract_matrix(tmp_path)
+    rows = _contract_rows(matrix)
+
+    metric_families = {row["family"] for row in matrix["metric_rows"]}
+
+    assert "nta_per_security" not in metric_families
+    assert rows["dividends"]["status"] == MetricContractStatus.PLANNED.value
+    assert rows["dividends"]["canonical_use_allowed"] is False
+    assert rows["dividends"]["extractor_supported"] is False
+    assert rows["dividends"]["evaluator_supported"] is False
+
+
 def test_metric_contract_parity_marks_uncontracted_fixture_metrics_gold_only(
     tmp_path,
 ):

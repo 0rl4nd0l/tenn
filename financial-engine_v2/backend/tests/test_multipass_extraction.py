@@ -378,6 +378,188 @@ def test_run_multipass_corrects_period_type_from_explicit_source_period_end():
     }
 
 
+def test_run_multipass_source_bound_appendix_4d_does_not_stop_on_pass1_low_confidence():
+    """GPT-style Appendix 4D wrappers can put decisive H/period/scale evidence on page 2."""
+    from app.services.multipass_extraction import run_multipass_extraction
+    from app.services.docling_extract import DoclingTable
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 3
+        docling_version = None
+        sections = [
+            {
+                "text": "Appendix 4D - GPT Management Holdings Limited",
+                "page": 1,
+            },
+            {
+                "text": (
+                    "Appendix 4D GPT Group - GPT Management Holdings Limited "
+                    "Interim Financial Report For the half year ended 30 June 2024 "
+                    "Results for announcement to the market 30 June 24 $'000"
+                ),
+                "page": 2,
+            },
+        ]
+        tables = [
+            DoclingTable(
+                page_number=2,
+                caption="Appendix 4D Results for announcement to the market",
+                headers=["", "30 June 24 $'000", "30 June 23 $'000", "Change %"],
+                rows=[
+                    [
+                        "2.1 Total revenues and other income",
+                        "150,804",
+                        "125,665",
+                        "20.0%",
+                    ],
+                    [
+                        "2.3 Net profit after income tax expense attributable to members",
+                        "15,462",
+                        "6,334",
+                        "144.1%",
+                    ],
+                ],
+            ),
+        ]
+
+    pass1_low_confidence = {
+        "report_type": None,
+        "period_end": None,
+        "currency": None,
+        "scale": "unknown",
+        "classifier_confidence": 0.0,
+    }
+    pass3a_results = [
+        {
+            "_source": "highlights",
+            "_page_number": 2,
+            "revenue": 150_804_000,
+            "np_attributable": 15_462_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Total revenues and other income",
+                "np_attributable": "Net profit for the year",
+            },
+            "provenance": {
+                "revenue": "income_statement:page_2:Total revenues and other income",
+                "np_attributable": "income_statement:page_2:Net profit for the year",
+            },
+            "_markdown": "\n".join(
+                [
+                    "Item | 2024 | 2023",
+                    "--- | --- | ---",
+                    "2.1 Total revenues and other income | 150,804 | 125,665",
+                    "2.2 Net profit after income tax expense from ordinary activities | 15,463 | 6,333",
+                    "2.3 Net profit after income tax expense attributable to members | 15,462 | 6,334",
+                    "2.4 Dividends | 0.05 | 0.05",
+                    "2.5 Record date for determining entitlement | 31 July 2024 | 31 July 2023",
+                    "3.0 Net tangible assets per security | 1.26 | 1.14",
+                ]
+            ),
+        }
+    ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_low_confidence,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={"highlights": _FakeDoc.tables[0], "unmatched": []},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/gpt-appendix-4d.pdf",
+            {
+                "document_id": "c10a88ab-4290-4395-9521-7f96c50b03c4",
+                "ticker": "GPT",
+                "title": "2024 08 19 appendix 4d gpt management holdings limited",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.error != "classifier_low_confidence:0.0"
+    assert result.payload["period_type"] == "H"
+    assert result.payload["period_end"] == "2024-06-30"
+    assert result.payload["scale"] == "thousands"
+    assert result.payload["source_document_classification"]["document_class"] == "financial_report"
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["metrics"]["revenue"] == 150_804_000
+    assert result.payload["metrics"]["np_attributable"] == 15_463_000
+    wrapper_evidence = result.payload["appendix_4d_4e_wrapper_evidence"]
+    assert wrapper_evidence["applies"] is True
+    assert wrapper_evidence["complete"] is True
+    assert wrapper_evidence["missing_families"] == []
+    assert "Net tangible assets per security" in wrapper_evidence["evidence"]["nta_per_security"]["row_ref"]
+    assert wrapper_evidence["evidence"]["dividends_distributions"]["row_ref"] == "2.4 Dividends"
+    assert "Record date for determining entitlement" in wrapper_evidence["evidence"]["record_date"]["row_ref"]
+
+
+def test_detect_source_period_evidence_identifies_appendix_4e_source_phrase():
+    """Appendix 4E wrappers need explicit source-phrase detection too."""
+    from app.services.multipass_extraction import _detect_source_period_evidence
+
+    evidence = _detect_source_period_evidence(
+        "Appendix 4E Preliminary Final Report",
+        "Appendix 4E for the year ended 30 June 2024",
+    )
+
+    assert evidence["period_type"] == "A"
+    assert evidence["reason"] == "appendix_4e_source_phrase"
+
+
+def test_appendix_4d_low_confidence_override_requires_source_bound_period_and_scale():
+    """Appendix 4D low-confidence bypass is forbidden without deterministic evidence."""
+    from app.services.multipass_extraction import (
+        SourceDocumentClassification,
+        _has_source_bound_appendix_4d_classifier_evidence,
+    )
+
+    classification = SourceDocumentClassification(
+        document_class="financial_report",
+        extraction_candidate_allowed=True,
+        canary_candidate_allowed=True,
+        reason="appendix_4d_source_phrase",
+        evidence=["appendix_4d_source_phrase"],
+    )
+    source_period = {
+        "period_type": "H",
+        "reason": "appendix_4d_source_phrase",
+        "hits": [{"period_type": "H", "reason": "appendix_4d_source_phrase"}],
+    }
+    period_end = {
+        "period_type": "H",
+        "period_end": "2024-06-30",
+        "reason": "half_year_ended_explicit_date",
+        "hits": [],
+    }
+
+    assert not _has_source_bound_appendix_4d_classifier_evidence(
+        {"report_type": "H", "period_end": "2024-06-30", "scale": "unknown"},
+        source_period_evidence=source_period,
+        source_period_end_evidence=period_end,
+        source_document_classification=classification,
+    )
+    assert not _has_source_bound_appendix_4d_classifier_evidence(
+        {"report_type": "H", "period_end": None, "scale": "thousands"},
+        source_period_evidence=source_period,
+        source_period_end_evidence=period_end,
+        source_document_classification=classification,
+    )
+    assert not _has_source_bound_appendix_4d_classifier_evidence(
+        {"report_type": "H", "period_end": "2024-06-30", "scale": "thousands"},
+        source_period_evidence={"period_type": "H", "reason": "not_detected", "hits": []},
+        source_period_end_evidence=period_end,
+        source_document_classification=classification,
+    )
+
 # ---------------------------------------------------------------------------
 # Pass 2 — Table Locator
 # ---------------------------------------------------------------------------
@@ -1137,6 +1319,50 @@ def test_pass4_repair_uses_current_period_value_after_note_column():
     assert (
         result["row_refs"]["np_attributable"]
         == "Profit after income tax expense for the year"
+    )
+
+
+def test_pass4_repairs_appendix_4d_ordinary_activities_profit_after_tax_row():
+    """Appendix 4D ordinary-activities NPAT rows must repair into np_attributable."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "income_statement",
+            "_page_number": 2,
+            "revenue": 150_804,
+            "ebit": None,
+            "np_attributable": 15_463,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "revenue": "Total revenues and other income",
+                "np_attributable": "Net profit for the year",
+            },
+            "_markdown": "\n".join(
+                [
+                    "Item | 2024 | 2023",
+                    "--- | --- | ---",
+                    "Total revenues and other income | 150,804 | 125,665",
+                    "Net profit after income tax expense from ordinary activities | 15,463 | 6,333",
+                ]
+            ),
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-06-30", "scale": "thousands"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert result["metrics"]["np_attributable"] == 15_463_000
+    assert (
+        result["row_refs"]["np_attributable"]
+        == "Net profit after income tax expense from ordinary activities"
     )
 
 

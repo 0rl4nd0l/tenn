@@ -238,3 +238,180 @@ def test_validation_gate_rejects_insufficient_metrics():
     }
     status, error = _validate_gate(payload)
     assert status == "failed", f"Expected 'failed', got '{status}'"
+    assert error == "validation_gate:insufficient_metrics:1"
+
+
+def _wrapper_payload(period_type="H", confidence=0.85):
+    payload = {
+        "period_end": "2024-12-31",
+        "period_type": period_type,
+        "scale": "thousands",
+        "currency": "AUD",
+        "metrics": {
+            "revenue": 500_000_000,
+            "ebit": None,
+            "np_attributable": 55_000_000,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+        "row_refs": {
+            "revenue": "Total revenues and other income",
+            "np_attributable": (
+                "Net profit after income tax expense from ordinary activities"
+            ),
+        },
+        "provenance": {
+            "revenue": "income_statement:page_2:Total revenues and other income",
+            "np_attributable": (
+                "income_statement:deterministic:"
+                "Net profit after income tax expense from ordinary activities"
+            ),
+        },
+        "source_document_classification": {
+            "document_class": "financial_report",
+            "reason": (
+                "appendix_4d_source_phrase"
+                if period_type == "H"
+                else "appendix_4e_source_phrase"
+            ),
+            "evidence": [
+                "appendix_4d_source_phrase"
+                if period_type == "H"
+                else "appendix_4e_source_phrase"
+            ],
+            "extraction_candidate_allowed": True,
+            "canary_candidate_allowed": True,
+        },
+        "source_period_evidence": {
+            "period_type": period_type,
+            "reason": (
+                "appendix_4d_source_phrase"
+                if period_type == "H"
+                else "appendix_4e_source_phrase"
+            ),
+            "hits": [
+                {
+                    "period_type": period_type,
+                    "reason": (
+                        "appendix_4d_source_phrase"
+                        if period_type == "H"
+                        else "appendix_4e_source_phrase"
+                    ),
+                }
+            ],
+        },
+        "appendix_4d_4e_wrapper_evidence": {
+            "applies": True,
+            "complete": True,
+            "missing_families": [],
+            "required_families": [
+                "nta_per_security",
+                "dividends_distributions",
+                "record_date",
+            ],
+            "source_period_reason": (
+                "appendix_4d_source_phrase"
+                if period_type == "H"
+                else "appendix_4e_source_phrase"
+            ),
+            "source_period_type": period_type,
+            "evidence": {
+                "nta_per_security": {
+                    "source": "highlights",
+                    "page": 2,
+                    "row_ref": "Net tangible assets per security",
+                    "row_text": "Net tangible assets per security | 0.12",
+                    "marker": "nta_per_security",
+                },
+                "dividends_distributions": {
+                    "source": "highlights",
+                    "page": 2,
+                    "row_ref": "Dividends",
+                    "row_text": "Dividends | 0.05",
+                    "marker": "dividends_distributions",
+                },
+                "record_date": {
+                    "source": "highlights",
+                    "page": 2,
+                    "row_ref": "Record date for determining entitlement",
+                    "row_text": "Record date for determining entitlement | 31 July 2024",
+                    "marker": "record_date",
+                },
+            },
+        },
+        "confidence_metrics": confidence,
+    }
+    return payload
+
+
+def test_validate_gate_allows_appendix_4d_wrapper_with_two_metrics_and_disclosures():
+    """Short Appendix 4D wrappers may pass with two canonical metrics plus disclosures."""
+    from app.services.multipass_extraction import _validate_gate
+
+    status, error = _validate_gate(_wrapper_payload(period_type="H"))
+
+    assert status in ("ok", "ok_low_confidence")
+    assert error is None
+
+
+def test_validate_gate_rejects_appendix_4d_wrapper_when_required_disclosure_missing():
+    """Wrapper relaxation must fail closed if a required disclosure row is missing."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _wrapper_payload(period_type="H")
+    payload["appendix_4d_4e_wrapper_evidence"]["complete"] = False
+    payload["appendix_4d_4e_wrapper_evidence"]["missing_families"] = ["record_date"]
+    payload["appendix_4d_4e_wrapper_evidence"]["evidence"].pop("record_date")
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:appendix_4d_4e_wrapper_missing_disclosure:record_date"
+
+
+def test_validate_gate_keeps_ordinary_half_year_reports_on_three_metric_gate():
+    """Non-wrapper half-year reports still require the normal three-metric gate."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = {
+        "period_end": "2024-12-31",
+        "period_type": "H",
+        "scale": "thousands",
+        "currency": "AUD",
+        "metrics": {
+            "revenue": 500_000_000,
+            "ebit": None,
+            "np_attributable": 55_000_000,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+        "row_refs": {
+            "revenue": "Total revenues and other income",
+            "np_attributable": (
+                "Net profit after income tax expense from ordinary activities"
+            ),
+        },
+        "provenance": {
+            "revenue": "income_statement:page_2:Total revenues and other income",
+            "np_attributable": (
+                "income_statement:deterministic:"
+                "Net profit after income tax expense from ordinary activities"
+            ),
+        },
+        "confidence_metrics": 0.9,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:insufficient_metrics:2"
