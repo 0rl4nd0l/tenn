@@ -4986,24 +4986,6 @@ def run_multipass_extraction(
             sections=structured_doc.sections,
             error=f"pass1:{e}",
         )
-
-    if pass1.get("classifier_confidence", 0) < 0.60:
-        if observer is not None:
-            observer.emit(
-                "pass1_classifier",
-                "failed",
-                "Classifier confidence below threshold.",
-                error_code="classifier_low_confidence",
-                details={"classifier_confidence": pass1.get("classifier_confidence")},
-            )
-        return MultipassResult(
-            status="failed",
-            payload=null_payload,
-            sections=structured_doc.sections,
-            error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
-        )
-    if observer is not None:
-        observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
     if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
         pass1["period_end"] = source_period_end_evidence["period_end"]
     _apply_source_period_end_type_correction(pass1, source_period_end_evidence)
@@ -5058,6 +5040,35 @@ def run_multipass_extraction(
             "non-AUD currency detected: %s — values stored as-is (no FX conversion applied)",
             _currency,
         )
+
+    source_bound_appendix_4d = _has_source_bound_appendix_4d_classifier_evidence(
+        pass1,
+        source_period_evidence=source_period_evidence,
+        source_period_end_evidence=source_period_end_evidence,
+        source_document_classification=source_document_classification,
+    )
+    if pass1.get("classifier_confidence", 0) < 0.60 and source_bound_appendix_4d:
+        pass1["_classifier_confidence_override"] = {
+            "from": pass1.get("classifier_confidence"),
+            "reason": "source_bound_appendix_4d_evidence",
+        }
+    if pass1.get("classifier_confidence", 0) < 0.60 and not source_bound_appendix_4d:
+        if observer is not None:
+            observer.emit(
+                "pass1_classifier",
+                "failed",
+                "Classifier confidence below threshold.",
+                error_code="classifier_low_confidence",
+                details={"classifier_confidence": pass1.get("classifier_confidence")},
+            )
+        return MultipassResult(
+            status="failed",
+            payload=null_payload,
+            sections=structured_doc.sections,
+            error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
+        )
+    if observer is not None:
+        observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
 
     # Pass 2: Locate tables
     if observer is not None:
