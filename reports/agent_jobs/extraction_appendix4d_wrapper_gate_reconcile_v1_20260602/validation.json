@@ -1,0 +1,30 @@
+{
+  "contract_validate": {
+    "ok": true
+  },
+  "contract_check_diff": {
+    "ok": true
+  },
+  "git_diff_check": {
+    "ok": true
+  },
+  "focused_pytest": {
+    "ok": true,
+    "selector": [
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_extraction_capability_guards.py",
+      "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py"
+    ],
+    "result": "17 passed"
+  },
+  "targeted_gpt_appendix_4d": {
+    "ok": true,
+    "mode": "direct_gate_simulation_on_known_wrapper_payload",
+    "result": "ok"
+  },
+  "no_source_pdfs_staged": true,
+  "registry_active_list": {
+    "ok": true,
+    "active_jobs": []
+  }
+}

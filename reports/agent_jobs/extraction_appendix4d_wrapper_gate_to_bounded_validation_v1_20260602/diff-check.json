@@ -1,0 +1,104 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/architecture/12_evaluation_and_drift_monitoring.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/extraction/metric_extraction_contract.md",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_capability_guards.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/summary.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602.md",
+      "status": "??"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602.md",
+        "docs/agent_tasks/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602.md",
+        "docs/agent_tasks/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602.md",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602/README.md",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602/status.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602/summary.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602/validation.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602/diff-check.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602/README.md",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602/status.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602/diff-check.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/README.md",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/status.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/summary.json",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/validation.json",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_capability_guards.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "docs/extraction/metric_extraction_contract.md",
+        "docs/architecture/12_evaluation_and_drift_monitoring.md"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "operator_approval_source": "User requested bounded conditional progress on Appendix 4D wrapper validation on 2026-06-03.",
+      "output_dir": "reports/agent_jobs/extraction_appendix4d_wrapper_gate_to_bounded_validation_v1_20260602",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Query Orchestration",
+        "Provenance"
+      ],
+      "timeout_seconds": 10800
+    },
+    "ok": true
+  }
+}
