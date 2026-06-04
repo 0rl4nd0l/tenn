@@ -1,0 +1,49 @@
+{
+  "broad_extraction_backfill_sample_canary": "not_run",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_appendix4d_wrapper_gate_current_origin_v1_20260604.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_appendix4d_wrapper_gate_current_origin_v1_20260604.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=backend /tmp/tenn-appendix4d-wrapper-venv/bin/python -m pytest <focused Appendix 4D wrapper gate nodes> -q",
+      "result": "8 passed, 1 warning"
+    },
+    {
+      "command": "/tmp/tenn-appendix4d-wrapper-venv/bin/python -m py_compile <touched Python files>",
+      "result": "passed"
+    },
+    {
+      "command": "/tmp/tenn-appendix4d-wrapper-venv/bin/ruff check <touched Python files>",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /tmp/tenn-appendix4d-wrapper-venv/bin/python <targeted _validate_gate simulation>",
+      "result": "passed"
+    },
+    {
+      "command": "/tmp/tenn-appendix4d-wrapper-venv/bin/python <json validation for report artifacts>",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_appendix4d_wrapper_gate_current_origin_v1_20260604.md --repo-root .",
+      "result": "passed"
+    }
+  ],
+  "data_missing": [
+    "No source PDF extraction was run; exact-PDF outcome is intentionally DATA_MISSING for this task."
+  ],
+  "db_qdrant_news_memory_mutation": false,
+  "integration_pr_safe": true,
+  "integration_pr_safety_basis": "Diff is bounded to the task-card allowlist, tests and static gates pass, and no broad extraction/backfill/sample/canary or datastore mutation was run.",
+  "parked_branch_merged_or_rebased": false,
+  "source_pdfs_staged": false
+}

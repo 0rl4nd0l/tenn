@@ -2898,6 +2898,16 @@ def _validate_scale(payload: dict) -> str:
 # Validation Gate
 # ---------------------------------------------------------------------------
 
+_APPENDIX_WRAPPER_DOCUMENT_MARKERS = ("appendix4d", "appendix4e")
+_APPENDIX_WRAPPER_REQUIRED_METRICS = {"revenue", "np_attributable"}
+_APPENDIX_WRAPPER_DISCLOSURE_MARKER_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("ntapersecurity", "nettangibleassetspersecurity"),
+    ("dividendsdistributions", "dividends", "distribution"),
+    ("recorddate",),
+    ("associatesandjointventures", "jointventures", "associates"),
+)
+
+
 def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
     row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
     provenance = (
@@ -2907,6 +2917,125 @@ def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
         row_refs.get(metric_name),
         provenance.get(metric_name),
     )
+
+
+def _flatten_payload_text(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        fragments: list[str] = []
+        for key, item in value.items():
+            fragments.extend(_flatten_payload_text(key))
+            fragments.extend(_flatten_payload_text(item))
+        return fragments
+    if isinstance(value, (list, tuple, set)):
+        fragments: list[str] = []
+        for item in value:
+            fragments.extend(_flatten_payload_text(item))
+        return fragments
+    text = str(value).strip()
+    return [text] if text else []
+
+
+def _combined_payload_text(payload: dict, *keys: str) -> str:
+    fragments: list[str] = []
+    for key in keys:
+        fragments.extend(_flatten_payload_text(payload.get(key)))
+    return " ".join(fragments)
+
+
+def _is_appendix_wrapper_document(payload: dict) -> bool:
+    source_bound = payload.get("source_bound")
+    if not isinstance(source_bound, dict):
+        source_bound = {}
+    source_classification = payload.get("source_document_classification")
+    if not isinstance(source_classification, dict):
+        source_classification = {}
+
+    fragments = _flatten_payload_text(
+        [
+            payload.get("document_subtype"),
+            payload.get("doc_subtype"),
+            payload.get("source_doc_subtype"),
+            payload.get("document_title"),
+            payload.get("title"),
+            payload.get("source_title"),
+            payload.get("announcement_title"),
+            source_bound.get("document_subtype"),
+            source_bound.get("document_title"),
+            source_classification.get("reason"),
+            source_classification.get("evidence"),
+        ]
+    )
+    combined = _normalize_filter_text(" ".join(fragments))
+    if not combined:
+        return False
+    return any(marker in combined for marker in _APPENDIX_WRAPPER_DOCUMENT_MARKERS)
+
+
+def _wrapper_disclosure_evidence_present(payload: dict) -> bool:
+    combined = _normalize_filter_text(
+        _combined_payload_text(
+            payload,
+            "wrapper_disclosures",
+            "disclosure_evidence",
+            "source_evidence",
+            "source_notes",
+        )
+    )
+    if not combined:
+        return False
+    return all(
+        any(marker in combined for marker in marker_group)
+        for marker_group in _APPENDIX_WRAPPER_DISCLOSURE_MARKER_GROUPS
+    )
+
+
+def _wrapper_source_bound_ready(payload: dict) -> bool:
+    source_bound = payload.get("source_bound")
+    if not isinstance(source_bound, dict):
+        return False
+
+    required_fields = ("period_end", "period_type", "scale", "currency")
+    for required_field in required_fields:
+        value = source_bound.get(required_field)
+        if value in (None, ""):
+            return False
+        if required_field == "scale" and str(value).strip().lower() == "unknown":
+            return False
+
+    for required_field in ("period_end", "period_type", "scale"):
+        payload_value = payload.get(required_field)
+        source_value = source_bound.get(required_field)
+        if payload_value in (None, "") or source_value in (None, ""):
+            continue
+        if str(payload_value).strip().lower() != str(source_value).strip().lower():
+            return False
+
+    payload_currency = _normalize_currency_code(payload.get("currency"))
+    source_currency = _normalize_currency_code(source_bound.get("currency"))
+    return payload_currency == source_currency
+
+
+def _appendix_wrapper_minimum_override(
+    payload: dict,
+    canonical_metrics: dict[str, Any],
+) -> tuple[bool, str | None]:
+    if not _is_appendix_wrapper_document(payload):
+        return False, None
+
+    non_null_names = {
+        name for name, value in canonical_metrics.items() if value is not None
+    }
+    if len(non_null_names) != 2:
+        return False, None
+    if non_null_names != _APPENDIX_WRAPPER_REQUIRED_METRICS:
+        return False, "validation_gate:wrapper_missing_required_canonical_metrics"
+    if not _wrapper_source_bound_ready(payload):
+        return False, "validation_gate:wrapper_missing_source_bound_context"
+    if not _wrapper_disclosure_evidence_present(payload):
+        return False, "validation_gate:wrapper_missing_disclosure_evidence"
+    return True, None
 
 
 def _metric_label_mismatch(payload: dict) -> tuple[str, str] | None:
@@ -3051,7 +3180,8 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     if payload.get("scale") == "unknown":
         return "failed", "validation_gate:scale_unknown"
 
-    metrics = payload.get("metrics", {})
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    canonical_metrics = {metric_name: metrics.get(metric_name) for metric_name in METRIC_FIELDS}
     mismatch = _metric_label_mismatch(payload)
     if mismatch is not None:
         metric_name, source_label = mismatch
@@ -3087,18 +3217,25 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
             f"payload={period_end}:source={source_period_end}:{reason}",
         )
 
-    non_null = [v for v in metrics.values() if v is not None]
+    non_null = [v for v in canonical_metrics.values() if v is not None]
+    wrapper_override, wrapper_error = _appendix_wrapper_minimum_override(
+        payload,
+        canonical_metrics,
+    )
+    if wrapper_error is not None:
+        return "failed", wrapper_error
+
     # Quarterly Appendix 5B filings are structurally limited to cash-flow metrics;
     # they never contain income-statement or balance-sheet rows.  A minimum of 1
     # non-null metric is sufficient to confirm a legitimate quarterly extraction,
     # provided all other gates (scale, period_end, confidence, sanity cap) pass.
     # Annual and half-year reports must still provide at least 3 non-null metrics.
-    min_metrics = 1 if payload.get("period_type") == "Q" else 3
+    min_metrics = 2 if wrapper_override else (1 if payload.get("period_type") == "Q" else 3)
     if len(non_null) < min_metrics:
         return "failed", f"validation_gate:insufficient_metrics:{len(non_null)}"
 
     sanity_cap = _native_currency_sanity_cap(payload.get("currency"))
-    for m, v in metrics.items():
+    for m, v in canonical_metrics.items():
         if v is not None and abs(v) > sanity_cap:
             return "failed", f"validation_gate:sanity_cap_exceeded:{m}={v}"
 
@@ -3484,6 +3621,20 @@ def run_multipass_extraction(
     # pass1["currency"] was already normalised (string "null" → "AUD") at detection time.
     payload["scale"] = pass1.get("scale", "unknown") or "unknown"
     payload["currency"] = pass1.get("currency") or "AUD"
+    payload["document_title"] = title
+    source_bound = payload.get("source_bound")
+    if not isinstance(source_bound, dict):
+        source_bound = {}
+    source_bound.update(
+        {
+            "period_type": payload.get("period_type"),
+            "period_end": payload.get("period_end"),
+            "scale": payload.get("scale"),
+            "currency": payload.get("currency"),
+            "document_title": title,
+        }
+    )
+    payload["source_bound"] = source_bound
 
     # Surface non-AUD currency as a structured warning for operator visibility.
     # Values are stored in native currency with no FX conversion; downstream

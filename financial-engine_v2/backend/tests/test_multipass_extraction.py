@@ -1958,6 +1958,48 @@ def test_validate_gate_scale_unknown_hard_blocked():
     assert error == "validation_gate:scale_unknown", f"Unexpected error key: {error!r}"
 
 
+def test_validate_gate_does_not_count_wrapper_disclosures_as_canonical_metrics():
+    """NTA/dividend/record-date disclosures must not satisfy canonical minimums."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H")
+    payload["document_subtype"] = "4D"
+    payload["document_title"] = "Appendix 4D half-year report"
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": payload["document_title"],
+    }
+    payload["wrapper_disclosures"] = [
+        "Net tangible assets per security",
+        "Dividends / distributions",
+        "Record date for determining entitlement to the dividend",
+        "Details of associates and joint ventures entities",
+    ]
+    payload["metrics"] = {
+        "revenue": 500_000_000,
+        "ebit": None,
+        "np_attributable": None,
+        "operating_cf": None,
+        "investing_cf": None,
+        "financing_cf": None,
+        "capex": None,
+        "cash_end": None,
+        "net_debt": None,
+        "shares_outstanding": None,
+        "nta_per_security": 1.23,
+        "dividends": 0.10,
+        "record_date": "2026-01-31",
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:insufficient_metrics:1"
+
+
 def test_validate_scale_blocks_wtc_like_unknown_scale_values():
     """Raw WTC-style USD M values must still fail when scale remains unknown."""
     from app.services.multipass_extraction import _validate_gate, _validate_scale

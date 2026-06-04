@@ -238,3 +238,104 @@ def test_validation_gate_rejects_insufficient_metrics():
     }
     status, error = _validate_gate(payload)
     assert status == "failed", f"Expected 'failed', got '{status}'"
+
+
+def _base_appendix_4d_wrapper_payload() -> dict[str, object]:
+    return {
+        "document_subtype": "4D",
+        "document_title": "Appendix 4D half-year report",
+        "period_end": "2024-06-30",
+        "period_type": "H",
+        "scale": "thousands",
+        "currency": "AUD",
+        "confidence_metrics": 0.91,
+        "source_bound": {
+            "period_end": "2024-06-30",
+            "period_type": "H",
+            "scale": "thousands",
+            "currency": "AUD",
+            "document_title": "Appendix 4D half-year report",
+        },
+        "wrapper_disclosures": [
+            "Net tangible assets per security",
+            "Dividends / distributions",
+            "Record date for determining entitlement to the dividend",
+            "Details of associates and joint ventures entities",
+        ],
+        "row_refs": {
+            "revenue": "Revenue from ordinary activities",
+            "np_attributable": (
+                "Net profit after income tax expense from ordinary activities"
+            ),
+        },
+        "provenance": {
+            "revenue": "income_statement:page_1:Revenue from ordinary activities",
+            "np_attributable": (
+                "income_statement:page_1:"
+                "Net profit after income tax expense from ordinary activities"
+            ),
+        },
+        "metrics": {
+            "revenue": 150_804_000,
+            "ebit": None,
+            "np_attributable": 15_463_000,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+    }
+
+
+def test_appendix_4d_wrapper_passes_with_two_canonical_metrics_and_disclosures():
+    from app.services.multipass_extraction import _validate_gate
+
+    status, error = _validate_gate(_base_appendix_4d_wrapper_payload())
+
+    assert status == "ok"
+    assert error is None
+
+
+def test_appendix_4d_wrapper_fails_without_wrapper_disclosure_evidence():
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _base_appendix_4d_wrapper_payload()
+    payload.pop("wrapper_disclosures")
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:wrapper_missing_disclosure_evidence"
+
+
+@pytest.mark.parametrize("missing_field", ["period_end", "period_type", "scale"])
+def test_appendix_4d_wrapper_fails_without_source_bound_context(missing_field):
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _base_appendix_4d_wrapper_payload()
+    source_bound = dict(payload["source_bound"])  # type: ignore[arg-type]
+    source_bound.pop(missing_field)
+    payload["source_bound"] = source_bound
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:wrapper_missing_source_bound_context"
+
+
+def test_appendix_4d_wrapper_fails_when_required_canonical_metric_is_missing():
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _base_appendix_4d_wrapper_payload()
+    metrics = dict(payload["metrics"])  # type: ignore[arg-type]
+    metrics["np_attributable"] = None
+    metrics["operating_cf"] = 1_000_000
+    payload["metrics"] = metrics
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:wrapper_missing_required_canonical_metrics"

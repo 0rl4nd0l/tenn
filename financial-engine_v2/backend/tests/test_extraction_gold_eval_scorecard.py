@@ -368,6 +368,38 @@ def test_metric_contract_parity_broad_catalogue_is_not_automatically_canonical(
     assert MetricContractStatus.PERSISTED_ONLY.value in metric_contract_status_names()
 
 
+def _ordinary_two_metric_payload(period_type: str) -> dict:
+    return {
+        "period_end": "2025-12-31",
+        "period_type": period_type,
+        "scale": "thousands",
+        "currency": "AUD",
+        "confidence_metrics": 0.9,
+        "metrics": {
+            "revenue": 100_000_000,
+            "ebit": None,
+            "np_attributable": 20_000_000,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+    }
+
+
+def test_ordinary_annual_and_half_year_reports_keep_normal_metric_minimum():
+    from app.services.multipass_extraction import _validate_gate
+
+    for period_type in ("A", "H"):
+        status, error = _validate_gate(_ordinary_two_metric_payload(period_type))
+
+        assert status == "failed"
+        assert error == "validation_gate:insufficient_metrics:2"
+
+
 def test_metric_contract_parity_marks_uncontracted_fixture_metrics_gold_only(
     tmp_path,
 ):

@@ -1,0 +1,39 @@
+{
+  "broad_backfill_authorized": false,
+  "canonical_write_allowed": false,
+  "cases": [
+    {
+      "case": "wrapper_two_canonical_with_disclosures",
+      "error": null,
+      "status": "ok"
+    },
+    {
+      "case": "wrapper_missing_disclosures",
+      "error": "validation_gate:wrapper_missing_disclosure_evidence",
+      "status": "failed"
+    },
+    {
+      "case": "wrapper_missing_source_bound_scale",
+      "error": "validation_gate:wrapper_missing_source_bound_context",
+      "status": "failed"
+    },
+    {
+      "case": "wrapper_disclosures_do_not_count_as_canonical",
+      "error": "validation_gate:insufficient_metrics:1",
+      "status": "failed"
+    },
+    {
+      "case": "ordinary_half_year_two_metrics",
+      "error": "validation_gate:insufficient_metrics:2",
+      "status": "failed"
+    },
+    {
+      "case": "ordinary_annual_two_metrics",
+      "error": "validation_gate:insufficient_metrics:2",
+      "status": "failed"
+    }
+  ],
+  "db_qdrant_news_memory_mutation": false,
+  "source_pdf_touched": false,
+  "simulation": "appendix4d_wrapper_gate_v1"
+}
