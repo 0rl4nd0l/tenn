@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "job_id": "extraction_merge_parking_registry_setup_v1_20260604",
+  "mode": "safe_extension",
+  "status": "completed",
+  "registry_paths_created": [
+    "docs/agent_registry/merge_parking/REGISTRY.md",
+    "docs/agent_registry/merge_parking/parked/"
+  ],
+  "parked_items_added": [
+    {
+      "branch": "safe/extraction-broad-accuracy-push-v1-20260602",
+      "status": "PARKED_READY_FOR_REVIEW",
+      "entry": "docs/agent_registry/merge_parking/parked/extraction-broad-accuracy-push-v1-20260602.md"
+    },
+    {
+      "branch": "safe/appendix5b-report-gate-refresh-v1-20260531",
+      "status": "PARKED_READY_FOR_REVIEW",
+      "entry": "docs/agent_registry/merge_parking/parked/appendix5b-report-gate-refresh-v1-20260531.md"
+    },
+    {
+      "branch": "safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602",
+      "status": "PARKED_NEEDS_VALIDATION",
+      "entry": "docs/agent_registry/merge_parking/parked/extraction-appendix4d-profit-after-tax-alias-v1-20260602.md"
+    },
+    {
+      "branch": "safe/extraction-live-contract-truth-gates-v1-20260603-nvme",
+      "status": "PARKED_NEEDS_HUMAN_DECISION",
+      "entry": "docs/agent_registry/merge_parking/parked/extraction-live-contract-truth-gates-v1-20260603-nvme.md"
+    },
+    {
+      "branch": "DATA_MISSING",
+      "status": "DATA_MISSING",
+      "entry": "docs/agent_registry/merge_parking/parked/extraction-data-missing-20260604.md"
+    }
+  ],
+  "intentionally_not_parked_here": [
+    {
+      "branch": "safe/extraction-broad-runtime-after-pls-evidence-v1-20260602",
+      "reason": "superseded by safe/extraction-broad-accuracy-push-v1-20260602"
+    },
+    {
+      "branch": "safe/extraction-metric-ontology-prepersist-v1-20260531",
+      "reason": "inventory classified as merged into migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    {
+      "branch": "safe/extraction-storage-metric-contract-gate-v1-20260531",
+      "reason": "inventory classified as merged into migration/clean-runtime-baseline-reconstruct-v1"
+    },
+    {
+      "branch": "sub-slices inside safe/extraction-live-contract-truth-gates-v1-20260603-nvme",
+      "reason": "not individually parked because they remain bundled inside the dirty parent worktree"
+    }
+  ],
+  "recommended_first_merge_review_candidate": "safe/extraction-broad-accuracy-push-v1-20260602",
+  "data_missing_visible": true,
+  "validation": {
+    "json_status": "passed",
+    "git_diff_check": "passed",
+    "registry_list_active": "passed; active_jobs=[]",
+    "source_pdf_repo_status": "passed; no staged or modified repo-side PDFs",
+    "task_card_check_diff": "blocked by unrelated dirty worktree state and validator path-matching behavior for docs/agent_registry/merge_parking/parked/**"
+  },
+  "explicit_non_actions": {
+    "merge": false,
+    "cleanup": false,
+    "extraction_or_backfill_run": false,
+    "extraction_code_modified": false
+  }
+}
