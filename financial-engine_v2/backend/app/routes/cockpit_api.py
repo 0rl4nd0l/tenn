@@ -52,6 +52,7 @@ from app.services.chat_evidence_guard import (
     evidence_categories_for_source,
     requires_local_news_only_guard,
 )
+from app.services.chat_readiness import build_chat_readiness_status
 from app.services.cockpit_home import (
     build_attention_queue_snapshot,
     build_home_narrative_snapshot,
@@ -97,6 +98,7 @@ from shared.evidence_labels import (
     SOURCE_LABEL_TAXONOMY_VERSION,
     VALID_SOURCE_LABELS as _VALID_SOURCE_LABELS,
     normalize_source_labels as _normalize_source_labels,
+    ordered_source_labels as _ordered_source_labels,
     primary_source_label as _primary_source_label,
 )
 from cockpit.core.config import (
@@ -3078,6 +3080,20 @@ _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
     r"revenue|profit|loss|EBIT|EBITDA|dividend|buyback|placement)\b",
     re.IGNORECASE,
 )
+_NUMERIC_SUPPRESSION_PROTECTED_LABELS = {
+    "degraded_runtime",
+    "insufficient_for_recent_news",
+    "local_personal_data",
+    "market_data_missing",
+    "metric_extraction_missing",
+    "no_hit",
+    "unsupported_or_not_verified",
+}
+_NUMERIC_SUPPRESSION_PROTECTED_MISSING_CATEGORIES = {
+    "market_data",
+    "metric_extraction",
+    "recent_news",
+}
 _PURE_OPERATIONAL_NO_HIT_RE = re.compile(
     r"^\s*(?:"
     r"(?:data_missing:?\s*)?(?:no|zero) (?:[\w-]+\s+){0,3}(?:canonical )?"
@@ -3348,6 +3364,16 @@ def _json_safe_mapping(value: Any) -> dict[str, Any]:
         return {str(key): str(item) for key, item in value.items()}
 
 
+def _raw_string_set(value: Any) -> set[str]:
+    if isinstance(value, str):
+        values = [value]
+    elif isinstance(value, (list, tuple, set)):
+        values = list(value)
+    else:
+        values = []
+    return {str(item).strip() for item in values if str(item).strip()}
+
+
 def _source_label_counts(sources: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for source in sources:
@@ -3500,6 +3526,88 @@ def _build_chat_ui_metadata(response: Any, sources: list[dict[str, Any]]) -> dic
         metadata,
     )
     return _json_safe_mapping(metadata)
+
+
+def _suppress_unverified_data_missing_claims(
+    text: str,
+    metadata: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
+    """Remove unsafe numeric body text from DATA_MISSING answers without verified sources."""
+    answer_text = str(text or "")
+    if not answer_text.lstrip().upper().startswith("DATA_MISSING"):
+        return answer_text, metadata
+
+    safe_metadata = _json_safe_mapping(metadata)
+    try:
+        verified_count = int(safe_metadata.get("claim_verified_source_count") or 0)
+    except (TypeError, ValueError):
+        verified_count = 0
+    if verified_count > 0:
+        return answer_text, safe_metadata
+    if not _CONTAINS_FINANCIAL_CLAIM_RE.search(answer_text):
+        return answer_text, safe_metadata
+    raw_labels = _raw_string_set(safe_metadata.get("evidence_labels"))
+    raw_labels.update(_raw_string_set(safe_metadata.get("evidence_requirement_labels")))
+    raw_labels.update(_raw_string_set(safe_metadata.get("source_labels")))
+    source_status = str(safe_metadata.get("source_coverage_status") or "").strip()
+    if source_status in _NUMERIC_SUPPRESSION_PROTECTED_LABELS:
+        return answer_text, safe_metadata
+    if raw_labels & _NUMERIC_SUPPRESSION_PROTECTED_LABELS:
+        return answer_text, safe_metadata
+    missing_categories = _raw_string_set(safe_metadata.get("missing_evidence_categories"))
+    missing_categories.update(_raw_string_set(safe_metadata.get("missing_categories_after_recovery")))
+    if missing_categories & _NUMERIC_SUPPRESSION_PROTECTED_MISSING_CATEGORIES:
+        return answer_text, safe_metadata
+    local_news_guard = safe_metadata.get("local_news_only_guard")
+    if isinstance(local_news_guard, dict) and local_news_guard.get("applied") is True:
+        return answer_text, safe_metadata
+    if (
+        str(safe_metadata.get("data_scope") or "").strip() == "local_personal_holdings"
+        or str(safe_metadata.get("canonical_intent") or "").strip() == "holdings"
+    ):
+        return answer_text, safe_metadata
+    if "financial_truth_numeric" not in raw_labels:
+        return answer_text, safe_metadata
+
+    gap_lines: list[str] = []
+    for line in answer_text.splitlines():
+        if not line.strip() and gap_lines:
+            break
+        gap_lines.append(line.rstrip())
+    if not gap_lines:
+        gap_lines = ["DATA_MISSING / evidence gaps:"]
+    if not gap_lines[0].lstrip().upper().startswith("DATA_MISSING"):
+        gap_lines.insert(0, "DATA_MISSING / evidence gaps:")
+    suppression_line = (
+        "- unverified_numeric_claims_suppressed: numeric/context-only claims were hidden "
+        "because no claim_verified source is visible."
+    )
+    if suppression_line not in gap_lines:
+        gap_lines.append(suppression_line)
+
+    safe_metadata["unsafe_numeric_claims_suppressed"] = True
+    safe_metadata["sufficient_for_analysis"] = False
+    safe_metadata["grounding_guard"] = "data_missing_unverified_numeric_claims"
+    safe_metadata["source_coverage_status"] = "missing_required_evidence"
+    evidence_labels = _normalize_source_labels(safe_metadata.get("evidence_labels"))
+    evidence_labels.add("missing_required_evidence")
+    safe_metadata["evidence_labels"] = _ordered_source_labels(evidence_labels)
+    recovery_categories = [
+        str(item)
+        for item in safe_metadata.get("missing_categories_after_recovery", [])
+        if str(item).strip()
+    ]
+    if "unverified_numeric_claims" not in recovery_categories:
+        recovery_categories.append("unverified_numeric_claims")
+    safe_metadata["missing_categories_after_recovery"] = recovery_categories
+
+    sanitized = (
+        "\n".join(gap_lines).strip()
+        + "\n\n"
+        + "Answer suppressed: normal financial analysis is blocked until the relevant "
+        + "readiness capability has claim-verified evidence."
+    )
+    return sanitized, _json_safe_mapping(safe_metadata)
 
 
 def _legacy_chat_record_metadata(role: str) -> dict[str, Any]:
@@ -4055,6 +4163,18 @@ def cockpit_news_status() -> dict[str, Any]:
     """Return the read-only A2M/news status contract without probing or repair."""
 
     return build_a2m_news_health_status()
+
+
+@router.get("/chat/readiness")
+def cockpit_chat_readiness(ticker: str | None = None) -> dict[str, Any]:
+    """Return read-only, capability-scoped readiness for Cockpit chat answers."""
+
+    normalized_ticker = str(ticker or "").strip().upper() or None
+    return build_chat_readiness_status(
+        ticker=normalized_ticker,
+        settings_obj=settings,
+        http_probe=_probe_http,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -9977,7 +10097,15 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 ui_metadata,
                 user_message=payload.message,
             )
+            response.text, ui_metadata = _suppress_unverified_data_missing_claims(
+                str(response.text or ""),
+                ui_metadata,
+            )
             response.text = apply_visible_evidence_gap_labels(
+                str(response.text or ""),
+                ui_metadata,
+            )
+            response.text, ui_metadata = _suppress_unverified_data_missing_claims(
                 str(response.text or ""),
                 ui_metadata,
             )
@@ -10096,7 +10224,15 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     ui_metadata,
                     user_message=payload.message,
                 )
+                response.text, ui_metadata = _suppress_unverified_data_missing_claims(
+                    str(response.text or ""),
+                    ui_metadata,
+                )
                 response.text = apply_visible_evidence_gap_labels(
+                    str(response.text or ""),
+                    ui_metadata,
+                )
+                response.text, ui_metadata = _suppress_unverified_data_missing_claims(
                     str(response.text or ""),
                     ui_metadata,
                 )

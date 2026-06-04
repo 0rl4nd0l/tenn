@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-06-04T20:29:00+10:00",
+  "backend_url": "http://127.0.0.1:8002",
+  "frontend_url": "http://127.0.0.1:3214",
+  "profile": {
+    "DATABASE_URL": "sqlite:////tmp/cockpit-product-audit-20260604/data/fe_local.db",
+    "TASK_MODE": "sync",
+    "ENABLE_EMBEDDINGS": "false",
+    "ENABLE_QDRANT": "false",
+    "ENABLE_EXTRACTION": "false"
+  },
+  "readiness_probe": {
+    "tickers": ["BHP", "CSL", "MIN", "A2M", "ZZZZZZ"],
+    "common_result": {
+      "answer_ready": false,
+      "normal_analysis_allowed": false,
+      "primary_blockers": [
+        "financial_fact",
+        "filing_document_summary",
+        "local_news_rag"
+      ],
+      "local_news_rag_blockers": [
+        "ENABLE_EMBEDDINGS=false",
+        "ENABLE_QDRANT=false"
+      ]
+    },
+    "bhp_capability_statuses": {
+      "financial_fact": "DATA_MISSING",
+      "filing_document_summary": "DATA_MISSING",
+      "local_news_rag": "DATA_MISSING",
+      "portfolio_holdings_context": "DATA_MISSING",
+      "memory_context": "PARTIAL",
+      "strategy_action_preview": "READY",
+      "model_route_runtime": "READY"
+    }
+  },
+  "stateless_chat_probe": {
+    "ticker": "BHP",
+    "prompt": "What was BHP revenue in FY25? Use visible evidence only. If data is missing, say DATA_MISSING and list missing evidence.",
+    "response_type": "done",
+    "contains_reported_revenue_body": false,
+    "contains_unverified_numeric_claims_suppressed": true,
+    "claim_verified_source_count": 0,
+    "source_coverage_status": "missing_required_evidence",
+    "unsafe_numeric_claims_suppressed": true,
+    "sufficient_for_analysis": false,
+    "missing_categories_after_recovery": [
+      "stale_evidence",
+      "unverified_numeric_claims"
+    ]
+  },
+  "frontend_proxy_probe": {
+    "url": "http://127.0.0.1:3214/api/cockpit/chat/readiness?ticker=BHP",
+    "answer_ready": false,
+    "normal_analysis_allowed": false,
+    "primary_blockers": [
+      "financial_fact",
+      "filing_document_summary",
+      "local_news_rag"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-06-04T20:29:00+10:00",
+  "browser": "Playwright Chromium headless",
+  "url": "http://127.0.0.1:3214/full-chat",
+  "screenshots": {
+    "desktop": "/tmp/cockpit-answer-readiness-20260604/desktop-full-chat-readiness.png",
+    "mobile": "/tmp/cockpit-answer-readiness-20260604/mobile-full-chat-readiness-wrap.png"
+  },
+  "desktop": {
+    "status": 200,
+    "title": "Financial Cockpit",
+    "blank": false,
+    "has_readiness_panel": true,
+    "readiness_excerpt": [
+      "NORMAL ANALYSIS BLOCKED",
+      "4 capability blockers",
+      "Financial facts",
+      "DATA_MISSING",
+      "no extracted financial rows for requested ticker",
+      "Filing and document summaries",
+      "DATA_MISSING",
+      "no filings/documents for requested ticker",
+      "Local news and RAG",
+      "DATA_MISSING",
+      "ENABLE_EMBEDDINGS=false"
+    ],
+    "console_messages": [],
+    "page_errors": [],
+    "request_failures": [],
+    "response_problems": [],
+    "framework_overlay": false
+  },
+  "mobile": {
+    "status": 200,
+    "title": "Financial Cockpit",
+    "blank": false,
+    "has_readiness_panel": true,
+    "readiness_excerpt": [
+      "NORMAL ANALYSIS BLOCKED",
+      "4 capability blockers",
+      "Financial facts",
+      "DATA_MISSING",
+      "no extracted financial rows for requested ticker",
+      "Filing and document summaries",
+      "DATA_MISSING",
+      "no filings/documents for requested ticker",
+      "Local news and RAG",
+      "DATA_MISSING",
+      "ENABLE_EMBEDDINGS=false"
+    ],
+    "console_messages": [],
+    "page_errors": [],
+    "request_failures": [],
+    "response_problems": [],
+    "framework_overlay": false
+  }
+}

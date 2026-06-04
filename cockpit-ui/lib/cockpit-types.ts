@@ -62,6 +62,52 @@ export interface ChatProviderError {
   action_label?: string
 }
 
+export type ChatReadinessStatus = 'READY' | 'PARTIAL' | 'DEGRADED' | 'DATA_MISSING'
+
+export interface ChatReadinessCapability {
+  id: string
+  label: string
+  status: ChatReadinessStatus
+  ready: boolean
+  answerScope?: string
+  answer_scope?: string
+  blockers: string[]
+  evidence?: Record<string, unknown>
+  activationActions?: string[]
+  activation_actions?: string[]
+}
+
+export interface ChatReadinessResponse {
+  schema_version?: number
+  schemaVersion?: number
+  generated_at?: string
+  generatedAt?: string
+  generated_from?: string
+  generatedFrom?: string
+  ticker?: string | null
+  answer_ready?: boolean
+  answerReady?: boolean
+  normal_analysis_allowed?: boolean
+  normalAnalysisAllowed?: boolean
+  capabilities: Record<string, ChatReadinessCapability>
+  summary?: {
+    ready_capability_count?: number
+    readyCapabilityCount?: number
+    capability_count?: number
+    capabilityCount?: number
+    blocker_count?: number
+    blockerCount?: number
+    primary_blockers?: string[]
+    primaryBlockers?: string[]
+    normal_analysis_requires?: string[]
+    normalAnalysisRequires?: string[]
+    safe_activation_actions?: string[]
+    safeActivationActions?: string[]
+  }
+  reporting_contract?: Record<string, unknown>
+  reportingContract?: Record<string, unknown>
+}
+
 export interface Source {
   title: string
   url?: string
