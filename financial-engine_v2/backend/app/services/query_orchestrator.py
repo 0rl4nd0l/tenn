@@ -5,6 +5,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable, Protocol
 
+from app.services.answer_source_plan import (
+    AnswerSourcePlan as QueryPlan,
+    build_answer_source_plan,
+    source_missing_categories,
+    source_role_for,
+)
 from app.services.company_memory import CompanyMemoryStore
 from app.services.memory_assembler import MemoryAssembler
 from app.services.market_memory import MarketMemoryStore
@@ -68,19 +74,6 @@ _LOCAL_PERSONAL_SOURCE_NAMES = {
     "local_personal_data",
     "personal_data",
 }
-_FINANCIAL_TRUTH_MISSING_CATEGORIES = {
-    "financials",
-    "announcements_news_context",
-}
-_COMPANY_MEMORY_MISSING_CATEGORIES = {
-    "business_profile_context",
-    "peer_set",
-}
-_MARKET_MEMORY_MISSING_CATEGORIES = {
-    "market_context",
-    "peer_set",
-}
-
 _FINANCIAL_KEYWORDS = (
     "revenue",
     "ebit",
@@ -248,12 +241,6 @@ _USER_THESIS_TYPE_PRIORITY = {
     ),
     "mixed": ("thesis", "supporting_evidence", "disconfirming_evidence"),
 }
-_ALL_SOURCE_PLAN: tuple[SourceName, ...] = (
-    "financial_truth",
-    "company_memory",
-    "market_memory",
-    "user_thesis_memory",
-)
 _PEER_QUERY_RE = re.compile(
     r"\b(peer|peers|comparable|comparables|vs\.?|versus|relative to|compare)\b",
     flags=re.IGNORECASE,
@@ -280,15 +267,6 @@ class EvidenceProvider(Protocol):
         entities: dict[str, Any],
         intent: QueryIntent,
     ) -> dict[str, Any]: ...
-
-
-@dataclass(frozen=True)
-class QueryPlan:
-    intent: QueryIntent
-    sources: tuple[SourceName, ...]
-    needs_numbers: bool
-    needs_meaning: bool
-    needs_environment: bool
 
 
 @dataclass(frozen=True)
@@ -387,68 +365,7 @@ def _extract_tickers(query: str) -> list[str]:
 
 
 def build_plan(intent: QueryIntent) -> QueryPlan:
-    mapping: dict[str, QueryPlan] = {
-        "general": QueryPlan(
-            intent="general",
-            sources=(),
-            needs_numbers=False,
-            needs_meaning=False,
-            needs_environment=False,
-        ),
-        "financial_fact": QueryPlan(
-            intent="financial_fact",
-            sources=("financial_truth",),
-            needs_numbers=True,
-            needs_meaning=False,
-            needs_environment=False,
-        ),
-        "strategy": QueryPlan(
-            intent="strategy",
-            sources=("company_memory", "user_thesis_memory"),
-            needs_numbers=False,
-            needs_meaning=True,
-            needs_environment=False,
-        ),
-        "market": QueryPlan(
-            intent="market",
-            sources=("market_memory",),
-            needs_numbers=False,
-            needs_meaning=False,
-            needs_environment=True,
-        ),
-        "risk_catalyst": QueryPlan(
-            intent="risk_catalyst",
-            sources=("company_memory", "market_memory", "user_thesis_memory"),
-            needs_numbers=False,
-            needs_meaning=True,
-            needs_environment=True,
-        ),
-        "financial_interpretation": QueryPlan(
-            intent="financial_interpretation",
-            sources=(
-                "financial_truth",
-                "company_memory",
-                "market_memory",
-                "user_thesis_memory",
-            ),
-            needs_numbers=True,
-            needs_meaning=True,
-            needs_environment=True,
-        ),
-        "mixed": QueryPlan(
-            intent="mixed",
-            sources=(
-                "financial_truth",
-                "company_memory",
-                "market_memory",
-                "user_thesis_memory",
-            ),
-            needs_numbers=True,
-            needs_meaning=True,
-            needs_environment=True,
-        ),
-    }
-    return mapping.get(intent, mapping["general"])
+    return build_answer_source_plan(intent)
 
 
 def _is_company_analysis_request(
@@ -776,7 +693,10 @@ def _base_source_role_labels(
     labels.discard("claim_verified")
 
     tokens = _source_type_tokens(source, payload)
-    if has_evidence and (
+    source_role = source_role_for(source)
+    if has_evidence and source_role is not None:
+        labels.update(source_role.evidence_labels)
+    elif has_evidence and (
         "financial_truth" in tokens
         or "canonical_financial_truth" in tokens
         or payload.get("financial_truth") is True
@@ -805,13 +725,10 @@ def _missing_categories_for_source(
     missing_categories: set[str],
 ) -> list[str]:
     normalized_source = str(source or "").strip().lower()
-    if normalized_source == "financial_truth":
-        matched = missing_categories & _FINANCIAL_TRUTH_MISSING_CATEGORIES
-    elif normalized_source == "company_memory":
-        matched = missing_categories & _COMPANY_MEMORY_MISSING_CATEGORIES
-    elif normalized_source == "market_memory":
-        matched = missing_categories & _MARKET_MEMORY_MISSING_CATEGORIES
-    elif normalized_source in _LOCAL_NEWS_SOURCE_NAMES:
+    matched = source_missing_categories(source, missing_categories)
+    if matched:
+        return list(matched)
+    if normalized_source in _LOCAL_NEWS_SOURCE_NAMES:
         matched = missing_categories & {"announcements_news_context"}
     else:
         matched = set()
@@ -1161,9 +1078,7 @@ def build_answer_input(
         lines.append(f"Primary ticker: {ticker}")
     lines.append("Source priority: " + " -> ".join(plan.sources))
     lines.append(f"User question: {query}")
-    lines.append(
-        "Use financial truth for explicit numbers, company memory for business meaning, and market memory only when it adds relevant external context."
-    )
+    lines.append(plan.answer_guidance)
     if answer.get("is_speculative"):
         lines.append(
             "Speculative mode active: structured financial metrics are missing. "
@@ -1603,7 +1518,7 @@ class QueryOrchestrator:
             recovery_entities = dict(entities)
             recovery_entities["recovery_level"] = "deep"
             recovery_entities["recovery_targets"] = list(missing_before)
-            recovery_sources = tuple(dict.fromkeys(plan.sources + _ALL_SOURCE_PLAN))
+            recovery_sources = plan.recovery_sources()
             recovery_query = _build_recovery_query(
                 query,
                 entities=entities,
@@ -1646,6 +1561,7 @@ class QueryOrchestrator:
                 needs_numbers=plan.needs_numbers,
                 needs_meaning=plan.needs_meaning,
                 needs_environment=plan.needs_environment,
+                answer_guidance=plan.answer_guidance,
             )
 
         sufficient_for_analysis = True
