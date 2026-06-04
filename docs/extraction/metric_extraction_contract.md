@@ -58,6 +58,15 @@ Qdrant persistence. These gates fail the extraction instead of correcting values
 - Explicit source-period evidence, for example annual `year ended` wording, must
   agree with the payload `period_type`. Ambiguous source-period evidence is
   diagnostic only and does not infer a corrected period.
+- Short Appendix 4D/4E wrapper filings may use a two-canonical-metric minimum
+  only when wrapper identity, source-bound period/scale/currency context, and
+  required wrapper disclosure/control evidence are all present.
+
+The Appendix 4D/4E wrapper exception does not change the canonical metric
+ontology. The two required canonical metrics are `revenue` and
+`np_attributable`; NTA per security, dividends/distributions, record-date, and
+associate/JV rows remain disclosure-only control evidence and do not count
+toward the metric minimum.
 
 ## Pre-persistence scorecard gate
 
@@ -147,6 +156,11 @@ policy change.
 
 `ebit` remains semantically distinct from EBITDA. EBITDA evidence must not
 populate canonical `ebit`.
+
+Appendix 4D/4E wrapper disclosures such as NTA per security,
+dividends/distributions, record date, and associates/JV details are not
+canonical fields. They may only satisfy wrapper control evidence for the narrow
+two-metric gate when supplied as source-bound disclosure evidence.
 
 ## Non-goals
 

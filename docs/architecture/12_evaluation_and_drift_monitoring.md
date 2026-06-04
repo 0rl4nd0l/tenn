@@ -130,6 +130,14 @@ Current repo fixture pool: 13 JSON fixtures under `backend/tests/eval_fixtures/`
 
 **Quarterly fixtures** (GRE, EQR): Both are value-asserted with hand-verified cash-flow values from PDF. `expected_nulls` asserts that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow tolerances remain 1% for flow metrics and 0.1% for `cash_end`.
 
+Appendix 4D/4E wrapper filings keep the canonical metric ontology unchanged.
+The validation gate may accept exactly two canonical metrics only for a
+structurally identified wrapper with `revenue`, `np_attributable`, source-bound
+period/scale/currency context, and required wrapper disclosure/control evidence.
+NTA per security, dividends/distributions, record-date, and associate/JV rows
+remain disclosure-only and do not count as canonical metrics. Ordinary annual
+and half-year reports keep the normal three-metric minimum.
+
 ### Accuracy thresholds
 
 Defined in `eval_config.json`:
@@ -223,6 +231,9 @@ bounded canary:
 - source-explicit IDR/Rp trillion table units are treated as native rupiah
   `trillions`, with no FX conversion and with non-AUD rows still marked
   `ok_low_confidence` after hard gates pass.
+- source-bound Appendix 4D/4E wrapper evidence may relax only the metric minimum
+  to two canonical metrics; it does not promote wrapper disclosures into
+  canonical financial facts.
 
 These guards do not correct values, infer period type, mutate gold labels, or
 change parser routing. A failed gate prevents both canonical financial-row
