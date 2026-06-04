@@ -18,6 +18,7 @@ import {
   buildChatPresentationModel,
   compactPresentationLabel,
 } from '@/lib/cockpit-chat-presentation'
+import type { ChatEvidenceActionKey } from '@/lib/cockpit-chat-actionability'
 import {
   Dialog,
   DialogContent,
@@ -33,7 +34,14 @@ interface TerminalMessageProps {
   codexDeployStatus?: string | null
   onConfirmAction?: (actionPreview: ChatMessageType['actionPreview']) => void
   onCancelAction?: (actionPreview: ChatMessageType['actionPreview']) => void
+  onSuggestedAction?: (action: SuggestedChatActionRequest) => void
   onDeployCodexFlag?: (reportId: string) => void
+}
+
+export type SuggestedChatActionRequest = {
+  actionKey: ChatEvidenceActionKey
+  label: string
+  ticker: string
 }
 
 function formatDurationLabel(durationMs: number): string {
@@ -69,6 +77,7 @@ export function TerminalMessage({
   codexDeployStatus,
   onConfirmAction,
   onCancelAction,
+  onSuggestedAction,
   onDeployCodexFlag,
 }: TerminalMessageProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(Boolean(showSources))
@@ -76,7 +85,7 @@ export function TerminalMessage({
   const [rawDumpExpanded, setRawDumpExpanded] = useState(false)
   const [chartDialogOpen, setChartDialogOpen] = useState(false)
   const [autoOpenedFilestatsChart, setAutoOpenedFilestatsChart] = useState(false)
-  const presentation = buildChatPresentationModel(message)
+  const presentation = buildChatPresentationModel(message, { onSuggestedAction })
   const analystShell = presentation.shell
   const actionPresentation = presentation.actionPreview
 
@@ -379,11 +388,11 @@ export function TerminalMessage({
               <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-blue-300/70">
                 Suggested next
               </span>
-              {analystShell.nextActions.map((action) => action.enabled && action.kind === 'open_sources' ? (
+              {analystShell.nextActions.map((action) => action.enabled && (action.onClick || action.kind === 'open_sources') ? (
                 <button
                   key={action.label}
                   type="button"
-                  onClick={() => setSourcesExpanded(true)}
+                  onClick={action.onClick || (() => setSourcesExpanded(true))}
                   className="rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 font-mono text-[11px] text-blue-100 transition-colors hover:bg-blue-500/20"
                 >
                   {action.label}

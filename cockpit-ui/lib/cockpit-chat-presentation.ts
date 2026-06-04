@@ -1,5 +1,9 @@
 import type { ActionPreview, ChatMessage } from './cockpit-types'
-import { deriveChatEvidenceActionability, type ChatEvidenceAction } from './cockpit-chat-actionability'
+import {
+  deriveChatEvidenceActionability,
+  type ChatEvidenceAction,
+  type ChatEvidenceActionKey,
+} from './cockpit-chat-actionability'
 import {
   isCanonicalFinancialTruthLabelSet,
   isClaimVerifiedLabelSet,
@@ -11,6 +15,17 @@ export type ChatPresentationActionKind = 'open_sources'
 
 export type ChatPresentationAction = ChatEvidenceAction & {
   kind?: ChatPresentationActionKind
+  onClick?: () => void
+}
+
+export type SuggestedChatActionRequest = {
+  actionKey: ChatEvidenceActionKey
+  label: string
+  ticker: string
+}
+
+export type ChatPresentationOptions = {
+  onSuggestedAction?: (action: SuggestedChatActionRequest) => void
 }
 
 export type ChatAnalystShellModel = {
@@ -60,6 +75,11 @@ export function compactPresentationLabel(value: string): string {
 function extractTickerFromAction(message: ChatMessage): string | null {
   const args = asRecord(message.actionPreview?.args)
   const ticker = String(args.ticker || args.symbol || '').trim().toUpperCase()
+  return /^[A-Z0-9]{2,6}$/.test(ticker) ? ticker : null
+}
+
+function actionableTicker(value: string | null): string | null {
+  const ticker = String(value || '').trim().toUpperCase()
   return /^[A-Z0-9]{2,6}$/.test(ticker) ? ticker : null
 }
 
@@ -156,24 +176,36 @@ function sourceStatusWarnings(sourceStatus: Record<string, unknown> | undefined)
   })
 }
 
-export function buildChatPresentationModel(message: ChatMessage): ChatPresentationModel {
+export function buildChatPresentationModel(
+  message: ChatMessage,
+  options: ChatPresentationOptions = {},
+): ChatPresentationModel {
   return {
-    shell: buildAnalystShell(message),
+    shell: buildAnalystShell(message, options),
     actionPreview: message.actionPreview
       ? deriveActionPreviewPresentation(message.actionPreview)
       : null,
   }
 }
 
-function buildAnalystShell(message: ChatMessage): ChatAnalystShellModel {
+function buildAnalystShell(
+  message: ChatMessage,
+  options: ChatPresentationOptions,
+): ChatAnalystShellModel {
   const analyst = message.metadata?.analyst
   const routing = asRecord(message.metadata?.routing)
+  const routeTicker = String(asRecord(routing.entities).primary_ticker || '').trim().toUpperCase()
   const entityLabel =
     analyst?.entity
     || analyst?.ticker
-    || String(asRecord(routing.entities).primary_ticker || '').trim().toUpperCase()
+    || routeTicker
     || extractTickerFromAction(message)
     || null
+  const suggestedTicker =
+    actionableTicker(analyst?.ticker || null)
+    || actionableTicker(routeTicker)
+    || actionableTicker(extractTickerFromAction(message))
+    || actionableTicker(entityLabel)
   const sourceCount = message.sources?.length || 0
   const toolCount = message.toolTraces?.length || 0
   const evidenceActionability = deriveChatEvidenceActionability(message)
@@ -304,6 +336,7 @@ function buildAnalystShell(message: ChatMessage): ChatAnalystShellModel {
   }
 
   const nextActions: ChatPresentationAction[] = []
+  const suggestedActionIds = new Set(evidenceActionability.suggestedActions.map((action) => action.id))
   if (sourceCount > 0) {
     nextActions.push({ label: 'Review evidence', enabled: true, kind: 'open_sources' })
     nextActions.push({ label: 'Verify against evidence', enabled: false })
@@ -311,11 +344,30 @@ function buildAnalystShell(message: ChatMessage): ChatAnalystShellModel {
   if (gaps.some((gap) => /news|announcement|recent|market_context/i.test(gap))) {
     nextActions.push({ label: 'Check recent news', enabled: false })
   }
-  if (gaps.some((gap) => /financial|rows/i.test(gap))) {
+  if (
+    gaps.some((gap) => /financial|rows/i.test(gap))
+    && !suggestedActionIds.has('run_metric_extraction')
+  ) {
     nextActions.push({ label: 'Backfill financials', enabled: false })
   }
   for (const action of evidenceActionability.suggestedActions) {
     if (!nextActions.some((item) => item.label === action.label)) {
+      if (action.id === 'review_filing_group') {
+        nextActions.push({ label: action.label, enabled: true, kind: 'open_sources' })
+        continue
+      }
+      if (suggestedTicker && options.onSuggestedAction) {
+        nextActions.push({
+          label: action.label,
+          enabled: true,
+          onClick: () => options.onSuggestedAction?.({
+            actionKey: action.id,
+            label: action.label,
+            ticker: suggestedTicker,
+          }),
+        })
+        continue
+      }
       nextActions.push(action)
     }
   }

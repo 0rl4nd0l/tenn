@@ -146,6 +146,86 @@ describe('TerminalMessage', () => {
     expect(screen.getByText('Run metric extraction (not connected)')).toBeInTheDocument()
   })
 
+  it('wires market-data suggestions into actionable buttons when a ticker is available', async () => {
+    const user = userEvent.setup()
+    const onSuggestedAction = vi.fn()
+
+    render(
+      <TerminalMessage
+        showSources={false}
+        onSuggestedAction={onSuggestedAction}
+        message={buildAssistantMessage({
+          content: 'CSL looks bearish on the current price trend, while the filing shows a buy-back notice.',
+          metadata: {
+            source: 'orchestrator',
+            analyst: {
+              ticker: 'CSL',
+              entity: 'CSL Limited',
+              evidenceLabels: ['context_only'],
+              claimVerifiedSourceCount: 0,
+              sourceCoverageStatus: 'context_only',
+            },
+          },
+          sources: [
+            {
+              title: 'CSL Appendix 3C buy-back notice',
+              score: 0.91,
+              kind: 'document',
+              docType: 'asx_announcement',
+              snippet: 'CSL lodged a buy-back notice.',
+              evidenceLabel: 'context_only',
+              evidenceLabels: ['context_only'],
+              claimVerified: false,
+            },
+          ],
+        })}
+      />,
+    )
+
+    const actionButton = screen.getByRole('button', { name: 'Pull market data' })
+    expect(screen.queryByText('Pull market data (not connected)')).not.toBeInTheDocument()
+
+    await user.click(actionButton)
+    expect(onSuggestedAction).toHaveBeenCalledWith({
+      actionKey: 'pull_market_data',
+      label: 'Pull market data',
+      ticker: 'CSL',
+    })
+  })
+
+  it('wires metric-extraction suggestions into actionable buttons when a ticker is available', async () => {
+    const user = userEvent.setup()
+    const onSuggestedAction = vi.fn()
+
+    render(
+      <TerminalMessage
+        onSuggestedAction={onSuggestedAction}
+        message={buildAssistantMessage({
+          content: 'I can discuss filings, but financial rows unavailable.',
+          metadata: {
+            source: 'orchestrator',
+            analyst: {
+              ticker: 'MIN',
+              entity: 'MIN',
+              missingCategories: ['financials'],
+              sufficientForAnalysis: false,
+            },
+          },
+        })}
+      />,
+    )
+
+    expect(screen.queryByText('Backfill financials')).not.toBeInTheDocument()
+    const actionButton = screen.getByRole('button', { name: 'Run metric extraction' })
+    await user.click(actionButton)
+
+    expect(onSuggestedAction).toHaveBeenCalledWith({
+      actionKey: 'run_metric_extraction',
+      label: 'Run metric extraction',
+      ticker: 'MIN',
+    })
+  })
+
   it('does not call no-hit audit sources source-backed', () => {
     render(
       <TerminalMessage

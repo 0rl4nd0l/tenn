@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { TerminalMessage } from './terminal-message'
+import { TerminalMessage, type SuggestedChatActionRequest } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { MessageClaimVerification } from './message-claim-verification'
 import {
@@ -33,6 +33,7 @@ import {
   streamChat,
   sendChatMessage,
   restartBackend,
+  previewAction,
   startActionJob,
   getActionJob,
   getChatSessionMessages,
@@ -227,6 +228,61 @@ function sanitizeActionMessage(content: string, actionPreview?: ActionPreview): 
     )
 
   return lines.join('\n').trim()
+}
+
+type SuggestedActionConfig = {
+  actionId: string
+  name: string
+  description: string
+  buildArgs: (ticker: string) => Record<string, unknown>
+  isMutating: boolean
+}
+
+const SUGGESTED_ACTION_CONFIGS: Record<SuggestedChatActionRequest['actionKey'], SuggestedActionConfig> = {
+  pull_market_data: {
+    actionId: 'show_candlestick',
+    name: 'Pull market data',
+    description: 'Fetch a fresh price chart before relying on technical claims.',
+    buildArgs: (ticker) => ({
+      ticker,
+      timeframe: '1d',
+    }),
+    isMutating: false,
+  },
+  run_metric_extraction: {
+    actionId: 'metric_extraction',
+    name: 'Run metric extraction',
+    description: 'Extract ticker financial metrics from the available document set.',
+    buildArgs: (ticker) => ({
+      ticker,
+    }),
+    isMutating: true,
+  },
+  review_filing_group: {
+    actionId: '',
+    name: 'Review filing group',
+    description: 'Review the filing group in the source drawer.',
+    buildArgs: () => ({}),
+    isMutating: false,
+  },
+}
+
+function buildSuggestedActionPreview(
+  request: SuggestedChatActionRequest,
+  config: SuggestedActionConfig,
+  preview: Awaited<ReturnType<typeof previewAction>>,
+): ActionPreview {
+  return {
+    id: String(preview.action_id || config.actionId).trim() || config.actionId,
+    name: config.name,
+    description: String(preview.summary || '').trim() || config.description,
+    args: config.buildArgs(request.ticker),
+    requiresConfirmation: true,
+    impact: String(preview.estimated_impact || '').trim() || undefined,
+    timeoutSeconds: typeof preview.timeout_seconds === 'number' ? preview.timeout_seconds : undefined,
+    isMutating: config.isMutating,
+    command: Array.isArray(preview.command) ? preview.command : undefined,
+  }
 }
 
 async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
@@ -737,6 +793,58 @@ export function ChatScreen() {
     },
     [apiKey],
   )
+
+  const handleSuggestedAction = useCallback(async (request: SuggestedChatActionRequest) => {
+    const config = SUGGESTED_ACTION_CONFIGS[request.actionKey]
+    if (!config || !config.actionId) {
+      appendSystemMessage(`Suggested action is not executable yet: ${request.label}`)
+      return
+    }
+
+    const ticker = String(request.ticker || '').trim().toUpperCase()
+    if (!/^[A-Z0-9]{2,6}$/.test(ticker)) {
+      appendSystemMessage(`Cannot prepare ${request.label}: missing valid ticker context`)
+      return
+    }
+
+    try {
+      const preview = await previewAction({
+        actionId: config.actionId,
+        args: config.buildArgs(ticker),
+      })
+      const actionPreview = buildSuggestedActionPreview(
+        { ...request, ticker },
+        config,
+        preview,
+      )
+      const previewMessage = [
+        `Action ready: ${config.name}.`,
+        actionPreview.description,
+        actionPreview.impact ? `Impact: ${actionPreview.impact}` : null,
+        'Confirm below or type yes/no.',
+      ].filter(Boolean).join('\n\n')
+
+      setPendingActionPreview(actionPreview)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: 'assistant',
+          content: previewMessage,
+          timestamp: new Date(),
+          metadata: {
+            source: 'cockpit',
+          },
+          actionPreview,
+        },
+      ])
+      toast.info(`${config.name} is ready to confirm`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown action preview error'
+      appendSystemMessage(`Failed to prepare ${request.label}: ${message}`)
+      toast.error(`Failed to prepare ${request.label}`)
+    }
+  }, [appendSystemMessage])
 
   const openCitation = useCallback((citation: TakeawayCitation) => {
     if (!latestVideoUrl || typeof window === 'undefined') {
@@ -2220,78 +2328,80 @@ export function ChatScreen() {
       ) : null}
 
       {/* Terminal header */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-black/20 relative z-10">
-        <div className="flex gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500/80" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-          <div className="w-3 h-3 rounded-full bg-green-500/80" />
-        </div>
-        <span className="font-mono text-xs terminal-text-dim ml-2">
-          cockpit@financial-ai ~ /chat
-        </span>
-        {/* Ticker context control */}
-        {showTickerInput ? (
-          <form
-            className="flex items-center gap-1 ml-1"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const val = tickerDraft.trim().toUpperCase()
-              if (val && val.length >= 2 && val.length <= 5) {
-                setActiveTicker(val)
-              }
-              setTickerDraft('')
-              setShowTickerInput(false)
-            }}
-          >
-            <input
-              type="text"
-              autoFocus
-              value={tickerDraft}
-              onChange={(e) => setTickerDraft(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setTickerDraft('')
-                  setShowTickerInput(false)
+      <div className="relative z-10 flex flex-wrap items-center gap-2 border-b border-border/30 bg-black/20 px-4 py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex shrink-0 gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-red-500/80" />
+            <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
+            <div className="h-3 w-3 rounded-full bg-green-500/80" />
+          </div>
+          <span className="min-w-0 flex-1 truncate font-mono text-[11px] terminal-text-dim sm:text-xs">
+            cockpit@financial-ai ~ /chat
+          </span>
+          {/* Ticker context control */}
+          {showTickerInput ? (
+            <form
+              className="flex shrink-0 items-center gap-1"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const val = tickerDraft.trim().toUpperCase()
+                if (val && val.length >= 2 && val.length <= 5) {
+                  setActiveTicker(val)
                 }
+                setTickerDraft('')
+                setShowTickerInput(false)
               }}
-              placeholder="ASX ticker"
-              maxLength={5}
-              className="w-16 bg-transparent border border-border/40 rounded px-1 py-0.5 font-mono text-[11px] text-emerald-400 placeholder:text-muted-foreground/40 focus:outline-none focus:border-emerald-500/50"
-            />
-            <button type="submit" className="font-mono text-[11px] text-emerald-400 hover:text-emerald-300">set</button>
+            >
+              <input
+                type="text"
+                autoFocus
+                value={tickerDraft}
+                onChange={(e) => setTickerDraft(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setTickerDraft('')
+                    setShowTickerInput(false)
+                  }
+                }}
+                placeholder="ASX ticker"
+                maxLength={5}
+                className="w-16 rounded border border-border/40 bg-transparent px-1 py-0.5 font-mono text-[11px] text-emerald-400 placeholder:text-muted-foreground/40 focus:border-emerald-500/50 focus:outline-none"
+              />
+              <button type="submit" className="font-mono text-[11px] text-emerald-400 hover:text-emerald-300">set</button>
+              <button
+                type="button"
+                onClick={() => { setTickerDraft(''); setShowTickerInput(false) }}
+                className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                esc
+              </button>
+            </form>
+          ) : (
             <button
               type="button"
-              onClick={() => { setTickerDraft(''); setShowTickerInput(false) }}
-              className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={() => setShowTickerInput(true)}
+              className="shrink-0 rounded border border-border/30 px-1.5 py-0.5 font-mono text-[11px] transition-colors hover:border-border/60"
+              title={activeTicker ? 'Click to change ticker' : 'Click to set ticker'}
             >
-              esc
+              {activeTicker ? (
+                <span className="text-emerald-400">{activeTicker}</span>
+              ) : (
+                <span className="text-muted-foreground/60 italic">no ticker</span>
+              )}
             </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowTickerInput(true)}
-            className="font-mono text-[11px] ml-1 px-1.5 py-0.5 rounded border border-border/30 hover:border-border/60 transition-colors"
-            title={activeTicker ? 'Click to change ticker' : 'Click to set ticker'}
-          >
-            {activeTicker ? (
-              <span className="text-emerald-400">{activeTicker}</span>
-            ) : (
-              <span className="text-muted-foreground/60 italic">no ticker</span>
-            )}
-          </button>
-        )}
-        {activeTicker && !showTickerInput && (
-          <button
-            type="button"
-            onClick={() => setActiveTicker('')}
-            className="font-mono text-[10px] text-muted-foreground/50 hover:text-red-400 transition-colors"
-            title="Clear ticker context"
-          >
-            ✕
-          </button>
-        )}
-        <div className="ml-auto flex items-center gap-2">
+          )}
+          {activeTicker && !showTickerInput && (
+            <button
+              type="button"
+              onClick={() => setActiveTicker('')}
+              className="shrink-0 font-mono text-[10px] text-muted-foreground/50 transition-colors hover:text-red-400"
+              title="Clear ticker context"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <div className="flex w-full items-center justify-end gap-2 sm:ml-auto sm:w-auto">
           <button
             type="button"
             onClick={() => { void handleClearMessages() }}
@@ -2387,6 +2497,7 @@ export function ChatScreen() {
 	                    : null}
 	                  onConfirmAction={handleConfirmAction}
 	                  onCancelAction={handleCancelAction}
+	                  onSuggestedAction={handleSuggestedAction}
 	                  onDeployCodexFlag={handleDeployCodexFlag}
 	                />
                 {msg.role === 'assistant' && (
@@ -2441,6 +2552,7 @@ export function ChatScreen() {
                 }} 
                 isStreaming={true}
                 showSources={preferences.showSources}
+                onSuggestedAction={handleSuggestedAction}
               />
             </div>
           )}
