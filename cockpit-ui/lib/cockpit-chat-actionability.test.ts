@@ -238,4 +238,36 @@ describe('deriveChatEvidenceActionability', () => {
     expect(result.stateCodes).toContain('draft_only')
     expect(result.stateCodes).toContain('unsupported_or_not_verified')
   })
+
+  it('does not let memory context claim metadata become verified financial truth', () => {
+    const result = deriveChatEvidenceActionability(
+      assistant({
+        content: 'Memory says BHP revenue was 123.',
+        metadata: {
+          source: 'orchestrator',
+          analyst: {
+            evidenceLabels: ['claim_verified', 'financial_truth', 'memory_context'],
+            claimVerifiedSourceCount: 1,
+            sourceCoverageStatus: 'claim_verified',
+          },
+        },
+        sources: [
+          {
+            title: 'BHP company memory',
+            score: 0.6,
+            kind: 'context',
+            docType: 'company_memory',
+            sourceId: 'company_memory:BHP:margin',
+            evidenceLabel: 'claim_verified',
+            evidenceLabels: ['claim_verified', 'financial_truth', 'memory_context'],
+            claimVerified: true,
+          },
+        ],
+      }),
+    )
+
+    expect(result.stateCodes).toContain('memory_context')
+    expect(result.stateCodes).toContain('context_only')
+    expect(result.stateCodes).not.toContain('claim_verified')
+  })
 })

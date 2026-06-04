@@ -4,6 +4,12 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from shared.evidence_labels import (
+    apply_context_only_boundaries,
+    canonical_financial_truth_from_labels,
+    context_only_from_labels,
+)
+
 MARKET_PRICE_OR_TECHNICAL_TREND = "market_price_or_technical_trend"
 FINANCIAL_METRIC = "financial_metric"
 FILING_CONTEXT = "filing_context"
@@ -157,7 +163,7 @@ def _source_labels(source: Mapping[str, Any]) -> set[str]:
     labels: set[str] = set()
     for key in ("evidence_labels", "source_labels", "evidence_label", "source_label"):
         labels.update(_string_array(source.get(key)))
-    return labels
+    return apply_context_only_boundaries(labels)
 
 
 def _source_role_tokens(source: Mapping[str, Any]) -> set[str]:
@@ -249,10 +255,13 @@ def evidence_categories_for_source(source: Mapping[str, Any]) -> set[str]:
     if re.search(r"\b(?:technical_indicator|technical indicators|rsi|macd|moving average)\b", haystack):
         categories.update({"market_data", "technical_indicator"})
 
-    if "financial_truth" in labels or re.search(
+    financial_truth_text = re.search(
         r"\b(?:financial_truth|financial statement|income statement|balance sheet|cash flow|"
         r"extracted metric|canonical financial|annual_report|half_year|quarterly)\b",
         haystack,
+    )
+    if canonical_financial_truth_from_labels(labels) or (
+        financial_truth_text and not context_only_from_labels(labels)
     ):
         categories.update({"extracted_metric", "financial_statement"})
         if "claim_verified" not in labels:

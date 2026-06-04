@@ -14,6 +14,8 @@ from shared.evidence_labels import (
     SOURCE_LABEL_PRIMARY_ORDER as _SOURCE_LABEL_PRIMARY_ORDER,
     SOURCE_LABEL_TAXONOMY_VERSION,
     SOURCE_ROLE_LABELS as _SOURCE_ROLE_LABELS,
+    coverage_from_evidence_labels as _coverage_from_evidence_labels,
+    effective_source_labels as _effective_source_labels,
     normalize_source_labels as _normalize_source_labels,
     ordered_source_labels as _ordered_source_labels,
     primary_source_label as _primary_source_label,
@@ -622,6 +624,10 @@ def _normalize_evidence_labels(value: Any) -> set[str]:
     return _normalize_source_labels(value, valid_labels=_VALID_EVIDENCE_LABELS)
 
 
+def _effective_evidence_labels(labels: Iterable[str]) -> set[str]:
+    return _effective_source_labels(labels, valid_labels=_VALID_EVIDENCE_LABELS)
+
+
 def _ordered_evidence_labels(labels: Iterable[str]) -> list[str]:
     return _ordered_source_labels(
         labels,
@@ -791,7 +797,7 @@ def _base_source_role_labels(
 
     if not labels:
         labels.add("unknown_unclassified")
-    return labels
+    return _effective_evidence_labels(labels)
 
 
 def _missing_categories_for_source(
@@ -813,18 +819,21 @@ def _missing_categories_for_source(
 
 
 def _source_coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
-    if "degraded_runtime" in labels:
-        return "degraded_runtime"
-    if "missing_required_evidence" in labels:
-        return "missing_required_evidence"
-    if "local_personal_data" in labels:
-        return "local_personal_data"
-    if "claim_verified" in labels:
-        return "claim_verified"
-    if "financial_truth" in labels:
-        return "financial_truth"
+    coverage = _coverage_from_evidence_labels(
+        labels,
+        coverage_priority=(
+            "degraded_runtime",
+            "missing_required_evidence",
+            "local_personal_data",
+            "financial_truth",
+            "no_hit",
+            "context_only",
+        ),
+    )
+    if coverage and coverage != "no_hit":
+        return coverage
     if (
-        "no_hit" in labels
+        coverage == "no_hit"
         and not any(source.get("claim_verified") for source in sources)
         and not any(source.get("has_evidence") for source in sources)
     ):

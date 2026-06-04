@@ -96,6 +96,9 @@ from shared.evidence_labels import (
     SOURCE_LABEL_DEFINITIONS as SOURCE_LABEL_DEFINITIONS,
     SOURCE_LABEL_TAXONOMY_VERSION,
     VALID_SOURCE_LABELS as _VALID_SOURCE_LABELS,
+    claim_verified_from_labels as _claim_verified_from_labels,
+    coverage_from_evidence_labels as _coverage_from_evidence_labels,
+    effective_source_labels as _effective_source_labels,
     normalize_source_labels as _normalize_source_labels,
     primary_source_label as _primary_source_label,
 )
@@ -1492,7 +1495,7 @@ def _default_source_labels(raw: dict[str, Any], *, kind: str) -> set[str]:
         labels & _CONTEXT_SOURCE_LABELS or "no_hit" in labels
     ):
         labels.add("context_only")
-    return labels
+    return _effective_source_labels(labels)
 
 
 def _normalize_source_item(
@@ -2253,9 +2256,12 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         "snippet": hit.get("snippet") or details.get("snippet"),
                         "doc_type": hit.get("doc_type") or details.get("source_type") or "attached_source",
                         "source_type": "attached_source",
-                        "evidence_label": hit.get("evidence_label") or "context_only",
-                        "evidence_labels": hit.get("evidence_labels") or ["context_only"],
-                        "claim_verified": hit.get("claim_verified") is True,
+                        "evidence_label": hit.get("evidence_label") or details.get("evidence_label"),
+                        "evidence_labels": hit.get("evidence_labels")
+                        or details.get("evidence_labels")
+                        or ["context_only"],
+                        "claim_verified": hit.get("claim_verified") is True
+                        or details.get("claim_verified") is True,
                     },
                     default_title="Attached source",
                     kind="context",
@@ -3379,7 +3385,7 @@ def _claim_verified_source_count_for_claims(
     verified_count = 0
     for source in sources:
         labels = _normalize_source_labels(source.get("evidence_labels"))
-        if "claim_verified" not in labels or "context_only" in labels:
+        if not _claim_verified_from_labels(labels):
             continue
         categories = evidence_categories_for_source(source)
         if any(categories.intersection(required) for required in required_sets):
@@ -3406,9 +3412,11 @@ def _evidence_payload_labels(response: Any) -> set[str]:
                 labels.add("degraded_runtime")
             if payload.get("provider_error"):
                 labels.add("degraded_runtime")
+    if not labels:
+        return set()
     # Tool-level metadata is not allowed to claim verification by itself.
     labels.discard("claim_verified")
-    return labels
+    return _effective_source_labels(labels)
 
 
 def _response_evidence_labels(response: Any, sources: list[dict[str, Any]]) -> set[str]:
@@ -3430,21 +3438,25 @@ def _response_evidence_labels(response: Any, sources: list[dict[str, Any]]) -> s
         labels.add("degraded_runtime")
     if sources and not labels:
         labels.add("unknown_unclassified")
-    return labels
+    return _effective_source_labels(labels)
 
 
 def _source_coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
-    if "degraded_runtime" in labels:
-        return "degraded_runtime"
-    if "missing_required_evidence" in labels:
-        return "missing_required_evidence"
-    if "local_personal_data" in labels:
-        return "local_personal_data"
-    if "claim_verified" in labels:
-        return "claim_verified"
-    if "financial_truth" in labels:
-        return "financial_truth"
-    if "no_hit" in labels and not any(source.get("claim_verified") for source in sources):
+    coverage = _coverage_from_evidence_labels(
+        labels,
+        coverage_priority=(
+            "degraded_runtime",
+            "missing_required_evidence",
+            "local_personal_data",
+            "claim_verified",
+            "financial_truth",
+            "no_hit",
+            "context_only",
+        ),
+    )
+    if coverage and coverage != "no_hit":
+        return coverage
+    if coverage == "no_hit" and not any(source.get("claim_verified") for source in sources):
         return "no_hit"
     if sources:
         return "context_only"

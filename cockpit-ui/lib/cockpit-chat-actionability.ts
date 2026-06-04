@@ -1,20 +1,15 @@
 import type { ChatMessage, Source } from './cockpit-types'
-
-export type ChatEvidenceStateCode =
-  | 'claim_verified'
-  | 'context_only'
-  | 'no_hit'
-  | 'market_data_missing'
-  | 'metric_extraction_missing'
-  | 'degraded_runtime'
-  | 'local_personal_data'
-  | 'memory_context'
-  | 'external_web_context'
-  | 'demo_mock'
-  | 'unresolved_source'
-  | 'snippet_only'
-  | 'draft_only'
-  | 'unsupported_or_not_verified'
+import {
+  CHAT_EVIDENCE_STATE_LABELS,
+  CHAT_EVIDENCE_STATE_ORDER,
+  NON_EVIDENCE_SOURCE_LABELS,
+  applyContextOnlyBoundaries,
+  isCanonicalFinancialTruthLabelSet,
+  isClaimVerifiedLabelSet,
+  normalizeEvidenceLabels,
+  stringArray,
+  type ChatEvidenceStateCode,
+} from './cockpit-evidence-taxonomy'
 
 export type ChatEvidenceAction = {
   label: string
@@ -30,40 +25,6 @@ export type ChatEvidenceActionability = {
   hasMarketPriceEvidence: boolean
 }
 
-const STATE_LABELS: Record<ChatEvidenceStateCode, string> = {
-  claim_verified: 'Claim verified',
-  context_only: 'Context only',
-  no_hit: 'No hit',
-  market_data_missing: 'Market data missing',
-  metric_extraction_missing: 'Metric extraction missing',
-  degraded_runtime: 'Degraded runtime',
-  local_personal_data: 'Local personal data',
-  memory_context: 'Memory context',
-  external_web_context: 'External web context',
-  demo_mock: 'Demo/mock',
-  unresolved_source: 'Unresolved source',
-  snippet_only: 'Snippet only',
-  draft_only: 'Draft only',
-  unsupported_or_not_verified: 'Unsupported / not verified',
-}
-
-const STATE_ORDER: ChatEvidenceStateCode[] = [
-  'degraded_runtime',
-  'market_data_missing',
-  'metric_extraction_missing',
-  'unsupported_or_not_verified',
-  'no_hit',
-  'claim_verified',
-  'context_only',
-  'local_personal_data',
-  'memory_context',
-  'external_web_context',
-  'demo_mock',
-  'unresolved_source',
-  'snippet_only',
-  'draft_only',
-]
-
 const MARKET_TREND_CLAIM_RE = new RegExp(
   [
     String.raw`\b(?:price|share price|stock|market|technical|chart|rsi|macd|moving average|sma|ema|trend)\b.{0,90}\b(?:bearish|bullish|downtrend|uptrend|falling|rising|weakening|strengthening|selloff|rally|plunge|breakout|support|resistance|overbought|oversold)\b`,
@@ -77,22 +38,11 @@ const MARKET_GAP_RE = /\b(?:market_context|market data|market_data|price|price_d
 const METRIC_GAP_RE = /\b(?:financials|financial rows unavailable|metric|metric_extraction|extraction|extracted metrics)\b/i
 const PRICE_SOURCE_ID_RE = /^(?:local_price|price|price_query|price_on_date|price_range|tv_indicators|tv_screener|market_update|price_horizon):/i
 const PRICE_SOURCE_LABEL_RE = /\b(?:market_data|market price|price_data|technical_indicator|technical indicators)\b/i
-const NON_EVIDENCE_SOURCE_LABELS = new Set(['no_hit', 'missing_required_evidence', 'degraded_runtime'])
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {}
-}
-
-function stringArray(value: unknown): string[] {
-  if (typeof value === 'string') {
-    return value.trim() ? [value.trim()] : []
-  }
-  if (!Array.isArray(value)) {
-    return []
-  }
-  return value.map((item) => String(item || '').trim()).filter(Boolean)
 }
 
 function addState(states: Set<ChatEvidenceStateCode>, condition: boolean, code: ChatEvidenceStateCode): void {
@@ -102,9 +52,9 @@ function addState(states: Set<ChatEvidenceStateCode>, condition: boolean, code: 
 }
 
 function collectMessageLabels(message: ChatMessage): Set<string> {
-  const labels = new Set<string>()
   const analyst = message.metadata?.analyst
   const routing = asRecord(message.metadata?.routing)
+  const labels: string[] = []
 
   for (const value of [
     ...(analyst?.evidenceLabels || []),
@@ -113,22 +63,15 @@ function collectMessageLabels(message: ChatMessage): Set<string> {
     String(routing.source_coverage_status || ''),
   ]) {
     if (value) {
-      labels.add(value)
+      labels.push(value)
     }
   }
 
   for (const source of message.sources || []) {
-    for (const value of [
-      source.evidenceLabel || '',
-      ...(source.evidenceLabels || []),
-    ]) {
-      if (value) {
-        labels.add(value)
-      }
-    }
+    labels.push(...sourceLabels(source))
   }
 
-  return labels
+  return applyContextOnlyBoundaries(labels)
 }
 
 function collectMissingTerms(message: ChatMessage): string[] {
@@ -152,10 +95,7 @@ function collectMissingTerms(message: ChatMessage): string[] {
 }
 
 function sourceLabels(source: Source): string[] {
-  return [
-    source.evidenceLabel || '',
-    ...(source.evidenceLabels || []),
-  ].filter(Boolean)
+  return Array.from(normalizeEvidenceLabels(source.evidenceLabel, source.evidenceLabels))
 }
 
 function sourceHasMarketPriceEvidence(source: Source): boolean {
@@ -210,10 +150,10 @@ export function deriveChatEvidenceActionability(message: ChatMessage): ChatEvide
   const missingTerms = collectMissingTerms(message)
   const sources = message.sources || []
   const states = new Set<ChatEvidenceStateCode>()
-  const hasClaimVerified = labels.has('claim_verified')
-    || sources.some((source) => source.claimVerified)
-    || Boolean(message.metadata?.analyst?.claimVerifiedSourceCount)
-  const hasFinancialTruth = labels.has('financial_truth')
+  const hasClaimVerified = isClaimVerifiedLabelSet(labels)
+    || sources.some((source) => source.claimVerified !== false && isClaimVerifiedLabelSet(sourceLabels(source)))
+  const hasFinancialTruth = isCanonicalFinancialTruthLabelSet(labels)
+    || sources.some((source) => isCanonicalFinancialTruthLabelSet(sourceLabels(source)))
   const hasMarketTrendClaim = MARKET_TREND_CLAIM_RE.test(message.content)
   const hasMarketPriceEvidence = sources.some(sourceHasMarketPriceEvidence)
   const hasMarketGap = labels.has('market_data_missing')
@@ -276,10 +216,10 @@ export function deriveChatEvidenceActionability(message: ChatMessage): ChatEvide
     suggestedActions.push({ label: 'Review filing group', enabled: false })
   }
 
-  const stateCodes = STATE_ORDER.filter((code) => states.has(code))
+  const stateCodes = CHAT_EVIDENCE_STATE_ORDER.filter((code) => states.has(code))
   return {
     stateCodes,
-    stateLabels: stateCodes.map((code) => STATE_LABELS[code]),
+    stateLabels: stateCodes.map((code) => CHAT_EVIDENCE_STATE_LABELS[code]),
     gaps,
     suggestedActions,
     hasMarketTrendClaim,

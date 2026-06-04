@@ -246,6 +246,45 @@ describe('TerminalMessage', () => {
     expect(screen.queryByText('Verified sources')).not.toBeInTheDocument()
   })
 
+  it('does not render memory context with raw claim metadata as verified truth', () => {
+    render(
+      <TerminalMessage
+        showSources={false}
+        message={buildAssistantMessage({
+          content: 'Memory says BHP revenue was 123.',
+          metadata: {
+            source: 'orchestrator',
+            analyst: {
+              ticker: 'BHP',
+              entity: 'BHP',
+              evidenceLabels: ['claim_verified', 'financial_truth', 'memory_context'],
+              claimVerifiedSourceCount: 1,
+              sourceCoverageStatus: 'claim_verified',
+            },
+          },
+          sources: [
+            {
+              title: 'BHP company memory',
+              score: 0.6,
+              kind: 'context',
+              docType: 'company_memory',
+              sourceId: 'company_memory:BHP:margin',
+              evidenceLabel: 'claim_verified',
+              evidenceLabels: ['claim_verified', 'financial_truth', 'memory_context'],
+              claimVerified: true,
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getAllByText('Memory context').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Context sources only/)).toBeInTheDocument()
+    expect(screen.queryByText('Claim-supported')).not.toBeInTheDocument()
+    expect(screen.queryByText('Financial truth evidence')).not.toBeInTheDocument()
+    expect(screen.queryByText('Verified sources')).not.toBeInTheDocument()
+  })
+
   it('surfaces CSL filing-only price trend claims as market data missing', () => {
     render(
       <TerminalMessage

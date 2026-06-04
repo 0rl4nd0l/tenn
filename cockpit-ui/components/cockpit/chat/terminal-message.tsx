@@ -16,6 +16,11 @@ import {
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
 import { deriveChatEvidenceActionability } from '@/lib/cockpit-chat-actionability'
 import {
+  isCanonicalFinancialTruthLabelSet,
+  isClaimVerifiedLabelSet,
+  normalizeEvidenceLabels,
+} from '@/lib/cockpit-evidence-taxonomy'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -219,18 +224,28 @@ function buildAnalystShell(
   const sourceWarnings = sourceStatusWarnings(analyst?.sourceStatus || asRecord(routing.source_status))
   const responseClassification = analyst?.responseClassification || String(routing.response_classification || '')
   const groundingGuard = analyst?.groundingGuard || String(routing.grounding_guard || '')
-  const evidenceLabels = analyst?.evidenceLabels || stringArray(routing.evidence_labels)
   const sourceCoverageStatus =
     analyst?.sourceCoverageStatus || String(routing.source_coverage_status || '')
-  const claimVerifiedRaw = routing.claim_verified_source_count
-  const claimVerifiedSourceCount =
-    analyst?.claimVerifiedSourceCount
-    ?? (typeof claimVerifiedRaw === 'number'
-      ? claimVerifiedRaw
-      : (typeof claimVerifiedRaw === 'string' && claimVerifiedRaw.trim() ? Number(claimVerifiedRaw) || 0 : 0))
-  const hasEvidenceLabel = (label: string) => (
-    evidenceLabels.includes(label) || sourceCoverageStatus === label
+  const rawEvidenceLabels = [
+    ...(analyst?.evidenceLabels || []),
+    ...stringArray(routing.evidence_labels),
+  ]
+  const rawSourceLabels = (message.sources || []).flatMap((source) => [
+    source.evidenceLabel || '',
+    ...(source.evidenceLabels || []),
+  ])
+  const effectiveEvidenceLabels = normalizeEvidenceLabels(
+    rawEvidenceLabels,
+    sourceCoverageStatus,
+    rawSourceLabels,
   )
+  const evidenceLabels = Array.from(effectiveEvidenceLabels)
+  const hasEvidenceLabel = (label: string) => (
+    effectiveEvidenceLabels.has(label)
+  )
+  const hasClaimVerifiedEvidence = evidenceActionability.stateCodes.includes('claim_verified')
+    && isClaimVerifiedLabelSet(effectiveEvidenceLabels)
+  const hasFinancialTruthEvidence = isCanonicalFinancialTruthLabelSet(effectiveEvidenceLabels)
   const hasMeaningfulSourceCoverage = Boolean(
     sourceCoverageStatus && sourceCoverageStatus !== 'no_visible_sources',
   )
@@ -265,9 +280,9 @@ function buildAnalystShell(
     answerType = 'Data missing'
   } else if (sufficientForAnalysis === false || gaps.length > 0) {
     answerType = 'Partial evidence'
-  } else if (claimVerifiedSourceCount > 0 || responseClassification === 'evidence_bound_answer') {
+  } else if (hasClaimVerifiedEvidence) {
     answerType = 'Evidence-bound'
-  } else if (hasEvidenceLabel('financial_truth')) {
+  } else if (hasFinancialTruthEvidence) {
     answerType = 'Financial truth'
   } else if (sourceCount > 0) {
     answerType = 'Context only'
@@ -290,9 +305,9 @@ function buildAnalystShell(
     trustLabel = 'Unsupported claim blocked'
   } else if (sufficientForAnalysis === false || gaps.length > 0) {
     trustLabel = 'Evidence gaps visible'
-  } else if (claimVerifiedSourceCount > 0) {
+  } else if (hasClaimVerifiedEvidence) {
     trustLabel = 'Claim-supported'
-  } else if (hasEvidenceLabel('financial_truth')) {
+  } else if (hasFinancialTruthEvidence) {
     trustLabel = 'Financial truth evidence'
   } else if (hasEvidenceLabel('no_hit')) {
     trustLabel = 'No-hit audit'
@@ -311,9 +326,9 @@ function buildAnalystShell(
     sourceSummaryLabel = 'Metric extraction missing'
   } else if (groundingGuard || hasEvidenceLabel('missing_required_evidence') || gaps.length > 0) {
     sourceSummaryLabel = 'Evidence incomplete'
-  } else if (claimVerifiedSourceCount > 0 || hasEvidenceLabel('claim_verified')) {
+  } else if (hasClaimVerifiedEvidence) {
     sourceSummaryLabel = 'Verified sources'
-  } else if (hasEvidenceLabel('financial_truth')) {
+  } else if (hasFinancialTruthEvidence) {
     sourceSummaryLabel = 'Financial truth numeric context'
   } else if (hasEvidenceLabel('local_personal_data')) {
     sourceSummaryLabel = 'Local holdings'

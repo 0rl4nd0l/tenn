@@ -23,6 +23,8 @@ from app.services.source_weighting import apply_weighting_to_chunk
 from app.services.strategy_controller import get_active_strategy_state
 from shared.evidence_labels import (
     CHAT_SOURCE_LABEL_PRIMARY_ORDER as _SOURCE_LABEL_ORDER,
+    coverage_from_evidence_labels as _coverage_from_evidence_labels,
+    effective_source_labels as _effective_source_labels,
     primary_source_label as _shared_primary_source_label,
 )
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
@@ -394,27 +396,31 @@ def _labels_for_context_row(
         labels.add("local_news_context")
     elif source_type in {"financial_truth", "canonical_financial_truth"}:
         labels.add("financial_truth")
+    elif source_type in {"company_memory", "market_memory", "user_thesis_memory", "thesis_memory"}:
+        labels.add("memory_context")
     else:
         labels.add("context_only")
     if _row_matches_supporting_evidence(row, supporting_evidence):
         labels.add("claim_verified")
-        labels.discard("context_only")
     elif "claim_verified" not in labels:
         labels.add("context_only")
-    return labels or {"unknown_unclassified"}
+    return _effective_source_labels(labels)
 
 
 def _coverage_status(labels: set[str], sources: list[dict[str, Any]]) -> str:
-    if "degraded_runtime" in labels:
-        return "degraded_runtime"
-    if "missing_required_evidence" in labels:
-        return "missing_required_evidence"
-    if "claim_verified" in labels:
-        return "claim_verified"
-    if "financial_truth" in labels:
-        return "financial_truth"
-    if "no_hit" in labels:
-        return "no_hit"
+    coverage = _coverage_from_evidence_labels(
+        labels,
+        coverage_priority=(
+            "degraded_runtime",
+            "missing_required_evidence",
+            "claim_verified",
+            "financial_truth",
+            "no_hit",
+            "context_only",
+        ),
+    )
+    if coverage:
+        return coverage
     if sources:
         return "context_only"
     return "no_visible_sources"

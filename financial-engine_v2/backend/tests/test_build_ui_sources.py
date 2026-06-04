@@ -1523,7 +1523,7 @@ def test_context_only_recent_news_label_does_not_increment_verified_count() -> N
         sources,
     )
 
-    assert metadata["source_label_counts"]["claim_verified"] == 1
+    assert metadata["source_label_counts"].get("claim_verified", 0) == 0
     assert metadata["claim_verified_source_count"] == 0
     assert metadata["source_coverage_status"] == "missing_required_evidence"
     assert "insufficient_for_recent_news" in metadata["evidence_labels"]
