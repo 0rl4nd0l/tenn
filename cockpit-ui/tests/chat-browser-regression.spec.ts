@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import {
   CHAT_ENTRY_ROUTE,
@@ -14,6 +14,18 @@ import {
 
 const verificationTarget = resolveVerificationTarget()
 const parityReporter = createRouteParityReporter(verificationTarget)
+
+async function expectNormalDiagnosticHandoffHidden(page: Page, reportId: string): Promise<void> {
+  await expect(page.getByText('Potential issue captured for operator review.').last()).toBeVisible()
+  await expect(page.getByText('Evidence state: DATA_MISSING').last()).toBeVisible()
+  await expect(page.getByText(`report: ${reportId}`)).toHaveCount(0)
+  await expect(page.getByText(reportId)).toHaveCount(0)
+  await expect(page.getByText('View diagnostic', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Draft repair prompt', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Investigation packet', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Deploy Codex' })).toHaveCount(0)
+  await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
+}
 
 test.describe.configure({ mode: 'serial' })
 
@@ -35,7 +47,7 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     parityReporter.add({
       route: CHAT_ENTRY_ROUTE,
       area: 'Server and chat shell',
-      expected: ':8081 or configured base URL returns 200 and renders chat input',
+      expected: 'Configured base URL returns 200 for /full-chat and renders chat input',
       observed: `HTTP ${status}; title "${await page.title()}"; chat input visible`,
       status: 'PASS',
       notes: verificationTarget,
@@ -143,16 +155,12 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     })
 
     await sendChat(page, 'diagnostic flag response', 'Potential issue detected.')
-    await expect(page.getByText('report: auto_browser_regression').first()).toBeVisible()
-    await expect(page.getByText('View diagnostic').first()).toBeVisible()
-    await expect(page.getByText('Draft repair prompt').first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Deploy Codex' }).first()).toBeVisible()
-    await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
+    await expectNormalDiagnosticHandoffHidden(page, 'auto_browser_regression')
     parityReporter.add({
       route: CHAT_ENTRY_ROUTE,
       area: 'Diagnostic/flag card hygiene',
-      expected: 'Compact diagnostic card visible; raw Codex CLI and repair prompt hidden by default',
-      observed: 'Diagnostic controls rendered while raw CODEX PROMPT and codex exec strings remained hidden',
+      expected: 'Normal users see DATA_MISSING recovery text without operator report paths, diagnostic links, repair prompts, or Deploy Codex controls',
+      observed: 'Normal diagnostic handoff rendered DATA_MISSING recovery text; report id, diagnostic link, repair prompt, investigation packet, Deploy Codex, raw prompt, and CLI text were absent',
       status: 'PASS',
       notes: 'Auto-flag payload mocked in SSE done event',
     })
@@ -161,14 +169,47 @@ test.describe('Cockpit browser chat regression and route parity', () => {
     await expect(page.getByRole('dialog', { name: 'Flag response' })).toBeVisible()
     await page.getByPlaceholder(/Optional note/).fill('browser regression flag flow')
     await page.getByRole('button', { name: 'Save flag' }).click()
-    await expect(page.getByText('report: flag_browser_regression').first()).toBeVisible()
+    await expectNormalDiagnosticHandoffHidden(page, 'flag_browser_regression')
+    expect(counters.feedbackFlagPostCount).toBe(1)
+    parityReporter.add({
+      route: CHAT_ENTRY_ROUTE,
+      area: 'Feedback flag flow',
+      expected: 'Flag dialog opens and mocked normal-user flag result renders DATA_MISSING recovery without operator controls or raw prompt dump',
+      observed: `Flag saved through mocked route; feedback POST count ${counters.feedbackFlagPostCount}; operator report id, links, Deploy Codex, raw prompt, and CLI text hidden`,
+      status: 'PASS',
+      notes: 'No destructive backend action required',
+    })
+  })
+
+  test('/full-chat hides operator diagnostics for normal users', async ({ page }) => {
+    const counters = createMockCounters()
+    await mockCockpitApis(page, counters)
+    await page.goto(CHAT_ENTRY_ROUTE)
+    await expect(page.getByPlaceholder(CHAT_INPUT_PLACEHOLDER)).toBeVisible()
+
+    await sendChat(page, 'diagnostic flag response', 'Potential issue detected.')
+    await expectNormalDiagnosticHandoffHidden(page, 'auto_browser_regression')
+    parityReporter.add({
+      route: CHAT_ENTRY_ROUTE,
+      area: 'Diagnostic/flag card hygiene',
+      expected: 'Normal users see DATA_MISSING recovery text without operator report paths, diagnostic links, repair prompts, or Deploy Codex controls',
+      observed: 'Mocked auto_flag rendered normal recovery text; report id, diagnostic link, repair prompt, investigation packet, Deploy Codex, raw prompt, and CLI text were absent',
+      status: 'PASS',
+      notes: 'Auto-flag payload mocked in SSE done event',
+    })
+
+    await page.getByRole('button', { name: '[flag response]' }).last().click()
+    await expect(page.getByRole('dialog', { name: 'Flag response' })).toBeVisible()
+    await page.getByPlaceholder(/Optional note/).fill('browser regression flag flow')
+    await page.getByRole('button', { name: 'Save flag' }).click()
+    await expectNormalDiagnosticHandoffHidden(page, 'flag_browser_regression')
     expect(counters.feedbackFlagPostCount).toBe(1)
     await expect(page.getByText(/CODEX PROMPT|codex exec/i)).toHaveCount(0)
     parityReporter.add({
       route: CHAT_ENTRY_ROUTE,
       area: 'Feedback flag flow',
-      expected: 'Flag dialog opens and safe mocked flag result renders without raw prompt dump',
-      observed: `Flag saved through mocked route; feedback POST count ${counters.feedbackFlagPostCount}; raw prompt/CLI hidden`,
+      expected: 'Manual flag flow saves feedback without exposing operator report ids, paths, diagnostic links, repair prompts, or Deploy Codex controls',
+      observed: `Flag saved through mocked route; feedback POST count ${counters.feedbackFlagPostCount}; normal recovery text visible and operator controls hidden`,
       status: 'PASS',
       notes: 'No destructive backend action required',
     })

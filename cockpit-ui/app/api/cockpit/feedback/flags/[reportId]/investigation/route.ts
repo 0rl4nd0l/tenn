@@ -10,10 +10,26 @@ import {
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
+const investigationReadIntent = 'read-codex-investigation'
+const investigationReadIntentHeader = 'x-cockpit-control-intent'
+
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ reportId: string }> },
 ): Promise<Response> {
+  const headerIntent = String(request.headers.get(investigationReadIntentHeader) || '').trim()
+  if (headerIntent !== investigationReadIntent) {
+    return Response.json(
+      {
+        ok: false,
+        error: 'Codex investigation read denied',
+        code: 'codex_investigation_read_intent_required',
+        detail: 'Codex investigation reads require an explicit operator read intent header.',
+      },
+      { status: 403 },
+    )
+  }
+
   try {
     const { reportId } = await context.params
     const normalizedReportId = validateReportId(reportId)

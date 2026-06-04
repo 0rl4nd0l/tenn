@@ -55,8 +55,15 @@ import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
 import { applyApiDefaultOverride, isApiRoutedMessage } from '@/lib/chat-routing'
 import type { ChatMessage as ChatMessageType, ActionPreview, ChatProviderError } from '@/lib/cockpit-types'
-import { toReportDisplayPath } from '@/lib/report-path'
 import { toast } from 'sonner'
+import {
+  buildCodexDeployMetadata,
+  formatFeedbackSuccessToast,
+  formatFlagHandoffMessage,
+  isOperatorDiagnosticsVisible,
+  type FeedbackCaptureResponse,
+  type FeedbackKind,
+} from './chat-operator-diagnostics'
 
 const MAX_CHAT_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
@@ -64,23 +71,7 @@ function formatAttachmentLimit(bytes: number): string {
   return `${Math.floor(bytes / (1024 * 1024))} MiB`
 }
 
-type FeedbackKind = 'good' | 'poor'
-
 type FeedbackState = 'saving-good' | 'saved-good' | 'saving-poor' | 'saved-poor'
-
-type FeedbackCaptureResponse = {
-  report_id: string
-  feedback_type: FeedbackKind
-  capture_kind?: 'chat_feedback' | 'ui_issue' | 'auto_diagnostic'
-  report_dir: string
-  read_api_path?: string | null
-  codex_prompt?: string | null
-  codex_prompt_path?: string | null
-  investigation_path?: string | null
-  investigation_status?: string | null
-  codex_cli_command?: string | null
-  analysis_summary?: string | null
-}
 
 type CodexDeployStatus = 'queued' | 'launching' | 'running' | 'completed' | 'failed' | 'not_requested' | 'error'
 
@@ -298,41 +289,6 @@ async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
   }
 }
 
-function formatFlagHandoffMessage(result: FeedbackCaptureResponse, copiedPrompt: boolean): string {
-  const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
-  const promptPath = result.codex_prompt_path
-    ? (toReportDisplayPath(result.codex_prompt_path) || result.codex_prompt_path)
-    : null
-  const investigationPath = result.investigation_path
-    ? (toReportDisplayPath(result.investigation_path) || result.investigation_path)
-    : null
-  const status = result.investigation_status || 'queued'
-  const lines = [
-    'Potential issue detected.',
-    '',
-    `Report id: \`${result.report_id}\``,
-    `Report: \`${reportPath}\``,
-    `Status: \`${status}\``,
-  ]
-  if (promptPath) {
-    lines.push(`Draft repair prompt: \`${promptPath}\``)
-  }
-  if (investigationPath) {
-    lines.push(`Investigation packet: \`${investigationPath}\``)
-  }
-  if (result.read_api_path) {
-    lines.push(`View diagnostic: \`${result.read_api_path}\``)
-  }
-  if (result.report_id) {
-    lines.push('', 'Use the diagnostic controls below for operator-scoped repair work.')
-  }
-  const prompt = result.codex_prompt?.trim()
-  if (prompt) {
-    lines.push('', copiedPrompt ? 'Draft repair prompt copied to clipboard.' : 'Draft repair prompt saved to file.')
-  }
-  return lines.join('\n')
-}
-
 const FEEDBACK_NOTE_PRESETS: Record<FeedbackKind, readonly string[]> = {
   good: [
     'Well grounded',
@@ -520,16 +476,6 @@ function normalizeActionPreviewPayload(value: unknown): ActionPreview | undefine
   }
 }
 
-function buildCodexDeployMetadata(result: FeedbackCaptureResponse): NonNullable<ChatMessageType['metadata']>['codexDeploy'] {
-  return {
-    reportId: result.report_id,
-    reportPath: result.report_dir,
-    readApiPath: result.read_api_path ?? null,
-    promptPath: result.codex_prompt_path ?? null,
-    investigationPath: result.investigation_path ?? null,
-  }
-}
-
 function normalizeMessageSource(source: unknown): NonNullable<ChatMessageType['metadata']>['source'] {
   const value = String(source || '').trim()
   return value === 'local'
@@ -551,6 +497,22 @@ function normalizeStoreSource(source: unknown): 'local' | 'rented_gpu' | 'api' |
     || value === 'cockpit'
     ? value
     : 'unknown'
+}
+
+function buildDiagnosticSystemMessage(result: FeedbackCaptureResponse, copiedPrompt: boolean): ChatMessageType {
+  const operatorDiagnosticsVisible = isOperatorDiagnosticsVisible()
+  const codexDeploy = buildCodexDeployMetadata(result, operatorDiagnosticsVisible)
+
+  return {
+    id: generateId(),
+    role: 'system',
+    content: formatFlagHandoffMessage(result, copiedPrompt, operatorDiagnosticsVisible),
+    timestamp: new Date(),
+    metadata: {
+      source: 'cockpit',
+      ...(codexDeploy ? { codexDeploy } : {}),
+    },
+  }
 }
 
 function optionalNumber(value: unknown): number | undefined {
@@ -1655,16 +1617,7 @@ export function ChatScreen() {
                 ? event.data.auto_flag as FeedbackCaptureResponse
                 : null
               const autoFlagMessage: ChatMessageType | null = autoFlag
-                ? {
-                    id: generateId(),
-                    role: 'system',
-                    content: formatFlagHandoffMessage(autoFlag, false),
-                    timestamp: new Date(),
-                    metadata: {
-                      source: 'cockpit',
-                      codexDeploy: buildCodexDeployMetadata(autoFlag),
-                    },
-                  }
+                ? buildDiagnosticSystemMessage(autoFlag, false)
                 : null
               const providerErrorNotice = buildProviderErrorNotice(event.data?.provider_error)
               if (providerErrorNotice) {
@@ -2025,6 +1978,9 @@ export function ChatScreen() {
         await new Promise(resolve => setTimeout(resolve, 1500))
         const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/investigation`, {
           cache: 'no-store',
+          headers: {
+            'X-Cockpit-Control-Intent': 'read-codex-investigation',
+          },
         })
         const payload = await readPayload(response)
         const status = String(payload.status || 'unknown') as CodexDeployStatus
@@ -2057,6 +2013,9 @@ export function ChatScreen() {
       const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/deploy`, {
         method: 'POST',
         cache: 'no-store',
+        headers: {
+          'X-Cockpit-Control-Intent': 'deploy-codex-investigation',
+        },
       })
       const payload = await readPayload(response)
       const status = String(payload.status || 'launching') as CodexDeployStatus
@@ -2146,33 +2105,16 @@ export function ChatScreen() {
       setPendingFeedback(null)
       setFeedbackNote('')
       const result = payload as FeedbackCaptureResponse
-      const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
+      const operatorDiagnosticsVisible = isOperatorDiagnosticsVisible()
 
       if (feedbackType === 'good') {
-        toast.success(result.analysis_summary?.trim()
-          ? `Good response saved: ${result.analysis_summary}`
-          : `Good response saved to ${reportPath}`)
+        toast.success(formatFeedbackSuccessToast(result, feedbackType, false, operatorDiagnosticsVisible))
       } else {
-        const copiedPrompt = result.codex_prompt?.trim()
+        const copiedPrompt = operatorDiagnosticsVisible && result.codex_prompt?.trim()
           ? await copyFlagPromptToClipboard(result.codex_prompt)
           : false
-        setMessages((prev) => [...prev, {
-          id: generateId(),
-          role: 'system',
-          content: formatFlagHandoffMessage(result, copiedPrompt),
-          timestamp: new Date(),
-          metadata: {
-            source: 'cockpit',
-            codexDeploy: buildCodexDeployMetadata(result),
-          },
-        }])
-        toast.success(result.analysis_summary?.trim()
-          ? copiedPrompt
-            ? `Flag saved and Codex prompt copied: ${result.analysis_summary}`
-            : `Flag saved: ${result.analysis_summary}`
-          : copiedPrompt
-            ? `Flag saved and Codex prompt copied: ${reportPath}`
-            : `Flag saved to ${reportPath}`)
+        setMessages((prev) => [...prev, buildDiagnosticSystemMessage(result, copiedPrompt)])
+        toast.success(formatFeedbackSuccessToast(result, feedbackType, copiedPrompt, operatorDiagnosticsVisible))
       }
     } catch (error) {
       setFeedbackStates((prev) => {

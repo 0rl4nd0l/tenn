@@ -396,6 +396,7 @@ export function MarketplaceAssistant({
             </div>
 
             <Textarea
+              aria-label="Marketplace assistant prompt"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder="Describe what you want to buy, your budget, location, and deal-breakers..."

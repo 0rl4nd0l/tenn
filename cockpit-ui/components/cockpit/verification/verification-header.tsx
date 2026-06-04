@@ -69,8 +69,9 @@ export function VerificationHeader({
       <CardContent>
         <div className="flex flex-wrap items-end gap-6">
           <Field className="w-[200px]">
-            <FieldLabel>Active Ticker</FieldLabel>
+            <FieldLabel htmlFor="verification-active-ticker">Active Ticker</FieldLabel>
             <Input
+              id="verification-active-ticker"
               placeholder="e.g. BHP"
               value={ticker}
               onChange={(event) => onTickerChange(event.target.value.toUpperCase())}
@@ -79,9 +80,9 @@ export function VerificationHeader({
           </Field>
 
           <Field className="w-[200px]">
-            <FieldLabel>Method / Provider</FieldLabel>
+            <FieldLabel htmlFor="verification-method-provider">Method / Provider</FieldLabel>
             <Select value={extractionMethod} onValueChange={(value) => onMethodChange(value as ExtractionMethod)}>
-              <SelectTrigger>
+              <SelectTrigger id="verification-method-provider">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -95,9 +96,14 @@ export function VerificationHeader({
           </Field>
 
           <Field className="w-[160px]">
-            <FieldLabel>Strict Mode</FieldLabel>
+            <FieldLabel htmlFor="verification-strict-mode">Strict Mode</FieldLabel>
             <div className="flex h-10 items-center gap-3 rounded-md border border-input bg-background px-3">
-              <Switch checked={strictMethod} onCheckedChange={onStrictMethodChange} />
+              <Switch
+                id="verification-strict-mode"
+                aria-label="Strict Mode"
+                checked={strictMethod}
+                onCheckedChange={onStrictMethodChange}
+              />
               <span className="text-sm whitespace-nowrap text-muted-foreground">No fallback</span>
             </div>
           </Field>

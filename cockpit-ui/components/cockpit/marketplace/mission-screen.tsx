@@ -1597,16 +1597,22 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
               <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Mission Name</label>
+                    <label htmlFor="marketplace-new-mission-name" className="text-xs font-medium">
+                      Mission Name
+                    </label>
                     <Input
+                      id="marketplace-new-mission-name"
                       placeholder="e.g. Vintage Watches"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Max Price (Optional)</label>
+                    <label htmlFor="marketplace-new-mission-max-price" className="text-xs font-medium">
+                      Max Price (Optional)
+                    </label>
                     <Input
+                      id="marketplace-new-mission-max-price"
                       type="number"
                       placeholder="e.g. 1500"
                       value={form.priceMax}
@@ -1616,7 +1622,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Auto Scan</label>
+                    <label htmlFor="marketplace-new-mission-auto-scan" className="text-xs font-medium">
+                      Auto Scan
+                    </label>
                     <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
                       <div>
                         <div className="text-xs font-medium">
@@ -1627,6 +1635,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                         </div>
                       </div>
                       <Switch
+                        id="marketplace-new-mission-auto-scan"
                         aria-label="Auto scan for new mission"
                         checked={form.autoScanEnabled}
                         onCheckedChange={(checked) => setForm({ ...form, autoScanEnabled: checked })}
@@ -1634,8 +1643,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Scan Every (Minutes)</label>
+                    <label htmlFor="marketplace-new-mission-scan-interval" className="text-xs font-medium">
+                      Scan Every (Minutes)
+                    </label>
                     <Input
+                      id="marketplace-new-mission-scan-interval"
                       type="number"
                       inputMode="numeric"
                       min="1"
@@ -1646,8 +1658,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">Search Brief / Goal</label>
+                  <label htmlFor="marketplace-new-mission-brief" className="text-xs font-medium">
+                    Search Brief / Goal
+                  </label>
                   <Textarea
+                    id="marketplace-new-mission-brief"
                     placeholder="Describe what you are looking for..."
                     rows={3}
                     value={form.brief}
@@ -1656,16 +1671,22 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Include Keywords (CSV)</label>
+                    <label htmlFor="marketplace-new-mission-include-keywords" className="text-xs font-medium">
+                      Include Keywords (CSV)
+                    </label>
                     <Input
+                      id="marketplace-new-mission-include-keywords"
                       placeholder="rolex, omega, tudor"
                       value={form.includeKeywords}
                       onChange={(e) => setForm({ ...form, includeKeywords: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Exclude Keywords (CSV)</label>
+                    <label htmlFor="marketplace-new-mission-exclude-keywords" className="text-xs font-medium">
+                      Exclude Keywords (CSV)
+                    </label>
                     <Input
+                      id="marketplace-new-mission-exclude-keywords"
                       placeholder="fake, homage, mod"
                       value={form.excludeKeywords}
                       onChange={(e) => setForm({ ...form, excludeKeywords: e.target.value })}
@@ -1674,16 +1695,22 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Preferred Brands (CSV)</label>
+                    <label htmlFor="marketplace-new-mission-preferred-brands" className="text-xs font-medium">
+                      Preferred Brands (CSV)
+                    </label>
                     <Input
+                      id="marketplace-new-mission-preferred-brands"
                       placeholder="asus, msi, gigabyte"
                       value={form.preferredBrands}
                       onChange={(e) => setForm({ ...form, preferredBrands: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium">Locations (CSV)</label>
+                    <label htmlFor="marketplace-new-mission-locations" className="text-xs font-medium">
+                      Locations (CSV)
+                    </label>
                     <Input
+                      id="marketplace-new-mission-locations"
                       placeholder="Melbourne, Richmond, Box Hill"
                       value={form.locationNames}
                       onChange={(e) => setForm({ ...form, locationNames: e.target.value })}

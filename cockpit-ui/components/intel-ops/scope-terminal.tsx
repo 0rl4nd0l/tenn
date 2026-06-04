@@ -54,6 +54,7 @@ export function ScopeTerminal({
           <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="SEARCH_COMPANY_ENTITY..." 
+            aria-label="Search company entity scope"
             className="h-8 border-none bg-transparent font-mono text-sm focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50"
             value={selectedCompany || ''}
             onChange={(e) => onCompanySelect(e.target.value)}
@@ -66,6 +67,7 @@ export function ScopeTerminal({
               size="icon" 
               className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => onCompanySelect(null)}
+              aria-label="Clear company entity scope"
             >
               <X className="h-3 w-3" />
             </Button>
