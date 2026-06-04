@@ -1,6 +1,6 @@
 # Parked Entry: appendix5b-report-gate-refresh-v1-20260531
 
-- Status: `PARKED_READY_FOR_REVIEW`
+- Status: `STAY_PARKED`
 - Branch: `safe/appendix5b-report-gate-refresh-v1-20260531`
 - Lane: Evaluation
 - Worktree: `/home/l4nd0/tenn-appendix5b-report-gate-refresh-v1-20260531`
@@ -9,9 +9,9 @@
 
 ## Why Parked
 
-This is a clean report-only Appendix 5B no-regression refresh with validation.
-It is worth preserving as visible merge-review inventory, but it is not an
-extraction-code integration branch.
+This is report-only Appendix 5B no-regression refresh evidence with validation.
+It is worth preserving as visible merge-review inventory, but it is not
+merge-authorized extraction code.
 
 ## Evidence Present
 
@@ -27,5 +27,5 @@ extraction-code integration branch.
 
 ## Recommended Next Action
 
-Review as supporting evidence or leave parked until Appendix 5B evaluation
-follow-up needs it.
+Leave parked as supporting evidence unless Appendix 5B report-only follow-up is
+explicitly authorized. Do not integrate it as extraction implementation.

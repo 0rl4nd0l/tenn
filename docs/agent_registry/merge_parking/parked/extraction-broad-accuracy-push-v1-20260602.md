@@ -1,6 +1,6 @@
 # Parked Entry: extraction-broad-accuracy-push-v1-20260602
 
-- Status: `PARKED_READY_FOR_REVIEW`
+- Status: `PARKED_SUPERSEDED`
 - Branch: `safe/extraction-broad-accuracy-push-v1-20260602`
 - Lane: Financial Truth
 - Worktree: `/home/l4nd0/tenn-extraction-broad-accuracy-push-v1-20260602`
@@ -12,13 +12,18 @@
 
 ## Why Parked
 
-This branch is clean, report-backed, and validated, but its own evidence says it
-isolates the next hard blocker rather than proving broad extraction readiness.
+This branch is clean as a worktree and report-backed, but it is stale relative
+to the current extraction canonical and its own evidence says it isolated the
+next hard blocker rather than proving broad extraction readiness. Later
+Appendix 4D wrapper-gate and NVMe parent-batch slices supersede it as an
+integration surface.
 
 ## Evidence Present
 
 - Task/report/validation bundle exists.
 - Status: `released_next_hard_blocker_isolated`
+- Graduation readiness: `not_ready_for_broad_extraction_graduation`
+- Remaining blocker: GPT Appendix 4D `classifier_low_confidence:0.0`
 - Validation includes task-card validation, focused pytest, `py_compile`,
   `ruff`, `git diff --check`, and no source PDFs staged.
 - Changed-files surface includes:
@@ -34,5 +39,6 @@ isolates the next hard blocker rather than proving broad extraction readiness.
 
 ## Recommended Next Action
 
-Use this as the first merge-review candidate. Review it as bounded blocker
-isolation evidence, not as proof that broad extraction is ready.
+Preserve as historical bounded blocker-isolation evidence. Do not merge this
+branch directly. If any candidate-filter logic is still needed, mine it through
+a clean, task-carded branch against current extraction canonical.

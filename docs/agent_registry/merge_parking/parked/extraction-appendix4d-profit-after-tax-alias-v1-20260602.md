@@ -1,6 +1,6 @@
 # Parked Entry: extraction-appendix4d-profit-after-tax-alias-v1-20260602
 
-- Status: `PARKED_NEEDS_VALIDATION`
+- Status: `PARKED_SUPERSEDED`
 - Branch: `safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602`
 - Lane: Financial Truth
 - Worktree: `/home/l4nd0/tenn-extraction-appendix4d-profit-after-tax-alias-v1-20260602`
@@ -8,10 +8,10 @@
 
 ## Why Parked
 
-Evidence is strong enough to preserve, but not strong enough to mark ready for
-review without qualification. The branch has unit-test and diff-check evidence,
-but it does not contain the narrow live GPT Appendix 4D target proof and the
-inventory found no `validation.json`.
+Evidence is strong enough to preserve, but this branch is no longer the
+preferred integration surface. Later Appendix 4D wrapper-gate work carries the
+source-bound wrapper metric-minimum path and targeted GPT proof. Preserve this
+branch as historical alias evidence only.
 
 ## Evidence Present
 
@@ -28,9 +28,9 @@ inventory found no `validation.json`.
 ## Risk
 
 - Medium.
-- Canonical metric alias policy touched without live target proof in this branch.
+- Canonical metric alias policy touched without the later wrapper-gate boundary.
 
 ## Recommended Next Action
 
-Require a narrow GPT Appendix 4D target validation, or make an explicit human
-decision that unit-test-only evidence is sufficient for review.
+Do not merge this branch. Use the later wrapper-gate work as the review source
+after it is rebased or salvaged into a clean canonical worktree.

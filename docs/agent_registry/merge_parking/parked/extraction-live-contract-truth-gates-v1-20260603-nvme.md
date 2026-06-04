@@ -1,6 +1,6 @@
 # Parked Entry: extraction-live-contract-truth-gates-v1-20260603-nvme
 
-- Status: `PARKED_NEEDS_HUMAN_DECISION`
+- Status: `HIGH_RISK_PARENT_BATCH`
 - Branch: `safe/extraction-live-contract-truth-gates-v1-20260603-nvme`
 - Lane: Financial Truth
 - Worktree: `/mnt/tenn-nvme2/tenn/tmp/tenn-extraction-contract-restore-v1-nvme`
@@ -41,5 +41,7 @@ surfaces and should not be treated as a single review or merge candidate.
 
 ## Recommended Next Action
 
-Human decision required. Preserve the parent batch as parked inventory, then
-separate narrow review slices from it before any merge-review attempt.
+Do not merge this parent batch. Preserve it as parked inventory, then separate
+narrow review slices into clean branches before any merge-review attempt. First
+recommended mining order from the 2026-06-04 remaining review is BPT income-tax
+NPAT guard, COL adjusted-NPAT guard, then BBN attributable-profit row recovery.

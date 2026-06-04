@@ -1,0 +1,217 @@
+{
+  "canonical_head": "78b111f423ee86fd1fdfc214f1db551576ee14f5",
+  "decisions": [
+    {
+      "branch": "safe/appendix5b-report-gate-refresh-v1-20260531",
+      "changed_files": [
+        "docs/agent_tasks/appendix5b_report_only_no_regression_gate_refresh_v1_20260531.md",
+        "reports/agent_jobs/appendix5b_report_only_no_regression_gate_refresh_v1_20260531/**"
+      ],
+      "classification": "STAY_PARKED",
+      "evidence": [
+        "Report-only no-regression gate PASS",
+        "canonical_write=false",
+        "20 focused Appendix 5B tests passed",
+        "task-card validation and check-diff passed"
+      ],
+      "risk": "LOW",
+      "recommendation": "Preserve as report-only evidence unless later explicitly authorized."
+    },
+    {
+      "branch": "safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602",
+      "changed_files": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "docs/agent_tasks/extraction_appendix4d_profit_after_tax_alias_v1_20260602.md",
+        "reports/agent_jobs/extraction_appendix4d_profit_after_tax_alias_v1_20260602/**"
+      ],
+      "classification": "SUPERSEDED",
+      "evidence": [
+        "Unit-test and diff-check evidence exists",
+        "Later Appendix 4D wrapper-gate branch carries the preferred target-proof path"
+      ],
+      "risk": "MEDIUM",
+      "recommendation": "Do not merge. Preserve as historical alias evidence."
+    },
+    {
+      "branch": "safe/extraction-appendix4d-wrapper-gate-reconciled-v1-20260602",
+      "changed_files": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_capability_guards.py",
+        "financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py",
+        "docs/extraction/metric_extraction_contract.md",
+        "docs/architecture/12_evaluation_and_drift_monitoring.md",
+        "docs/agent_tasks/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602.md",
+        "docs/agent_tasks/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602.md",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_gate_reconcile_v1_20260602/**",
+        "reports/agent_jobs/extraction_appendix4d_wrapper_metric_minimum_gate_v1_20260602/**"
+      ],
+      "classification": "NEEDS_REBASE",
+      "evidence": [
+        "Local-only branch exists at 669d003026c68ce6ef667db7266f665f8a7dd7bd",
+        "Focused pytest 17 passed in reconcile report",
+        "Targeted GPT direct wrapper-gate simulation returned ok",
+        "Branch-level diff against canonical is stale and too broad"
+      ],
+      "risk": "MEDIUM_HIGH",
+      "recommendation": "Create a clean canonical branch and port only wrapper-gate logic and focused tests."
+    },
+    {
+      "branch": "safe/extraction-live-contract-truth-gates-v1-20260603-nvme",
+      "changed_files": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/scripts/broad_extraction_test.py",
+        "financial-engine_v2/scripts/test_broad_extraction_test.py",
+        "docs/agent_tasks/extraction_*.md",
+        "reports/agent_jobs/extraction_*/**"
+      ],
+      "classification": "HIGH_RISK_PARENT_BATCH",
+      "evidence": [
+        "Parent worktree has hundreds of staged task/report files",
+        "Shared extraction code has staged and unstaged modifications",
+        "Multiple useful child slice reports exist"
+      ],
+      "risk": "HIGH",
+      "recommendation": "Do not merge whole. Mine only narrow clean review branches."
+    },
+    {
+      "branch": "safe/extraction-broad-accuracy-push-v1-20260602",
+      "changed_files": [
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "financial-engine_v2/scripts/broad_extraction_test.py",
+        "docs/agent_tasks/extraction_broad_accuracy_*.md",
+        "reports/agent_jobs/extraction_broad_accuracy_*/**"
+      ],
+      "classification": "SUPERSEDED",
+      "evidence": [
+        "Report says not ready for broad graduation",
+        "Remaining blocker was GPT Appendix 4D classifier_low_confidence:0.0",
+        "Later wrapper-gate and NVMe work supersede this branch as integration surface",
+        "Branch-level diff is stale against PR #293 canonical registry"
+      ],
+      "risk": "MEDIUM",
+      "recommendation": "Preserve as historical blocker-isolation evidence; do not merge directly."
+    }
+  ],
+  "nvme_slice_inventory": [
+    {
+      "can_extract_clean_review_branch": true,
+      "classification": "READY_FOR_INTEGRATION_PROMPT",
+      "duplicate_or_superseded": false,
+      "name": "extraction_bpt_income_tax_npat_truth_guard_v1_20260604",
+      "recommended_order": 1,
+      "report_path": "reports/agent_jobs/extraction_bpt_income_tax_npat_truth_guard_v1_20260604/",
+      "risk": "HIGH",
+      "task_card_path": "docs/agent_tasks/extraction_bpt_income_tax_npat_truth_guard_v1_20260604.md",
+      "validation_evidence": [
+        "Red selectors before fix failed",
+        "Focused selectors after fix 2 passed",
+        "pre-canary truth gates 73 passed",
+        "multipass tests 69 passed",
+        "broad script tests 8 passed",
+        "py_compile passed"
+      ]
+    },
+    {
+      "can_extract_clean_review_branch": true,
+      "classification": "READY_FOR_INTEGRATION_PROMPT",
+      "duplicate_or_superseded": false,
+      "name": "extraction_col_adjusted_npat_truth_guard_v1_20260604",
+      "recommended_order": 2,
+      "report_path": "reports/agent_jobs/extraction_col_adjusted_npat_truth_guard_v1_20260604/",
+      "risk": "HIGH",
+      "task_card_path": "docs/agent_tasks/extraction_col_adjusted_npat_truth_guard_v1_20260604.md",
+      "validation_evidence": [
+        "Red adjusted-NPAT selectors before fix failed",
+        "Focused selectors after fix passed",
+        "pre-canary truth gates 74 passed",
+        "multipass tests 70 passed",
+        "broad script tests 8 passed",
+        "py_compile passed"
+      ]
+    },
+    {
+      "can_extract_clean_review_branch": true,
+      "classification": "READY_FOR_INTEGRATION_PROMPT",
+      "duplicate_or_superseded": false,
+      "name": "extraction_bbn_attributable_profit_row_recovery_v1_20260604",
+      "recommended_order": 3,
+      "report_path": "reports/agent_jobs/extraction_bbn_attributable_profit_row_recovery_v1_20260604/",
+      "risk": "MEDIUM_HIGH",
+      "task_card_path": "docs/agent_tasks/extraction_bbn_attributable_profit_row_recovery_v1_20260604.md",
+      "validation_evidence": [
+        "BBN parent/child attribution row fixed",
+        "multipass tests 67 passed",
+        "pre-canary truth gates 60 passed",
+        "py_compile passed",
+        "contract validation and check-diff passed"
+      ]
+    },
+    {
+      "can_extract_clean_review_branch": true,
+      "classification": "NEEDS_REBASE",
+      "duplicate_or_superseded": false,
+      "name": "extraction_aeg_formal_units_statement_recovery_v1_20260604",
+      "recommended_order": 4,
+      "report_path": "reports/agent_jobs/extraction_aeg_formal_units_statement_recovery_v1_20260604/",
+      "risk": "MEDIUM_HIGH",
+      "task_card_path": "docs/agent_tasks/extraction_aeg_formal_units_statement_recovery_v1_20260604.md",
+      "validation_evidence": [
+        "Focused after-fix selectors 2 passed",
+        "multipass tests 54 passed",
+        "pre-canary truth gate tests 52 passed",
+        "broad extraction script tests 8 passed"
+      ]
+    },
+    {
+      "can_extract_clean_review_branch": true,
+      "classification": "NEEDS_REBASE",
+      "duplicate_or_superseded": false,
+      "name": "extraction_appendix4e_full_dollar_scale_recovery_v1_20260603",
+      "recommended_order": 5,
+      "report_path": "reports/agent_jobs/extraction_appendix4e_full_dollar_scale_recovery_v1_20260603/",
+      "risk": "MEDIUM",
+      "task_card_path": "docs/agent_tasks/extraction_appendix4e_full_dollar_scale_recovery_v1_20260603.md",
+      "validation_evidence": [
+        "Red scale selector failed before fix",
+        "Focused scale selector after fix 1 passed",
+        "Appendix 4E classifier selectors 2 passed",
+        "full multipass test file 43 passed",
+        "py_compile passed"
+      ]
+    },
+    {
+      "can_extract_clean_review_branch": false,
+      "classification": "STAY_PARKED",
+      "duplicate_or_superseded": false,
+      "name": "extraction_post_col_random_count16_docling_cpu_v1_20260604",
+      "recommended_order": 99,
+      "report_path": "reports/agent_jobs/extraction_post_col_random_count16_docling_cpu_v1_20260604/",
+      "risk": "MEDIUM",
+      "task_card_path": "docs/agent_tasks/extraction_post_col_random_count16_docling_cpu_v1_20260604.md",
+      "validation_evidence": [
+        "Historical count-16 artifact reported ok=4 failed=12",
+        "Same seed was not same sample because candidate pool changed",
+        "COL and BBN passed in this sample"
+      ]
+    },
+    {
+      "can_extract_clean_review_branch": false,
+      "classification": "DATA_MISSING",
+      "duplicate_or_superseded": false,
+      "name": "RB6_PPT_EVN_related_slice_search",
+      "recommended_order": 100,
+      "report_path": null,
+      "risk": "UNKNOWN",
+      "task_card_path": null,
+      "validation_evidence": [
+        "No RB6, PPT, or EVN slice was found in the NVMe parent-batch task/report inventory."
+      ]
+    }
+  ],
+  "schema_version": 1
+}
