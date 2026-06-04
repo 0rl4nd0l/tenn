@@ -291,6 +291,7 @@ export function NewsScreen() {
           <CardContent className="space-y-4">
             <div className="flex gap-3">
               <Input
+                aria-label="News search query"
                 placeholder="Search news articles..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -305,8 +306,9 @@ export function NewsScreen() {
 
             <div className="flex flex-wrap gap-4">
               <Field className="w-[150px]">
-                <FieldLabel>Ticker Filter</FieldLabel>
+                <FieldLabel htmlFor="news-ticker-filter">Ticker Filter</FieldLabel>
                 <Input
+                  id="news-ticker-filter"
                   placeholder="e.g., BHP"
                   value={ticker}
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
@@ -315,9 +317,9 @@ export function NewsScreen() {
               </Field>
 
               <Field className="w-[150px]">
-                <FieldLabel>Lookback</FieldLabel>
+                <FieldLabel htmlFor="news-lookback-select">Lookback</FieldLabel>
                 <Select value={lookback} onValueChange={setLookback}>
-                  <SelectTrigger>
+                  <SelectTrigger id="news-lookback-select" aria-label="News lookback">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -35,6 +35,7 @@ export function FailureRegistry({
             className="h-7 text-[10px] font-mono gap-1.5"
             disabled
             title="Retry wiring is not implemented on this surface yet."
+            aria-label="Failure registry retry controls are read-only"
           >
             <RefreshCw className="h-3 w-3" />
             READ_ONLY
@@ -57,6 +58,7 @@ export function FailureRegistry({
             <button
               key={failure.id}
               type="button"
+              aria-label={`Inspect failure ${failure.id} for ${failure.entity}`}
               onClick={() => onFailureSelect?.(failure)}
               className="flex w-full items-center gap-4 p-3 text-left hover:bg-destructive/5 group transition-colors cursor-pointer"
             >

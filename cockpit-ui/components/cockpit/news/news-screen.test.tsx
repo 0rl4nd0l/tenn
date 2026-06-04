@@ -19,6 +19,14 @@ describe('NewsScreen actionability', () => {
     expect(screen.getByText(/no query has been submitted/i)).toBeInTheDocument()
   })
 
+  it('exposes search filters with durable accessible names', async () => {
+    render(<NewsScreen />)
+
+    expect(await screen.findByRole('textbox', { name: /news search query/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /ticker filter/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /news lookback/i })).toBeInTheDocument()
+  })
+
   it('surfaces missing published_at instead of presenting the result as fresh', async () => {
     vi.stubGlobal(
       'fetch',
@@ -44,7 +52,7 @@ describe('NewsScreen actionability', () => {
 
     render(<NewsScreen />)
 
-    await userEvent.type(await screen.findByPlaceholderText(/search news articles/i), 'CSL price trend')
+    await userEvent.type(await screen.findByRole('textbox', { name: /news search query/i }), 'CSL price trend')
     await userEvent.click(screen.getByRole('button', { name: /^search$/i }))
 
     await waitFor(() => {

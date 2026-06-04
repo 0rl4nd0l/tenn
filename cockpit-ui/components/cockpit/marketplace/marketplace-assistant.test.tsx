@@ -93,10 +93,8 @@ describe('MarketplaceAssistant', () => {
       screen.getByText(/i know your default marketplace location is melbourne/i),
     ).toBeInTheDocument()
 
-    await userEvent.type(
-      screen.getByPlaceholderText(/describe what you want to buy/i),
-      'I want a used RTX 3090 under $900 with no repair history.',
-    )
+    const prompt = screen.getByRole('textbox', { name: /marketplace assistant prompt/i })
+    await userEvent.type(prompt, 'I want a used RTX 3090 under $900 with no repair history.')
     await userEvent.click(screen.getByRole('button', { name: /^send$/i }))
 
     await waitFor(() => {
@@ -120,7 +118,7 @@ describe('MarketplaceAssistant', () => {
 
     expect(screen.getByText(/ready to create/i)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: /deploy \+ run now/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save and run now/i }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(4)
@@ -182,7 +180,7 @@ describe('MarketplaceAssistant', () => {
     )
 
     await userEvent.type(
-      screen.getByPlaceholderText(/describe what you want to buy/i),
+      screen.getByRole('textbox', { name: /marketplace assistant prompt/i }),
       'I want a used RTX 3090 in Victoria.',
     )
     await userEvent.click(screen.getByRole('button', { name: /^send$/i }))

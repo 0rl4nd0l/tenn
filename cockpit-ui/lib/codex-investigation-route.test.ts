@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { POST as deployCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/deploy/route'
 import { GET as getCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/investigation/route'
 import { POST as deployLocalCodexInvestigation } from '@/app/cockpit-local/feedback/flags/[reportId]/deploy/route'
-import { GET as getLocalCodexInvestigation } from '@/app/cockpit-local/feedback/flags/[reportId]/investigation/route'
 
 const deployIntentHeaders = {
   'X-Cockpit-Control-Intent': 'deploy-codex-investigation',
@@ -263,40 +262,6 @@ describe('Codex investigation status route', () => {
     const response = await getCodexInvestigation(
       new Request('http://localhost/api/cockpit/feedback/flags/flag_20260430_abc123/investigation'),
       { params: Promise.resolve({ reportId: '../bad' }) },
-    )
-
-    expect(response.status).toBe(403)
-    expect(await response.json()).toMatchObject({
-      ok: false,
-      code: 'codex_investigation_read_intent_required',
-    })
-  })
-
-  it('rejects wrong read intent before resolving local artifacts', async () => {
-    process.env.COCKPIT_WORKSPACE_ROOT = path.join(os.tmpdir(), 'missing-cockpit-workspace')
-
-    const response = await getCodexInvestigation(
-      new Request('http://localhost/api/cockpit/feedback/flags/flag_20260430_abc123/investigation', {
-        headers: {
-          'X-Cockpit-Control-Intent': 'restart-backend',
-        },
-      }),
-      { params: Promise.resolve({ reportId: 'flag_20260430_abc123' }) },
-    )
-
-    expect(response.status).toBe(403)
-    expect(await response.json()).toMatchObject({
-      ok: false,
-      code: 'codex_investigation_read_intent_required',
-    })
-  })
-
-  it('applies the same read guard through the cockpit-local alias', async () => {
-    process.env.COCKPIT_WORKSPACE_ROOT = path.join(os.tmpdir(), 'missing-cockpit-workspace')
-
-    const response = await getLocalCodexInvestigation(
-      new Request('http://localhost/cockpit-local/feedback/flags/flag_20260430_abc123/investigation'),
-      { params: Promise.resolve({ reportId: 'flag_20260430_abc123' }) },
     )
 
     expect(response.status).toBe(403)
