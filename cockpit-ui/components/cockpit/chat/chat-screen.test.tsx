@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import {
   deleteChatSessionRemote,
+  fetchChatReadiness,
   getActionJob,
   getChatSessionMessages,
   previewAction,
@@ -23,6 +24,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib/api-client', () => ({
   deleteChatSessionRemote: vi.fn(async () => undefined),
+  fetchChatReadiness: vi.fn(),
   getActionJob: vi.fn(),
   getChatSessionMessages: vi.fn(),
   previewAction: vi.fn(),
@@ -123,6 +125,99 @@ describe('ChatScreen suggested actions', () => {
     })
     vi.mocked(restartBackend).mockResolvedValue({ ok: true, message: 'ok' })
     vi.mocked(deleteChatSessionRemote).mockResolvedValue({ ok: true, deleted_count: 0 })
+    vi.mocked(getChatSessionMessages).mockResolvedValue([])
+    vi.mocked(fetchChatReadiness).mockResolvedValue({
+      schema_version: 1,
+      answer_ready: true,
+      normal_analysis_allowed: true,
+      capabilities: {
+        financial_fact: {
+          id: 'financial_fact',
+          label: 'Financial facts',
+          status: 'READY',
+          ready: true,
+          blockers: [],
+        },
+        filing_document_summary: {
+          id: 'filing_document_summary',
+          label: 'Filing and document summaries',
+          status: 'READY',
+          ready: true,
+          blockers: [],
+        },
+        local_news_rag: {
+          id: 'local_news_rag',
+          label: 'Local news and RAG',
+          status: 'READY',
+          ready: true,
+          blockers: [],
+        },
+        model_route_runtime: {
+          id: 'model_route_runtime',
+          label: 'Model route and runtime',
+          status: 'READY',
+          ready: true,
+          blockers: [],
+        },
+      },
+      summary: {
+        primary_blockers: [],
+        safe_activation_actions: [],
+      },
+    })
+  })
+
+  it('renders capability blockers when normal analysis is not answer-ready', async () => {
+    vi.mocked(fetchChatReadiness).mockResolvedValue({
+      schema_version: 1,
+      ticker: 'BHP',
+      answer_ready: false,
+      normal_analysis_allowed: false,
+      capabilities: {
+        financial_fact: {
+          id: 'financial_fact',
+          label: 'Financial facts',
+          status: 'DATA_MISSING',
+          ready: false,
+          blockers: ['asx_periodic_financials table unavailable'],
+        },
+        filing_document_summary: {
+          id: 'filing_document_summary',
+          label: 'Filing and document summaries',
+          status: 'DATA_MISSING',
+          ready: false,
+          blockers: ['no filings/documents for requested ticker'],
+        },
+        local_news_rag: {
+          id: 'local_news_rag',
+          label: 'Local news and RAG',
+          status: 'DATA_MISSING',
+          ready: false,
+          blockers: ['ENABLE_QDRANT=false'],
+        },
+        model_route_runtime: {
+          id: 'model_route_runtime',
+          label: 'Model route and runtime',
+          status: 'DEGRADED',
+          ready: false,
+          blockers: ['connection refused'],
+        },
+      },
+      summary: {
+        primary_blockers: ['financial_fact', 'filing_document_summary'],
+        safe_activation_actions: [
+          'Run reviewed metric extraction for the ticker before numeric financial questions.',
+        ],
+      },
+    })
+
+    renderChatScreen()
+
+    expect(await screen.findByText('Normal analysis blocked')).toBeInTheDocument()
+    expect(screen.getByText('Financial facts')).toBeInTheDocument()
+    expect(screen.getByText('asx_periodic_financials table unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Local news and RAG')).toBeInTheDocument()
+    expect(screen.getByText('ENABLE_QDRANT=false')).toBeInTheDocument()
   })
 
   it('routes metric-extraction suggestions through preview, confirmation, and progress logging', async () => {
