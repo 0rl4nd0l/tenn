@@ -1870,6 +1870,9 @@ export function ChatScreen() {
         await new Promise(resolve => setTimeout(resolve, 1500))
         const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/investigation`, {
           cache: 'no-store',
+          headers: {
+            'X-Cockpit-Control-Intent': 'read-codex-investigation',
+          },
         })
         const payload = await readPayload(response)
         const status = String(payload.status || 'unknown') as CodexDeployStatus

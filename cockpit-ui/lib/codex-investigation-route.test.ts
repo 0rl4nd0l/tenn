@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { POST as deployCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/deploy/route'
 import { GET as getCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/investigation/route'
 
+const readIntentHeaders = {
+  'X-Cockpit-Control-Intent': 'read-codex-investigation',
+}
+
 const spawnMock = vi.hoisted(() => vi.fn(() => ({
   pid: 12345,
   once: vi.fn(),
@@ -129,6 +133,21 @@ describe('Codex investigation status route', () => {
     vi.clearAllMocks()
   })
 
+  it('rejects missing read intent before resolving local artifacts', async () => {
+    process.env.COCKPIT_WORKSPACE_ROOT = path.join(os.tmpdir(), 'missing-cockpit-workspace')
+
+    const response = await getCodexInvestigation(
+      new Request('http://localhost/api/cockpit/feedback/flags/flag_20260430_abc123/investigation'),
+      { params: Promise.resolve({ reportId: '../bad' }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      code: 'codex_investigation_read_intent_required',
+    })
+  })
+
   it('returns the stored investigation status and output tail', async () => {
     const { workspace, reportId, reportDir } = createQueuedReport()
     process.env.COCKPIT_WORKSPACE_ROOT = workspace
@@ -146,7 +165,9 @@ describe('Codex investigation status route', () => {
     )
 
     const response = await getCodexInvestigation(
-      new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/investigation`),
+      new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/investigation`, {
+        headers: readIntentHeaders,
+      }),
       { params: Promise.resolve({ reportId }) },
     )
 
