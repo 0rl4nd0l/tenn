@@ -11,12 +11,9 @@ Invoke when:
 
 ## Workflow
 
-1. **Read rule files** in `.cursor/rules/`:
-   - `00_mandatory_index.md`
-   - `backend_architecture.md`
-   - `embedding_rules.md`
-   - `vector_store_invariants.md`
-   - `failure_policy.md`
+1. **Read the authoritative contract docs**:
+   - `docs/architecture/SYSTEM_CONTRACT.md`
+   - Relevant `docs/architecture/*.md` files for the touched surface
 
 2. **Analyze proposed changes** (diffs, file edits, or described changes).
 
@@ -32,18 +29,18 @@ Invoke when:
 
 ## Invariants to Check
 
-| Check | Rule source | Allowed / Forbidden |
+| Check | Contract source | Allowed / Forbidden |
 |-------|-------------|---------------------|
-| sentence-transformers introduction | backend_architecture.md, embedding_rules.md | Forbidden |
-| New embedding backend | backend_architecture.md, embedding_rules.md | Ollama + nomic-embed-text only |
-| Fallback embedding logic | backend_architecture.md, embedding_rules.md, failure_policy.md | Forbidden; fail fast |
-| Non-deterministic vector IDs | backend_architecture.md, vector_store_invariants.md | Forbidden |
-| UUID-based vector IDs | backend_architecture.md (UUID Usage Policy) | Forbidden for vector/chunk IDs |
-| SQLite vector store reintroduction | backend_architecture.md (SQLite) | Forbidden |
-| Distance metric change | backend_architecture.md, vector_store_invariants.md | COSINE only |
-| Dimension mismatch tolerance | backend_architecture.md, vector_store_invariants.md | Must fail fast; no auto-repair |
-| Multiple embedding models | embedding_rules.md | Forbidden at runtime |
-| document_id format change | backend_architecture.md (Document ID Contract) | Single canonical UUID format; migration required for change |
+| sentence-transformers introduction | SYSTEM_CONTRACT.md, relevant architecture docs | Forbidden |
+| New embedding backend | SYSTEM_CONTRACT.md, relevant architecture docs | Ollama + configured embedding contract only |
+| Fallback embedding logic | SYSTEM_CONTRACT.md failure/fail-fast rules | Forbidden; fail fast |
+| Non-deterministic vector IDs | SYSTEM_CONTRACT.md deterministic vector ID rules | Forbidden |
+| UUID-based vector IDs | SYSTEM_CONTRACT.md vector/chunk ID contract | Forbidden for vector/chunk IDs |
+| SQLite vector store reintroduction | SYSTEM_CONTRACT.md storage/retrieval boundary | Forbidden |
+| Distance metric change | SYSTEM_CONTRACT.md vector store invariants | COSINE only unless contract migration is approved |
+| Dimension mismatch tolerance | SYSTEM_CONTRACT.md vector store invariants | Must fail fast; no auto-repair |
+| Multiple embedding models | SYSTEM_CONTRACT.md model/runtime boundaries | Forbidden at runtime |
+| document_id format change | SYSTEM_CONTRACT.md document identity contract | Single canonical format; migration required for change |
 
 ## Output Format
 
@@ -52,10 +49,10 @@ Invoke when:
 
 ### Change: [brief description]
 
-| Rule file | Section | Status | Explanation |
+| Contract file | Section | Status | Explanation |
 |-----------|---------|--------|-------------|
-| backend_architecture.md | Embeddings | COMPLIANT | ... |
-| embedding_rules.md | Forbidden | VIOLATES RULE | sentence-transformers is forbidden; quote: "..." |
+| SYSTEM_CONTRACT.md | Embeddings | COMPLIANT | ... |
+| SYSTEM_CONTRACT.md | Forbidden Patterns | VIOLATES RULE | quote the violated invariant |
 
 ### Summary
 - **COMPLIANT:** N
@@ -70,11 +67,11 @@ Invoke when:
 
 When status is **VIOLATES RULE**:
 1. Do **not** implement the change
-2. State: "Implementation refused per [rule file]"
+2. State: "Implementation refused per [contract file]"
 3. Quote the exact rule text that would be violated
 4. Suggest: "Create a migration document and get explicit approval before changing this invariant"
 
 ## Constraints
 
 - **Analysis only.** Do not edit, add, or remove code. Only read rules and proposed changes, then report.
-- Rule files are authoritative; if a proposed change conflicts with them, the rule wins.
+- `docs/architecture/SYSTEM_CONTRACT.md` is authoritative; if a proposed change conflicts with it, the contract wins.

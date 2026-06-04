@@ -17,7 +17,7 @@ Most commands now have matching repo-local Codex skill ports under `.codex/skill
 | Command | Invoke | Purpose |
 |---------|--------|---------|
 | Architecture Check | `/architecture-check` | Validates proposed changes against mandatory architecture invariants. Analysis only; refuses VIOLATES RULE changes. |
-| Architecture Cleanup | `/architecture-cleanup` | Audits and prunes unused architecture; syncs docs with reality; enforces `.cursor/rules/` constraints. |
+| Architecture Cleanup | `/architecture-cleanup` | Audits and prunes unused architecture; syncs docs with reality; enforces `docs/architecture/SYSTEM_CONTRACT.md`. |
 | Code Review | `/code-review` | Runs `git diff` and reviews for quality, security, maintainability. Outputs critical/warnings/suggestions with fix examples. |
 | Code Fix | `/code-fix` | Applies findings from `/code-review` or `/function-quality`. Critical first, then warnings, then suggestions. |
 | Function Quality | `/function-quality` | Deep feature analysis (EXTRACT → ANALYZE). Pass a feature name; output is `/code-fix`-compatible. |

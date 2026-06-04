@@ -1,6 +1,6 @@
 # Architecture Cleanup Steward
 
-Audits and prunes unused architecture, synchronizes architecture.md documentation, and enforces `.cursor/rules/` constraints before architecture-altering changes.
+Audits and prunes unused architecture, synchronizes architecture documentation, and enforces `docs/architecture/SYSTEM_CONTRACT.md` before architecture-altering changes.
 
 ## When to Use
 
@@ -10,8 +10,8 @@ Audits and prunes unused architecture, synchronizes architecture.md documentatio
 
 ## Workflow
 
-1. Read `.cursor/rules/00_mandatory_index.md` and any referenced rule file.
-2. Read the architecture and process markdown in scope (`.md` plus `.cursor/agents` index entries).
+1. Read `docs/architecture/SYSTEM_CONTRACT.md`.
+2. Read the architecture and process markdown in scope (`docs/architecture/*.md`, `docs/claude/*.md`, and command docs as needed).
 3. Verify references before marking any component as unused.
 4. Prepare or apply minimal cleanup updates (file deletions, route updates, or docs edits).
 5. Report what changed and what was blocked by mandatory rules.

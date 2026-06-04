@@ -1,0 +1,62 @@
+{
+  "changed_files": [
+    {
+      "path": "AGENTS.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/validation.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/cursor_architecture_rules_contract_reconciliation_v1.md",
+        "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/",
+        "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/README.md",
+        "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/status.json",
+        "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/validation.json",
+        "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1/diff-check.json",
+        ".claude/commands/architecture-check.md",
+        ".claude/commands/architecture-cleanup.md",
+        ".claude/commands/function-quality.md",
+        ".claude/commands/repo-audit.md",
+        "docs/claude/commands.md",
+        "AGENTS.md"
+      ],
+      "approval_required": false,
+      "job_id": "cursor_architecture_rules_contract_reconciliation_v1",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cursor_architecture_rules_contract_reconciliation_v1",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_primary_lane": "Repo Hygiene",
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
