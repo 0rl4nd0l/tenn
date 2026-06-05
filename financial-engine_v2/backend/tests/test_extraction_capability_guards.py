@@ -311,7 +311,9 @@ def test_appendix_4d_wrapper_fails_without_wrapper_disclosure_evidence():
     assert error == "validation_gate:wrapper_missing_disclosure_evidence"
 
 
-@pytest.mark.parametrize("missing_field", ["period_end", "period_type", "scale"])
+@pytest.mark.parametrize(
+    "missing_field", ["period_end", "period_type", "scale", "currency"]
+)
 def test_appendix_4d_wrapper_fails_without_source_bound_context(missing_field):
     from app.services.multipass_extraction import _validate_gate
 
@@ -324,6 +326,23 @@ def test_appendix_4d_wrapper_fails_without_source_bound_context(missing_field):
 
     assert status == "failed"
     assert error == "validation_gate:wrapper_missing_source_bound_context"
+
+
+def test_appendix_4d_disclosure_rows_do_not_count_as_canonical_metrics():
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _base_appendix_4d_wrapper_payload()
+    metrics = dict(payload["metrics"])  # type: ignore[arg-type]
+    metrics["np_attributable"] = None
+    metrics["nta_per_security"] = 0.037
+    metrics["dividends"] = 0
+    metrics["record_date"] = "N/A"
+    payload["metrics"] = metrics
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:insufficient_metrics:1"
 
 
 def test_appendix_4d_wrapper_fails_when_required_canonical_metric_is_missing():

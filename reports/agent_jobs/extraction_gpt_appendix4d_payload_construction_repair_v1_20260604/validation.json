@@ -1,0 +1,75 @@
+{
+  "check_diff": "passed",
+  "code_review": {
+    "critical": [],
+    "notes": "Manual code-review pass found no issues after tightening deterministic confidence boost to source-row metrics only.",
+    "status": "SUCCESS",
+    "suggestions": [],
+    "warnings": []
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_gpt_appendix4d_payload_construction_repair_v1_20260604.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/extraction_gpt_appendix4d_payload_construction_repair_v1_20260604.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/extraction_gpt_appendix4d_payload_construction_repair_v1_20260604.md --repo-root .",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=<isolated>/financial-engine_v2/backend <preserve-venv>/python -m pytest focused Appendix 4D payload/gate tests -q",
+      "result": "passed: 11 tests"
+    },
+    {
+      "command": "PYTHONPATH=<isolated>/financial-engine_v2/backend <preserve-venv>/python -m py_compile touched Python files",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=<isolated>/financial-engine_v2/backend <preserve-venv>/python -m ruff check touched Python files",
+      "result": "passed: All checks passed"
+    },
+    {
+      "command": "targeted exact GPT Appendix 4D report-local full-multipass-equivalent verification",
+      "result": "passed: final status ok"
+    },
+    {
+      "command": "jq empty status.json targeted_result.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_gpt_appendix4d_payload_construction_repair_v1_20260604.md --repo-root .",
+      "result": "passed"
+    }
+  ],
+  "forbidden_actions": {
+    "broad_extraction_or_backfill_run": false,
+    "count_16_or_count_24_sample_run": false,
+    "production_db_write": false,
+    "prompt_or_gold_label_change": false,
+    "qdrant_news_memory_mutation": false,
+    "random_sample_run": false,
+    "runtime_model_gpu_config_change": false,
+    "schema_migration": false,
+    "service_restart": false,
+    "source_pdf_edit_move_commit": false
+  },
+  "generated_at": "2026-06-04T12:02:27.263000+00:00",
+  "job_id": "extraction_gpt_appendix4d_payload_construction_repair_v1_20260604",
+  "prior_artifacts_read": [
+    "/home/l4nd0/tenn-gpt-appendix4d-targeted-pr294-v1-20260604/reports/agent_jobs/extraction_gpt_appendix4d_targeted_verification_after_pr294_v1_20260604/README.md",
+    "/home/l4nd0/tenn-gpt-appendix4d-targeted-pr294-v1-20260604/reports/agent_jobs/extraction_gpt_appendix4d_targeted_verification_after_pr294_v1_20260604/status.json",
+    "/home/l4nd0/tenn-gpt-appendix4d-e2e-pr294-v1-20260604/reports/agent_jobs/extraction_gpt_appendix4d_end_to_end_after_pr294_v1_20260604/README.md",
+    "/home/l4nd0/tenn-gpt-appendix4d-e2e-pr294-v1-20260604/reports/agent_jobs/extraction_gpt_appendix4d_end_to_end_after_pr294_v1_20260604/targeted_result.json",
+    "reports/agent_jobs/extraction_appendix4d_wrapper_gate_current_origin_v1_20260604/README.md",
+    "reports/agent_jobs/extraction_appendix4d_wrapper_gate_current_origin_v1_20260604/appendix4d_gate_simulation.json"
+  ],
+  "updated_at": "2026-06-04T12:06:34.324782+00:00"
+}

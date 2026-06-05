@@ -1990,7 +1990,7 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "A",
         "year_ended_explicit_date",
         re.compile(
-            rf"\b(?:for\s+the\s+)?(?:financial\s+)?year\s+ended\s+"
+            rf"\b(?:for\s+the\s+)?(?:financial\s+)?(?<!half[-\s])year\s+ended\s+"
             rf"{_SOURCE_DATE_TEXT_PATTERN}",
             re.IGNORECASE,
         ),
@@ -2906,6 +2906,274 @@ _APPENDIX_WRAPPER_DISCLOSURE_MARKER_GROUPS: tuple[tuple[str, ...], ...] = (
     ("recorddate",),
     ("associatesandjointventures", "jointventures", "associates"),
 )
+_APPENDIX_WRAPPER_DISCLOSURE_LABELS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Net tangible assets per security", ("ntapersecurity", "nettangibleassetspersecurity")),
+    ("Dividends / distributions", ("dividendsdistributions", "dividends", "distribution")),
+    ("Record date for determining entitlement", ("recorddate",)),
+    (
+        "Details of associates and joint ventures entities",
+        ("associatesandjointventures", "jointventures", "associates"),
+    ),
+)
+_APPENDIX_WRAPPER_REVENUE_LABELS = (
+    "totalrevenuesandotherincome",
+    "revenuefromordinaryactivities",
+    "revenuesfromordinaryactivities",
+)
+_APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS = (
+    "netprofitafterincometaxexpensefromordinaryactivities",
+    "profitafterincometaxexpensefromordinaryactivities",
+    "profitfromordinaryactivitiesaftertax",
+    "lossfromordinaryactivitiesaftertax",
+)
+_SOURCE_NUMBER_RE = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})*(?:\.\d+)?\)?$")
+
+
+def _appendix_wrapper_subtype_from_text(*values: Any) -> str | None:
+    compact = _normalize_filter_text(_combined_source_text(*values))
+    if "appendix4d" in compact:
+        return "appendix4d"
+    if "appendix4e" in compact:
+        return "appendix4e"
+    return None
+
+
+def _source_sections_for_pages(
+    sections: list[dict] | None,
+    *,
+    max_page: int = 4,
+) -> list[dict]:
+    if not sections:
+        return []
+    selected: list[dict] = []
+    for section in sections:
+        try:
+            page = int(section.get("page"))
+        except (TypeError, ValueError):
+            page = None
+        if page is None or 0 < page <= max_page:
+            selected.append(section)
+    return selected
+
+
+def _appendix_wrapper_source_text(
+    sections: list[dict] | None,
+    tables: Any,
+    *,
+    max_page: int = 4,
+    max_chars: int = 12000,
+) -> str:
+    fragments: list[str] = []
+    for section in _source_sections_for_pages(sections, max_page=max_page):
+        text = str(section.get("text") or "").strip()
+        if text:
+            fragments.append(text)
+
+    for table in tables or []:
+        try:
+            page = int(getattr(table, "page_number", 0))
+        except (TypeError, ValueError):
+            page = 0
+        if page and page > max_page:
+            continue
+        fragments.extend(_flatten_payload_text(getattr(table, "caption", "")))
+        fragments.extend(_flatten_payload_text(getattr(table, "headers", [])))
+        fragments.extend(_flatten_payload_text(getattr(table, "rows", [])[:12]))
+
+    return " ".join(fragment for fragment in fragments if fragment)[:max_chars]
+
+
+def _parse_source_numeric_value(value: Any) -> float | None:
+    text = str(value or "").strip().replace("\u00a0", " ")
+    if not text or "%" in text or "$" in text:
+        return None
+    if re.fullmatch(r"\d+\.\d+", text):
+        return None
+    if re.search(r"[A-Za-z]", text):
+        return None
+    if not _SOURCE_NUMBER_RE.match(text):
+        return None
+    negative = text.startswith("(") and text.endswith(")")
+    normalised = text.strip("()").replace(",", "")
+    try:
+        parsed = float(normalised)
+    except ValueError:
+        return None
+    return -parsed if negative else parsed
+
+
+def _scale_source_value(value: float, scale: Any) -> float:
+    return value * SCALE_MULTIPLIERS.get(str(scale or "unknown"), 1)
+
+
+def _find_appendix_wrapper_metric_in_sections(
+    sections: list[dict],
+    label_markers: tuple[str, ...],
+    *,
+    scale: Any,
+) -> tuple[float, str, str] | None:
+    texts = [str(section.get("text") or "").strip() for section in sections]
+    pages = [section.get("page") for section in sections]
+    for idx, text in enumerate(texts):
+        if "%" in text or "$" in text or re.fullmatch(r"\d+(?:\.\d+)?", text):
+            continue
+        label_window = " ".join(texts[idx : idx + 4])
+        compact_label = _normalize_filter_text(label_window)
+        if not any(marker in compact_label for marker in label_markers):
+            continue
+        label_parts: list[str] = []
+        for label_idx in range(idx, min(idx + 4, len(texts))):
+            label_text = texts[label_idx]
+            if label_idx > idx and _parse_source_numeric_value(label_text) is not None:
+                break
+            if (
+                "%" in label_text
+                or "$" in label_text
+                or re.fullmatch(r"\d+(?:\.\d+)?", label_text)
+            ):
+                continue
+            label_parts.append(label_text)
+        label = " ".join(" ".join(label_parts).split())[:120]
+        for value_idx in range(idx + 1, min(idx + 10, len(texts))):
+            raw_value = _parse_source_numeric_value(texts[value_idx])
+            if raw_value is None:
+                continue
+            page = str(pages[value_idx] or pages[idx] or "?")
+            value = _scale_source_value(raw_value, scale)
+            return value, label, f"appendix_wrapper:page_{page}:{label}"
+    return None
+
+
+def _detect_appendix_wrapper_disclosures(source_text: str) -> list[str]:
+    compact = _normalize_filter_text(source_text)
+    disclosures: list[str] = []
+    for label, marker_group in _APPENDIX_WRAPPER_DISCLOSURE_LABELS:
+        if any(marker in compact for marker in marker_group):
+            disclosures.append(label)
+    return disclosures
+
+
+def _build_appendix_wrapper_source_payload(
+    *,
+    title: Any,
+    sections: list[dict] | None,
+    tables: Any,
+    period_evidence: dict[str, Any],
+    period_end_evidence: dict[str, Any],
+    scale: Any,
+    currency: Any,
+) -> dict[str, Any]:
+    source_text = _appendix_wrapper_source_text(sections, tables)
+    subtype = _appendix_wrapper_subtype_from_text(title, source_text)
+    if subtype is None:
+        return {"is_wrapper": False}
+
+    source_sections = _source_sections_for_pages(sections)
+    source_payload: dict[str, Any] = {
+        "is_wrapper": True,
+        "document_subtype": subtype,
+        "document_title": str(title or "").strip(),
+        "period_type": period_end_evidence.get("period_type")
+        or period_evidence.get("period_type"),
+        "period_end": period_end_evidence.get("period_end"),
+        "scale": scale,
+        "currency": _normalize_currency_code(currency) or None,
+        "wrapper_disclosures": _detect_appendix_wrapper_disclosures(source_text),
+        "metrics": {},
+        "row_refs": {},
+        "provenance": {},
+    }
+
+    if not source_payload["document_title"]:
+        source_payload["document_title"] = (
+            "Appendix 4D" if subtype == "appendix4d" else "Appendix 4E"
+        )
+
+    if str(scale or "").strip().lower() not in ("", "unknown"):
+        revenue = _find_appendix_wrapper_metric_in_sections(
+            source_sections,
+            _APPENDIX_WRAPPER_REVENUE_LABELS,
+            scale=scale,
+        )
+        if revenue is not None:
+            value, row_ref, provenance = revenue
+            source_payload["metrics"]["revenue"] = value
+            source_payload["row_refs"]["revenue"] = row_ref
+            source_payload["provenance"]["revenue"] = provenance
+
+        np_attributable = _find_appendix_wrapper_metric_in_sections(
+            source_sections,
+            _APPENDIX_WRAPPER_NP_ATTRIBUTABLE_LABELS,
+            scale=scale,
+        )
+        if np_attributable is not None:
+            value, row_ref, provenance = np_attributable
+            source_payload["metrics"]["np_attributable"] = value
+            source_payload["row_refs"]["np_attributable"] = row_ref
+            source_payload["provenance"]["np_attributable"] = provenance
+
+    return source_payload
+
+
+def _apply_appendix_wrapper_source_payload(
+    payload: dict[str, Any],
+    wrapper_source: dict[str, Any] | None,
+) -> None:
+    if not isinstance(wrapper_source, dict) or not wrapper_source.get("is_wrapper"):
+        return
+
+    if wrapper_source.get("period_type") in {"A", "H", "Q"}:
+        payload["period_type"] = wrapper_source["period_type"]
+    if wrapper_source.get("period_end"):
+        payload["period_end"] = wrapper_source["period_end"]
+
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    row_refs = payload.get("row_refs") if isinstance(payload.get("row_refs"), dict) else {}
+    provenance = (
+        payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    )
+    for metric_name, value in wrapper_source.get("metrics", {}).items():
+        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS and value is not None:
+            metrics[metric_name] = value
+            payload[metric_name] = value
+    for metric_name, row_ref in wrapper_source.get("row_refs", {}).items():
+        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
+            row_refs[metric_name] = row_ref
+    for metric_name, source in wrapper_source.get("provenance", {}).items():
+        if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
+            provenance[metric_name] = source
+    payload["metrics"] = metrics
+    payload["row_refs"] = row_refs
+    payload["provenance"] = provenance
+
+    if wrapper_source.get("wrapper_disclosures") is not None:
+        payload["wrapper_disclosures"] = list(wrapper_source["wrapper_disclosures"])
+
+    source_bound = payload.get("source_bound")
+    if not isinstance(source_bound, dict):
+        source_bound = {}
+    for key in (
+        "document_subtype",
+        "document_title",
+        "period_type",
+        "period_end",
+        "scale",
+        "currency",
+    ):
+        if wrapper_source.get(key) not in (None, ""):
+            source_bound[key] = wrapper_source[key]
+    payload["source_bound"] = source_bound
+
+    wrapper_metric_names = {
+        name
+        for name, value in wrapper_source.get("metrics", {}).items()
+        if name in _APPENDIX_WRAPPER_REQUIRED_METRICS and value is not None
+    }
+    if _APPENDIX_WRAPPER_REQUIRED_METRICS.issubset(wrapper_metric_names):
+        payload["confidence_metrics"] = max(
+            _coerce_confidence(payload.get("confidence_metrics", 0.0)),
+            0.9,
+        )
 
 
 def _payload_metric_source_text(payload: dict, metric_name: str) -> str:
@@ -3493,6 +3761,28 @@ def run_multipass_extraction(
             _currency,
         )
 
+    appendix_wrapper_source = _build_appendix_wrapper_source_payload(
+        title=title,
+        sections=structured_doc.sections,
+        tables=structured_doc.tables,
+        period_evidence=source_period_evidence,
+        period_end_evidence=source_period_end_evidence,
+        scale=pass1.get("scale", "unknown"),
+        currency=pass1.get("currency"),
+    )
+    if appendix_wrapper_source.get("is_wrapper"):
+        pass1["_appendix_wrapper_source"] = appendix_wrapper_source
+        if appendix_wrapper_source.get("period_type") in {"A", "H", "Q"}:
+            if pass1.get("report_type") != appendix_wrapper_source["period_type"]:
+                logger.info(
+                    "Appendix wrapper source period type (%s) overrides Pass 1 (%s)",
+                    appendix_wrapper_source["period_type"],
+                    pass1.get("report_type"),
+                )
+            pass1["report_type"] = appendix_wrapper_source["period_type"]
+        if appendix_wrapper_source.get("period_end"):
+            pass1["period_end"] = appendix_wrapper_source["period_end"]
+
     # Pass 2: Locate tables
     if observer is not None:
         observer.emit("pass2_locator", "running", "Locating statement tables.")
@@ -3622,6 +3912,10 @@ def run_multipass_extraction(
     payload["scale"] = pass1.get("scale", "unknown") or "unknown"
     payload["currency"] = pass1.get("currency") or "AUD"
     payload["document_title"] = title
+    _apply_appendix_wrapper_source_payload(
+        payload,
+        pass1.get("_appendix_wrapper_source"),
+    )
     source_bound = payload.get("source_bound")
     if not isinstance(source_bound, dict):
         source_bound = {}
@@ -3635,6 +3929,8 @@ def run_multipass_extraction(
         }
     )
     payload["source_bound"] = source_bound
+    _pe = parse_period_end(payload.get("period_end"))
+    payload["period_start"] = _derive_period_start(_pe, payload.get("period_type"))
 
     # Surface non-AUD currency as a structured warning for operator visibility.
     # Values are stored in native currency with no FX conversion; downstream

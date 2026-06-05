@@ -1,0 +1,102 @@
+{
+  "after_payload": {
+    "currency": "AUD",
+    "final_status": "ok",
+    "gate_error": null,
+    "metrics": {
+      "ebit": null,
+      "np_attributable": 15463000.0,
+      "revenue": 150804000.0
+    },
+    "period_end": "2024-06-30",
+    "period_type": "H",
+    "provenance": {
+      "np_attributable": "appendix_wrapper:page_2:Net profit after income tax expense from ordinary activities",
+      "revenue": "appendix_wrapper:page_2:Total revenues and other income"
+    },
+    "row_refs": {
+      "np_attributable": "Net profit after income tax expense from ordinary activities",
+      "revenue": "Total revenues and other income"
+    },
+    "scale": "thousands",
+    "source_bound": {
+      "currency": "AUD",
+      "document_subtype": "appendix4d",
+      "document_title": "Appendix 4D - GPT Management Holdings Limited",
+      "period_end": "2024-06-30",
+      "period_type": "H",
+      "scale": "thousands"
+    },
+    "source_document_classification": {
+      "canary_candidate_allowed": true,
+      "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+      "document_class": "financial_report",
+      "evidence": [
+        "appendix_4d_source_phrase"
+      ],
+      "extraction_candidate_allowed": true,
+      "reason": "appendix_4d_source_phrase"
+    },
+    "source_period_end_evidence": {
+      "hits": [
+        {
+          "evidence": "For the half year ended 30 June 2024",
+          "period_end": "2024-06-30",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        {
+          "evidence": "for the half year ended 30 June 2024",
+          "period_end": "2024-06-30",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        },
+        {
+          "evidence": "for the half year ended 30 June 2024",
+          "period_end": "2024-06-30",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date"
+        }
+      ],
+      "period_end": "2024-06-30",
+      "period_type": "H",
+      "reason": "half_year_ended_explicit_date"
+    },
+    "wrapper_disclosures": [
+      "Net tangible assets per security",
+      "Dividends / distributions",
+      "Record date for determining entitlement",
+      "Details of associates and joint ventures entities"
+    ]
+  },
+  "before_payload": {
+    "currency": "AUD",
+    "final_status": "failed",
+    "gate_error": "validation_gate:missing_period_end",
+    "metrics": {
+      "np_attributable": 15462000,
+      "revenue": null
+    },
+    "period_end": null,
+    "period_type": "Q",
+    "scale": "thousands",
+    "source": "prior end-to-end verification supplied in task context",
+    "source_bound": null,
+    "wrapper_disclosures": null
+  },
+  "broad_extraction_backfill_sample_run": false,
+  "expected_payload_match": {
+    "currency": true,
+    "final_status_ok": true,
+    "np_attributable": true,
+    "period_end": true,
+    "period_type": true,
+    "revenue": true,
+    "scale": true,
+    "wrapper_disclosures_present": true
+  },
+  "runtime_llm_available": false,
+  "source_pdf_touched": false,
+  "target_pdf": "/data/asx/docs/GPT/financial_performance/2024-08-19_appendix-4d-gpt-management-holdings-limited_c10a88ab-4290-4395-9521-7f96c50b03c4.pdf",
+  "verification_mode": "report_local_full_multipass_equivalent_exact_pdf_real_parser_mocked_llm_outputs"
+}
