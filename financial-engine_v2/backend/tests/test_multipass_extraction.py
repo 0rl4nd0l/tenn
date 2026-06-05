@@ -136,6 +136,176 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+def _gpt_appendix_4d_sections(*, include_disclosures: bool = True) -> list[dict]:
+    sections = [
+        {"text": "ASX Announcement", "page": 1},
+        {"text": "Appendix 4D - GPT Management Holdings Limited", "page": 1},
+        {"text": "Interim Financial Report", "page": 2},
+        {"text": "For the half year ended 30 June 2024", "page": 2},
+        {"text": "Results for announcement to the market", "page": 2},
+        {"text": "30 June 24", "page": 2},
+        {"text": "$'000", "page": 2},
+        {"text": "2.1", "page": 2},
+        {"text": "Total revenues and other income", "page": 2},
+        {"text": "150,804", "page": 2},
+        {"text": "2.2", "page": 2},
+        {"text": "Net profit after income tax expense from ordinary", "page": 2},
+        {"text": "activities", "page": 2},
+        {"text": "15,463", "page": 2},
+        {"text": "2.3", "page": 2},
+        {"text": "Net profit after income tax expense attributable to", "page": 2},
+        {"text": "members", "page": 2},
+        {"text": "15,462", "page": 2},
+        {"text": "Dividends", "page": 2},
+        {"text": "Amount per security", "page": 2},
+        {"text": "Nil", "page": 2},
+        {"text": "Net tangible assets per security", "page": 2},
+    ]
+    if include_disclosures:
+        sections.extend(
+            [
+                {"text": "Record date for determining entitlement to the", "page": 2},
+                {"text": "N/A", "page": 2},
+                {"text": "Details of associates and joint ventures entities", "page": 3},
+            ]
+        )
+    return sections
+
+
+def test_run_multipass_carries_gpt_appendix_4d_source_bound_payload():
+    """GPT Appendix 4D summary evidence must survive into the validation payload."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 3
+        docling_version = None
+        tables = []
+        sections = _gpt_appendix_4d_sections()
+
+    pass1_wrong_period = {
+        "report_type": "Q",
+        "period_end": None,
+        "currency": "AUD",
+        "scale": "thousands",
+        "classifier_confidence": 0.97,
+    }
+
+    def _pass3a_bad_attached_statement(_labelled, pass1, llm_client, **kwargs):
+        assert pass1["report_type"] == "H"
+        assert pass1["period_end"] == "2024-06-30"
+        return [
+            {
+                "_source": "income_statement",
+                "_page_number": 2,
+                "revenue": None,
+                "np_attributable": 15_462_000,
+                "pass3_confidence": 0.88,
+                "row_refs": {
+                    "np_attributable": (
+                        "Net profit after income tax expense attributable to members"
+                    )
+                },
+            }
+        ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_wrong_period,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        side_effect=_pass3a_bad_attached_statement,
+    ):
+        result = run_multipass_extraction(
+            "/fake/gpt-appendix-4d.pdf",
+            {
+                "document_id": "gpt-appendix-4d",
+                "ticker": "GPT",
+                "title": "Appendix 4D - GPT Management Holdings Limited",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "ok"
+    assert result.error is None
+    assert result.payload["period_type"] == "H"
+    assert result.payload["period_end"] == "2024-06-30"
+    assert result.payload["scale"] == "thousands"
+    assert result.payload["currency"] == "AUD"
+    assert result.payload["metrics"]["revenue"] == 150_804_000
+    assert result.payload["metrics"]["np_attributable"] == 15_463_000
+    assert result.payload["revenue"] == 150_804_000
+    assert result.payload["np_attributable"] == 15_463_000
+    assert result.payload["source_bound"]["period_type"] == "H"
+    assert result.payload["source_bound"]["period_end"] == "2024-06-30"
+    assert result.payload["source_bound"]["scale"] == "thousands"
+    assert result.payload["source_bound"]["currency"] == "AUD"
+    assert result.payload["source_bound"]["document_subtype"] == "appendix4d"
+    assert len(result.payload["wrapper_disclosures"]) == 4
+    assert "ordinary" in result.payload["row_refs"]["np_attributable"].lower()
+    assert "dividends" not in result.payload["metrics"]
+    assert "record_date" not in result.payload["metrics"]
+    assert "nta_per_security" not in result.payload["metrics"]
+
+
+def test_run_multipass_appendix_4d_fails_closed_without_wrapper_disclosures():
+    """Wrapper source metrics cannot pass the two-metric gate without disclosures."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 3
+        docling_version = None
+        tables = []
+        sections = _gpt_appendix_4d_sections(include_disclosures=False)
+
+    pass1_wrong_period = {
+        "report_type": "Q",
+        "period_end": None,
+        "currency": "AUD",
+        "scale": "thousands",
+        "classifier_confidence": 0.97,
+    }
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_wrong_period,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[],
+    ):
+        result = run_multipass_extraction(
+            "/fake/gpt-appendix-4d.pdf",
+            {
+                "document_id": "gpt-appendix-4d",
+                "ticker": "GPT",
+                "title": "Appendix 4D - GPT Management Holdings Limited",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "failed"
+    assert result.error == "validation_gate:wrapper_missing_disclosure_evidence"
+    assert result.payload["period_type"] == "H"
+    assert result.payload["period_end"] == "2024-06-30"
+    assert result.payload["metrics"]["revenue"] == 150_804_000
+    assert result.payload["metrics"]["np_attributable"] == 15_463_000
+
+
 # ---------------------------------------------------------------------------
 # Pass 2 — Table Locator
 # ---------------------------------------------------------------------------

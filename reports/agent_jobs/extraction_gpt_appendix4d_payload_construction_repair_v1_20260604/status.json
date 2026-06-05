@@ -1,0 +1,50 @@
+{
+  "base_head": "2f9a2607630c93f828baab8a63cedc068a485585",
+  "branch": "safe/extraction-gpt-appendix4d-payload-construction-repair-v1-20260604",
+  "broad_extraction_backfill_sample_run": false,
+  "canonical_metrics": {
+    "ebit": null,
+    "np_attributable": 15463000.0,
+    "revenue": 150804000.0
+  },
+  "check_diff": "passed",
+  "count_16_bounded_rerun_justified": "conditional_only_after_operator_approval_and_live_runtime_readiness",
+  "expected_payload_match": {
+    "currency": true,
+    "final_status_ok": true,
+    "np_attributable": true,
+    "period_end": true,
+    "period_type": true,
+    "revenue": true,
+    "scale": true,
+    "wrapper_disclosures_present": true
+  },
+  "generated_at": "2026-06-04T12:04:15.097236+00:00",
+  "job_id": "extraction_gpt_appendix4d_payload_construction_repair_v1_20260604",
+  "period_scale_currency": {
+    "currency": "AUD",
+    "period_end": "2024-06-30",
+    "period_type": "H",
+    "scale": "thousands"
+  },
+  "registry_release": {
+    "active_record": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_gpt_appendix4d_payload_construction_repair_v1_20260604.json",
+    "released_at": "2026-06-04T12:03:45.978807Z",
+    "repo_root": "/home/l4nd0/tenn-extraction-gpt-appendix4d-payload-construction-repair-v1-20260604",
+    "status": "released"
+  },
+  "remaining_data_missing": [
+    "No live LLM-backed full multipass run was available in this isolated worktree; targeted verification used real parser output and mocked prior-bad LLM outputs.",
+    "No count-16/count-24 bounded rerun was run."
+  ],
+  "status": "success",
+  "target_pdf": "/data/asx/docs/GPT/financial_performance/2024-08-19_appendix-4d-gpt-management-holdings-limited_c10a88ab-4290-4395-9521-7f96c50b03c4.pdf",
+  "targeted_final_status": "ok",
+  "targeted_gate_error": null,
+  "wrapper_disclosures": [
+    "Net tangible assets per security",
+    "Dividends / distributions",
+    "Record date for determining entitlement",
+    "Details of associates and joint ventures entities"
+  ]
+}
