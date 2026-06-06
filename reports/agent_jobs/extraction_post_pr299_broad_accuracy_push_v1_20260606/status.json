@@ -1,0 +1,15 @@
+{
+  "blocked_items": [
+    {
+      "evidence": "agent_job_registry.py list-active has no safe read-only path and references undefined args.read_only",
+      "item": "registry_active_jobs",
+      "status": "DATA_MISSING"
+    }
+  ],
+  "branch": "safe/extraction-post-pr299-broad-accuracy-push-v1-20260606",
+  "current_state": "RUNNING",
+  "head": "9436d1d32de0da5423b8edcfc7efc883ccac3fd6",
+  "no_broad_extraction_backfill_or_full_ticker_extraction": true,
+  "phase": "preflight",
+  "worktree": "/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606"
+}
