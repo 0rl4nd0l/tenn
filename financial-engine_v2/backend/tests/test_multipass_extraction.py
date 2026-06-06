@@ -2373,6 +2373,102 @@ def test_validate_scale_blocks_wtc_like_unknown_scale_values():
     assert error == "validation_gate:scale_validation:suspect_underscaled"
 
 
+def test_pass3a_uses_selected_table_scale_over_document_scale():
+    """Selected-table $'000 markers must override a document-level millions scale."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=25,
+        caption="Consolidated profit & loss statement",
+        headers=["", "FY25", "FY24"],
+        rows=[
+            ["", "FY25", "FY24"],
+            ["", "$'000", "$'000"],
+            ["Total revenue", "46,547", "48,505"],
+            ["Net profit/(loss) after tax", "39,374", "3,407"],
+        ],
+    )
+    raw_response = {
+        "metrics": {
+            "revenue": 46_547,
+            "np_attributable": 39_374,
+        },
+        "row_refs": {
+            "revenue": "Total revenue",
+            "np_attributable": "Net profit/(loss) after tax",
+        },
+        "pass3_confidence": 0.9,
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {
+                "report_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["revenue"] == 46_547_000
+    assert result["np_attributable"] == 39_374_000
+    assert result["_scale"] == "thousands"
+    assert result["_scale_source"] == "table"
+
+
+def test_pass4_common_metric_source_scale_overrides_document_scale():
+    """A common table-local source scale should become the reconciled payload scale."""
+    from app.services.multipass_extraction import (
+        _common_metric_source_scale,
+        _run_pass4_reconciler,
+    )
+
+    payload = _run_pass4_reconciler(
+        [
+            {
+                "_source": "income_statement",
+                "_page_number": 25,
+                "_scale": "thousands",
+                "_scale_source": "table",
+                "revenue": 46_547_000,
+                "np_attributable": 39_374_000,
+                "pass3_confidence": 0.9,
+                "row_refs": {
+                    "revenue": "Total revenue",
+                    "np_attributable": "Net profit/(loss) after tax",
+                },
+            }
+        ],
+        {
+            "risk_summary": None,
+            "risk_bullets": None,
+            "guidance_summary": None,
+            "material_changes": None,
+            "confidence_narrative": 0.0,
+        },
+        {
+            "report_type": "A",
+            "period_end": "2025-06-30",
+            "scale": "millions",
+        },
+    )
+
+    assert payload["metric_source_scales"] == {
+        "revenue": "thousands",
+        "np_attributable": "thousands",
+    }
+    assert _common_metric_source_scale(payload, "millions") == "thousands"
+
+
 def test_validate_gate_non_aud_returns_ok_low_confidence():
     """Non-AUD currency (e.g. USD, GBP) must downgrade to ok_low_confidence.
 

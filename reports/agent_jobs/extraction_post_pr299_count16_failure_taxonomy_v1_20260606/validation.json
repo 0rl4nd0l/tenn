@@ -1,0 +1,63 @@
+{
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_post_pr299_count16_failure_taxonomy_v1_20260606.md",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'selected_table_scale or common_metric_source_scale or validate_scale_blocks_wtc_like_unknown_scale_values'",
+      "exit_status": 0,
+      "result": "3 passed, 174 deselected"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_status": 0,
+      "result": "177 passed, 1 warning"
+    },
+    {
+      "command": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_status": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "jq empty reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/*.json",
+      "exit_status": 0,
+      "result": "passed for JSON report artifacts present at validation time"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_post_pr299_count16_failure_taxonomy_v1_20260606.md --repo-root .",
+      "exit_status": 0,
+      "result": "passed; disallowed_files empty"
+    },
+    {
+      "command": "git diff --name-only --cached -- '*.pdf'",
+      "exit_status": 0,
+      "result": "no source PDFs staged"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --repo-root .",
+      "exit_status": 0,
+      "result": "active_jobs empty; command reports read_only=false and lock_acquired=true"
+    }
+  ],
+  "generated_at": "2026-06-06T03:57:18.166369+00:00",
+  "known_warnings": [
+    "pytest emitted RequestsDependencyWarning for urllib3/chardet/charset_normalizer version compatibility in the venv",
+    "registry list-active is not read-only in this checkout"
+  ],
+  "no_broad_extraction_backfill_or_full_ticker_run": true,
+  "no_count24_or_count32_run": true,
+  "no_source_pdfs_staged": true,
+  "state": "DONE_WITH_RISK"
+}

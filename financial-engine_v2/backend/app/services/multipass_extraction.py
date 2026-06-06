@@ -309,6 +309,23 @@ def _detect_explicit_currency_million_header(tables) -> str | None:
     return _dominant_currency_from_hits(hits)
 
 
+def _detect_scale_from_table(table) -> str:
+    """Detect an explicit scale marker from one table's local source text."""
+    surfaces: list[str] = []
+    if table.headers:
+        surfaces.append(" ".join(str(h) for h in table.headers))
+    if getattr(table, "caption", None):
+        surfaces.append(str(table.caption))
+    for row in (table.rows or [])[:3]:
+        surfaces.append(" ".join(str(cell) for cell in row))
+
+    combined = " ".join(surfaces)
+    for pattern, scale in _SCALE_PATTERNS:
+        if _re.search(pattern, combined, _re.IGNORECASE):
+            return scale
+    return "unknown"
+
+
 def _detect_scale_from_tables(tables) -> str:
     """
     Scan table headers, captions, and first few body rows for scale indicators
@@ -318,19 +335,9 @@ def _detect_scale_from_tables(tables) -> str:
     table captions, or sub-header rows just below the column headers.
     """
     for table in tables[:15]:
-        # Build list of text surfaces to scan: headers, caption, first 3 body rows
-        surfaces: list[str] = []
-        if table.headers:
-            surfaces.append(" ".join(table.headers))
-        if getattr(table, "caption", None):
-            surfaces.append(table.caption)
-        for row in (table.rows or [])[:3]:
-            surfaces.append(" ".join(str(cell) for cell in row))
-
-        combined = " ".join(surfaces)
-        for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, combined, _re.IGNORECASE):
-                return scale
+        detected = _detect_scale_from_table(table)
+        if detected != "unknown":
+            return detected
 
     for table in tables[:15]:
         surfaces: list[str] = []
@@ -1433,6 +1440,18 @@ def _extract_single_table(
         markdown = _table_to_markdown(table, max_rows=row_cap)
     if not markdown:
         return None
+    table_scale = _detect_scale_from_table(table)
+    scale_for_table = table_scale if table_scale != "unknown" else scale
+    multiplier_for_table = SCALE_MULTIPLIERS.get(scale_for_table, multiplier)
+    scale_source = "table" if table_scale != "unknown" else "document"
+    if table_scale != "unknown" and table_scale != scale:
+        logger.info(
+            "table-local scale (%s) overrides document-level scale (%s) for %s",
+            table_scale,
+            scale,
+            table_type,
+        )
+
     sanity_cap = _native_currency_sanity_cap(pass1_result.get("currency"))
 
     def _build_prompt(table_markdown: str) -> str:
@@ -1440,7 +1459,7 @@ def _extract_single_table(
             period_type=pass1_result.get("report_type", "?"),
             period_end=pass1_result.get("period_end", "?"),
             currency=pass1_result.get("currency", "AUD"),
-            scale=scale,
+            scale=scale_for_table,
             table_type=table_type,
             table_markdown=table_markdown,
             metric_list=", ".join(metrics),
@@ -1462,6 +1481,8 @@ def _extract_single_table(
         extracted = {
             "_source": table_type,
             "_page_number": getattr(table, "page_number", None),
+            "_scale": scale_for_table,
+            "_scale_source": scale_source,
             "_thinking": raw_payload.get("thinking"),
             "_markdown": table_markdown,
             "row_refs": raw_payload.get("row_refs", {}),
@@ -1472,7 +1493,7 @@ def _extract_single_table(
                 try:
                     raw_float = float(val)
                     effective_multiplier = (
-                        1 if metric_name in _COUNT_METRICS else multiplier
+                        1 if metric_name in _COUNT_METRICS else multiplier_for_table
                     )
                     scaled = raw_float * effective_multiplier
                     if (
@@ -1587,13 +1608,13 @@ def _extract_single_table(
                     shares_val,
                     extracted["shares_outstanding"],
                 )
-            elif scale in ("thousands", "millions"):
-                doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
+            elif scale_for_table in ("thousands", "millions"):
+                doc_mult = SCALE_MULTIPLIERS.get(scale_for_table, 1)
                 extracted["shares_outstanding"] = shares_val * doc_mult
                 logger.info(
-                    "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
+                    "shares_outstanding scaled ×%d (source scale=%s): %.0f → %.0f",
                     doc_mult,
-                    scale,
+                    scale_for_table,
                     shares_val,
                     extracted["shares_outstanding"],
                 )
@@ -2772,6 +2793,8 @@ def _run_pass4_reconciler(
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
     provenance: dict[str, str] = {}
     row_refs: dict[str, str] = {}
+    metric_source_scales: dict[str, str] = {}
+    metric_scale_sources: dict[str, str] = {}
     thinking_map: dict[str, str] = {}
     markdown_map: dict[str, str] = {}
     confidence_weighted_sum = 0.0
@@ -2800,6 +2823,12 @@ def _run_pass4_reconciler(
                 merged_metrics[m] = extraction[m]
                 row_ref = extraction.get("row_refs", {}).get(m, "unknown")
                 row_refs[m] = row_ref
+                metric_scale = str(extraction.get("_scale") or "").strip()
+                if metric_scale and metric_scale != "unknown":
+                    metric_source_scales[m] = metric_scale
+                    metric_scale_sources[m] = str(
+                        extraction.get("_scale_source") or "unknown"
+                    )
                 thinking_map[m] = extraction.get("_thinking") or ""
                 markdown_map[m] = extraction.get("_markdown") or ""
                 provenance[m] = f"{source}:{page_tag}:{row_ref}"
@@ -2814,6 +2843,12 @@ def _run_pass4_reconciler(
         row_ref = explicit_net_debt.get("row_refs", {}).get("net_debt", "unknown")
         merged_metrics["net_debt"] = explicit_net_debt["net_debt"]
         row_refs["net_debt"] = row_ref
+        metric_scale = str(explicit_net_debt.get("_scale") or "").strip()
+        if metric_scale and metric_scale != "unknown":
+            metric_source_scales["net_debt"] = metric_scale
+            metric_scale_sources["net_debt"] = str(
+                explicit_net_debt.get("_scale_source") or "unknown"
+            )
         thinking_map["net_debt"] = explicit_net_debt.get("_thinking") or ""
         markdown_map["net_debt"] = explicit_net_debt.get("_markdown") or ""
         provenance["net_debt"] = f"{source}:{page_tag}:{row_ref}"
@@ -2906,12 +2941,34 @@ def _run_pass4_reconciler(
         ),
         "metrics": merged_metrics,
         "row_refs": row_refs,
+        "metric_source_scales": metric_source_scales,
+        "metric_scale_sources": metric_scale_sources,
         "thinking": thinking_map,
         "markdown_tables": markdown_map,
         "confidence_metrics": round(metric_confidence, 3),
         "provenance": provenance,
         **pass3b_result,  # risk_summary, risk_bullets, guidance_summary, material_changes, confidence_narrative
     }
+
+
+def _common_metric_source_scale(payload: dict, fallback: Any) -> str:
+    """Return a common explicit metric source scale when all dollar metrics agree."""
+    metric_scales = payload.get("metric_source_scales")
+    metrics = payload.get("metrics")
+    if not isinstance(metric_scales, dict) or not isinstance(metrics, dict):
+        return str(fallback or "unknown")
+
+    scales = {
+        str(scale).strip()
+        for metric_name, scale in metric_scales.items()
+        if metric_name != "shares_outstanding"
+        and metrics.get(metric_name) is not None
+        and str(scale).strip()
+        and str(scale).strip() != "unknown"
+    }
+    if len(scales) == 1:
+        return next(iter(scales))
+    return str(fallback or "unknown")
 
 
 # ---------------------------------------------------------------------------
@@ -4062,7 +4119,10 @@ def run_multipass_extraction(
     # Propagate scale and currency from Pass 1 into payload so _validate_gate
     # can inspect them and so _upsert_financial_rows stores the correct currency.
     # pass1["currency"] was already normalised (string "null" → "AUD") at detection time.
-    payload["scale"] = pass1.get("scale", "unknown") or "unknown"
+    payload["scale"] = _common_metric_source_scale(
+        payload,
+        pass1.get("scale", "unknown") or "unknown",
+    )
     payload["currency"] = pass1.get("currency") or "AUD"
     payload["document_title"] = title
     _apply_appendix_wrapper_source_payload(
