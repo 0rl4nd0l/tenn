@@ -1,0 +1,145 @@
+{
+  "job_id": "extraction_post_pr299_candidate_exclusion_taxonomy_v1_20260606",
+  "timestamp": "2026-06-06T13:06:17+10:00",
+  "worktree": "/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606",
+  "branch": "safe/extraction-post-pr299-broad-accuracy-push-v1-20260606",
+  "head": "9436d1d32de0da5423b8edcfc7efc883ccac3fd6",
+  "head_contains_pr299": true,
+  "source_pdf_mutation": false,
+  "sample_run": false,
+  "false_positive_classes": [
+    {
+      "ticker": "EQR",
+      "document_class": "meeting_or_proxy_notice",
+      "reason": "source_noncandidate:meeting_or_proxy_notice",
+      "source_path": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2025-10-27_notice-of-annual-general-meeting-proxy-form_0bb01b94-5e07-4648-a0c7-bac78428e848.pdf",
+      "source_evidence_summary": "First page identifies upcoming general meeting, annual general meeting material, notice of meeting, explanatory memorandum, and proxy-style material.",
+      "rule_surface": "title or first-page text",
+      "classifier_output": {
+        "document_class": "meeting_or_proxy_notice",
+        "extraction_candidate_allowed": false,
+        "canary_candidate_allowed": false,
+        "reason": "source_noncandidate:meeting_or_proxy_notice",
+        "evidence": [
+          "meeting_or_proxy_notice_pattern"
+        ]
+      }
+    },
+    {
+      "ticker": "MAH",
+      "document_class": "operational_project_update",
+      "reason": "source_noncandidate:operational_project_update",
+      "source_path": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "source_evidence_summary": "First page identifies an update in relation to the Mt Morgans Gold Project and operational mining-status content.",
+      "rule_surface": "title or first-page text",
+      "classifier_output": {
+        "document_class": "operational_project_update",
+        "extraction_candidate_allowed": false,
+        "canary_candidate_allowed": false,
+        "reason": "source_noncandidate:operational_project_update",
+        "evidence": [
+          "operational_project_update_pattern"
+        ]
+      }
+    },
+    {
+      "ticker": "FCL",
+      "document_class": "board_change_notice",
+      "reason": "source_noncandidate:board_change_notice",
+      "source_path": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_3945f529-ca65-485d-931a-4b6f602cde23.pdf",
+      "source_evidence_summary": "First page identifies FINEOS board changes, director appointment material, securityholder approval, and AGM context.",
+      "rule_surface": "title or first-page text",
+      "classifier_output": {
+        "document_class": "board_change_notice",
+        "extraction_candidate_allowed": false,
+        "canary_candidate_allowed": false,
+        "reason": "source_noncandidate:board_change_notice",
+        "evidence": [
+          "board_change_notice_pattern"
+        ]
+      }
+    },
+    {
+      "ticker": "HRZ",
+      "document_class": "share_sale_or_gross_proceeds_announcement",
+      "reason": "source_noncandidate:share_sale_or_gross_proceeds_announcement",
+      "source_path": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "source_evidence_summary": "First page identifies VOX shares sold and gross proceeds before fees and taxes.",
+      "rule_surface": "title or first-page text",
+      "classifier_output": {
+        "document_class": "share_sale_or_gross_proceeds_announcement",
+        "extraction_candidate_allowed": false,
+        "canary_candidate_allowed": false,
+        "reason": "source_noncandidate:share_sale_or_gross_proceeds_announcement",
+        "evidence": [
+          "share_sale_gross_proceeds_pattern"
+        ]
+      }
+    },
+    {
+      "ticker": "MPL",
+      "document_class": "pre_results_segment_re_presentation",
+      "reason": "source_noncandidate:pre_results_segment_re_presentation",
+      "source_path": "/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "source_evidence_summary": "First page identifies segment-result re-presentation, terminology changes, planned half-year results announcement, and no change to statutory financial results.",
+      "rule_surface": "title or first-page text",
+      "classifier_output": {
+        "document_class": "pre_results_segment_re_presentation",
+        "extraction_candidate_allowed": false,
+        "canary_candidate_allowed": false,
+        "reason": "source_noncandidate:pre_results_segment_re_presentation",
+        "evidence": [
+          "pre_results_segment_re_presentation_pattern"
+        ]
+      }
+    }
+  ],
+  "valid_candidate_controls": [
+    {
+      "class": "annual_report",
+      "title": "annual-report-to-shareholders.pdf",
+      "source_text_summary": "Annual report for the year ended source evidence.",
+      "expected_document_class": "financial_report",
+      "expected_allowed": true
+    },
+    {
+      "class": "appendix_4d_half_year",
+      "title": "appendix-4d-half-year-results.pdf",
+      "source_text_summary": "Appendix 4D half-year source evidence.",
+      "expected_document_class": "financial_report",
+      "expected_allowed": true
+    },
+    {
+      "class": "appendix_4d_financial_report",
+      "title": "hy24-results-appendix-4d-and-financial-report.pdf",
+      "source_text_summary": "Appendix 4D and financial report source evidence.",
+      "expected_document_class": "financial_report",
+      "expected_allowed": true
+    },
+    {
+      "class": "quarterly_appendix_5b_report",
+      "title": "quarterly-activities-report-and-appendix-5b.pdf",
+      "source_text_summary": "Quarterly activities and Appendix 5B source evidence.",
+      "expected_document_class": "financial_report",
+      "expected_allowed": true
+    }
+  ],
+  "data_missing": [
+    {
+      "item": "safe_read_only_registry_active_jobs",
+      "reason": "Local registry command reports active_jobs empty but acquires a write lock and has read_only=false; audited read-only registry evidence is unavailable in this checkout."
+    }
+  ],
+  "forbidden_actions_confirmed_not_run": [
+    "broad_backfill",
+    "full_ticker_universe_extraction",
+    "count_24",
+    "count_32",
+    "source_pdf_mutation",
+    "production_db_write",
+    "direct_sql_mutation",
+    "qdrant_news_memory_mutation",
+    "service_restart",
+    "prompt_gold_label_runtime_schema_change"
+  ]
+}

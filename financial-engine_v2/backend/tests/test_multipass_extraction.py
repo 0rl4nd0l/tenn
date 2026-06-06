@@ -136,6 +136,106 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+@pytest.mark.parametrize(
+    ("title", "first_page_text", "document_class"),
+    [
+        (
+            "notice-of-annual-general-meeting-proxy-form.pdf",
+            (
+                "Upcoming General Meeting of Shareholders. Annual General "
+                "Meeting, Notice of Meeting and Explanatory Memorandum."
+            ),
+            "meeting_or_proxy_notice",
+        ),
+        (
+            "fineos-board-changes.pdf",
+            (
+                "Upcoming FINEOS Board changes. Appointment of a new "
+                "non-executive director is subject to securityholder approval "
+                "at the AGM."
+            ),
+            "board_change_notice",
+        ),
+        (
+            "update-in-relation-to-mt-morgans-gold-project.pdf",
+            (
+                "Update in Relation to Mt Morgans Gold Project. Dacian will "
+                "discontinue open pit mining with no impact on FY22 revenue "
+                "or earnings."
+            ),
+            "operational_project_update",
+        ),
+        (
+            "vox-shares-sold-2-93m-gross-proceeds.pdf",
+            (
+                "VOX SHARES SOLD $2.93M GROSS PROCEEDS. Shares were sold on "
+                "NASDAQ and TSX before fees and taxes."
+            ),
+            "share_sale_or_gross_proceeds_announcement",
+        ),
+        (
+            "re-presentation-of-segment-results-and-terminology-changes.pdf",
+            (
+                "Re-presentation of segment results and changes in terminology. "
+                "The company plans to announce 2026 half year financial results "
+                "and there are no changes to statutory financial results."
+            ),
+            "pre_results_segment_re_presentation",
+        ),
+    ],
+)
+def test_source_document_classifier_excludes_known_false_positive_classes(
+    title, first_page_text, document_class
+):
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(title, first_page_text)
+
+    assert result.document_class == document_class
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == f"source_noncandidate:{document_class}"
+    assert result.evidence
+
+
+@pytest.mark.parametrize(
+    ("title", "first_page_text", "period_reason"),
+    [
+        (
+            "annual-report-to-shareholders.pdf",
+            "Annual Report for the year ended 30 June 2024.",
+            "annual_report_title",
+        ),
+        (
+            "appendix-4d-half-year-results.pdf",
+            "Appendix 4D Half Year Results for the half year ended 31 December 2025.",
+            "half_year_source_phrase",
+        ),
+        (
+            "hy24-results-appendix-4d-and-financial-report.pdf",
+            "Appendix 4D and financial report for the half year ended 31 December 2023.",
+            "half_year_source_phrase",
+        ),
+        (
+            "quarterly-activities-report-and-appendix-5b.pdf",
+            "Quarterly activities report and Appendix 5B for the quarter ended 31 March 2024.",
+            "quarterly_source_phrase",
+        ),
+    ],
+)
+def test_source_document_classifier_preserves_valid_report_candidates(
+    title, first_page_text, period_reason
+):
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(title, first_page_text)
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+    assert result.canary_candidate_allowed is True
+    assert result.reason == period_reason
+
+
 def _gpt_appendix_4d_sections(*, include_disclosures: bool = True) -> list[dict]:
     sections = [
         {"text": "ASX Announcement", "page": 1},

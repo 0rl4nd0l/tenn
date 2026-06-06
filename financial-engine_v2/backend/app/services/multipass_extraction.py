@@ -104,6 +104,28 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "Source metadata identifies an advisory-only announcement; it must not "
         "enter canary selection or metric extraction."
     ),
+    "meeting_or_proxy_notice": (
+        "Source metadata identifies meeting/proxy material, not a financial "
+        "report; it must not enter canary selection or metric extraction."
+    ),
+    "board_change_notice": (
+        "Source metadata identifies a board-change notice, not a financial "
+        "report; it must not enter canary selection or metric extraction."
+    ),
+    "operational_project_update": (
+        "Source metadata identifies an operational project update, not a "
+        "financial report; it must not enter canary selection or metric extraction."
+    ),
+    "share_sale_or_gross_proceeds_announcement": (
+        "Source metadata identifies a share-sale or gross-proceeds announcement, "
+        "not a financial report; it must not enter canary selection or metric "
+        "extraction."
+    ),
+    "pre_results_segment_re_presentation": (
+        "Source metadata identifies a pre-results segment re-presentation "
+        "document, not a financial report; it must not enter canary selection or "
+        "metric extraction."
+    ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
         "downstream gates still decide whether extraction is safe."
@@ -2114,6 +2136,98 @@ def _combined_source_text(*values: Any) -> str:
     return " ".join(parts)
 
 
+def _source_text_has(compact_text: str, phrase: str) -> bool:
+    return _normalize_filter_text(phrase) in compact_text
+
+
+def _detect_source_noncandidate_class(
+    title: Any,
+    first_page_text: Any,
+) -> tuple[str, list[str]] | None:
+    title_text = _combined_source_text(title)
+    combined_text = _combined_source_text(title, first_page_text)
+    compact_title = _normalize_filter_text(title_text)
+    compact_text = _normalize_filter_text(combined_text)
+    if not compact_text:
+        return None
+
+    if (
+        _source_text_has(compact_title, "notice of annual general meeting proxy form")
+        or _source_text_has(compact_title, "notice of meeting proxy form")
+        or (
+            _source_text_has(compact_text, "upcoming general meeting of shareholders")
+            and _source_text_has(compact_text, "notice of meeting")
+        )
+        or (
+            _source_text_has(compact_text, "notice of annual general meeting")
+            and _source_text_has(compact_text, "proxy form")
+        )
+    ):
+        return (
+            "meeting_or_proxy_notice",
+            ["meeting_or_proxy_notice_pattern"],
+        )
+
+    if (
+        _source_text_has(compact_title, "board changes")
+        or (
+            _source_text_has(compact_text, "board changes")
+            and (
+                _source_text_has(compact_text, "non executive director")
+                or _source_text_has(compact_text, "securityholder approval")
+            )
+        )
+    ):
+        return (
+            "board_change_notice",
+            ["board_change_notice_pattern"],
+        )
+
+    if (
+        _source_text_has(compact_title, "update in relation to")
+        and _source_text_has(compact_title, "project")
+    ) or (
+        _source_text_has(compact_text, "update in relation to")
+        and _source_text_has(compact_text, "project")
+        and (
+            _source_text_has(compact_text, "open pit mining")
+            or _source_text_has(compact_text, "mining operations")
+            or _source_text_has(compact_text, "project update")
+        )
+    ):
+        return (
+            "operational_project_update",
+            ["operational_project_update_pattern"],
+        )
+
+    if (
+        _source_text_has(compact_title, "shares sold")
+        and _source_text_has(compact_title, "gross proceeds")
+    ) or (
+        _source_text_has(compact_text, "shares sold")
+        and _source_text_has(compact_text, "gross proceeds")
+    ):
+        return (
+            "share_sale_or_gross_proceeds_announcement",
+            ["share_sale_gross_proceeds_pattern"],
+        )
+
+    if (
+        _source_text_has(compact_title, "re presentation of segment results")
+        or _source_text_has(compact_text, "re presentation of segment results")
+    ) and (
+        _source_text_has(compact_text, "plans to announce")
+        or _source_text_has(compact_text, "no changes to statutory financial results")
+        or _source_text_has(compact_text, "terminology changes")
+    ):
+        return (
+            "pre_results_segment_re_presentation",
+            ["pre_results_segment_re_presentation_pattern"],
+        )
+
+    return None
+
+
 def is_advisory_only_document(title: Any, first_page_text: Any) -> bool:
     text = _combined_source_text(title, first_page_text)
     if not text:
@@ -2245,6 +2359,17 @@ def classify_source_document(
             canary_candidate_allowed=False,
             reason="advisory_only_document",
             evidence=["advisory_only_pattern"],
+        )
+
+    noncandidate = _detect_source_noncandidate_class(title, first_page_text)
+    if noncandidate is not None:
+        document_class, evidence = noncandidate
+        return SourceDocumentClassification(
+            document_class=document_class,
+            extraction_candidate_allowed=False,
+            canary_candidate_allowed=False,
+            reason=f"source_noncandidate:{document_class}",
+            evidence=evidence,
         )
 
     period_evidence = _detect_source_period_evidence(title, first_page_text)
