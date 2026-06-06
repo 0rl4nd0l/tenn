@@ -1,0 +1,78 @@
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0.post1)/charset_normalizer (3.4.6) doesn't match a supported version!
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in StageModelPreset has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in ObjectDetectionStagePreset has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in ImageClassificationStagePreset has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_path" in LayoutModelConfig has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_filename" in OnnxRuntimeObjectDetectionEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_name" in ApiKserveV2ObjectDetectionEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_version" in ApiKserveV2ObjectDetectionEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in DocumentPictureClassifierOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in PictureDescriptionVlmEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in VlmConvertOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in CodeFormulaVlmOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_filename" in OnnxRuntimeImageClassificationEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_name" in ApiKserveV2ImageClassificationEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_version" in ApiKserveV2ImageClassificationEngineOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in LayoutOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_spec" in LayoutObjectDetectionOptions has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+/mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/lib/python3.10/site-packages/torch/cuda/__init__.py:628: UserWarning: Can't initialize NVML
+  warnings.warn("Can't initialize NVML")
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 70 → 1 rows (99% reduction) — using full table
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf' class=meeting_or_proxy_notice
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf' class=operational_project_update
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf' class=board_change_notice
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf' class=share_sale_or_gross_proceeds_announcement
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf' class=pre_results_segment_re_presentation
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 68 → 1 rows (99% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 62 → 1 rows (98% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 66 → 1 rows (98% reduction) — using full table

@@ -1,0 +1,76 @@
+{
+  "count24_recommendation": {
+    "justified": false,
+    "reason": "Failed rows remain after the bounded count-16 sample."
+  },
+  "data_missing": [
+    "Reliable GPU memory telemetry: nvidia-smi failed.",
+    "Safe read-only registry proof: local list-active command used read_only=false."
+  ],
+  "document_class_taxonomy": {
+    "board_change_notice": 1,
+    "financial_report": 5,
+    "meeting_or_proxy_notice": 1,
+    "operational_project_update": 1,
+    "pre_results_segment_re_presentation": 1,
+    "share_sale_or_gross_proceeds_announcement": 1,
+    "unknown_document": 6
+  },
+  "explicit_scope_statement": "Ran exactly one bounded count-16 direct extraction validation sample; no broad extraction, no backfill, no count-24/count-32, no full ticker-universe extraction.",
+  "generated_at": "2026-06-06T03:41:20.504949Z",
+  "mode": "BOUNDED VALIDATION ONLY",
+  "next_phase_recommendation": {
+    "decision": "NEEDS_FAILURE_TAXONOMY",
+    "reason": "Failed rows remain after the bounded count-16 sample."
+  },
+  "repo_head": "9c9107bbbbac6a2971b57d9df5473aa870bb4b28",
+  "run_metadata": {
+    "actual_count": 16,
+    "backend": "llamacpp",
+    "docs_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+    "requested_count": 16,
+    "seed": 20260602,
+    "timestamp": "2026-06-06T03:41:19.484184Z"
+  },
+  "sample_completed": true,
+  "sample_results": {
+    "exception_count": 0,
+    "failed_count": 7,
+    "failure_taxonomy": {
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 1,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:period_source_mismatch": 1,
+      "validation_gate:scale_unknown": 1
+    },
+    "low_confidence_taxonomy": {},
+    "ok_count": 9,
+    "ok_low_confidence_count": 0,
+    "status_distribution": {
+      "failed": 7,
+      "ok": 9
+    },
+    "timing": {
+      "max_s": 192.7,
+      "mean_s": 80.11,
+      "median_s": 74.17,
+      "min_s": 1.44,
+      "p95_s": 192.7,
+      "total_s": 1281.77
+    },
+    "total": 16,
+    "unsafe_row_check": {
+      "negative_revenue": [],
+      "nonpositive_shares": []
+    }
+  },
+  "side_effect_summary": {
+    "db_files_changed": false,
+    "qdrant_changed": false,
+    "queues_clean_after_run": true,
+    "source_pdfs_changed": false
+  },
+  "status": "completed_bounded_validation_sample"
+}
