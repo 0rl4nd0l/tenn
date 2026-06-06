@@ -75,9 +75,10 @@ If these disagree, stop or narrow the work until the conflict is explicit.
   script is available.
 - Keep `allowed_files` exact. Include report artifacts explicitly because
   `reports/` is ignored and local `check-diff` is literal.
-- The audited registry script lacks `list-active --read-only`. Do not rely on
-  lock-writing registry commands for read-only audit. If safe read-only
-  registry evidence is unavailable, record `DATA_MISSING`.
+- Use `python3 scripts/agent_job_registry.py list-active --read-only` for
+  read-only registry inspection. Do not use lock-writing registry commands for
+  read-only audit. If safe read-only registry evidence is unavailable, record
+  `DATA_MISSING`.
 - Use `docs/agent_registry/merge_parking/REGISTRY.md` for parked merge state.
   Do not merge, rebase, cherry-pick, unpark, or delete parked work without
   explicit approval.

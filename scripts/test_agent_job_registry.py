@@ -117,6 +117,22 @@ def registry_file_snapshot(root: Path) -> dict[str, tuple[int, bytes]]:
     }
 
 
+def tree_metadata_snapshot(root: Path) -> dict[str, tuple[str, int, bytes | None]]:
+    if not root.exists():
+        return {}
+    snapshot: dict[str, tuple[str, int, bytes | None]] = {
+        ".": ("dir", root.stat().st_mtime_ns, None),
+    }
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        stat = path.stat()
+        if path.is_dir():
+            snapshot[relative] = ("dir", stat.st_mtime_ns, None)
+        elif path.is_file():
+            snapshot[relative] = ("file", stat.st_mtime_ns, path.read_bytes())
+    return snapshot
+
+
 def test_env_registry_root_overrides_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = git_repo(tmp_path / "repo")
     env_root = tmp_path / "env-registry"
@@ -195,6 +211,8 @@ def test_list_active_read_only_does_not_create_registry_root(
     repo = git_repo(tmp_path / "repo")
     env_root = tmp_path / "missing-registry-root"
     monkeypatch.setenv("TENN_AGENT_REGISTRY_ROOT", str(env_root))
+    report_root = repo / "reports"
+    before_reports = tree_metadata_snapshot(report_root)
 
     completed, payload = run_registry(repo, "list-active", "--read-only")
 
@@ -204,6 +222,9 @@ def test_list_active_read_only_does_not_create_registry_root(
     assert payload["lock_acquired"] is False
     assert payload["active_jobs"] == []
     assert not env_root.exists()
+    assert not (env_root / ".lock").exists()
+    assert not (env_root / ".lock" / "owner.json").exists()
+    assert tree_metadata_snapshot(report_root) == before_reports
 
 
 def test_list_active_read_only_reads_existing_records_without_mutating_registry(
@@ -215,7 +236,10 @@ def test_list_active_read_only_reads_existing_records_without_mutating_registry(
     monkeypatch.setenv("TENN_AGENT_REGISTRY_ROOT", str(env_root))
     claim = registry.claim_task_card(repo / "docs" / "agent_tasks" / "job-a.md", repo_root=repo)
     assert claim["ok"] is True
-    before = registry_file_snapshot(env_root)
+    report_root = repo / "reports" / "agent_jobs" / "job-a"
+    before_registry_files = registry_file_snapshot(env_root)
+    before_registry_tree = tree_metadata_snapshot(env_root)
+    before_status_tree = tree_metadata_snapshot(report_root)
 
     completed, payload = run_registry(repo, "list-active", "--read-only")
 
@@ -224,8 +248,11 @@ def test_list_active_read_only_reads_existing_records_without_mutating_registry(
     assert payload["read_only"] is True
     assert payload["lock_acquired"] is False
     assert [job["job_id"] for job in payload["active_jobs"]] == ["job-a"]
-    assert registry_file_snapshot(env_root) == before
+    assert registry_file_snapshot(env_root) == before_registry_files
+    assert tree_metadata_snapshot(env_root) == before_registry_tree
+    assert tree_metadata_snapshot(report_root) == before_status_tree
     assert not (env_root / ".lock").exists()
+    assert not (env_root / ".lock" / "owner.json").exists()
 
 
 def test_linked_worktrees_see_same_active_job(tmp_path: Path) -> None:

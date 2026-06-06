@@ -25,13 +25,13 @@ approval.
 
 ## Registry Safety
 
-The current audit found that `python3 scripts/agent_job_registry.py list-active --read-only`
-is not implemented in this checkout. Plain `list-active` may acquire a lock and
-write transient registry files.
+- Use `python3 scripts/agent_job_registry.py list-active --read-only` for
+  read-only active-job inspection. Plain `list-active` may acquire a lock and
+  write transient registry files.
 
 - Do not rely on lock-writing registry commands for read-only audits.
-- Prefer direct read-only inspection of existing registry files when safe, or
-  record `DATA_MISSING`.
+- Prefer `list-active --read-only`; if safe read-only registry evidence is
+  unavailable, record `DATA_MISSING`.
 - Do not claim, heartbeat, release, or check-overlap unless the task explicitly
   allows that registry mutation and the user-approved workflow requires it.
 
