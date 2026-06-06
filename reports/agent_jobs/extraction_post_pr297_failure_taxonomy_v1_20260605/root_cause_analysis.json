@@ -1,0 +1,89 @@
+{
+  "another_bounded_sample_justified": false,
+  "another_bounded_sample_reason": "Not yet. The next gate should be focused unit/report-local validation for the repaired classes. Another bounded sample is justified only after candidate-exclusion taxonomy and selected-table scale-binding are separately tested.",
+  "candidate_selection_errors": [
+    "EQR",
+    "MAH",
+    "FCL",
+    "HRZ",
+    "MPL"
+  ],
+  "classifier_low_confidence_decision": {
+    "assessment": "The four classifier_low_confidence failures are valid abstentions by the live extractor, but they should likely be excluded before LLM classification by deterministic candidate-selection rules. None is proven to be an eligible financial report needing classifier promotion.",
+    "missing_deterministic_evidence": true,
+    "valid_abstentions": true
+  },
+  "data_missing": [
+    "No post-fix extraction sample was run, so which original failed documents would now pass remains DATA_MISSING.",
+    "Docling-native behavior remains DATA_MISSING because the prior run used PyMuPDF fallback for all 16 documents.",
+    "WHC 2022 formal table extraction root cause remains DATA_MISSING without Docling-native parse evidence.",
+    "Whether AZJ should support nearest-$100,000 rounding as a scale policy remains DATA_MISSING pending source-bound policy design."
+  ],
+  "document_family_policy_gaps": [
+    "Appendix 5B smart-apostrophe scale markers",
+    "Appendix 4D/4E wrapper source-text scale propagation",
+    "pre-results re-presentation documents that mention Appendix 4D/4E but are not wrappers",
+    "results-presentation late table scale binding",
+    "nonstandard nearest-$100,000 rounding policy"
+  ],
+  "fixes_made": [
+    {
+      "file": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "safety": "Source-bound only; does not infer from prose million amounts and leaves unknown scale as a hard fail.",
+      "summary": "Accept Unicode smart apostrophes in explicit thousands scale markers and propagate early explicit $000/$A\u2019000 source-text scale when table scale detection is unknown."
+    },
+    {
+      "file": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "summary": "Added focused tests for smart-apostrophe Appendix 5B scale markers and source-text scale fallback when tables are absent."
+    },
+    {
+      "file": "docs/extraction/metric_extraction_contract.md",
+      "summary": "Documented smart-apostrophe scale markers and explicit source-text fallback policy."
+    }
+  ],
+  "fixes_not_made": [
+    "No candidate-exclusion rules were implemented in this slice because a complete fix should update candidate/scorecard exclusion reason taxonomy together.",
+    "No nearest-$100,000 or broad prose-million scale inference was implemented.",
+    "No selected-table scale-binding change was implemented for late presentation tables."
+  ],
+  "generated_at": "2026-06-06T02:09:44.182377Z",
+  "mode": "AUDIT FIRST; SAFE EXTENSION only if narrow/source-bound/tested",
+  "next_targeted_repair_task": "Implement deterministic candidate-exclusion taxonomy for meeting notices/proxy forms, governance board-change notices, operational project updates, share-sale gross-proceeds announcements, and pre-results re-presentation documents; update candidate manifest/scorecard reason taxonomy and tests in one bounded slice.",
+  "scale_unknown_decision": {
+    "assessment": "scale_unknown failures are heterogeneous. CXO/LOT/CTN share a smart-apostrophe Appendix 5B $A\u2019000 marker issue, WHC 2023 has explicit Appendix 4E source-text scale, WHC 2022 is parser/table coverage degraded under PyMuPDF fallback, AZJ has a nonstandard nearest-$100,000/$m policy, and MPL is a noncandidate pre-results re-presentation document.",
+    "shared_one_fix": false
+  },
+  "top_repeated_root_causes": [
+    {
+      "decision": "implemented narrow source-bound support for smart apostrophe $A\u2019000/$\u2019000 markers and early explicit $000 source-text fallback",
+      "documents": [
+        "CXO",
+        "LOT",
+        "CTN",
+        "WHC 2023",
+        "HUB"
+      ],
+      "root_cause": "explicit source scale markers were present but not propagated"
+    },
+    {
+      "decision": "report-only next task; do not mix candidate taxonomy expansion into this scale fix because scorecard/candidate services need coordinated reason taxonomy updates",
+      "documents": [
+        "EQR",
+        "MAH",
+        "FCL",
+        "HRZ",
+        "MPL"
+      ],
+      "root_cause": "candidate pool admitted obvious non-financial or pre-results documents"
+    },
+    {
+      "decision": "report-only; requires separate parser/table coverage, $100k rounding policy, and selected-table scale-binding work",
+      "documents": [
+        "WHC 2022",
+        "AZJ",
+        "DXC"
+      ],
+      "root_cause": "heterogeneous document-family scale policy gaps remain"
+    }
+  ]
+}

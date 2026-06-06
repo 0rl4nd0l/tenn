@@ -1,0 +1,114 @@
+{
+  "backfill_run": false,
+  "checks": {
+    "final_git_diff_check": {
+      "cmd": "git diff --check",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "final_git_status": {
+      "cmd": "git status --short --untracked-files=all",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "M docs/extraction/metric_extraction_contract.md\n M financial-engine_v2/backend/app/services/multipass_extraction.py\n M financial-engine_v2/backend/tests/test_multipass_extraction.py\n?? docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md"
+    },
+    "final_json_validation": {
+      "cmd": "python3 - <<'JSONPY'\nimport json\nfrom pathlib import Path\nfor root in [Path('reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605'), Path('reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605')]:\n    for path in sorted(root.glob('*.json')):\n        with path.open() as fh:\n            json.load(fh)\nprint('json ok')\nJSONPY",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "json ok"
+    },
+    "final_no_source_pdfs_staged": {
+      "cmd": "git diff --cached --name-only | rg '\\.pdf$'",
+      "exit_code": 1,
+      "stderr": "",
+      "stdout": ""
+    },
+    "final_registry_list_active": {
+      "cmd": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": false,\n  \"ok\": true,\n  \"read_only\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-post-pr297-failure-taxonomy-v1-20260605\",\n  \"warnings\": []\n}"
+    },
+    "final_task_card_check_diff_no_write": {
+      "cmd": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md --repo-root . --no-write-report",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\n  \"changed_files\": [\n    {\n      \"path\": \"docs/extraction/metric_extraction_contract.md\",\n      \"status\": \"M\"\n    },\n    {\n      \"path\": \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n      \"status\": \"M\"\n    },\n    {\n      \"path\": \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n      \"status\": \"M\"\n    },\n    {\n      \"path\": \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n      \"status\": \"??\"\n    }\n  ],\n  \"disallowed_files\": [],\n  \"issues\": [],\n  \"ok\": true,\n  \"report_path\": null,\n  \"validation\": {\n    \"issues\": [],\n    \"metadata\": {\n      \"allow_unapproved_safe_extension\": true,\n      \"allowed_files\": [\n        \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/README.md\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/failure_taxonomy.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/source_evidence.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/root_cause_analysis.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/status.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/validation.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/README.md\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/classification.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/preflight.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_bounded_count16.py\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stderr.txt\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stdout.txt\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_manifest.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_results.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/side_effect_audit.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/status.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/validation.json\",\n        \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n        \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n        \"financial-engine_v2/backend/tests/test_extraction_capability_guards.py\",\n        \"financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py\",\n        \"docs/extraction/metric_extraction_contract.md\",\n        \"docs/architecture/12_evaluation_and_drift_monitoring.md\"\n      ],\n      \"approval_required\": false,\n      \"job_id\": \"extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"lane\": \"Financial Truth\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"owner\": \"Codex\",\n      \"production_data_access\": false,\n      \"supporting_lanes\": [\n        \"Evaluation\",\n        \"Query Orchestration\",\n        \"Provenance\"\n      ],\n      \"timeout_seconds\": 7200\n    },\n    \"ok\": true\n  }\n}"
+    },
+    "focused_pytest": {
+      "cmd": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_carries_gpt_appendix_4d_source_bound_payload \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_uses_explicit_source_text_scale_when_tables_missing \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_appendix_4d_fails_closed_without_wrapper_disclosures \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_scale_override_mutates_pass1_dict \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_scale_detects_smart_apostrophe_thousands_marker \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_scale_unknown_table_preserves_pass1_scale \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_validate_gate_scale_unknown_hard_blocked \\\n  financial-engine_v2/backend/tests/test_multipass_extraction.py::test_validate_scale_blocks_wtc_like_unknown_scale_values \\\n  financial-engine_v2/backend/tests/test_extraction_capability_guards.py::test_appendix_4d_wrapper_passes_with_two_canonical_metrics_and_disclosures \\\n  financial-engine_v2/backend/tests/test_extraction_capability_guards.py::test_appendix_4d_wrapper_fails_without_wrapper_disclosure_evidence \\\n  -q",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "...........                                                              [100%]\n11 passed in 0.22s"
+    },
+    "git_diff_cached_check": {
+      "cmd": "git diff --cached --check",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "git_diff_check": {
+      "cmd": "git diff --check",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "json_validation": {
+      "cmd": "python3 - <<'JSONPY'\nimport json\nfrom pathlib import Path\nfor root in [Path('reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605'), Path('reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605')]:\n    for path in sorted(root.glob('*.json')):\n        with path.open() as fh:\n            json.load(fh)\nprint('json ok')\nJSONPY",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "json ok"
+    },
+    "no_source_pdfs_staged": {
+      "cmd": "git diff --cached --name-only | rg '\\.pdf$'",
+      "exit_code": 1,
+      "stderr": "",
+      "stdout": ""
+    },
+    "no_source_pdfs_status": {
+      "cmd": "git status --short --untracked-files=all | rg '\\.pdf$|data/asx/docs|/financial_performance/'",
+      "exit_code": 1,
+      "stderr": "",
+      "stdout": ""
+    },
+    "py_compile": {
+      "cmd": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    "registry_list_active": {
+      "cmd": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\n  \"active_jobs\": [\n    {\n      \"active_record\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active/extraction_post_pr297_failure_taxonomy_v1_20260605.json\",\n      \"age_seconds\": 631.59,\n      \"agent\": \"Codex\",\n      \"allowed_files\": [\n        \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/README.md\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/failure_taxonomy.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/source_evidence.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/root_cause_analysis.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/validation.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/README.md\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/classification.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/preflight.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_bounded_count16.py\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stderr.txt\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stdout.txt\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_manifest.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_results.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/side_effect_audit.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/status.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/validation.json\",\n        \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n        \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n        \"financial-engine_v2/backend/tests/test_extraction_capability_guards.py\",\n        \"financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py\",\n        \"docs/extraction/metric_extraction_contract.md\",\n        \"docs/architecture/12_evaluation_and_drift_monitoring.md\"\n      ],\n      \"approval_required\": false,\n      \"branch\": \"safe/extraction-post-pr297-failure-taxonomy-v1-20260605\",\n      \"claimed_at\": \"2026-06-06T02:01:09.082689Z\",\n      \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n      \"heartbeat_at\": \"2026-06-06T02:01:09.082689Z\",\n      \"hostname\": \"l4nd0-System-Product-Name\",\n      \"job_id\": \"extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"lane\": \"Financial Truth\",\n      \"last_seen_at\": \"2026-06-06T02:01:09.082689Z\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"owner\": \"Codex\",\n      \"pid\": 1955010,\n      \"production_data_access\": false,\n      \"schema_version\": 1,\n      \"session_id\": \"l4nd0-System-Product-Name:1955010:extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"stale\": false,\n      \"stale_after_seconds\": 1800,\n      \"started_at\": \"2026-06-06T02:01:09.082689Z\",\n      \"status\": \"active\",\n      \"task_card\": \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n      \"task_card_sha256\": \"7d3b55498811c1bdcfdc5aeafb2007ebf09c9c6d7fefa34b0415a8b81dfa25f3\",\n      \"timeout_seconds\": 7200,\n      \"worktree\": \"/home/l4nd0/tenn-post-pr297-failure-taxonomy-v1-20260605\"\n    }\n  ],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": false,\n  \"ok\": true,\n  \"read_only\": true,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-post-pr297-failure-taxonomy-v1-20260605\",\n  \"warnings\": []\n}"
+    },
+    "ruff": {
+      "cmd": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!"
+    },
+    "task_card_check_diff": {
+      "cmd": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md --repo-root .",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\n  \"changed_files\": [\n    {\n      \"path\": \"docs/extraction/metric_extraction_contract.md\",\n      \"status\": \"M\"\n    },\n    {\n      \"path\": \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n      \"status\": \"M\"\n    },\n    {\n      \"path\": \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n      \"status\": \"M\"\n    },\n    {\n      \"path\": \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n      \"status\": \"??\"\n    }\n  ],\n  \"disallowed_files\": [],\n  \"issues\": [],\n  \"ok\": true,\n  \"report_path\": \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/diff-check.json\",\n  \"validation\": {\n    \"issues\": [],\n    \"metadata\": {\n      \"allow_unapproved_safe_extension\": true,\n      \"allowed_files\": [\n        \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/README.md\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/failure_taxonomy.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/source_evidence.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/root_cause_analysis.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/status.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/validation.json\",\n        \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/README.md\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/classification.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/diff-check.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/preflight.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_bounded_count16.py\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stderr.txt\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stdout.txt\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_manifest.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_results.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/side_effect_audit.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/status.json\",\n        \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/validation.json\",\n        \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n        \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n        \"financial-engine_v2/backend/tests/test_extraction_capability_guards.py\",\n        \"financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py\",\n        \"docs/extraction/metric_extraction_contract.md\",\n        \"docs/architecture/12_evaluation_and_drift_monitoring.md\"\n      ],\n      \"approval_required\": false,\n      \"job_id\": \"extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"lane\": \"Financial Truth\",\n      \"mutation_mode\": \"safe_extension\",\n      \"output_dir\": \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605\",\n      \"owner\": \"Codex\",\n      \"production_data_access\": false,\n      \"supporting_lanes\": [\n        \"Evaluation\",\n        \"Query Orchestration\",\n        \"Provenance\"\n      ],\n      \"timeout_seconds\": 7200\n    },\n    \"ok\": true\n  }\n}"
+    },
+    "task_card_validate": {
+      "cmd": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\n  \"issues\": [],\n  \"metadata\": {\n    \"allow_unapproved_safe_extension\": true,\n    \"allowed_files\": [\n      \"docs/agent_tasks/extraction_post_pr297_failure_taxonomy_v1_20260605.md\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/README.md\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/failure_taxonomy.json\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/source_evidence.json\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/root_cause_analysis.json\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/status.json\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/validation.json\",\n      \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/diff-check.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/README.md\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/classification.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/diff-check.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/preflight.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_bounded_count16.py\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stderr.txt\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/run_stdout.txt\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_manifest.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_results.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/side_effect_audit.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/status.json\",\n      \"reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/validation.json\",\n      \"financial-engine_v2/backend/app/services/multipass_extraction.py\",\n      \"financial-engine_v2/backend/tests/test_multipass_extraction.py\",\n      \"financial-engine_v2/backend/tests/test_extraction_capability_guards.py\",\n      \"financial-engine_v2/backend/tests/test_extraction_gold_eval_scorecard.py\",\n      \"docs/extraction/metric_extraction_contract.md\",\n      \"docs/architecture/12_evaluation_and_drift_monitoring.md\"\n    ],\n    \"approval_required\": false,\n    \"job_id\": \"extraction_post_pr297_failure_taxonomy_v1_20260605\",\n    \"lane\": \"Financial Truth\",\n    \"mutation_mode\": \"safe_extension\",\n    \"output_dir\": \"reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605\",\n    \"owner\": \"Codex\",\n    \"production_data_access\": false,\n    \"supporting_lanes\": [\n      \"Evaluation\",\n      \"Query Orchestration\",\n      \"Provenance\"\n    ],\n    \"timeout_seconds\": 7200\n  },\n  \"ok\": true\n}"
+    }
+  },
+  "explicit_no_sample_backfill_rerun": true,
+  "extraction_run": false,
+  "generated_at": "2026-06-06T02:12:17.785835Z",
+  "mode": "AUDIT FIRST; SAFE EXTENSION only if narrow/source-bound/tested",
+  "overall_ok": true,
+  "runtime_mutation": false,
+  "sample_rerun": false
+}
