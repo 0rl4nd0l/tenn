@@ -21,6 +21,27 @@ allowed_files:
   - reports/agent_jobs/extraction_post_pr299_candidate_exclusion_taxonomy_v1_20260606/validation.json
   - reports/agent_jobs/extraction_post_pr299_candidate_exclusion_taxonomy_v1_20260606/diff-check.json
   - reports/agent_jobs/extraction_post_pr299_candidate_exclusion_taxonomy_v1_20260606/raw_commands.log
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/run_bounded_count16.py
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/run_stdout.txt
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/run_stderr.txt
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/sample_results.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/sample_manifest.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/classification.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/side_effect_audit.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/preflight.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/status.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/validation.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/diff-check.json
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/README.md
+  - reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/raw_commands.log
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/README.md
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/failure_taxonomy.json
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/accepted_output_audit.json
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/source_text_audit.json
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/status.json
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/validation.json
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/diff-check.json
+  - reports/agent_jobs/extraction_post_pr299_count16_failure_taxonomy_v1_20260606/raw_commands.log
   - financial-engine_v2/backend/app/services/multipass_extraction.py
   - financial-engine_v2/backend/tests/test_multipass_extraction.py
   - financial-engine_v2/scripts/broad_extraction_test.py

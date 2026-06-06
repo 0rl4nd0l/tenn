@@ -1,15 +1,89 @@
 {
-  "blocked_items": [
+  "base_pr299_merge": "9436d1d32de0da5423b8edcfc7efc883ccac3fd6",
+  "branch": "safe/extraction-post-pr299-broad-accuracy-push-v1-20260606",
+  "commits_created": [
     {
-      "evidence": "agent_job_registry.py list-active has no safe read-only path and references undefined args.read_only",
-      "item": "registry_active_jobs",
-      "status": "DATA_MISSING"
+      "hash": "85b05a92",
+      "subject": "milestone(extraction): create post-pr299 broad accuracy task card"
+    },
+    {
+      "hash": "9c9107bb",
+      "subject": "milestone(extraction): add post-pr299 source exclusion taxonomy"
+    },
+    {
+      "hash": "12e60429",
+      "subject": "milestone(extraction): run post-pr299 count16 validation"
+    },
+    {
+      "hash": "e9703b3c",
+      "subject": "milestone(extraction): classify count16 failures and bind table scale"
     }
   ],
-  "branch": "safe/extraction-post-pr299-broad-accuracy-push-v1-20260606",
-  "current_state": "RUNNING",
-  "head": "9436d1d32de0da5423b8edcfc7efc883ccac3fd6",
+  "count16_result": {
+    "exception_count": 0,
+    "failed": 7,
+    "failure_taxonomy": {
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 1,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:period_source_mismatch": 1,
+      "validation_gate:scale_unknown": 1
+    },
+    "low_confidence_taxonomy": {},
+    "ok": 9,
+    "ok_low_confidence": 0,
+    "total": 16,
+    "unsafe_row_check": {
+      "negative_revenue": [],
+      "nonpositive_shares": []
+    }
+  },
+  "current_state": "DONE_WITH_RISK",
+  "data_missing": [
+    "Post-repair runtime outcome for DXC/LBL/AZJ/WHC/CTN was not measured; Phase 3 did not run another sample.",
+    "Reliable GPU memory telemetry remains unavailable from Phase 2 preflight.",
+    "Safe read-only registry proof remains unavailable because list-active reports read_only=false.",
+    "Docling-native behavior for the selected-table scale repair was not proven by rerunning DXC/LBL; only deterministic unit coverage was run."
+  ],
+  "exact_next_recommended_task": "Create a bounded accepted-output audit task for DXC/LBL/AZJ presentation/table-scale and rounding-policy risks before any count-24 approval packet. Do not run count-24/count-32 until that audit resolves unsafe accepted-output risk.",
+  "final_decision": "NEEDS_ACCEPTED_OUTPUT_AUDIT",
+  "generated_at": "2026-06-06T04:00:19.053445+00:00",
+  "github_issue_96_comment": "https://github.com/0rl4nd0l/tenn/issues/96#issuecomment-4637305661",
+  "head": "e9703b3c",
   "no_broad_extraction_backfill_or_full_ticker_extraction": true,
-  "phase": "preflight",
-  "worktree": "/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606"
+  "no_count24_or_count32_run": true,
+  "parent_validation_summary": {
+    "git_diff_check": "passed",
+    "json_validation": "passed before final validation update; rerun required after update",
+    "no_source_pdfs_staged": true,
+    "registry_active_jobs_empty": true,
+    "registry_read_only": false,
+    "task_card_check_diff": "passed",
+    "task_card_validate": "passed"
+  },
+  "phase": "Phase 4 stop / next-step decision complete",
+  "phase3_repair": {
+    "files_changed": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "implemented": true,
+    "not_repaired": [
+      "WHC 2022 parser/table coverage gap",
+      "CTN Appendix 5B / quarterly activity source-period evidence gap",
+      "AZJ nearest-$100,000 rounding policy",
+      "LBL accepted-output chart/table scale ambiguity"
+    ],
+    "repair_class": "source-bound scale marker propagation",
+    "runtime_sample_after_repair": "not_run; no additional count-16/count-24/count-32 or broad extraction was run.",
+    "scope": "Use selected table-local scale markers such as $'000 when extracting and reconciling metrics, even if earlier document-level scale evidence says millions."
+  },
+  "phases_completed": {
+    "phase1_candidate_exclusion_taxonomy": "completed and committed",
+    "phase2_bounded_count16_validation": "completed exactly once and committed",
+    "phase3_failure_taxonomy_and_one_repair": "completed and committed",
+    "phase4_stop_decision": "completed"
+  }
 }
