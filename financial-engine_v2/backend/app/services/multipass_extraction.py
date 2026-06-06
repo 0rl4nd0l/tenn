@@ -149,9 +149,9 @@ import re as _re
 
 _SCALE_PATTERNS: list[tuple[str, str]] = [
     # Thousands: $'000, $A'000, $000 (ASX Appendix 5B uses "$A'000" notation)
-    (r"\$A?'?000[,s]?\b|\bthousands?\b", "thousands"),
+    (r"\$A?['\u2018\u2019]?000[,s]?\b|\bthousands?\b", "thousands"),
     # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
-    (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
+    (r"\$A?['\u2018\u2019]?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
     (
         r"(?:(?<!\w)RP\.?\s*trillions?\b|\bIDR\s*trillions?\b|"
@@ -159,6 +159,10 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
         "trillions",
     ),
 ]
+_SOURCE_TEXT_THOUSANDS_SCALE_RE = _re.compile(
+    r"\$A?['\u2018\u2019]?000[,s]?\b|\$\s*000[,s]?\b",
+    _re.IGNORECASE,
+)
 
 _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?<![A-Za-z0-9])"
@@ -332,6 +336,13 @@ def _detect_scale_from_tables(tables) -> str:
             surfaces.append(" ".join(str(cell) for cell in row))
         if _RAW_DOLLAR_UNIT_RE.search(" ".join(surfaces)):
             return "units"
+    return "unknown"
+
+
+def _detect_scale_from_source_text(text: Any) -> str:
+    """Detect only explicit document-level scale markers from source text."""
+    if _SOURCE_TEXT_THOUSANDS_SCALE_RE.search(str(text or "")):
+        return "thousands"
     return "unknown"
 
 
@@ -3736,7 +3747,24 @@ def run_multipass_extraction(
                 pass1.get("scale"),
             )
         pass1["scale"] = detected
-    elif pass1.get("scale", "unknown") in ("unknown", None, ""):
+    else:
+        source_text_scale = _detect_scale_from_source_text(
+            early_period_text or first_page_text
+        )
+        if source_text_scale != "unknown":
+            if pass1.get("scale", "unknown") not in (
+                source_text_scale,
+                "unknown",
+                None,
+                "",
+            ):
+                logger.info(
+                    "scale from explicit source text (%s) overrides Pass 1 (%s)",
+                    source_text_scale,
+                    pass1.get("scale"),
+                )
+            pass1["scale"] = source_text_scale
+    if pass1.get("scale", "unknown") in ("unknown", None, ""):
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
     detected_currency = _detect_currency_from_tables(structured_doc.tables)

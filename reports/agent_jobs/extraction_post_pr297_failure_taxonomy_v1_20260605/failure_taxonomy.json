@@ -1,0 +1,443 @@
+{
+  "bucket_counts": {
+    "candidate_selection_errors": 1,
+    "document_family_policy_gaps": 1,
+    "eligible_financial_docs_with_missing_scale_evidence": 5,
+    "eligible_financial_docs_with_suspicious_scale_evidence": 2,
+    "true_noncandidate_docs": 4
+  },
+  "failed_document_count": 13,
+  "failure_rows": [
+    {
+      "bucket": "eligible_financial_docs_with_missing_scale_evidence",
+      "candidate_decision": "eligible financial Appendix 5B quarterly cash-flow document",
+      "confidence": 1.0,
+      "document_class": "financial_report",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 1,
+      "non_null_metrics": 5,
+      "period_end": "2022-09-30",
+      "period_type": "Q",
+      "repair_decision": "fixed_narrow_scale_marker_support",
+      "root_cause": "explicit_appendix5b_thousands_marker_uses_smart_apostrophe",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "quarterly_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "quarterly_source_phrase"
+      },
+      "source_evidence": [
+        "Appendix 5B quarterly cash flow report",
+        "Consolidated statement of cash flows / Current quarter / $A\u2019000"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "status": "failed",
+      "ticker": "CXO",
+      "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf"
+    },
+    {
+      "bucket": "eligible_financial_docs_with_missing_scale_evidence",
+      "candidate_decision": "eligible annual report, but count-run payload had zero canonical metrics",
+      "confidence": 0.0,
+      "document_class": "financial_report",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 2,
+      "non_null_metrics": 0,
+      "period_end": "2022-09-21",
+      "period_type": "A",
+      "repair_decision": "report_only_no_safe_code_fix",
+      "root_cause": "parser_or_table_coverage_degraded_under_pymupdf_fallback",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "source_evidence": [
+        "Annual Report",
+        "Financial Report 53"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "status": "failed",
+      "ticker": "WHC",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf"
+    },
+    {
+      "bucket": "true_noncandidate_docs",
+      "candidate_decision": "noncandidate; references annual report but is not the annual report",
+      "confidence": 0.0,
+      "document_class": "DATA_MISSING",
+      "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "failure_gate": "classifier_low_confidence:0.0",
+      "index": 3,
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "repair_decision": "next_task_candidate_exclusion",
+      "root_cause": "meeting_notice_and_proxy_form_in_candidate_pool",
+      "scale": null,
+      "source_document_classification": null,
+      "source_evidence": [
+        "Notice of Annual General Meeting / Explanatory Statement and Proxy Form",
+        "Item asks shareholders to receive and consider the 2022 Annual Report"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "status": "failed",
+      "ticker": "EQR",
+      "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf"
+    },
+    {
+      "bucket": "true_noncandidate_docs",
+      "candidate_decision": "noncandidate operational/project update without formal statements",
+      "confidence": 0.0,
+      "document_class": "DATA_MISSING",
+      "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+      "failure_gate": "classifier_low_confidence:0.0",
+      "index": 4,
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "repair_decision": "next_task_candidate_exclusion",
+      "root_cause": "operational_project_update_in_candidate_pool",
+      "scale": null,
+      "source_document_classification": null,
+      "source_evidence": [
+        "Update in Relation to Mt Morgans Gold Project",
+        "No explicit annual, half-year, quarterly, Appendix 4C/5B, Appendix 4D, or Appendix 4E source evidence found in first-page/title evidence"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "status": "failed",
+      "ticker": "MAH",
+      "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf"
+    },
+    {
+      "bucket": "true_noncandidate_docs",
+      "candidate_decision": "noncandidate governance announcement",
+      "confidence": 0.0,
+      "document_class": "DATA_MISSING",
+      "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+      "failure_gate": "classifier_low_confidence:0.0",
+      "index": 5,
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "repair_decision": "next_task_candidate_exclusion",
+      "root_cause": "board_change_notice_in_candidate_pool",
+      "scale": null,
+      "source_document_classification": null,
+      "source_evidence": [
+        "Upcoming FINEOS Board changes",
+        "No formal financial-report or period evidence in title/first-page evidence"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "status": "failed",
+      "ticker": "FCL",
+      "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf"
+    },
+    {
+      "bucket": "document_family_policy_gaps",
+      "candidate_decision": "eligible annual financial report",
+      "confidence": 0.905,
+      "document_class": "unknown_document",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 6,
+      "non_null_metrics": 7,
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "repair_decision": "report_only_no_scale_inference",
+      "root_cause": "nonstandard_rounding_policy_not_supported_as_scale",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "source_evidence": [
+        "Annual Financial Report",
+        "Amounts rounded to nearest $100,000 unless otherwise stated",
+        "Financial statements also show $m-style rows such as Total revenue from continuing operations 1,428.2"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "status": "failed",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+    },
+    {
+      "bucket": "eligible_financial_docs_with_missing_scale_evidence",
+      "candidate_decision": "eligible Appendix 4E and annual financial report",
+      "confidence": 1.0,
+      "document_class": "unknown_document",
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 7,
+      "non_null_metrics": 9,
+      "period_end": "2023-06-30",
+      "period_type": "A",
+      "repair_decision": "fixed_narrow_source_text_scale_fallback",
+      "root_cause": "appendix4e_source_text_scale_marker_not_propagated",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "source_evidence": [
+        "FY23 Appendix 4E and Annual Financial Report",
+        "Appendix 4E source text includes $000 columns",
+        "Financial information rounded to nearest thousand"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "status": "failed",
+      "ticker": "WHC",
+      "title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf"
+    },
+    {
+      "bucket": "true_noncandidate_docs",
+      "candidate_decision": "noncandidate capital/investment disposal announcement",
+      "confidence": 0.0,
+      "document_class": "DATA_MISSING",
+      "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+      "failure_gate": "classifier_low_confidence:0.2",
+      "index": 8,
+      "non_null_metrics": 0,
+      "period_end": null,
+      "period_type": null,
+      "repair_decision": "next_task_candidate_exclusion",
+      "root_cause": "share_sale_gross_proceeds_announcement_in_candidate_pool",
+      "scale": null,
+      "source_document_classification": null,
+      "source_evidence": [
+        "VOX SHARES SOLD $2.93M GROSS PROCEEDS",
+        "No formal financial-report period/type evidence in title/first-page evidence"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "status": "failed",
+      "ticker": "HRZ",
+      "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf"
+    },
+    {
+      "bucket": "candidate_selection_errors",
+      "candidate_decision": "noncandidate/pre-results support document; it references Appendix 4D/4E but is not itself a report",
+      "confidence": 0.0,
+      "document_class": "unknown_document",
+      "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 9,
+      "non_null_metrics": 0,
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "repair_decision": "next_task_candidate_exclusion_and_wrapper_policy_guard",
+      "root_cause": "pre_results_re_presentation_document_false_appendix_wrapper_signal",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "ambiguous"
+      },
+      "source_evidence": [
+        "Re-presentation of segment results and changes in terminology",
+        "Plans to announce 2026 half year financial results on 19 February 2026",
+        "Provided ahead of release; prior-period re-presentation not externally reviewed"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "status": "failed",
+      "ticker": "MPL",
+      "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf"
+    },
+    {
+      "bucket": "eligible_financial_docs_with_missing_scale_evidence",
+      "candidate_decision": "eligible financial Appendix 5B quarterly cash-flow document",
+      "confidence": 0.9,
+      "document_class": "financial_report",
+      "document_id": "11e11c93-52f6-444a-9c24-e5d1e41141cf",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 10,
+      "non_null_metrics": 4,
+      "period_end": "2023-03-31",
+      "period_type": "Q",
+      "repair_decision": "fixed_narrow_scale_marker_support",
+      "root_cause": "explicit_appendix5b_thousands_marker_uses_smart_apostrophe",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "quarterly_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "quarterly_source_phrase"
+      },
+      "source_evidence": [
+        "Appendix 5B quarterly cash flow report",
+        "Consolidated statement of cash flows / Current quarter / $A\u2019000"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LOT/financial_performance/2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf",
+      "status": "failed",
+      "ticker": "LOT",
+      "title": "2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf"
+    },
+    {
+      "bucket": "eligible_financial_docs_with_suspicious_scale_evidence",
+      "candidate_decision": "eligible results presentation, but scale evidence occurs near selected late table",
+      "confidence": 0.75,
+      "document_class": "unknown_document",
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "failure_gate": "validation_gate:scale_validation:suspect_underscaled",
+      "index": 11,
+      "non_null_metrics": 3,
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "repair_decision": "next_task_selected_table_scale_binding",
+      "root_cause": "late_results_presentation_table_scale_marker_not_bound_to_selected_metric_table",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "source_evidence": [
+        "2025 Annual results presentation and property synopsis",
+        "Total revenue 46,547 / Net profit after tax 39,374",
+        "FFO reconciliation table has $\u2019000 header near selected metrics"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "status": "failed",
+      "ticker": "DXC",
+      "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf"
+    },
+    {
+      "bucket": "eligible_financial_docs_with_suspicious_scale_evidence",
+      "candidate_decision": "eligible Appendix 4D/interim report wrapper",
+      "confidence": 0.9,
+      "document_class": "unknown_document",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "failure_gate": "validation_gate:scale_validation:suspect_underscaled",
+      "index": 13,
+      "non_null_metrics": 8,
+      "period_end": "2024-02-20",
+      "period_type": "H",
+      "repair_decision": "fixed_narrow_source_text_scale_fallback",
+      "root_cause": "appendix4d_source_text_scale_marker_not_propagated",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "source_evidence": [
+        "Appendix 4D Half-Year Ended 31 December 2023",
+        "Key information columns show $\u2019000",
+        "Revenue from ordinary activities 156,715 and NPAT attributable 21,532"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "status": "failed",
+      "ticker": "HUB",
+      "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+    },
+    {
+      "bucket": "eligible_financial_docs_with_missing_scale_evidence",
+      "candidate_decision": "eligible financial Appendix 5B quarterly cash-flow document",
+      "confidence": 1.0,
+      "document_class": "unknown_document",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "failure_gate": "validation_gate:scale_unknown",
+      "index": 16,
+      "non_null_metrics": 6,
+      "period_end": "2022-03-31",
+      "period_type": "Q",
+      "repair_decision": "fixed_narrow_scale_marker_support",
+      "root_cause": "explicit_appendix5b_thousands_marker_uses_smart_apostrophe",
+      "scale": "unknown",
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "source_evidence": [
+        "Appendix 5B quarterly cash flow report",
+        "Consolidated statement of cash flows / Current quarter / $A\u2019000"
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "status": "failed",
+      "ticker": "CTN",
+      "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+    }
+  ],
+  "generated_at": "2026-06-06T02:09:44.182377Z",
+  "root_cause_counts": {
+    "appendix4d_source_text_scale_marker_not_propagated": 1,
+    "appendix4e_source_text_scale_marker_not_propagated": 1,
+    "board_change_notice_in_candidate_pool": 1,
+    "explicit_appendix5b_thousands_marker_uses_smart_apostrophe": 3,
+    "late_results_presentation_table_scale_marker_not_bound_to_selected_metric_table": 1,
+    "meeting_notice_and_proxy_form_in_candidate_pool": 1,
+    "nonstandard_rounding_policy_not_supported_as_scale": 1,
+    "operational_project_update_in_candidate_pool": 1,
+    "parser_or_table_coverage_degraded_under_pymupdf_fallback": 1,
+    "pre_results_re_presentation_document_false_appendix_wrapper_signal": 1,
+    "share_sale_gross_proceeds_announcement_in_candidate_pool": 1
+  },
+  "source_result_path": "reports/agent_jobs/extraction_post_pr297_count16_validation_v1_20260605/sample_results.json",
+  "summary": {
+    "exception_count": 0,
+    "failed_count": 13,
+    "failure_taxonomy": {
+      "classifier_low_confidence:0.0": 3,
+      "classifier_low_confidence:0.2": 1,
+      "validation_gate:scale_unknown": 7,
+      "validation_gate:scale_validation": 2
+    },
+    "low_confidence_taxonomy": {},
+    "ok_count": 3,
+    "ok_low_confidence_count": 0,
+    "status_distribution": {
+      "failed": 13,
+      "ok": 3
+    },
+    "timing": {
+      "max_s": 161.14,
+      "mean_s": 72.55,
+      "median_s": 66.75,
+      "min_s": 7.7,
+      "p95_s": 161.14,
+      "total_s": 1160.84
+    },
+    "total": 16,
+    "unsafe_row_check": {
+      "negative_revenue": [],
+      "nonpositive_shares": []
+    }
+  }
+}

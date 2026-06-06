@@ -255,6 +255,57 @@ def test_run_multipass_carries_gpt_appendix_4d_source_bound_payload():
     assert "nta_per_security" not in result.payload["metrics"]
 
 
+def test_run_multipass_uses_explicit_source_text_scale_when_tables_missing():
+    """Appendix wrapper scale can come from explicit source text when tables are absent."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 3
+        docling_version = None
+        tables = []
+        sections = _gpt_appendix_4d_sections()
+
+    pass1_unknown_scale = {
+        "report_type": "H",
+        "period_end": "2024-06-30",
+        "currency": "AUD",
+        "scale": "unknown",
+        "classifier_confidence": 0.97,
+    }
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_unknown_scale,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=[],
+    ):
+        result = run_multipass_extraction(
+            "/fake/gpt-appendix-4d.pdf",
+            {
+                "document_id": "gpt-appendix-4d",
+                "ticker": "GPT",
+                "title": "Appendix 4D - GPT Management Holdings Limited",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status == "ok"
+    assert result.error is None
+    assert result.payload["scale"] == "thousands"
+    assert result.payload["source_bound"]["scale"] == "thousands"
+    assert result.payload["metrics"]["revenue"] == 150_804_000
+    assert result.payload["metrics"]["np_attributable"] == 15_463_000
+
+
 def test_run_multipass_appendix_4d_fails_closed_without_wrapper_disclosures():
     """Wrapper source metrics cannot pass the two-metric gate without disclosures."""
     from app.services.multipass_extraction import run_multipass_extraction
@@ -923,6 +974,26 @@ def test_scale_override_mutates_pass1_dict():
     assert pass1["scale"] == "thousands", (
         f"Override must mutate pass1['scale'] from 'millions' to 'thousands', got {pass1['scale']!r}"
     )
+
+
+@pytest.mark.parametrize("marker", ["$A\u2019000", "$A\u2018000"])
+def test_scale_detects_smart_apostrophe_thousands_marker(marker):
+    """ASX Appendix cash-flow headers may use smart apostrophes in $A'000."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=6,
+        caption="Appendix 5B",
+        rows=[
+            ["Consolidated statement of cash flows", "Current quarter", "Year to date"],
+            ["", marker, marker],
+            ["Net cash from / (used in) operating activities", "(3,756)", "(3,756)"],
+        ],
+        headers=["Consolidated statement of cash flows", "Current quarter", "Year to date"],
+    )
+
+    assert _detect_scale_from_tables([table]) == "thousands"
 
 
 def test_scale_unknown_table_preserves_pass1_scale():
