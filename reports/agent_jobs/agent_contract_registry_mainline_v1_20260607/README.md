@@ -47,8 +47,8 @@ tooling without touching the dirty live checkout.
 - `scripts/test_agent_job_contract.py`
   - Covers supported mutation modes and the production-data approval guard.
 - `scripts/test_agent_job_registry.py`
-  - Covers missing-root and existing-record `list-active --read-only`
-    no-write behavior.
+  - Covers missing-root, existing-record, lock-contention, no-`RegistryLock`,
+    and corrupt-record `list-active --read-only` no-write behavior.
 
 ## Validation
 
@@ -145,8 +145,7 @@ python3 scripts/agent_job_contract.py check-diff \
 git diff --check
 ```
 
-Result: passed before this report was written; rerun after report preservation
-is required before merge.
+Result: passed after report preservation and final staging.
 
 Independent subagent review:
 
