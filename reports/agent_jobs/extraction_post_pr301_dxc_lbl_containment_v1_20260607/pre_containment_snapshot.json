@@ -1,0 +1,177 @@
+{
+  "accidental_local_file_note": "An attempted sqlite3 probe against the absent worktree default DB created a zero-byte financial-engine_v2/data/fe_local.db; it was removed immediately before artifact generation.",
+  "artifact_limitations": [
+    "PR #301 accepted-output artifact omits exact accepted-row refs/provenance for accepted rows.",
+    "PR #301 accepted-output artifact does not provide extraction_run_id values for DXC/LBL accepted rows."
+  ],
+  "generated_at": "2026-06-07T04:28:17.991017Z",
+  "inspected_sqlite_databases": [
+    {
+      "exists": false,
+      "path": "financial-engine_v2/data/fe_local.db",
+      "size_bytes": null,
+      "status": "missing_not_opened"
+    },
+    {
+      "exists": true,
+      "matches": {
+        "asx_periodic_financials": [],
+        "asx_risk_notes": [],
+        "documents": [],
+        "extraction_runs": []
+      },
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local.db",
+      "size_bytes": 2600960,
+      "status": "queried_read_only",
+      "table_counts": {
+        "asx_periodic_financials": 37,
+        "asx_risk_notes": 49,
+        "documents": 804,
+        "extraction_runs": 954
+      }
+    },
+    {
+      "exists": true,
+      "matches": {
+        "asx_periodic_financials": [],
+        "asx_risk_notes": [],
+        "documents": [],
+        "extraction_runs": []
+      },
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/financial_engine.db",
+      "size_bytes": 122880,
+      "status": "queried_read_only",
+      "table_counts": {
+        "asx_periodic_financials": 3,
+        "asx_risk_notes": 0,
+        "documents": 0,
+        "extraction_runs": 0
+      }
+    },
+    {
+      "exists": true,
+      "matches": {
+        "asx_periodic_financials": [],
+        "asx_risk_notes": [],
+        "documents": [],
+        "extraction_runs": []
+      },
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime.db",
+      "size_bytes": 32768,
+      "status": "queried_read_only",
+      "table_counts": {
+        "asx_periodic_financials": "TABLE_MISSING",
+        "asx_risk_notes": "TABLE_MISSING",
+        "documents": 0,
+        "extraction_runs": "TABLE_MISSING"
+      }
+    },
+    {
+      "exists": true,
+      "matches": {
+        "asx_periodic_financials": [],
+        "asx_risk_notes": [],
+        "documents": [],
+        "extraction_runs": []
+      },
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime_trace.db",
+      "size_bytes": 73728,
+      "status": "queried_read_only",
+      "table_counts": {
+        "asx_periodic_financials": 0,
+        "asx_risk_notes": 0,
+        "documents": 0,
+        "extraction_runs": 0
+      }
+    },
+    {
+      "exists": true,
+      "matches": {
+        "asx_periodic_financials": [],
+        "asx_risk_notes": [],
+        "documents": [],
+        "extraction_runs": []
+      },
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/fe_local_runtime_trace2.db",
+      "size_bytes": 73728,
+      "status": "queried_read_only",
+      "table_counts": {
+        "asx_periodic_financials": 0,
+        "asx_risk_notes": 0,
+        "documents": 0,
+        "extraction_runs": 0
+      }
+    }
+  ],
+  "mutation_performed": false,
+  "qdrant": {
+    "collections": [
+      {
+        "collection": "news_chunks",
+        "matching_point_count": 0,
+        "matching_point_ids": [],
+        "matching_points": [],
+        "status": "ok"
+      },
+      {
+        "collection": "asx_docs",
+        "matching_point_count": 0,
+        "matching_point_ids": [],
+        "matching_points": [],
+        "status": "ok"
+      },
+      {
+        "collection": "commentary_chunks",
+        "matching_point_count": 0,
+        "matching_point_ids": [],
+        "matching_points": [],
+        "status": "ok"
+      }
+    ],
+    "collections_endpoint": {
+      "result": {
+        "collections": [
+          {
+            "name": "news_chunks"
+          },
+          {
+            "name": "asx_docs"
+          },
+          {
+            "name": "commentary_chunks"
+          }
+        ]
+      },
+      "status": "ok",
+      "time": 4.56e-06
+    },
+    "url": "http://127.0.0.1:6333"
+  },
+  "registry_active_record_inspection": {
+    "active_files": [],
+    "active_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/active",
+    "method": "direct filesystem read-only inspection; registry CLI list-active still uses a transient lock"
+  },
+  "source_artifacts": {
+    "accepted_output_audit": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/accepted_output_audit.json",
+    "sample_results": "reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/sample_results.json",
+    "source_evidence": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/source_evidence.json"
+  },
+  "state": "NO_MATCHES_FOUND",
+  "target_identifiers": {
+    "DXC": {
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "unsafe_reason": "selected-table scale-binding issue and Net operating income accepted as canonical EBIT in count-16 artifact"
+    },
+    "LBL": {
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "unsafe_reason": "selected-table/period mismatch and scale-binding risk in count-16 artifact"
+    }
+  }
+}

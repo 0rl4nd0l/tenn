@@ -1,0 +1,41 @@
+{
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_post_pr301_dxc_lbl_containment_v1_20260607.md",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "find reports/agent_jobs/extraction_post_pr301_dxc_lbl_containment_v1_20260607 -name '*.json' -print0 | xargs -0 jq empty",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --name-only -- '*.pdf' && git diff --cached --name-only -- '*.pdf'",
+      "exit_status": 0,
+      "result": "no source PDFs in diff or staged"
+    },
+    {
+      "command": "direct read-only registry active-record inspection",
+      "exit_status": 0,
+      "result": "active record directory had no files"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_post_pr301_dxc_lbl_containment_v1_20260607.md --repo-root .",
+      "exit_status": 0,
+      "result": "passed; disallowed_files empty"
+    }
+  ],
+  "generated_at": "2026-06-07T04:29:55.238914Z",
+  "state": "PASSED"
+}
