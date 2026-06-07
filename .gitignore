@@ -1,4 +1,7 @@
 data/
+!financial-engine_v2/data/
+!financial-engine_v2/data/raw/
+!financial-engine_v2/data/raw/asx_ticker_universe.txt
 __pycache__/
 *.log
 .DS_Store

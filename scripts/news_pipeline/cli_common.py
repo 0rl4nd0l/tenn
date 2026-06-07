@@ -5,7 +5,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
-from .providers import EodhdProvider, GdeltProvider, ProviderClient, WorldMonitorProvider
+from .providers import EodhdProvider, GdeltProvider, Newspaper4kProvider, ProviderClient, WorldMonitorProvider
+from .providers.newspaper4k import DEFAULT_SOURCE_PROFILE, NEWSPAPER4K_SOURCE_PROFILES
 from .utils import load_ticker_universe
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -73,6 +74,7 @@ def build_provider(
     worldmonitor_api_cache_url: str = "",
     worldmonitor_capture_path: Path | None = None,
     gdelt_kwargs: Dict[str, Any] | None = None,
+    newspaper4k_kwargs: Dict[str, Any] | None = None,
 ) -> ProviderClient:
     name = str(provider_name or "").strip().lower()
     if name == "eodhd":
@@ -92,7 +94,44 @@ def build_provider(
         if worldmonitor_capture_path is not None:
             kwargs["capture_path"] = worldmonitor_capture_path
         return WorldMonitorProvider(**kwargs)
+    if name == "newspaper4k":
+        return Newspaper4kProvider(**dict(newspaper4k_kwargs or {}))
     raise RuntimeError(f"Unsupported provider: {provider_name}")
+
+
+def provider_settings(provider: ProviderClient) -> Dict[str, Any]:
+    raw = getattr(provider, "_tenn_provider_settings", None)
+    if isinstance(raw, dict):
+        return dict(raw)
+    return {"provider": str(getattr(provider, "name", "provider"))}
+
+
+def newspaper4k_kwargs_from_args(args: argparse.Namespace) -> Dict[str, Any]:
+    def int_arg(name: str, default: int) -> int:
+        raw = getattr(args, name, default)
+        return default if raw is None else int(raw)
+
+    def float_arg(name: str, default: float) -> float:
+        raw = getattr(args, name, default)
+        return default if raw is None else float(raw)
+
+    raw_source_profile = getattr(args, "newspaper4k_source_profile", DEFAULT_SOURCE_PROFILE)
+    source_profile = str(raw_source_profile or DEFAULT_SOURCE_PROFILE).strip().lower()
+    sources_file = str(getattr(args, "newspaper4k_sources_file", "") or "").strip()
+    no_playwright = bool(getattr(args, "newspaper4k_no_playwright", False))
+    if not no_playwright and not sources_file and source_profile == DEFAULT_SOURCE_PROFILE:
+        no_playwright = True
+    kwargs: Dict[str, Any] = {
+        "source_profile": source_profile,
+        "max_articles_per_source": int_arg("newspaper4k_max_articles_per_source", 15),
+        "max_total_articles": int_arg("newspaper4k_max_total_articles", 60),
+        "request_timeout_seconds": int_arg("newspaper4k_request_timeout_seconds", 10),
+        "sleep_seconds": float_arg("newspaper4k_sleep_seconds", 0.5),
+        "no_playwright": no_playwright,
+    }
+    if sources_file:
+        kwargs["sources_file"] = resolve_path(sources_file)
+    return kwargs
 
 
 def add_common_provider_args(ap: argparse.ArgumentParser) -> None:
@@ -130,6 +169,46 @@ def add_common_provider_args(ap: argparse.ArgumentParser) -> None:
         "--worldmonitor-capture-path",
         default=str(DEFAULT_WORLDMONITOR_CAPTURE_PATH),
         help="Optional local WorldMonitor api-cache capture path (used if present).",
+    )
+    ap.add_argument(
+        "--newspaper4k-source-profile",
+        default=DEFAULT_SOURCE_PROFILE,
+        choices=sorted(NEWSPAPER4K_SOURCE_PROFILES),
+        help="newspaper4k source profile: daily is bounded RSS, broad is the wider source crawl.",
+    )
+    ap.add_argument(
+        "--newspaper4k-sources-file",
+        default="",
+        help="Override newspaper4k source file path. Takes precedence over --newspaper4k-source-profile.",
+    )
+    ap.add_argument(
+        "--newspaper4k-max-articles-per-source",
+        type=int,
+        default=15,
+        help="Maximum newspaper4k articles to keep per source.",
+    )
+    ap.add_argument(
+        "--newspaper4k-max-total-articles",
+        type=int,
+        default=60,
+        help="Maximum newspaper4k articles to keep for the run.",
+    )
+    ap.add_argument(
+        "--newspaper4k-request-timeout-seconds",
+        type=int,
+        default=10,
+        help="Per-request newspaper4k timeout in seconds.",
+    )
+    ap.add_argument(
+        "--newspaper4k-sleep-seconds",
+        type=float,
+        default=0.5,
+        help="Delay between newspaper4k sources.",
+    )
+    ap.add_argument(
+        "--newspaper4k-no-playwright",
+        action="store_true",
+        help="Disable Playwright rendering for newspaper4k collection.",
     )
 
 
