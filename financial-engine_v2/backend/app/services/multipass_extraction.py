@@ -2091,11 +2091,12 @@ _SOURCE_UNIT_MULTIPLIERS = {
 }
 
 _EBIT_LABEL_BLOCKERS = (
-    "ebitda",
-    "earnings before interest tax depreciation",
-    "earnings before interest, tax, depreciation",
-    "earnings before interest and tax depreciation",
-    "earnings before interest, taxes, depreciation",
+    ("ebitda", "ebitda"),
+    ("earnings before interest tax depreciation", "ebitda"),
+    ("earnings before interest, tax, depreciation", "ebitda"),
+    ("earnings before interest and tax depreciation", "ebitda"),
+    ("earnings before interest, taxes, depreciation", "ebitda"),
+    ("net operating income", "net_operating_income"),
 )
 
 
@@ -3507,8 +3508,9 @@ def _metric_label_mismatch(payload: dict) -> tuple[str, str] | None:
     if not evidence:
         return None
     compact = evidence.replace(",", "")
-    if any(blocker in compact for blocker in _EBIT_LABEL_BLOCKERS):
-        return "ebit", "ebitda"
+    for blocker, source_label in _EBIT_LABEL_BLOCKERS:
+        if blocker in compact:
+            return "ebit", source_label
     return None
 
 

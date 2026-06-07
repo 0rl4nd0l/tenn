@@ -2373,6 +2373,23 @@ def test_validate_scale_blocks_wtc_like_unknown_scale_values():
     assert error == "validation_gate:scale_validation:suspect_underscaled"
 
 
+def test_validate_gate_rejects_net_operating_income_as_ebit_source():
+    """Net operating income is not EBIT and must not pass as canonical ebit."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="A", scale="thousands")
+    payload["metrics"]["ebit"] = 29_562_000
+    payload["row_refs"] = {"ebit": "Net operating income"}
+    payload["provenance"] = {
+        "ebit": "income_statement:page_26:Net operating income"
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:metric_label_mismatch:ebit:net_operating_income"
+
+
 def test_pass3a_uses_selected_table_scale_over_document_scale():
     """Selected-table $'000 markers must override a document-level millions scale."""
     from app.services.docling_extract import DoclingTable

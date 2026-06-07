@@ -1,0 +1,20 @@
+Preflight/review commands summarized:
+- baseline/source pwd, branch, rev-parse, remote, status
+- git worktree list (capped)
+- git ls-remote origin refs/heads/migration/clean-runtime-baseline-reconstruct-v1
+- gh issue view 96 --json number,title,state,url,updatedAt
+- git diff --name-status/stat origin/migration..safe/extraction-post-pr299-broad-accuracy-push-v1-20260606
+- git worktree add -b integrate/extraction-post-pr299-accepted-output-audit-v1-20260607 ... origin/migration/clean-runtime-baseline-reconstruct-v1
+- git merge --ff-only safe/extraction-post-pr299-broad-accuracy-push-v1-20260606
+- post-integration pytest/py_compile/ruff/JSON/git diff/task-card/registry checks
+- jq accepted row extraction from sample_results.json
+- pdftotext/pdfinfo targeted read-only source evidence for DXC, LBL, AZJ
+- focused pytest for net_operating_income selected-table scale gate
+- final focused pytest: 180 passed in 2.02s
+- py_compile on touched extraction/test files: passed
+- ruff on touched extraction/test files: passed
+- report JSON validation with jq: passed
+- git diff --check: passed
+- no source PDFs in diff or staged
+- task-card check-diff: passed; disallowed_files empty
+- registry/list-active: active_jobs empty; read_only=false; lock_acquired=true
