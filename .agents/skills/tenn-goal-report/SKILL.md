@@ -12,6 +12,11 @@ For long `/goal` runs that need stable judgment before execution, use
 `tenn-frame-design` to create `FRAME.md`, `STATE.md`, `OPERATOR_NOTES.md`, and
 optional `SCRIBE.md` in the same report directory.
 
+For long `/goal` runs with many files, mixed-risk dirt, cleanup/remediation, or
+work that would otherwise create many small approval loops, prefer two-shot mode:
+Shot 1 produces the report-local evidence, approval manifest, and Shot 2 plan;
+Shot 2 executes approved groups mechanically and closes out.
+
 ## State Machine
 
 Maintain one visible state:

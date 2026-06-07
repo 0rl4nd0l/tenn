@@ -44,6 +44,10 @@ Create these under the task card `output_dir` or
 5. Preserve user steering in `OPERATOR_NOTES.md` or the Frame steering log.
 6. At closeout, link Frame artifacts from the goal report.
 
+For Git Hygiene or control-plane remediation Frames, define the autonomy
+profile, approval boundary, Shot 1/Shot 2 split, stop states, and
+owner-decision classes before execution starts.
+
 ## FRAME.md Schema
 
 Use these exact headings:

@@ -16,6 +16,17 @@ Git hygiene is report-first and approval-gated. Dirty work older than 24h is not
 trash. It is unclassified work requiring preservation, ownership, or a disposal
 decision.
 
+For non-trivial Git Hygiene and control-plane remediation, default to a two-shot
+workstream instead of asking for tiny approvals after every safe report or
+preservation step:
+
+- Shot 1: investigate everything, classify every path, preserve safe evidence,
+  create `APPROVAL_MANIFEST.md`, create `EXECUTION_PLAN_FOR_SHOT_2.md`, and
+  stop.
+- Shot 2: read the manifest, execute only approved manifest groups
+  mechanically, skip drifted paths, stop before forbidden boundaries, and write
+  closeout.
+
 Never create a persistent mutating agent. A Scribe or Watcher may maintain
 ledgers and recommendations, but must not clean, stash, reset, rebase, merge,
 cherry-pick, delete, push, mutate GitHub, mutate registry state, or change
@@ -25,17 +36,114 @@ product/runtime/data files.
 
 - `AUDIT_ONLY`: read-only inventory and classification only.
 - `REPORT_LOCAL`: write ledger, report, and task-card artifacts only.
-- `PRESERVE_ONLY`: create a patch bundle, exact allowlisted preservation commit,
-  or archival branch only after explicit approval.
+- `PRESERVE_ONLY`: create patch bundles or archives for exact low-risk paths
+  under `PRESERVATION_AUTONOMY`, or create an exact allowlisted preservation
+  commit or archival branch only after explicit approval.
 - `INTEGRATE_APPROVAL_REQUIRED`: merge, rebase, cherry-pick, PR, or GitHub
   action only after explicit approval.
 - `CLEANUP_APPROVAL_REQUIRED`: branch deletion, worktree removal, `git clean`,
   `git reset --hard`, stash drop, archive deletion, or remote branch deletion
   only after explicit approval.
 
-Default to `AUDIT_ONLY`. Move to `REPORT_LOCAL` only when the user asks for a
-report, ledger, or task card. Higher modes require explicit approval in the
+Default to `AUDIT_ONLY` for simple or unclear requests. For non-trivial
+cleanup/remediation with many paths or mixed risk, default to Shot 1 using
+`REPORT_AUTONOMY` and, where safe, `PRESERVATION_AUTONOMY`; stop at one
+manifest-based approval surface. Higher modes require explicit approval in the
 current conversation and an exact allowlist.
+
+## Autonomy Profiles
+
+### `REPORT_AUTONOMY`
+
+May:
+
+- run read-only audits
+- create ledgers
+- create recommendation queues
+- create approval packets
+- create owner-decision packets
+- create closeout reports
+- update report-local bundles
+
+Must not:
+
+- mutate source worktrees
+- mutate GitHub
+- mutate registry state
+- mutate product, runtime, or data surfaces
+
+### `PRESERVATION_AUTONOMY`
+
+May:
+
+- archive exact low-risk files
+- create binary-safe patches for tracked low-risk files
+- preserve `.gemini/**`, `.playwright-mcp/**`, `outputs/**`, `.agents/**`,
+  report/control artifacts, root notes, symlink metadata, generated artifacts,
+  and task-card/control evidence where safe
+- continue across multiple low-risk preservation queues without asking
+
+Must:
+
+- verify every archive and patch
+- record hashes and rollback paths
+- leave source worktrees unchanged unless another approved profile allows
+  cleanup
+
+### `GENERATED_CLEANUP_AUTONOMY`
+
+May:
+
+- restore exact tracked generated/control files after archive and patch
+  verification
+- remove exact already-preserved untracked generated/control/report/output files
+- operate only on manifest-approved low-risk classes
+
+Must:
+
+- re-run exact status guards before each action
+- skip drifted paths
+- record skipped paths
+- stop before product/runtime/data/source files or unknowns
+
+### `OWNER_APPROVAL_REQUIRED`
+
+Required for:
+
+- `git clean`
+- `git reset --hard`
+- stash or stash drop
+- branch deletion
+- worktree removal
+- rebase, merge, or cherry-pick
+- push, force-push, or GitHub mutation
+- commits
+- `.gitignore`
+- `AGENTS.md` source mutation
+- package files
+- scripts
+- `financial-engine_v2/**`
+- DB files
+- lock files
+- raw data
+- shell scripts
+- source/product/runtime/data/extraction files
+- unknown files
+- owner-decision paths
+
+## Two-Shot Execution Rules
+
+- Shot 1 output must include `APPROVAL_MANIFEST.md` and
+  `EXECUTION_PLAN_FOR_SHOT_2.md`.
+- Shot 1 may continue through safe report-local and preservation-only queues
+  under `REPORT_AUTONOMY` and `PRESERVATION_AUTONOMY` without path-by-path chat
+  approvals.
+- Shot 2 must read the manifest, apply only approved groups, skip drifted
+  paths, and write `APPLIED_ACTIONS.md`, `SKIPPED_DUE_TO_DRIFT.md`,
+  `REMAINING_DIRT_LEDGER.md`, and closeout.
+- Shot 2 must not infer approval for unapproved groups.
+- If the next action crosses into `OWNER_APPROVAL_REQUIRED`, stop with
+  `WAITING_ON_USER`.
 
 ## Safety Tiers
 
