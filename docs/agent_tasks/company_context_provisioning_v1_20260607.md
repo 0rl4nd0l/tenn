@@ -44,6 +44,9 @@ contains ASX PDFs, but no `company.sqlite` or canonical company aliases.
 - Do not change Cockpit to silently degrade past a missing required company DB.
 - Align company DB resolution with the production artifact root, preserving
   explicit absolute paths and allowing explicit Cockpit/company env overrides.
+- For the default company DB config path, prefer the production artifact root
+  over ignored repo-local default DB candidates, even if a repo-local candidate
+  is newer.
 - Document that safe-installable missing dependencies should be installed in the
   project/runtime venv rather than hidden behind degraded behavior.
 - Validate the company DB builder against temporary artifacts before any live

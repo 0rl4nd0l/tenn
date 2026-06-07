@@ -102,16 +102,16 @@ class CockpitCompanyContextPathTests(unittest.TestCase):
             "/tmp/tenn-qual-root/company.sqlite",
         )
 
-    def test_default_relative_company_path_prefers_fresher_artifact_root(self):
+    def test_default_relative_company_path_uses_artifact_root_even_when_repo_local_newer(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo_root = root / "financial-engine_v2"
             repo_root.mkdir()
-            stale_repo_db = root / "reports" / "qual_context" / "company.sqlite"
+            repo_local_db = repo_root / "reports" / "qual_context" / "company.sqlite"
             artifact_root = root / "qual_artifacts"
-            fresh_artifact_db = artifact_root / "company.sqlite"
-            _touch(stale_repo_db, 100)
-            _touch(fresh_artifact_db, 200)
+            artifact_db = artifact_root / "company.sqlite"
+            _touch(artifact_db, 100)
+            _touch(repo_local_db, 200)
 
             original_root = bootstrap.DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT
             bootstrap.DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT = artifact_root
@@ -123,7 +123,26 @@ class CockpitCompanyContextPathTests(unittest.TestCase):
             finally:
                 bootstrap.DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT = original_root
 
-        self.assertEqual(resolved, fresh_artifact_db.resolve())
+        self.assertEqual(resolved, artifact_db.resolve())
+
+    def test_default_relative_company_path_returns_artifact_root_when_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo_root = root / "financial-engine_v2"
+            repo_root.mkdir()
+            artifact_root = root / "qual_artifacts"
+
+            original_root = bootstrap.DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT
+            bootstrap.DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT = artifact_root
+            try:
+                resolved = bootstrap.resolve_company_context_db_path(
+                    repo_root=repo_root,
+                    raw_path="reports/qual_context/company.sqlite",
+                )
+            finally:
+                bootstrap.DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT = original_root
+
+        self.assertEqual(resolved, (artifact_root / "company.sqlite").resolve())
 
     def test_explicit_absolute_company_path_is_not_overridden_by_default_artifact(self):
         with tempfile.TemporaryDirectory() as td:

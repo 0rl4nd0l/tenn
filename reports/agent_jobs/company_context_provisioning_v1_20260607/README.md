@@ -25,7 +25,9 @@ does not create a partial production DB to satisfy startup.
 - Production company DB is still absent:
   `/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/company.sqlite`
   does not exist.
-- Clean worktree repo-local company DB is absent:
+- Clean worktree primary Cockpit relative company DB is absent:
+  `financial-engine_v2/reports/qual_context/company.sqlite` does not exist.
+- Clean worktree top-level relative company DB is absent:
   `reports/qual_context/company.sqlite` does not exist.
 - Repo-local `financial-engine_v2/data/asx/docs` is absent in this worktree.
 - NVMe source corpus exists but is large:
@@ -39,16 +41,17 @@ does not create a partial production DB to satisfy startup.
 
 - `AGENTS.md`
   - Added a repo rule that safe-installable missing Python/runtime dependencies
-    should be installed or repaired in the project/runtime venv and recorded,
-    rather than hidden behind degraded behavior.
+    should be installed or repaired in the project/runtime venv only with
+    active task/user approval and recorded, rather than hidden behind degraded
+    behavior.
 - `financial-engine_v2/cockpit/core/config.py`
   - Added company DB env override handling:
     `COCKPIT_COMPANY_DB_PATH`, `TENN_COMPANY_CONTEXT_DB`, and
     `TENN_QUAL_CONTEXT_ARTIFACT_ROOT/company.sqlite`.
 - `financial-engine_v2/cockpit/integrations/qual_context_bootstrap.py`
   - Added company-context path resolution that preserves explicit absolute
-    paths and prefers the production artifact root for the default relative
-    `reports/qual_context/company.sqlite`.
+    paths and makes the default relative `reports/qual_context/company.sqlite`
+    resolve to the production artifact root instead of an ignored repo-local DB.
 - `financial-engine_v2/cockpit/ui/app.py`
   - Uses the company-specific resolver for the company qualitative-context DB.
 - `financial-engine_v2/scripts/test_cockpit_company_context_path.py`

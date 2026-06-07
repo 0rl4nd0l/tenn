@@ -77,18 +77,9 @@ def _default_nightly_news_context_db_path() -> Path:
 
 
 def resolve_company_context_db_path(*, repo_root: Path, raw_path: str) -> Path:
-    resolved_candidates = _resolve_relative_context_candidates(repo_root=repo_root, raw_path=raw_path)
-    resolved = resolve_qual_context_db_path(repo_root=repo_root, raw_path=raw_path)
     if _is_default_company_context_path(raw_path):
-        freshest_default = _newest_existing_file(
-            [
-                _default_company_context_db_path(),
-                *resolved_candidates,
-            ]
-        )
-        if freshest_default is not None:
-            return freshest_default
-    return resolved
+        return _default_company_context_db_path()
+    return resolve_qual_context_db_path(repo_root=repo_root, raw_path=raw_path)
 
 
 def resolve_rag_dependency_policy(raw_policy: str, profile: str) -> str:
