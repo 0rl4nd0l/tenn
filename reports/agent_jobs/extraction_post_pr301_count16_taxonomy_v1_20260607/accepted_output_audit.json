@@ -1,0 +1,85 @@
+{
+  "generated_at": "2026-06-07T05:00:57Z",
+  "job_id": "extraction_post_pr301_count16_taxonomy_v1_20260607",
+  "accepted_count": 7,
+  "accepted_output_risk_count": 2,
+  "accepted_documents": [
+    {
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "ticker": "CXO",
+      "status": "ok",
+      "period_type": "Q",
+      "period_end": "2022-09-30",
+      "scale": "thousands",
+      "risk": "none_observed"
+    },
+    {
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "ticker": "WHC",
+      "status": "ok",
+      "period_type": "A",
+      "period_end": "2023-06-30",
+      "scale": "thousands",
+      "risk": "none_observed"
+    },
+    {
+      "document_id": "11e11c93-52f6-444a-9c24-e5d1e41141cf",
+      "ticker": "LOT",
+      "status": "ok",
+      "period_type": "Q",
+      "period_end": "2023-03-31",
+      "scale": "thousands",
+      "risk": "none_observed"
+    },
+    {
+      "document_id": "a6118b61-77b6-4f13-bd6f-58654455ae9a",
+      "ticker": "ABE",
+      "status": "ok",
+      "period_type": "Q",
+      "period_end": "2025-06-30",
+      "scale": "thousands",
+      "risk": "none_observed"
+    },
+    {
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "ticker": "HUB",
+      "status": "ok",
+      "period_type": "H",
+      "period_end": "2024-02-20",
+      "scale": "thousands",
+      "risk": "accepted_period_end_equals_filename_announcement_date",
+      "source_evidence": "Source text says half-year ended 31 December 2023; accepted period_end equals the 2024-02-20 filename date."
+    },
+    {
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "ticker": "LBL",
+      "status": "ok",
+      "period_type": "H",
+      "period_end": "2026-02-20",
+      "scale": "millions",
+      "risk": "accepted_period_end_equals_filename_announcement_date_and_mixed_scale_table",
+      "source_evidence": "Source table pages are headed A$000 for the extracted five-year earnings and cash-flow values; accepted scale was millions."
+    },
+    {
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "ticker": "NSR",
+      "status": "ok",
+      "period_type": "H",
+      "period_end": "2021-12-31",
+      "scale": "thousands",
+      "risk": "none_observed"
+    }
+  ],
+  "dxc_lbl_containment_recheck": {
+    "DXC": "failed_closed_in_count16_with_metric_label_mismatch",
+    "LBL": "no persistent DB/Qdrant exposure found in Milestone 1, but runtime extraction still accepts the bounded sample row"
+  },
+  "side_effects": {
+    "db_files_changed": false,
+    "qdrant_changed": false,
+    "news_route_used": false,
+    "memory_mutated": false,
+    "source_pdfs_changed": false,
+    "queues_clean_after_run": true
+  }
+}

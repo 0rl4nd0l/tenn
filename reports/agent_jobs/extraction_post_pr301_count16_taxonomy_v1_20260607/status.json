@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-06-07T05:00:57Z",
+  "job_id": "extraction_post_pr301_count16_taxonomy_v1_20260607",
+  "status": "completed_taxonomy_needs_one_narrow_repair",
+  "phases": {
+    "classified_failed_documents": true,
+    "classified_low_confidence_documents": true,
+    "classified_suspicious_accepted_documents": true,
+    "additional_sample_run": false,
+    "count24_or_count32_run": false,
+    "broad_extraction_or_backfill_run": false
+  },
+  "sample_result": {
+    "ok": 7,
+    "ok_low_confidence": 0,
+    "failed": 9,
+    "exceptions": 0,
+    "suspicious_accepted": 2
+  },
+  "top_repeated_root_cause": "accepted half-year outputs can use the filename announcement date as period_end",
+  "narrow_repair_decision": {
+    "justified": true,
+    "repair_class": "stricter accepted-output quarantine/abstain guard",
+    "planned_guard": "Fail half-year accepted outputs when period_end equals a leading YYYY-MM-DD announcement date in the source title/filename.",
+    "why_narrow": "Targets a repeated accepted-output risk in exactly HUB and LBL-like half-year filings without inferring corrected periods or loosening any gate."
+  },
+  "count24_approval_packet": {
+    "reasonable": false,
+    "reason": "Premature until the half-year announcement-date accepted-output guard is implemented and focused tests pass."
+  },
+  "final_recommended_decision_after_milestone4": "NEEDS_ANOTHER_TARGETED_FIX",
+  "data_missing": [
+    "Reliable GPU memory telemetry from Milestone 3: nvidia-smi failed.",
+    "pdfplumber/pypdf unavailable; source audit used Poppler pdftotext/pdfinfo and one rendered visual check.",
+    "WHC 2022 scale root cause not narrowed enough for a safe repair in this milestone."
+  ],
+  "unsafe_actions_avoided": [
+    "No additional sample was run.",
+    "No count-24/count-32 was run.",
+    "No broad extraction, backfill, or full ticker-universe extraction was run.",
+    "No DB, Qdrant, news, memory, prompt, gold-label, schema, runtime, model, GPU, or source-PDF mutation was performed."
+  ]
+}

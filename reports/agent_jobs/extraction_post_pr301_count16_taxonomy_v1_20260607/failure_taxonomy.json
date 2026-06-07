@@ -1,0 +1,172 @@
+{
+  "generated_at": "2026-06-07T05:00:57Z",
+  "job_id": "extraction_post_pr301_count16_taxonomy_v1_20260607",
+  "input_report": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_results.json",
+  "sample_summary": {
+    "seed": 20260602,
+    "actual_count": 16,
+    "ok": 7,
+    "ok_low_confidence": 0,
+    "failed": 9,
+    "exceptions": 0
+  },
+  "bucket_counts": {
+    "true_noncandidate": 5,
+    "eligible_doc_missing_scale_evidence": 2,
+    "eligible_doc_suspicious_scale": 2,
+    "classifier_evidence_missing": 0,
+    "period_source_mismatch": 3,
+    "insufficient_metrics": 0,
+    "parser_table_coverage_gap": 1,
+    "accepted_output_risk": 3,
+    "side_effect_anomaly": 0,
+    "DATA_MISSING": 1
+  },
+  "documents": [
+    {
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "ticker": "WHC",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "document_class": "financial_report",
+      "final_status": "failed",
+      "gate": "validation_gate:scale_unknown",
+      "bucket": "eligible_doc_missing_scale_evidence",
+      "side_effects": "none_observed",
+      "notes": "Eligible annual report failed closed because no reliable scale was bound."
+    },
+    {
+      "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "ticker": "EQR",
+      "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "document_class": "meeting_or_proxy_notice",
+      "final_status": "failed",
+      "gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "bucket": "true_noncandidate",
+      "side_effects": "none_observed",
+      "notes": "Blocked before metric extraction by Milestone 2 source-classification taxonomy."
+    },
+    {
+      "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+      "ticker": "MAH",
+      "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "document_class": "operational_project_update",
+      "final_status": "failed",
+      "gate": "validation_gate:source_noncandidate:operational_project_update",
+      "bucket": "true_noncandidate",
+      "side_effects": "none_observed",
+      "notes": "Blocked before metric extraction."
+    },
+    {
+      "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+      "ticker": "FCL",
+      "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "document_class": "board_change_notice",
+      "final_status": "failed",
+      "gate": "validation_gate:source_noncandidate:board_change_notice",
+      "bucket": "true_noncandidate",
+      "side_effects": "none_observed",
+      "notes": "Blocked before metric extraction."
+    },
+    {
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "document_class": "unknown_document",
+      "final_status": "failed",
+      "gate": "validation_gate:scale_unknown",
+      "bucket": "eligible_doc_suspicious_scale",
+      "side_effects": "none_observed",
+      "notes": "Source uses $m statements and nearest-$100,000 rounding language, but the payload scale remained unknown and failed closed."
+    },
+    {
+      "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+      "ticker": "HRZ",
+      "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "document_class": "share_sale_or_gross_proceeds_announcement",
+      "final_status": "failed",
+      "gate": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+      "bucket": "true_noncandidate",
+      "side_effects": "none_observed",
+      "notes": "Blocked before metric extraction."
+    },
+    {
+      "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+      "ticker": "MPL",
+      "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "document_class": "pre_results_segment_re_presentation",
+      "final_status": "failed",
+      "gate": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+      "bucket": "true_noncandidate",
+      "side_effects": "none_observed",
+      "notes": "Blocked before metric extraction."
+    },
+    {
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "ticker": "DXC",
+      "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "document_class": "unknown_document",
+      "final_status": "failed",
+      "gate": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+      "bucket": "accepted_output_risk",
+      "side_effects": "none_observed",
+      "notes": "PR #301 row-label guard failed this document closed; net operating income did not pass as canonical EBIT."
+    },
+    {
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "ticker": "CTN",
+      "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "document_class": "unknown_document",
+      "final_status": "failed",
+      "gate": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "bucket": "period_source_mismatch",
+      "side_effects": "none_observed",
+      "notes": "Quarterly Activity Report / Appendix 5B failed closed after source-period evidence picked up an annual-report phrase from body text."
+    },
+    {
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "ticker": "HUB",
+      "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "document_class": "unknown_document",
+      "final_status": "ok",
+      "gate": "accepted",
+      "bucket": "accepted_output_risk",
+      "side_effects": "none_observed",
+      "notes": "Suspicious accepted output: source text says half-year ended 31 December 2023, but accepted period_end was 2024-02-20, matching the announcement date in the filename."
+    },
+    {
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "ticker": "LBL",
+      "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "document_class": "unknown_document",
+      "final_status": "ok",
+      "gate": "accepted",
+      "bucket": "accepted_output_risk",
+      "side_effects": "none_observed",
+      "notes": "Suspicious accepted output: accepted period_end matched the announcement date; accepted scale=millions conflicts with A$000 table pages used for multiple extracted values."
+    }
+  ],
+  "top_repeated_root_cause": {
+    "root_cause": "accepted half-year outputs can use the filename announcement date as period_end when explicit source period-end evidence is missing or not propagated",
+    "affected_documents": [
+      "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "551c6b84-1053-405c-a833-4ecc018e2045"
+    ],
+    "repair_justified": true,
+    "repair_class": "stricter accepted-output quarantine/abstain guard"
+  },
+  "count24_approval_packet": {
+    "reasonable": false,
+    "reason": "Premature: at least two suspicious accepted half-year outputs remain in the bounded count-16 sample."
+  }
+}
