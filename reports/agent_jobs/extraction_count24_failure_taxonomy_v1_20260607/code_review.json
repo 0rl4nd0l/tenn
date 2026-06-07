@@ -1,0 +1,32 @@
+{
+  "result": {
+    "critical": [],
+    "suggestions": [],
+    "warnings": []
+  },
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "Review scoped to the current unstaged code diff only."
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "sources_used": [
+      "git diff",
+      "focused pytest result",
+      "ruff result",
+      "py_compile result"
+    ],
+    "validation_checks": [
+      "pytest test_source_document_classifier_excludes_known_false_positive_classes: passed",
+      "py_compile multipass_extraction.py and test_multipass_extraction.py: passed",
+      "ruff check modified code/test files: passed"
+    ]
+  }
+}

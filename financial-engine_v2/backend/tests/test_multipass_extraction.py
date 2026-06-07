@@ -153,6 +153,11 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
             "meeting_or_proxy_notice",
         ),
         (
+            "results-of-meeting.pdf",
+            "Results of Meeting. The resolution was passed on a poll.",
+            "meeting_or_proxy_notice",
+        ),
+        (
             "fineos-board-changes.pdf",
             (
                 "Upcoming FINEOS Board changes. Appointment of a new "

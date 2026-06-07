@@ -1,0 +1,40 @@
+[
+  {
+    "affected_document_ids": [
+      "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+      "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+      "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+      "bf82c108-980b-4792-ad76-838c3fe446ca",
+      "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "5eaa9900-0749-448a-a7bc-a5af19eddb23",
+      "04438122-c607-4c53-bb41-2e3864c06479",
+      "7e6d1ae5-51be-4828-907c-d2aa3f8528e7"
+    ],
+    "evidence": "Six true noncandidates already fail closed; MQR results-of-meeting missed pre-LLM evidence; NIC webcast-details and JAY Q3 update remain policy-audit candidates.",
+    "next_action": "Keep exact title/source-family exclusions only; do not add fuzzy exclusions.",
+    "root_cause": "Candidate-selection and document-family policy gaps"
+  },
+  {
+    "affected_document_ids": [
+      "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "50398d3d-27f7-4d9e-8a26-a2d69f128a1c"
+    ],
+    "evidence": "WHC, AZJ, EDU, and NIC failed scale_unknown; AZJ/EDU had extracted metrics but no source-bound scale.",
+    "next_action": "Target source-bound scale evidence extraction from table headers/source text for these exact families.",
+    "root_cause": "Scale remains unproven for otherwise eligible reports"
+  },
+  {
+    "affected_document_ids": [
+      "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "551c6b84-1053-405c-a833-4ecc018e2045",
+      "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39"
+    ],
+    "evidence": "HUB/LBL announcement-date period-end, DXC net operating income as EBIT, and CTN period-source mismatch all failed closed.",
+    "next_action": "Do not loosen these gates; repair only upstream evidence extraction if source-bound proof exists.",
+    "root_cause": "Existing truth gates are preventing unsafe accepted rows"
+  }
+]

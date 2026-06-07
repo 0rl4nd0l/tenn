@@ -1,0 +1,310 @@
+[
+  {
+    "buckets": [
+      "eligible report with missing scale evidence"
+    ],
+    "confidence": 0.0,
+    "document_class": "financial_report",
+    "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+    "expected_safe_assessment": "safe fail; eligible annual report needs source scale evidence before acceptance",
+    "failure_gate": "validation_gate:scale_unknown",
+    "index": 2,
+    "non_null_metrics": 0,
+    "period_end": "2022-09-21",
+    "period_type": "A",
+    "repair_note": null,
+    "scale": "unknown",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+    "ticker": "WHC",
+    "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf"
+  },
+  {
+    "buckets": [
+      "true noncandidate"
+    ],
+    "confidence": 0.0,
+    "document_class": "meeting_or_proxy_notice",
+    "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+    "expected_safe_assessment": "expected safe fail; meeting/proxy notice is a true noncandidate",
+    "failure_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+    "index": 3,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": null,
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+    "ticker": "EQR",
+    "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf"
+  },
+  {
+    "buckets": [
+      "true noncandidate"
+    ],
+    "confidence": 0.0,
+    "document_class": "operational_project_update",
+    "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+    "expected_safe_assessment": "expected safe fail; project update is a true noncandidate",
+    "failure_gate": "validation_gate:source_noncandidate:operational_project_update",
+    "index": 4,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": null,
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+    "ticker": "MAH",
+    "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf"
+  },
+  {
+    "buckets": [
+      "true noncandidate"
+    ],
+    "confidence": 0.0,
+    "document_class": "board_change_notice",
+    "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+    "expected_safe_assessment": "expected safe fail; board-change notice is a true noncandidate",
+    "failure_gate": "validation_gate:source_noncandidate:board_change_notice",
+    "index": 5,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": null,
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+    "ticker": "FCL",
+    "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf"
+  },
+  {
+    "buckets": [
+      "eligible report with scale validation issue",
+      "parser/table coverage gap"
+    ],
+    "confidence": 0.905,
+    "document_class": "unknown_document",
+    "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+    "expected_safe_assessment": "safe fail; values were extracted but scale remained source-unproven",
+    "failure_gate": "validation_gate:scale_unknown",
+    "index": 6,
+    "non_null_metrics": 7,
+    "period_end": "2025-06-30",
+    "period_type": "A",
+    "repair_note": null,
+    "scale": "unknown",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+    "ticker": "AZJ",
+    "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+  },
+  {
+    "buckets": [
+      "true noncandidate"
+    ],
+    "confidence": 0.0,
+    "document_class": "share_sale_or_gross_proceeds_announcement",
+    "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+    "expected_safe_assessment": "expected safe fail; share-sale/gross-proceeds notice is a true noncandidate",
+    "failure_gate": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+    "index": 8,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": null,
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+    "ticker": "HRZ",
+    "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf"
+  },
+  {
+    "buckets": [
+      "true noncandidate"
+    ],
+    "confidence": 0.0,
+    "document_class": "pre_results_segment_re_presentation",
+    "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+    "expected_safe_assessment": "expected safe fail; pre-results segment re-presentation is a true noncandidate",
+    "failure_gate": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+    "index": 9,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": null,
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+    "ticker": "MPL",
+    "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf"
+  },
+  {
+    "buckets": [
+      "parser/table coverage gap"
+    ],
+    "confidence": 0.933,
+    "document_class": "unknown_document",
+    "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+    "expected_safe_assessment": "expected safe fail; EBIT candidate mapped from net operating income",
+    "failure_gate": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+    "index": 11,
+    "non_null_metrics": 4,
+    "period_end": "2025-06-30",
+    "period_type": "A",
+    "repair_note": null,
+    "scale": "thousands",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+    "ticker": "DXC",
+    "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf"
+  },
+  {
+    "buckets": [
+      "period/source mismatch"
+    ],
+    "confidence": 1.0,
+    "document_class": "unknown_document",
+    "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+    "expected_safe_assessment": "expected safe fail; half-year period_end equalled announcement title date",
+    "failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+    "index": 13,
+    "non_null_metrics": 9,
+    "period_end": "2024-02-20",
+    "period_type": "H",
+    "repair_note": null,
+    "scale": "thousands",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+    "ticker": "HUB",
+    "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+  },
+  {
+    "buckets": [
+      "period/source mismatch"
+    ],
+    "confidence": 0.822,
+    "document_class": "unknown_document",
+    "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+    "expected_safe_assessment": "expected safe fail; half-year period_end equalled announcement title date",
+    "failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+    "index": 14,
+    "non_null_metrics": 6,
+    "period_end": "2026-02-20",
+    "period_type": "H",
+    "repair_note": null,
+    "scale": "millions",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+    "ticker": "LBL",
+    "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+  },
+  {
+    "buckets": [
+      "period/source mismatch"
+    ],
+    "confidence": 1.0,
+    "document_class": "unknown_document",
+    "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+    "expected_safe_assessment": "expected safe fail; payload/source period type mismatch",
+    "failure_gate": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+    "index": 16,
+    "non_null_metrics": 6,
+    "period_end": "2022-03-31",
+    "period_type": "Q",
+    "repair_note": null,
+    "scale": "thousands",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+    "ticker": "CTN",
+    "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+  },
+  {
+    "buckets": [
+      "eligible report with scale validation issue"
+    ],
+    "confidence": 0.533,
+    "document_class": "financial_report",
+    "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+    "expected_safe_assessment": "safe fail; annual report extraction lacks source-bound scale",
+    "failure_gate": "validation_gate:scale_unknown",
+    "index": 18,
+    "non_null_metrics": 4,
+    "period_end": "2023-12-31",
+    "period_type": "A",
+    "repair_note": null,
+    "scale": "unknown",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+    "ticker": "EDU",
+    "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf"
+  },
+  {
+    "buckets": [
+      "document-family policy gap",
+      "eligible report with missing scale evidence"
+    ],
+    "confidence": 0.0,
+    "document_class": "financial_report",
+    "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+    "expected_safe_assessment": "safe fail; title suggests webcast-details policy gap and no scale evidence",
+    "failure_gate": "validation_gate:scale_unknown",
+    "index": 19,
+    "non_null_metrics": 0,
+    "period_end": "2025-06-30",
+    "period_type": "H",
+    "repair_note": "Candidate for later exact webcast-details noncandidate audit; not fixed here to avoid broad fuzzy exclusions.",
+    "scale": "unknown",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+    "ticker": "NIC",
+    "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf"
+  },
+  {
+    "buckets": [
+      "true noncandidate"
+    ],
+    "confidence": 0.0,
+    "document_class": "meeting_or_proxy_notice",
+    "document_id": "5eaa9900-0749-448a-a7bc-a5af19eddb23",
+    "expected_safe_assessment": "expected safe fail; meeting/proxy notice is a true noncandidate",
+    "failure_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+    "index": 21,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": null,
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+    "ticker": "QGL",
+    "title": "2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf"
+  },
+  {
+    "buckets": [
+      "insufficient metrics",
+      "document-family policy gap"
+    ],
+    "confidence": 0.0,
+    "document_class": "unknown_document",
+    "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+    "expected_safe_assessment": "safe fail; Q3 update produced zero canonical metrics and may be a policy-gap noncandidate",
+    "failure_gate": "validation_gate:insufficient_metrics:0",
+    "index": 22,
+    "non_null_metrics": 0,
+    "period_end": "2023-03-31",
+    "period_type": "Q",
+    "repair_note": "Candidate for later q3 update / trading update policy audit; not fixed here without source text review.",
+    "scale": "thousands",
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+    "ticker": "JAY",
+    "title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf"
+  },
+  {
+    "buckets": [
+      "classifier evidence missing",
+      "document-family policy gap"
+    ],
+    "confidence": 0.0,
+    "document_class": "DATA_MISSING",
+    "document_id": "7e6d1ae5-51be-4828-907c-d2aa3f8528e7",
+    "expected_safe_assessment": "safe fail but not expected before repair; results-of-meeting should be classified as meeting/proxy material",
+    "failure_gate": "classifier_low_confidence:0.0",
+    "index": 24,
+    "non_null_metrics": 0,
+    "period_end": null,
+    "period_type": null,
+    "repair_note": "Fixed by exact title-level results-of-meeting noncandidate detection mapped to meeting_or_proxy_notice.",
+    "scale": null,
+    "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+    "ticker": "MQR",
+    "title": "2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf"
+  }
+]

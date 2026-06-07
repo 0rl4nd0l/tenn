@@ -1,0 +1,22 @@
+{
+  "affected_count24_failure": "MQR 7e6d1ae5-51be-4828-907c-d2aa3f8528e7 classifier_low_confidence:0.0",
+  "count24_rerun_later": {
+    "justified_now": false,
+    "reason": "One single-document policy repair is too narrow to justify another count-24 run; scale and policy gaps remain."
+  },
+  "count32_status": "blocked; requires separate approval packet after count-24 failure taxonomy and any further repairs",
+  "expected_future_behavior": "Fail closed before LLM metric extraction as validation_gate:source_noncandidate:meeting_or_proxy_notice.",
+  "files": [
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+  ],
+  "implemented": true,
+  "next_exact_repair_prompt": "Audit the remaining count-24 scale_unknown failures only (WHC, AZJ, EDU, NIC). Do not rerun samples. Inspect source text/table headers for source-bound scale evidence and implement at most one narrow tested scale-evidence repair if supported.",
+  "not_addressed": [
+    "scale_unknown family",
+    "period/source mismatch family",
+    "insufficient_metrics family",
+    "webcast-details policy gap"
+  ],
+  "scope": "Exact title-level detection for results-of-meeting source documents."
+}
