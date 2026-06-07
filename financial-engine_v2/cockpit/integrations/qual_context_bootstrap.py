@@ -6,6 +6,11 @@ from typing import Any
 from cockpit.integrations.qual_context import QualContextReader
 
 
+DEFAULT_NEWS_CONTEXT_RELATIVE_PATH = Path("reports/qual_context/news.sqlite")
+DEFAULT_NEWS_EVAL_RELATIVE_PATH = Path("reports/qual_context/news_eval.sqlite")
+DEFAULT_NIGHTLY_NEWS_ARTIFACT_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context")
+
+
 def resolve_qual_context_db_path(*, repo_root: Path, raw_path: str) -> Path:
     db_path = Path(raw_path).expanduser()
     if db_path.is_absolute():
@@ -17,6 +22,47 @@ def resolve_qual_context_db_path(*, repo_root: Path, raw_path: str) -> Path:
     if secondary.exists():
         return secondary
     return primary
+
+
+def _resolve_relative_context_candidates(*, repo_root: Path, raw_path: str) -> list[Path]:
+    db_path = Path(raw_path).expanduser()
+    if db_path.is_absolute():
+        return [db_path.resolve()]
+    return [
+        (repo_root / db_path).resolve(),
+        (repo_root.parent / db_path).resolve(),
+    ]
+
+
+def _dedupe_paths(paths: list[Path]) -> list[Path]:
+    out: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(path)
+    return out
+
+
+def _newest_existing_file(paths: list[Path]) -> Path | None:
+    existing: list[Path] = []
+    for path in _dedupe_paths(paths):
+        if path.exists() and path.is_file():
+            existing.append(path)
+    if not existing:
+        return None
+    return max(existing, key=lambda path: (path.stat().st_mtime_ns, path.stat().st_size, str(path)))
+
+
+def _is_default_news_context_path(raw_path: str) -> bool:
+    db_path = Path(raw_path).expanduser()
+    return not db_path.is_absolute() and db_path == DEFAULT_NEWS_CONTEXT_RELATIVE_PATH
+
+
+def _default_nightly_news_context_db_path() -> Path:
+    return (DEFAULT_NIGHTLY_NEWS_ARTIFACT_ROOT / "news.sqlite").expanduser().resolve()
 
 
 def resolve_rag_dependency_policy(raw_policy: str, profile: str) -> str:
@@ -59,7 +105,17 @@ def resolve_news_context_db_path(
 
     explicit_path = str(news_cfg.get("db_path") or "").strip()
     if explicit_path:
+        resolved_candidates = _resolve_relative_context_candidates(repo_root=repo_root, raw_path=explicit_path)
         resolved = resolve_qual_context_db_path(repo_root=repo_root, raw_path=explicit_path)
+        if _is_default_news_context_path(explicit_path):
+            freshest_default = _newest_existing_file(
+                [
+                    _default_nightly_news_context_db_path(),
+                    *resolved_candidates,
+                ]
+            )
+            if freshest_default is not None:
+                return freshest_default
         if resolved.exists():
             return resolved
         # If enabled is explicitly true, treat missing explicit path as a hard config error upstream.
@@ -67,13 +123,20 @@ def resolve_news_context_db_path(
             return resolved
         return None
 
-    candidates = [
-        (repo_root / "reports" / "qual_context" / "news.sqlite").resolve(),
-        (repo_root / "reports" / "qual_context" / "news_eval.sqlite").resolve(),
-        (repo_root.parent / "reports" / "qual_context" / "news.sqlite").resolve(),
-        (repo_root.parent / "reports" / "qual_context" / "news_eval.sqlite").resolve(),
+    news_candidates = [
+        _default_nightly_news_context_db_path(),
+        (repo_root / DEFAULT_NEWS_CONTEXT_RELATIVE_PATH).resolve(),
+        (repo_root.parent / DEFAULT_NEWS_CONTEXT_RELATIVE_PATH).resolve(),
     ]
-    for candidate in candidates:
+    freshest_news = _newest_existing_file(news_candidates)
+    if freshest_news is not None:
+        return freshest_news
+
+    eval_candidates = [
+        (repo_root / DEFAULT_NEWS_EVAL_RELATIVE_PATH).resolve(),
+        (repo_root.parent / DEFAULT_NEWS_EVAL_RELATIVE_PATH).resolve(),
+    ]
+    for candidate in eval_candidates:
         if candidate.exists() and candidate.is_file():
             return candidate
     return None
