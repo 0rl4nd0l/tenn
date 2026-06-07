@@ -39,8 +39,11 @@ NEWS_TICKERS="${NIGHTLY_NEWS_TICKERS:-${NEWS_TICKERS:-}}"
 NEWS_ASX_WIDE="${NIGHTLY_NEWS_ASX_WIDE:-${NEWS_ASX_WIDE:-0}}"
 NEWS_ALLOW_MISSING_EODHD_CAPTURES="${NIGHTLY_NEWS_ALLOW_MISSING_EODHD_CAPTURES:-${NEWS_ALLOW_MISSING_EODHD_CAPTURES:-0}}"
 NEWS_MIN_FETCHED="${NIGHTLY_NEWS_MIN_FETCHED:-1}"
+NEWS_MIN_UPSERTED="${NIGHTLY_NEWS_MIN_UPSERTED:-${NEWS_MIN_UPSERTED:-1}}"
 NEWS_MIN_CHUNKS="${NIGHTLY_NEWS_MIN_CHUNKS:-1}"
+NEWS_MIN_CONTEXT_RECENT_CHUNKS="${NIGHTLY_NEWS_MIN_CONTEXT_RECENT_CHUNKS:-${NEWS_MIN_CONTEXT_RECENT_CHUNKS:-${NEWS_MIN_CHUNKS}}}"
 NEWS_MAX_ERRORS="${NIGHTLY_NEWS_MAX_ERRORS:-0}"
+NEWS_REQUIRE_CONTEXT_FRESH="${NIGHTLY_NEWS_REQUIRE_CONTEXT_FRESH:-${NEWS_REQUIRE_CONTEXT_FRESH:-1}}"
 
 NEWS_GDELT_MAX_RECORDS="${NIGHTLY_NEWS_GDELT_MAX_RECORDS:-${NEWS_GDELT_MAX_RECORDS:-250}}"
 NEWS_GDELT_TICKER_QUERY_BATCH_SIZE="${NIGHTLY_NEWS_GDELT_TICKER_QUERY_BATCH_SIZE:-${NEWS_GDELT_TICKER_QUERY_BATCH_SIZE:-10}}"
@@ -105,8 +108,11 @@ write_status_json() {
   export NIGHTLY_NEWS_SINCE_HOURS_EFFECTIVE="${NEWS_SINCE_HOURS}"
   export NIGHTLY_NEWS_MAX_TICKERS_EFFECTIVE="${NEWS_MAX_TICKERS}"
   export NIGHTLY_NEWS_MIN_FETCHED_EFFECTIVE="${NEWS_MIN_FETCHED}"
+  export NIGHTLY_NEWS_MIN_UPSERTED_EFFECTIVE="${NEWS_MIN_UPSERTED}"
   export NIGHTLY_NEWS_MIN_CHUNKS_EFFECTIVE="${NEWS_MIN_CHUNKS}"
+  export NIGHTLY_NEWS_MIN_CONTEXT_RECENT_CHUNKS_EFFECTIVE="${NEWS_MIN_CONTEXT_RECENT_CHUNKS}"
   export NIGHTLY_NEWS_MAX_ERRORS_EFFECTIVE="${NEWS_MAX_ERRORS}"
+  export NIGHTLY_NEWS_REQUIRE_CONTEXT_FRESH_EFFECTIVE="${NEWS_REQUIRE_CONTEXT_FRESH}"
   export NIGHTLY_NEWS_LOG_FILE="${LOG_FILE}"
   export NIGHTLY_NEWS_STATUS_FILE="${STATUS_FILE}"
   export NIGHTLY_NEWS_FETCH_OUTPUT_FILE="${FETCH_OUTPUT_FILE}"
@@ -162,8 +168,11 @@ payload = {
         "since_hours": env_int("NIGHTLY_NEWS_SINCE_HOURS_EFFECTIVE"),
         "max_tickers": env_int("NIGHTLY_NEWS_MAX_TICKERS_EFFECTIVE"),
         "min_fetched": env_int("NIGHTLY_NEWS_MIN_FETCHED_EFFECTIVE"),
+        "min_upserted": env_int("NIGHTLY_NEWS_MIN_UPSERTED_EFFECTIVE"),
         "min_chunks": env_int("NIGHTLY_NEWS_MIN_CHUNKS_EFFECTIVE"),
+        "min_context_recent_chunks": env_int("NIGHTLY_NEWS_MIN_CONTEXT_RECENT_CHUNKS_EFFECTIVE"),
         "max_errors": env_int("NIGHTLY_NEWS_MAX_ERRORS_EFFECTIVE"),
+        "require_context_fresh": env("NIGHTLY_NEWS_REQUIRE_CONTEXT_FRESH_EFFECTIVE").strip() != "0",
     },
     "paths": {
         "tenn_root": env("NIGHTLY_NEWS_TENN_ROOT"),
@@ -265,6 +274,52 @@ print(len(seen))
 PY
 }
 
+snapshot_context_db() {
+  "${PYTHON_BIN}" - "${NEWS_CONTEXT_DB}" <<'PY'
+from __future__ import annotations
+
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+
+def table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+path = Path(sys.argv[1]).expanduser().resolve()
+payload = {
+    "path": str(path),
+    "exists": path.exists(),
+    "size_bytes": path.stat().st_size if path.exists() else 0,
+    "mtime_ns": path.stat().st_mtime_ns if path.exists() else 0,
+    "context_chunks_exists": False,
+    "total_chunks": 0,
+    "max_published_at": "",
+}
+if path.exists():
+    try:
+        conn = sqlite3.connect(str(path))
+        try:
+            if table_exists(conn, "context_chunks"):
+                payload["context_chunks_exists"] = True
+                payload["total_chunks"] = int(conn.execute("SELECT COUNT(*) FROM context_chunks").fetchone()[0] or 0)
+                payload["max_published_at"] = str(
+                    conn.execute("SELECT COALESCE(MAX(published_at), '') FROM context_chunks").fetchone()[0] or ""
+                )
+        finally:
+            conn.close()
+    except Exception as exc:
+        payload["error"] = str(exc)
+print(json.dumps(payload, sort_keys=True))
+PY
+}
+
 write_dry_run_health() {
   local ticker_count="$1"
   "${PYTHON_BIN}" - "${HEALTH_FILE}" "${ticker_count}" <<'PY'
@@ -279,6 +334,7 @@ payload = {
     "dry_run": True,
     "ticker_count": int(sys.argv[2]),
     "totals": {"fetched": 0, "inserted": 0, "deduped": 0, "rejected": 0, "errors": 0, "chunks_written": 0},
+    "thresholds": {"min_fetched": 0, "min_upserted": 0, "min_chunks": 0, "min_context_recent_chunks": 0, "max_errors": 0},
     "problems": [],
 }
 Path(sys.argv[1]).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -291,10 +347,15 @@ write_health_json() {
     "${FETCH_OUTPUT_FILE}" \
     "${CHUNK_OUTPUT_FILE}" \
     "${NEWS_ARTICLES_DB}" \
+    "${NEWS_CONTEXT_DB}" \
     "${HEALTH_FILE}" \
     "${NEWS_MIN_FETCHED}" \
+    "${NEWS_MIN_UPSERTED}" \
     "${NEWS_MIN_CHUNKS}" \
-    "${NEWS_MAX_ERRORS}" <<'PY'
+    "${NEWS_MAX_ERRORS}" \
+    "${NEWS_REQUIRE_CONTEXT_FRESH}" \
+    "${NEWS_MIN_CONTEXT_RECENT_CHUNKS}" \
+    "${CONTEXT_SNAPSHOT_BEFORE:-}" <<'PY'
 from __future__ import annotations
 
 import json
@@ -329,13 +390,83 @@ def read_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def sqlite_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    try:
+        return {str(row[1]) for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    except Exception:
+        return set()
+
+
+def context_snapshot(path: Path, *, recent_cutoff_utc: str) -> dict[str, Any]:
+    resolved = path.expanduser().resolve()
+    payload: dict[str, Any] = {
+        "path": str(resolved),
+        "exists": resolved.exists(),
+        "size_bytes": resolved.stat().st_size if resolved.exists() else 0,
+        "mtime_ns": resolved.stat().st_mtime_ns if resolved.exists() else 0,
+        "context_chunks_exists": False,
+        "total_chunks": 0,
+        "recent_news_chunks": 0,
+        "max_published_at": "",
+    }
+    if not resolved.exists():
+        return payload
+    try:
+        conn = sqlite3.connect(str(resolved))
+        try:
+            if not table_exists(conn, "context_chunks"):
+                return payload
+            payload["context_chunks_exists"] = True
+            cols = sqlite_columns(conn, "context_chunks")
+            payload["total_chunks"] = int(conn.execute("SELECT COUNT(*) FROM context_chunks").fetchone()[0] or 0)
+            if "published_at" in cols:
+                payload["max_published_at"] = str(
+                    conn.execute("SELECT COALESCE(MAX(published_at), '') FROM context_chunks").fetchone()[0] or ""
+                )
+            if recent_cutoff_utc and "published_at" in cols:
+                where = ["published_at >= ?"]
+                args: list[Any] = [recent_cutoff_utc]
+                if "doc_type" in cols:
+                    where.append("doc_type = 'news_article'")
+                sql = "SELECT COUNT(*) FROM context_chunks WHERE " + " AND ".join(where)
+                payload["recent_news_chunks"] = int(conn.execute(sql, tuple(args)).fetchone()[0] or 0)
+        finally:
+            conn.close()
+    except Exception as exc:
+        payload["error"] = str(exc)
+    return payload
+
+
+def context_changed(before: dict[str, Any], after: dict[str, Any]) -> bool:
+    for key in ("exists", "size_bytes", "mtime_ns", "context_chunks_exists", "total_chunks", "max_published_at"):
+        if before.get(key) != after.get(key):
+            return True
+    return False
+
+
 fetch_path = Path(sys.argv[1])
 chunk_path = Path(sys.argv[2])
 articles_db = Path(sys.argv[3])
-health_path = Path(sys.argv[4])
-min_fetched = int(float(sys.argv[5]))
-min_chunks = int(float(sys.argv[6]))
-max_errors = int(float(sys.argv[7]))
+context_db = Path(sys.argv[4])
+health_path = Path(sys.argv[5])
+min_fetched = int(float(sys.argv[6]))
+min_upserted = int(float(sys.argv[7]))
+min_chunks = int(float(sys.argv[8]))
+max_errors = int(float(sys.argv[9]))
+require_context_fresh = str(sys.argv[10]).strip() != "0"
+min_context_recent_chunks = int(float(sys.argv[11]))
+try:
+    context_before = json.loads(sys.argv[12]) if str(sys.argv[12] or "").strip() else {}
+except Exception as exc:
+    context_before = {"parse_error": str(exc), "raw": str(sys.argv[12] or "")[:500]}
 
 fetch_payload = read_json(fetch_path)
 chunk_payload = read_json(chunk_path)
@@ -347,6 +478,7 @@ run_ids = [
 
 runs = []
 totals = {"fetched": 0, "inserted": 0, "deduped": 0, "rejected": 0, "errors": 0}
+window_starts: list[str] = []
 conn = sqlite3.connect(str(articles_db))
 conn.row_factory = sqlite3.Row
 try:
@@ -356,10 +488,19 @@ try:
             runs.append({"run_id": run_id, "missing": True})
             continue
         item = dict(row)
+        try:
+            params = json.loads(str(item.get("params_json") or "{}"))
+        except Exception:
+            params = {}
+        window_start = str(params.get("window_start_utc") or "").strip()
+        if window_start:
+            window_starts.append(window_start)
         normalized = {
             "run_id": str(item.get("run_id") or ""),
             "provider": str(item.get("provider") or ""),
             "status": str(item.get("status") or ""),
+            "window_start_utc": window_start,
+            "window_end_utc": str(params.get("window_end_utc") or "").strip(),
             "fetched": int(item.get("fetched") or 0),
             "inserted": int(item.get("inserted") or 0),
             "deduped": int(item.get("deduped") or 0),
@@ -375,20 +516,40 @@ finally:
 chunk_stats = chunk_payload.get("stats") if isinstance(chunk_payload.get("stats"), dict) else {}
 chunks_written = int(chunk_stats.get("chunks_written") or 0)
 totals["chunks_written"] = chunks_written
+recent_cutoff_utc = min(window_starts) if window_starts else ""
+context_after = context_snapshot(context_db, recent_cutoff_utc=recent_cutoff_utc)
+context_was_changed = context_changed(context_before if isinstance(context_before, dict) else {}, context_after)
 
 problems = []
 if not run_ids:
     problems.append("fetch output did not contain provider run IDs")
 if totals["fetched"] < min_fetched:
     problems.append(f"fetched {totals['fetched']} below minimum {min_fetched}")
+if totals["inserted"] < min_upserted:
+    problems.append(f"inserted/upserted {totals['inserted']} below minimum {min_upserted}")
 if chunks_written < min_chunks:
     problems.append(f"chunks_written {chunks_written} below minimum {min_chunks}")
 if totals["errors"] > max_errors:
     problems.append(f"errors {totals['errors']} above maximum {max_errors}")
 for item in runs:
+    if item.get("missing"):
+        problems.append(f"provider run {item.get('run_id')} missing from provider_runs")
+        continue
     status = str(item.get("status") or "")
     if status and status not in {"success"}:
         problems.append(f"provider run {item.get('run_id')} status={status}")
+if require_context_fresh:
+    if not context_after.get("exists"):
+        problems.append(f"context SQLite fallback missing: {context_db}")
+    elif not context_after.get("context_chunks_exists"):
+        problems.append(f"context SQLite fallback has no context_chunks table: {context_db}")
+    elif not context_was_changed:
+        problems.append("context SQLite fallback did not change during current run")
+    if int(context_after.get("recent_news_chunks") or 0) < min_context_recent_chunks:
+        problems.append(
+            "context recent news chunks "
+            f"{int(context_after.get('recent_news_chunks') or 0)} below minimum {min_context_recent_chunks}"
+        )
 
 payload = {
     "status": "failure" if problems else "success",
@@ -396,12 +557,22 @@ payload = {
     "fetch_json": str(fetch_path),
     "chunks_json": str(chunk_path),
     "news_articles_db": str(articles_db),
+    "news_context_db": str(context_db),
     "runs": runs,
     "totals": totals,
     "chunk_stats": chunk_stats,
+    "context": {
+        "before": context_before,
+        "after": context_after,
+        "changed": context_was_changed,
+        "recent_cutoff_utc": recent_cutoff_utc,
+        "require_fresh": require_context_fresh,
+    },
     "thresholds": {
         "min_fetched": min_fetched,
+        "min_upserted": min_upserted,
         "min_chunks": min_chunks,
+        "min_context_recent_chunks": min_context_recent_chunks,
         "max_errors": max_errors,
     },
     "problems": problems,
@@ -464,6 +635,8 @@ if [[ "${DRY_RUN}" == "true" ]]; then
   HEALTH_STATUS="success"
   exit 0
 fi
+
+CONTEXT_SNAPSHOT_BEFORE="$(snapshot_context_db)"
 
 CURRENT_PHASE="fetch"
 FETCH_ARGS=(

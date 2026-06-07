@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -17,6 +17,42 @@ def _latest_json(log_dir: Path, suffix: str) -> dict:
     if not matches:
         raise AssertionError(f"no nightly_news_*.{suffix}.json under {log_dir}")
     return json.loads(matches[-1].read_text(encoding="utf-8"))
+
+
+def _write_eodhd_capture_fixture(captures: Path, published_at: str) -> None:
+    captures.mkdir(parents=True, exist_ok=True)
+    (captures / "market_news_sample.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "mk1",
+                    "title": "ASX:BHP posts production update",
+                    "link": "https://example.com/market/bhp",
+                    "date": published_at,
+                    "source": "Example AU",
+                    "description": "BHP Group released an ASX production update.",
+                    "content": "ASX:BHP reported a production update with operational details.",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (captures / "symbol_BHP_sample.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "sym1",
+                    "title": "BHP.AX guidance reaffirmed",
+                    "link": "https://example.com/symbol/bhp",
+                    "date": published_at,
+                    "source": "Example AU",
+                    "description": "BHP guidance remains unchanged.",
+                    "content": "BHP.AX guidance remains unchanged after the update.",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 class NightlyNewsWrapperTests(unittest.TestCase):
@@ -44,6 +80,7 @@ class NightlyNewsWrapperTests(unittest.TestCase):
                 "NEWS_EODHD_CAPTURE_DIR": str(captures),
                 "NEWS_MAX_TICKERS": "1",
                 "NIGHTLY_NEWS_MIN_FETCHED": "1",
+                "NIGHTLY_NEWS_MIN_UPSERTED": "1",
                 "NIGHTLY_NEWS_MIN_CHUNKS": "1",
                 "NIGHTLY_NEWS_MAX_ERRORS": "0",
             }
@@ -103,38 +140,7 @@ class NightlyNewsWrapperTests(unittest.TestCase):
             env = self._base_env(tmp)
             captures = Path(env["NEWS_EODHD_CAPTURE_DIR"])
             now = datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-            (captures / "market_news_sample.json").write_text(
-                json.dumps(
-                    [
-                        {
-                            "id": "mk1",
-                            "title": "ASX:BHP posts production update",
-                            "link": "https://example.com/market/bhp",
-                            "date": now,
-                            "source": "Example AU",
-                            "description": "BHP Group released an ASX production update.",
-                            "content": "ASX:BHP reported a production update with operational details.",
-                        }
-                    ]
-                ),
-                encoding="utf-8",
-            )
-            (captures / "symbol_BHP_sample.json").write_text(
-                json.dumps(
-                    [
-                        {
-                            "id": "sym1",
-                            "title": "BHP.AX guidance reaffirmed",
-                            "link": "https://example.com/symbol/bhp",
-                            "date": now,
-                            "source": "Example AU",
-                            "description": "BHP guidance remains unchanged.",
-                            "content": "BHP.AX guidance remains unchanged after the update.",
-                        }
-                    ]
-                ),
-                encoding="utf-8",
-            )
+            _write_eodhd_capture_fixture(captures, now)
 
             proc = subprocess.run(
                 [str(WRAPPER)],
@@ -158,13 +164,104 @@ class NightlyNewsWrapperTests(unittest.TestCase):
             self.assertEqual(status["phases"]["health"], "success")
             self.assertEqual(health["status"], "success")
             self.assertGreaterEqual(int(health["totals"]["fetched"]), 1)
+            self.assertGreaterEqual(int(health["totals"]["inserted"]), 1)
             self.assertEqual(int(health["totals"]["errors"]), 0)
             self.assertGreaterEqual(int(health["totals"]["chunks_written"]), 1)
+            self.assertTrue(health["context"]["changed"])
+            self.assertGreaterEqual(int(health["context"]["after"]["recent_news_chunks"]), 1)
             self.assertEqual(fetch["providers"], ["eodhd"])
             self.assertGreaterEqual(len(fetch["runs"]), 1)
             self.assertGreaterEqual(int(chunks["stats"]["chunks_written"]), 1)
             self.assertTrue((tmp / "qual_context" / "news_articles.sqlite").exists())
             self.assertTrue((tmp / "qual_context" / "news.sqlite").exists())
+
+    def test_duplicate_fetch_zero_upsert_fails_even_with_existing_context(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            env = self._base_env(tmp)
+            captures = Path(env["NEWS_EODHD_CAPTURE_DIR"])
+            now = datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+            _write_eodhd_capture_fixture(captures, now)
+
+            first = subprocess.run(
+                [str(WRAPPER)],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertEqual(first.returncode, 0, first.stdout)
+
+            env = dict(env)
+            env["NIGHTLY_NEWS_LOG_DIR"] = str(tmp / "logs_second")
+            second = subprocess.run(
+                [str(WRAPPER)],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertNotEqual(second.returncode, 0, second.stdout)
+
+            status = _latest_json(tmp / "logs_second", "status")
+            health = _latest_json(tmp / "logs_second", "health")
+            self.assertEqual(status["status"], "failure")
+            self.assertEqual(status["failed_phase"], "health")
+            self.assertEqual(health["status"], "failure")
+            self.assertGreaterEqual(int(health["totals"]["fetched"]), 1)
+            self.assertEqual(int(health["totals"]["inserted"]), 0)
+            self.assertGreaterEqual(int(health["totals"]["deduped"]), 1)
+            self.assertGreaterEqual(int(health["totals"]["chunks_written"]), 1)
+            self.assertTrue(any("inserted/upserted 0 below minimum 1" in item for item in health["problems"]))
+            self.assertIn("context", health)
+
+    def test_stale_context_chunks_outside_current_window_fail_health(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            env = self._base_env(tmp)
+            captures = Path(env["NEWS_EODHD_CAPTURE_DIR"])
+            old = (datetime.now(tz=timezone.utc) - timedelta(days=10)).replace(microsecond=0).isoformat().replace(
+                "+00:00",
+                "Z",
+            )
+            _write_eodhd_capture_fixture(captures, old)
+
+            wide_env = dict(env)
+            wide_env["NIGHTLY_NEWS_SINCE_HOURS"] = "720"
+            first = subprocess.run(
+                [str(WRAPPER)],
+                cwd=ROOT,
+                env=wide_env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertEqual(first.returncode, 0, first.stdout)
+
+            narrow_env = dict(env)
+            narrow_env["NIGHTLY_NEWS_LOG_DIR"] = str(tmp / "logs_narrow")
+            narrow_env["NIGHTLY_NEWS_SINCE_HOURS"] = "1"
+            second = subprocess.run(
+                [str(WRAPPER)],
+                cwd=ROOT,
+                env=narrow_env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertNotEqual(second.returncode, 0, second.stdout)
+
+            health = _latest_json(tmp / "logs_narrow", "health")
+            self.assertEqual(health["status"], "failure")
+            self.assertEqual(int(health["totals"]["chunks_written"]), 2)
+            self.assertEqual(int(health["context"]["after"]["recent_news_chunks"]), 0)
+            self.assertTrue(any("context recent news chunks 0 below minimum 1" in item for item in health["problems"]))
 
     def test_zero_fetch_fails_health(self):
         with tempfile.TemporaryDirectory() as td:
