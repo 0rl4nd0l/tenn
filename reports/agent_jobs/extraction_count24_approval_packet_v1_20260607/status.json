@@ -1,0 +1,16 @@
+{
+  "approval_status": "NOT_AUTHORIZED",
+  "canonical_head": "b67736109db2c405171ff039c3b2f071238205db",
+  "count24_run": false,
+  "count32_run": false,
+  "created_at": "2026-06-07T06:13:46Z",
+  "final_state": "DONE_WITH_RISK",
+  "forbidden_actions_run": false,
+  "job_id": "extraction_count24_approval_packet_v1_20260607",
+  "mode": "APPROVAL_PACKET_REPORT_ONLY",
+  "next_step": "Operator may approve count-24 only with exact approval language; count-24 itself was not run.",
+  "packet_path": "reports/agent_jobs/extraction_count24_approval_packet_v1_20260607/README.md",
+  "prior_decision": "READY_FOR_COUNT24_APPROVAL_PACKET",
+  "risk": "MEDIUM_HIGH",
+  "validation_status": "PASSED"
+}
