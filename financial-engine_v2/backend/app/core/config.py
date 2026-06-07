@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     celery_result_backend: str = "cache+memory://"
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "asx_docs"
+    data_root: str = str(DATA_ROOT)
     docs_root: str = str(DATA_ROOT / "asx" / "docs")
     ollama_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
@@ -64,6 +65,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+settings.data_root = _resolve_project_path(settings.data_root)
 settings.database_url = _normalize_database_url(settings.database_url)
 settings.docs_root = _resolve_project_path(settings.docs_root)
 settings.marketindex_announcements_file = _resolve_project_path(settings.marketindex_announcements_file)
