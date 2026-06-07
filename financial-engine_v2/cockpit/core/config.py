@@ -119,10 +119,24 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
     if not isinstance(rag_cfg, dict):
         rag_cfg = {}
         cfg["rag"] = rag_cfg
+    qc_cfg = rag_cfg.setdefault("qualitative_context", {})
+    if not isinstance(qc_cfg, dict):
+        qc_cfg = {}
+        rag_cfg["qualitative_context"] = qc_cfg
     news_cfg = rag_cfg.setdefault("news_context", {})
     if not isinstance(news_cfg, dict):
         news_cfg = {}
         rag_cfg["news_context"] = news_cfg
+
+    company_db_override = (os.getenv("COCKPIT_COMPANY_DB_PATH") or "").strip()
+    if not company_db_override:
+        company_db_override = (os.getenv("TENN_COMPANY_CONTEXT_DB") or "").strip()
+    if not company_db_override:
+        qual_artifact_root = (os.getenv("TENN_QUAL_CONTEXT_ARTIFACT_ROOT") or "").strip()
+        if qual_artifact_root:
+            company_db_override = str(Path(qual_artifact_root).expanduser() / "company.sqlite")
+    if company_db_override:
+        qc_cfg["db_path"] = company_db_override
 
     news_db_override = (os.getenv("COCKPIT_NEWS_DB_PATH") or "").strip()
     if not news_db_override:
