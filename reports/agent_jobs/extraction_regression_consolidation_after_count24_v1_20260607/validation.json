@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_regression_consolidation_after_count24_v1_20260607.md",
+      "result": "pass",
+      "summary": "Task card validation ok=true."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_regression_consolidation_after_count24_v1_20260607.md --no-write-report",
+      "result": "pass",
+      "summary": "Visible changed files were inside the task-card allowlist."
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads(...) ... PY",
+      "result": "pass",
+      "summary": "Parsed consolidation, count24 failure-taxonomy, and count24 bounded-validation JSON artifacts."
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass",
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "pass",
+      "summary": "No cached whitespace errors."
+    },
+    {
+      "command": "git diff --name-only -- '*.pdf'; git diff --cached --name-only -- '*.pdf'",
+      "result": "pass",
+      "summary": "No PDF paths reported."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "pass",
+      "summary": "ok=true, read_only=true, lock_acquired=false, active_jobs=[]"
+    },
+    {
+      "command": "gh issue view 96 --json number,title,state,url,updatedAt --repo 0rl4nd0l/tenn",
+      "result": "pass",
+      "summary": "Issue #96 is open and GitHub auth allows read access."
+    }
+  ],
+  "code_or_tests_touched_in_consolidation": false,
+  "focused_pytest_required": false,
+  "py_compile_required": false,
+  "ruff_required": false,
+  "explicitly_not_run": [
+    "count-24 rerun",
+    "count-32",
+    "random sample",
+    "broad extraction",
+    "backfill",
+    "full ticker-universe extraction"
+  ],
+  "result": "pass"
+}

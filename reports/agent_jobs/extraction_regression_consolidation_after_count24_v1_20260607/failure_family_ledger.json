@@ -1,0 +1,466 @@
+{
+  "generated_at": "2026-06-07T08:31:17Z",
+  "families": [
+    {
+      "family": "scale_unknown",
+      "first_seen_report_or_pr": "Pre-existing; repeated in post-PR297/post-PR299 count16 taxonomies and current count24.",
+      "canonical_fix_pr_or_commit": "PR #299 fixed specific smart-apostrophe/source-marker patterns; PR #301 added selected-table scale propagation. Coverage is partial.",
+      "parked_branch_if_any": "safe/extraction-live-contract-truth-gates-v1-20260603-nvme has parked scale-recovery sub-slices, but parent batch is high risk.",
+      "current_count24_docs": [
+        {
+          "ticker": "WHC",
+          "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+          "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "financial_report"
+        },
+        {
+          "ticker": "AZJ",
+          "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+          "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "unknown_document"
+        },
+        {
+          "ticker": "EDU",
+          "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+          "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "financial_report"
+        },
+        {
+          "ticker": "NIC",
+          "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+          "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "financial_report"
+        }
+      ],
+      "current_instance_classification": "unfixed variants plus expected fail-closed behavior; not a confirmed regression of PR299/PR301.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Build and run a no-sample scale-table harness against WHC/AZJ/EDU/NIC source evidence; implement at most one repeated source-bound scale propagation repair."
+    },
+    {
+      "family": "scale_validation / suspect underscaled / overscaled",
+      "first_seen_report_or_pr": "Post-PR299 accepted-output audit found DXC, LBL, AZJ accepted-output scale risks.",
+      "canonical_fix_pr_or_commit": "PR #301/PR #306 contain selected-table scale and accepted-output containment/guards, but AZJ rounding policy remains unmodelled.",
+      "parked_branch_if_any": "safe/extraction-live-contract-truth-gates-v1-20260603-nvme contains high-risk bundled scale work.",
+      "current_count24_docs": [
+        {
+          "ticker": "AZJ",
+          "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+          "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "unknown_document"
+        },
+        {
+          "ticker": "EDU",
+          "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+          "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "financial_report"
+        },
+        {
+          "ticker": "NIC",
+          "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+          "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:scale_unknown",
+          "document_class": "financial_report"
+        }
+      ],
+      "current_instance_classification": "currently fail-closed, not accepted unsafe output; accepted row-ref provenance remains DATA_MISSING for ok rows.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Treat as scale-table harness work, not a broad rerun trigger."
+    },
+    {
+      "family": "selected-table scale binding",
+      "first_seen_report_or_pr": "Post-PR299 accepted-output audit, especially DXC selected $000 table accepted as millions.",
+      "canonical_fix_pr_or_commit": "Integrated through PR #301 lineage; tests exist around common metric source scale.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "DXC",
+          "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+          "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+          "document_class": "unknown_document"
+        },
+        {
+          "ticker": "LBL",
+          "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+          "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+          "document_class": "unknown_document"
+        }
+      ],
+      "current_instance_classification": "DXC fails closed on net_operating_income->EBIT; LBL fails closed on announcement-date period; no accepted selected-table regression observed in count24.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Retain fixed harness cases for DXC/LBL with forbidden accepted outputs."
+    },
+    {
+      "family": "period/source mismatch",
+      "first_seen_report_or_pr": "Post-PR299 count16 CTN taxonomy.",
+      "canonical_fix_pr_or_commit": "Existing validation gate; no canonical repair for CTN source-period evidence yet.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "CTN",
+          "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+          "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+          "document_class": "unknown_document"
+        }
+      ],
+      "current_instance_classification": "same expected fail-closed CTN variant, not regression.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Keep CTN in fixed harness; repair only if source-period parser can ignore historical annual-report phrases without broad fuzzy rules."
+    },
+    {
+      "family": "announcement-date-as-period-end",
+      "first_seen_report_or_pr": "Post-PR301 count16 accepted-output taxonomy found HUB/LBL accepted period_end equal filename announcement date.",
+      "canonical_fix_pr_or_commit": "PR #306 half-year announcement-date fail-closed guard.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "HUB",
+          "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+          "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+          "document_class": "unknown_document"
+        },
+        {
+          "ticker": "LBL",
+          "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+          "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+          "document_class": "unknown_document"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed after canonical guard; improves truth safety even though ok count falls.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No repair; preserve as guard harness cases."
+    },
+    {
+      "family": "classifier_low_confidence",
+      "first_seen_report_or_pr": "Current count24 MQR results-of-meeting classifier_low_confidence.",
+      "canonical_fix_pr_or_commit": "Local commit b5537f93 adds exact results-of-meeting -> meeting_or_proxy_notice; not in origin/migration.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "MQR",
+          "document_id": "7e6d1ae5-51be-4828-907c-d2aa3f8528e7",
+          "title": "2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+          "source_path_available": true,
+          "failure_gate": "classifier_low_confidence:0.0",
+          "document_class": "DATA_MISSING"
+        }
+      ],
+      "current_instance_classification": "new known noncandidate variant; fixed locally, missing canonical/origin integration.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Integrate local count24 failure-taxonomy commit before any future sample approval packet."
+    },
+    {
+      "family": "true noncandidate leakage",
+      "first_seen_report_or_pr": "Post-PR299 and post-PR301 count16 taxonomies.",
+      "canonical_fix_pr_or_commit": "PR #306 preserved source-noncandidate taxonomy; current failures are fail-closed, not accepted leakage.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "EQR",
+          "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+          "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+          "document_class": "meeting_or_proxy_notice"
+        },
+        {
+          "ticker": "MAH",
+          "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+          "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:operational_project_update",
+          "document_class": "operational_project_update"
+        },
+        {
+          "ticker": "FCL",
+          "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+          "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:board_change_notice",
+          "document_class": "board_change_notice"
+        },
+        {
+          "ticker": "HRZ",
+          "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+          "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+          "document_class": "share_sale_or_gross_proceeds_announcement"
+        },
+        {
+          "ticker": "MPL",
+          "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+          "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+          "document_class": "pre_results_segment_re_presentation"
+        },
+        {
+          "ticker": "QGL",
+          "document_id": "5eaa9900-0749-448a-a7bc-a5af19eddb23",
+          "title": "2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+          "document_class": "meeting_or_proxy_notice"
+        },
+        {
+          "ticker": "MQR",
+          "document_id": "7e6d1ae5-51be-4828-907c-d2aa3f8528e7",
+          "title": "2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+          "source_path_available": true,
+          "failure_gate": "classifier_low_confidence:0.0",
+          "document_class": "DATA_MISSING"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed extraction behavior; candidate-pool/sample-quality issue remains because noncandidates consume validation slots.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Do not loosen extraction gates; consider separate candidate-pool reporting that separates expected noncandidate fail-closed rows from eligible-report accepted-rate."
+    },
+    {
+      "family": "meeting/proxy notices",
+      "first_seen_report_or_pr": "Post-PR299/post-PR301 candidate exclusions; current EQR/QGL plus MQR variant.",
+      "canonical_fix_pr_or_commit": "PR #306 for Notice of Meeting/AGM; local b5537f93 for results-of-meeting variant.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "EQR",
+          "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+          "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+          "document_class": "meeting_or_proxy_notice"
+        },
+        {
+          "ticker": "QGL",
+          "document_id": "5eaa9900-0749-448a-a7bc-a5af19eddb23",
+          "title": "2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+          "document_class": "meeting_or_proxy_notice"
+        },
+        {
+          "ticker": "MQR",
+          "document_id": "7e6d1ae5-51be-4828-907c-d2aa3f8528e7",
+          "title": "2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+          "source_path_available": true,
+          "failure_gate": "classifier_low_confidence:0.0",
+          "document_class": "DATA_MISSING"
+        }
+      ],
+      "current_instance_classification": "EQR/QGL expected fail-closed; MQR was unfixed variant now local-only fixed.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "Integrate local results-of-meeting fix; no broad fuzzy meeting exclusions."
+    },
+    {
+      "family": "director-interest notices",
+      "first_seen_report_or_pr": "PR #306 candidate exclusion taxonomy.",
+      "canonical_fix_pr_or_commit": "PR #306 adds director_interest_notice and scorecard taxonomy test.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [],
+      "current_instance_classification": "not present in current count24.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": false,
+      "next_action": "No current repair; keep as existing regression test."
+    },
+    {
+      "family": "board-change notices",
+      "first_seen_report_or_pr": "Post-PR299/post-PR301 source-noncandidate taxonomy.",
+      "canonical_fix_pr_or_commit": "Canonical source-noncandidate gate existed before current count24; preserved by PR #306.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "FCL",
+          "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+          "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:board_change_notice",
+          "document_class": "board_change_notice"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No repair."
+    },
+    {
+      "family": "operational project updates",
+      "first_seen_report_or_pr": "Post-PR299/post-PR301 source-noncandidate taxonomy.",
+      "canonical_fix_pr_or_commit": "Canonical source-noncandidate gate existed before current count24; preserved by PR #306.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "MAH",
+          "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+          "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:operational_project_update",
+          "document_class": "operational_project_update"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No repair."
+    },
+    {
+      "family": "share-sale/gross-proceeds notices",
+      "first_seen_report_or_pr": "Post-PR299/post-PR301 source-noncandidate taxonomy.",
+      "canonical_fix_pr_or_commit": "Canonical source-noncandidate gate existed before current count24; preserved by PR #306.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "HRZ",
+          "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+          "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+          "document_class": "share_sale_or_gross_proceeds_announcement"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No repair."
+    },
+    {
+      "family": "pre-results or segment re-presentation docs",
+      "first_seen_report_or_pr": "Post-PR299/post-PR301 source-noncandidate taxonomy.",
+      "canonical_fix_pr_or_commit": "Canonical source-noncandidate gate existed before current count24; preserved by PR #306.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "MPL",
+          "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+          "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+          "document_class": "pre_results_segment_re_presentation"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No repair."
+    },
+    {
+      "family": "Appendix 4D/4E wrapper metric minimum",
+      "first_seen_report_or_pr": "PR #294 and PR #297 GPT Appendix 4D repair sequence.",
+      "canonical_fix_pr_or_commit": "PR #294 wrapper gate and PR #297 payload construction repair are canonical ancestors.",
+      "parked_branch_if_any": "safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602 remains parked and needs validation, but current failures do not depend on it.",
+      "current_count24_docs": [
+        {
+          "ticker": "GPT",
+          "document_id": "c10a88ab-4290-4395-9521-7f96c50b03c4",
+          "title": "2024-08-19_appendix-4d-gpt-management-holdings-limited_c10a88ab-4290-4395-9521-7f96c50b03c4.pdf",
+          "source_path": "/data/asx/docs/GPT/financial_performance/2024-08-19_appendix-4d-gpt-management-holdings-limited_c10a88ab-4290-4395-9521-7f96c50b03c4.pdf",
+          "source_path_available": true,
+          "failure_gate": null,
+          "document_class": "financial_report"
+        }
+      ],
+      "current_instance_classification": "no current count24 regression; keep GPT as fixed control harness case.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No wrapper repair before scale harness."
+    },
+    {
+      "family": "insufficient_metrics",
+      "first_seen_report_or_pr": "Current count24 JAY Q3 update.",
+      "canonical_fix_pr_or_commit": null,
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "JAY",
+          "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+          "title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:insufficient_metrics:0",
+          "document_class": "unknown_document"
+        }
+      ],
+      "current_instance_classification": "new variant/policy gap; safe fail-closed with zero canonical metrics.",
+      "regression_test_exists": false,
+      "fixed_harness_case_exists": true,
+      "next_action": "Read source text in a targeted audit before deciding whether Q3 update is noncandidate policy or parser coverage."
+    },
+    {
+      "family": "accepted-output risks like Net operating income -> EBIT",
+      "first_seen_report_or_pr": "Post-PR299 accepted-output audit / PR #301.",
+      "canonical_fix_pr_or_commit": "PR #301 rejects Net operating income as canonical EBIT.",
+      "parked_branch_if_any": null,
+      "current_count24_docs": [
+        {
+          "ticker": "DXC",
+          "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+          "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+          "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+          "source_path_available": true,
+          "failure_gate": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+          "document_class": "unknown_document"
+        }
+      ],
+      "current_instance_classification": "expected fail-closed; no current accepted-output regression for DXC.",
+      "regression_test_exists": true,
+      "fixed_harness_case_exists": true,
+      "next_action": "No repair; preserve forbidden-output harness assertions."
+    }
+  ]
+}

@@ -1,0 +1,548 @@
+{
+  "generated_at": "2026-06-07T08:31:17Z",
+  "mode": "report_local_manifest_only_no_broad_run",
+  "not_executed": true,
+  "case_count": 22,
+  "scope": "Fixed regression harness manifest for future targeted unit/report-local validation; not a random sample and not a broad extraction run.",
+  "cases": [
+    {
+      "case_id": "count24_WHC_9640d9f1",
+      "source": "current_count24_failure",
+      "ticker": "WHC",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "validation_gate:scale_unknown",
+      "expected_fail_closed_reason_or_metrics": "safe fail; eligible annual report needs source scale evidence before acceptance",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_EQR_aadead44",
+      "source": "current_count24_failure",
+      "ticker": "EQR",
+      "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "source_path_available": true,
+      "expected_classification": "meeting_or_proxy_notice",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; meeting/proxy notice is a true noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_MAH_05a85ffc",
+      "source": "current_count24_failure",
+      "ticker": "MAH",
+      "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+      "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "source_path_available": true,
+      "expected_classification": "operational_project_update",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:operational_project_update",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; project update is a true noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_FCL_e7290bdf",
+      "source": "current_count24_failure",
+      "ticker": "FCL",
+      "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+      "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "source_path_available": true,
+      "expected_classification": "board_change_notice",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:board_change_notice",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; board-change notice is a true noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_AZJ_488d6f1a",
+      "source": "current_count24_failure",
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "validation_gate:scale_unknown",
+      "expected_fail_closed_reason_or_metrics": "safe fail; values were extracted but scale remained source-unproven",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_HRZ_ea1b1f56",
+      "source": "current_count24_failure",
+      "ticker": "HRZ",
+      "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+      "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "source_path_available": true,
+      "expected_classification": "share_sale_or_gross_proceeds_announcement",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; share-sale/gross-proceeds notice is a true noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_MPL_bf82c108",
+      "source": "current_count24_failure",
+      "ticker": "MPL",
+      "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+      "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "source_path_available": true,
+      "expected_classification": "pre_results_segment_re_presentation",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; pre-results segment re-presentation is a true noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_DXC_f8a24788",
+      "source": "current_count24_failure",
+      "ticker": "DXC",
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; EBIT candidate mapped from net operating income",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_HUB_419bcca8",
+      "source": "current_count24_failure",
+      "ticker": "HUB",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; half-year period_end equalled announcement title date",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_LBL_551c6b84",
+      "source": "current_count24_failure",
+      "ticker": "LBL",
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; half-year period_end equalled announcement title date",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_CTN_dec0b5f1",
+      "source": "current_count24_failure",
+      "ticker": "CTN",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; payload/source period type mismatch",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_EDU_ac3c9ab0",
+      "source": "current_count24_failure",
+      "ticker": "EDU",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "validation_gate:scale_unknown",
+      "expected_fail_closed_reason_or_metrics": "safe fail; annual report extraction lacks source-bound scale",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_NIC_50398d3d",
+      "source": "current_count24_failure",
+      "ticker": "NIC",
+      "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "validation_gate:scale_unknown",
+      "expected_fail_closed_reason_or_metrics": "safe fail; title suggests webcast-details policy gap and no scale evidence",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "count24_QGL_5eaa9900",
+      "source": "current_count24_failure",
+      "ticker": "QGL",
+      "document_id": "5eaa9900-0749-448a-a7bc-a5af19eddb23",
+      "title": "2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+      "source_path_available": true,
+      "expected_classification": "meeting_or_proxy_notice",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "expected_fail_closed_reason_or_metrics": "expected safe fail; meeting/proxy notice is a true noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_JAY_04438122",
+      "source": "current_count24_failure",
+      "ticker": "JAY",
+      "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+      "title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "validation_gate:insufficient_metrics:0",
+      "expected_fail_closed_reason_or_metrics": "safe fail; Q3 update produced zero canonical metrics and may be a policy-gap noncandidate",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "count24_MQR_7e6d1ae5",
+      "source": "current_count24_failure",
+      "ticker": "MQR",
+      "document_id": "7e6d1ae5-51be-4828-907c-d2aa3f8528e7",
+      "title": "2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+      "source_path_available": true,
+      "expected_classification": "meeting_or_proxy_notice",
+      "expected_gate_or_status": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "expected_fail_closed_reason_or_metrics": "safe fail but not expected before repair; results-of-meeting should be classified as meeting/proxy material",
+      "forbidden_outputs": [
+        "accepted output without source-bound period_end/period_type/scale",
+        "canonical EBIT from EBITDA or Net operating income",
+        "corrected period/scale inferred without source evidence"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "row_refs_or_provenance_if_ok"
+      ],
+      "priority": "high"
+    },
+    {
+      "case_id": "control_CXO_36e172ec",
+      "source": "current_count24_clean_control",
+      "ticker": "CXO",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "ok",
+      "expected_fail_closed_reason_or_metrics": {
+        "period_type": "Q",
+        "period_end": "2022-09-30",
+        "scale": "thousands",
+        "non_null_metrics": 5
+      },
+      "forbidden_outputs": [
+        "loss of currently accepted source-bound control behavior",
+        "row accepted with missing period or scale"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "metric_fields",
+        "row_refs_or_provenance_if_available"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "control_WHC_0be5515d",
+      "source": "current_count24_clean_control",
+      "ticker": "WHC",
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "source_path_available": true,
+      "expected_classification": "unknown_document",
+      "expected_gate_or_status": "ok",
+      "expected_fail_closed_reason_or_metrics": {
+        "period_type": "A",
+        "period_end": "2023-06-30",
+        "scale": "thousands",
+        "non_null_metrics": 9
+      },
+      "forbidden_outputs": [
+        "loss of currently accepted source-bound control behavior",
+        "row accepted with missing period or scale"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "metric_fields",
+        "row_refs_or_provenance_if_available"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "source": "current_count24_clean_control",
+      "ticker": "NSR",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "ok",
+      "expected_fail_closed_reason_or_metrics": {
+        "period_type": "H",
+        "period_end": "2021-12-31",
+        "scale": "thousands",
+        "non_null_metrics": 8
+      },
+      "forbidden_outputs": [
+        "loss of currently accepted source-bound control behavior",
+        "row accepted with missing period or scale"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "metric_fields",
+        "row_refs_or_provenance_if_available"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "control_HCW_7394ad43",
+      "source": "current_count24_clean_control",
+      "ticker": "HCW",
+      "document_id": "7394ad43-57ec-4edf-a91e-72844307948b",
+      "title": "2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HCW/financial_performance/2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "ok",
+      "expected_fail_closed_reason_or_metrics": {
+        "period_type": "A",
+        "period_end": "2024-06-30",
+        "scale": "millions",
+        "non_null_metrics": 6
+      },
+      "forbidden_outputs": [
+        "loss of currently accepted source-bound control behavior",
+        "row accepted with missing period or scale"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "metric_fields",
+        "row_refs_or_provenance_if_available"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "control_SUN_0be9e3e7",
+      "source": "current_count24_clean_control",
+      "ticker": "SUN",
+      "document_id": "0be9e3e7-70b3-40af-9895-8c0a99fa778e",
+      "title": "2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/SUN/financial_performance/2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "ok",
+      "expected_fail_closed_reason_or_metrics": {
+        "period_type": "A",
+        "period_end": "2021-06-30",
+        "scale": "millions",
+        "non_null_metrics": 2
+      },
+      "forbidden_outputs": [
+        "loss of currently accepted source-bound control behavior",
+        "row accepted with missing period or scale"
+      ],
+      "required_source_evidence_fields": [
+        "source_document_classification",
+        "source_bound",
+        "metric_fields",
+        "row_refs_or_provenance_if_available"
+      ],
+      "priority": "medium"
+    },
+    {
+      "case_id": "prior_gpt_appendix4d_c10a88ab",
+      "source": "prior_known_problem_doc_pr297",
+      "ticker": "GPT",
+      "document_id": "c10a88ab-4290-4395-9521-7f96c50b03c4",
+      "title": "2024-08-19_appendix-4d-gpt-management-holdings-limited_c10a88ab-4290-4395-9521-7f96c50b03c4.pdf",
+      "source_path": "/data/asx/docs/GPT/financial_performance/2024-08-19_appendix-4d-gpt-management-holdings-limited_c10a88ab-4290-4395-9521-7f96c50b03c4.pdf",
+      "source_path_available": true,
+      "expected_classification": "financial_report",
+      "expected_gate_or_status": "ok",
+      "expected_fail_closed_reason_or_metrics": {
+        "period_type": "H",
+        "period_end": "2024-06-30",
+        "scale": "thousands",
+        "revenue": 150804000.0,
+        "np_attributable": 15463000.0
+      },
+      "forbidden_outputs": [
+        "period_type=Q",
+        "period_end=null",
+        "missing wrapper disclosures",
+        "np_attributable from attached/member row 15462000"
+      ],
+      "required_source_evidence_fields": [
+        "source_bound",
+        "wrapper_disclosures",
+        "row_refs",
+        "provenance"
+      ],
+      "priority": "high"
+    }
+  ]
+}

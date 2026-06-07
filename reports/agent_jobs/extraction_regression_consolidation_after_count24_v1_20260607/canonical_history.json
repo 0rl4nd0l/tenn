@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-06-07T08:31:17Z",
+  "base_lineage": {
+    "current_head": "b5537f933f2b7b31a1cab8dea0f4204ba2ac8360",
+    "origin_migration_head_seen_in_artifacts": "bfe3a77ec6692d5052eefec7454461e75459f7e3",
+    "count24_taxonomy_closeout_commit": "b5537f933f2b7b31a1cab8dea0f4204ba2ac8360",
+    "count24_taxonomy_in_origin_migration": false
+  },
+  "prs": [
+    {
+      "pr": 294,
+      "merge_commit": "2f9a2607630c93f828baab8a63cedc068a485585",
+      "canonical_in_current_branch": true,
+      "fix": "Appendix 4D/4E wrapper metric-minimum gate with source-bound context and disclosure requirements.",
+      "evidence": "reports/agent_jobs/extraction_appendix4d_wrapper_gate_current_origin_v1_20260604/README.md",
+      "current_count24_status": "No current wrapper minimum regression observed; Appendix 4E controls include WHC/SUN accepted rows, with row-ref provenance still missing in count24 accepted-output audit."
+    },
+    {
+      "pr": 297,
+      "merge_commit": "3749270c381984d921001e4c5dc82c2a4266a458",
+      "canonical_in_current_branch": true,
+      "fix": "GPT Appendix 4D full multipass payload construction repair.",
+      "evidence": "reports/agent_jobs/extraction_gpt_appendix4d_payload_construction_repair_v1_20260604/README.md",
+      "current_count24_status": "No current GPT Appendix 4D regression observed; target remains a fixed harness case."
+    },
+    {
+      "pr": 299,
+      "merge_commit": "9436d1d32de0da5423b8edcfc7efc883ccac3fd6",
+      "canonical_in_current_branch": true,
+      "fix": "Post-PR297 scale-marker repair for smart apostrophe and source-text scale markers.",
+      "evidence": "reports/agent_jobs/extraction_post_pr297_failure_taxonomy_v1_20260605/README.md",
+      "current_count24_status": "Partial coverage only; current scale_unknown docs are unfixed variants or parser/table coverage gaps, not proof that PR299 regressed."
+    },
+    {
+      "pr": 301,
+      "merge_commit": "10c162a5162b3e5fc1306cdd908b23bfa6f0a5a8",
+      "canonical_in_current_branch": true,
+      "fix": "Accepted-output audit and Net operating income must not map to canonical EBIT.",
+      "evidence": "reports/agent_jobs/extraction_post_pr299_accepted_output_audit_v1_20260606/README.md",
+      "current_count24_status": "DXC now fails closed with metric_label_mismatch; no current accepted-output regression found, but accepted row refs remain DATA_MISSING."
+    },
+    {
+      "pr": 306,
+      "merge_commit": "b67736109db2c405171ff039c3b2f071238205db",
+      "canonical_in_current_branch": true,
+      "fix": "Post-PR301 candidate exclusions, DXC/LBL containment proof, and half-year announcement-date fail-closed guard.",
+      "evidence": "reports/agent_jobs/extraction_post_pr301_broad_accuracy_push_v1_20260607/README.md",
+      "current_count24_status": "HUB and LBL now fail closed with announcement_date_period_end. This is an intentional safety guard, not a regression."
+    },
+    {
+      "pr": 309,
+      "merge_commit": "bfe3a77ec6692d5052eefec7454461e75459f7e3",
+      "canonical_in_current_branch": true,
+      "fix": "Report-only count-24 approval packet.",
+      "evidence": "reports/agent_jobs/extraction_count24_approval_packet_v1_20260607/README.md",
+      "current_count24_status": "Approved count-24 used the same candidate pool/order as post-PR301 count16 for the first 16 documents."
+    },
+    {
+      "pr": null,
+      "merge_commit": "b5537f933f2b7b31a1cab8dea0f4204ba2ac8360",
+      "canonical_in_current_branch": true,
+      "canonical_in_origin_migration": false,
+      "fix": "Local count-24 failure-taxonomy closeout: exact results-of-meeting exclusion mapped to meeting_or_proxy_notice.",
+      "evidence": "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/README.md",
+      "current_count24_status": "MQR classifier_low_confidence is a local-only fixed variant pending integration; not in origin/migration yet."
+    }
+  ]
+}

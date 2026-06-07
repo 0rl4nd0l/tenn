@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-06-07T08:31:17Z",
+  "state": "DONE_WITH_RISK",
+  "objective": "Consolidate count24 failures against canonical history and parked work without rerunning samples or backfill.",
+  "count24_baseline": {
+    "ok": 8,
+    "ok_low_confidence": 0,
+    "failed": 16,
+    "exceptions": 0,
+    "verdict": "COUNT24_FAILED_LOW_ACCEPTED_COUNT",
+    "candidate_pool_ordered_sha256": "3d99f44885fd056ac3f112d56abe95d14dd1ac9affdcd7315f860f690cdeb63f",
+    "first16_exact_order_match": true,
+    "first16_overlap_with_post_pr301_count16": 16
+  },
+  "side_effects_from_count24_artifact": {
+    "db_files_changed": false,
+    "memory_mutated": false,
+    "news_route_used": false,
+    "qdrant_changed": false,
+    "queues_clean_after_run": true,
+    "risk_note_mutated": false,
+    "source_pdfs_changed": false
+  },
+  "accepted_output_audit": {
+    "accepted_count": 8,
+    "unsafe_accepted_output_count": 0,
+    "data_missing_count": 8
+  },
+  "final_decision": "NEEDS_SCALE_TABLE_HARNESS",
+  "unsafe_actions_avoided": [
+    "count-24 rerun not run",
+    "count-32 not run",
+    "random sample not run",
+    "broad extraction/backfill/full ticker extraction not run",
+    "DB/Qdrant/news/memory mutation not run",
+    "source PDF edits not run",
+    "prompt/gold-label/runtime/schema changes not run",
+    "dirty parent branches not merged",
+    "unrelated dirt not cleaned/stashed/reset/deleted"
+  ],
+  "files_written": [
+    "docs/agent_tasks/extraction_regression_consolidation_after_count24_v1_20260607.md",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/README.md",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/canonical_history.json",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/parking_review.json",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/failure_family_ledger.json",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/harness_manifest.json",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/decision.json",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/status.json",
+    "reports/agent_jobs/extraction_regression_consolidation_after_count24_v1_20260607/validation.json"
+  ]
+}

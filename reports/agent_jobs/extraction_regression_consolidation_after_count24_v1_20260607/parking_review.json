@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-06-07T08:31:17Z",
+  "registry": "docs/agent_registry/merge_parking/REGISTRY.md",
+  "entries": [
+    {
+      "branch": "safe/extraction-broad-accuracy-push-v1-20260602",
+      "status": "PARKED_READY_FOR_REVIEW",
+      "relevance": "Earlier broad-accuracy blocker isolation; useful background but superseded for current count24 by canonical PR299/PR301/PR306 lineage.",
+      "action": "Do not merge automatically; not needed for current count24 regression conclusion."
+    },
+    {
+      "branch": "safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602",
+      "status": "PARKED_NEEDS_VALIDATION",
+      "relevance": "Appendix 4D profit-after-tax alias policy; no current count24 failure depends on this parked branch.",
+      "action": "Keep parked until exact GPT target validation or explicit human decision."
+    },
+    {
+      "branch": "safe/extraction-live-contract-truth-gates-v1-20260603-nvme",
+      "status": "PARKED_NEEDS_HUMAN_DECISION",
+      "relevance": "Contains many extraction sub-slices including scale recoveries, but is a dirty parent batch with 424 staged paths in the registry evidence.",
+      "action": "Do not merge; extract narrow review slices only if a specific current scale harness case proves need."
+    },
+    {
+      "branch": "multiple missing /tmp worktree paths",
+      "status": "DATA_MISSING",
+      "relevance": "Historical Appendix 4D and extraction restore paths missing.",
+      "action": "Do not infer missing contents; record DATA_MISSING."
+    }
+  ]
+}
