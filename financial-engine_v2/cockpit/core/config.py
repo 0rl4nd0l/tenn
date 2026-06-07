@@ -125,6 +125,12 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         rag_cfg["news_context"] = news_cfg
 
     news_db_override = (os.getenv("COCKPIT_NEWS_DB_PATH") or "").strip()
+    if not news_db_override:
+        news_db_override = (os.getenv("TENN_NEWS_CONTEXT_DB") or "").strip()
+    if not news_db_override:
+        news_artifact_root = (os.getenv("TENN_NEWS_ARTIFACT_ROOT") or "").strip()
+        if news_artifact_root:
+            news_db_override = str(Path(news_artifact_root).expanduser() / "news.sqlite")
     if news_db_override:
         news_cfg["db_path"] = news_db_override
 
