@@ -1,0 +1,142 @@
+{
+  "job_id": "extraction_scale_table_source_evidence_after_count24_v1_20260607",
+  "generated_at": "2026-06-07",
+  "scope": "read_only_source_evidence_audit_for_whc_azj_edu_nic",
+  "hard_stops_observed": {
+    "count24_rerun": false,
+    "count32_run": false,
+    "random_sample_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "full_ticker_universe_extraction_run": false,
+    "db_qdrant_news_memory_mutation": false,
+    "source_pdf_edits": false,
+    "prompt_gold_label_runtime_schema_changes": false
+  },
+  "source_tools": [
+    "pdfinfo",
+    "pdftotext",
+    "pdftoppm plus local image inspection for WHC statement pages only"
+  ],
+  "documents": [
+    {
+      "ticker": "WHC",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path_available": true,
+      "count24_document_class": "financial_report",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "scale_evidence_exists": true,
+      "scale_evidence_kind": "table_level_visual",
+      "scale_evidence_value": "thousands",
+      "scale_evidence_source": "Rendered consolidated statement pages show 2022 and 2021 columns labelled with $'000.",
+      "machine_text_evidence": "pdftotext for the financial statement page window returned only sparse 'For personal use only' text; the statement table headers were not machine-visible through that extraction path.",
+      "representative_source_locations": [
+        {
+          "page": 55,
+          "evidence": "Consolidated statement of comprehensive income has year columns labelled $'000."
+        },
+        {
+          "page": 56,
+          "evidence": "Consolidated statement of financial position has year columns labelled $'000."
+        }
+      ],
+      "current_failure_classification": "parser_table_coverage_gap",
+      "expected_safe_failure": true,
+      "repair_implication": "Needs table-render/table-extraction coverage or report-local table provenance diagnostics before a scale propagation fix can be source-bound."
+    },
+    {
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path_available": true,
+      "count24_document_class": "unknown_document",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "scale_evidence_exists": true,
+      "scale_evidence_kind": "document_and_table_level",
+      "scale_evidence_value": "millions_with_nearest_100k_rounding",
+      "scale_evidence_source": "Financial statements are machine-readable with $m table columns; notes state values are rounded to nearest $100,000 unless otherwise stated.",
+      "machine_text_evidence": "pdftotext found $m headers in consolidated income statement, financial position, and changes in equity windows; it also found the nearest-$100,000 rounding note.",
+      "representative_source_locations": [
+        {
+          "page": 9,
+          "evidence": "Consolidated income statement header uses 2025/2024 columns with $m."
+        },
+        {
+          "page": 11,
+          "evidence": "Consolidated statement of financial position header uses $m."
+        },
+        {
+          "page": 14,
+          "evidence": "Basis note states Australian dollars and rounding to nearest $100,000 unless otherwise stated."
+        }
+      ],
+      "current_failure_classification": "selected_table_scale_binding_or_rounding_policy_gap",
+      "expected_safe_failure": true,
+      "repair_implication": "Needs selected-table/source provenance for extracted metrics before changing scale propagation; nearest-$100k handling is not approved for broad inference."
+    },
+    {
+      "ticker": "EDU",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path_available": true,
+      "count24_document_class": "financial_report",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "scale_evidence_exists": true,
+      "scale_evidence_kind": "mixed_document_sections",
+      "scale_evidence_value": "mixed_thousands_summary_and_raw_dollar_statements",
+      "scale_evidence_source": "Results-summary tables use $'000, while the main consolidated financial statements use raw $ columns and raw-dollar values.",
+      "machine_text_evidence": "pdftotext found $'000 in results summary pages and raw $ headers in the main profit/loss, financial position, and cash flow statements.",
+      "representative_source_locations": [
+        {
+          "page": 29,
+          "evidence": "ALG results summary table uses $'000 columns."
+        },
+        {
+          "page": 31,
+          "evidence": "Group results summary table uses $'000 columns."
+        },
+        {
+          "page": 49,
+          "evidence": "Consolidated profit/loss statement uses raw $ columns."
+        },
+        {
+          "page": 53,
+          "evidence": "Consolidated cash flow statement uses raw $ columns."
+        }
+      ],
+      "current_failure_classification": "ambiguous_mixed_scale_selected_table_mismatch",
+      "expected_safe_failure": true,
+      "repair_implication": "Do not infer a document-level scale; selected-table scale provenance must distinguish summary KPI tables from canonical statement tables."
+    },
+    {
+      "ticker": "NIC",
+      "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "source_path_available": true,
+      "count24_document_class": "financial_report",
+      "count24_failure_gate": "validation_gate:scale_unknown",
+      "scale_evidence_exists": false,
+      "scale_evidence_kind": "none",
+      "scale_evidence_value": "none",
+      "scale_evidence_source": "One-page announcement says the half-year report will be released later and provides webcast details.",
+      "machine_text_evidence": "pdftotext shows title 'HALF YEAR RESULTS WEBCAST DETAILS' and webcast timing/link details, not financial statement tables.",
+      "representative_source_locations": [
+        {
+          "page": 1,
+          "evidence": "Document announces future release of the half-year report and a webcast to discuss it."
+        }
+      ],
+      "current_failure_classification": "document_family_policy_gap_true_noncandidate_variant",
+      "expected_safe_failure": true,
+      "repair_implication": "A future exact noncandidate exclusion for half-year results webcast details may be justified, but it is not a repeated scale-table/source pattern across this four-document audit."
+    }
+  ],
+  "data_missing": [
+    "Runtime-selected table objects, row_refs, and per-metric source_scale values were not present in the count-24 artifacts inspected for these four failures.",
+    "WHC has source scale evidence in rendered statement pages, but the current text-extraction path did not expose the table headers."
+  ]
+}

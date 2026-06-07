@@ -1,0 +1,39 @@
+{
+  "job_id": "extraction_scale_table_source_evidence_after_count24_v1_20260607",
+  "generated_at": "2026-06-07",
+  "status": "DONE_WITH_RISK",
+  "branch": "safe/extraction-scale-table-source-evidence-after-count24-v1-20260607",
+  "started_from_head": "2cdc9ce5e0104613d0ae61558e2c43a89ba44500",
+  "mqr_local_fix_status": "integrated_in_current_branch",
+  "audited_tickers": [
+    "WHC",
+    "AZJ",
+    "EDU",
+    "NIC"
+  ],
+  "safe_extension_made": false,
+  "reason_safe_extension_not_made": "No repeated source-bound root cause across at least two audited cases.",
+  "artifacts": [
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/README.md",
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/mqr_integration_audit.json",
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/source_evidence.json",
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/root_cause_classification.json",
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/repair_decision.json",
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/status.json",
+    "reports/agent_jobs/extraction_scale_table_source_evidence_after_count24_v1_20260607/validation.json"
+  ],
+  "hard_stops_observed": {
+    "count24_rerun": false,
+    "count32_run": false,
+    "random_sample_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "full_ticker_universe_extraction_run": false,
+    "db_qdrant_news_memory_mutation": false,
+    "source_pdf_edits": false,
+    "prompt_gold_label_runtime_schema_changes": false,
+    "dirty_parent_batch_merge": false
+  },
+  "data_missing": [
+    "Runtime-selected table provenance was not present in existing count-24 artifacts, so the next high-leverage step is a fixed report-local diagnostic harness, not another sample."
+  ]
+}

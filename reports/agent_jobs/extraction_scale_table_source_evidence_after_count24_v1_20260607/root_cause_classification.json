@@ -1,0 +1,70 @@
+{
+  "job_id": "extraction_scale_table_source_evidence_after_count24_v1_20260607",
+  "generated_at": "2026-06-07",
+  "summary": "The four audited documents share the scale_unknown gate, but not one repeated repairable root cause.",
+  "root_cause_by_document": [
+    {
+      "ticker": "WHC",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "primary_root_cause": "parser_table_coverage_gap",
+      "secondary_root_causes": [
+        "machine_text_missing_statement_headers",
+        "source_scale_exists_but_not_available_to_runtime"
+      ],
+      "same_bug_as_prior_fix": false,
+      "new_variant": true,
+      "missing_integration": false,
+      "expected_fail_closed": true
+    },
+    {
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "primary_root_cause": "selected_table_scale_binding_or_rounding_policy_gap",
+      "secondary_root_causes": [
+        "machine_readable_scale_exists",
+        "nearest_100k_rounding_not_approved_for_broad_inference",
+        "runtime_selected_metric_provenance_missing_from_artifacts"
+      ],
+      "same_bug_as_prior_fix": "DATA_MISSING",
+      "new_variant": true,
+      "missing_integration": false,
+      "expected_fail_closed": true
+    },
+    {
+      "ticker": "EDU",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "primary_root_cause": "ambiguous_mixed_scale_selected_table_mismatch",
+      "secondary_root_causes": [
+        "summary_tables_thousands",
+        "main_statements_raw_dollars",
+        "document_level_scale_would_be_unsafe"
+      ],
+      "same_bug_as_prior_fix": false,
+      "new_variant": true,
+      "missing_integration": false,
+      "expected_fail_closed": true
+    },
+    {
+      "ticker": "NIC",
+      "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "primary_root_cause": "document_family_policy_gap_true_noncandidate_variant",
+      "secondary_root_causes": [
+        "webcast_details_not_financial_report",
+        "title_contains_half_year_results_but_body_has_no_financial_statement_tables"
+      ],
+      "same_bug_as_prior_fix": false,
+      "new_variant": true,
+      "missing_integration": false,
+      "expected_fail_closed": true
+    }
+  ],
+  "repeated_pattern_assessment": {
+    "shared_failure_gate": "validation_gate:scale_unknown",
+    "shared_repairable_root_cause": false,
+    "threshold_for_code_fix_met": false,
+    "reason": "WHC is visual/table parser coverage; AZJ is machine-readable $m plus nearest-$100k rounding/provenance; EDU is mixed table-scale versus raw-dollar statement evidence; NIC is a webcast noncandidate policy gap."
+  },
+  "data_missing": [
+    "Exact runtime selected-table provenance for WHC/AZJ/EDU was not available in the inspected report artifacts."
+  ]
+}

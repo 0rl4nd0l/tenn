@@ -1,0 +1,35 @@
+{
+  "job_id": "extraction_scale_table_source_evidence_after_count24_v1_20260607",
+  "generated_at": "2026-06-07",
+  "scope": "phase_1_mqr_results_of_meeting_fix_integration",
+  "mqr_fix_commit": "b5537f933f2b7b31a1cab8dea0f4204ba2ac8360",
+  "mqr_fix_status": "integrated_in_current_branch",
+  "branch_head_at_start": "2cdc9ce5e0104613d0ae61558e2c43a89ba44500",
+  "in_current_head": true,
+  "in_origin_migration_clean_runtime_baseline_reconstruct_v1": false,
+  "changed_files": [
+    "docs/agent_tasks/extraction_count24_failure_taxonomy_v1_20260607.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/README.md",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/code_review.json",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/failed_documents.json",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/failure_taxonomy.json",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/repair_decision.json",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/root_causes.json",
+    "reports/agent_jobs/extraction_count24_failure_taxonomy_v1_20260607/validation.json"
+  ],
+  "code_change_summary": "Adds exact compact-title detection for results of meeting inside the existing meeting_or_proxy_notice source-noncandidate block.",
+  "test_change_summary": "Adds a results-of-meeting classifier fixture expecting meeting_or_proxy_notice.",
+  "cleanliness_decision": "clean_and_scoped",
+  "integration_decision": "preserve_in_current_branch; origin integration remains pending through this branch or a later scoped PR",
+  "unrelated_local_work_merged": false,
+  "sample_or_backfill_run": false,
+  "evidence_commands": [
+    "git merge-base --is-ancestor b5537f933f2b7b31a1cab8dea0f4204ba2ac8360 HEAD -> 0",
+    "git merge-base --is-ancestor b5537f933f2b7b31a1cab8dea0f4204ba2ac8360 origin/migration/clean-runtime-baseline-reconstruct-v1 -> 1",
+    "git show --stat --name-status b5537f933f2b7b31a1cab8dea0f4204ba2ac8360",
+    "git show --unified=8 b5537f933f2b7b31a1cab8dea0f4204ba2ac8360 -- financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py"
+  ],
+  "data_missing": []
+}

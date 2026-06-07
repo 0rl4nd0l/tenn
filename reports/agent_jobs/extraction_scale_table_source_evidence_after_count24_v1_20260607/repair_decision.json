@@ -1,0 +1,38 @@
+{
+  "job_id": "extraction_scale_table_source_evidence_after_count24_v1_20260607",
+  "generated_at": "2026-06-07",
+  "decision": "NO_CODE_REPAIR_IN_THIS_PHASE",
+  "mqr_fix_status": "integrated_in_current_branch_not_in_origin_migration",
+  "code_files_changed_in_this_phase": [],
+  "test_files_changed_in_this_phase": [],
+  "fix_made": false,
+  "why_no_fix": "The task allowed at most one narrow source-bound repair only if the same pattern appeared in at least two audited WHC/AZJ/EDU/NIC harness cases. The audit found four different root causes behind the same scale_unknown symptom.",
+  "top_next_repairs": [
+    {
+      "rank": 1,
+      "repair": "WHC/AZJ/EDU selected-table provenance diagnostic harness",
+      "why": "It would show the runtime-selected table, header, row_refs, detected source scale, and why the final payload scale stayed unknown without running a sample."
+    },
+    {
+      "rank": 2,
+      "repair": "NIC exact webcast-details noncandidate exclusion",
+      "why": "NIC is a clean one-page true noncandidate variant, but it is not repeated across this scale-table audit and should be handled in a separate narrow task."
+    }
+  ],
+  "another_random_sample_justified": false,
+  "count24_rerun_status": "blocked_until_targeted_table_provenance_or_exact_noncandidate_repair_is_approved_and_validated",
+  "count32_status": "blocked",
+  "exact_next_prompt": "/goal Build a report-local selected-table provenance diagnostic for WHC/AZJ/EDU only. Do not run count-24, count-32, random samples, broad extraction, or backfill. For each document, capture the runtime-selected table/page, table header, row_refs, per-metric source_scale, final payload scale decision, and why _common_metric_source_scale did or did not set scale. Implement at most one narrow source-bound fix only if the diagnostic proves the same missed selected-table scale-binding pattern in at least two docs; otherwise produce the exact next repair prompt. Also prepare a separate optional NIC webcast-details noncandidate task, but do not implement it in the scale diagnostic unless explicitly approved.",
+  "forbidden_actions_observed": {
+    "count24_rerun": false,
+    "count32_run": false,
+    "random_sample_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "db_qdrant_news_memory_mutation": false,
+    "source_pdf_edits": false,
+    "prompt_gold_label_runtime_schema_changes": false
+  },
+  "data_missing": [
+    "Runtime-selected table provenance and per-metric source_scale were not available in the inspected count-24 artifacts."
+  ]
+}
