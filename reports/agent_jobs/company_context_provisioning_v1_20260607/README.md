@@ -33,9 +33,21 @@ does not create a partial production DB to satisfy startup.
 - NVMe source corpus exists but is large:
   `/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs` has 179,016 PDFs
   and totals 152G.
-- GPU discovery is broken:
+- Default GPU discovery is poisoned by the GT 1030:
   `nvidia-smi --query-gpu=name,pci.bus_id,memory.total --format=csv,noheader`
   returned `Unable to determine the device handle for GPU0000:25:00.0: Unknown Error`.
+- Direct M40 discovery works:
+  `nvidia-smi -i 00000000:2D:00.0 --query-gpu=index,name,pci.bus_id,memory.total,memory.used,driver_version --format=csv,noheader`
+  returned `1, Tesla M40 24GB, 00000000:2D:00.0, 24576 MiB, 13615 MiB, 535.309.01`.
+- Direct M40 compute capability query returned `Tesla M40 24GB, 5.2`.
+- The M40 is currently occupied by
+  `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server`
+  using 13,612 MiB.
+- Runtime Python remains CPU-only for PyTorch:
+  `torch 2.2.2+cpu`, `torch.version.cuda=None`, `torch.cuda.is_available()=False`.
+- The builder's sentence-transformers device selection falls back to CPU for
+  GPUs with compute capability below 7, so the Tesla M40 path is not a current
+  supported CUDA production build path for this BGE builder.
 
 ## Code Changes
 
@@ -95,6 +107,12 @@ pip check: No broken requirements found.
 BGE model load also succeeded on CPU:
 `SentenceTransformer('BAAI/bge-large-en-v1.5', device='cpu')`; encoding one
 sentence returned a 1-row, 1024-dimension embedding.
+
+This repaired dependency state proves the semantic embedding stack can run on
+CPU, but it does not make full-corpus production provisioning practical. The
+bounded 118-chunk BGE temp build took roughly 80 seconds on CPU; scaling that
+blindly to the 179,016-PDF source corpus would be a long-running production
+artifact job, not a safe inline fix.
 
 ## Temp Artifact Validation
 
@@ -169,8 +187,9 @@ DATA_MISSING: scripts/agent_job_contract.py absent in clean baseline
   migrations, Docker/runtime config, crontab, timers, symlinks, or host env
   files.
 - Did not start Cockpit in degraded mode.
-- Did not attempt a full 179,016-PDF production BGE build on CPU while GPU
-  discovery is broken.
+- Did not attempt a full 179,016-PDF production BGE build on CPU while the
+  runtime venv is CPU-only and the available M40 is both occupied and below the
+  builder's current sentence-transformers CUDA capability gate.
 
 ## Remaining Blocker
 
@@ -179,7 +198,15 @@ artifact-root resolution, and temp DB startup validation are proven. It is not
 fully production-ready because no production `company.sqlite` has been built at
 `/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/company.sqlite`.
 
-The next safe production step is to repair GPU/runtime compute or explicitly
-approve a managed long-running production builder plan. After a real production
-DB exists, validate nonzero chunks, schema, representative retrieval, and normal
-Cockpit startup with no temp override.
+The next safe production step is one of:
+
+- Merge this PR so Cockpit default company DB resolution is correct on `main`,
+  then provision the production artifact.
+- Prepare an approved managed production builder run on CPU with lock/log/temp
+  output paths, resumability/timeout expectations, and no degraded hash fallback.
+- Provide a supported CUDA embedding runtime on compute capability 7+ hardware,
+  or change the builder/runtime contract with tests if older hardware support is
+  intentionally required.
+
+After a real production DB exists, validate nonzero chunks, schema,
+representative retrieval, and normal Cockpit startup with no temp override.
