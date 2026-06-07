@@ -114,6 +114,49 @@ Task-card check-diff:
 DATA_MISSING: scripts/agent_job_contract.py is absent from merged origin/main.
 ```
 
+## Post-Approval Actions
+
+After explicit user approval, the branch was pushed and PR #313 was opened:
+
+```text
+https://github.com/0rl4nd0l/tenn/pull/313
+```
+
+The two runtime resolver files were also deployed into the dirty live checkout
+without touching unrelated dirty files:
+
+```text
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit/core/config.py
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/cockpit/integrations/qual_context_bootstrap.py
+```
+
+Live deployment validation:
+
+```text
+git diff --check -- financial-engine_v2/cockpit/core/config.py financial-engine_v2/cockpit/integrations/qual_context_bootstrap.py
+exit 0
+```
+
+```text
+resolved /mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite
+exists True
+```
+
+```text
+tenn_context_db_override /tmp/tenn-news.sqlite
+artifact_root_override /tmp/artifacts/news.sqlite
+```
+
+```text
+compiled financial-engine_v2/cockpit/core/config.py
+compiled financial-engine_v2/cockpit/integrations/qual_context_bootstrap.py
+```
+
+`python3 -m py_compile` was not usable in the live checkout because existing
+`__pycache__` directories under `financial-engine_v2/cockpit/core` and
+`financial-engine_v2/cockpit/integrations` are root-owned. The in-memory compile
+above was used instead and does not write bytecode.
+
 ## Unsafe Actions Avoided
 
 - Did not edit crontab, timers, host env files, Docker runtime config, or
@@ -123,7 +166,7 @@ DATA_MISSING: scripts/agent_job_contract.py is absent from merged origin/main.
   labels, extraction prompts, parser routing, model/GPU config, backfills, or
   migrations.
 - Did not clean or modify the dirty live checkout.
-- Did not push, merge, or mutate GitHub.
+- Did not merge or close GitHub issues.
 
 ## Remaining Risk
 
@@ -133,7 +176,5 @@ news source relevance and ticker linking remain separate quality risks.
 
 ## Next Recommended Prompt
 
-Review and merge the local branch
-`safe/news-context-path-alignment-v1-20260607`, then deploy the same resolver
-change to the live checkout and start Cockpit once to confirm the startup notice
-shows the `/mnt/tenn-nvme2/.../news.sqlite` path.
+Review and merge PR #313, then start Cockpit once from the usual runtime to
+confirm the startup notice shows the `/mnt/tenn-nvme2/.../news.sqlite` path.
