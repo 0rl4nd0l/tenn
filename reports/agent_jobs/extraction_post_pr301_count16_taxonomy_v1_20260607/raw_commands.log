@@ -18,3 +18,15 @@ Report-only taxonomy result:
 - suspicious accepted documents classified=2
 - one narrow follow-up repair justified=true
 - additional sample/count24/count32/broad extraction/backfill/full ticker extraction=not run
+
+Narrow repair validation:
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'announcement_date or metric_label_mismatch' -q
+  exit=0; 3 passed, 181 deselected
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -q
+  exit=0; 184 passed
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py
+  exit=0
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py
+  exit=0; output=All checks passed!
+- _validate_gate on saved Milestone 3 HUB/LBL payload rows
+  exit=0; both failed with validation_gate:announcement_date_period_end

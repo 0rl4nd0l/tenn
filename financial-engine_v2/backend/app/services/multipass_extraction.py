@@ -2073,6 +2073,14 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
 )
 
+_LEADING_ANNOUNCEMENT_DATE_RE = re.compile(
+    r"^\s*(?P<date>\d{4}-\d{1,2}-\d{1,2})(?:[_\s-]|$)"
+)
+_HALF_YEAR_TITLE_HINT_RE = re.compile(
+    r"\b(?:1h\s*fy\d{2,4}|half\s*year|interim|appendix\s*4d)\b",
+    re.IGNORECASE,
+)
+
 _EXPLICIT_SOURCE_UNIT_VALUE_RE = re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:AUD|USD|IDR)?\s*"
@@ -3637,6 +3645,68 @@ def _period_end_source_mismatch(payload: dict) -> tuple[str, str, str] | None:
     return payload_date.isoformat(), source_date.isoformat(), reason
 
 
+def _payload_source_titles(payload: dict) -> list[str]:
+    titles: list[str] = []
+    for key in ("document_title", "announcement_title", "title"):
+        value = payload.get(key)
+        if value:
+            titles.append(str(value))
+    source_bound = payload.get("source_bound")
+    if isinstance(source_bound, dict):
+        for key in ("document_title", "announcement_title", "title"):
+            value = source_bound.get(key)
+            if value:
+                titles.append(str(value))
+    deduped: list[str] = []
+    for title in titles:
+        if title not in deduped:
+            deduped.append(title)
+    return deduped
+
+
+def _leading_announcement_date_from_title(title: str) -> date | None:
+    basename = title.rsplit("/", 1)[-1]
+    match = _LEADING_ANNOUNCEMENT_DATE_RE.search(basename)
+    if not match:
+        return None
+    return parse_period_end(match.group("date"))
+
+
+def _has_half_year_title_hint(payload: dict, titles: list[str]) -> bool:
+    source_bound = payload.get("source_bound")
+    if isinstance(source_bound, dict):
+        subtype = str(source_bound.get("document_subtype") or "").lower()
+        if subtype.replace("_", "").replace("-", "") in {"appendix4d", "4d"}:
+            return True
+    for title in titles:
+        normalized = re.sub(r"[_\-]+", " ", title)
+        if _HALF_YEAR_TITLE_HINT_RE.search(normalized):
+            return True
+    return False
+
+
+def _announcement_date_period_end_mismatch(
+    payload: dict,
+) -> tuple[str, str, str] | None:
+    if payload.get("period_type") != "H":
+        return None
+    payload_date = parse_period_end(str(payload.get("period_end") or ""))
+    if payload_date is None:
+        return None
+    titles = _payload_source_titles(payload)
+    if not titles or not _has_half_year_title_hint(payload, titles):
+        return None
+    for title in titles:
+        title_date = _leading_announcement_date_from_title(title)
+        if title_date is not None and title_date == payload_date:
+            return (
+                payload_date.isoformat(),
+                title_date.isoformat(),
+                "leading_title_date",
+            )
+    return None
+
+
 def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     """
     Validate the reconciled payload before DB upsert.
@@ -3701,6 +3771,15 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
             "failed",
             "validation_gate:period_end_source_mismatch:"
             f"payload={period_end}:source={source_period_end}:{reason}",
+        )
+
+    announcement_period_mismatch = _announcement_date_period_end_mismatch(payload)
+    if announcement_period_mismatch is not None:
+        period_end, title_date, reason = announcement_period_mismatch
+        return (
+            "failed",
+            "validation_gate:announcement_date_period_end:"
+            f"period_type=H:period_end={period_end}:title_date={title_date}:{reason}",
         )
 
     non_null = [v for v in canonical_metrics.values() if v is not None]

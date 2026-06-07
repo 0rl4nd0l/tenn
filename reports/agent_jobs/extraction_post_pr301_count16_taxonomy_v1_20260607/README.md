@@ -33,10 +33,15 @@ that fails half-year outputs when `period_end` equals a leading announcement
 date in the source title/filename. This is an abstain/quarantine guard; it does
 not infer a corrected period, loosen validation, expand metrics, or backfill.
 
+Implemented: the validation gate now emits
+`validation_gate:announcement_date_period_end:...` for HUB/LBL-like saved
+payloads. Focused tests and the full touched multipass test file passed.
+
 ## Count-24 Decision
 
-Count-24 approval is premature until the narrow half-year announcement-date
-guard is implemented and focused tests pass.
+Count-24 was not run. A count-24 approval packet is now reasonable for operator
+review, subject to the final parent report, because the repeated suspicious
+accepted-output root cause has a focused fail-closed guard and tests.
 
 ## DATA_MISSING
 

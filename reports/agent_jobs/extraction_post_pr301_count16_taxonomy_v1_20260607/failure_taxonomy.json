@@ -163,10 +163,12 @@
       "551c6b84-1053-405c-a833-4ecc018e2045"
     ],
     "repair_justified": true,
-    "repair_class": "stricter accepted-output quarantine/abstain guard"
+    "repair_class": "stricter accepted-output quarantine/abstain guard",
+    "repair_implemented": true,
+    "repair_error": "validation_gate:announcement_date_period_end"
   },
   "count24_approval_packet": {
-    "reasonable": false,
-    "reason": "Premature: at least two suspicious accepted half-year outputs remain in the bounded count-16 sample."
+    "reasonable": true,
+    "reason": "Reasonable for operator approval packet after the focused half-year announcement-date guard; count-24 was not run."
   }
 }

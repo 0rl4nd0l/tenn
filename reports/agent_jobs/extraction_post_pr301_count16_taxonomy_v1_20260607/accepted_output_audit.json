@@ -74,6 +74,17 @@
     "DXC": "failed_closed_in_count16_with_metric_label_mismatch",
     "LBL": "no persistent DB/Qdrant exposure found in Milestone 1, but runtime extraction still accepts the bounded sample row"
   },
+  "post_repair_saved_payload_check": {
+    "method": "_validate_gate on saved Milestone 3 HUB/LBL payload rows; no extraction sample rerun",
+    "HUB": {
+      "status": "failed",
+      "error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date"
+    },
+    "LBL": {
+      "status": "failed",
+      "error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date"
+    }
+  },
   "side_effects": {
     "db_files_changed": false,
     "qdrant_changed": false,

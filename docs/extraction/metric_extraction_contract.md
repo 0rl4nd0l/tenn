@@ -119,6 +119,17 @@ Source-document classification is deterministic and source-metadata only:
 
 Classification does not infer financial facts or correct payload fields.
 
+## Period Policy V1
+
+The extractor must bind canonical rows to source reporting periods, not ASX
+announcement dates. Explicit source period evidence must agree with extracted
+`period_type` and `period_end`.
+
+Half-year outputs also fail before persistence when the extracted `period_end`
+equals a leading `YYYY-MM-DD` announcement date in a half-year source
+title/filename. This is an abstain guard only: it does not infer or correct the
+period end.
+
 ## Scale Policy V1
 
 Extractor payload metric values are normalized absolute values before

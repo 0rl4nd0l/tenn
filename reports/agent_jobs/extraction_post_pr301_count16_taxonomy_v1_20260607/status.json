@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-06-07T05:00:57Z",
   "job_id": "extraction_post_pr301_count16_taxonomy_v1_20260607",
-  "status": "completed_taxonomy_needs_one_narrow_repair",
+  "status": "completed_taxonomy_and_narrow_repair",
   "phases": {
     "classified_failed_documents": true,
     "classified_low_confidence_documents": true,
@@ -22,13 +22,15 @@
     "justified": true,
     "repair_class": "stricter accepted-output quarantine/abstain guard",
     "planned_guard": "Fail half-year accepted outputs when period_end equals a leading YYYY-MM-DD announcement date in the source title/filename.",
+    "implemented": true,
+    "implemented_error": "validation_gate:announcement_date_period_end",
     "why_narrow": "Targets a repeated accepted-output risk in exactly HUB and LBL-like half-year filings without inferring corrected periods or loosening any gate."
   },
   "count24_approval_packet": {
-    "reasonable": false,
-    "reason": "Premature until the half-year announcement-date accepted-output guard is implemented and focused tests pass."
+    "reasonable": true,
+    "reason": "The repeated suspicious accepted-output root cause is covered by a focused fail-closed guard and tests; count-24 still requires operator approval and was not run."
   },
-  "final_recommended_decision_after_milestone4": "NEEDS_ANOTHER_TARGETED_FIX",
+  "final_recommended_decision_after_milestone5": "READY_FOR_COUNT24_APPROVAL_PACKET",
   "data_missing": [
     "Reliable GPU memory telemetry from Milestone 3: nvidia-smi failed.",
     "pdfplumber/pypdf unavailable; source audit used Poppler pdftotext/pdfinfo and one rendered visual check.",

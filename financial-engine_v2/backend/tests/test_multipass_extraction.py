@@ -2412,6 +2412,68 @@ def test_validate_gate_rejects_net_operating_income_as_ebit_source():
     assert error == "validation_gate:metric_label_mismatch:ebit:net_operating_income"
 
 
+@pytest.mark.parametrize(
+    "document_title",
+    [
+        (
+            "2026-02-20_1h-fy26-results-presentation_"
+            "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+        ),
+        (
+            "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_"
+            "419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+        ),
+    ],
+)
+def test_validate_gate_rejects_half_year_announcement_date_period_end(
+    document_title,
+):
+    """Half-year payloads must not use the ASX announcement date as period_end."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="millions")
+    payload["period_end"] = document_title[:10]
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": document_title,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:announcement_date_period_end:"
+        f"period_type=H:period_end={payload['period_end']}:"
+        f"title_date={payload['period_end']}:leading_title_date"
+    )
+
+
+def test_validate_gate_allows_half_year_period_end_distinct_from_announcement_date():
+    """The announcement-date guard must not block valid half-year period ends."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = "2025-12-31"
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": (
+            "2026-02-20_1h-fy26-results-presentation_"
+            "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+        ),
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+
+
 def test_pass3a_uses_selected_table_scale_over_document_scale():
     """Selected-table $'000 markers must override a document-level millions scale."""
     from app.services.docling_extract import DoclingTable
