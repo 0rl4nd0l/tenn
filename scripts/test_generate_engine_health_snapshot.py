@@ -1,5 +1,6 @@
 import datetime as dt
 import importlib.util
+import os
 import sqlite3
 import sys
 import tempfile
@@ -21,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MOD = load_module(ROOT / "scripts" / "generate_engine_health_snapshot.py", "generate_engine_health_snapshot")
 
 
-def _init_news_db(path: Path, *, ticker_chunks: int, total_chunks: int, doc_date: str) -> None:
+def _init_news_db(path: Path, *, ticker_chunks: int, total_chunks: int, doc_date: str, corpus: str = "news") -> None:
     conn = sqlite3.connect(str(path))
     try:
         conn.execute(
@@ -45,7 +46,7 @@ def _init_news_db(path: Path, *, ticker_chunks: int, total_chunks: int, doc_date
             rows.append(
                 (
                     f"news:{idx}",
-                    "news",
+                    corpus,
                     "news_article",
                     doc_date,
                     "Reuters",
@@ -204,7 +205,93 @@ def _unavailable_gpu():
     }
 
 
+class _Env:
+    def __init__(self, **values: str | None) -> None:
+        self.values = values
+        self.previous: dict[str, str | None] = {}
+
+    def __enter__(self):
+        for key, value in self.values.items():
+            self.previous[key] = os.environ.get(key)
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    def __exit__(self, *_exc):
+        for key, value in self.previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 class TestGenerateEngineHealthSnapshot(unittest.TestCase):
+    def test_default_context_db_paths_use_production_artifact_root(self):
+        with _Env(
+            COCKPIT_NEWS_DB_PATH=None,
+            TENN_NEWS_CONTEXT_DB=None,
+            TENN_NEWS_ARTIFACT_ROOT=None,
+            COCKPIT_COMPANY_DB_PATH=None,
+            TENN_COMPANY_CONTEXT_DB=None,
+            TENN_QUAL_CONTEXT_ARTIFACT_ROOT=None,
+        ):
+            args = MOD.parse_args([])
+
+        self.assertEqual(
+            Path(args.news_db_path),
+            Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/news.sqlite"),
+        )
+        self.assertEqual(
+            Path(args.company_db_path),
+            Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context/company.sqlite"),
+        )
+
+    def test_context_db_paths_respect_cockpit_explicit_env_priority(self):
+        with _Env(
+            COCKPIT_NEWS_DB_PATH="/tmp/cockpit-news.sqlite",
+            TENN_NEWS_CONTEXT_DB="/tmp/tenn-news.sqlite",
+            TENN_NEWS_ARTIFACT_ROOT="/tmp/news-root",
+            COCKPIT_COMPANY_DB_PATH="/tmp/cockpit-company.sqlite",
+            TENN_COMPANY_CONTEXT_DB="/tmp/tenn-company.sqlite",
+            TENN_QUAL_CONTEXT_ARTIFACT_ROOT="/tmp/qual-root",
+        ):
+            args = MOD.parse_args([])
+
+        self.assertEqual(Path(args.news_db_path), Path("/tmp/cockpit-news.sqlite"))
+        self.assertEqual(Path(args.company_db_path), Path("/tmp/cockpit-company.sqlite"))
+
+    def test_context_db_paths_respect_artifact_root_envs(self):
+        with _Env(
+            COCKPIT_NEWS_DB_PATH=None,
+            TENN_NEWS_CONTEXT_DB=None,
+            TENN_NEWS_ARTIFACT_ROOT="/tmp/news-root",
+            COCKPIT_COMPANY_DB_PATH=None,
+            TENN_COMPANY_CONTEXT_DB=None,
+            TENN_QUAL_CONTEXT_ARTIFACT_ROOT="/tmp/qual-root",
+        ):
+            args = MOD.parse_args([])
+
+        self.assertEqual(Path(args.news_db_path), Path("/tmp/news-root/news.sqlite"))
+        self.assertEqual(Path(args.company_db_path), Path("/tmp/qual-root/company.sqlite"))
+
+    def test_cli_context_db_paths_override_env_defaults(self):
+        with _Env(
+            COCKPIT_NEWS_DB_PATH="/tmp/cockpit-news.sqlite",
+            COCKPIT_COMPANY_DB_PATH="/tmp/cockpit-company.sqlite",
+        ):
+            args = MOD.parse_args(
+                [
+                    "--news-db-path",
+                    "/tmp/cli-news.sqlite",
+                    "--company-db-path",
+                    "/tmp/cli-company.sqlite",
+                ]
+            )
+
+        self.assertEqual(Path(args.news_db_path), Path("/tmp/cli-news.sqlite"))
+        self.assertEqual(Path(args.company_db_path), Path("/tmp/cli-company.sqlite"))
+
     def _build_snapshot(
         self,
         *,
@@ -275,6 +362,120 @@ class TestGenerateEngineHealthSnapshot(unittest.TestCase):
         self.assertEqual(payload["overall_status"], "warning")
         self.assertTrue(payload["news"]["drift_flags"]["low_ticker_coverage"])
         self.assertFalse(payload["news"]["drift_flags"]["stale_news"])
+
+    def test_default_news_corpus_includes_provider_specific_news_corpora(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            news_db = root / "news.sqlite"
+            company_db = root / "company.sqlite"
+            core_db = root / "core.sqlite"
+            out_json = root / "health.json"
+            _init_news_db(
+                news_db,
+                ticker_chunks=8,
+                total_chunks=10,
+                doc_date="2026-02-25",
+                corpus="news_newspaper4k",
+            )
+            conn = sqlite3.connect(str(news_db))
+            try:
+                conn.executemany(
+                    """
+                    INSERT INTO context_chunks(
+                        chunk_id, corpus, doc_type, doc_date, source, ticker, company, file, url
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        ("news-extra:1", "newswire", "news_article", "2026-02-25", "Reuters", "|BHP|", "NEWS", "x1", "u1"),
+                        ("news-extra:2", "newsletter", "news_article", "2026-02-25", "Reuters", "|BHP|", "NEWS", "x2", "u2"),
+                        ("news-extra:3", "news-foo", "news_article", "2026-02-25", "Reuters", "|BHP|", "NEWS", "x3", "u3"),
+                    ],
+                )
+                conn.commit()
+            finally:
+                conn.close()
+            _init_company_db(company_db, total_chunks=50, invalid_chunks=0)
+            _init_core_db(core_db)
+
+            payload = MOD.build_health_snapshot(
+                database_url=f"sqlite:///{core_db}",
+                news_db_path=news_db,
+                company_db_path=company_db,
+                out_json=out_json,
+                news_corpus="news",
+                thresholds=MOD.HealthThresholds(),
+                now_utc=dt.datetime(2026, 2, 25, 12, 0, 0, tzinfo=dt.timezone.utc),
+                gpu_probe=_healthy_gpu,
+            )
+
+        self.assertEqual(payload["news"]["total_chunks"], 10)
+        self.assertFalse(payload["news"]["drift_flags"]["low_ticker_coverage"])
+
+    def test_explicit_non_default_news_corpus_remains_exact(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            news_db = root / "news.sqlite"
+            company_db = root / "company.sqlite"
+            core_db = root / "core.sqlite"
+            out_json = root / "health.json"
+            _init_news_db(
+                news_db,
+                ticker_chunks=8,
+                total_chunks=10,
+                doc_date="2026-02-25",
+                corpus="news_newspaper4k",
+            )
+            _init_company_db(company_db, total_chunks=50, invalid_chunks=0)
+            _init_core_db(core_db)
+
+            payload = MOD.build_health_snapshot(
+                database_url=f"sqlite:///{core_db}",
+                news_db_path=news_db,
+                company_db_path=company_db,
+                out_json=out_json,
+                news_corpus="news_rss_v2",
+                thresholds=MOD.HealthThresholds(),
+                now_utc=dt.datetime(2026, 2, 25, 12, 0, 0, tzinfo=dt.timezone.utc),
+                gpu_probe=_healthy_gpu,
+            )
+
+        self.assertEqual(payload["news"]["total_chunks"], 0)
+        self.assertTrue(payload["news"]["drift_flags"]["low_ticker_coverage"])
+
+    def test_missing_company_db_sets_warning_not_healthy(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            news_db = root / "news.sqlite"
+            company_db = root / "missing-company.sqlite"
+            core_db = root / "core.sqlite"
+            out_json = root / "health.json"
+            _init_news_db(news_db, ticker_chunks=8, total_chunks=10, doc_date="2026-02-25")
+            _init_core_db(core_db)
+
+            payload = MOD.build_health_snapshot(
+                database_url=f"sqlite:///{core_db}",
+                news_db_path=news_db,
+                company_db_path=company_db,
+                out_json=out_json,
+                news_corpus="news",
+                thresholds=MOD.HealthThresholds(),
+                now_utc=dt.datetime(2026, 2, 25, 12, 0, 0, tzinfo=dt.timezone.utc),
+                gpu_probe=_healthy_gpu,
+            )
+
+        self.assertEqual(payload["overall_status"], "warning")
+        self.assertFalse(payload["company_rag"]["db_exists"])
+        self.assertTrue(payload["company_rag"]["drift_flags"]["missing_db"])
+        self.assertTrue(payload["company_rag"]["drift_flags"]["zero_chunks"])
+
+    def test_readonly_sqlite_connection_does_not_create_missing_db(self):
+        with tempfile.TemporaryDirectory() as td:
+            missing_db = Path(td) / "missing.sqlite"
+
+            with self.assertRaises(sqlite3.OperationalError):
+                MOD._connect_sqlite_readonly(missing_db)
+
+            self.assertFalse(missing_db.exists())
 
     def test_gpu_unavailable_scenario(self):
         payload = self._build_snapshot(

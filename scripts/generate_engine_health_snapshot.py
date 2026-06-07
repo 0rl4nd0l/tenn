@@ -17,12 +17,12 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from urllib.parse import quote
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT_PATH = REPO_ROOT / "reports" / "research_engine_health.json"
-DEFAULT_NEWS_DB = REPO_ROOT / "reports" / "qual_context" / "news.sqlite"
-DEFAULT_COMPANY_DB = REPO_ROOT / "reports" / "qual_context" / "company.sqlite"
+DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context")
 DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
 DEFAULT_NEWS_CORPUS = "news"
 DEFAULT_ALLOWLIST_PATH = REPO_ROOT / "financial-engine_v2" / "data" / "raw" / "asx_ticker_universe.txt"
@@ -62,6 +62,37 @@ def _atomic_write_json(path: Path, payload: Dict[str, Any]) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
+
+
+def _env_path(name: str) -> Optional[Path]:
+    value = str(os.getenv(name) or "").strip()
+    if not value:
+        return None
+    return Path(value).expanduser()
+
+
+def _artifact_root_from_env(*, news: bool) -> Optional[Path]:
+    if news:
+        news_root = _env_path("TENN_NEWS_ARTIFACT_ROOT")
+        if news_root is not None:
+            return news_root
+    return _env_path("TENN_QUAL_CONTEXT_ARTIFACT_ROOT")
+
+
+def default_news_db_path() -> Path:
+    explicit = _env_path("COCKPIT_NEWS_DB_PATH") or _env_path("TENN_NEWS_CONTEXT_DB")
+    if explicit is not None:
+        return explicit
+    artifact_root = _artifact_root_from_env(news=True) or DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT
+    return artifact_root / "news.sqlite"
+
+
+def default_company_db_path() -> Path:
+    explicit = _env_path("COCKPIT_COMPANY_DB_PATH") or _env_path("TENN_COMPANY_CONTEXT_DB")
+    if explicit is not None:
+        return explicit
+    artifact_root = _artifact_root_from_env(news=False) or DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT
+    return artifact_root / "company.sqlite"
 
 
 def _sqlite_path_from_url(database_url: str) -> Optional[Path]:
@@ -122,6 +153,23 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
         (table,),
     ).fetchone()
     return row is not None
+
+
+def _connect_sqlite_readonly(path: Path) -> sqlite3.Connection:
+    resolved = path.expanduser().resolve()
+    uri = f"file:{quote(str(resolved), safe='/')}?mode=ro"
+    return sqlite3.connect(uri, uri=True)
+
+
+def _news_corpus_where_clause(*, has_corpus: bool, corpus: str) -> Tuple[str, List[Any]]:
+    if not has_corpus:
+        return "", []
+    value = str(corpus or "").strip()
+    if not value:
+        return "", []
+    if value == "news":
+        return "WHERE (corpus = ? OR corpus GLOB ?)", ["news", "news_*"]
+    return "WHERE corpus = ?", [value]
 
 
 def _probe_gpu_status() -> Dict[str, Any]:
@@ -244,7 +292,7 @@ def _build_news_section(
         section["drift_flags"]["stale_news"] = True
         return section
 
-    conn = sqlite3.connect(str(db_path))
+    conn = _connect_sqlite_readonly(db_path)
     conn.row_factory = sqlite3.Row
     try:
         if not _table_exists(conn, "context_chunks"):
@@ -253,11 +301,7 @@ def _build_news_section(
             return section
         cols = set(_list_columns(conn, "context_chunks"))
         has_corpus = "corpus" in cols
-        where_sql = ""
-        args: List[Any] = []
-        if has_corpus and corpus:
-            where_sql = "WHERE corpus = ?"
-            args.append(corpus)
+        where_sql, args = _news_corpus_where_clause(has_corpus=has_corpus, corpus=corpus)
 
         agg = conn.execute(
             f"""
@@ -289,7 +333,11 @@ def _build_news_section(
 
         unknown_ticker_chunks = max(0, total_chunks - ticker_chunks)
         if ticker_allowlist and total_chunks > 0:
-            ticker_sql = f"SELECT ticker FROM context_chunks {where_sql} AND COALESCE(ticker,'') <> ''" if where_sql else "SELECT ticker FROM context_chunks WHERE COALESCE(ticker,'') <> ''"
+            ticker_sql = (
+                f"SELECT ticker FROM context_chunks {where_sql} AND COALESCE(ticker,'') <> ''"
+                if where_sql
+                else "SELECT ticker FROM context_chunks WHERE COALESCE(ticker,'') <> ''"
+            )
             for row in conn.execute(ticker_sql, tuple(args)):
                 symbols = _parse_ticker_blob(str(row["ticker"] or ""))
                 if not symbols:
@@ -334,19 +382,32 @@ def _build_company_rag_section(
     thresholds: HealthThresholds,
 ) -> Dict[str, Any]:
     section: Dict[str, Any] = {
+        "db_path": str(db_path),
+        "db_exists": bool(db_path.exists() and db_path.is_file()),
+        "has_context_chunks_table": False,
         "total_chunks": 0,
         "invalid_company_ratio_pct": 0.0,
         "invalid_company_count": 0,
-        "drift_flags": {"invalid_company_ratio_exceeded": False},
+        "drift_flags": {
+            "missing_db": False,
+            "missing_context_chunks_table": False,
+            "zero_chunks": False,
+            "invalid_company_ratio_exceeded": False,
+        },
     }
     if not db_path.exists() or not db_path.is_file():
+        section["drift_flags"]["missing_db"] = True
+        section["drift_flags"]["zero_chunks"] = True
         return section
 
-    conn = sqlite3.connect(str(db_path))
+    conn = _connect_sqlite_readonly(db_path)
     conn.row_factory = sqlite3.Row
     try:
         if not _table_exists(conn, "context_chunks"):
+            section["drift_flags"]["missing_context_chunks_table"] = True
+            section["drift_flags"]["zero_chunks"] = True
             return section
+        section["has_context_chunks_table"] = True
         cols = set(_list_columns(conn, "context_chunks"))
         where_sql = "WHERE corpus = 'company'" if "corpus" in cols else ""
         invalid_expr = "UPPER(COALESCE(company,'')) = 'UNKNOWN'"
@@ -372,10 +433,17 @@ def _build_company_rag_section(
         )
         section.update(
             {
+                "db_exists": True,
+                "has_context_chunks_table": True,
                 "total_chunks": total_chunks,
                 "invalid_company_ratio_pct": invalid_ratio,
                 "invalid_company_count": invalid_count,
-                "drift_flags": {"invalid_company_ratio_exceeded": bool(invalid_exceeded)},
+                "drift_flags": {
+                    "missing_db": False,
+                    "missing_context_chunks_table": False,
+                    "zero_chunks": total_chunks <= 0,
+                    "invalid_company_ratio_exceeded": bool(invalid_exceeded),
+                },
             }
         )
         return section
@@ -399,7 +467,7 @@ def _build_structured_and_backlog_section(database_url: str) -> Tuple[Dict[str, 
     if db_path is None or not db_path.exists() or not db_path.is_file():
         return structured, backlog
 
-    conn = sqlite3.connect(str(db_path))
+    conn = _connect_sqlite_readonly(db_path)
     conn.row_factory = sqlite3.Row
     try:
         if not _table_exists(conn, "documents"):
@@ -524,6 +592,12 @@ def build_health_snapshot(
         warning_flags.append("news.low_ticker_coverage")
     if bool(news["drift_flags"]["stale_news"]):
         warning_flags.append("news.stale_news")
+    if bool(company_rag["drift_flags"]["missing_db"]):
+        warning_flags.append("company_rag.missing_db")
+    if bool(company_rag["drift_flags"]["missing_context_chunks_table"]):
+        warning_flags.append("company_rag.missing_context_chunks_table")
+    if bool(company_rag["drift_flags"]["zero_chunks"]):
+        warning_flags.append("company_rag.zero_chunks")
     if structured["coverage_pct"] < float(thresholds.structured_min_coverage_pct):
         warning_flags.append("structured_extraction.coverage_low")
     if backlog["downloaded_not_extracted"] > int(thresholds.backlog_max_downloaded_not_extracted):
@@ -562,11 +636,11 @@ def build_health_snapshot(
     return payload
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Generate unified research engine health snapshot JSON.")
     ap.add_argument("--database-url", default=DEFAULT_DATABASE_URL, help="Core DB URL (sqlite:///...)")
-    ap.add_argument("--news-db-path", default=str(DEFAULT_NEWS_DB), help="News context sqlite path")
-    ap.add_argument("--company-db-path", default=str(DEFAULT_COMPANY_DB), help="Company context sqlite path")
+    ap.add_argument("--news-db-path", default=str(default_news_db_path()), help="News context sqlite path")
+    ap.add_argument("--company-db-path", default=str(default_company_db_path()), help="Company context sqlite path")
     ap.add_argument("--out-json", default=str(DEFAULT_OUT_PATH), help="Output JSON path")
     ap.add_argument("--news-corpus", default=DEFAULT_NEWS_CORPUS, help="News corpus label (default: news)")
 
@@ -576,11 +650,11 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--threshold-company-invalid-min-count", type=int, default=20)
     ap.add_argument("--threshold-structured-coverage-pct", type=float, default=40.0)
     ap.add_argument("--threshold-backlog-download-not-extracted", type=int, default=200)
-    return ap.parse_args()
+    return ap.parse_args(argv)
 
 
-def main() -> int:
-    args = parse_args()
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = parse_args(argv)
     thresholds = HealthThresholds(
         news_low_ticker_coverage_pct=float(args.threshold_news_low_ticker_coverage_pct),
         news_stale_hours=float(args.threshold_news_stale_hours),
