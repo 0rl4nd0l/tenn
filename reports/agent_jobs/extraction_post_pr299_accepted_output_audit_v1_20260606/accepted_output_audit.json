@@ -1,0 +1,167 @@
+{
+  "count24_justified": false,
+  "documents": [
+    {
+      "artifact_scale": "millions",
+      "classification": [
+        "needs quarantine",
+        "scale-binding bug",
+        "selected-table mismatch"
+      ],
+      "confidence": 1.0,
+      "currency": "AUD",
+      "data_missing": [
+        "exact run-time row_refs/provenance omitted from sample artifact",
+        "post-fix runtime outcome not measured"
+      ],
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "document_level_scale": "millions",
+      "expected_source_bound_values": {
+        "ebit": null,
+        "np_attributable": 39374000,
+        "revenue": 46547000,
+        "shares_outstanding": 137757000
+      },
+      "fix_status": "selected-table scale repair already integrated; additional net-operating-income-as-ebit quarantine implemented in this task",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": 29562000000.0,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": 39374000000.0,
+        "operating_cf": null,
+        "revenue": 46547000000.0,
+        "shares_outstanding": 137757000.0
+      },
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "quarantine_required": true,
+      "selected_table_scale": "thousands from page 26 $'000 table evidence",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "source_row_labels": {
+        "ebit": "Net operating income (not EBIT)",
+        "np_attributable": "Net profit/(loss) after tax",
+        "revenue": "Total revenue",
+        "shares_outstanding": "Weighted securities/stapled securities on issue ('000)"
+      },
+      "status": "ok",
+      "ticker": "DXC",
+      "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "truth_state": "unsafe accepted output in committed count-16 artifact"
+    },
+    {
+      "artifact_scale": "millions",
+      "classification": [
+        "needs quarantine",
+        "selected-table mismatch",
+        "scale-binding bug",
+        "DATA_MISSING"
+      ],
+      "confidence": 0.943,
+      "currency": "AUD",
+      "data_missing": [
+        "exact run-time row_refs/provenance omitted from sample artifact",
+        "post-fix runtime outcome not measured",
+        "Docling table structure for hidden PowerPoint chart data not inspected to avoid parser/cache side effects"
+      ],
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "document_level_scale": "millions",
+      "expected_current_period_source_values": {
+        "cash_end": 3999700,
+        "ebit": 3667700,
+        "financing_cf": -2111700,
+        "investing_cf": -1027200,
+        "np_attributable": 2215900,
+        "operating_cf": 1503800,
+        "revenue": 23000000
+      },
+      "fix_status": "no additional code fix implemented; requires targeted period-column/table-scale audit or quarantine prompt",
+      "metrics": {
+        "capex": null,
+        "cash_end": 5634800000.0,
+        "ebit": 5812200000.0,
+        "financing_cf": -4257100000.0000005,
+        "investing_cf": -991800000.0,
+        "net_debt": null,
+        "np_attributable": 3844800000.0,
+        "operating_cf": 5124600000.0,
+        "revenue": 43475600000.0,
+        "shares_outstanding": null
+      },
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "quarantine_required": true,
+      "selected_table_scale": "DATA_MISSING from artifact; source evidence contains $m/$M and A$000 tables",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "source_row_labels": {
+        "cashflow_metrics": "Accepted values match FY25 A$000 cash-flow/balance rows rather than 1H FY26 rows",
+        "ebit": "Accepted value matches FY25 EBIT 5,812.2 rather than 1H FY26 EBIT 3,667.7",
+        "np_attributable": "Accepted value matches FY25 NPAT 3,844.8 rather than 1H FY26 NPAT 2,215.9",
+        "revenue": "Accepted value matches FY25 Sales Revenue 43,475.6 rather than 1H FY26 Revenue $23.0m/23,008.9"
+      },
+      "status": "ok",
+      "ticker": "LBL",
+      "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "truth_state": "unsafe accepted output in committed count-16 artifact"
+    },
+    {
+      "artifact_scale": "millions",
+      "classification": [
+        "ok but report-only",
+        "rounding-policy issue"
+      ],
+      "confidence": 1.0,
+      "currency": "AUD",
+      "data_missing": [
+        "exact run-time row_refs/provenance omitted from sample artifact",
+        "rounding precision not represented in output schema/trust state"
+      ],
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "document_level_scale": "millions",
+      "fix_status": "no code fix implemented; needs rounding/precision provenance policy before broad count-24 promotion",
+      "metrics": {
+        "capex": -350500000.0,
+        "cash_end": 10500000.0,
+        "ebit": 578100000.0,
+        "financing_cf": -434000000.0,
+        "investing_cf": -349300000.0,
+        "net_debt": null,
+        "np_attributable": 226600000.0,
+        "operating_cf": 788200000.0,
+        "revenue": 1428200000.0,
+        "shares_outstanding": 250000130.0
+      },
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "quarantine_required": false,
+      "selected_table_scale": "millions from $m financial-statement columns",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_row_labels": {
+        "capex": "Payments for property, plant and equipment (350.5) $m",
+        "cash_end": "Cash and cash equivalents at end 10.5 $m",
+        "ebit": "Operating profit 578.1 $m",
+        "financing_cf": "Net cash outflow from financing activities (434.0) $m",
+        "investing_cf": "Net cash outflow from investing activities (349.3) $m",
+        "np_attributable": "Profit for the year attributable to owners 226.6 $m",
+        "operating_cf": "Net cash inflow from operating activities 788.2 $m",
+        "revenue": "Revenue from continuing operations 1,428.2 $m",
+        "shares_outstanding": "Ordinary shares 250,000,130"
+      },
+      "status": "ok",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "truth_state": "source-consistent magnitude but not truth-safe as exact canonical precision"
+    }
+  ],
+  "quarantine_required": true,
+  "quarantine_scope": "DXC and LBL accepted outputs from the committed count-16 artifact should not be treated as truth-safe canonical rows; no DB rows were mutated by this task.",
+  "recommended_next_prompt": "Create a bounded accepted-output containment task that reruns no broad samples, verifies DXC and LBL with no-write single-doc/debug artifacts if approved, and adds targeted quarantine for presentation/hidden-chart period-column mismatches before any count-24 approval packet.",
+  "row_ref_provenance_in_artifact": "DATA_MISSING",
+  "sample_artifact": "reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/sample_results.json",
+  "unsafe_accepted_rows": [
+    "DXC",
+    "LBL"
+  ]
+}

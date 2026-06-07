@@ -1,0 +1,22 @@
+{
+  "evidence": {
+    "AZJ_2025": "Full-year report source says amounts are rounded to nearest $100,000 unless otherwise stated, and financial statement columns show $m.",
+    "CTN_2022": "First page says Quarterly Activity Report, period ending 31st March 2022; Appendix 5B cash-flow report tables show $A000 columns. A historical 2014 Annual Report phrase appears in narrative project text.",
+    "DXC_2025": "Consolidated profit & loss statement table is marked $'000 and contains Total revenue 46,547 and Net profit/(loss) after tax 39,374.",
+    "LBL_2026": "1H FY26 results presentation highlights show revenue $23.0m; appendix chart area uses $M units, while accepted Phase 2 metrics are suspiciously large.",
+    "WHC_2022": "Annual report front matter readable; financial-statement page window produced effectively blank/garbled lightweight text, consistent with parser/table coverage gap and scale_unknown."
+  },
+  "method": "Targeted pdftotext -layout excerpts only; source PDFs were read-only and not edited.",
+  "resolved_source_paths": {
+    "05a85ffc-25cb-49a7-b770-df5e08f88ed9": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+    "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+    "551c6b84-1053-405c-a833-4ecc018e2045": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+    "9640d9f1-a45b-492d-8df5-9bad0f46431c": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+    "aadead44-11f3-46d5-933b-6f2c8792e6f9": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+    "bf82c108-980b-4792-ad76-838c3fe446ca": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+    "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+    "e7290bdf-2865-468c-9a9b-9fcc6a61d446": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+    "ea1b1f56-702e-4e23-a2fe-36c8136cf99c": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+    "f8a24788-dbe0-48f7-ad41-654f2c8a3845": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf"
+  }
+}

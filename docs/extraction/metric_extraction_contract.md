@@ -105,6 +105,13 @@ Source-document classification is deterministic and source-metadata only:
 - `advisory_only_document`: advisory-only announcements such as quarterly report
   advisories are excluded before candidate-manifest inclusion and blocked before
   metric extraction.
+- `meeting_or_proxy_notice`, `board_change_notice`,
+  `operational_project_update`,
+  `share_sale_or_gross_proceeds_announcement`, and
+  `pre_results_segment_re_presentation`: narrow source-title or first-page
+  false-positive classes. They emit `source_noncandidate:<class>` reasons and
+  are excluded before candidate-manifest inclusion and blocked before metric
+  extraction.
 - `unknown_document`: classification evidence is insufficient. The document is
   not automatically promoted; normal period, scale, confidence, metric, and
   provenance gates still decide whether extraction can persist.

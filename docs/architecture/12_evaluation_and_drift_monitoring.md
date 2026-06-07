@@ -222,6 +222,13 @@ bounded canary:
 - advisory-only announcements are failed before metric extraction;
 - advisory-only announcements are excluded from the terminal canary candidate
   manifest before normal candidate classification;
+- narrow source-class false positives are failed before metric extraction and
+  excluded from terminal canary candidate manifests when source title or
+  first-page text identifies meeting/proxy notices, board-change notices,
+  operational project updates, share-sale/gross-proceeds announcements, or
+  pre-results segment re-presentation documents;
+- broad-sample scorecards preserve narrow source-class exclusions as
+  `source_noncandidate:<class>` error-taxonomy entries;
 - EBITDA evidence cannot populate canonical `ebit`;
 - explicit source-unit values in row evidence must agree with normalized metric
   magnitude;

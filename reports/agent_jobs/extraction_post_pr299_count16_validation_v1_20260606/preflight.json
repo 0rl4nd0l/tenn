@@ -1,0 +1,594 @@
+{
+  "explicit_scope_statement": "Preflight for exactly one bounded count-16 sample; no broad extraction, backfill, count-24/count-32, or full ticker extraction.",
+  "generated_at": "2026-06-06T03:19:55.680538Z",
+  "mode": "BOUNDED VALIDATION ONLY",
+  "primary_lane": "Evaluation",
+  "readiness_failures": [],
+  "state_before_run": {
+    "generated_at": "2026-06-06T03:19:54.996800Z",
+    "registry": {
+      "active_jobs": [],
+      "command": {
+        "cmd": "python3 scripts/agent_job_registry.py list-active --repo-root .",
+        "elapsed_s": 0.142,
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "{\n  \"active_jobs\": [],\n  \"git_common_dir\": \"/mnt/sdb2/home/l4nd0/tenn/.git\",\n  \"lock_acquired\": true,\n  \"ok\": true,\n  \"read_only\": false,\n  \"registry_root\": \"/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry\",\n  \"registry_scope\": \"shared\",\n  \"repo_root\": \"/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606\",\n  \"warnings\": []\n}"
+      },
+      "lock_acquired": true,
+      "parsed": {
+        "active_jobs": [],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "lock_acquired": true,
+        "ok": true,
+        "read_only": false,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606",
+        "warnings": []
+      },
+      "read_only": false
+    },
+    "repo": {
+      "branch": "safe/extraction-post-pr299-broad-accuracy-push-v1-20260606",
+      "head": "9c9107bbbbac6a2971b57d9df5473aa870bb4b28",
+      "head_contains_phase1": true,
+      "head_contains_pr299": true,
+      "status_short": [
+        "?? docs/agent_tasks/extraction_post_pr299_count16_validation_v1_20260606.md"
+      ],
+      "worktree": "/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606"
+    },
+    "runtime": {
+      "backend_health": {
+        "status": "ok"
+      },
+      "gpu_process_guard": {
+        "exit_code": 0,
+        "stderr": [
+          "WARN: nvidia-smi query failed (exit 255): nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits",
+          "WARN: nvidia-smi query failed (exit 255): nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits",
+          "WARN: nvidia-smi query failed (exit 255): nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits"
+        ],
+        "stdout": []
+      },
+      "llamacpp_models": {
+        "data": [
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "Qwen3.5-35B-A3B-APEX-I-Compact",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "Qwen3.5-35B-A3B-APEX-I-Compact",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[Qwen3.5-35B-A3B-APEX-I-Compact]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "Qwen3.5-35B-A3B-Q4_K_M",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "Qwen3.5-35B-A3B-Q4_K_M",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[Qwen3.5-35B-A3B-Q4_K_M]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "gpt-oss-20b-mxfp4",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "gpt-oss-20b-mxfp4",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[gpt-oss-20b-mxfp4]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "model",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--cache-ram",
+                "0",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\ncache-ram = 0\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "model:gpt-oss-20b",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:gpt-oss-20b",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model:gpt-oss-20b]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/gpt-oss-20b-mxfp4.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "model:qwen2.5-14b-instruct",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "40077",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen2.5-14b-instruct",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "8192",
+                "--fit",
+                "off",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model:qwen2.5-14b-instruct]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "loaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "model:qwen3-14b",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen3-14b",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "8192",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[model:qwen3-14b]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 8192\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "model:qwen3.5-35b-a3b",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--chat-template-file",
+                "/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen3.5-35b-a3b",
+                "--batch-size",
+                "512",
+                "--ctx-size",
+                "16384",
+                "--fit",
+                "off",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "256"
+              ],
+              "preset": "[model:qwen3.5-35b-a3b]\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 512\nctx-size = 16384\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-Q4_K_M.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 256\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "model:qwen3.5-35b-a3b-apex",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--chat-template-file",
+                "/home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "34075",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "model:qwen3.5-35b-a3b-apex",
+                "--batch-size",
+                "512",
+                "--ctx-size",
+                "16384",
+                "--fit",
+                "off",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "256"
+              ],
+              "preset": "[model:qwen3.5-35b-a3b-apex]\nchat-template-file = /home/l4nd0/.config/tenn/qwen3.5-chat-template.jinja\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 512\nctx-size = 16384\nfit = off\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 256\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          },
+          {
+            "aliases": [],
+            "created": 1780715995,
+            "id": "qwen2.5-14b-instruct-q4_k_m",
+            "object": "model",
+            "owned_by": "llamacpp",
+            "status": {
+              "args": [
+                "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server",
+                "--host",
+                "127.0.0.1",
+                "--no-mmap",
+                "--port",
+                "0",
+                "--spec-type",
+                "ngram-simple",
+                "--alias",
+                "qwen2.5-14b-instruct-q4_k_m",
+                "--batch-size",
+                "1024",
+                "--ctx-size",
+                "16384",
+                "--model",
+                "/mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                "--main-gpu",
+                "0",
+                "--n-gpu-layers",
+                "999",
+                "--parallel",
+                "1",
+                "--threads",
+                "4",
+                "--ubatch-size",
+                "512"
+              ],
+              "preset": "[qwen2.5-14b-instruct-q4_k_m]\nmmap = 0\nspec-type = ngram-simple\nbatch-size = 1024\nctx-size = 16384\nmodel = /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf\nmain-gpu = 0\nn-gpu-layers = 999\nparallel = 1\nthreads = 4\nubatch-size = 512\n\n",
+              "value": "unloaded"
+            },
+            "tags": []
+          }
+        ],
+        "object": "list"
+      },
+      "nvidia_smi": {
+        "exit_code": 255,
+        "stderr_first_lines": [],
+        "stdout_first_lines": [
+          "Unable to determine the device handle for GPU0000:25:00.0: Unknown Error"
+        ]
+      },
+      "processes_matching_runtime": [
+        "1283693 3982103 Sl   llama-server    /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server --host 127.0.0.1 --no-mmap --port 40077 --spec-type ngram-simple --alias model:qwen2.5-14b-instruct --batch-size 1024 --ctx-size 8192 --fit off --model /mnt/tenn-nvme2/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf --main-gpu 0 --n-gpu-layers 999 --parallel 1 --threads 4 --ubatch-size 512",
+        "3981774 3981750 Ssl  uvicorn         /usr/local/bin/python3.11 /usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000",
+        "3982103       1 Ssl  llama-server    /home/l4nd0/tenn-runtime/tools/llama.cpp/build-cuda/bin/llama-server --main-gpu 0 --threads 4 --host 0.0.0.0 --port 8001 --spec-type ngram-simple --models-dir /mnt/tenn-nvme2/tenn/models --models-max 1 --models-preset /home/l4nd0/.config/tenn/llamacpp-presets.ini --no-mmap --api-key local-openai-key --parallel 1"
+      ],
+      "qdrant": {
+        "asx_docs": {
+          "indexed_vectors_count": 0,
+          "points_count": 4176,
+          "raw_error": null,
+          "status": "green",
+          "update_queue_length": 0
+        },
+        "commentary_chunks": {
+          "indexed_vectors_count": 0,
+          "points_count": 0,
+          "raw_error": null,
+          "status": "green",
+          "update_queue_length": 0
+        },
+        "news_chunks": {
+          "indexed_vectors_count": 22346,
+          "points_count": 22975,
+          "raw_error": null,
+          "status": "green",
+          "update_queue_length": 0
+        }
+      },
+      "redis_celery_length": 0,
+      "redis_queue_key_scan": [
+        "_kombu.binding.celery",
+        "_kombu.binding.celery.pidbox",
+        "_kombu.binding.celeryev"
+      ],
+      "redis_unacked_key_count": 0
+    },
+    "safe_env": {
+      "AUTO_CREATE_TABLES": "false",
+      "DATABASE_URL": "sqlite:///:memory:",
+      "ENABLE_EMBEDDINGS": "false",
+      "ENABLE_QDRANT": "false",
+      "EXTRACTION_LLAMACPP_URL": "http://127.0.0.1:8001",
+      "EXTRACT_MODEL": "model:qwen2.5-14b-instruct",
+      "LLAMACPP_URL": "http://127.0.0.1:8001",
+      "LLM_API_KEY": "local-openai-key",
+      "OLLAMA_URL": "http://127.0.0.1:11434",
+      "TASK_MODE": "sync"
+    },
+    "source_pdfs": {
+      "commands": {
+        "count": {
+          "cmd": "find /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs -path '*/financial_performance/*.pdf' -type f | wc -l",
+          "elapsed_s": 0.289,
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "28633"
+        },
+        "fingerprint": {
+          "cmd": "find /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs -path '*/financial_performance/*.pdf' -type f -printf '%p\\t%s\\t%T@\\n' | sha256sum",
+          "elapsed_s": 0.339,
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "db934b5e15013b71fefe14b7f8d90d149ea824568f444adf74ec7b1d224c873d  -"
+        },
+        "first_pdf": {
+          "cmd": "find /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs -path '*/financial_performance/*.pdf' -type f | head -n 1",
+          "elapsed_s": 0.006,
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LYC/financial_performance/2026-02-16_date-of-half-yearly-report-and-briefing_472f0e82-d279-4b2f-b04a-abff16a5a231.pdf"
+        }
+      },
+      "exists": true,
+      "financial_performance_pdf_count": 28633,
+      "fingerprint_sha256": "db934b5e15013b71fefe14b7f8d90d149ea824568f444adf74ec7b1d224c873d",
+      "first_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LYC/financial_performance/2026-02-16_date-of-half-yearly-report-and-briefing_472f0e82-d279-4b2f-b04a-abff16a5a231.pdf",
+      "root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs"
+    },
+    "sqlite": {
+      "command": {
+        "cmd": "stat -c '%n\\t%s\\t%Y\\t%y' /home/l4nd0/tenn-runtime/financial-engine_v2/data/ops/ops.db /home/l4nd0/tenn-runtime/financial-engine_v2/data/cockpit/state.db /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/ops/ops.db /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/cockpit/state.db",
+        "elapsed_s": 0.002,
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/ops/ops.db\\t57344\\t1780644419\\t2026-06-05 17:26:59.996388940 +1000\n/home/l4nd0/tenn-runtime/financial-engine_v2/data/cockpit/state.db\\t368640\\t1779675220\\t2026-05-25 12:13:40.324343957 +1000\n/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/ops/ops.db\\t57344\\t1780644419\\t2026-06-05 17:26:59.996388940 +1000\n/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/cockpit/state.db\\t368640\\t1779675220\\t2026-05-25 12:13:40.324343957 +1000"
+      },
+      "rows": [
+        {
+          "mtime": "2026-06-05 17:26:59.996388940 +1000",
+          "mtime_epoch": 1780644419,
+          "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/ops/ops.db",
+          "size": 57344
+        },
+        {
+          "mtime": "2026-05-25 12:13:40.324343957 +1000",
+          "mtime_epoch": 1779675220,
+          "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/cockpit/state.db",
+          "size": 368640
+        },
+        {
+          "mtime": "2026-06-05 17:26:59.996388940 +1000",
+          "mtime_epoch": 1780644419,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/ops/ops.db",
+          "size": 57344
+        },
+        {
+          "mtime": "2026-05-25 12:13:40.324343957 +1000",
+          "mtime_epoch": 1779675220,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/cockpit/state.db",
+          "size": 368640
+        }
+      ]
+    }
+  },
+  "supporting_lanes": [
+    "Financial Truth",
+    "Query Orchestration",
+    "Provenance"
+  ]
+}

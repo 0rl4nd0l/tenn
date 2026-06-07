@@ -1,0 +1,83 @@
+{
+  "artifact_limitations": [
+    "sample_results.json does not contain row_refs, provenance, markdown_tables, or metric_source_scales for accepted rows",
+    "exact extractor-selected row refs are DATA_MISSING for DXC/LBL/AZJ"
+  ],
+  "documents": {
+    "AZJ": {
+      "evidence": [
+        {
+          "page": 6,
+          "text": "Rounding of amounts: amounts rounded to nearest $100,000 unless otherwise stated."
+        },
+        {
+          "page": 9,
+          "text": "$m income statement: Revenue from continuing operations 1,428.2; Operating profit 578.1; Profit for the year attributable to owners 226.6."
+        },
+        {
+          "page": 13,
+          "text": "$m cash flow statement: operating cash flow 788.2; payments for property, plant and equipment (350.5); investing cash flow (349.3); financing cash flow (434.0); cash at end 10.5."
+        },
+        {
+          "page": 39,
+          "text": "Contributed equity/share evidence: At 30 June 2025 ordinary shares 250,000,130."
+        }
+      ],
+      "pages": 65,
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_scale_findings": [
+        "financial statement columns show $m",
+        "accepted values match source values scaled to dollars but precision/rounding metadata is missing"
+      ]
+    },
+    "DXC": {
+      "evidence": [
+        {
+          "page": 26,
+          "text": "Consolidated profit & loss statement table is marked $'000; Total revenue 46,547; Net operating income 29,562; Net profit/(loss) after tax 39,374."
+        },
+        {
+          "page": 27,
+          "text": "Weighted securities on issue ('000) 137,757."
+        },
+        {
+          "page": 28,
+          "text": "Stapled securities on issue ('000) 137,757."
+        }
+      ],
+      "pages": 30,
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "source_scale_findings": [
+        "selected table evidence: thousands",
+        "artifact document/source_bound scale: millions"
+      ]
+    },
+    "LBL": {
+      "evidence": [
+        {
+          "page": 6,
+          "text": "1H FY26 financial highlights: Revenue $23.0m, NPAT $2.2m, Cash $4.0m."
+        },
+        {
+          "page": 8,
+          "text": "$m table: Cash & Equivalents 1H FY26 4.0 vs FY25 5.6; cash flow from operations 1.5 vs FY25 5.1; investing (1.0) vs FY25 (1.0); financing (2.1) vs FY25 (4.3)."
+        },
+        {
+          "page": 21,
+          "text": "Performance Summary table includes historical FY25 values Sales Revenue 43,475.6, EBIT 5,812.2, NPAT 3,844.8, and 1H FY26 Sales Revenue 23,008.9 / EBIT 3,667.7 / NPAT 2,215.9."
+        },
+        {
+          "page": 22,
+          "text": "Five Year Balance Sheet / Cash Flows table marked A$000 includes FY25 Cash 5,634.8, operating CF 5,124.6, investing CF (991.8), financing CF (4,257.1), and 1H FY26 Cash 3,999.7, operating CF 1,503.8, investing CF (1,027.2), financing CF (2,111.7)."
+        }
+      ],
+      "pages": 24,
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "source_scale_findings": [
+        "source tables mix $m, $M, and A$000 evidence",
+        "accepted values line up with historical FY25 values and over-scaled A$000/million handling, not the 1H FY26 period"
+      ]
+    }
+  },
+  "method": "Read-only pdftotext/pdfinfo and committed count-16 artifact inspection; no source PDFs edited and no extraction sample rerun."
+}

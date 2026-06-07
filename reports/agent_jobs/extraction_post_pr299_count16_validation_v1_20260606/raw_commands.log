@@ -1,0 +1,34 @@
+2026-06-06T13:18:00+10:00
+
+Phase 2 setup:
+
+- python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_post_pr299_count16_validation_v1_20260606.md --write-report
+- checked source roots: /data/asx/docs, /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs, /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/data/asx/docs
+- inspected prior post-PR297 count-16 report and runner under /home/l4nd0/tenn-post-pr297-count16-validation-v1-20260605
+
+The bounded runner must be executed exactly once for the sample phase.
+
+Bounded run executed exactly once:
+
+- PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=financial-engine_v2/backend DATABASE_URL=sqlite:///:memory: TASK_MODE=sync AUTO_CREATE_TABLES=false ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false DOCS_ROOT=/data/asx/docs OLLAMA_URL=http://127.0.0.1:11434 LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8001 LLM_API_KEY=local-openai-key EXTRACT_MODEL=model:qwen2.5-14b-instruct /mnt/sdb2/home/l4nd0/tenn/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/run_bounded_count16.py > reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/run_stdout.txt 2> reports/agent_jobs/extraction_post_pr299_count16_validation_v1_20260606/run_stderr.txt
+
+Run result:
+
+- ok: 9
+- ok_low_confidence: 0
+- failed: 7
+- exceptions: 0
+- failure_taxonomy: source_noncandidate classes 5, validation_gate:scale_unknown 1, validation_gate:period_source_mismatch 1
+- candidate_pool_count: 28633
+- selected-document overlap with post-PR297 count-16: 16/16
+- no broad extraction, backfill, count-24/count-32, or full ticker-universe extraction was run
+
+Validation after run:
+
+- JSON validation passed for generated Phase 2 JSON artifacts.
+- py_compile passed for the report-local runner.
+
+Post-run artifact correction:
+
+- Parsed literal \t separators in captured DB stat output; no sample rerun.
+- Updated preflight.json and side_effect_audit.json DB rows from existing preflight stdout plus post-final stat.

@@ -136,6 +136,106 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
 
 
+@pytest.mark.parametrize(
+    ("title", "first_page_text", "document_class"),
+    [
+        (
+            "notice-of-annual-general-meeting-proxy-form.pdf",
+            (
+                "Upcoming General Meeting of Shareholders. Annual General "
+                "Meeting, Notice of Meeting and Explanatory Memorandum."
+            ),
+            "meeting_or_proxy_notice",
+        ),
+        (
+            "fineos-board-changes.pdf",
+            (
+                "Upcoming FINEOS Board changes. Appointment of a new "
+                "non-executive director is subject to securityholder approval "
+                "at the AGM."
+            ),
+            "board_change_notice",
+        ),
+        (
+            "update-in-relation-to-mt-morgans-gold-project.pdf",
+            (
+                "Update in Relation to Mt Morgans Gold Project. Dacian will "
+                "discontinue open pit mining with no impact on FY22 revenue "
+                "or earnings."
+            ),
+            "operational_project_update",
+        ),
+        (
+            "vox-shares-sold-2-93m-gross-proceeds.pdf",
+            (
+                "VOX SHARES SOLD $2.93M GROSS PROCEEDS. Shares were sold on "
+                "NASDAQ and TSX before fees and taxes."
+            ),
+            "share_sale_or_gross_proceeds_announcement",
+        ),
+        (
+            "re-presentation-of-segment-results-and-terminology-changes.pdf",
+            (
+                "Re-presentation of segment results and changes in terminology. "
+                "The company plans to announce 2026 half year financial results "
+                "and there are no changes to statutory financial results."
+            ),
+            "pre_results_segment_re_presentation",
+        ),
+    ],
+)
+def test_source_document_classifier_excludes_known_false_positive_classes(
+    title, first_page_text, document_class
+):
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(title, first_page_text)
+
+    assert result.document_class == document_class
+    assert result.extraction_candidate_allowed is False
+    assert result.canary_candidate_allowed is False
+    assert result.reason == f"source_noncandidate:{document_class}"
+    assert result.evidence
+
+
+@pytest.mark.parametrize(
+    ("title", "first_page_text", "period_reason"),
+    [
+        (
+            "annual-report-to-shareholders.pdf",
+            "Annual Report for the year ended 30 June 2024.",
+            "annual_report_title",
+        ),
+        (
+            "appendix-4d-half-year-results.pdf",
+            "Appendix 4D Half Year Results for the half year ended 31 December 2025.",
+            "half_year_source_phrase",
+        ),
+        (
+            "hy24-results-appendix-4d-and-financial-report.pdf",
+            "Appendix 4D and financial report for the half year ended 31 December 2023.",
+            "half_year_source_phrase",
+        ),
+        (
+            "quarterly-activities-report-and-appendix-5b.pdf",
+            "Quarterly activities report and Appendix 5B for the quarter ended 31 March 2024.",
+            "quarterly_source_phrase",
+        ),
+    ],
+)
+def test_source_document_classifier_preserves_valid_report_candidates(
+    title, first_page_text, period_reason
+):
+    from app.services.multipass_extraction import classify_source_document
+
+    result = classify_source_document(title, first_page_text)
+
+    assert result.document_class == "financial_report"
+    assert result.extraction_candidate_allowed is True
+    assert result.canary_candidate_allowed is True
+    assert result.reason == period_reason
+
+
 def _gpt_appendix_4d_sections(*, include_disclosures: bool = True) -> list[dict]:
     sections = [
         {"text": "ASX Announcement", "page": 1},
@@ -2271,6 +2371,119 @@ def test_validate_scale_blocks_wtc_like_unknown_scale_values():
     status, error = _validate_gate(payload)
     assert status == "failed"
     assert error == "validation_gate:scale_validation:suspect_underscaled"
+
+
+def test_validate_gate_rejects_net_operating_income_as_ebit_source():
+    """Net operating income is not EBIT and must not pass as canonical ebit."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="A", scale="thousands")
+    payload["metrics"]["ebit"] = 29_562_000
+    payload["row_refs"] = {"ebit": "Net operating income"}
+    payload["provenance"] = {
+        "ebit": "income_statement:page_26:Net operating income"
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == "validation_gate:metric_label_mismatch:ebit:net_operating_income"
+
+
+def test_pass3a_uses_selected_table_scale_over_document_scale():
+    """Selected-table $'000 markers must override a document-level millions scale."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=25,
+        caption="Consolidated profit & loss statement",
+        headers=["", "FY25", "FY24"],
+        rows=[
+            ["", "FY25", "FY24"],
+            ["", "$'000", "$'000"],
+            ["Total revenue", "46,547", "48,505"],
+            ["Net profit/(loss) after tax", "39,374", "3,407"],
+        ],
+    )
+    raw_response = {
+        "metrics": {
+            "revenue": 46_547,
+            "np_attributable": 39_374,
+        },
+        "row_refs": {
+            "revenue": "Total revenue",
+            "np_attributable": "Net profit/(loss) after tax",
+        },
+        "pass3_confidence": 0.9,
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {
+                "report_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["revenue"] == 46_547_000
+    assert result["np_attributable"] == 39_374_000
+    assert result["_scale"] == "thousands"
+    assert result["_scale_source"] == "table"
+
+
+def test_pass4_common_metric_source_scale_overrides_document_scale():
+    """A common table-local source scale should become the reconciled payload scale."""
+    from app.services.multipass_extraction import (
+        _common_metric_source_scale,
+        _run_pass4_reconciler,
+    )
+
+    payload = _run_pass4_reconciler(
+        [
+            {
+                "_source": "income_statement",
+                "_page_number": 25,
+                "_scale": "thousands",
+                "_scale_source": "table",
+                "revenue": 46_547_000,
+                "np_attributable": 39_374_000,
+                "pass3_confidence": 0.9,
+                "row_refs": {
+                    "revenue": "Total revenue",
+                    "np_attributable": "Net profit/(loss) after tax",
+                },
+            }
+        ],
+        {
+            "risk_summary": None,
+            "risk_bullets": None,
+            "guidance_summary": None,
+            "material_changes": None,
+            "confidence_narrative": 0.0,
+        },
+        {
+            "report_type": "A",
+            "period_end": "2025-06-30",
+            "scale": "millions",
+        },
+    )
+
+    assert payload["metric_source_scales"] == {
+        "revenue": "thousands",
+        "np_attributable": "thousands",
+    }
+    assert _common_metric_source_scale(payload, "millions") == "thousands"
 
 
 def test_validate_gate_non_aud_returns_ok_low_confidence():

@@ -239,6 +239,11 @@ def compute_summary(results: list[dict]) -> dict:
             # Classify by prefix
             if err.startswith("pass1:"):
                 cls = "pass1_failure"
+            elif err.startswith("validation_gate:source_noncandidate:"):
+                cls = err.removeprefix("validation_gate:")
+            elif err.startswith("validation_gate:"):
+                parts = err.split(":", 2)
+                cls = ":".join(parts[:2])
             elif "low_confidence" in err:
                 cls = "classifier_low_confidence"
             elif "timeout" in err.lower() or "sigalrm" in err.lower():
