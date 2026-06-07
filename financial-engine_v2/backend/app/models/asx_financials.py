@@ -19,8 +19,15 @@ class ASXPeriodicFinancial(Base):
     cash_end: Mapped[Numeric | None] = mapped_column(Numeric, nullable=True)
     net_debt: Mapped[Numeric | None] = mapped_column(Numeric, nullable=True)
     shares_outstanding: Mapped[Numeric | None] = mapped_column(Numeric, nullable=True)
+    total_equity: Mapped[Numeric | None] = mapped_column(Numeric, nullable=True)
+    interest_expense: Mapped[Numeric | None] = mapped_column(Numeric, nullable=True)
+    period_start: Mapped[Date | None] = mapped_column(Date, nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     source_document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     confidence_metrics: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 class ASXRiskNote(Base):
     __tablename__ = "asx_risk_notes"
@@ -30,4 +37,7 @@ class ASXRiskNote(Base):
     guidance_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     material_changes: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence_narrative: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
