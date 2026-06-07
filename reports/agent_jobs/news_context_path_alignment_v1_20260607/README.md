@@ -157,6 +157,26 @@ compiled financial-engine_v2/cockpit/integrations/qual_context_bootstrap.py
 `financial-engine_v2/cockpit/integrations` are root-owned. The in-memory compile
 above was used instead and does not write bytecode.
 
+Full Cockpit startup smoke using the usual launcher was attempted without
+booting services:
+
+```text
+TERM=xterm-256color ./scripts/cockpit_tui.py --no-boot --read-only --no-web
+exit 1
+```
+
+The launcher failed before news reader startup because the company qualitative
+context DB is missing:
+
+```text
+RuntimeError: RAG startup validation failed: qual context db not found:
+/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/reports/qual_context/company.sqlite
+```
+
+No `company.sqlite` artifact was found under the checked repo roots or
+`/mnt/tenn-nvme2/tenn/.../reports/qual_context`. This is a separate Cockpit
+startup blocker from the news context path fix.
+
 ## Unsafe Actions Avoided
 
 - Did not edit crontab, timers, host env files, Docker runtime config, or
@@ -176,5 +196,5 @@ news source relevance and ticker linking remain separate quality risks.
 
 ## Next Recommended Prompt
 
-Review and merge PR #313, then start Cockpit once from the usual runtime to
-confirm the startup notice shows the `/mnt/tenn-nvme2/.../news.sqlite` path.
+Review and merge PR #313, then resolve the missing company qualitative context
+DB/startup policy so Cockpit can reach the news reader startup notice.
