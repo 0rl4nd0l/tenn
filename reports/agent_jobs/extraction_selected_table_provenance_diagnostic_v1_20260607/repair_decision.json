@@ -1,0 +1,16 @@
+{
+  "another_sample_justified": false,
+  "count24_rerun_status": "blocked",
+  "data_missing": [
+    "full_pass3a_llm_outputs",
+    "runtime_metric_scale_sources",
+    "runtime_metric_source_scales",
+    "runtime_row_refs"
+  ],
+  "decision": "NO_CODE_REPAIR",
+  "fix_made": false,
+  "generated_at": "2026-06-07",
+  "job_id": "extraction_selected_table_provenance_diagnostic_v1_20260607",
+  "next_exact_prompt": "/goal Build a no-write exact-doc pass3a provenance capture for AZJ and EDU only, using an approved dependency/runtime route that does not write parser cache, DB, Qdrant, news, memory, source PDFs, prompts, schemas, or runtime config. Do not run count-24, count-32, random samples, broad extraction, or backfill. Capture the actual pass3a outputs, row_refs, metric_source_scales, metric_scale_sources, selected table page/header, and final _common_metric_source_scale inputs/outputs. Implement one narrow selected-table scale-binding fix only if both docs prove the same source-bound missed propagation; otherwise keep count-24 blocked and produce the next repair prompt.",
+  "why_no_fix": "The report-local diagnostic did not prove the same missed selected-table scale-binding pattern in at least two documents. It also found that count24 artifacts omit the actual pass3a row refs and per-metric source scales needed to justify a code change."
+}

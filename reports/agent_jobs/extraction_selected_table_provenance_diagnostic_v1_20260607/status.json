@@ -1,0 +1,36 @@
+{
+  "job_id": "extraction_selected_table_provenance_diagnostic_v1_20260607",
+  "generated_at": "2026-06-07",
+  "status": "DONE_WITH_RISK",
+  "branch": "safe/extraction-selected-table-provenance-diagnostic-v1-20260607",
+  "started_from_head": "dd971c620e39a2728b18bc9ac11d02385024d796",
+  "diagnostic_scope": [
+    "WHC",
+    "AZJ",
+    "EDU"
+  ],
+  "nic_handling": "optional_prompt_only_not_implemented",
+  "safe_extension_made": false,
+  "reason_safe_extension_not_made": "No repeated selected-table scale-binding bug was proven with actual runtime row refs and per-metric source scales in at least two docs.",
+  "another_sample_justified": false,
+  "count24_rerun_status": "blocked",
+  "count32_status": "blocked",
+  "hard_stops_observed": {
+    "count24_rerun": false,
+    "count32_run": false,
+    "random_sample_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "full_ticker_universe_extraction_run": false,
+    "db_qdrant_news_memory_mutation": false,
+    "source_pdf_edits": false,
+    "prompt_gold_label_runtime_schema_changes": false,
+    "docling_or_pymupdf_parser_invocation": false,
+    "llm_extraction_invocation": false
+  },
+  "data_missing": [
+    "runtime_row_refs",
+    "runtime_metric_source_scales",
+    "runtime_metric_scale_sources",
+    "full_pass3a_llm_outputs"
+  ]
+}

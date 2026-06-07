@@ -1,0 +1,68 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_audit_code_changes": true,
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_azj_edu_pass3a_provenance_capture_v1_20260607.md",
+      "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/README.md",
+      "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py",
+      "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/provenance_capture.json",
+      "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/status.json",
+      "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/validation.json",
+      "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/raw_commands.log",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "approval_required": false,
+    "github_mutation_allowed": true,
+    "job_id": "extraction_azj_edu_pass3a_provenance_capture_v1_20260607",
+    "lane": "Financial Truth",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance",
+      "Query Orchestration",
+      "Repo Hygiene"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}
+Traceback (most recent call last):
+  File "/home/l4nd0/tenn-azj-edu-pass3a-provenance-v1-20260607/reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py", line 680, in <module>
+    raise SystemExit(main())
+  File "/home/l4nd0/tenn-azj-edu-pass3a-provenance-v1-20260607/reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py", line 615, in main
+    import httpx
+ModuleNotFoundError: No module named 'httpx'
+scale unknown from both table headers and Pass 1 classifier
+Filter too aggressive for cashflow_statement: 45 → 4 rows (91% reduction) — using full table
+Filter too aggressive for balance_sheet: 52 → 6 rows (88% reduction) — using full table
+scale unknown from both table headers and Pass 1 classifier
+Filter too aggressive for income_statement: 58 → 5 rows (91% reduction) — using full table
+Filter too aggressive for balance_sheet: 42 → 8 rows (81% reduction) — using full table
+{
+  "documents": {
+    "AZJ": {
+      "error": "validation_gate:scale_unknown",
+      "payload_scale": "unknown",
+      "scale_validation": "pass",
+      "status": "failed"
+    },
+    "EDU": {
+      "error": "validation_gate:scale_unknown",
+      "payload_scale": "unknown",
+      "scale_validation": "pass",
+      "status": "failed"
+    }
+  },
+  "final_decision": "NEEDS_SCALE_TABLE_HARNESS",
+  "generated_at": "2026-06-07T11:05:51.234599Z",
+  "job_id": "extraction_azj_edu_pass3a_provenance_capture_v1_20260607",
+  "no_count24_count32_backfill_random_sample_run": true,
+  "same_root_cause_proven": false,
+  "state": "DONE_WITH_RISK"
+}

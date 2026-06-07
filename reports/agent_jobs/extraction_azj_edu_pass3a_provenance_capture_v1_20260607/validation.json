@@ -1,0 +1,79 @@
+{
+  "job_id": "extraction_azj_edu_pass3a_provenance_capture_v1_20260607",
+  "state": "DONE_WITH_RISK",
+  "final_decision": "NEEDS_SCALE_TABLE_HARNESS",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_selected_table_provenance_diagnostic_v1_20260607.md",
+      "exit_code": 0,
+      "summary": "Diagnostic task card validated after replay."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_azj_edu_pass3a_provenance_capture_v1_20260607.md",
+      "exit_code": 0,
+      "summary": "AZJ/EDU task card validated."
+    },
+    {
+      "command": "python3 reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py",
+      "exit_code": 1,
+      "summary": "System python lacked httpx; no extraction was run on this attempt."
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py",
+      "exit_code": 0,
+      "summary": "Exact-doc no-write AZJ/EDU Pass 3a provenance capture completed. Both docs ended validation_gate:scale_unknown; no shared root cause proven."
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py",
+      "exit_code": 0,
+      "summary": "Report-local runner compiled."
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m ruff check reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py",
+      "exit_code": 0,
+      "summary": "Ruff passed for the report-local runner."
+    },
+    {
+      "command": "ruff check reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/capture_runner.py",
+      "exit_code": 127,
+      "summary": "Plain ruff was not on PATH; baseline venv ruff was used instead."
+    },
+    {
+      "command": "JSON validation for provenance_capture.json and status.json",
+      "exit_code": 0,
+      "summary": "Generated JSON artifacts parsed successfully."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "summary": "No whitespace errors before staging."
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "summary": "Read-only registry check succeeded, read_only=true, active_jobs=[]."
+    }
+  ],
+  "no_write_confirmations": {
+    "count24_rerun": false,
+    "count32_run": false,
+    "random_sample_run": false,
+    "broad_extraction_or_backfill_run": false,
+    "db_qdrant_redis_news_memory_mutation": false,
+    "source_pdf_edit": false,
+    "parser_cache_write": false,
+    "prompt_gold_schema_runtime_model_gpu_config_change": false,
+    "production_extraction_code_change": false
+  },
+  "data_missing": [
+    "per-metric source scale labels for AZJ and EDU",
+    "selected-table table-local scale markers for AZJ and EDU",
+    "clean EDU formal income-statement selected surface",
+    "source-bound AZJ nearest-$100k rounding policy design"
+  ],
+  "artifacts": {
+    "provenance_capture": "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/provenance_capture.json",
+    "status": "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/status.json",
+    "raw_commands": "reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/raw_commands.log"
+  }
+}
