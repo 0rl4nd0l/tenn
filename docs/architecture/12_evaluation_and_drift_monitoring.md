@@ -226,13 +226,17 @@ bounded canary:
   excluded from terminal canary candidate manifests when source title or
   first-page text identifies meeting/proxy notices, board-change notices,
   operational project updates, share-sale/gross-proceeds announcements, or
-  pre-results segment re-presentation documents;
+  pre-results segment re-presentation documents, with Appendix 3Y /
+  change-of-director-interest notices handled as an additional narrow
+  non-financial notice class;
 - broad-sample scorecards preserve narrow source-class exclusions as
   `source_noncandidate:<class>` error-taxonomy entries;
 - EBITDA evidence cannot populate canonical `ebit`;
 - explicit source-unit values in row evidence must agree with normalized metric
   magnitude;
 - explicit source-period evidence must agree with extracted `period_type`.
+- half-year accepted outputs are failed before persistence when `period_end`
+  equals a leading ASX announcement date in a half-year source title/filename.
 - plain dollar statement columns are treated as `units`, while currency remains
   separate and `unknown` scale still fails.
 - source-explicit IDR/Rp trillion table units are treated as native rupiah

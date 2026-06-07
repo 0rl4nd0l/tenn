@@ -148,6 +148,11 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
             "meeting_or_proxy_notice",
         ),
         (
+            "notice-of-annual-general-meeting.pdf",
+            "Notice of Annual General Meeting and Explanatory Statement.",
+            "meeting_or_proxy_notice",
+        ),
+        (
             "fineos-board-changes.pdf",
             (
                 "Upcoming FINEOS Board changes. Appointment of a new "
@@ -181,6 +186,15 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
                 "and there are no changes to statutory financial results."
             ),
             "pre_results_segment_re_presentation",
+        ),
+        (
+            "change-of-directors-interest-notice-robert-nicholson.pdf",
+            (
+                "Appendix 3Y Change of Director's Interest Notice. "
+                "Part 1 - Change of director's relevant interests in securities. "
+                "Notifiable interest of a director."
+            ),
+            "director_interest_notice",
         ),
     ],
 )
@@ -220,6 +234,14 @@ def test_source_document_classifier_excludes_known_false_positive_classes(
             "quarterly-activities-report-and-appendix-5b.pdf",
             "Quarterly activities report and Appendix 5B for the quarter ended 31 March 2024.",
             "quarterly_source_phrase",
+        ),
+        (
+            "annual-report-directors-report.pdf",
+            (
+                "Annual Report for the year ended 30 June 2024. "
+                "The directors present their report and the financial statements."
+            ),
+            "annual_report_title",
         ),
     ],
 )
@@ -2388,6 +2410,68 @@ def test_validate_gate_rejects_net_operating_income_as_ebit_source():
 
     assert status == "failed"
     assert error == "validation_gate:metric_label_mismatch:ebit:net_operating_income"
+
+
+@pytest.mark.parametrize(
+    "document_title",
+    [
+        (
+            "2026-02-20_1h-fy26-results-presentation_"
+            "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+        ),
+        (
+            "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_"
+            "419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+        ),
+    ],
+)
+def test_validate_gate_rejects_half_year_announcement_date_period_end(
+    document_title,
+):
+    """Half-year payloads must not use the ASX announcement date as period_end."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="millions")
+    payload["period_end"] = document_title[:10]
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": document_title,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:announcement_date_period_end:"
+        f"period_type=H:period_end={payload['period_end']}:"
+        f"title_date={payload['period_end']}:leading_title_date"
+    )
+
+
+def test_validate_gate_allows_half_year_period_end_distinct_from_announcement_date():
+    """The announcement-date guard must not block valid half-year period ends."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = "2025-12-31"
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": (
+            "2026-02-20_1h-fy26-results-presentation_"
+            "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+        ),
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
 
 
 def test_pass3a_uses_selected_table_scale_over_document_scale():

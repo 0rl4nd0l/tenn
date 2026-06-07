@@ -1,0 +1,74 @@
+{
+  "generated_at": "2026-06-07T05:00:57Z",
+  "job_id": "extraction_post_pr301_broad_accuracy_push_v1_20260607",
+  "state": "DONE_WITH_RISK",
+  "final_decision": "READY_FOR_COUNT24_APPROVAL_PACKET",
+  "canonical_starting_head": "10c162a5162b3e5fc1306cdd908b23bfa6f0a5a8",
+  "final_head": "42ffac6031562d7fbed206d1a180650f0c1312a9",
+  "branch": "safe/extraction-post-pr301-broad-accuracy-push-v1-20260607",
+  "worktree": "/home/l4nd0/tenn-post-pr301-broad-accuracy-push-v1-20260607",
+  "commits_created": [
+    "e28a2ca1",
+    "61a624c4",
+    "31413271",
+    "7be3d3af",
+    "6c86b5d4",
+    "42ffac60"
+  ],
+  "milestones": {
+    "dxc_lbl_containment": "NO_OP_CONTAINMENT_PROOF",
+    "candidate_exclusion_taxonomy": "PASSED",
+    "count16_validation": "COMPLETED_ONCE",
+    "failure_accepted_output_taxonomy": "COMPLETED",
+    "narrow_followup_repair": "IMPLEMENTED",
+    "final_decision": "READY_FOR_COUNT24_APPROVAL_PACKET"
+  },
+  "count16_result": {
+    "seed": 20260602,
+    "candidate_pool_count": 28633,
+    "candidate_pool_ordered_sha256": "3d99f44885fd056ac3f112d56abe95d14dd1ac9affdcd7315f860f690cdeb63f",
+    "candidate_pool_sorted_sha256": "e4d57b2cdb3e8583a3aeaf33fba5a2d959383500733473349771f80531629e7a",
+    "ok": 7,
+    "ok_low_confidence": 0,
+    "failed": 9,
+    "exceptions": 0
+  },
+  "containment_result": {
+    "DXC": "no exact DB/Qdrant exposure found",
+    "LBL": "no exact DB/Qdrant exposure found",
+    "mutation_performed": false
+  },
+  "repair_result": {
+    "type": "stricter accepted-output quarantine/abstain guard",
+    "error": "validation_gate:announcement_date_period_end",
+    "saved_payload_check": "HUB and LBL saved payloads fail closed after repair",
+    "count24_approval_packet_reasonable": true
+  },
+  "side_effect_audit": {
+    "db_files_changed": false,
+    "qdrant_changed": false,
+    "news_route_used": false,
+    "memory_mutated": false,
+    "source_pdfs_changed": false,
+    "queues_clean_after_run": true
+  },
+  "forbidden_actions_not_run": [
+    "broad backfill",
+    "full ticker-universe extraction",
+    "count-24",
+    "count-32",
+    "additional count-16 sample",
+    "source PDF edits",
+    "prompt/gold-label/schema/runtime/model/GPU config changes",
+    "DB/Qdrant/news/memory mutation outside exact containment"
+  ],
+  "data_missing": [
+    "Reliable GPU memory telemetry: nvidia-smi failed during count-16.",
+    "PR #301 artifact omitted accepted-row refs/provenance and extraction_run_id values.",
+    "Route-level exposure checks were skipped because exact DXC/LBL DB/Qdrant matches were absent.",
+    "pdfplumber/pypdf unavailable; Poppler was used for source-text/visual checks.",
+    "WHC 2022 scale root cause remains unresolved."
+  ],
+  "next_recommended_prompt": "Using worktree /home/l4nd0/tenn-post-pr301-broad-accuracy-push-v1-20260607 at or after 42ffac6031562d7fbed206d1a180650f0c1312a9, prepare a count-24 approval packet for Tenn extraction after post-PR301 containment and the half-year announcement-date guard. Do not run count-24 yet. Re-check branch/HEAD/status/registry/runtime readiness, summarize the exact guard evidence, list remaining DATA_MISSING, and ask for explicit approval before any count-24/count-32/broad extraction/backfill/full ticker-universe execution.",
+  "project_memory_save_recommendation": "Save that post-PR301 count-16 found HUB/LBL accepted half-year announcement-date period risks and that 42ffac60 added validation_gate:announcement_date_period_end."
+}

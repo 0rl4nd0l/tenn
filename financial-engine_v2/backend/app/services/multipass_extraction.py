@@ -126,6 +126,10 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "document, not a financial report; it must not enter canary selection or "
         "metric extraction."
     ),
+    "director_interest_notice": (
+        "Source metadata identifies a director-interest securities notice, not a "
+        "financial report; it must not enter canary selection or metric extraction."
+    ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
         "downstream gates still decide whether extraction is safe."
@@ -2069,6 +2073,14 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
 )
 
+_LEADING_ANNOUNCEMENT_DATE_RE = re.compile(
+    r"^\s*(?P<date>\d{4}-\d{1,2}-\d{1,2})(?:[_\s-]|$)"
+)
+_HALF_YEAR_TITLE_HINT_RE = re.compile(
+    r"\b(?:1h\s*fy\d{2,4}|half\s*year|interim|appendix\s*4d)\b",
+    re.IGNORECASE,
+)
+
 _EXPLICIT_SOURCE_UNIT_VALUE_RE = re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:AUD|USD|IDR)?\s*"
@@ -2176,6 +2188,8 @@ def _detect_source_noncandidate_class(
     if (
         _source_text_has(compact_title, "notice of annual general meeting proxy form")
         or _source_text_has(compact_title, "notice of meeting proxy form")
+        or _source_text_has(compact_title, "notice of annual general meeting")
+        or _source_text_has(compact_title, "notice of meeting and explanatory")
         or (
             _source_text_has(compact_text, "upcoming general meeting of shareholders")
             and _source_text_has(compact_text, "notice of meeting")
@@ -2245,6 +2259,23 @@ def _detect_source_noncandidate_class(
         return (
             "pre_results_segment_re_presentation",
             ["pre_results_segment_re_presentation_pattern"],
+        )
+
+    if (
+        _source_text_has(compact_title, "change of director s interest notice")
+        or _source_text_has(compact_title, "change of directors interest notice")
+        or (
+            _source_text_has(compact_text, "appendix 3y change of director s interest notice")
+            and _source_text_has(compact_text, "change of director s relevant interests")
+        )
+        or (
+            _source_text_has(compact_text, "change of director s interest notice")
+            and _source_text_has(compact_text, "notifiable interest of a director")
+        )
+    ):
+        return (
+            "director_interest_notice",
+            ["director_interest_notice_pattern"],
         )
 
     return None
@@ -3614,6 +3645,68 @@ def _period_end_source_mismatch(payload: dict) -> tuple[str, str, str] | None:
     return payload_date.isoformat(), source_date.isoformat(), reason
 
 
+def _payload_source_titles(payload: dict) -> list[str]:
+    titles: list[str] = []
+    for key in ("document_title", "announcement_title", "title"):
+        value = payload.get(key)
+        if value:
+            titles.append(str(value))
+    source_bound = payload.get("source_bound")
+    if isinstance(source_bound, dict):
+        for key in ("document_title", "announcement_title", "title"):
+            value = source_bound.get(key)
+            if value:
+                titles.append(str(value))
+    deduped: list[str] = []
+    for title in titles:
+        if title not in deduped:
+            deduped.append(title)
+    return deduped
+
+
+def _leading_announcement_date_from_title(title: str) -> date | None:
+    basename = title.rsplit("/", 1)[-1]
+    match = _LEADING_ANNOUNCEMENT_DATE_RE.search(basename)
+    if not match:
+        return None
+    return parse_period_end(match.group("date"))
+
+
+def _has_half_year_title_hint(payload: dict, titles: list[str]) -> bool:
+    source_bound = payload.get("source_bound")
+    if isinstance(source_bound, dict):
+        subtype = str(source_bound.get("document_subtype") or "").lower()
+        if subtype.replace("_", "").replace("-", "") in {"appendix4d", "4d"}:
+            return True
+    for title in titles:
+        normalized = re.sub(r"[_\-]+", " ", title)
+        if _HALF_YEAR_TITLE_HINT_RE.search(normalized):
+            return True
+    return False
+
+
+def _announcement_date_period_end_mismatch(
+    payload: dict,
+) -> tuple[str, str, str] | None:
+    if payload.get("period_type") != "H":
+        return None
+    payload_date = parse_period_end(str(payload.get("period_end") or ""))
+    if payload_date is None:
+        return None
+    titles = _payload_source_titles(payload)
+    if not titles or not _has_half_year_title_hint(payload, titles):
+        return None
+    for title in titles:
+        title_date = _leading_announcement_date_from_title(title)
+        if title_date is not None and title_date == payload_date:
+            return (
+                payload_date.isoformat(),
+                title_date.isoformat(),
+                "leading_title_date",
+            )
+    return None
+
+
 def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     """
     Validate the reconciled payload before DB upsert.
@@ -3678,6 +3771,15 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
             "failed",
             "validation_gate:period_end_source_mismatch:"
             f"payload={period_end}:source={source_period_end}:{reason}",
+        )
+
+    announcement_period_mismatch = _announcement_date_period_end_mismatch(payload)
+    if announcement_period_mismatch is not None:
+        period_end, title_date, reason = announcement_period_mismatch
+        return (
+            "failed",
+            "validation_gate:announcement_date_period_end:"
+            f"period_type=H:period_end={period_end}:title_date={title_date}:{reason}",
         )
 
     non_null = [v for v in canonical_metrics.values() if v is not None]

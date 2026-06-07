@@ -1,0 +1,32 @@
+2026-06-07T05:00:57Z Milestone 4 command ledger
+
+Input artifacts inspected:
+- reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_results.json
+- reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_manifest.json
+- reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/side_effect_audit.json
+
+Source evidence commands:
+- pdftotext -layout <exact-pdf> - | rg -n -i <bounded-patterns> | head -c <cap>
+- pdfinfo <exact-pdf> 2>&1 | head -c 4000
+- pdftoppm -f 21 -l 23 -png <LBL-pdf> tmp/pdfs/lbl_1hfy26_table_pages
+- view_image tmp/pdfs/lbl_1hfy26_table_pages-22.png
+- rm -rf tmp/pdfs
+
+Report-only taxonomy result:
+- failed documents classified=9
+- low-confidence documents classified=0
+- suspicious accepted documents classified=2
+- one narrow follow-up repair justified=true
+- additional sample/count24/count32/broad extraction/backfill/full ticker extraction=not run
+
+Narrow repair validation:
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -k 'announcement_date or metric_label_mismatch' -q
+  exit=0; 3 passed, 181 deselected
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/pytest financial-engine_v2/backend/tests/test_multipass_extraction.py -q
+  exit=0; 184 passed
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py
+  exit=0
+- /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py
+  exit=0; output=All checks passed!
+- _validate_gate on saved Milestone 3 HUB/LBL payload rows
+  exit=0; both failed with validation_gate:announcement_date_period_end

@@ -1,0 +1,22 @@
+{
+  "data_missing": [
+    "No route-level exposure check was run because exact DB/Qdrant matches were absent.",
+    "PR #301 artifact omits accepted-row refs/provenance and extraction_run_id values for accepted rows.",
+    "Safe registry CLI list-active remains unavailable; direct active-record directory inspection found no files.",
+    "Configured isolated-worktree default DB path is absent; current runtime DB proof is from explicitly inspected /mnt/tenn-nvme2/tenn DB candidates."
+  ],
+  "generated_at": "2026-06-07T04:28:17.991017Z",
+  "may_proceed_to_milestone_2": true,
+  "milestone": "DXC/LBL exact accepted-output containment",
+  "mutation_performed": false,
+  "result": "NO_OP_CONTAINMENT_PROOF",
+  "state": "DONE_WITH_RISK",
+  "unsafe_actions_avoided": [
+    "no DB mutation",
+    "no Qdrant mutation",
+    "no news or memory mutation",
+    "no broad extraction/backfill/full ticker extraction",
+    "no count-16/count-24/count-32 run",
+    "no source PDF edits"
+  ]
+}

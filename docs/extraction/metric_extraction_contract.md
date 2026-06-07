@@ -109,14 +109,26 @@ Source-document classification is deterministic and source-metadata only:
   `operational_project_update`,
   `share_sale_or_gross_proceeds_announcement`, and
   `pre_results_segment_re_presentation`: narrow source-title or first-page
-  false-positive classes. They emit `source_noncandidate:<class>` reasons and
-  are excluded before candidate-manifest inclusion and blocked before metric
-  extraction.
+  false-positive classes. `director_interest_notice` applies to Appendix 3Y /
+  change-of-director-interest securities notices. These classes emit
+  `source_noncandidate:<class>` reasons and are excluded before
+  candidate-manifest inclusion and blocked before metric extraction.
 - `unknown_document`: classification evidence is insufficient. The document is
   not automatically promoted; normal period, scale, confidence, metric, and
   provenance gates still decide whether extraction can persist.
 
 Classification does not infer financial facts or correct payload fields.
+
+## Period Policy V1
+
+The extractor must bind canonical rows to source reporting periods, not ASX
+announcement dates. Explicit source period evidence must agree with extracted
+`period_type` and `period_end`.
+
+Half-year outputs also fail before persistence when the extracted `period_end`
+equals a leading `YYYY-MM-DD` announcement date in a half-year source
+title/filename. This is an abstain guard only: it does not infer or correct the
+period end.
 
 ## Scale Policy V1
 

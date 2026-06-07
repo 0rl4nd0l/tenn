@@ -1,0 +1,81 @@
+{
+  "generated_at": "2026-06-07T05:00:57Z",
+  "job_id": "extraction_post_pr301_count16_taxonomy_v1_20260607",
+  "tools": {
+    "pdftotext": "/usr/bin/pdftotext",
+    "pdfinfo": "/usr/bin/pdfinfo",
+    "pdfplumber": "DATA_MISSING:not_installed",
+    "pypdf": "DATA_MISSING:not_installed"
+  },
+  "visual_checks": [
+    {
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "page": 22,
+      "result": "Rendered with pdftoppm and visually inspected; table header is A$000 and 1H FY26 cash-flow rows align under that header.",
+      "temporary_artifacts_retained": false
+    }
+  ],
+  "source_evidence": [
+    {
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "ticker": "LBL",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "evidence": [
+        "Page 21 five-year earnings table is headed A$000.",
+        "Page 22 five-year balance sheet / cash flows table is headed A$000.",
+        "Page 22 1H FY26 cash equivalents value is 3,999.7 under the A$000 header.",
+        "Page 22 1H FY26 cash flow from operations value is 1,503.8 under the A$000 header."
+      ],
+      "taxonomy_use": "Confirms accepted scale=millions is unsafe for at least the selected A$000 table values."
+    },
+    {
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "ticker": "HUB",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "evidence": [
+        "Appendix 4D heading states half-year ended 31 December 2023.",
+        "Current period is listed as 1 July 2023 to 31 December 2023.",
+        "Accepted payload period_end was 2024-02-20, matching the filename date."
+      ],
+      "taxonomy_use": "Confirms suspicious accepted period_end derived from announcement date rather than source period."
+    },
+    {
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "ticker": "CTN",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "evidence": [
+        "Opening text identifies a Quarterly Activity Report for period ending 31 March 2022.",
+        "Appendix 5B section identifies a quarterly cash flow report.",
+        "Earlier narrative references a 2014 annual report, which is likely irrelevant to the reporting-period class."
+      ],
+      "taxonomy_use": "Confirms the failed period/source mismatch is a safe fail-closed result, not an accepted-output exposure."
+    },
+    {
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "ticker": "AZJ",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "evidence": [
+        "Financial statement tables use $m columns.",
+        "Rounding note says amounts are rounded to the nearest $100,000 unless otherwise stated.",
+        "Payload failed closed with scale_unknown."
+      ],
+      "taxonomy_use": "Classified as suspicious/missing scale evidence; no accepted output was produced."
+    },
+    {
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "ticker": "WHC",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "evidence": [
+        "Title and source text identify an annual report.",
+        "Bounded text search did not produce a concise source scale snippet before the validation gate failed."
+      ],
+      "taxonomy_use": "Classified as eligible missing scale evidence with DATA_MISSING for a targeted scale repair."
+    }
+  ],
+  "commands": [
+    "pdftotext -layout <exact-pdf> - | rg -n -i <bounded-patterns> | head -c <cap>",
+    "pdftoppm -f 21 -l 23 -png <LBL-pdf> tmp/pdfs/lbl_1hfy26_table_pages",
+    "view_image tmp/pdfs/lbl_1hfy26_table_pages-22.png",
+    "rm -rf tmp/pdfs"
+  ]
+}
