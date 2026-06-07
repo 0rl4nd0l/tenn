@@ -1,0 +1,100 @@
+{
+  "generated_at_utc": "2026-06-07T06:23:26Z",
+  "status": "DONE_WITH_RISK",
+  "job_id": "control_plane_sloppy_fix_scan_json_handoff_v1_20260607",
+  "branch": "safe/sloppy-fix-scan-json-handoff-v1-20260607",
+  "base": "origin/main",
+  "base_head": "49865b98e69cef07032c4e710034393f9d48bfa8",
+  "background_live_proof": {
+    "pull_request": "https://github.com/0rl4nd0l/tenn/pull/307",
+    "sloppy_scan_run": "https://github.com/0rl4nd0l/tenn/actions/runs/27084576956",
+    "sloppy_scan_result": {
+      "conclusion": "success",
+      "score": "95/100",
+      "issues": {
+        "stubs": 1,
+        "lint": 2
+      }
+    },
+    "sloppy_fix_run": "https://github.com/0rl4nd0l/tenn/actions/runs/27084580866",
+    "sloppy_fix_result": {
+      "conclusion": "success",
+      "found_issues": 0,
+      "fixed_issues": 0,
+      "sloppy_fix_commit": "DATA_MISSING"
+    }
+  },
+  "source_evidence": {
+    "sloppy_action_source": "/tmp/sloppy-action",
+    "output_file_input_present": true,
+    "scan_writes_output_file": true,
+    "fix_loads_preexisting_output_file_issues": true
+  },
+  "local_validations": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/agent_job_contract.py validate docs/agent_tasks/control_plane_sloppy_fix_scan_json_handoff_v1_20260607.md",
+      "exit_code": 0
+    },
+    {
+      "name": "workflow_yaml_parse",
+      "command": "python3 - <<'PY' ... yaml.safe_load both workflows ... PY",
+      "exit_code": 0
+    },
+    {
+      "name": "selector_script_syntax_and_sample",
+      "command": "extract Select Sloppy issues file run script, bash -n it, run workflow_run sample JSON and workflow_dispatch fallback",
+      "exit_code": 0,
+      "sample_results": {
+        "workflow_run_found_count": "2",
+        "workflow_dispatch_found_count": "manual"
+      }
+    },
+    {
+      "name": "static_handoff_checks",
+      "exit_code": 0,
+      "checks": {
+        "scan_output_file": true,
+        "scan_upload_artifact": true,
+        "scan_artifact_required": true,
+        "fix_download_artifact": true,
+        "fix_download_run_id": true,
+        "fix_download_token": true,
+        "fix_actions_read": true,
+        "fix_head_sha_checkout": true,
+        "fix_artifact_json_validation": true,
+        "fix_selected_output_file": true,
+        "fix_zero_found_skip": true,
+        "manual_fallback_only_present": true,
+        "no_continue_on_error_download": true,
+        "no_scan_schedule": true,
+        "no_fix_schedule": true,
+        "same_repo_gate": true,
+        "claude_preserved": true
+      }
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/agent_job_contract.py check-diff docs/agent_tasks/control_plane_sloppy_fix_scan_json_handoff_v1_20260607.md --repo-root /home/l4nd0/tenn-sloppy-fix-default-branch-auto-v1-20260607 --no-write-report",
+      "exit_code": 0,
+      "disallowed_files": []
+    },
+    {
+      "name": "actionlint",
+      "exit_code": "DATA_MISSING",
+      "reason": "actionlint is not installed in this environment"
+    }
+  ],
+  "live_verification": {
+    "pull_request": "DATA_MISSING",
+    "merged_to_main": "DATA_MISSING",
+    "proof_pr_rerun": "DATA_MISSING",
+    "sloppy_fix_seeded_issues": "DATA_MISSING",
+    "sloppy_fix_commit_or_skip_reason": "DATA_MISSING"
+  }
+}

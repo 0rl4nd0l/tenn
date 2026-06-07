@@ -15,7 +15,9 @@ jobs:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
     outputs:
       auth_enabled: ${{ steps.auth.outputs.enabled }}
+      seeded_issue_count: ${{ steps.sloppy_issues.outputs.found_count }}
     permissions:
+      actions: read
       contents: write
       pull-requests: write
     env:
@@ -24,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.workflow_run.head_repository.full_name || github.repository }}
-          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          ref: ${{ github.event.workflow_run.head_sha || github.ref_name }}
 
       - name: Detect Claude auth
         id: auth
@@ -39,14 +41,54 @@ jobs:
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Download Sloppy scan issues
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: sloppy-scan-issues
+          path: /tmp/sloppy-scan
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Select Sloppy issues file
+        id: sloppy_issues
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
+            issues_file="/tmp/sloppy-scan/sloppy-scan-issues.json"
+            if [[ ! -s "$issues_file" ]]; then
+              echo "::error::Missing Sloppy scan issues artifact: $issues_file"
+              exit 1
+            fi
+            found_count="$(python3 - "$issues_file" <<'PY'
+          import json
+          import sys
+
+          path = sys.argv[1]
+          with open(path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          issues = payload.get("issues")
+          if not isinstance(issues, list):
+              raise SystemExit("Sloppy scan issues artifact is missing an issues array")
+          print(sum(1 for issue in issues if isinstance(issue, dict) and issue.get("status") == "found"))
+          PY
+            )"
+            echo "path=$issues_file" >> "$GITHUB_OUTPUT"
+            echo "found_count=$found_count" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=/tmp/sloppy-fix-issues.json" >> "$GITHUB_OUTPUT"
+            echo "found_count=manual" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Sloppy fix (Claude)
-        if: ${{ steps.auth.outputs.enabled == 'true' }}
+        if: ${{ steps.auth.outputs.enabled == 'true' && (github.event_name != 'workflow_run' || steps.sloppy_issues.outputs.found_count != '0') }}
         uses: braedonsaunders/sloppy@main
         with:
           mode: fix
           agent: claude
           model: claude-sonnet-4-5-20250929
-          output-file: /tmp/sloppy-fix-issues.json
+          output-file: ${{ steps.sloppy_issues.outputs.path }}
           custom-prompt-file: /dev/null
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,6 +100,12 @@ jobs:
         shell: bash
         run: |
           echo "Skipping sloppy-fix because no Claude credentials are available."
+
+      - name: Skip sloppy fix (no scan issues)
+        if: ${{ steps.auth.outputs.enabled == 'true' && github.event_name == 'workflow_run' && steps.sloppy_issues.outputs.found_count == '0' }}
+        shell: bash
+        run: |
+          echo "Skipping sloppy-fix because the triggering Sloppy Scan reported no found issues."
 
   comment:
     needs: fix
@@ -73,6 +121,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           FIX_ENABLED: ${{ needs.fix.outputs.auth_enabled }}
           FIX_RESULT: ${{ needs.fix.result }}
+          SEEDED_ISSUE_COUNT: ${{ needs.fix.outputs.seeded_issue_count }}
         with:
           script: |
             const pr = context.payload.workflow_run.pull_requests?.[0];
@@ -83,6 +132,8 @@ jobs:
             let status;
             if (!fixEnabled) {
               status = 'Sloppy Fix ran automatically after Sloppy Scan, but no Claude credentials were available.';
+            } else if (process.env.SEEDED_ISSUE_COUNT === '0') {
+              status = 'Sloppy Fix ran automatically after Sloppy Scan and skipped because the scan reported no found issues.';
             } else if (fixResult === 'success') {
               status = 'Sloppy Fix completed automatically after Sloppy Scan.';
             } else {

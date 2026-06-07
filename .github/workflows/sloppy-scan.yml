@@ -139,5 +139,13 @@ jobs:
           scan-provider: ${{ env.SLOPPY_SCAN_PROVIDER }}
           agent: codex
           model: ${{ env.CODEX_MODEL }}
+          output-file: /tmp/sloppy-scan-issues.json
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
+
+      - name: Upload Sloppy scan issues
+        uses: actions/upload-artifact@v4
+        with:
+          name: sloppy-scan-issues
+          path: /tmp/sloppy-scan-issues.json
+          if-no-files-found: error
