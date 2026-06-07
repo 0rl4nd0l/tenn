@@ -1,0 +1,7 @@
+{
+  "name": "tenn-sloppy-live-fix-proof",
+  "private": true,
+  "scripts": {
+    "test:ci": "node sloppy-proof-intentional-issue.js"
+  }
+}
