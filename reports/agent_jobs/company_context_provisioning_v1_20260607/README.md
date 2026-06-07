@@ -53,9 +53,10 @@ does not create a partial production DB to satisfy startup.
 
 - `AGENTS.md`
   - Added a repo rule that safe-installable missing Python/runtime dependencies
-    should be installed or repaired in the project/runtime venv only with
-    active task/user approval and recorded, rather than hidden behind degraded
-    behavior.
+    should be installed or repaired in the project/runtime venv when they block
+    the active task, with exact commands and validation recorded. The rule keeps
+    system packages, service/runtime config, model/GPU driver changes, and
+    production-data writes approval-bound.
 - `financial-engine_v2/cockpit/core/config.py`
   - Added company DB env override handling:
     `COCKPIT_COMPANY_DB_PATH`, `TENN_COMPANY_CONTEXT_DB`, and
@@ -107,6 +108,23 @@ pip check: No broken requirements found.
 BGE model load also succeeded on CPU:
 `SentenceTransformer('BAAI/bge-large-en-v1.5', device='cpu')`; encoding one
 sentence returned a 1-row, 1024-dimension embedding.
+
+Follow-up dependency recheck after the AGENTS policy update:
+
+```text
+OK yaml
+OK pytest
+OK torch
+OK transformers
+OK sentence_transformers
+OK numpy
+OK packaging
+OK requests
+No broken requirements found.
+```
+
+No additional safe dependency install was required by the current task after the
+existing runtime venv repair.
 
 This repaired dependency state proves the semantic embedding stack can run on
 CPU, but it does not make full-corpus production provisioning practical. The
