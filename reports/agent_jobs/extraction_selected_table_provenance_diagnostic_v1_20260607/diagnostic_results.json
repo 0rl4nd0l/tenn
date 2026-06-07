@@ -1,0 +1,1953 @@
+{
+  "data_missing": [
+    "full_pass3a_llm_outputs",
+    "runtime_metric_scale_sources",
+    "runtime_metric_source_scales",
+    "runtime_row_refs"
+  ],
+  "documents": [
+    {
+      "cache_available": true,
+      "cache_path": "financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json",
+      "count24_summary": {
+        "confidence": 0.0,
+        "error": "validation_gate:scale_unknown",
+        "metrics": {
+          "capex": null,
+          "cash_end": null,
+          "ebit": null,
+          "financing_cf": null,
+          "investing_cf": null,
+          "net_debt": null,
+          "np_attributable": null,
+          "operating_cf": null,
+          "revenue": null,
+          "shares_outstanding": null
+        },
+        "non_null_metrics": 0,
+        "period_end": "2022-09-21",
+        "period_type": "A",
+        "scale": "unknown",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+          "period_end": "2022-09-21",
+          "period_type": "A",
+          "scale": "unknown"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "annual_report_title"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "annual_report_title"
+        },
+        "status": "failed"
+      },
+      "data_missing": [
+        "runtime_row_refs",
+        "runtime_metric_source_scales",
+        "runtime_metric_scale_sources",
+        "full_pass3a_llm_outputs"
+      ],
+      "diagnostic_status": "ok_with_runtime_row_refs_data_missing",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "document_scale_from_first_15_tables": "unknown",
+      "final_payload_scale_decision": {
+        "common_metric_source_scale_from_persisted_summary": "unknown",
+        "count24_final_scale": "unknown",
+        "why_common_metric_source_scale_did_or_did_not_set_scale": "Persisted count24 summary does not contain row_refs, metric_source_scales, or metric_scale_sources. With no explicit per-metric source scales available, _common_metric_source_scale falls back to the payload scale, which is unknown for this failed document."
+      },
+      "parser_cache": {
+        "extraction_method": "pymupdf",
+        "page_count": 116,
+        "section_count": 1064,
+        "source_pdf_page_count": 0,
+        "table_count": 138
+      },
+      "per_metric_provenance": {
+        "capex": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "cash_end": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "ebit": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "financing_cf": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "investing_cf": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "net_debt": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "np_attributable": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "operating_cf": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "revenue": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "shares_outstanding": {
+          "candidate_selected_tables_for_metric": [],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        }
+      },
+      "prior_source_evidence": {
+        "current_failure_classification": "parser_table_coverage_gap",
+        "scale_evidence_kind": "table_level_visual",
+        "scale_evidence_value": "thousands"
+      },
+      "selected_same_page_text_scales": [],
+      "selected_table_local_scales": [],
+      "selected_tables": {},
+      "ticker": "WHC",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf"
+    },
+    {
+      "cache_available": true,
+      "cache_path": "financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json",
+      "count24_summary": {
+        "confidence": 0.905,
+        "error": "validation_gate:scale_unknown",
+        "metrics": {
+          "capex": -350500.0,
+          "cash_end": 10500000.0,
+          "ebit": null,
+          "financing_cf": -434000.0,
+          "investing_cf": -349300.0,
+          "net_debt": -10498850.9,
+          "np_attributable": null,
+          "operating_cf": 788200.0,
+          "revenue": null,
+          "shares_outstanding": 2500130.0
+        },
+        "non_null_metrics": 7,
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "scale": "unknown",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "period_end": "2025-06-30",
+          "period_type": "A",
+          "scale": "unknown"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "status": "failed"
+      },
+      "data_missing": [
+        "runtime_row_refs",
+        "runtime_metric_source_scales",
+        "runtime_metric_scale_sources",
+        "full_pass3a_llm_outputs"
+      ],
+      "diagnostic_status": "ok_with_runtime_row_refs_data_missing",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "document_scale_from_first_15_tables": "unknown",
+      "final_payload_scale_decision": {
+        "common_metric_source_scale_from_persisted_summary": "unknown",
+        "count24_final_scale": "unknown",
+        "why_common_metric_source_scale_did_or_did_not_set_scale": "Persisted count24 summary does not contain row_refs, metric_source_scales, or metric_scale_sources. With no explicit per-metric source scales available, _common_metric_source_scale falls back to the payload scale, which is unknown for this failed document."
+      },
+      "parser_cache": {
+        "extraction_method": "pymupdf",
+        "page_count": 65,
+        "section_count": 4277,
+        "source_pdf_page_count": 0,
+        "table_count": 75
+      },
+      "per_metric_provenance": {
+        "capex": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              "page_number": 13,
+              "table_index": 15,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": -350500.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "cash_end": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              "page_number": 13,
+              "table_index": 15,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": 10500000.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "ebit": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "Au",
+                "rizon Netwo",
+                "rk Pty Ltd"
+              ],
+              "page_number": 9,
+              "table_index": 11,
+              "table_label": "income_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "financing_cf": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              "page_number": 13,
+              "table_index": 15,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": -434000.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "investing_cf": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              "page_number": 13,
+              "table_index": 15,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": -349300.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "net_debt": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "Consolidated stateme",
+                "nt of financial",
+                "positio"
+              ],
+              "page_number": 11,
+              "table_index": 13,
+              "table_label": "balance_sheet",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": -10498850.9,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "np_attributable": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "Au",
+                "rizon Netwo",
+                "rk Pty Ltd"
+              ],
+              "page_number": 9,
+              "table_index": 11,
+              "table_label": "income_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "operating_cf": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              "page_number": 13,
+              "table_index": 15,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": 788200.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "revenue": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "Au",
+                "rizon Netwo",
+                "rk Pty Ltd"
+              ],
+              "page_number": 9,
+              "table_index": 11,
+              "table_label": "income_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "shares_outstanding": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "Consolidated stateme",
+                "nt of financial",
+                "positio"
+              ],
+              "page_number": 11,
+              "table_index": 13,
+              "table_label": "balance_sheet",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Netw",
+                "ork Pty Ltd"
+              ],
+              "page_number": 39,
+              "table_index": 45,
+              "table_label": "share_capital",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 16,
+              "table_index": 18,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": 2500130.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        }
+      },
+      "prior_source_evidence": {
+        "current_failure_classification": "selected_table_scale_binding_or_rounding_policy_gap",
+        "scale_evidence_kind": "document_and_table_level",
+        "scale_evidence_value": "millions_with_nearest_100k_rounding"
+      },
+      "selected_same_page_text_scales": [
+        "millions"
+      ],
+      "selected_table_local_scales": [],
+      "selected_tables": {
+        "balance_sheet": {
+          "caption": "",
+          "first_rows": [
+            [
+              "",
+              "",
+              "",
+              "Consolidated stateme",
+              "nt of financial",
+              "positio"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "As at 30 Ju",
+              "ne 202"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "30 June",
+              "30 Jun"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "2025",
+              "202"
+            ],
+            [
+              "",
+              "",
+              "",
+              "Notes",
+              "$m",
+              "$m"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "Consolidated stateme",
+            "nt of financial",
+            "positio"
+          ],
+          "label": "balance_sheet",
+          "metric_schema": [
+            "net_debt",
+            "total_debt",
+            "shares_outstanding"
+          ],
+          "page_number": 11,
+          "row_count": 52,
+          "same_page_scale_evidence_snippets": [
+            "$m",
+            "$m"
+          ],
+          "same_page_text_scale": "millions",
+          "table_index": 13,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "cashflow_statement": {
+          "caption": "",
+          "first_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "Co",
+              "nsolidated st"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "For the yea"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Notes"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Au",
+            "rizon Network",
+            "Pty Ltd"
+          ],
+          "label": "cashflow_statement",
+          "metric_schema": [
+            "operating_cf",
+            "investing_cf",
+            "financing_cf",
+            "cash_end",
+            "capex"
+          ],
+          "page_number": 13,
+          "row_count": 45,
+          "same_page_scale_evidence_snippets": [
+            "$m",
+            "$m"
+          ],
+          "same_page_text_scale": "millions",
+          "table_index": 15,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "highlights": {
+          "caption": "",
+          "first_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "Results for the year",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "label": "highlights",
+          "metric_schema": [
+            "revenue",
+            "ebit",
+            "np_attributable",
+            "operating_cf",
+            "investing_cf",
+            "financing_cf",
+            "capex",
+            "cash_end",
+            "net_debt",
+            "shares_outstanding"
+          ],
+          "page_number": 16,
+          "row_count": 15,
+          "same_page_scale_evidence_snippets": [],
+          "same_page_text_scale": "unknown",
+          "table_index": 18,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "income_statement": {
+          "caption": "",
+          "first_rows": [
+            [
+              "",
+              "",
+              "Au",
+              "rizon Netwo",
+              "rk Pty Ltd"
+            ],
+            [
+              "",
+              "",
+              "Consolida",
+              "ted income",
+              "statement"
+            ],
+            [
+              "",
+              "",
+              "For the yea",
+              "r ended 30",
+              "June 2025"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "2025",
+              "2024"
+            ],
+            [
+              "",
+              "",
+              "Notes",
+              "$m",
+              "$m"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "Au",
+            "rizon Netwo",
+            "rk Pty Ltd"
+          ],
+          "label": "income_statement",
+          "metric_schema": [
+            "revenue",
+            "ebit",
+            "np_attributable"
+          ],
+          "page_number": 9,
+          "row_count": 29,
+          "same_page_scale_evidence_snippets": [
+            "$m",
+            "$m"
+          ],
+          "same_page_text_scale": "millions",
+          "table_index": 11,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "share_capital": {
+          "caption": "",
+          "first_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "13 Equity",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Au",
+            "rizon Netw",
+            "ork Pty Ltd"
+          ],
+          "label": "share_capital",
+          "metric_schema": [
+            "shares_outstanding"
+          ],
+          "page_number": 39,
+          "row_count": 59,
+          "same_page_scale_evidence_snippets": [
+            "$m",
+            "$m",
+            "$m",
+            "$m",
+            "$m"
+          ],
+          "same_page_text_scale": "millions",
+          "table_index": 45,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        }
+      },
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+    },
+    {
+      "cache_available": true,
+      "cache_path": "financial-engine_v2/data/reports/extraction_cache/docling_extract/adb0f8508bf7d136c3ec9153194cbcbe51f2eb7396bd39feb95a1adab530768a-2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf.pymupdf.json",
+      "count24_summary": {
+        "confidence": 0.533,
+        "error": "validation_gate:scale_unknown",
+        "metrics": {
+          "capex": null,
+          "cash_end": null,
+          "ebit": null,
+          "financing_cf": -3590738.0,
+          "investing_cf": -464151.0,
+          "net_debt": null,
+          "np_attributable": null,
+          "operating_cf": 1100996.0,
+          "revenue": 6807.0,
+          "shares_outstanding": null
+        },
+        "non_null_metrics": 4,
+        "period_end": "2023-12-31",
+        "period_type": "A",
+        "scale": "unknown",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "period_end": "2023-12-31",
+          "period_type": "A",
+          "scale": "unknown"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "annual_report_title"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "annual_report_title"
+        },
+        "status": "failed"
+      },
+      "data_missing": [
+        "runtime_row_refs",
+        "runtime_metric_source_scales",
+        "runtime_metric_scale_sources",
+        "full_pass3a_llm_outputs"
+      ],
+      "diagnostic_status": "ok_with_runtime_row_refs_data_missing",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "document_scale_from_first_15_tables": "unknown",
+      "final_payload_scale_decision": {
+        "common_metric_source_scale_from_persisted_summary": "unknown",
+        "count24_final_scale": "unknown",
+        "why_common_metric_source_scale_did_or_did_not_set_scale": "Persisted count24 summary does not contain row_refs, metric_source_scales, or metric_scale_sources. With no explicit per-metric source scales available, _common_metric_source_scale falls back to the payload scale, which is unknown for this failed document."
+      },
+      "parser_cache": {
+        "extraction_method": "pymupdf",
+        "page_count": 113,
+        "section_count": 5993,
+        "source_pdf_page_count": 0,
+        "table_count": 259
+      },
+      "per_metric_provenance": {
+        "capex": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462",
+                "",
+                "",
+                "(1,776,389)",
+                ""
+              ],
+              "page_number": 53,
+              "table_index": -1,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "cash_end": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462",
+                "",
+                "",
+                "(1,776,389)",
+                ""
+              ],
+              "page_number": 53,
+              "table_index": -1,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "ebit": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "CORPORATE SN",
+                "APSHOT",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 6,
+              "table_index": 4,
+              "table_label": "income_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "financing_cf": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462",
+                "",
+                "",
+                "(1,776,389)",
+                ""
+              ],
+              "page_number": 53,
+              "table_index": -1,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": -3590738.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "investing_cf": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462",
+                "",
+                "",
+                "(1,776,389)",
+                ""
+              ],
+              "page_number": 53,
+              "table_index": -1,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": -464151.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "net_debt": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2023",
+                "",
+                "",
+                "2022",
+                ""
+              ],
+              "page_number": 51,
+              "table_index": 77,
+              "table_label": "balance_sheet",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "np_attributable": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "CORPORATE SN",
+                "APSHOT",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 6,
+              "table_index": 4,
+              "table_label": "income_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "operating_cf": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462",
+                "",
+                "",
+                "(1,776,389)",
+                ""
+              ],
+              "page_number": 53,
+              "table_index": -1,
+              "table_label": "cashflow_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": 1100996.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "revenue": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "CORPORATE SN",
+                "APSHOT",
+                "",
+                "",
+                ""
+              ],
+              "page_number": 6,
+              "table_index": 4,
+              "table_label": "income_statement",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": 6807.0,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        },
+        "shares_outstanding": {
+          "candidate_selected_tables_for_metric": [
+            {
+              "headers": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2023",
+                "",
+                "",
+                "2022",
+                ""
+              ],
+              "page_number": 51,
+              "table_index": 77,
+              "table_label": "balance_sheet",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "",
+                "The p",
+                "erf",
+                "ormance",
+                "rights",
+                "w",
+                "ere provide",
+                "d at no",
+                "co",
+                "st to",
+                "the recip",
+                "ients and",
+                "have th",
+                "e foll",
+                "owing",
+                "principal"
+              ],
+              "page_number": 44,
+              "table_index": 56,
+              "table_label": "share_capital",
+              "table_local_scale": "unknown"
+            },
+            {
+              "headers": [
+                "High (Ikon up 4",
+                "",
+                "er education ) enrolments 4%",
+                "",
+                ""
+              ],
+              "page_number": 7,
+              "table_index": 5,
+              "table_label": "highlights",
+              "table_local_scale": "unknown"
+            }
+          ],
+          "final_metric_value_from_count24_summary": null,
+          "runtime_metric_scale_source": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_metric_source_scale": "DATA_MISSING_FROM_COUNT24_SUMMARY",
+          "runtime_row_ref": "DATA_MISSING_FROM_COUNT24_SUMMARY"
+        }
+      },
+      "prior_source_evidence": {
+        "current_failure_classification": "ambiguous_mixed_scale_selected_table_mismatch",
+        "scale_evidence_kind": "mixed_document_sections",
+        "scale_evidence_value": "mixed_thousands_summary_and_raw_dollar_statements"
+      },
+      "selected_same_page_text_scales": [
+        "units"
+      ],
+      "selected_table_local_scales": [],
+      "selected_tables": {
+        "balance_sheet": {
+          "caption": "A T 3 1 D E C E M B E R 2 0 2 3",
+          "first_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "Notes",
+              ""
+            ],
+            [
+              "",
+              "Current assets",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Cash and cash equivalents 26",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Trade and other receivables 13",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Income tax receivable 2",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "2023",
+            "",
+            "",
+            "2022",
+            ""
+          ],
+          "label": "balance_sheet",
+          "metric_schema": [
+            "net_debt",
+            "total_debt",
+            "shares_outstanding"
+          ],
+          "page_number": 51,
+          "row_count": 42,
+          "same_page_scale_evidence_snippets": [
+            "$",
+            "$"
+          ],
+          "same_page_text_scale": "units",
+          "table_index": 77,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "cashflow_statement": {
+          "caption": "Merged cashflow statement (Appendix 5B)",
+          "first_rows": [
+            [
+              "",
+              "Net cash flows from continuing operating activities",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "Net cash flows from discontinued operating activities",
+              "",
+              "",
+              "7",
+              ""
+            ],
+            [
+              "",
+              "Net cash provided by / (used in) operating activities",
+              "",
+              "",
+              "26(b)",
+              ""
+            ],
+            [
+              "",
+              "Cash flow from investing activities",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "Net cash flows from continuing investing activities",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "Net cash flows from discontinued investing activities",
+              "",
+              "",
+              "7",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "Net cash flows from continuing operating activities",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "1,345,462",
+            "",
+            "",
+            "(1,776,389)",
+            ""
+          ],
+          "label": "cashflow_statement",
+          "metric_schema": [
+            "operating_cf",
+            "investing_cf",
+            "financing_cf",
+            "cash_end",
+            "capex"
+          ],
+          "page_number": 53,
+          "row_count": 11,
+          "same_page_scale_evidence_snippets": [
+            "$",
+            "$"
+          ],
+          "same_page_text_scale": "units",
+          "table_index": -1,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "highlights": {
+          "caption": "OPERATIONAL HIGHLIGHTS",
+          "first_rows": [
+            [
+              "High (Ikon up 4",
+              "",
+              "er education ) enrolments 4%",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Voca enrol rebui T4’23 e on PC FY23 N PCP",
+              "",
+              "tional (ALG) ments lding nrolments up 9% P SEs up 41% on",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "High (Ikon up 4",
+            "",
+            "er education ) enrolments 4%",
+            "",
+            ""
+          ],
+          "label": "highlights",
+          "metric_schema": [
+            "revenue",
+            "ebit",
+            "np_attributable",
+            "operating_cf",
+            "investing_cf",
+            "financing_cf",
+            "capex",
+            "cash_end",
+            "net_debt",
+            "shares_outstanding"
+          ],
+          "page_number": 7,
+          "row_count": 15,
+          "same_page_scale_evidence_snippets": [],
+          "same_page_text_scale": "unknown",
+          "table_index": 5,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "income_statement": {
+          "caption": "CORPORATE SNAPSHOT",
+          "first_rows": [
+            [
+              "",
+              "CORPORATE SN",
+              "APSHOT",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "C O M P A N Y O V E R V",
+              "I E W",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "$21.6m",
+              "$0.5m",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "CORPORATE SN",
+            "APSHOT",
+            "",
+            "",
+            ""
+          ],
+          "label": "income_statement",
+          "metric_schema": [
+            "revenue",
+            "ebit",
+            "np_attributable"
+          ],
+          "page_number": 6,
+          "row_count": 58,
+          "same_page_scale_evidence_snippets": [],
+          "same_page_text_scale": "unknown",
+          "table_index": 4,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        },
+        "share_capital": {
+          "caption": "",
+          "first_rows": [
+            [
+              "",
+              "The p",
+              "erf",
+              "ormance",
+              "rights",
+              "w"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "terms",
+              ":",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "• Ve",
+              "sti",
+              "ng condit",
+              "ion: th",
+              "re"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "The p",
+            "erf",
+            "ormance",
+            "rights",
+            "w",
+            "ere provide",
+            "d at no",
+            "co",
+            "st to",
+            "the recip",
+            "ients and",
+            "have th",
+            "e foll",
+            "owing",
+            "principal"
+          ],
+          "label": "share_capital",
+          "metric_schema": [
+            "shares_outstanding"
+          ],
+          "page_number": 44,
+          "row_count": 42,
+          "same_page_scale_evidence_snippets": [],
+          "same_page_text_scale": "unknown",
+          "table_index": 56,
+          "table_local_scale": "unknown",
+          "would_set_metric_source_scale_if_metric_extracted": "unknown"
+        }
+      },
+      "ticker": "EDU",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf"
+    }
+  ],
+  "forbidden_actions_observed": {
+    "broad_extraction_or_backfill_run": false,
+    "count24_rerun": false,
+    "count32_run": false,
+    "db_qdrant_news_memory_mutation": false,
+    "docling_or_pymupdf_parser_invocation": false,
+    "full_ticker_universe_extraction_run": false,
+    "llm_extraction_invocation": false,
+    "prompt_gold_label_runtime_schema_changes": false,
+    "random_sample_run": false,
+    "source_pdf_edits": false
+  },
+  "generated_at": "2026-06-07",
+  "job_id": "extraction_selected_table_provenance_diagnostic_v1_20260607",
+  "repeated_pattern_assessment": {
+    "decision_basis": "The diagnostic can identify selected table/page/header and table-local scale from parser cache. It can also see same-page text scale in some cached sections, but actual runtime row refs and per-metric source scales were not persisted in count24 artifacts. Because EDU has mixed raw-dollar and summary-scale surfaces and WHC has no selected cached statement tables, a code repair would require full pass3a provenance before changing scale binding.",
+    "documents_with_any_same_page_text_scale_on_selected_tables": [
+      "AZJ",
+      "EDU"
+    ],
+    "documents_with_any_selected_table_local_scale": [],
+    "documents_with_no_selected_table_local_scale_in_cached_selected_tables": [
+      "WHC",
+      "AZJ",
+      "EDU"
+    ],
+    "same_missed_selected_table_scale_binding_pattern_in_at_least_two_docs": false
+  },
+  "runner_mode": "read_existing_artifacts_and_parser_cache_only",
+  "scope": "fixed_report_local_selected_table_provenance_diagnostic_for_whc_azj_edu_only"
+}
