@@ -1,0 +1,93 @@
+{
+  "generated_at_utc": "2026-06-07T06:31:46Z",
+  "status": "DONE_WITH_RISK",
+  "job_id": "control_plane_sloppy_fix_missing_artifact_skip_v1_20260607",
+  "branch": "safe/sloppy-fix-missing-artifact-skip-v1-20260607",
+  "base": "origin/main",
+  "base_head": "94194de0e1b005ae5b00087645900a953b06c1de",
+  "live_evidence": {
+    "handoff_pr": "https://github.com/0rl4nd0l/tenn/pull/308",
+    "handoff_merge_commit": "94194de0e1b005ae5b00087645900a953b06c1de",
+    "proof_pull_request": "https://github.com/0rl4nd0l/tenn/pull/307",
+    "proof_scan_run": "https://github.com/0rl4nd0l/tenn/actions/runs/27084910196",
+    "proof_scan_result": {
+      "conclusion": "success",
+      "score": "95/100",
+      "issues_found": 3,
+      "artifact": "sloppy-scan-issues"
+    },
+    "proof_fix_run": "https://github.com/0rl4nd0l/tenn/actions/runs/27084915118",
+    "proof_fix_result": {
+      "conclusion": "success",
+      "preexisting_issues_loaded": 3,
+      "first_pass_rescan_skipped": true,
+      "fixed_issues": 0,
+      "skipped_issues": 3,
+      "skip_reason": "Could not parse agent output"
+    },
+    "missing_artifact_scan_run": "https://github.com/0rl4nd0l/tenn/actions/runs/27084924894",
+    "missing_artifact_fix_run": "https://github.com/0rl4nd0l/tenn/actions/runs/27084928612",
+    "missing_artifact_fix_result_before_patch": {
+      "conclusion": "failure",
+      "failure": "Artifact not found for name: sloppy-scan-issues"
+    }
+  },
+  "local_validations": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/agent_job_contract.py validate docs/agent_tasks/control_plane_sloppy_fix_missing_artifact_skip_v1_20260607.md",
+      "exit_code": 0
+    },
+    {
+      "name": "workflow_yaml_parse",
+      "command": "python3 - <<'PY' ... yaml.safe_load .github/workflows/sloppy-fix.yml ... PY",
+      "exit_code": 0
+    },
+    {
+      "name": "selector_script_syntax_and_sample",
+      "command": "extract Select Sloppy issues file run script, bash -n it, run missing/zero/found/malformed/manual samples",
+      "exit_code": 0,
+      "sample_results": {
+        "missing_artifact": "missing_artifact",
+        "zero_found": "0",
+        "one_found": "1",
+        "malformed_artifact_exit_code": 1,
+        "workflow_dispatch": "manual"
+      }
+    },
+    {
+      "name": "static_checks",
+      "exit_code": 0,
+      "checks": {
+        "download_best_effort": true,
+        "missing_artifact_skip": true,
+        "missing_artifact_no_fix": true,
+        "malformed_json_fails": true,
+        "manual_fallback_present": true,
+        "no_schedule": true,
+        "same_repo_gate": true,
+        "claude_preserved": true
+      }
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/scripts/agent_job_contract.py check-diff docs/agent_tasks/control_plane_sloppy_fix_missing_artifact_skip_v1_20260607.md --repo-root /home/l4nd0/tenn-sloppy-fix-default-branch-auto-v1-20260607 --no-write-report",
+      "exit_code": 0,
+      "disallowed_files": []
+    },
+    {
+      "name": "actionlint",
+      "exit_code": "DATA_MISSING",
+      "reason": "actionlint is not installed in this environment"
+    }
+  ],
+  "live_verification": {
+    "merged_to_main": "DATA_MISSING",
+    "missing_artifact_skip_success": "DATA_MISSING"
+  }
+}
