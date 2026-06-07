@@ -1,0 +1,1195 @@
+{
+  "results": [
+    {
+      "confidence": 1.0,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "elapsed_s": 48.85,
+      "error": null,
+      "metrics": {
+        "capex": -1707000.0,
+        "cash_end": 95521000.0,
+        "ebit": null,
+        "financing_cf": -337000.0,
+        "investing_cf": -35844000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -3756000.0,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 5,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "period_end": "2022-09-30",
+      "period_type": "Q",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+        "period_end": "2022-09-30",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "quarterly_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "quarterly_source_phrase"
+      },
+      "status": "ok",
+      "ticker": "CXO",
+      "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "elapsed_s": 11.45,
+      "error": "validation_gate:scale_unknown",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "period_end": "2022-09-21",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "unknown",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+        "period_end": "2022-09-21",
+        "period_type": "A",
+        "scale": "unknown"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "status": "failed",
+      "ticker": "WHC",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": "meeting_or_proxy_notice",
+      "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "elapsed_s": 5.0,
+      "error": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies meeting/proxy material, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "meeting_or_proxy_notice",
+        "evidence": [
+          "meeting_or_proxy_notice_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:meeting_or_proxy_notice"
+      },
+      "status": "failed",
+      "ticker": "EQR",
+      "title": "2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": "operational_project_update",
+      "document_id": "05a85ffc-25cb-49a7-b770-df5e08f88ed9",
+      "elapsed_s": 0.33,
+      "error": "validation_gate:source_noncandidate:operational_project_update",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies an operational project update, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "operational_project_update",
+        "evidence": [
+          "operational_project_update_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:operational_project_update"
+      },
+      "status": "failed",
+      "ticker": "MAH",
+      "title": "2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": "board_change_notice",
+      "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+      "elapsed_s": 0.95,
+      "error": "validation_gate:source_noncandidate:board_change_notice",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies a board-change notice, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "board_change_notice",
+        "evidence": [
+          "board_change_notice_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:board_change_notice"
+      },
+      "status": "failed",
+      "ticker": "FCL",
+      "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf"
+    },
+    {
+      "confidence": 0.905,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "elapsed_s": 161.13,
+      "error": "validation_gate:scale_unknown",
+      "metrics": {
+        "capex": -350500.0,
+        "cash_end": 10500000.0,
+        "ebit": null,
+        "financing_cf": -434000.0,
+        "investing_cf": -349300.0,
+        "net_debt": -10498850.9,
+        "np_attributable": null,
+        "operating_cf": 788200.0,
+        "revenue": null,
+        "shares_outstanding": 2500130.0
+      },
+      "non_null_metrics": 7,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "shares_positive": true
+      },
+      "scale": "unknown",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "scale": "unknown"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "failed",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+    },
+    {
+      "confidence": 1.0,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "elapsed_s": 157.11,
+      "error": null,
+      "metrics": {
+        "capex": -180700000.0,
+        "cash_end": 2775510000.0,
+        "ebit": 3759597000.0,
+        "financing_cf": -1716662000.0,
+        "investing_cf": -306936000.0,
+        "net_debt": null,
+        "np_attributable": 2668054000.0,
+        "operating_cf": 3583648000.0,
+        "revenue": 6064739000.0,
+        "shares_outstanding": 867203000.0
+      },
+      "non_null_metrics": 9,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "period_end": "2023-06-30",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true,
+        "shares_positive": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4e",
+        "document_title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+        "period_end": "2023-06-30",
+        "period_type": "A",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "ok",
+      "ticker": "WHC",
+      "title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": "share_sale_or_gross_proceeds_announcement",
+      "document_id": "ea1b1f56-702e-4e23-a2fe-36c8136cf99c",
+      "elapsed_s": 0.19,
+      "error": "validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies a share-sale or gross-proceeds announcement, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "share_sale_or_gross_proceeds_announcement",
+        "evidence": [
+          "share_sale_gross_proceeds_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:share_sale_or_gross_proceeds_announcement"
+      },
+      "status": "failed",
+      "ticker": "HRZ",
+      "title": "2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": "pre_results_segment_re_presentation",
+      "document_id": "bf82c108-980b-4792-ad76-838c3fe446ca",
+      "elapsed_s": 0.91,
+      "error": "validation_gate:source_noncandidate:pre_results_segment_re_presentation",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies a pre-results segment re-presentation document, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "pre_results_segment_re_presentation",
+        "evidence": [
+          "pre_results_segment_re_presentation_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:pre_results_segment_re_presentation"
+      },
+      "status": "failed",
+      "ticker": "MPL",
+      "title": "2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf"
+    },
+    {
+      "confidence": 0.9,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "11e11c93-52f6-444a-9c24-e5d1e41141cf",
+      "elapsed_s": 53.99,
+      "error": null,
+      "metrics": {
+        "capex": null,
+        "cash_end": 17914000.0,
+        "ebit": null,
+        "financing_cf": 90000.0,
+        "investing_cf": -4518000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -1112000.0,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 4,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LOT/financial_performance/2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf",
+      "period_end": "2023-03-31",
+      "period_type": "Q",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf",
+        "period_end": "2023-03-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "quarterly_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "quarterly_source_phrase"
+      },
+      "status": "ok",
+      "ticker": "LOT",
+      "title": "2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf"
+    },
+    {
+      "confidence": 0.933,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "elapsed_s": 107.45,
+      "error": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": 29562000.0,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": 39374000.0,
+        "operating_cf": null,
+        "revenue": 46547000.0,
+        "shares_outstanding": 137757000.0
+      },
+      "non_null_metrics": 4,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+      "period_end": "2025-06-30",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true,
+        "shares_positive": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf",
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "failed",
+      "ticker": "DXC",
+      "title": "2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf"
+    },
+    {
+      "confidence": 0.84,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "a6118b61-77b6-4f13-bd6f-58654455ae9a",
+      "elapsed_s": 99.74,
+      "error": null,
+      "metrics": {
+        "capex": null,
+        "cash_end": 1008000.0,
+        "ebit": null,
+        "financing_cf": 633000.0,
+        "investing_cf": -46000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -563000.0,
+        "revenue": null,
+        "shares_outstanding": 17079500.0
+      },
+      "non_null_metrics": 5,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ABE/financial_performance/2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf",
+      "period_end": "2025-06-30",
+      "period_type": "Q",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "shares_positive": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf",
+        "period_end": "2025-06-30",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "appendix_4c_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "appendix_4c_source_phrase"
+      },
+      "status": "ok",
+      "ticker": "ABE",
+      "title": "2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf"
+    },
+    {
+      "confidence": 1.0,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "elapsed_s": 128.25,
+      "error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+      "metrics": {
+        "capex": -422000.0,
+        "cash_end": 60824000.0,
+        "ebit": 28593000.0,
+        "financing_cf": -34782000.0,
+        "investing_cf": -12248000.0,
+        "net_debt": null,
+        "np_attributable": 21532000.0,
+        "operating_cf": 35107000.0,
+        "revenue": 156715000.0,
+        "shares_outstanding": 81218489.0
+      },
+      "non_null_metrics": 9,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "period_end": "2024-02-20",
+      "period_type": "H",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true,
+        "shares_positive": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4d",
+        "document_title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+        "period_end": "2024-02-20",
+        "period_type": "H",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "failed",
+      "ticker": "HUB",
+      "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+    },
+    {
+      "confidence": 0.822,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "elapsed_s": 76.73,
+      "error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+      "metrics": {
+        "capex": null,
+        "cash_end": 4000000000.0,
+        "ebit": null,
+        "financing_cf": -2100000000.0,
+        "investing_cf": -1000000000.0,
+        "net_debt": null,
+        "np_attributable": 2200000.0,
+        "operating_cf": 1500000000.0,
+        "revenue": 230000000.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 6,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "period_end": "2026-02-20",
+      "period_type": "H",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "millions",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+        "period_end": "2026-02-20",
+        "period_type": "H",
+        "scale": "millions"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "failed",
+      "ticker": "LBL",
+      "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    },
+    {
+      "confidence": 1.0,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "elapsed_s": 128.25,
+      "error": null,
+      "metrics": {
+        "capex": -96221000.0,
+        "cash_end": 57387000.0,
+        "ebit": 274928000.0,
+        "financing_cf": -7761000.0,
+        "investing_cf": -96221000.0,
+        "net_debt": null,
+        "np_attributable": 274116000.0,
+        "operating_cf": 65489000.0,
+        "revenue": 131645000.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 8,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "period_end": "2021-12-31",
+      "period_type": "H",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+        "period_end": "2021-12-31",
+        "period_type": "H",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "half_year_source_phrase",
+          "six_months_ended_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "half_year_source_phrase"
+      },
+      "status": "ok",
+      "ticker": "NSR",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf"
+    },
+    {
+      "confidence": 1.0,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "elapsed_s": 78.55,
+      "error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "metrics": {
+        "capex": -120000.0,
+        "cash_end": 5298000.0,
+        "ebit": null,
+        "financing_cf": 2403000.0,
+        "investing_cf": -396000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -142000.0,
+        "revenue": null,
+        "shares_outstanding": 1247861892.0
+      },
+      "non_null_metrics": 6,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "period_end": "2022-03-31",
+      "period_type": "Q",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "shares_positive": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+        "period_end": "2022-03-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "failed",
+      "ticker": "CTN",
+      "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+    },
+    {
+      "confidence": 0.756,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "7394ad43-57ec-4edf-a91e-72844307948b",
+      "elapsed_s": 137.02,
+      "error": null,
+      "metrics": {
+        "capex": null,
+        "cash_end": 19900000.0,
+        "ebit": null,
+        "financing_cf": 9441000000.0,
+        "investing_cf": -9619000000.0,
+        "net_debt": null,
+        "np_attributable": 68000000000.0,
+        "operating_cf": 64000000.0,
+        "revenue": 1076000.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 6,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HCW/financial_performance/2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf",
+      "period_end": "2024-06-30",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "millions",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf",
+        "period_end": "2024-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title",
+          "year_ended_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "status": "ok",
+      "ticker": "HCW",
+      "title": "2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf"
+    },
+    {
+      "confidence": 0.533,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "elapsed_s": 136.91,
+      "error": "validation_gate:scale_unknown",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": -3590738.0,
+        "investing_cf": -464151.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": 1100996.0,
+        "revenue": 6807.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 4,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "period_end": "2023-12-31",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "unknown",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+        "period_end": "2023-12-31",
+        "period_type": "A",
+        "scale": "unknown"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "status": "failed",
+      "ticker": "EDU",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "elapsed_s": 7.53,
+      "error": "validation_gate:scale_unknown",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+      "period_end": "2025-06-30",
+      "period_type": "H",
+      "risk_notes": [],
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "unknown",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf",
+        "period_end": "2025-06-30",
+        "period_type": "H",
+        "scale": "unknown"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "half_year_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "half_year_source_phrase"
+      },
+      "status": "failed",
+      "ticker": "NIC",
+      "title": "2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf"
+    },
+    {
+      "confidence": 1.0,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "91561659-014b-4c88-865d-a6dec2fd8e35",
+      "elapsed_s": 129.09,
+      "error": null,
+      "metrics": {
+        "capex": -755541.0,
+        "cash_end": 1291780.0,
+        "ebit": null,
+        "financing_cf": 2516523.0,
+        "investing_cf": -755541.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -337673.0,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 5,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CAE/financial_performance/2021-11-19_annual-report-to-shareholders_91561659-014b-4c88-865d-a6dec2fd8e35.pdf",
+      "period_end": "2021-06-30",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "cash_end_positive": true,
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "units",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2021-11-19_annual-report-to-shareholders_91561659-014b-4c88-865d-a6dec2fd8e35.pdf",
+        "period_end": "2021-06-30",
+        "period_type": "A",
+        "scale": "units"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title",
+          "year_ended_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "status": "ok",
+      "ticker": "CAE",
+      "title": "2021-11-19_annual-report-to-shareholders_91561659-014b-4c88-865d-a6dec2fd8e35.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": "meeting_or_proxy_notice",
+      "document_id": "5eaa9900-0749-448a-a7bc-a5af19eddb23",
+      "elapsed_s": 9.31,
+      "error": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": {
+        "canary_candidate_allowed": false,
+        "definition": "Source metadata identifies meeting/proxy material, not a financial report; it must not enter canary selection or metric extraction.",
+        "document_class": "meeting_or_proxy_notice",
+        "evidence": [
+          "meeting_or_proxy_notice_pattern"
+        ],
+        "extraction_candidate_allowed": false,
+        "reason": "source_noncandidate:meeting_or_proxy_notice"
+      },
+      "status": "failed",
+      "ticker": "QGL",
+      "title": "2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": "AUD",
+      "document_class": "unknown_document",
+      "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+      "elapsed_s": 11.18,
+      "error": "validation_gate:insufficient_metrics:0",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "period_end": "2023-03-31",
+      "period_type": "Q",
+      "risk_notes": [],
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true
+      },
+      "scale": "thousands",
+      "source_bound": {
+        "currency": "AUD",
+        "document_title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+        "period_end": "2023-03-31",
+        "period_type": "Q",
+        "scale": "thousands"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+        "document_class": "unknown_document",
+        "evidence": [],
+        "extraction_candidate_allowed": true,
+        "reason": "not_detected"
+      },
+      "status": "failed",
+      "ticker": "JAY",
+      "title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf"
+    },
+    {
+      "confidence": 0.9,
+      "currency": "AUD",
+      "document_class": "financial_report",
+      "document_id": "0be9e3e7-70b3-40af-9895-8c0a99fa778e",
+      "elapsed_s": 84.77,
+      "error": null,
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": 14187000000.0,
+        "operating_cf": null,
+        "revenue": 14187000000.0,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 2,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/SUN/financial_performance/2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf",
+      "period_end": "2021-06-30",
+      "period_type": "A",
+      "risk_notes": [],
+      "sanity": {
+        "period_end_valid": true,
+        "period_type_valid": true,
+        "revenue_positive": true
+      },
+      "scale": "millions",
+      "source_bound": {
+        "currency": "AUD",
+        "document_subtype": "appendix4e",
+        "document_title": "2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf",
+        "period_end": "2021-06-30",
+        "period_type": "A",
+        "scale": "millions"
+      },
+      "source_document_classification": {
+        "canary_candidate_allowed": true,
+        "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+        "document_class": "financial_report",
+        "evidence": [
+          "annual_report_title",
+          "year_ended_source_phrase"
+        ],
+        "extraction_candidate_allowed": true,
+        "reason": "annual_report_title"
+      },
+      "status": "ok",
+      "ticker": "SUN",
+      "title": "2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf"
+    },
+    {
+      "confidence": 0.0,
+      "currency": null,
+      "document_class": null,
+      "document_id": "7e6d1ae5-51be-4828-907c-d2aa3f8528e7",
+      "elapsed_s": 6.86,
+      "error": "classifier_low_confidence:0.0",
+      "metrics": {
+        "capex": null,
+        "cash_end": null,
+        "ebit": null,
+        "financing_cf": null,
+        "investing_cf": null,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": null,
+        "revenue": null,
+        "shares_outstanding": null
+      },
+      "non_null_metrics": 0,
+      "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf",
+      "period_end": null,
+      "period_type": null,
+      "risk_notes": [],
+      "sanity": {},
+      "scale": null,
+      "source_bound": null,
+      "source_document_classification": null,
+      "status": "failed",
+      "ticker": "MQR",
+      "title": "2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf"
+    }
+  ],
+  "run_metadata": {
+    "actual_count": 24,
+    "backend": "llamacpp",
+    "docs_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+    "requested_count": 24,
+    "seed": 20260602,
+    "timestamp": "2026-06-07T07:36:06.130536Z"
+  },
+  "summary": {
+    "exception_count": 0,
+    "failed_count": 16,
+    "failure_taxonomy": {
+      "classifier_low_confidence:0.0": 1,
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 2,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:announcement_date_period_end": 2,
+      "validation_gate:insufficient_metrics": 1,
+      "validation_gate:metric_label_mismatch": 1,
+      "validation_gate:period_source_mismatch": 1,
+      "validation_gate:scale_unknown": 4
+    },
+    "low_confidence_taxonomy": {},
+    "ok_count": 8,
+    "ok_low_confidence_count": 0,
+    "status_distribution": {
+      "failed": 16,
+      "ok": 8
+    },
+    "timing": {
+      "max_s": 161.13,
+      "mean_s": 65.9,
+      "median_s": 65.36,
+      "min_s": 0.19,
+      "p95_s": 157.11,
+      "total_s": 1581.55
+    },
+    "total": 24,
+    "unsafe_row_check": {
+      "negative_revenue": [],
+      "nonpositive_shares": []
+    }
+  }
+}

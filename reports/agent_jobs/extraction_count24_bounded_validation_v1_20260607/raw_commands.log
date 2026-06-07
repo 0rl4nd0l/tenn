@@ -1,0 +1,178 @@
+Traceback (most recent call last):
+  File "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_bounded_validation_v1_20260607/run_bounded_count24.py", line 1180, in <module>
+    raise SystemExit(main())
+  File "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_bounded_validation_v1_20260607/run_bounded_count24.py", line 1039, in main
+    llm_client = _make_llm_client()
+  File "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_bounded_validation_v1_20260607/run_bounded_count24.py", line 498, in _make_llm_client
+    return harness.make_llm_client(use_anthropic=False)
+  File "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/financial-engine_v2/scripts/broad_extraction_test.py", line 118, in make_llm_client
+    import httpx
+ModuleNotFoundError: No module named 'httpx'
+run_bounded_count24_status=1
+
+===== count24 rerun with existing repo venv 2026-06-07T17:09:40+10:00 =====
+Using llama.cpp at http://127.0.0.1:8001/v1
+[1/24] CXO/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+  -> ok elapsed=48.85 metrics=5/10 error=None
+[2/24] WHC/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+  -> failed elapsed=11.45 metrics=0/10 error=validation_gate:scale_unknown
+[3/24] EQR/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EQR/financial_performance/2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-10-21_notice-of-annual-general-meeting-proxy-form_aadead44-11f3-46d5-933b-6f2c8792e6f9.pdf' class=meeting_or_proxy_notice
+  -> failed elapsed=5.0 metrics=0/10 error=validation_gate:source_noncandidate:meeting_or_proxy_notice
+[4/24] MAH/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MAH/financial_performance/2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-06-17_update-in-relation-to-mt-morgans-gold-project_05a85ffc-25cb-49a7-b770-df5e08f88ed9.pdf' class=operational_project_update
+  -> failed elapsed=0.33 metrics=0/10 error=validation_gate:source_noncandidate:operational_project_update
+[5/24] FCL/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/FCL/financial_performance/2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf' class=board_change_notice
+  -> failed elapsed=0.95 metrics=0/10 error=validation_gate:source_noncandidate:board_change_notice
+[6/24] AZJ/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 45 → 4 rows (91% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for balance_sheet: 52 → 6 rows (88% reduction) — using full table
+WARNING app.services.multipass_extraction: Pass3a income_statement: full-table retry failed: llama.cpp JSON generation failed at http://127.0.0.1:8001/v1/chat/completions: timed out
+  -> failed elapsed=161.13 metrics=7/10 error=validation_gate:scale_unknown
+[7/24] WHC/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf; using PyMuPDF
+  -> ok elapsed=157.11 metrics=9/10 error=None
+[8/24] HRZ/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HRZ/financial_performance/2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2024-04-29_vox-shares-sold-2-93m-gross-proceeds_ea1b1f56-702e-4e23-a2fe-36c8136cf99c.pdf' class=share_sale_or_gross_proceeds_announcement
+  -> failed elapsed=0.19 metrics=0/10 error=validation_gate:source_noncandidate:share_sale_or_gross_proceeds_announcement
+[9/24] MPL/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MPL/financial_performance/2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2026-02-13_re-presentation-of-segment-results-and-terminology-changes_bf82c108-980b-4792-ad76-838c3fe446ca.pdf' class=pre_results_segment_re_presentation
+  -> failed elapsed=0.91 metrics=0/10 error=validation_gate:source_noncandidate:pre_results_segment_re_presentation
+[10/24] LOT/2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LOT/financial_performance/2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LOT/financial_performance/2023-04-28_quarterly-activities-report-app-5b_11e11c93-52f6-444a-9c24-e5d1e41141cf.pdf; using PyMuPDF
+  -> ok elapsed=53.99 metrics=4/10 error=None
+[11/24] DXC/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/DXC/financial_performance/2025-08-11_fy25-results-presentation_f8a24788-dbe0-48f7-ad41-654f2c8a3845.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+  -> failed elapsed=107.45 metrics=4/10 error=validation_gate:metric_label_mismatch:ebit:net_operating_income
+[12/24] ABE/2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ABE/financial_performance/2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/ABE/financial_performance/2025-07-31_quarterly-activities-appendix-4c-cash-flow-report_a6118b61-77b6-4f13-bd6f-58654455ae9a.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: Filter too aggressive for income_statement: 54 → 8 rows (85% reduction) — using full table
+  -> ok elapsed=99.74 metrics=5/10 error=None
+[13/24] HUB/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf; using PyMuPDF
+  -> failed elapsed=128.25 metrics=9/10 error=validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date
+[14/24] LBL/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf; using PyMuPDF
+  -> failed elapsed=76.73 metrics=6/10 error=validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date
+[15/24] NSR/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 46 → 6 rows (87% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for income_statement: 58 → 10 rows (83% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for balance_sheet: 68 → 4 rows (94% reduction) — using full table
+  -> ok elapsed=128.25 metrics=8/10 error=None
+[16/24] CTN/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+  -> failed elapsed=78.55 metrics=6/10 error=validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title
+[17/24] HCW/2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HCW/financial_performance/2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HCW/financial_performance/2024-09-27_annual-report-2024_7394ad43-57ec-4edf-a91e-72844307948b.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: LLM pre-scaled revenue for income_statement: raw=1076000.0, scaled=1076000000000.0 exceeds native cap 500000000000 — using raw value
+WARNING app.services.multipass_extraction: LLM pre-scaled operating_cf for cashflow_statement: raw=64000000.0, scaled=64000000000000.0 exceeds native cap 500000000000 — using raw value
+WARNING app.services.multipass_extraction: LLM pre-scaled investing_cf for cashflow_statement: raw=-9619000000.0, scaled=-9619000000000000.0 exceeds native cap 500000000000 — using raw value
+WARNING app.services.multipass_extraction: LLM pre-scaled financing_cf for cashflow_statement: raw=9441000000.0, scaled=9441000000000000.0 exceeds native cap 500000000000 — using raw value
+WARNING app.services.multipass_extraction: LLM pre-scaled cash_end for cashflow_statement: raw=19900000.0, scaled=19900000000000.0 exceeds native cap 500000000000 — using raw value
+  -> ok elapsed=137.02 metrics=6/10 error=None
+[18/24] EDU/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+WARNING app.services.multipass_extraction: Filter too aggressive for income_statement: 58 → 5 rows (91% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for balance_sheet: 42 → 8 rows (81% reduction) — using full table
+  -> failed elapsed=136.91 metrics=4/10 error=validation_gate:scale_unknown
+[19/24] NIC/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NIC/financial_performance/2025-08-11_half-year-results-webcast-details_50398d3d-27f7-4d9e-8a26-a2d69f128a1c.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: scale unknown from both table headers and Pass 1 classifier
+  -> failed elapsed=7.53 metrics=0/10 error=validation_gate:scale_unknown
+[20/24] CAE/2021-11-19_annual-report-to-shareholders_91561659-014b-4c88-865d-a6dec2fd8e35.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CAE/financial_performance/2021-11-19_annual-report-to-shareholders_91561659-014b-4c88-865d-a6dec2fd8e35.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CAE/financial_performance/2021-11-19_annual-report-to-shareholders_91561659-014b-4c88-865d-a6dec2fd8e35.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 46 → 9 rows (80% reduction) — using full table
+WARNING app.services.multipass_extraction: Filter too aggressive for balance_sheet: 74 → 1 rows (99% reduction) — using full table
+  -> ok elapsed=129.09 metrics=5/10 error=None
+[21/24] QGL/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/QGL/financial_performance/2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: source document blocked before metric extraction: title='2025-10-28_notice-of-annual-general-meeting-proxy-form_5eaa9900-0749-448a-a7bc-a5af19eddb23.pdf' class=meeting_or_proxy_notice
+  -> failed elapsed=9.31 metrics=0/10 error=validation_gate:source_noncandidate:meeting_or_proxy_notice
+[22/24] JAY/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf; using PyMuPDF
+  -> failed elapsed=11.18 metrics=0/10 error=validation_gate:insufficient_metrics:0
+[23/24] SUN/2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/SUN/financial_performance/2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/SUN/financial_performance/2021-08-09_fy21-appendix-4e-preliminary-final-report_0be9e3e7-70b3-40af-9895-8c0a99fa778e.pdf; using PyMuPDF
+WARNING app.services.multipass_extraction: Filter too aggressive for cashflow_statement: 75 → 3 rows (96% reduction) — using full table
+  -> ok elapsed=84.77 metrics=2/10 error=None
+[24/24] MQR/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf
+ERROR app.services.docling_extract: docling failed for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf: No module named 'transformers'
+WARNING app.services.docling_extract: docling failure fallback triggered for /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/MQR/financial_performance/2025-07-28_results-of-meeting_7e6d1ae5-51be-4828-907c-d2aa3f8528e7.pdf; using PyMuPDF
+  -> failed elapsed=6.86 metrics=0/10 error=classifier_low_confidence:0.0
+{
+  "exception_count": 0,
+  "failed_count": 16,
+  "failure_taxonomy": {
+    "classifier_low_confidence:0.0": 1,
+    "source_noncandidate:board_change_notice": 1,
+    "source_noncandidate:meeting_or_proxy_notice": 2,
+    "source_noncandidate:operational_project_update": 1,
+    "source_noncandidate:pre_results_segment_re_presentation": 1,
+    "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+    "validation_gate:announcement_date_period_end": 2,
+    "validation_gate:insufficient_metrics": 1,
+    "validation_gate:metric_label_mismatch": 1,
+    "validation_gate:period_source_mismatch": 1,
+    "validation_gate:scale_unknown": 4
+  },
+  "low_confidence_taxonomy": {},
+  "ok_count": 8,
+  "ok_low_confidence_count": 0,
+  "status_distribution": {
+    "failed": 16,
+    "ok": 8
+  },
+  "timing": {
+    "max_s": 161.13,
+    "mean_s": 65.9,
+    "median_s": 65.36,
+    "min_s": 0.19,
+    "p95_s": 157.11,
+    "total_s": 1581.55
+  },
+  "total": 24,
+  "unsafe_row_check": {
+    "negative_revenue": [],
+    "nonpositive_shares": []
+  }
+}
+run_bounded_count24_venv_status=1

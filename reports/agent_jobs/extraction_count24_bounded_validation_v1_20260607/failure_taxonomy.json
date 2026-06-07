@@ -1,0 +1,13 @@
+{
+  "classifier_low_confidence:0.0": 1,
+  "source_noncandidate:board_change_notice": 1,
+  "source_noncandidate:meeting_or_proxy_notice": 2,
+  "source_noncandidate:operational_project_update": 1,
+  "source_noncandidate:pre_results_segment_re_presentation": 1,
+  "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+  "validation_gate:announcement_date_period_end": 2,
+  "validation_gate:insufficient_metrics": 1,
+  "validation_gate:metric_label_mismatch": 1,
+  "validation_gate:period_source_mismatch": 1,
+  "validation_gate:scale_unknown": 4
+}

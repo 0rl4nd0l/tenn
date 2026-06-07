@@ -1,0 +1,90 @@
+{
+  "accepted_output_audit": {
+    "accepted_count": 8,
+    "data_missing_count": 8,
+    "unsafe_accepted_output_count": 0
+  },
+  "count24_verdict": "COUNT24_FAILED_LOW_ACCEPTED_COUNT",
+  "count32_decision": "blocked; count-32 requires a separate approval packet",
+  "data_missing": [
+    "36e172ec-2650-4a9f-9ef0-a4366a3b8d31: row refs/extraction_run_id",
+    "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd: row refs/extraction_run_id",
+    "11e11c93-52f6-444a-9c24-e5d1e41141cf: row refs/extraction_run_id",
+    "a6118b61-77b6-4f13-bd6f-58654455ae9a: row refs/extraction_run_id",
+    "f2240712-9dde-41e0-88fa-29c1a0080dab: row refs/extraction_run_id",
+    "7394ad43-57ec-4edf-a91e-72844307948b: row refs/extraction_run_id",
+    "91561659-014b-4c88-865d-a6dec2fd8e35: row refs/extraction_run_id",
+    "0be9e3e7-70b3-40af-9895-8c0a99fa778e: row refs/extraction_run_id"
+  ],
+  "document_class_taxonomy": {
+    "DATA_MISSING": 1,
+    "board_change_notice": 1,
+    "financial_report": 10,
+    "meeting_or_proxy_notice": 2,
+    "operational_project_update": 1,
+    "pre_results_segment_re_presentation": 1,
+    "share_sale_or_gross_proceeds_announcement": 1,
+    "unknown_document": 7
+  },
+  "explicit_scope_statement": "Ran exactly one bounded count-24 direct extraction validation sample; no count-32, no broad extraction, no backfill, no full ticker-universe extraction.",
+  "generated_at": "2026-06-07T07:36:07.155327Z",
+  "mode": "OPERATOR-APPROVED BOUNDED VALIDATION ONLY",
+  "next_recommended_prompt": "Review the count-24 accepted-output audit and failure taxonomy; create a separate approval packet before any count-32 or containment mutation.",
+  "repo_head": "bfe3a77ec6692d5052eefec7454461e75459f7e3",
+  "run_metadata": {
+    "actual_count": 24,
+    "backend": "llamacpp",
+    "docs_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs",
+    "requested_count": 24,
+    "seed": 20260602,
+    "timestamp": "2026-06-07T07:36:06.130536Z"
+  },
+  "sample_completed": true,
+  "sample_results": {
+    "exception_count": 0,
+    "failed_count": 16,
+    "failure_taxonomy": {
+      "classifier_low_confidence:0.0": 1,
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 2,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:announcement_date_period_end": 2,
+      "validation_gate:insufficient_metrics": 1,
+      "validation_gate:metric_label_mismatch": 1,
+      "validation_gate:period_source_mismatch": 1,
+      "validation_gate:scale_unknown": 4
+    },
+    "low_confidence_taxonomy": {},
+    "ok_count": 8,
+    "ok_low_confidence_count": 0,
+    "status_distribution": {
+      "failed": 16,
+      "ok": 8
+    },
+    "timing": {
+      "max_s": 161.13,
+      "mean_s": 65.9,
+      "median_s": 65.36,
+      "min_s": 0.19,
+      "p95_s": 157.11,
+      "total_s": 1581.55
+    },
+    "total": 24,
+    "unsafe_row_check": {
+      "negative_revenue": [],
+      "nonpositive_shares": []
+    }
+  },
+  "side_effect_summary": {
+    "db_files_changed": false,
+    "memory_mutated": false,
+    "news_route_used": false,
+    "qdrant_changed": false,
+    "queues_clean_after_run": true,
+    "risk_note_mutated": false,
+    "source_pdfs_changed": false
+  },
+  "status": "completed_bounded_count24_validation"
+}

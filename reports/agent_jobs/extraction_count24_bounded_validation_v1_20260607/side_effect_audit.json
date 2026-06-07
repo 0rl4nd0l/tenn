@@ -1,0 +1,174 @@
+{
+  "accepted_output_audit": {
+    "data_missing": [
+      "36e172ec-2650-4a9f-9ef0-a4366a3b8d31: row refs/extraction_run_id",
+      "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd: row refs/extraction_run_id",
+      "11e11c93-52f6-444a-9c24-e5d1e41141cf: row refs/extraction_run_id",
+      "a6118b61-77b6-4f13-bd6f-58654455ae9a: row refs/extraction_run_id",
+      "f2240712-9dde-41e0-88fa-29c1a0080dab: row refs/extraction_run_id",
+      "7394ad43-57ec-4edf-a91e-72844307948b: row refs/extraction_run_id",
+      "91561659-014b-4c88-865d-a6dec2fd8e35: row refs/extraction_run_id",
+      "0be9e3e7-70b3-40af-9895-8c0a99fa778e: row refs/extraction_run_id"
+    ],
+    "unsafe_accepted_output_count": 0
+  },
+  "db_files": {
+    "after": [
+      {
+        "exists": true,
+        "mtime": "2026-06-05T07:26:59.996389Z",
+        "mtime_ns": 1780644419996388940,
+        "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/ops/ops.db",
+        "size": 57344
+      },
+      {
+        "exists": true,
+        "mtime": "2026-05-25T02:13:40.324344Z",
+        "mtime_ns": 1779675220324343957,
+        "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/cockpit/state.db",
+        "size": 368640
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/financial-engine_v2/data/ops/ops.db"
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/financial-engine_v2/data/cockpit/state.db"
+      }
+    ],
+    "before": [
+      {
+        "exists": true,
+        "mtime": "2026-06-05T07:26:59.996389Z",
+        "mtime_ns": 1780644419996388940,
+        "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/ops/ops.db",
+        "size": 57344
+      },
+      {
+        "exists": true,
+        "mtime": "2026-05-25T02:13:40.324344Z",
+        "mtime_ns": 1779675220324343957,
+        "path": "/home/l4nd0/tenn-runtime/financial-engine_v2/data/cockpit/state.db",
+        "size": 368640
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/financial-engine_v2/data/ops/ops.db"
+      },
+      {
+        "exists": false,
+        "path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/financial-engine_v2/data/cockpit/state.db"
+      }
+    ],
+    "changed": false,
+    "note": "Sample uses sqlite:///:memory: with AUTO_CREATE_TABLES=false."
+  },
+  "generated_at": "2026-06-07T07:36:07.154960Z",
+  "git": {
+    "after_status": [
+      "?? docs/agent_tasks/extraction_count24_bounded_validation_v1_20260607.md"
+    ],
+    "before_status": [
+      "?? docs/agent_tasks/extraction_count24_bounded_validation_v1_20260607.md"
+    ],
+    "unexpected_after_status_paths": []
+  },
+  "news_memory": {
+    "memory_mutated": false,
+    "news_qdrant_points_changed": false,
+    "news_route_used": false
+  },
+  "qdrant": {
+    "after": {
+      "asx_docs": {
+        "indexed_vectors_count": 0,
+        "points_count": 4176,
+        "raw_error": null,
+        "status": "green",
+        "update_queue_length": 0
+      },
+      "commentary_chunks": {
+        "indexed_vectors_count": 0,
+        "points_count": 0,
+        "raw_error": null,
+        "status": "green",
+        "update_queue_length": 0
+      },
+      "news_chunks": {
+        "indexed_vectors_count": 22346,
+        "points_count": 22975,
+        "raw_error": null,
+        "status": "green",
+        "update_queue_length": 0
+      }
+    },
+    "before": {
+      "asx_docs": {
+        "indexed_vectors_count": 0,
+        "points_count": 4176,
+        "raw_error": null,
+        "status": "green",
+        "update_queue_length": 0
+      },
+      "commentary_chunks": {
+        "indexed_vectors_count": 0,
+        "points_count": 0,
+        "raw_error": null,
+        "status": "green",
+        "update_queue_length": 0
+      },
+      "news_chunks": {
+        "indexed_vectors_count": 22346,
+        "points_count": 22975,
+        "raw_error": null,
+        "status": "green",
+        "update_queue_length": 0
+      }
+    },
+    "changed": false,
+    "note": "ENABLE_QDRANT=false for the sample; Qdrant was audited read-only."
+  },
+  "queues": {
+    "after_celery_length": 0,
+    "after_queue_key_scan": [
+      "_kombu.binding.celery",
+      "_kombu.binding.celery.pidbox",
+      "_kombu.binding.celeryev"
+    ],
+    "after_unacked_key_count": 0,
+    "before_celery_length": 0,
+    "before_unacked_key_count": 0,
+    "post_clean": true
+  },
+  "risk_note": {
+    "mutated": false,
+    "note": "No risk-note persistence route was invoked; runtime risk_notes were read from report-local payloads only."
+  },
+  "sample_scope": {
+    "actual_count": 24,
+    "exactly_one_bounded_count24_sample_run": true,
+    "forbidden_count32_broad_extraction_or_backfill_observed": false,
+    "requested_count": 24,
+    "seed": 20260602
+  },
+  "side_effect_anomalies": {
+    "db_files_changed": false,
+    "qdrant_changed": false,
+    "queues_not_clean_after_run": false,
+    "source_pdfs_changed": false,
+    "unexpected_git_paths": []
+  },
+  "source_pdfs": {
+    "after_count": 28633,
+    "after_fingerprint_sha256": "db934b5e15013b71fefe14b7f8d90d149ea824568f444adf74ec7b1d224c873d",
+    "before_count": 28633,
+    "before_fingerprint_sha256": "db934b5e15013b71fefe14b7f8d90d149ea824568f444adf74ec7b1d224c873d",
+    "changed": false,
+    "source_root": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs"
+  },
+  "unsafe_row_check": {
+    "negative_revenue": [],
+    "nonpositive_shares": []
+  }
+}
