@@ -109,9 +109,10 @@ Source-document classification is deterministic and source-metadata only:
   `operational_project_update`,
   `share_sale_or_gross_proceeds_announcement`, and
   `pre_results_segment_re_presentation`: narrow source-title or first-page
-  false-positive classes. They emit `source_noncandidate:<class>` reasons and
-  are excluded before candidate-manifest inclusion and blocked before metric
-  extraction.
+  false-positive classes. `director_interest_notice` applies to Appendix 3Y /
+  change-of-director-interest securities notices. These classes emit
+  `source_noncandidate:<class>` reasons and are excluded before
+  candidate-manifest inclusion and blocked before metric extraction.
 - `unknown_document`: classification evidence is insufficient. The document is
   not automatically promoted; normal period, scale, confidence, metric, and
   provenance gates still decide whether extraction can persist.

@@ -126,6 +126,10 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "document, not a financial report; it must not enter canary selection or "
         "metric extraction."
     ),
+    "director_interest_notice": (
+        "Source metadata identifies a director-interest securities notice, not a "
+        "financial report; it must not enter canary selection or metric extraction."
+    ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
         "downstream gates still decide whether extraction is safe."
@@ -2176,6 +2180,8 @@ def _detect_source_noncandidate_class(
     if (
         _source_text_has(compact_title, "notice of annual general meeting proxy form")
         or _source_text_has(compact_title, "notice of meeting proxy form")
+        or _source_text_has(compact_title, "notice of annual general meeting")
+        or _source_text_has(compact_title, "notice of meeting and explanatory")
         or (
             _source_text_has(compact_text, "upcoming general meeting of shareholders")
             and _source_text_has(compact_text, "notice of meeting")
@@ -2245,6 +2251,23 @@ def _detect_source_noncandidate_class(
         return (
             "pre_results_segment_re_presentation",
             ["pre_results_segment_re_presentation_pattern"],
+        )
+
+    if (
+        _source_text_has(compact_title, "change of director s interest notice")
+        or _source_text_has(compact_title, "change of directors interest notice")
+        or (
+            _source_text_has(compact_text, "appendix 3y change of director s interest notice")
+            and _source_text_has(compact_text, "change of director s relevant interests")
+        )
+        or (
+            _source_text_has(compact_text, "change of director s interest notice")
+            and _source_text_has(compact_text, "notifiable interest of a director")
+        )
+    ):
+        return (
+            "director_interest_notice",
+            ["director_interest_notice_pattern"],
         )
 
     return None

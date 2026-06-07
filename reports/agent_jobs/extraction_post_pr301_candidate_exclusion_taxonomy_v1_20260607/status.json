@@ -1,0 +1,15 @@
+{
+  "data_missing": [
+    "No broad sample was run in this phase by design.",
+    "The current phase did not prove frequency of director-interest notices in future samples; it only excludes an observed obvious non-financial notice class."
+  ],
+  "generated_at": "2026-06-07T04:32:56.394274Z",
+  "may_proceed_to_milestone_3": true,
+  "milestone": "candidate-exclusion taxonomy hardening",
+  "rules_added": [
+    "meeting_or_proxy_notice",
+    "director_interest_notice"
+  ],
+  "state": "PASSED",
+  "validation_summary": "focused classifier tests, scorecard taxonomy tests, py_compile, ruff, and full touched pytest all passed"
+}

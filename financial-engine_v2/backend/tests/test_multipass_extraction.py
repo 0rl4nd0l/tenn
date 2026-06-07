@@ -148,6 +148,11 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
             "meeting_or_proxy_notice",
         ),
         (
+            "notice-of-annual-general-meeting.pdf",
+            "Notice of Annual General Meeting and Explanatory Statement.",
+            "meeting_or_proxy_notice",
+        ),
+        (
             "fineos-board-changes.pdf",
             (
                 "Upcoming FINEOS Board changes. Appointment of a new "
@@ -181,6 +186,15 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
                 "and there are no changes to statutory financial results."
             ),
             "pre_results_segment_re_presentation",
+        ),
+        (
+            "change-of-directors-interest-notice-robert-nicholson.pdf",
+            (
+                "Appendix 3Y Change of Director's Interest Notice. "
+                "Part 1 - Change of director's relevant interests in securities. "
+                "Notifiable interest of a director."
+            ),
+            "director_interest_notice",
         ),
     ],
 )
@@ -220,6 +234,14 @@ def test_source_document_classifier_excludes_known_false_positive_classes(
             "quarterly-activities-report-and-appendix-5b.pdf",
             "Quarterly activities report and Appendix 5B for the quarter ended 31 March 2024.",
             "quarterly_source_phrase",
+        ),
+        (
+            "annual-report-directors-report.pdf",
+            (
+                "Annual Report for the year ended 30 June 2024. "
+                "The directors present their report and the financial statements."
+            ),
+            "annual_report_title",
         ),
     ],
 )
