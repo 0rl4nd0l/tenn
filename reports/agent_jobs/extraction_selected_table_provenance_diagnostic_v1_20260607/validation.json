@@ -1,0 +1,64 @@
+{
+  "job_id": "extraction_selected_table_provenance_diagnostic_v1_20260607",
+  "generated_at": "2026-06-07",
+  "validation_status": "PASSED",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_selected_table_provenance_diagnostic_v1_20260607.md",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 -m py_compile reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/diagnostic_runner.py",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/diagnostic_runner.py",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "Read existing count24 artifacts and existing PyMuPDF parser cache JSON for WHC/AZJ/EDU only; no parser, LLM, sample, DB, Qdrant, news, memory, source-PDF, prompt, schema, or runtime mutation."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/diagnostic_results.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/provenance_summary.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/repair_decision.json >/dev/null",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed_pre_final",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "active_jobs empty; read_only true; lock_acquired false"
+    },
+    {
+      "command": "gh issue view 96 --json number,title,state,url",
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "Issue #96 open: [Query Orchestration] Most PDF-path documents lack terminal extraction"
+    }
+  ],
+  "staged_checks": {
+    "git_diff_cached_check": {
+      "status": "passed",
+      "exit_code": 0
+    },
+    "task_card_check_diff_after_force_add": {
+      "status": "passed",
+      "exit_code": 0,
+      "summary": "Staged files were limited to the selected-table provenance task card and report-local artifacts."
+    },
+    "no_source_pdfs_staged": {
+      "status": "passed",
+      "exit_code": 0
+    }
+  },
+  "data_missing": [
+    "Focused pytest was not required because no extraction code was changed.",
+    "Ruff was not required because no extraction code was changed."
+  ]
+}
