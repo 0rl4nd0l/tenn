@@ -44,6 +44,7 @@ jobs:
       - name: Download Sloppy scan issues
         if: ${{ github.event_name == 'workflow_run' }}
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: sloppy-scan-issues
           path: /tmp/sloppy-scan
@@ -58,8 +59,10 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
             issues_file="/tmp/sloppy-scan/sloppy-scan-issues.json"
             if [[ ! -s "$issues_file" ]]; then
-              echo "::error::Missing Sloppy scan issues artifact: $issues_file"
-              exit 1
+              echo "::warning::Missing Sloppy scan issues artifact: $issues_file"
+              echo "path=" >> "$GITHUB_OUTPUT"
+              echo "found_count=missing_artifact" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
             found_count="$(python3 - "$issues_file" <<'PY'
           import json
@@ -82,7 +85,7 @@ jobs:
           fi
 
       - name: Sloppy fix (Claude)
-        if: ${{ steps.auth.outputs.enabled == 'true' && (github.event_name != 'workflow_run' || steps.sloppy_issues.outputs.found_count != '0') }}
+        if: ${{ steps.auth.outputs.enabled == 'true' && (github.event_name != 'workflow_run' || (steps.sloppy_issues.outputs.found_count != '0' && steps.sloppy_issues.outputs.found_count != 'missing_artifact')) }}
         uses: braedonsaunders/sloppy@main
         with:
           mode: fix
@@ -106,6 +109,12 @@ jobs:
         shell: bash
         run: |
           echo "Skipping sloppy-fix because the triggering Sloppy Scan reported no found issues."
+
+      - name: Skip sloppy fix (missing scan artifact)
+        if: ${{ steps.auth.outputs.enabled == 'true' && github.event_name == 'workflow_run' && steps.sloppy_issues.outputs.found_count == 'missing_artifact' }}
+        shell: bash
+        run: |
+          echo "Skipping sloppy-fix because the triggering Sloppy Scan did not upload a sloppy-scan-issues artifact."
 
   comment:
     needs: fix
@@ -132,6 +141,8 @@ jobs:
             let status;
             if (!fixEnabled) {
               status = 'Sloppy Fix ran automatically after Sloppy Scan, but no Claude credentials were available.';
+            } else if (process.env.SEEDED_ISSUE_COUNT === 'missing_artifact') {
+              status = 'Sloppy Fix ran automatically after Sloppy Scan and skipped because no scan issues artifact was available.';
             } else if (process.env.SEEDED_ISSUE_COUNT === '0') {
               status = 'Sloppy Fix ran automatically after Sloppy Scan and skipped because the scan reported no found issues.';
             } else if (fixResult === 'success') {
