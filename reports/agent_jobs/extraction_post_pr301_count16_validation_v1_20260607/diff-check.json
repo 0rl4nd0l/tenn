@@ -1,0 +1,97 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/classification.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/preflight.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/raw_commands.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_bounded_count16.py",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_stderr.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_stdout.txt",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_post_pr301_count16_validation_v1_20260607.md",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_bounded_count16.py",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_stdout.txt",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/run_stderr.txt",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_results.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/sample_manifest.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/classification.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/side_effect_audit.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/preflight.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/status.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/validation.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/diff-check.json",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/README.md",
+        "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607/raw_commands.log"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_post_pr301_count16_validation_v1_20260607",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_post_pr301_count16_validation_v1_20260607",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Financial Truth",
+        "Query Orchestration",
+        "Provenance",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
