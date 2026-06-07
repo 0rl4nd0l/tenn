@@ -8,6 +8,10 @@ description: Use for Tenn /goal work that needs a visible state machine, report 
 Use this skill for `/goal` runs, long-running repo tasks, blocked handoffs, and
 closeout reports.
 
+For long `/goal` runs that need stable judgment before execution, use
+`tenn-frame-design` to create `FRAME.md`, `STATE.md`, `OPERATOR_NOTES.md`, and
+optional `SCRIBE.md` in the same report directory.
+
 ## State Machine
 
 Maintain one visible state:
@@ -49,6 +53,7 @@ If the task card provides `output_dir`, use that directory.
 - Ignored or untracked artifact note
 - Remaining risk
 - Next recommended prompt
+- Links to Frame artifacts, if used
 
 ## Waiting Protocol
 
