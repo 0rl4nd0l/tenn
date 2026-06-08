@@ -83,6 +83,17 @@ export function getGpuProcesses(health: ServiceHealth | null): GpuRecord[] {
   return readProcessesFromHealth(health)
 }
 
+export function getGpuProcessSummary(health: ServiceHealth | null): string {
+  const processes = readProcessesFromHealth(health)
+  if (processes.length > 0) {
+    return `${processes.length} active GPU process${processes.length === 1 ? '' : 'es'}`
+  }
+  if (health?.error) {
+    return 'GPU process telemetry unavailable'
+  }
+  return 'No active GPU compute processes'
+}
+
 function MetricRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
@@ -125,6 +136,7 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
   const [open, setOpen] = useState(false)
   const [liveGpus, setLiveGpus] = useState<GpuRecord[]>(readGpusFromHealth(gpuHealth))
   const [liveProcesses, setLiveProcesses] = useState<GpuRecord[]>(readProcessesFromHealth(gpuHealth))
+  const [telemetryError, setTelemetryError] = useState<string | null>(gpuHealth?.error ?? null)
   const [lastChecked, setLastChecked] = useState<Date | null>(gpuHealth?.lastChecked ?? null)
   const [polling, setPolling] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
@@ -135,6 +147,7 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
     if (!open) {
       setLiveGpus(readGpusFromHealth(gpuHealth))
       setLiveProcesses(readProcessesFromHealth(gpuHealth))
+      setTelemetryError(gpuHealth?.error ?? null)
       setLastChecked(gpuHealth?.lastChecked ?? null)
     }
   }, [gpuHealth, open])
@@ -156,6 +169,7 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
         const data = await res.json() as { details?: { gpus?: GpuRecord[]; processes?: GpuRecord[] }; error?: string }
         setLiveGpus(Array.isArray(data.details?.gpus) ? data.details!.gpus! : [])
         setLiveProcesses(Array.isArray(data.details?.processes) ? data.details!.processes! : [])
+        setTelemetryError(data.error ?? null)
         setLastChecked(new Date())
         setPollError(null)
       } catch (err) {
@@ -179,6 +193,7 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
     d
       ? d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
       : '--:--:--'
+  const gpuTelemetryUnavailable = Boolean(telemetryError || pollError)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -203,7 +218,9 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
 
           {liveGpus.length === 0 ? (
             <div className="rounded border border-border/80 bg-black/20 p-3 text-muted-foreground/80">
-              No GPU data available.
+              {gpuTelemetryUnavailable
+                ? 'GPU telemetry unavailable. Empty GPU rows do not prove the GPU is idle.'
+                : 'No GPU data available.'}
             </div>
           ) : (
             liveGpus.map((gpu, i) => (
@@ -225,7 +242,11 @@ export function GpuActivityDialog({ gpuHealth, children, summaryFooter }: GpuAct
               Processes Using GPU
             </div>
             {liveProcesses.length === 0 ? (
-              <div className="text-muted-foreground/80">No active GPU compute processes reported.</div>
+              <div className="text-muted-foreground/80">
+                {gpuTelemetryUnavailable
+                  ? 'GPU process telemetry unavailable. Empty process rows do not prove the GPU is idle.'
+                  : 'No active GPU compute processes reported.'}
+              </div>
             ) : (
               <div className="max-h-[24rem] space-y-2 overflow-y-auto pr-1">
                 {liveProcesses.map((proc, i) => (

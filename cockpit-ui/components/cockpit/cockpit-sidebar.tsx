@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
+import { GpuActivityDialog, getGpuProcessSummary, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
 import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
@@ -296,6 +296,7 @@ export function CockpitSidebar({
       }
 
   const gpuSummary = useMemo(() => getGpuSummary(gpuHealth), [gpuHealth])
+  const gpuProcessSummary = useMemo(() => getGpuProcessSummary(gpuHealth), [gpuHealth])
   const hostSummary = useMemo(() => getHostSummary(hostHealth), [hostHealth])
   const configFieldCount = [
     configSummary.model,
@@ -309,7 +310,6 @@ export function CockpitSidebar({
     : 'pending'
 
   const gpuHealthy = gpuHealth?.status === 'healthy'
-  const gpuProcesses = useMemo(() => getGpuProcesses(gpuHealth), [gpuHealth])
 
   return (
     <Sidebar
@@ -481,9 +481,7 @@ export function CockpitSidebar({
                       {gpuSummary}
                     </div>
                     <div className="mt-1 pl-4 text-[10px] font-mono text-muted-foreground/75">
-                      {gpuProcesses.length > 0
-                        ? `${gpuProcesses.length} active GPU process${gpuProcesses.length === 1 ? '' : 'es'}`
-                        : 'No active GPU compute processes'}
+                      {gpuProcessSummary}
                     </div>
                   </button>
               </GpuActivityDialog>
