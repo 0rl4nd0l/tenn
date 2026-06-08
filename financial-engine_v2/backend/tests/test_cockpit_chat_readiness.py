@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -179,6 +180,49 @@ def test_data_missing_numeric_claims_are_suppressed_without_claim_verified_sourc
     assert updated_metadata["unsafe_numeric_claims_suppressed"] is True
     assert updated_metadata["sufficient_for_analysis"] is False
     assert updated_metadata["source_coverage_status"] == "missing_required_evidence"
+    assert "unverified_numeric_claims" in updated_metadata["missing_categories_after_recovery"]
+
+
+@pytest.mark.parametrize(
+    ("missing_category", "gap_label"),
+    [
+        ("metric_extraction", "metric_extraction_missing"),
+        ("market_data", "market_data_missing"),
+        ("recent_news", "insufficient_for_recent_news"),
+    ],
+)
+def test_data_missing_numeric_claims_are_suppressed_for_missing_gap_categories(
+    missing_category: str,
+    gap_label: str,
+) -> None:
+    text = (
+        "DATA_MISSING / evidence gaps:\n"
+        f"- {gap_label}: required evidence is absent.\n\n"
+        "Answer below is context-only.\n"
+        "BHP reported revenue of $27,902 million for FY25."
+    )
+    metadata = {
+        "claim_verified_source_count": 0,
+        "source_coverage_status": "missing_required_evidence",
+        "evidence_labels": [
+            "financial_truth",
+            "financial_truth_numeric",
+            gap_label,
+            "missing_required_evidence",
+            "unsupported_or_not_verified",
+        ],
+        "missing_categories_after_recovery": [missing_category],
+        "sufficient_for_analysis": True,
+    }
+
+    sanitized, updated_metadata = _suppress_unverified_data_missing_claims(text, metadata)
+
+    assert "BHP reported revenue" not in sanitized
+    assert "unverified_numeric_claims_suppressed" in sanitized
+    assert updated_metadata["unsafe_numeric_claims_suppressed"] is True
+    assert updated_metadata["sufficient_for_analysis"] is False
+    assert updated_metadata["source_coverage_status"] == "missing_required_evidence"
+    assert missing_category in updated_metadata["missing_categories_after_recovery"]
     assert "unverified_numeric_claims" in updated_metadata["missing_categories_after_recovery"]
 
 

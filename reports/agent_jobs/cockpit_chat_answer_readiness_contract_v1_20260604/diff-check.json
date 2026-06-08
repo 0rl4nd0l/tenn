@@ -1,48 +1,16 @@
 {
   "changed_files": [
     {
-      "path": "cockpit-ui/app/api/cockpit/chat/readiness/route.ts",
-      "status": "A"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/chat/chat-screen.test.tsx",
-      "status": "A"
-    },
-    {
-      "path": "cockpit-ui/components/cockpit/chat/chat-screen.tsx",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/api-client.ts",
-      "status": "M"
-    },
-    {
-      "path": "cockpit-ui/lib/cockpit-chat-readiness.test.ts",
-      "status": "A"
-    },
-    {
-      "path": "cockpit-ui/lib/cockpit-chat-readiness.ts",
-      "status": "A"
-    },
-    {
-      "path": "cockpit-ui/lib/cockpit-types.ts",
-      "status": "M"
-    },
-    {
-      "path": "docs/agent_tasks/cockpit_chat_answer_readiness_contract_v1_20260604.md",
-      "status": "A"
-    },
-    {
       "path": "financial-engine_v2/backend/app/routes/cockpit_api.py",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/app/services/chat_readiness.py",
-      "status": "A"
+      "path": "financial-engine_v2/backend/tests/test_cockpit_chat_readiness.py",
+      "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/tests/test_cockpit_chat_readiness.py",
-      "status": "A"
+      "path": "reports/agent_jobs/cockpit_chat_answer_readiness_contract_v1_20260604/diff-check.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

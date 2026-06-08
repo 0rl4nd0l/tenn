@@ -3082,17 +3082,8 @@ _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
 )
 _NUMERIC_SUPPRESSION_PROTECTED_LABELS = {
     "degraded_runtime",
-    "insufficient_for_recent_news",
     "local_personal_data",
-    "market_data_missing",
-    "metric_extraction_missing",
     "no_hit",
-    "unsupported_or_not_verified",
-}
-_NUMERIC_SUPPRESSION_PROTECTED_MISSING_CATEGORIES = {
-    "market_data",
-    "metric_extraction",
-    "recent_news",
 }
 _PURE_OPERATIONAL_NO_HIT_RE = re.compile(
     r"^\s*(?:"
@@ -3549,14 +3540,12 @@ def _suppress_unverified_data_missing_claims(
     raw_labels = _raw_string_set(safe_metadata.get("evidence_labels"))
     raw_labels.update(_raw_string_set(safe_metadata.get("evidence_requirement_labels")))
     raw_labels.update(_raw_string_set(safe_metadata.get("source_labels")))
+    if "financial_truth_numeric" not in raw_labels:
+        return answer_text, safe_metadata
     source_status = str(safe_metadata.get("source_coverage_status") or "").strip()
     if source_status in _NUMERIC_SUPPRESSION_PROTECTED_LABELS:
         return answer_text, safe_metadata
     if raw_labels & _NUMERIC_SUPPRESSION_PROTECTED_LABELS:
-        return answer_text, safe_metadata
-    missing_categories = _raw_string_set(safe_metadata.get("missing_evidence_categories"))
-    missing_categories.update(_raw_string_set(safe_metadata.get("missing_categories_after_recovery")))
-    if missing_categories & _NUMERIC_SUPPRESSION_PROTECTED_MISSING_CATEGORIES:
         return answer_text, safe_metadata
     local_news_guard = safe_metadata.get("local_news_only_guard")
     if isinstance(local_news_guard, dict) and local_news_guard.get("applied") is True:
@@ -3565,8 +3554,6 @@ def _suppress_unverified_data_missing_claims(
         str(safe_metadata.get("data_scope") or "").strip() == "local_personal_holdings"
         or str(safe_metadata.get("canonical_intent") or "").strip() == "holdings"
     ):
-        return answer_text, safe_metadata
-    if "financial_truth_numeric" not in raw_labels:
         return answer_text, safe_metadata
 
     gap_lines: list[str] = []
