@@ -71,6 +71,44 @@ WAITING_ON_USER
 - Local milestone-2 validation already proved the candidate workflow would fail
   closed for seeded positive findings plus `issues-fixed=0`; live proof is still
   `DATA_MISSING` until the patch is pushed and exercised.
+- User approval:
+  - 2026-06-08: user said `proceed` after the report recommended approving a
+    push plus one bounded live proof.
+- Candidate branch publication:
+  - commit: `d95162229e7f2560781afe9336024f642376dcea`
+  - branch pushed: `safe/sloppy-fix-provider-failclosed-v1-20260607`
+  - PR: `https://github.com/0rl4nd0l/tenn/pull/321`
+  - PR #321 state after creation: open, base `main`, head
+    `safe/sloppy-fix-provider-failclosed-v1-20260607`, merge state `CLEAN`.
+- GitHub Actions trigger constraint:
+  - GitHub Docs record `workflow_run` as a default-branch workflow event:
+    `https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run`.
+  - Observed evidence matches this: downstream Sloppy Fix run `27109633518`
+    reports `headBranch=main` and `headSha=7443d9f248...`, while its checkout
+    step checked out the triggering scan SHA `d9516222`.
+- PR #321 Sloppy Scan run:
+  - run: `https://github.com/0rl4nd0l/tenn/actions/runs/27109627103`
+  - event: `pull_request`
+  - head branch: `safe/sloppy-fix-provider-failclosed-v1-20260607`
+  - head SHA: `d95162229e7f2560781afe9336024f642376dcea`
+  - conclusion: `success`
+  - artifact: `sloppy-scan-issues`, ID `7469494089`, not expired, size
+    `250` bytes.
+  - downloaded artifact copy:
+    `/tmp/tenn-sloppy-proof-27109627103/sloppy-scan-issues.json`.
+  - artifact payload: `score=100`, `issues=[]`.
+- PR #321 downstream Sloppy Fix run:
+  - run: `https://github.com/0rl4nd0l/tenn/actions/runs/27109633518`
+  - event: `workflow_run`
+  - workflow HEAD: `7443d9f248346210ada834e1fd19ab923ace192f`
+  - conclusion: `success`
+  - jobs: `fix` success, `comment` success.
+  - log evidence: checkout reached `d9516222`, then `Skip sloppy fix (no scan
+    issues)` ran because the triggering PR #321 scan reported zero issues.
+  - result: this did not exercise the seeded-positive zero-fix fail-closed gate.
+- Requested PR #307 live proof remains `DATA_MISSING`: rerunning PR #307 before
+  PR #321 lands on `main` would exercise the old default-branch workflow, not
+  the patched workflow definition.
 
 ## Files Touched
 
@@ -113,24 +151,43 @@ WAITING_ON_USER
 - `python3 -c "import pathlib, yaml; ..."` YAML parse: exit 0; `YAML OK`.
 - `git diff --check`: exit 0.
 - `python3 /home/l4nd0/tenn-agent-contract-registry-main-v1-20260607/scripts/agent_job_contract.py check-diff docs/agent_tasks/control_plane_sloppy_fix_live_proof_v1_20260608.md --repo-root .`: exit 0; no disallowed files.
+- `git commit -m "Fail Sloppy Fix on zero seeded fixes"`: exit 0; created
+  `d95162229e7f2560781afe9336024f642376dcea`.
+- `git push -u origin safe/sloppy-fix-provider-failclosed-v1-20260607`: exit 0.
+- `gh pr create --base main --head safe/sloppy-fix-provider-failclosed-v1-20260607 ...`: exit 0; created PR #321.
+- `gh pr view 321 --json ...`: exit 0.
+- `gh run list --workflow "Sloppy Scan" --limit 12 --json ...`: exit 0.
+- `gh run list --workflow "Sloppy Fix" --limit 12 --json ...`: exit 0.
+- `gh run watch 27109633518 --interval 5 --exit-status`: exit 0; run completed
+  success.
+- `gh run view 27109633518 --json ...`: exit 0.
+- `gh api repos/0rl4nd0l/tenn/actions/runs/27109627103/artifacts --jq ...`:
+  exit 0.
+- `gh run download 27109627103 -n sloppy-scan-issues -D /tmp/tenn-sloppy-proof-27109627103`: exit 0.
+- `gh run view 27109633518 --log | rg ...`: exit 0.
+- `gh run view 27109627103 --log | rg ...`: exit 0.
+- `gh api repos/0rl4nd0l/tenn/actions/runs/27109633518/jobs --jq ...`: exit 0.
 
 ## Approvals Needed
 
 WAITING_ON_USER
-Needed: explicit approval to push the candidate Sloppy Fix fail-closed branch
-and run a bounded live proof against PR #307.
-Why: GitHub `workflow_run` behavior cannot be proven from local static checks;
-the fail-closed workflow must execute in GitHub Actions against a seeded scan.
-Current safe state: local patch and tests are complete; prior live evidence
-proves the exact failure mode, but no GitHub write was performed.
-Options: A) approve push plus bounded rerun/dispatch proof, B) review the local
-diff first and defer live proof, C) skip Sloppy live proof and move to another
-milestone with this gate still `DATA_MISSING`.
-Recommended: A.
+Needed: explicit approval for the next GitHub write strategy: merge PR #321 to
+`main` or choose an alternate default-branch proof mechanism.
+Why: `workflow_run` uses the default-branch workflow definition; PR #321's
+branch workflow was visible, but the downstream run did not exercise the patched
+zero-fix gate and PR #307 cannot prove it until the patched workflow is on
+`main`.
+Current safe state: candidate branch was pushed, PR #321 was opened, PR #321's
+Sloppy Scan/Fix ran successfully with zero findings, and no merge was performed.
+Options: A) approve merge of PR #321 to `main`, then rerun/trigger Sloppy Scan
+on PR #307 and verify downstream Sloppy Fix fails closed, B) keep PR #321 open
+for review and leave live proof `DATA_MISSING`, C) design a separate temporary
+default-branch proof mechanism/task card.
+Recommended: A, if PR #321 checks and review are acceptable.
 
 ## Proposed Approval Command Sequence
 
-Run only after explicit approval:
+Already completed after `proceed` approval:
 
 ```bash
 cd /home/l4nd0/tenn-sloppy-fix-provider-failclosed-v1-20260607
@@ -141,11 +198,16 @@ python3 /home/l4nd0/tenn-agent-contract-registry-main-v1-20260607/scripts/agent_
 git push -u origin safe/sloppy-fix-provider-failclosed-v1-20260607
 ```
 
-Then perform one bounded GitHub-side proof. The preferred proof is to open a PR
-from `safe/sloppy-fix-provider-failclosed-v1-20260607` to `main`, wait for the
-workflow to exist on a GitHub-visible branch, then rerun or trigger Sloppy Scan
-for PR #307 and inspect the downstream Sloppy Fix result. Exact dispatch/rerun
-command should be selected after re-checking GitHub state at approval time.
+Next command sequence, only after explicit merge/proof approval:
+
+```bash
+cd /home/l4nd0/tenn-sloppy-fix-provider-failclosed-v1-20260607
+gh pr view 321 --json number,state,mergeStateStatus,statusCheckRollup,headRefName,baseRefName,url
+gh pr merge 321 --merge
+gh pr view 307 --json number,state,headRefName,statusCheckRollup,url
+# Then rerun/trigger Sloppy Scan for PR #307, capture the downstream Sloppy Fix run ID,
+# and verify the Sloppy Fix run fails closed for 3 seeded findings and 0 fixes.
+```
 
 ## Blocked Items And DATA_MISSING
 
@@ -153,6 +215,7 @@ command should be selected after re-checking GitHub state at approval time.
   `DATA_MISSING`.
 - Whether the live result is a deliberate failed status for 3 seeded/0 fixed:
   `DATA_MISSING`.
+- Merge/land decision for PR #321: `DATA_MISSING`.
 - `actionlint`: `DATA_MISSING`; not installed locally.
 
 ## Validation Status
@@ -167,7 +230,12 @@ command should be selected after re-checking GitHub state at approval time.
 - YAML parse: passed.
 - `git diff --check`: passed.
 - Task-card `check-diff`: passed with no disallowed files.
-- Live GitHub proof: `DATA_MISSING` pending explicit approval.
+- Branch push: passed.
+- PR #321 creation: passed.
+- PR #321 Sloppy Scan: passed with zero issues.
+- PR #321 downstream Sloppy Fix: passed, but only skip-success for zero issues;
+  it did not prove the seeded-positive fail-closed gate.
+- PR #307 patched live proof: `DATA_MISSING`.
 
 ## Raw Logs
 
@@ -177,9 +245,10 @@ command should be selected after re-checking GitHub state at approval time.
 
 ## Unsafe Actions Avoided
 
-- No GitHub push.
 - No workflow dispatch/rerun.
-- No PR or issue mutation.
+- No PR merge.
+- No PR #307 mutation.
+- No issue mutation.
 - No runtime/service/data mutation.
 - No dirty checkout edits.
 
@@ -196,7 +265,11 @@ command should be selected after re-checking GitHub state at approval time.
 - Static and historic run evidence prove the old failure mode and the local
   intended gate, but production behavior is not proven until GitHub Actions runs
   the patched workflow.
+- PR #321 proves the pushed branch can run Sloppy Scan and downstream Sloppy
+  Fix, but because the scan had zero findings and `workflow_run` uses the
+  default-branch workflow definition, it does not prove the zero-fix fail-closed
+  gate.
 
 ## Next Recommended Prompt
 
-`Approved: push safe/sloppy-fix-provider-failclosed-v1-20260607 and perform one bounded Sloppy live proof against PR #307; do not merge PR #307.`
+`Approved: merge PR #321 to main, then rerun one bounded Sloppy proof against PR #307 and verify the downstream Sloppy Fix fails closed; do not merge PR #307.`
