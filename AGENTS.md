@@ -68,6 +68,23 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 - Prefer a clean sibling worktree when shared-checkout dirt overlaps the task;
   otherwise keep the diff strictly inside the task-card allowlist.
 
+## Two-Shot Workstreams And Autonomy Envelopes
+
+- Non-trivial Git Hygiene and control-plane remediation should default to a
+  two-shot workstream.
+- Shot 1 means investigate, classify, preserve safe evidence, create an
+  approval manifest, create an execution plan, and stop.
+- Shot 2 means execute approved manifest groups mechanically, skip drifted
+  paths, stop before forbidden boundaries, and close out.
+- Avoid micro-approval loops for safe report-local and preservation-only
+  actions. Approval should be group-level and manifest-based where possible, not
+  path-by-path chat back-and-forth.
+- Still stop for destructive, source-state, canonical-history, GitHub,
+  product, runtime, or data boundaries.
+- Reserve `WAITING_ON_USER` for actual boundary crossings, ambiguity, missing
+  approval, or unsafe drift; do not use it for every safe report, ledger,
+  archive, patch bundle, or preservation artifact.
+
 ## Task Cards, Registry, And Merge Parking
 
 - Implementation-capable work should have a task card before edits. Validate it
