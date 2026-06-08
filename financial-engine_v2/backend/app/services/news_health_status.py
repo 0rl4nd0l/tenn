@@ -108,7 +108,39 @@ def _do_report(canonical_status: str) -> list[str]:
     return [*STATIC_DO_REPORT[:1], canonical_message, *STATIC_DO_REPORT[1:]]
 
 
-def build_a2m_news_health_status(workspace_root: Path | None = None) -> dict[str, Any]:
+def _redacted_operator_diagnostics() -> dict[str, str]:
+    return {
+        "status": "redacted",
+        "reason": "operator_diagnostics_only",
+    }
+
+
+def _redact_public_news_health_status(payload: dict[str, Any]) -> dict[str, Any]:
+    public_payload = dict(payload)
+    news_artifact_root = payload.get("news_artifact_root")
+    root_source = (
+        news_artifact_root.get("source")
+        if isinstance(news_artifact_root, dict)
+        else "unknown"
+    )
+    public_payload["news_artifact_root"] = {
+        "status": "redacted",
+        "source": str(root_source),
+    }
+    public_payload["canonical_sqlite_projection_paths"] = _redacted_operator_diagnostics()
+    public_payload["evidence_reports"] = _redacted_operator_diagnostics()
+
+    qdrant_status = dict(public_payload.get("qdrant_retrieval") or {})
+    qdrant_status.pop("collection", None)
+    public_payload["qdrant_retrieval"] = qdrant_status
+    return public_payload
+
+
+def build_a2m_news_health_status(
+    workspace_root: Path | None = None,
+    *,
+    include_diagnostics: bool = False,
+) -> dict[str, Any]:
     """Build a read-only A2M/news status payload without live data mutation."""
 
     root = (workspace_root or _default_workspace_root()).resolve()
@@ -121,7 +153,7 @@ def build_a2m_news_health_status(workspace_root: Path | None = None) -> dict[str
     health = dict(A2M_NEWS_HEALTH_STATUS)
     health["canonical_sqlite_projection"] = canonical_status
 
-    return {
+    payload: dict[str, Any] = {
         "schema_version": 1,
         "status": "ok",
         "generated_from": "read_only_status_contract",
@@ -189,3 +221,6 @@ def build_a2m_news_health_status(workspace_root: Path | None = None) -> dict[str
             "do_not_report": list(DO_NOT_REPORT),
         },
     }
+    if include_diagnostics:
+        return payload
+    return _redact_public_news_health_status(payload)

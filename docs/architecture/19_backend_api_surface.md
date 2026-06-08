@@ -106,6 +106,12 @@ The FastAPI app mounts routes in these groups:
   - lightweight queue status summary
 - `GET /api/cockpit/docs`
   - latest global document list for cockpit history views
+- `GET /api/cockpit/news/status`
+  - read-only A2M/news split-truth status contract
+  - public response redacts operator-only diagnostics such as artifact roots,
+    absolute projection paths, evidence report paths, and Qdrant collection identity
+  - full path-bearing diagnostics are service-internal unless a future guarded
+    caller explicitly requests them
 - `POST /api/cockpit/chat`
   - cockpit chat endpoint (blocking and SSE modes)
   - SSE emits status/chunk/tool/action-preview/done events
