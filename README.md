@@ -18,15 +18,21 @@ Note: `python run.py` is **NOT** the canonical startup path for agents (it is a 
 - Use phase gates in `docs/phase_checklist.md`.
 - Keep both files updated during runs and before handoff.
 
-## Run in 3 steps
+## Canonical backend run (3 steps)
 1. Create/activate your main venv at repo root.
 2. Install deps:
-   - `pip install -r requirements.txt`
-   - `python -m playwright install chromium`
-3. Run:
-   - `python run.py`
+   - `/workspace/.venv/bin/pip install -r requirements.txt`
+   - `/workspace/.venv/bin/python -m playwright install chromium`
+3. Run and validate:
+   - `bash scripts/start_system.sh`
+   - `bash scripts/validate_system.sh`
 
-That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
+Underlying canonical entrypoint: `financial-engine_v2/scripts/run_local_backend.sh`.
+
+## Optional batch workflow run
+- `python run.py`
+
+This delegates to `financial-engine_v2/run.py` and executes configured ingestion workflows. It is intentionally separate from canonical backend bootstrap.
 
 ## Isolated AU News Collector (`newspaper4k`)
 For a separate, research-only AU finance article collector, use:

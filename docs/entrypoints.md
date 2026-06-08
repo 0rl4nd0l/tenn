@@ -12,14 +12,17 @@ All agents MUST use this path.
    - Create: `python3 -m venv /workspace/.venv`
    - Activate (optional): `source /workspace/.venv/bin/activate`
 2. Install dependencies (deterministic).
-   - `pip install -r requirements.txt`
-   - `pip install -r financial-engine_v2/backend/requirements.txt`
+   - `/workspace/.venv/bin/pip install -r requirements.txt`
+   - `/workspace/.venv/bin/python -m playwright install chromium` (required for MarketIndex download flows)
 3. Run the system (canonical).
-   - `bash financial-engine_v2/scripts/run_local_backend.sh`
+   - `bash scripts/start_system.sh`
 4. Validate (smoke).
-   - `bash financial-engine_v2/scripts/smoke_local.sh`
+   - `bash scripts/validate_system.sh`
 5. Confirm health.
    - `curl -sS http://127.0.0.1:8000/api/health`
+
+Underlying canonical entrypoint used by wrappers:
+- `financial-engine_v2/scripts/run_local_backend.sh`
 
 ### System Mental Model
 
@@ -52,8 +55,25 @@ Agents MUST NOT use these paths unless a task explicitly requires them:
 Use these wrappers for deterministic agent control:
 
 - `scripts/start_system.sh`
-  - Starts the canonical backend (if not already running), waits briefly, then runs `scripts/agent_check.sh`.
+  - Checks health first; exits quickly if backend is already running.
+  - If unhealthy, starts `financial-engine_v2/scripts/run_local_backend.sh` in background and rechecks health.
+  - Writes backend output to `${LOG_FILE:-/tmp/tenn_backend.log}`.
 - `scripts/validate_system.sh`
-  - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh` (when available).
+  - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh`.
+  - Returns non-zero if either step fails.
+- `scripts/agent_check.sh`
+  - Probes `${BASE_URL:-http://127.0.0.1:8000}/api/health` with short curl timeout defaults.
+- `scripts/enforce_canonical.sh`
+  - Heuristic warnings only (never hard-fails): reports non-canonical usage signals such as `python run.py`.
 - `agent_contract.json`
   - Machine-readable pointers to the canonical entrypoint, wrapper, healthcheck route, and validation script.
+
+### Troubleshooting quick checks
+
+- Healthcheck failing:
+  - `bash scripts/agent_check.sh`
+  - If start was attempted, inspect `${LOG_FILE:-/tmp/tenn_backend.log}`.
+- Wrong target host/port:
+  - Override `BASE_URL`, e.g. `BASE_URL=http://127.0.0.1:8001 bash scripts/validate_system.sh`.
+- Missing venv error from canonical script:
+  - Create it at `/workspace/.venv` and ensure `financial-engine_v2/.venv` points to it as expected by the script.
