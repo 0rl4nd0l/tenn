@@ -1,0 +1,32 @@
+{
+  "data_missing": [
+    "debug_capture_full_payload",
+    "existing_parser_cache_json",
+    "full_pass3a_llm_outputs",
+    "runtime_metric_scale_sources",
+    "runtime_metric_source_scales",
+    "runtime_row_refs"
+  ],
+  "exact_docs_used": [
+    {
+      "case_id": "control_CXO_36e172ec",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "ticker": "CXO"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR"
+    }
+  ],
+  "generated_at": "2026-06-08T02:05:02.719586+00:00",
+  "job_id": "extraction_cxo_runtime_provenance_capture_v1_20260608",
+  "production_repair_implemented": false,
+  "report_path": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/README.md",
+  "shared_capture_evidence_gap": true,
+  "state": "DONE_WITH_RISK",
+  "task_card": "docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+  "two_cases_shared_source_bound_production_root_cause": false
+}

@@ -1,0 +1,88 @@
+{
+  "job_id": "extraction_cxo_nsr_pass3a_debug_replay_v1_20260608",
+  "state": "DONE_WITH_RISK",
+  "raw_logs": {
+    "cache_support_probe": "reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/logs/cache_support_probe.log",
+    "pass3a_debug_replay": "reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/logs/pass3a_debug_replay.log",
+    "task_card_validate": "reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/logs/task_card_validate.log",
+    "validation": "reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/logs/validation.log"
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608.md",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0
+    },
+    {
+      "command": "DATA_ROOT=/tmp/tenn-pass3a-debug-replay-cache-v1-20260608-probe PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python - <cache support probe>",
+      "exit_status": 0
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/pass3a_debug_replay.py",
+      "exit_status": 0
+    },
+    {
+      "command": "DATA_ROOT=/tmp/tenn-pass3a-debug-replay-cache-v1-20260608-run-20260608132618 PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/pass3a_debug_replay.py",
+      "exit_status": 0,
+      "result": "blocked before pass3a by OLLAMA_URL router-config error; isolated /tmp docling cache and router_metrics_snapshot.json were written"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 DATA_ROOT=/tmp/tenn-pass3a-debug-replay-cache-v1-20260608-run-20260608133053 PYTHONPATH=financial-engine_v2/backend /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/pass3a_debug_replay.py",
+      "exit_status": 0,
+      "result": "captured pass3a outputs, row_refs, metric_source_scales, metric_scale_sources, selected table/page, and common scale traces for CXO and NSR"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/pass3a_debug_replay.json",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/common_metric_source_scale_trace.json",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/status.json",
+      "exit_status": 0
+    },
+    {
+      "command": "jq -e '(.source_pdf_before == .source_pdf_after) and (.normal_cache_before == .normal_cache_after)' reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/pass3a_debug_replay.json",
+      "exit_status": 0
+    },
+    {
+      "command": "jq -e '.pass3a_field_capture.pass3a_outputs and .pass3a_field_capture.row_refs and .pass3a_field_capture.metric_source_scales and .pass3a_field_capture.metric_scale_sources and .pass3a_field_capture.selected_table_page and .pass3a_field_capture.common_metric_source_scale_trace' reports/agent_jobs/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608/status.json",
+      "exit_status": 0
+    },
+    {
+      "command": "test \"$(find /tmp/tenn-pass3a-debug-replay-cache-v1-20260608-run-20260608133053 -type f ! -path \"*/reports/extraction_cache/docling_extract/*.docling.json\" | wc -l)\" -eq 0",
+      "exit_status": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff --no-write-report docs/agent_tasks/extraction_cxo_nsr_pass3a_debug_replay_v1_20260608.md",
+      "exit_status": 1,
+      "result": "failed only because pre-existing untracked docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md is outside this task card allowlist"
+    }
+  ],
+  "field_capture": {
+    "common_metric_source_scale_trace": true,
+    "metric_scale_sources": true,
+    "metric_source_scales": true,
+    "pass3a_outputs": true,
+    "row_refs": true,
+    "selected_table_page": true
+  },
+  "side_effect_checks": {
+    "normal_parser_cache_unchanged": true,
+    "second_replay_tmp_parser_cache_only": true,
+    "source_pdfs_unchanged": true
+  },
+  "data_missing": [],
+  "blockers": [
+    "task-card check-diff remains blocked by preserved pre-existing untracked prior task card"
+  ]
+}

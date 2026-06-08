@@ -1,0 +1,33 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_audit_code_changes": true,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608.md",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/README.md",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/pass3a_debug_replay.py",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/pass3a_debug_replay.json",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/common_metric_source_scale_trace.json",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/status.json",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/validation.json",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/logs/task_card_validate.log",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/logs/pass3a_debug_replay.log",
+      "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/logs/validation.log"
+    ],
+    "approval_required": false,
+    "github_mutation_allowed": false,
+    "job_id": "extraction_azj_nsr_isolated_pass3a_replay_v1_20260608",
+    "lane": "Financial Truth",
+    "mutation_mode": "audit_only",
+    "output_dir": "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance",
+      "Repo Hygiene"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}

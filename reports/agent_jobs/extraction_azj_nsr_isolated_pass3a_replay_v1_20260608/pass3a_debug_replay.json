@@ -1,0 +1,1554 @@
+{
+  "azj_gap_reproduced": false,
+  "cache_root": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212/reports/extraction_cache/docling_extract",
+  "close_scale_table_path": true,
+  "common_metric_source_scale_traces": [
+    {
+      "case_id": "suspect_AZJ_488d6f1a",
+      "fallback": "millions",
+      "input_metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "table"
+      },
+      "input_metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "input_metrics": {
+        "capex": -350500000.0,
+        "cash_end": 10500000.0,
+        "ebit": 578100000.0,
+        "financing_cf": -434000000.0,
+        "investing_cf": -349300000.0,
+        "net_debt": null,
+        "np_attributable": 226600000.0,
+        "operating_cf": 788200000.0,
+        "revenue": 1428200000.0,
+        "shares_outstanding": 250000130.0
+      },
+      "output": "millions"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "fallback": "thousands",
+      "input_metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "document"
+      },
+      "input_metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands",
+        "revenue": "thousands",
+        "shares_outstanding": "thousands"
+      },
+      "input_metrics": {
+        "capex": -402000.0,
+        "cash_end": 57387000.0,
+        "ebit": 274928000.0,
+        "financing_cf": -7761000.0,
+        "investing_cf": -96221000.0,
+        "net_debt": 754115000.0,
+        "np_attributable": null,
+        "operating_cf": 65489000.0,
+        "revenue": 131645000.0,
+        "shares_outstanding": 1186585992.0
+      },
+      "output": "thousands"
+    }
+  ],
+  "data_missing": [],
+  "data_root": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212",
+  "decision": "DO_NOT_FIX_FROM_THIS_REPLAY",
+  "errors": [],
+  "exact_docs": [
+    {
+      "case_id": "suspect_AZJ_488d6f1a",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "expected_gap": "metric_source_scales_missing_despite_same_page_millions_evidence",
+      "expected_period_end": "2025-06-30",
+      "expected_period_type": "A",
+      "role": "suspect",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "expected_period_end": "2021-12-31",
+      "expected_period_type": "H",
+      "expected_scale": "thousands",
+      "role": "clean_control",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf"
+    }
+  ],
+  "isolated_cache_after": [
+    {
+      "mtime_ns": 1780901327776312724,
+      "path": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json",
+      "relative_path": "73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json",
+      "size": 86195
+    },
+    {
+      "mtime_ns": 1780901130416742072,
+      "path": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json",
+      "relative_path": "7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json",
+      "size": 184715
+    }
+  ],
+  "isolated_cache_before": [],
+  "isolated_cache_used": true,
+  "job_id": "extraction_azj_nsr_isolated_pass3a_replay_v1_20260608",
+  "llm_info": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "has_api_key": true,
+    "models_elapsed_s": 0.002,
+    "models_head": "{'data': [{'id': 'Qwen3.5-35B-A3B-APEX-I-Compact', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1780900933, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127.0.0.1', '--no-mmap', '--port', '0', '--spec-type', 'ngram-simple', '--alias', 'Qwen3.5-35B-A3B-APEX-I-Compact', '--batch-size', '1024', '--ctx-size', '16384', '--model', '/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf', '--main-gpu', '0', '--n-gpu-layers', '999', '--parallel', '1', '--threads', '4', '--ubatch-size', '512'], 'preset': '[Qwen3.5-35B-A3B-APEX-I-Compact]\\nmmap = 0\\nspec-type = ngram-simple\\nbatch-size = 1024\\nctx-size = 16384\\nmodel = /mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.gguf\\nmain-gpu = 0\\nn-gpu-layers = 999\\nparallel = 1\\nthreads = 4\\nubatch-size = 512\\n\\n'}}, {'id': 'Qwen3.5-35B-A3B-Q4_K_M', 'aliases': [], 'tags': [], 'object': 'model', 'owned_by': 'llamacpp', 'created': 1780900933, 'status': {'value': 'unloaded', 'args': ['/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server', '--host', '127",
+    "models_status_code": 200
+  },
+  "normal_cache_after": {
+    "control_NSR_f2240712": {
+      "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      },
+      "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      }
+    },
+    "suspect_AZJ_488d6f1a": {
+      "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      },
+      "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      }
+    }
+  },
+  "normal_cache_before": {
+    "control_NSR_f2240712": {
+      "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      },
+      "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      }
+    },
+    "suspect_AZJ_488d6f1a": {
+      "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      },
+      "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      }
+    }
+  },
+  "nsr_control_clean": true,
+  "parser_backend_requested": "docling",
+  "pass3a_field_capture": {
+    "common_metric_source_scale_trace": true,
+    "metric_scale_sources": true,
+    "metric_source_scales": true,
+    "pass3a_outputs": true,
+    "row_refs": true,
+    "selected_table_page": true,
+    "table_same_page_document_scale_evidence": true
+  },
+  "production_repair_implemented": false,
+  "results": [
+    {
+      "case_id": "suspect_AZJ_488d6f1a",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "document_scale_evidence": {
+        "early_source_text_scale": "millions",
+        "early_source_text_scale_snippets": [],
+        "table_header_scale": "millions"
+      },
+      "elapsed_s": 301.197,
+      "error": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 65,
+            "table_count": 59
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_results": [
+        {
+          "_markdown": " | Notes | 2025 $m | 2024 $m\n--- | --- | --- | ---\nCash flows from operating activities |  |  | \nReceipts from customers (inclusive of GST) |  | 1,504.6 | 1,658.2\nPayments to suppliers and employees (inclusive of GST) |  | (631.9) | (672.1)\n[... 1 rows omitted ...] |  |  | \nIncome taxes paid |  | (85.4) | (84.1)\nNet cash inflow from operating activities | 18 | 788.2 | 905.5\nCash flows from investing activities |  |  | \nPayments for property, plant and equipment |  | (350.5) | (381.4)\nProceeds from sale of assets |  | 1.2 | 0.8\nNet cash outflow from investing activities |  | (349.3) | (380.6)\nCash flows from financing activities |  |  | \n[... 1 rows omitted ...] |  |  | \nRepayment of external borrowings |  | (744.6) | (990.0)\nPayment of transaction costs related to borrowings and derivatives |  | (3.0) | (9.1)\nProceeds from loans from related parties under the Intra Group Loan/Funding |  |  | \n[... 5 rows omitted ...] |  |  | \nPrincipal element of lease payment |  | (0.3) | -\nDividends paid to Company's shareholder | 12 | (257.0) | (254.4)\nNet cash outflow from financing activities |  | (434.0) | (549.8)\nNet increase/(decrease) in cash and cash equivalents |  | 4.9 | (24.9)\nCash and cash equivalents at the beginning of the financial year |  | 5.4 | 30.2\nEffects of exchange rate changes on cash and cash equivalents |  | 0.2 | 0.1\nCash and cash equivalents at the end of the financial year |  | 10.5 | 5.4\n[... 5 rows omitted ...] |  |  | \nShare-based payment expense | 1.1 | 1.1 | \n[... 2 rows omitted ...] |  |  | \nChange in operating assets and liabilities: |  |  | \n[... 2 rows omitted ...] |  |  | \n(Increase)/Decrease in other operating assets | (1.0) | 0.8 | \n[... 2 rows omitted ...] |  |  | \nIncrease/(Decrease) in other operating liabilities | 19.9 | 16.8 | \n[... 1 rows omitted ...] |  |  | \nIncrease/(Decrease) in provisions | (1.0) | 5.7 | \nNet cash inflow from operating activities | 788.2 | 905.5 | ",
+          "_page_number": 13,
+          "_scale": "millions",
+          "_scale_source": "table",
+          "_source": "cashflow_statement",
+          "_thinking": null,
+          "capex": -350500000.0,
+          "cash_end": 10500000.0,
+          "financing_cf": -434000000.0,
+          "investing_cf": -349300000.0,
+          "operating_cf": 788200000.0,
+          "pass3_confidence": 1.0,
+          "period_col": "2025 $m",
+          "row_refs": {
+            "capex": "Payments for property, plant and equipment",
+            "operating_cf": "Net cash inflow from operating activities"
+          }
+        },
+        {
+          "_markdown": " | Notes | 2025 $m | 2024 $m\n--- | --- | --- | ---\nRevenue from continuing operations | 1 | 1,428.2 | 1,435.3\nEmployee benefits expense | 2 | (196.2) | (181.3)\nEnergy and fuel |  | (138.5) | (160.0)\nConsumables |  | (145.7) | (165.3)\nDepreciation and amortisation | 2 | (361.8) | (343.2)\nOther expenses |  | (7.9) | (9.1)\nOperating profit |  | 578.1 | 576.4\nFinance income |  | 0.9 | 3.6\nFinance expenses | 2 | (253.9) | (238.4)\nNet finance costs |  | (253.0) | (234.8)\nProfit before income tax |  | 325.1 | 341.6\nIncome tax expense | 3 | (98.5) | (104.0)\nProfit for the year attributable to the owners of Aurizon Network Pty Ltd |  | 226.6 | 237.6",
+          "_page_number": 9,
+          "_scale": "millions",
+          "_scale_source": "table",
+          "_source": "income_statement",
+          "_thinking": null,
+          "ebit": 578100000.0,
+          "np_attributable": 226600000.0,
+          "pass3_confidence": 1.0,
+          "period_col": "2025 $m",
+          "revenue": 1428200000.0,
+          "row_refs": {
+            "ebit": "Operating profit",
+            "np_attributable": "Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+            "revenue": "Revenue from continuing operations"
+          }
+        },
+        {
+          "_markdown": " | 2025 $m | 2024 $m\n--- | --- | ---\nCurrent assets | 397.4 | 334.5\nNon-current assets | 5,369.1 | 5,355.4\nTotal assets | 5,766.5 | 5,689.9\nCurrent liabilities | 1,463.4 | 1,224.6\nNon-current liabilities | 3,593.7 | 3,631.6\nTotal liabilities | 5,057.1 | 4,856.2\nNet assets |  | \n | 709.4 | 833.7\nEquity |  | \nContributed equity | 356.0 | 405.4\nReserves | (45.1) | (0.6)\nRetained earnings | 398.5 | 428.9\nTotal equity | 709.4 | 833.7\nProfit for the year | 226.6 | 237.6\nOther comprehensive income | (44.5) | 6.4\nTotal comprehensive income | 182.1 | 244.0",
+          "_page_number": 53,
+          "_scale": "millions",
+          "_scale_source": "table",
+          "_source": "balance_sheet",
+          "_thinking": null,
+          "net_debt": null,
+          "pass3_confidence": 0.3333333333333333,
+          "period_col": "2025 $m",
+          "row_refs": {
+            "total_debt": "Total liabilities"
+          },
+          "shares_outstanding": null,
+          "total_debt": 5057100000.0
+        },
+        {
+          "_markdown": " | Number of shares | $m\n--- | --- | ---\nAt 1 July 2023 | 130 | 399.7\nAt 30 June 2024 | 130 | 399.7\nCapital contribution from the parent | 250,000,000 | 250.0\nCapital distribution to the parent | - | (300.0)\nAt 30 June 2025 | 250,000,130 | 349.7",
+          "_page_number": 39,
+          "_scale": "millions",
+          "_scale_source": "table",
+          "_source": "share_capital",
+          "_thinking": null,
+          "pass3_confidence": 1.0,
+          "period_col": "$m",
+          "row_refs": {
+            "shares_outstanding": "At 30 June 2025"
+          },
+          "shares_outstanding": 250000130.0
+        }
+      ],
+      "pass3a_table_summaries": [
+        {
+          "markdown_head": [
+            " | Notes | 2025 $m | 2024 $m",
+            "--- | --- | --- | ---",
+            "Cash flows from operating activities |  |  | ",
+            "Receipts from customers (inclusive of GST) |  | 1,504.6 | 1,658.2",
+            "Payments to suppliers and employees (inclusive of GST) |  | (631.9) | (672.1)",
+            "[... 1 rows omitted ...] |  |  | ",
+            "Income taxes paid |  | (85.4) | (84.1)",
+            "Net cash inflow from operating activities | 18 | 788.2 | 905.5",
+            "Cash flows from investing activities |  |  | ",
+            "Payments for property, plant and equipment |  | (350.5) | (381.4)",
+            "Proceeds from sale of assets |  | 1.2 | 0.8",
+            "Net cash outflow from investing activities |  | (349.3) | (380.6)"
+          ],
+          "matched_row_text": {
+            "capex": [
+              "Payments for property, plant and equipment | | (350.5) | (381.4)"
+            ],
+            "operating_cf": [
+              "Net cash inflow from operating activities | 18 | 788.2 | 905.5",
+              "Net cash inflow from operating activities | 788.2 | 905.5 |"
+            ]
+          },
+          "non_null_metrics": {
+            "capex": -350500000.0,
+            "cash_end": 10500000.0,
+            "financing_cf": -434000000.0,
+            "investing_cf": -349300000.0,
+            "operating_cf": 788200000.0
+          },
+          "page_number": 13,
+          "pass3_confidence": 1.0,
+          "period_col": "2025 $m",
+          "row_refs": {
+            "capex": "Payments for property, plant and equipment",
+            "operating_cf": "Net cash inflow from operating activities"
+          },
+          "scale": "millions",
+          "scale_source": "table",
+          "source": "cashflow_statement"
+        },
+        {
+          "markdown_head": [
+            " | Notes | 2025 $m | 2024 $m",
+            "--- | --- | --- | ---",
+            "Revenue from continuing operations | 1 | 1,428.2 | 1,435.3",
+            "Employee benefits expense | 2 | (196.2) | (181.3)",
+            "Energy and fuel |  | (138.5) | (160.0)",
+            "Consumables |  | (145.7) | (165.3)",
+            "Depreciation and amortisation | 2 | (361.8) | (343.2)",
+            "Other expenses |  | (7.9) | (9.1)",
+            "Operating profit |  | 578.1 | 576.4",
+            "Finance income |  | 0.9 | 3.6",
+            "Finance expenses | 2 | (253.9) | (238.4)",
+            "Net finance costs |  | (253.0) | (234.8)"
+          ],
+          "matched_row_text": {
+            "ebit": [
+              "Operating profit | | 578.1 | 576.4"
+            ],
+            "np_attributable": [
+              "Profit for the year attributable to the owners of Aurizon Network Pty Ltd | | 226.6 | 237.6"
+            ],
+            "revenue": [
+              "Revenue from continuing operations | 1 | 1,428.2 | 1,435.3"
+            ]
+          },
+          "non_null_metrics": {
+            "ebit": 578100000.0,
+            "np_attributable": 226600000.0,
+            "revenue": 1428200000.0
+          },
+          "page_number": 9,
+          "pass3_confidence": 1.0,
+          "period_col": "2025 $m",
+          "row_refs": {
+            "ebit": "Operating profit",
+            "np_attributable": "Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+            "revenue": "Revenue from continuing operations"
+          },
+          "scale": "millions",
+          "scale_source": "table",
+          "source": "income_statement"
+        },
+        {
+          "markdown_head": [
+            " | 2025 $m | 2024 $m",
+            "--- | --- | ---",
+            "Current assets | 397.4 | 334.5",
+            "Non-current assets | 5,369.1 | 5,355.4",
+            "Total assets | 5,766.5 | 5,689.9",
+            "Current liabilities | 1,463.4 | 1,224.6",
+            "Non-current liabilities | 3,593.7 | 3,631.6",
+            "Total liabilities | 5,057.1 | 4,856.2",
+            "Net assets |  | ",
+            " | 709.4 | 833.7",
+            "Equity |  | ",
+            "Contributed equity | 356.0 | 405.4"
+          ],
+          "matched_row_text": {
+            "total_debt": [
+              "Total liabilities | 5,057.1 | 4,856.2"
+            ]
+          },
+          "non_null_metrics": {
+            "total_debt": 5057100000.0
+          },
+          "page_number": 53,
+          "pass3_confidence": 0.3333333333333333,
+          "period_col": "2025 $m",
+          "row_refs": {
+            "total_debt": "Total liabilities"
+          },
+          "scale": "millions",
+          "scale_source": "table",
+          "source": "balance_sheet"
+        },
+        {
+          "markdown_head": [
+            " | Number of shares | $m",
+            "--- | --- | ---",
+            "At 1 July 2023 | 130 | 399.7",
+            "At 30 June 2024 | 130 | 399.7",
+            "Capital contribution from the parent | 250,000,000 | 250.0",
+            "Capital distribution to the parent | - | (300.0)",
+            "At 30 June 2025 | 250,000,130 | 349.7"
+          ],
+          "matched_row_text": {
+            "shares_outstanding": [
+              "At 30 June 2025 | 250,000,130 | 349.7"
+            ]
+          },
+          "non_null_metrics": {
+            "shares_outstanding": 250000130.0
+          },
+          "page_number": 39,
+          "pass3_confidence": 1.0,
+          "period_col": "$m",
+          "row_refs": {
+            "shares_outstanding": "At 30 June 2025"
+          },
+          "scale": "millions",
+          "scale_source": "table",
+          "source": "share_capital"
+        }
+      ],
+      "payload": {
+        "confidence_metrics": 1.0,
+        "currency": "AUD",
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "np_attributable": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "table"
+        },
+        "metric_source_scales": {
+          "capex": "millions",
+          "cash_end": "millions",
+          "ebit": "millions",
+          "financing_cf": "millions",
+          "investing_cf": "millions",
+          "np_attributable": "millions",
+          "operating_cf": "millions",
+          "revenue": "millions",
+          "shares_outstanding": "millions"
+        },
+        "metrics": {
+          "capex": -350500000.0,
+          "cash_end": 10500000.0,
+          "ebit": 578100000.0,
+          "financing_cf": -434000000.0,
+          "investing_cf": -349300000.0,
+          "net_debt": null,
+          "np_attributable": 226600000.0,
+          "operating_cf": 788200000.0,
+          "revenue": 1428200000.0,
+          "shares_outstanding": 250000130.0
+        },
+        "period_end": "2025-06-30",
+        "period_start": "2024-07-01",
+        "period_type": "A",
+        "provenance": {
+          "capex": "cashflow_statement:page_13:Payments for property, plant and equipment",
+          "cash_end": "cashflow_statement:page_13:unknown",
+          "ebit": "income_statement:page_9:Operating profit",
+          "financing_cf": "cashflow_statement:page_13:unknown",
+          "investing_cf": "cashflow_statement:page_13:unknown",
+          "np_attributable": "income_statement:page_9:Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+          "operating_cf": "cashflow_statement:page_13:Net cash inflow from operating activities",
+          "revenue": "income_statement:page_9:Revenue from continuing operations",
+          "shares_outstanding": "share_capital:page_39:At 30 June 2025"
+        },
+        "row_refs": {
+          "capex": "Payments for property, plant and equipment",
+          "cash_end": "unknown",
+          "ebit": "Operating profit",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "np_attributable": "Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+          "operating_cf": "Net cash inflow from operating activities",
+          "revenue": "Revenue from continuing operations",
+          "shares_outstanding": "At 30 June 2025"
+        },
+        "scale": "millions",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "period_end": "2025-06-30",
+          "period_type": "A",
+          "scale": "millions"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.87.0",
+          "fallback_used": false,
+          "page_count": 65,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "suspect",
+      "selected_tables": {
+        "balance_sheet": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "2025 $m",
+              "2024 $m"
+            ],
+            [
+              "Current assets",
+              "397.4",
+              "334.5"
+            ],
+            [
+              "Non-current assets",
+              "5,369.1",
+              "5,355.4"
+            ],
+            [
+              "Total assets",
+              "5,766.5",
+              "5,689.9"
+            ],
+            [
+              "Current liabilities",
+              "1,463.4",
+              "1,224.6"
+            ],
+            [
+              "Non-current liabilities",
+              "3,593.7",
+              "3,631.6"
+            ]
+          ],
+          "headers": [
+            "",
+            "2025 $m",
+            "2024 $m"
+          ],
+          "page_number": 53,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "millions"
+        },
+        "cashflow_statement": {
+          "caption": "Merged cashflow statement (Appendix 5B)",
+          "head_rows": [
+            [
+              "",
+              "Notes",
+              "2025 $m",
+              "2024 $m"
+            ],
+            [
+              "Cash flows from operating activities",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Receipts from customers (inclusive of GST)",
+              "",
+              "1,504.6",
+              "1,658.2"
+            ],
+            [
+              "Payments to suppliers and employees (inclusive of GST)",
+              "",
+              "(631.9)",
+              "(672.1)"
+            ],
+            [
+              "Interest received",
+              "",
+              "0.9",
+              "3.5"
+            ],
+            [
+              "Income taxes paid",
+              "",
+              "(85.4)",
+              "(84.1)"
+            ]
+          ],
+          "headers": [
+            "",
+            "Notes",
+            "2025 $m",
+            "2024 $m"
+          ],
+          "page_number": 13,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "millions"
+        },
+        "income_statement": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "Notes",
+              "2025 $m",
+              "2024 $m"
+            ],
+            [
+              "Revenue from continuing operations",
+              "1",
+              "1,428.2",
+              "1,435.3"
+            ],
+            [
+              "Employee benefits expense",
+              "2",
+              "(196.2)",
+              "(181.3)"
+            ],
+            [
+              "Energy and fuel",
+              "",
+              "(138.5)",
+              "(160.0)"
+            ],
+            [
+              "Consumables",
+              "",
+              "(145.7)",
+              "(165.3)"
+            ],
+            [
+              "Depreciation and amortisation",
+              "2",
+              "(361.8)",
+              "(343.2)"
+            ]
+          ],
+          "headers": [
+            "",
+            "Notes",
+            "2025 $m",
+            "2024 $m"
+          ],
+          "page_number": 9,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "millions"
+        },
+        "share_capital": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "Number of shares",
+              "$m"
+            ],
+            [
+              "At 1 July 2023",
+              "130",
+              "399.7"
+            ],
+            [
+              "At 30 June 2024",
+              "130",
+              "399.7"
+            ],
+            [
+              "Capital contribution from the parent",
+              "250,000,000",
+              "250.0"
+            ],
+            [
+              "Capital distribution to the parent",
+              "-",
+              "(300.0)"
+            ],
+            [
+              "At 30 June 2025",
+              "250,000,130",
+              "349.7"
+            ]
+          ],
+          "headers": [
+            "",
+            "Number of shares",
+            "$m"
+          ],
+          "page_number": 39,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "millions"
+        }
+      },
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "status": "ok",
+      "ticker": "AZJ"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "document_scale_evidence": {
+        "early_source_text_scale": "unknown",
+        "early_source_text_scale_snippets": [],
+        "table_header_scale": "thousands"
+      },
+      "elapsed_s": 141.408,
+      "error": null,
+      "observer_events": [
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Loading document parser output.",
+          "stage": "parser",
+          "status": "running"
+        },
+        {
+          "details": {
+            "actual_method": "docling_cpu",
+            "page_count": 29,
+            "table_count": 33
+          },
+          "error_code": null,
+          "message": "Parsed document with docling_cpu.",
+          "stage": "parser",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running pass 1 classifier.",
+          "stage": "pass1_classifier",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 1 completed.",
+          "stage": "pass1_classifier",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Locating statement tables.",
+          "stage": "pass2_locator",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 2 completed.",
+          "stage": "pass2_locator",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Extracting metric candidates.",
+          "stage": "pass3a_metrics",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3a completed.",
+          "stage": "pass3a_metrics",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 3b skipped for metrics-only extraction.",
+          "stage": "pass3b_narrative",
+          "status": "skipped"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Reconciling extracted fields.",
+          "stage": "pass4_reconciliation",
+          "status": "running"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Pass 4 completed.",
+          "stage": "pass4_reconciliation",
+          "status": "succeeded"
+        },
+        {
+          "details": {},
+          "error_code": null,
+          "message": "Running validation gates.",
+          "stage": "validation",
+          "status": "running"
+        },
+        {
+          "details": {
+            "error": null,
+            "extraction_status": "ok"
+          },
+          "error_code": null,
+          "message": "Validation completed.",
+          "stage": "validation",
+          "status": "succeeded"
+        }
+      ],
+      "pass3a_results": [
+        {
+          "_markdown": " | 2021 $'000 | 2020 $'000\n--- | --- | ---\nOperating activities |  | \nReceipts from customers | 143,302 | 105,900\nPayments to suppliers and employees | (77,790) | (53,506)\n[... 1 rows omitted ...] |  | \nIncome tax paid | (63) | (612)\nNet cash flows from operating activities | 65,489 | 52,026\nInvesting activities |  | \n[... 2 rows omitted ...] |  | \nDevelopment of investment properties under construction | (26,680) | (24,662)\nPurchase of property, plant and equipment | (402) | (225)\nPurchase of intangible assets | (820) | (320)\nNet cash flows used in investing activities | (96,221) | (306,095)\nFinancing activities |  | \n[... 2 rows omitted ...] |  | \nRepayment of borrowings | (794,429) | -\n[... 1 rows omitted ...] |  | \nPayment of principal and interest on lease liabilities | (7,167) | (6,787)\n[... 1 rows omitted ...] |  | \nBorrowings to joint venture | - | (4,950)\nNet cash flows (used in) / from financing activities | (7,761) | 211,780\nNet decrease in cash and cash equivalents | (38,493) | (42,289)\n[... 1 rows omitted ...] |  | \nCash and cash equivalents at 1 July | 95,910 | 90,352\nCash and cash equivalents at 31 December | 57,387 | 48,065",
+          "_page_number": 12,
+          "_scale": "thousands",
+          "_scale_source": "table",
+          "_source": "cashflow_statement",
+          "_thinking": null,
+          "capex": -402000.0,
+          "cash_end": 57387000.0,
+          "financing_cf": -7761000.0,
+          "investing_cf": -96221000.0,
+          "operating_cf": 65489000.0,
+          "pass3_confidence": 1.0,
+          "period_col": "2021 $'000",
+          "row_refs": {
+            "capex": "Purchase of property, plant and equipment",
+            "operating_cf": "Net cash flows from operating activities"
+          }
+        },
+        {
+          "_markdown": " | Notes | 2021 $'000 | 2020 $'000\n--- | --- | --- | ---\nRevenue from rental income |  | 122,070 | 91,811\nRevenue from contracts with customers |  | 9,266 | 7,316\nInterest income |  | 309 | 482\nTotal revenue |  | 131,645 | 99,609\n[... 6 rows omitted ...] |  |  | \nShare of profit / (loss) of joint ventures and associates | 6 | 953 | (105)\n[... 2 rows omitted ...] |  |  | \nProfit before income tax |  | 274,928 | 101,141\nIncome tax (expense) / benefit | 4 | (812) | 237\nProfit after tax |  | 274,116 | 101,378\nProfit for the period attributable to: |  |  | \n[... 1 rows omitted ...] |  |  | \nNon-controlling interest (unit holders of NSPT) |  | 266,214 | 100,401\n[... 3 rows omitted ...] |  |  | ",
+          "_page_number": 8,
+          "_scale": "thousands",
+          "_scale_source": "table",
+          "_source": "income_statement",
+          "_thinking": null,
+          "ebit": 274928000.0,
+          "np_attributable": null,
+          "pass3_confidence": 0.6666666666666666,
+          "period_col": "2021 $'000",
+          "revenue": 131645000.0,
+          "row_refs": {
+            "ebit": "Profit before income tax",
+            "revenue": "Total revenue"
+          }
+        },
+        {
+          "_markdown": " | Notes | as at 31 Dec 2021 $'000 | as at 30 Jun 2021 $'000\n--- | --- | --- | ---\nASSETS |  |  | \nCurrent assets |  |  | \nCash and cash equivalents |  | 57,387 | 95,910\n[... 3 rows omitted ...] |  |  | \nOther current assets | 9 | 10,796 | 4,909\nTotal current assets |  | 86,237 | 117,222\nNon-current assets |  |  | \n[... 7 rows omitted ...] |  |  | \nOther non-current assets | 9 | 11,369 | 6,246\nTotal non-current assets |  | 3,464,051 | 3,134,651\nTotal Assets |  | 3,550,288 | 3,251,873\nLIABILITIES |  |  | \nCurrent liabilities |  |  | \n[... 1 rows omitted ...] |  |  | \nBorrowings | 11 | 188,293 | -\nLease liabilities | 7 | 9,636 | 9,037\n[... 4 rows omitted ...] |  |  | \nOther liabilities | 12 | - | 22\nTotal current liabilities |  | 293,263 | 100,095\nNon-current liabilities |  |  | \n[... 1 rows omitted ...] |  |  | \nBorrowings | 11 | 623,209 | 758,050\nLease liabilities | 7 | 97,325 | 101,663\n[... 2 rows omitted ...] |  |  | \nOther liabilities | 12 | - | 103\nTotal non-current liabilities |  | 728,716 | 867,136\nTotal Liabilities |  | 1,021,979 | 967,231\nNet Assets |  | 2,528,309 | 2,284,642\nEQUITY |  |  | ",
+          "_page_number": 10,
+          "_scale": "thousands",
+          "_scale_source": "table",
+          "_source": "balance_sheet",
+          "_thinking": "Found total borrowings in the table, calculated total debt. No net debt or shares outstanding explicitly labeled.",
+          "net_debt": null,
+          "pass3_confidence": 0.3333333333333333,
+          "period_col": "as at 31 Dec 2021 $'000",
+          "row_refs": {
+            "total_debt": "Borrowings, Borrowings"
+          },
+          "shares_outstanding": null,
+          "total_debt": 811502000.0
+        },
+        {
+          "_markdown": " | 31 Dec 2021 cents | 31 Dec 2020 cents (adjusted)\n--- | --- | ---\nBasic earnings per stapled security | 23.09 | 9.93\nDiluted earnings per stapled security | 23.07 | 9.93\nReconciliation of earnings used in calculating earnings per stapled security |  | \n | $'000 | $'000\nNet profit attributable to members | 274,116 | 101,378\n | No. of securities | No. of securities\nWeighted average number of securities on issue during the period | 1,186,585,992 | 1,016,231,746\nAdjustment under AASB 133 to reflect discount to market price on issue of new capital | 398,407 | 5,085,765\nWeighted average number of securities for basic earnings per stapled security | 1,186,984,399 | 1,021,317,511\nEffects of dilution from issue of performance rights and restricted securities | 1,217,959 | -\nWeighted average number of securities for diluted earnings per stapled security | 1,188,202,358 | 1,021,317,511",
+          "_page_number": 24,
+          "_scale": "thousands",
+          "_scale_source": "document",
+          "_source": "share_capital",
+          "_thinking": null,
+          "pass3_confidence": 1.0,
+          "period_col": "31 Dec 2021 cents",
+          "row_refs": {
+            "shares_outstanding": "Weighted average number of securities on issue during the period"
+          },
+          "shares_outstanding": 1186585992.0
+        }
+      ],
+      "pass3a_table_summaries": [
+        {
+          "markdown_head": [
+            " | 2021 $'000 | 2020 $'000",
+            "--- | --- | ---",
+            "Operating activities |  | ",
+            "Receipts from customers | 143,302 | 105,900",
+            "Payments to suppliers and employees | (77,790) | (53,506)",
+            "[... 1 rows omitted ...] |  | ",
+            "Income tax paid | (63) | (612)",
+            "Net cash flows from operating activities | 65,489 | 52,026",
+            "Investing activities |  | ",
+            "[... 2 rows omitted ...] |  | ",
+            "Development of investment properties under construction | (26,680) | (24,662)",
+            "Purchase of property, plant and equipment | (402) | (225)"
+          ],
+          "matched_row_text": {
+            "capex": [
+              "Purchase of property, plant and equipment | (402) | (225)"
+            ],
+            "operating_cf": [
+              "Net cash flows from operating activities | 65,489 | 52,026"
+            ]
+          },
+          "non_null_metrics": {
+            "capex": -402000.0,
+            "cash_end": 57387000.0,
+            "financing_cf": -7761000.0,
+            "investing_cf": -96221000.0,
+            "operating_cf": 65489000.0
+          },
+          "page_number": 12,
+          "pass3_confidence": 1.0,
+          "period_col": "2021 $'000",
+          "row_refs": {
+            "capex": "Purchase of property, plant and equipment",
+            "operating_cf": "Net cash flows from operating activities"
+          },
+          "scale": "thousands",
+          "scale_source": "table",
+          "source": "cashflow_statement"
+        },
+        {
+          "markdown_head": [
+            " | Notes | 2021 $'000 | 2020 $'000",
+            "--- | --- | --- | ---",
+            "Revenue from rental income |  | 122,070 | 91,811",
+            "Revenue from contracts with customers |  | 9,266 | 7,316",
+            "Interest income |  | 309 | 482",
+            "Total revenue |  | 131,645 | 99,609",
+            "[... 6 rows omitted ...] |  |  | ",
+            "Share of profit / (loss) of joint ventures and associates | 6 | 953 | (105)",
+            "[... 2 rows omitted ...] |  |  | ",
+            "Profit before income tax |  | 274,928 | 101,141",
+            "Income tax (expense) / benefit | 4 | (812) | 237",
+            "Profit after tax |  | 274,116 | 101,378"
+          ],
+          "matched_row_text": {
+            "ebit": [
+              "Profit before income tax | | 274,928 | 101,141"
+            ],
+            "revenue": [
+              "Total revenue | | 131,645 | 99,609"
+            ]
+          },
+          "non_null_metrics": {
+            "ebit": 274928000.0,
+            "revenue": 131645000.0
+          },
+          "page_number": 8,
+          "pass3_confidence": 0.6666666666666666,
+          "period_col": "2021 $'000",
+          "row_refs": {
+            "ebit": "Profit before income tax",
+            "revenue": "Total revenue"
+          },
+          "scale": "thousands",
+          "scale_source": "table",
+          "source": "income_statement"
+        },
+        {
+          "markdown_head": [
+            " | Notes | as at 31 Dec 2021 $'000 | as at 30 Jun 2021 $'000",
+            "--- | --- | --- | ---",
+            "ASSETS |  |  | ",
+            "Current assets |  |  | ",
+            "Cash and cash equivalents |  | 57,387 | 95,910",
+            "[... 3 rows omitted ...] |  |  | ",
+            "Other current assets | 9 | 10,796 | 4,909",
+            "Total current assets |  | 86,237 | 117,222",
+            "Non-current assets |  |  | ",
+            "[... 7 rows omitted ...] |  |  | ",
+            "Other non-current assets | 9 | 11,369 | 6,246",
+            "Total non-current assets |  | 3,464,051 | 3,134,651"
+          ],
+          "matched_row_text": {
+            "total_debt": []
+          },
+          "non_null_metrics": {
+            "total_debt": 811502000.0
+          },
+          "page_number": 10,
+          "pass3_confidence": 0.3333333333333333,
+          "period_col": "as at 31 Dec 2021 $'000",
+          "row_refs": {
+            "total_debt": "Borrowings, Borrowings"
+          },
+          "scale": "thousands",
+          "scale_source": "table",
+          "source": "balance_sheet"
+        },
+        {
+          "markdown_head": [
+            " | 31 Dec 2021 cents | 31 Dec 2020 cents (adjusted)",
+            "--- | --- | ---",
+            "Basic earnings per stapled security | 23.09 | 9.93",
+            "Diluted earnings per stapled security | 23.07 | 9.93",
+            "Reconciliation of earnings used in calculating earnings per stapled security |  | ",
+            " | $'000 | $'000",
+            "Net profit attributable to members | 274,116 | 101,378",
+            " | No. of securities | No. of securities",
+            "Weighted average number of securities on issue during the period | 1,186,585,992 | 1,016,231,746",
+            "Adjustment under AASB 133 to reflect discount to market price on issue of new capital | 398,407 | 5,085,765",
+            "Weighted average number of securities for basic earnings per stapled security | 1,186,984,399 | 1,021,317,511",
+            "Effects of dilution from issue of performance rights and restricted securities | 1,217,959 | -"
+          ],
+          "matched_row_text": {
+            "shares_outstanding": [
+              "Weighted average number of securities on issue during the period | 1,186,585,992 | 1,016,231,746"
+            ]
+          },
+          "non_null_metrics": {
+            "shares_outstanding": 1186585992.0
+          },
+          "page_number": 24,
+          "pass3_confidence": 1.0,
+          "period_col": "31 Dec 2021 cents",
+          "row_refs": {
+            "shares_outstanding": "Weighted average number of securities on issue during the period"
+          },
+          "scale": "thousands",
+          "scale_source": "document",
+          "source": "share_capital"
+        }
+      ],
+      "payload": {
+        "confidence_metrics": 0.852,
+        "currency": "AUD",
+        "metric_scale_sources": {
+          "capex": "table",
+          "cash_end": "table",
+          "ebit": "table",
+          "financing_cf": "table",
+          "investing_cf": "table",
+          "operating_cf": "table",
+          "revenue": "table",
+          "shares_outstanding": "document"
+        },
+        "metric_source_scales": {
+          "capex": "thousands",
+          "cash_end": "thousands",
+          "ebit": "thousands",
+          "financing_cf": "thousands",
+          "investing_cf": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands",
+          "shares_outstanding": "thousands"
+        },
+        "metrics": {
+          "capex": -402000.0,
+          "cash_end": 57387000.0,
+          "ebit": 274928000.0,
+          "financing_cf": -7761000.0,
+          "investing_cf": -96221000.0,
+          "net_debt": 754115000.0,
+          "np_attributable": null,
+          "operating_cf": 65489000.0,
+          "revenue": 131645000.0,
+          "shares_outstanding": 1186585992.0
+        },
+        "period_end": "2021-12-31",
+        "period_start": "2021-07-01",
+        "period_type": "H",
+        "provenance": {
+          "capex": "cashflow_statement:page_12:Purchase of property, plant and equipment",
+          "cash_end": "cashflow_statement:page_12:unknown",
+          "ebit": "income_statement:page_8:Profit before income tax",
+          "financing_cf": "cashflow_statement:page_12:unknown",
+          "investing_cf": "cashflow_statement:page_12:unknown",
+          "net_debt": "derived:balance_sheet:total_debt(811502000)-cash_end(57387000)",
+          "operating_cf": "cashflow_statement:page_12:Net cash flows from operating activities",
+          "revenue": "income_statement:page_8:Total revenue",
+          "shares_outstanding": "share_capital:page_24:Weighted average number of securities on issue during the period"
+        },
+        "row_refs": {
+          "capex": "Purchase of property, plant and equipment",
+          "cash_end": "unknown",
+          "ebit": "Profit before income tax",
+          "financing_cf": "unknown",
+          "investing_cf": "unknown",
+          "net_debt": "total_debt(811502000)-cash_end(57387000)",
+          "operating_cf": "Net cash flows from operating activities",
+          "revenue": "Total revenue",
+          "shares_outstanding": "Weighted average number of securities on issue during the period"
+        },
+        "scale": "thousands",
+        "scale_validation": "pass",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+          "period_end": "2021-12-31",
+          "period_type": "H",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "half_year_source_phrase",
+            "six_months_ended_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "half_year_source_phrase"
+        },
+        "status": "ok",
+        "structured_extraction": {
+          "docling_version": "2.87.0",
+          "fallback_used": false,
+          "page_count": 29,
+          "parser_id": "docling_cpu",
+          "warnings": []
+        }
+      },
+      "role": "clean_control",
+      "selected_tables": {
+        "balance_sheet": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "Notes",
+              "as at 31 Dec 2021 $'000",
+              "as at 30 Jun 2021 $'000"
+            ],
+            [
+              "ASSETS",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Current assets",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Cash and cash equivalents",
+              "",
+              "57,387",
+              "95,910"
+            ],
+            [
+              "Trade and other receivables",
+              "",
+              "16,103",
+              "15,056"
+            ],
+            [
+              "Inventories",
+              "",
+              "1,951",
+              "1,318"
+            ]
+          ],
+          "headers": [
+            "",
+            "Notes",
+            "as at 31 Dec 2021 $'000",
+            "as at 30 Jun 2021 $'000"
+          ],
+          "page_number": 10,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "thousands"
+        },
+        "cashflow_statement": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "2021 $'000",
+              "2020 $'000"
+            ],
+            [
+              "Operating activities",
+              "",
+              ""
+            ],
+            [
+              "Receipts from customers",
+              "143,302",
+              "105,900"
+            ],
+            [
+              "Payments to suppliers and employees",
+              "(77,790)",
+              "(53,506)"
+            ],
+            [
+              "Interest received",
+              "40",
+              "244"
+            ],
+            [
+              "Income tax paid",
+              "(63)",
+              "(612)"
+            ]
+          ],
+          "headers": [
+            "",
+            "2021 $'000",
+            "2020 $'000"
+          ],
+          "page_number": 12,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "thousands"
+        },
+        "income_statement": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "Notes",
+              "2021 $'000",
+              "2020 $'000"
+            ],
+            [
+              "Revenue from rental income",
+              "",
+              "122,070",
+              "91,811"
+            ],
+            [
+              "Revenue from contracts with customers",
+              "",
+              "9,266",
+              "7,316"
+            ],
+            [
+              "Interest income",
+              "",
+              "309",
+              "482"
+            ],
+            [
+              "Total revenue",
+              "",
+              "131,645",
+              "99,609"
+            ],
+            [
+              "Employee expenses",
+              "",
+              "(24,940)",
+              "(19,130)"
+            ]
+          ],
+          "headers": [
+            "",
+            "Notes",
+            "2021 $'000",
+            "2020 $'000"
+          ],
+          "page_number": 8,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_local_scale": "thousands"
+        },
+        "share_capital": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "31 Dec 2021 cents",
+              "31 Dec 2020 cents (adjusted)"
+            ],
+            [
+              "Basic earnings per stapled security",
+              "23.09",
+              "9.93"
+            ],
+            [
+              "Diluted earnings per stapled security",
+              "23.07",
+              "9.93"
+            ],
+            [
+              "Reconciliation of earnings used in calculating earnings per stapled security",
+              "",
+              ""
+            ],
+            [
+              "",
+              "$'000",
+              "$'000"
+            ],
+            [
+              "Net profit attributable to members",
+              "274,116",
+              "101,378"
+            ]
+          ],
+          "headers": [
+            "",
+            "31 Dec 2021 cents",
+            "31 Dec 2020 cents (adjusted)"
+          ],
+          "page_number": 24,
+          "same_page_scale": "units",
+          "same_page_scale_snippets": [
+            "As at 31 December 2021, the Group has contractual commitments in place for the construction of selfstorage centres of NZD $7.2m (AUD $6.8m) in New Zealand (see note 5)."
+          ],
+          "table_local_scale": "unknown"
+        }
+      },
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "status": "ok",
+      "ticker": "NSR"
+    }
+  ],
+  "settings_data_root": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212",
+  "source_pdf_after": {
+    "control_NSR_f2240712": {
+      "exists": true,
+      "mtime_ns": 1772359264450408775,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "size": 716803
+    },
+    "suspect_AZJ_488d6f1a": {
+      "exists": true,
+      "mtime_ns": 1772345121147027101,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "size": 8592702
+    }
+  },
+  "source_pdf_before": {
+    "control_NSR_f2240712": {
+      "exists": true,
+      "mtime_ns": 1772359264450408775,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "size": 716803
+    },
+    "suspect_AZJ_488d6f1a": {
+      "exists": true,
+      "mtime_ns": 1772345121147027101,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "size": 8592702
+    }
+  },
+  "state": "DONE",
+  "unsafe_actions_avoided": [
+    "normal_parser_cache_write",
+    "db_write",
+    "qdrant_write",
+    "redis_write",
+    "news_write",
+    "memory_write",
+    "source_pdf_write",
+    "prompt_write",
+    "gold_label_write",
+    "runtime_config_write",
+    "service_start",
+    "broad_extraction",
+    "count_24",
+    "count_32",
+    "random_sample",
+    "backfill",
+    "github_mutation",
+    "production_repair"
+  ]
+}

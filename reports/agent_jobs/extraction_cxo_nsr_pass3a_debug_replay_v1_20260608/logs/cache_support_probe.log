@@ -1,0 +1,14 @@
+settings.data_root /tmp/tenn-pass3a-debug-replay-cache-v1-20260608-probe
+settings.docs_root /tmp/tenn-pass3a-debug-replay-cache-v1-20260608-probe/asx/docs
+cache_root /tmp/tenn-pass3a-debug-replay-cache-v1-20260608-probe/reports/extraction_cache/docling_extract
+pdf_exists /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf True
+pymupdf_cache_path /tmp/tenn-pass3a-debug-replay-cache-v1-20260608-probe/reports/extraction_cache/docling_extract/2745e28f57d68071f16a84674ce0efa782ed186463c9140ceb9790bf38103b11-2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4.pymupdf.json
+pdf_exists /mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf True
+pymupdf_cache_path /tmp/tenn-pass3a-debug-replay-cache-v1-20260608-probe/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json
+cache_root_under_tmp True
+EXIT_STATUS=0
+llm_probe_base http://127.0.0.1:8001/v1
+llm_probe_has_api_key True
+llm_probe_status_code 200
+llm_probe_body_head {"data":[{"id":"Qwen3.5-35B-A3B-APEX-I-Compact","aliases":[],"tags":[],"object":"model","owned_by":"llamacpp","created":1780888972,"status":{"value":"unloaded","args":["/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/tools/llama.cpp/build-cuda/bin/llama-server","--host","127.0.0.1","--no-mmap","--port","0","--spec-type","ngram-simple","--alias","Qwen3.5-35B-A3B-APEX-I-Compact","--batch-size","1024","--ctx-size","16384","--model","/mnt/tenn-nvme2/tenn/models/Qwen3.5-35B-A3B-APEX-I-Compact.ggu
+LLM_PROBE_EXIT_STATUS=0

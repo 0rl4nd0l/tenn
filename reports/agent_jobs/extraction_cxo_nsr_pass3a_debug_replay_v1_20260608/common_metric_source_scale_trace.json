@@ -1,0 +1,95 @@
+{
+  "exact_docs": [
+    {
+      "case_id": "control_CXO_36e172ec",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "expected_period_end": "2022-09-30",
+      "expected_period_type": "Q",
+      "expected_scale": "thousands",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "ticker": "CXO",
+      "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "expected_period_end": "2021-12-31",
+      "expected_period_type": "H",
+      "expected_scale": "thousands",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf"
+    }
+  ],
+  "job_id": "extraction_cxo_nsr_pass3a_debug_replay_v1_20260608",
+  "traces": [
+    {
+      "fallback": "thousands",
+      "input_metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table",
+        "shares_outstanding": "document"
+      },
+      "input_metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands",
+        "shares_outstanding": "thousands"
+      },
+      "input_metrics": {
+        "capex": -19014000.0,
+        "cash_end": 95521000.0,
+        "ebit": null,
+        "financing_cf": -77000.0,
+        "investing_cf": -35844000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -3756000.0,
+        "revenue": null,
+        "shares_outstanding": 1834520701.0
+      },
+      "output": "thousands"
+    },
+    {
+      "fallback": "thousands",
+      "input_metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "document"
+      },
+      "input_metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands",
+        "revenue": "thousands",
+        "shares_outstanding": "thousands"
+      },
+      "input_metrics": {
+        "capex": -402000.0,
+        "cash_end": 57387000.0,
+        "ebit": 274928000.0,
+        "financing_cf": -7761000.0,
+        "investing_cf": -96221000.0,
+        "net_debt": 754115000.0,
+        "np_attributable": null,
+        "operating_cf": 65489000.0,
+        "revenue": 131645000.0,
+        "shares_outstanding": 1186585992.0
+      },
+      "output": "thousands"
+    }
+  ]
+}
