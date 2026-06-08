@@ -11,7 +11,15 @@ Short boot sequence:
 2. `bash financial-engine_v2/scripts/run_local_backend.sh`
 3. `bash financial-engine_v2/scripts/smoke_local.sh`
 
-Note: `python run.py` is **NOT** the canonical startup path for agents (it is a batch runner).
+Agent wrapper sequence:
+1. `bash scripts/start_system.sh`
+2. `bash scripts/validate_system.sh`
+
+Both sequences target the FastAPI backend. The system is ready when
+`/api/health` responds successfully.
+
+Note: `python run.py` is **NOT** the canonical startup path for agents. It is a
+batch workflow runner for data collection jobs, not the API bootstrap.
 
 ## Lightweight Execution Workflow
 - Track live work state in `STATE.md`.
@@ -26,7 +34,7 @@ Note: `python run.py` is **NOT** the canonical startup path for agents (it is a 
 3. Run:
    - `python run.py`
 
-That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
+That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded. Use it for batch collection workflows after choosing that operational path; use the canonical execution commands above when starting or validating the backend API.
 
 ## Isolated AU News Collector (`newspaper4k`)
 For a separate, research-only AU finance article collector, use:
