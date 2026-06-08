@@ -1,0 +1,37 @@
+{
+  "job_id": "extraction_scale_table_candidate_selector_v1_20260608",
+  "generated_at": "2026-06-08",
+  "validation_pending_at_write": false,
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_scale_table_candidate_selector_v1_20260608.md",
+      "exit_status": 0,
+      "purpose": "Validate report-only task card before report edits."
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_scale_table_candidate_selector_v1_20260608/selection.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_scale_table_candidate_selector_v1_20260608/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_scale_table_candidate_selector_v1_20260608/validation.json >/dev/null",
+      "exit_status": 0,
+      "purpose": "Validate generated JSON report artifacts."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_scale_table_candidate_selector_v1_20260608.md",
+      "exit_status": 0,
+      "purpose": "Validate task card after report edits."
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "purpose": "Check tracked diff whitespace in the dirty shared checkout."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff --no-write-report docs/agent_tasks/extraction_scale_table_candidate_selector_v1_20260608.md",
+      "exit_status": 1,
+      "purpose": "Check task-card allowlist against current checkout diff.",
+      "blocker": "The shared checkout already contains dirty tracked and untracked files outside this task card allowlist. Those unrelated files were preserved."
+    }
+  ],
+  "runtime_validation_required": false,
+  "runtime_validation_reason": "Report-only selector used existing artifacts and intentionally did not run extraction, samples, backfill, services, or production repair.",
+  "check_diff_ok": false,
+  "check_diff_blocked_by_preexisting_dirt": true
+}

@@ -1,0 +1,48 @@
+{
+  "job_id": "extraction_scale_table_candidate_selector_v1_20260608",
+  "generated_at": "2026-06-08",
+  "state": "DONE_WITH_RISK",
+  "mode": "REPORT_ONLY",
+  "suspect_recommended": {
+    "ticker": "AZJ",
+    "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e"
+  },
+  "clean_control_recommended": {
+    "ticker": "NSR",
+    "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab"
+  },
+  "close_scale_table_path": false,
+  "data_missing": [
+    "AZJ isolated-cache replay has not been run in this selector job.",
+    "WHC exact pass3a row refs and metric scale provenance remain DATA_MISSING.",
+    "EDU clean formal income-statement selection remains DATA_MISSING."
+  ],
+  "unsafe_actions_avoided": [
+    "count_24",
+    "count_32",
+    "random_sample",
+    "broad_extraction",
+    "backfill",
+    "production_repair",
+    "db_write",
+    "qdrant_write",
+    "redis_write",
+    "news_write",
+    "memory_write",
+    "source_pdf_write",
+    "prompt_write",
+    "gold_label_write",
+    "runtime_config_write",
+    "normal_parser_cache_write",
+    "service_start",
+    "model_gpu_config_write",
+    "github_mutation"
+  ],
+  "validation": {
+    "task_card_validate_exit_status": 0,
+    "json_parse_exit_status": 0,
+    "git_diff_check_exit_status": 0,
+    "task_card_check_diff_exit_status": 1,
+    "task_card_check_diff_blocker": "Pre-existing dirty tracked and untracked files outside this task card allowlist are present in the shared checkout."
+  }
+}
