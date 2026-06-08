@@ -406,6 +406,250 @@ def test_explicit_source_period_end_detection_refuses_ambiguous_or_loose_dates()
     assert ambiguous["reason"] == "ambiguous"
 
 
+def test_hub_explicit_source_period_end_overrides_announcement_date():
+    from app.services.multipass_extraction import (
+        _bind_explicit_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
+        _validate_gate,
+    )
+
+    document_title = (
+        "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_"
+        "419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+    )
+    evidence = _detect_source_period_end_evidence(
+        document_title,
+        (
+            "Appendix 4D. Half-year ended 31 December 2023. "
+            "Current period: 1 July 2023 to 31 December 2023."
+        ),
+    )
+    assert evidence["period_type"] == "H"
+    assert evidence["period_end"] == "2023-12-31"
+    assert any(hit["source"] == "source_text" for hit in evidence["hits"])
+    assert _has_source_text_period_end_hit(evidence) is True
+    assert (
+        _has_source_text_period_end_hit(
+            evidence,
+            reason="half_year_ended_explicit_date",
+        )
+        is True
+    )
+
+    pass1 = {"report_type": "H", "period_end": "2024-02-20"}
+    changed = _bind_explicit_source_period_end_over_announcement_date(
+        pass1,
+        evidence,
+        document_title,
+    )
+
+    assert changed is True
+    assert pass1["period_end"] == "2023-12-31"
+    assert pass1["_source_period_end_binding"] == {
+        "reason": "explicit_source_half_year_period_end_over_announcement_title_date",
+        "from_period_end": "2024-02-20",
+        "to_period_end": "2023-12-31",
+        "source_period_end_reason": "half_year_ended_explicit_date",
+    }
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = evidence
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": document_title,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+
+
+def test_hub_title_date_only_period_end_remains_fail_closed():
+    from app.services.multipass_extraction import (
+        _bind_explicit_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
+        _validate_gate,
+    )
+
+    document_title = (
+        "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_"
+        "419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+    )
+    evidence = _detect_source_period_end_evidence(
+        document_title,
+        "Appendix 4D interim financial report without an exact period-end date.",
+    )
+    assert evidence["period_end"] is None
+    assert evidence["reason"] == "not_detected"
+    assert _has_source_text_period_end_hit(evidence) is False
+
+    pass1 = {"report_type": "H", "period_end": "2024-02-20"}
+    changed = _bind_explicit_source_period_end_over_announcement_date(
+        pass1,
+        evidence,
+        document_title,
+    )
+    assert changed is False
+    assert pass1["period_end"] == "2024-02-20"
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = evidence
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": document_title,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:announcement_date_period_end:"
+        "period_type=H:period_end=2024-02-20:"
+        "title_date=2024-02-20:leading_title_date"
+    )
+
+
+def test_lbl_1h_fy26_label_only_period_end_remains_fail_closed():
+    from app.services.multipass_extraction import (
+        _bind_explicit_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
+        _validate_gate,
+    )
+
+    document_title = (
+        "2026-02-20_1h-fy26-results-presentation_"
+        "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    )
+    evidence = _detect_source_period_end_evidence(
+        document_title,
+        "1H FY26 Results Presentation. Half-Year. Five-Year Earnings A$000 1H FY26.",
+    )
+    assert evidence["period_end"] is None
+    assert evidence["reason"] == "not_detected"
+    assert _has_source_text_period_end_hit(evidence) is False
+
+    pass1 = {"report_type": "H", "period_end": "2026-02-20"}
+    changed = _bind_explicit_source_period_end_over_announcement_date(
+        pass1,
+        evidence,
+        document_title,
+    )
+    assert changed is False
+    assert pass1["period_end"] == "2026-02-20"
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = evidence
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": document_title,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:announcement_date_period_end:"
+        "period_type=H:period_end=2026-02-20:"
+        "title_date=2026-02-20:leading_title_date"
+    )
+
+
+def test_title_only_explicit_period_end_does_not_override_announcement_date():
+    from app.services.multipass_extraction import (
+        _bind_explicit_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
+        _validate_gate,
+    )
+
+    document_title = "2024-02-20 Half-year ended 31 December 2023 HUB.pdf"
+    evidence = _detect_source_period_end_evidence(
+        document_title,
+        "Appendix 4D with no source-text period-end phrase.",
+    )
+    assert evidence["period_type"] == "H"
+    assert evidence["period_end"] == "2023-12-31"
+    assert all(hit["source"] == "title" for hit in evidence["hits"])
+    assert _has_source_text_period_end_hit(evidence) is False
+
+    pass1 = {"report_type": "H", "period_end": "2024-02-20"}
+    changed = _bind_explicit_source_period_end_over_announcement_date(
+        pass1,
+        evidence,
+        document_title,
+    )
+
+    assert changed is False
+    assert pass1["period_end"] == "2024-02-20"
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = evidence
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:period_end_source_mismatch:"
+        "payload=2024-02-20:source=2023-12-31:half_year_ended_explicit_date"
+    )
+
+
+def test_exact_source_period_end_does_not_override_non_announcement_date_conflict():
+    from app.services.multipass_extraction import (
+        _bind_explicit_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _validate_gate,
+    )
+
+    document_title = (
+        "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_"
+        "419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+    )
+    evidence = _detect_source_period_end_evidence(
+        document_title,
+        "Appendix 4D. Half-year ended 31 December 2023.",
+    )
+    pass1 = {"report_type": "H", "period_end": "2024-01-31"}
+
+    changed = _bind_explicit_source_period_end_over_announcement_date(
+        pass1,
+        evidence,
+        document_title,
+    )
+
+    assert changed is False
+    assert pass1["period_end"] == "2024-01-31"
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = evidence
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:period_end_source_mismatch:"
+        "payload=2024-01-31:source=2023-12-31:half_year_ended_explicit_date"
+    )
+
+
 def test_source_document_classification_formalizes_advisory_and_report_cases():
     """Source classification exposes policy without weakening existing gates."""
     from app.services.multipass_extraction import classify_source_document
