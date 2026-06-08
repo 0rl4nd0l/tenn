@@ -1,0 +1,91 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/merge_repo_hygiene_report_prs_149_164_v1_20260608.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/next_closeout_or_merge_gate_v1_20260608.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/validation.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/pr149_review.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/pr164_review.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/validation.md",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/next_closeout_or_merge_gate_v1_20260608.md",
+        "docs/agent_tasks/merge_repo_hygiene_report_prs_149_164_v1_20260608.md",
+        "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/README.md",
+        "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/status.json",
+        "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/pr149_review.md",
+        "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/pr164_review.md",
+        "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/validation.md",
+        "reports/agent_jobs/next_closeout_or_merge_gate_v1_20260608/diff-check.json",
+        "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/README.md",
+        "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/status.json",
+        "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/validation.md",
+        "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608/diff-check.json"
+      ],
+      "approval_reference": "User said proceed after plan: fresh-readback and merge #149 then #164; no prune.",
+      "approval_required": true,
+      "github_mutation_allowed": "merge_pr_149_164_only",
+      "job_id": "merge_repo_hygiene_report_prs_149_164_v1_20260608",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/merge_repo_hygiene_report_prs_149_164_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "pr_merge_only",
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
