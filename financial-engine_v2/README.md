@@ -154,6 +154,21 @@ Rebuild financial rows from already-downloaded docs (no re-download):
 - `python3 scripts/rebuild_ticker_financials_from_docs.py --ticker BHP`
 - `python3 scripts/rebuild_ticker_financials_from_docs.py --ticker BHP --since 2024-01-01 --limit 100`
 
+Run the full ticker updater with an explicit zero-row quality policy:
+
+- `python3 scripts/update_ticker_financials.py --ticker BHP --years 5 --zero-rows-policy warn`
+- `python3 scripts/update_ticker_financials.py --ticker BHP --years 5 --zero-rows-policy strict_fail`
+
+`--zero-rows-policy` accepts:
+
+- `warn`: record zero rows in the report without failing the run.
+- `auto_rebuild_fail`: run `rebuild_ticker_financials_from_docs.py` and fail if rows are still zero.
+- `strict_fail`: fail immediately when the update leaves zero financial rows.
+
+Updater reports include a `quality_gate` section with the policy, row count,
+pass/fail status, reasons, and optional rebuild details. Any extraction failure
+count also forces a failed updater status.
+
 Audit ticker financial quality (confidence, source-linkage, period gaps):
 
 - `python3 scripts/audit_ticker_financials.py --ticker BHP`

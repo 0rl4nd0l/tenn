@@ -13,7 +13,7 @@ The system is functional for ingestion, download, extraction, and structured per
 Primary migration priorities:
 1. Preserve path and env assumptions used by scripts and providers.
 2. Resolve worker/task path divergence.
-3. Resolve `update_ticker_financials` script/test drift.
+3. Re-check previously remediated quality-gate drift in the target project.
 4. Re-validate with canonical checks and health gates in the target project.
 
 ## 2. Scope and Evidence Base
@@ -194,16 +194,26 @@ Per runtime README:
 1. Worker implementation split (backend wrapper vs legacy worker code).
 2. News corpus marked research-only with compliance gating.
 3. Ops hardening worksheet contains unresolved placeholder command tokens.
-4. `log_change_impact.py` intentionally defaults several fields to `TBD`.
+4. `log_change_impact.py` still exposes `TBD` parser defaults, but current
+   source rejects required fields left blank or `TBD` with exit code `2`.
 5. Some docs no longer perfectly align with latest extraction/runtime code path details.
 
 ## 6. Verified Defects and Risks
 
-### 6.1 Verified in Current Tree
+### 6.1 Originally Verified Defects and Current Status
 
-1. `update_ticker_financials.py` references `args.zero_rows_policy` in dry-run plan, but parser does not define it.
-2. `test_update_ticker_financials_quality_gate.py` fails in current tree (3 errors) due script/test contract drift.
-3. API Celery enqueue routes do not pass `years` and `process_documents` values into queued task args.
+This report was originally prepared on 2026-02-26. The following defects were
+verified then; later remediation status should be checked against current
+source and `financial-engine_v2/docs/bug_fix_audit_2026-03-18.md`.
+
+1. `update_ticker_financials.py` referenced `args.zero_rows_policy` in the
+   dry-run plan, but the parser did not define it. Current source defines
+   `--zero-rows-policy` and emits a `quality_gate` report section.
+2. `test_update_ticker_financials_quality_gate.py` failed due to
+   script/test contract drift. The bug-fix audit records this as fixed in its
+   validation snapshot.
+3. API Celery enqueue routes did not pass `years` and `process_documents`
+   values into queued task args.
 
 ### 6.2 Structural Migration Risks
 
@@ -292,15 +302,22 @@ Migration implication:
 ### 9.2 Not Ready Without Remediation
 
 1. Worker path divergence unresolved.
-2. `update_ticker_financials` script/test drift unresolved.
-3. Celery route parameter propagation gap unresolved.
-4. Target project needs explicit runtime profile contract to avoid accidental mode switching.
+2. Celery route parameter propagation gap unresolved.
+3. Target project needs explicit runtime profile contract to avoid accidental mode switching.
+
+Remediated since this report was first written:
+
+- `update_ticker_financials` parser/runtime/test contract drift was addressed by
+  adding `--zero-rows-policy` and report-level `quality_gate` status. Re-check
+  this behavior during migration rather than treating it as an unresolved
+  blocker.
 
 ## 10. Migration Recommendations
 
 Pre-cutover recommendations:
 1. Choose one authoritative Celery task implementation and remove/retire the other path.
-2. Fix `update_ticker_financials` parser/runtime/test contract and make suite green.
+2. Run the `update_ticker_financials` quality-gate regression checks in the
+   target project to confirm the remediation still holds.
 3. Update API enqueue routes to pass `years` and `process_documents` when enqueuing.
 4. Define profile contracts:
    - local-isolated
@@ -313,8 +330,9 @@ Pre-cutover recommendations:
    - health snapshot
    - canonical checks
 
-## 11. Deliverables Pair
+## 11. Follow-up Artifact Status
 
-This report is paired with:
-1. `docs/migration/MIGRATION_RUNBOOK.md` (execution steps and rollback)
+Only this migration report is currently checked in under `docs/migration/`.
+If a target-project migration proceeds, create or restore a dedicated runbook
+for execution steps, rollback, and acceptance evidence.
 
