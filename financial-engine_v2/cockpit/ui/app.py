@@ -58,6 +58,7 @@ from cockpit.integrations.file_indexer import FileIndexer
 from cockpit.integrations.ollama_client import OllamaClient
 from cockpit.integrations.qual_context_bootstrap import (
     build_qual_context_reader,
+    resolve_company_context_db_path,
     resolve_news_context_db_path,
     resolve_qual_context_db_path,
     resolve_rag_dependency_policy,
@@ -182,7 +183,7 @@ class CockpitApp(App):
                     profile,
                 )
                 if raw_path:
-                    db_path = resolve_qual_context_db_path(repo_root=self.repo_root, raw_path=raw_path)
+                    db_path = resolve_company_context_db_path(repo_root=self.repo_root, raw_path=raw_path)
                     qual_context_reader = build_qual_context_reader(
                         repo_root=self.repo_root,
                         qc_cfg=qc_cfg,

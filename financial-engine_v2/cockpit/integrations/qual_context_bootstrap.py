@@ -8,6 +8,8 @@ from cockpit.integrations.qual_context import QualContextReader
 
 DEFAULT_NEWS_CONTEXT_RELATIVE_PATH = Path("reports/qual_context/news.sqlite")
 DEFAULT_NEWS_EVAL_RELATIVE_PATH = Path("reports/qual_context/news_eval.sqlite")
+DEFAULT_COMPANY_CONTEXT_RELATIVE_PATH = Path("reports/qual_context/company.sqlite")
+DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context")
 DEFAULT_NIGHTLY_NEWS_ARTIFACT_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/reports/qual_context")
 
 
@@ -61,8 +63,23 @@ def _is_default_news_context_path(raw_path: str) -> bool:
     return not db_path.is_absolute() and db_path == DEFAULT_NEWS_CONTEXT_RELATIVE_PATH
 
 
+def _is_default_company_context_path(raw_path: str) -> bool:
+    db_path = Path(raw_path).expanduser()
+    return not db_path.is_absolute() and db_path == DEFAULT_COMPANY_CONTEXT_RELATIVE_PATH
+
+
+def _default_company_context_db_path() -> Path:
+    return (DEFAULT_QUAL_CONTEXT_ARTIFACT_ROOT / "company.sqlite").expanduser().resolve()
+
+
 def _default_nightly_news_context_db_path() -> Path:
     return (DEFAULT_NIGHTLY_NEWS_ARTIFACT_ROOT / "news.sqlite").expanduser().resolve()
+
+
+def resolve_company_context_db_path(*, repo_root: Path, raw_path: str) -> Path:
+    if _is_default_company_context_path(raw_path):
+        return _default_company_context_db_path()
+    return resolve_qual_context_db_path(repo_root=repo_root, raw_path=raw_path)
 
 
 def resolve_rag_dependency_policy(raw_policy: str, profile: str) -> str:

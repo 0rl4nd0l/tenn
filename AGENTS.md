@@ -49,5 +49,6 @@ curl "http://127.0.0.1:8000/api/docs?ticker=BHP"
 ### Gotchas
 - The `.env.example` in `financial-engine_v2/` targets Docker mode (Postgres URLs, `TASK_MODE=celery`). For local dev, override env vars as shown above or use `run_local_backend.sh`.
 - Playwright Chromium is needed for MarketIndex PDF downloads. Install with: `/workspace/.venv/bin/python -m playwright install chromium`.
+- If a task is blocked by missing Python/runtime dependencies and the dependency can be safely installed or repaired inside the project/runtime virtualenv, do it and record the exact command plus validation. Safe installs are scoped venv operations needed for the active task; system packages, service/runtime config changes, model or GPU driver changes, and production-data writes still need explicit approval. Do not hide missing required dependencies behind degraded behavior or weaker fallback modes.
 - No lint tooling (flake8/ruff/mypy) is configured in this repo. CI uses an external "Sloppy" scan tool.
 - Tests live in `financial-engine_v2/scripts/test_*.py` (not a standard `tests/` directory). They use `unittest` and `pytest`, with `sys.path` manipulation to import from `backend/`.
