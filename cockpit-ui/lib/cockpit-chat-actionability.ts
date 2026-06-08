@@ -8,6 +8,7 @@ export type ChatEvidenceStateCode =
   | 'metric_extraction_missing'
   | 'degraded_runtime'
   | 'local_personal_data'
+  | 'local_news_context'
   | 'memory_context'
   | 'external_web_context'
   | 'demo_mock'
@@ -38,6 +39,7 @@ const STATE_LABELS: Record<ChatEvidenceStateCode, string> = {
   metric_extraction_missing: 'Metric extraction missing',
   degraded_runtime: 'Degraded runtime',
   local_personal_data: 'Local personal data',
+  local_news_context: 'Local news context',
   memory_context: 'Memory context',
   external_web_context: 'External web context',
   demo_mock: 'Demo/mock',
@@ -56,6 +58,7 @@ const STATE_ORDER: ChatEvidenceStateCode[] = [
   'claim_verified',
   'context_only',
   'local_personal_data',
+  'local_news_context',
   'memory_context',
   'external_web_context',
   'demo_mock',
@@ -232,6 +235,7 @@ export function deriveChatEvidenceActionability(message: ChatMessage): ChatEvide
   addState(states, labels.has('no_hit'), 'no_hit')
   addState(states, hasClaimVerified, 'claim_verified')
   addState(states, labels.has('local_personal_data'), 'local_personal_data')
+  addState(states, labels.has('local_news_context'), 'local_news_context')
   addState(states, labels.has('memory_context'), 'memory_context')
   addState(states, labels.has('external_web_context'), 'external_web_context')
   addState(states, labels.has('unknown_unclassified') || labels.has('missing_required_evidence'), 'unresolved_source')

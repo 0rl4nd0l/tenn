@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Search, Newspaper, ChevronDown, ChevronUp, Database, ExternalLink, Calendar, CheckCircle2, AlertTriangle, CircleHelp } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import {
+  getNewsEvidenceEnvelopeLabels,
   getNewsReadiness,
   getNewsResultReadiness,
   type NewsActionabilityResult,
@@ -42,6 +43,43 @@ function actionabilityIcon(tone: NewsActionabilityTone) {
   if (tone === 'error') return <AlertTriangle className="h-3.5 w-3.5" />
   if (tone === 'warning') return <AlertTriangle className="h-3.5 w-3.5" />
   return <CircleHelp className="h-3.5 w-3.5" />
+}
+
+function stringArray(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return value.trim() ? [value.trim()] : []
+  }
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.map((item) => String(item || '').trim()).filter(Boolean)
+}
+
+function optionalString(value: unknown): string | undefined {
+  const text = String(value || '').trim()
+  return text || undefined
+}
+
+function optionalNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function formatEvidenceEnvelopeLabel(label: string): string {
+  if (label === 'DATA_MISSING:evidence_envelope') {
+    return 'DATA_MISSING evidence envelope'
+  }
+  return label
+    .replace(/:/g, ': ')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function NewsReadinessPanel({ readiness }: { readiness: NewsReadiness }) {
@@ -103,6 +141,8 @@ interface NewsResultProps {
 function NewsResult({ result, results }: NewsResultProps) {
   const [isOpen, setIsOpen] = useState(false)
   const readiness = getNewsResultReadiness(result, results)
+  const evidenceEnvelopeLabels = getNewsEvidenceEnvelopeLabels(result)
+  const primaryEnvelopeLabel = evidenceEnvelopeLabels[0]
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -137,6 +177,20 @@ function NewsResult({ result, results }: NewsResultProps) {
                   {(result.relevanceScore * 100).toFixed(0)}%
                 </Badge>
                 <NewsResultActionabilityBadge readiness={readiness} />
+                {primaryEnvelopeLabel && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'hidden text-[10px] font-mono sm:inline-flex',
+                      primaryEnvelopeLabel.startsWith('DATA_MISSING')
+                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                        : 'border-border bg-muted text-muted-foreground',
+                    )}
+                    title="Evidence envelope"
+                  >
+                    {formatEvidenceEnvelopeLabel(primaryEnvelopeLabel)}
+                  </Badge>
+                )}
                 {isOpen ? (
                   <ChevronUp className="h-4 w-4 text-muted-foreground" />
                 ) : (
@@ -156,6 +210,23 @@ function NewsResult({ result, results }: NewsResultProps) {
             <p className="text-xs text-muted-foreground leading-relaxed mb-3">
               {readiness.detail}
             </p>
+            <div aria-label="Evidence envelope" className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-mono uppercase text-muted-foreground">Evidence envelope</span>
+              {evidenceEnvelopeLabels.map((label) => (
+                <Badge
+                  key={label}
+                  variant="outline"
+                  className={cn(
+                    'text-[10px] font-mono',
+                    label.startsWith('DATA_MISSING')
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      : 'border-border bg-muted text-muted-foreground',
+                  )}
+                >
+                  {formatEvidenceEnvelopeLabel(label)}
+                </Badge>
+              ))}
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {result.publishedAtMissing
@@ -208,6 +279,12 @@ export function NewsScreen() {
       provider?: string
       published_at?: string
       chunk_id?: string
+      source_label?: string
+      evidence_label?: string
+      evidence_labels?: unknown
+      source_coverage_status?: string
+      source_label_taxonomy_version?: string
+      claim_verified_source_count?: number | string
     }
   }
 
@@ -224,6 +301,11 @@ export function NewsScreen() {
         ticker: h.payload.ticker || undefined,
         content: h.payload.text || undefined,
         url: h.payload.url || undefined,
+        sourceLabel: optionalString(h.payload.source_label || h.payload.evidence_label),
+        evidenceLabels: stringArray(h.payload.evidence_labels),
+        sourceCoverageStatus: optionalString(h.payload.source_coverage_status),
+        sourceLabelTaxonomyVersion: optionalString(h.payload.source_label_taxonomy_version),
+        claimVerifiedSourceCount: optionalNumber(h.payload.claim_verified_source_count),
         publishedAtMissing,
       }
     })
