@@ -1,0 +1,44 @@
+{
+  "36e172ec-2650-4a9f-9ef0-a4366a3b8d31": {
+    "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+    "fallback": "thousands",
+    "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+    "input_payload": {
+      "metric_source_scales": {},
+      "metrics": {
+        "capex": -1707000.0,
+        "cash_end": 95521000.0,
+        "ebit": null,
+        "financing_cf": -337000.0,
+        "investing_cf": -35844000.0,
+        "net_debt": null,
+        "np_attributable": null,
+        "operating_cf": -3756000.0,
+        "revenue": null,
+        "shares_outstanding": null
+      }
+    },
+    "output": "thousands"
+  },
+  "f2240712-9dde-41e0-88fa-29c1a0080dab": {
+    "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+    "fallback": "thousands",
+    "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+    "input_payload": {
+      "metric_source_scales": {},
+      "metrics": {
+        "capex": -96221000.0,
+        "cash_end": 57387000.0,
+        "ebit": 274928000.0,
+        "financing_cf": -7761000.0,
+        "investing_cf": -96221000.0,
+        "net_debt": null,
+        "np_attributable": 274116000.0,
+        "operating_cf": 65489000.0,
+        "revenue": 131645000.0,
+        "shares_outstanding": null
+      }
+    },
+    "output": "thousands"
+  }
+}
