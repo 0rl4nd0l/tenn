@@ -2023,13 +2023,36 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
         "Q",
         "appendix_4c_source_phrase",
-        re.compile(r"\bappendix\s+4c\b", re.IGNORECASE),
+        re.compile(r"\bappendix[-\s]+4c\b", re.IGNORECASE),
+    ),
+    (
+        "Q",
+        "appendix_5b_source_phrase",
+        re.compile(r"\bappendix[-\s]+5b\b", re.IGNORECASE),
+    ),
+    (
+        "Q",
+        "quarterly_activity_report_source_phrase",
+        re.compile(
+            r"\bquarterly[-\s]+activit(?:y|ies)[-\s]+report\b",
+            re.IGNORECASE,
+        ),
     ),
     (
         "Q",
         "quarterly_source_phrase",
-        re.compile(r"\bquarterly\s+(?:cash\s+flow|activities|report)\b", re.IGNORECASE),
+        re.compile(
+            r"\bquarterly[-\s]+(?:cash[-\s]+flow|activities|activity|report)\b",
+            re.IGNORECASE,
+        ),
     ),
+)
+_STRONG_QUARTERLY_SOURCE_REASONS = frozenset(
+    {
+        "appendix_4c_source_phrase",
+        "appendix_5b_source_phrase",
+        "quarterly_activity_report_source_phrase",
+    }
 )
 
 _SOURCE_DATE_TEXT_PATTERN = (
@@ -2299,11 +2322,18 @@ def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str
     This is a contradiction guard only: ambiguous/multiple source-period signals are
     left reportable but non-blocking so the gate does not infer a corrected period.
     """
-    text = _combined_source_text(title, first_page_text)
     hits: list[dict[str, str]] = []
-    for period_type, reason, pattern in _SOURCE_PERIOD_PATTERNS:
-        if pattern.search(text):
-            hits.append({"period_type": period_type, "reason": reason})
+    for source, text in (
+        ("title", _combined_source_text(title)),
+        ("source_text", _combined_source_text(first_page_text)),
+    ):
+        if not text:
+            continue
+        for period_type, reason, pattern in _SOURCE_PERIOD_PATTERNS:
+            if pattern.search(text):
+                hits.append(
+                    {"period_type": period_type, "reason": reason, "source": source}
+                )
 
     seen_types = sorted({hit["period_type"] for hit in hits})
     if len(seen_types) == 1:
@@ -2313,6 +2343,23 @@ def _detect_source_period_evidence(title: Any, first_page_text: Any) -> dict[str
             "hits": hits,
         }
     if len(seen_types) > 1:
+        annual_hits = [hit for hit in hits if hit["period_type"] == "A"]
+        quarterly_hits = [hit for hit in hits if hit["period_type"] == "Q"]
+        if (
+            annual_hits
+            and quarterly_hits
+            and all(hit["reason"] == "annual_report_title" for hit in annual_hits)
+            and all(hit.get("source") != "title" for hit in annual_hits)
+            and any(
+                hit["reason"] in _STRONG_QUARTERLY_SOURCE_REASONS
+                for hit in quarterly_hits
+            )
+        ):
+            return {
+                "period_type": "Q",
+                "reason": "quarterly_source_precedence_over_annual_report_reference",
+                "hits": hits,
+            }
         return {"period_type": None, "reason": "ambiguous", "hits": hits}
     return {"period_type": None, "reason": "not_detected", "hits": []}
 
