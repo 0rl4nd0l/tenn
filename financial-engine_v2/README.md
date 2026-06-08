@@ -23,6 +23,7 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
   - GET `/api/docs?ticker=BHP`
   - GET `/api/financials?ticker=BHP`
   - GET `/api/risk?document_id=...`
+  - GET `/api/price?ticker=BHP&range=1mo&interval=1d&exchange=ASX`
   - POST `/api/backfill/asx20`
   - POST `/api/backfill/ticker/{ticker}`
 
@@ -65,6 +66,7 @@ Run this mode when you want to validate functionality without touching your exis
 3. Smoke test:
    - `curl http://localhost:8000/api/health`
    - `curl "http://localhost:8000/api/docs?ticker=BHP"`
+   - `curl "http://localhost:8000/api/price?ticker=BHP&range=1mo&interval=1d&exchange=ASX"`
    - `curl -X POST "http://localhost:8000/api/backfill/ticker/BHP?years=1&process_documents=false"`
    - or run `./scripts/smoke_local.sh`
 
@@ -76,6 +78,42 @@ Defaults in local mode:
 - MarketIndex fallback enabled by default (`ENABLE_MARKETINDEX_FALLBACK=true`) using `../data/raw/marketindex_announcements.json`
 - If MarketIndex URLs return Cloudflare `403`, those docs are marked `blocked_marketindex_403` and skipped
 - MarketIndex documents are treated as headed-only and marked `blocked_marketindex_headed_required` in local non-headed mode
+
+## API reference notes
+
+FastAPI publishes the generated API schema at `/openapi.json` and the interactive
+API UI at `/docs`. TENN's document-listing endpoint is separate:
+`/api/docs?ticker=BHP`.
+
+### Market price endpoint
+
+`GET /api/price` fetches current and historical market price data through the
+Yahoo Finance chart API wrapper in `backend/app/providers/market_price_provider.py`.
+
+Example:
+
+```bash
+curl "http://localhost:8000/api/price?ticker=BHP&range=1mo&interval=1d&exchange=ASX"
+```
+
+Query parameters:
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `ticker` | required | Blank values return HTTP `400`. Tickers are uppercased in the response. |
+| `range` | `1mo` | Passed through to Yahoo Finance chart range. Blank values return HTTP `400`. |
+| `interval` | `1d` | Passed through to Yahoo Finance chart interval. Blank values return HTTP `400`. |
+| `exchange` | `ASX` | Adds a Yahoo suffix when known. Supported mappings include `ASX -> .AX`, `LSE -> .L`, `TSX -> .TO`, `HKEX -> .HK`; `NYSE` and `NASDAQ` use the bare ticker. If `ticker` already contains a dot, it is used as-is. |
+
+Success responses include:
+
+- `provider`, `ticker`, normalized Yahoo `symbol`, `exchange`
+- market metadata (`currency`, `timezone`, `exchange_name`)
+- `current` price fields (`price`, previous close, open, high/low, volume, market time)
+- `history` rows with ISO timestamps and OHLCV values
+
+Provider or network failures return HTTP `502`. A Yahoo HTTP `429` is reported as
+rate limiting; retry later or reduce request volume.
 
 ## Headed MarketIndex Recovery (Manual)
 Use this manual command after backfill to recover blocked/pending MarketIndex docs with a headed browser session.

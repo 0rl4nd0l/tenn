@@ -13,12 +13,16 @@ Short boot sequence:
 
 Note: `python run.py` is **NOT** the canonical startup path for agents (it is a batch runner).
 
+Use the canonical path when the goal is to start the FastAPI backend and validate
+that the system is reachable. Use `python run.py` only when the goal is to run the
+configured batch workflows.
+
 ## Lightweight Execution Workflow
 - Track live work state in `STATE.md`.
 - Use phase gates in `docs/phase_checklist.md`.
 - Keep both files updated during runs and before handoff.
 
-## Run in 3 steps
+## Batch workflow in 3 steps
 1. Create/activate your main venv at repo root.
 2. Install deps:
    - `pip install -r requirements.txt`
@@ -26,7 +30,9 @@ Note: `python run.py` is **NOT** the canonical startup path for agents (it is a 
 3. Run:
    - `python run.py`
 
-That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
+That single command delegates to `financial-engine_v2/run.py`, where batch defaults
+are hardcoded. It does not define whether the backend API is running; for API
+startup, use the canonical agent entrypoint above.
 
 ## Isolated AU News Collector (`newspaper4k`)
 For a separate, research-only AU finance article collector, use:
