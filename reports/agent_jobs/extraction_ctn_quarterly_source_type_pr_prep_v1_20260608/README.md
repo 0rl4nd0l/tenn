@@ -1,6 +1,6 @@
 # CTN Quarterly Source-Type PR Prep
 
-State: `RUNNING`
+State: `DONE`
 
 ## Objective
 
@@ -41,4 +41,10 @@ mutation.
 
 ## PR
 
-Pending.
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/331
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Head: `safe/extraction-ctn-quarterly-source-type-precedence-pr-v1-20260608`
+
+The PR is intentionally draft. It should remain CTN-only and should not be used
+to authorize HUB/LBL repairs, count runs, broad extraction, backfill, runtime
+service routes, or production-data mutation.
