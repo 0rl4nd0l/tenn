@@ -1,0 +1,54 @@
+{
+  "changed_files": [
+    {
+      "path": "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/worker/app/tasks.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/legacy_worker_tasks_quarantine_rebase_review_v1_20260608.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/legacy_worker_tasks_quarantine_rebase_review_v1_20260608.md",
+        "financial-engine_v2/worker/app/tasks.py",
+        "financial-engine_v2/backend/tests/test_architecture_invariants.py",
+        "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608/README.md",
+        "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608/status.json",
+        "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608/validation.json",
+        "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608/diff-check.json",
+        "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608/code_review.md"
+      ],
+      "approval_required": false,
+      "github_tracking": {
+        "branch_review_issue": 327,
+        "source_issue": 267
+      },
+      "job_id": "legacy_worker_tasks_quarantine_rebase_review_v1_20260608",
+      "lane": "Evaluation",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/legacy_worker_tasks_quarantine_rebase_review_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

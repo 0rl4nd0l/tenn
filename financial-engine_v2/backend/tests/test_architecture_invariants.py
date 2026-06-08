@@ -1,4 +1,5 @@
 import ast
+import importlib.util
 import inspect
 import re
 import textwrap
@@ -15,6 +16,7 @@ from app.services.pipeline_stages import run_embedding_stage
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 APP_ROOT = BACKEND_ROOT / "app"
+LEGACY_WORKER_TASKS = BACKEND_ROOT.parent / "worker" / "app" / "tasks.py"
 ALLOWED_SQLITE_RUNTIME_IMPORTS = {
     "api/context.py",
     "routes/cockpit_api.py",
@@ -25,6 +27,37 @@ ALLOWED_SQLITE_RUNTIME_IMPORTS = {
     "services/response_feedback.py",
     "services/user_thesis_memory.py",
 }
+
+
+def test_legacy_worker_tasks_module_fails_closed():
+    """The deprecated worker/app/tasks.py surface must not register runnable tasks."""
+    source = LEGACY_WORKER_TASKS.read_text(encoding="utf-8")
+    assert "DEPRECATED" in source
+    assert "MUST NOT RUN" in source
+
+    forbidden_runtime_terms = [
+        "@celery.task",
+        "uuid.uuid4",
+        "create_engine(",
+        "QdrantClient",
+        "upsert_points",
+        "run_multipass_extraction",
+    ]
+    violations = [term for term in forbidden_runtime_terms if term in source]
+    assert not violations, (
+        "Legacy worker task quarantine must not retain runnable task, DB, "
+        "Qdrant, extraction, or random vector-id code: " + ", ".join(violations)
+    )
+
+    spec = importlib.util.spec_from_file_location(
+        "legacy_worker_tasks_quarantine_probe",
+        LEGACY_WORKER_TASKS,
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    with pytest.raises(RuntimeError, match="MUST NOT RUN"):
+        spec.loader.exec_module(module)
 
 
 def _iter_runtime_backend_files():
