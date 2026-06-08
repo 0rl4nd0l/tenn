@@ -1,0 +1,63 @@
+{
+  "audit_answers": {
+    "must_fail_closed_mixed_or_unclean": [
+      "EDU",
+      "HUB",
+      "LBL",
+      "CTN"
+    ],
+    "parser_or_table_coverage_gaps": [
+      "WHC",
+      "AZJ",
+      "EDU",
+      "DXC"
+    ],
+    "policy_gaps": [
+      "NIC webcast-details document-family policy",
+      "AZJ nearest-$100k rounding policy"
+    ],
+    "same_page_scale_propagation_required": [
+      "AZJ"
+    ],
+    "selected_table_scale_binding_required": [
+      "DXC",
+      "LBL"
+    ]
+  },
+  "branch": "safe/extraction-scale-table-provenance-harness-v1-20260607",
+  "canonical_base": "07bdfe6d84eeba41c357eaf5893420ef77189625",
+  "case_count": 10,
+  "count24_rerun_justified": false,
+  "count32_status": "blocked",
+  "data_missing": [
+    "Runtime row refs for count-24 accepted and failed rows are not consistently present.",
+    "Exact selected table/page provenance for NIC, DXC, HUB, LBL, CTN, and CXO is not present in current artifacts.",
+    "Metric-local same-page scale binding is captured for AZJ/EDU only and remains incomplete for a repeated repair.",
+    "Source-bound nearest-$100k policy for AZJ remains unresolved."
+  ],
+  "forbidden_actions_observed": {
+    "backfill": false,
+    "broad_extraction": false,
+    "count24_rerun": false,
+    "count32": false,
+    "db_qdrant_news_memory_mutation": false,
+    "dirty_parent_batch_merge": false,
+    "full_ticker_universe_extraction": false,
+    "prompt_gold_label_runtime_schema_changes": false,
+    "random_sample": false,
+    "source_pdf_edits": false,
+    "truth_gate_loosening": false
+  },
+  "generated_at": "2026-06-07T11:45:15Z",
+  "harness_artifacts": {
+    "evidence_table": "reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607/evidence_table.json",
+    "harness_manifest": "reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607/harness_manifest.json",
+    "repair_decision": "reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607/repair_decision.json",
+    "root_cause_grouping": "reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607/root_cause_grouping.json"
+  },
+  "job_id": "extraction_scale_table_provenance_harness_v1_20260607",
+  "next_safe_repair_path": "No production scale propagation yet. Capture metric-local same-page scale provenance for AZJ plus one additional clean same-page candidate; keep EDU mixed surfaces fail-closed; repair only if two clean cases prove the same source-bound root cause.",
+  "production_extraction_code_repair_made": false,
+  "state": "DONE_WITH_RISK",
+  "worktree": "/home/l4nd0/tenn-scale-table-provenance-harness-v1-20260607"
+}

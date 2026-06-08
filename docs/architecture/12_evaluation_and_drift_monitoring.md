@@ -263,6 +263,25 @@ contract parity reports include `metric_ontology_v1` so unsupported,
 ambiguous, persisted-only, and internal-only metric families remain visible
 without becoming canonical truth.
 
+### Scale-table provenance harness
+
+`financial-engine_v2/scripts/broad_extraction_test.py
+--scale-table-provenance-harness` writes a fixed no-extraction harness for the
+current scale-table family. It does not discover PDFs, sample candidates, create
+an LLM client, run extraction, or mutate persistence surfaces.
+
+The harness cases are fixed around AZJ, EDU, WHC, NIC, DXC, HUB, LBL, CTN, one
+clean scale-known control, and one clean noncandidate control. The output
+preserves the required row/cell provenance fields from the metric extraction
+contract and answers the scale audit questions before any future count-24 or
+count-32 approval is considered.
+
+The harness is a stop gate, not a repair by itself. It keeps count-24 reruns
+unjustified and count-32 blocked until at least two clean cases prove the same
+source-bound root cause and the proposed change is limited to one narrow
+selected-table or same-page scale binding rule. Mixed selected surfaces and
+period/source mismatches remain fail-closed.
+
 ### Pre-persistence scorecard gate
 
 The confirmed metric payload scorecard now has a deterministic

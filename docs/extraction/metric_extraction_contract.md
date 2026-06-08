@@ -155,6 +155,28 @@ persistence. The policy order is:
 This policy never rewrites values to make them pass. It only accepts, fails, or
 marks a lower-confidence result after the hard gates pass.
 
+### Scale-table provenance artifact floor
+
+Fixed scale-table regression harnesses and future bounded sample artifacts must
+capture enough row/cell provenance to explain `scale_unknown` and selected-table
+scale failures without rerunning random samples. At minimum, each inspected
+metric row should preserve:
+
+- document identity: `document_id`, `ticker`, `source_path`, source-document
+  class, final status, and final gate/error;
+- selected surface identity: table label, selected page number, table index,
+  caption, and headers;
+- scale evidence by source: table-local scale, same-page scale,
+  document-level scale, `scale_source`, `metric_source_scales`,
+  `metric_scale_sources`, and common-scale input/output;
+- metric cell identity: canonical metric name, row label, row ref, period
+  column, value cell text, raw value, and normalized value.
+
+Missing provenance is reported as `DATA_MISSING`; it is not replaced with
+document-level inference. Same-page scale evidence can support a future repair
+only when it is metric-local and selected-surface-clean. Mixed selected
+surfaces, period/source mismatches, or noncandidate documents must fail closed.
+
 ## Metric Ontology V1
 
 The canonical extractor ontology is `metric_ontology_v1`. Supported canonical
