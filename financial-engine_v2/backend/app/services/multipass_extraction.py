@@ -2378,22 +2378,28 @@ def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str
     instead of inferring from publication dates, filenames, or loose references.
     """
 
-    text = _combined_source_text(title, source_text)
     hits: list[dict[str, str]] = []
-    for period_type, reason, pattern in _SOURCE_PERIOD_END_PATTERNS:
-        for match in pattern.finditer(text):
-            raw_date = _normalize_source_date_text(match.group("date"))
-            parsed = parse_period_end(raw_date)
-            if parsed is None:
-                continue
-            hits.append(
-                {
-                    "period_type": period_type,
-                    "period_end": parsed.isoformat(),
-                    "reason": reason,
-                    "evidence": " ".join(match.group(0).split())[:200],
-                }
-            )
+    for source, text in (
+        ("title", _combined_source_text(title)),
+        ("source_text", _combined_source_text(source_text)),
+    ):
+        if not text:
+            continue
+        for period_type, reason, pattern in _SOURCE_PERIOD_END_PATTERNS:
+            for match in pattern.finditer(text):
+                raw_date = _normalize_source_date_text(match.group("date"))
+                parsed = parse_period_end(raw_date)
+                if parsed is None:
+                    continue
+                hits.append(
+                    {
+                        "period_type": period_type,
+                        "period_end": parsed.isoformat(),
+                        "reason": reason,
+                        "source": source,
+                        "evidence": " ".join(match.group(0).split())[:200],
+                    }
+                )
 
     unique_dates = sorted({hit["period_end"] for hit in hits})
     unique_types = sorted({hit["period_type"] for hit in hits})
@@ -3015,6 +3021,7 @@ def _run_pass4_reconciler(
         "source_period_type": pass1_result.get("_source_period_type"),
         "source_period_evidence": pass1_result.get("_source_period_evidence"),
         "source_period_end_evidence": pass1_result.get("_source_period_end_evidence"),
+        "source_period_end_binding": pass1_result.get("_source_period_end_binding"),
         "source_document_classification": pass1_result.get(
             "_source_document_classification"
         ),
@@ -3732,6 +3739,64 @@ def _has_half_year_title_hint(payload: dict, titles: list[str]) -> bool:
     return False
 
 
+def _bind_explicit_source_period_end_over_announcement_date(
+    pass1_result: dict,
+    source_period_end_evidence: dict,
+    title: Any,
+) -> bool:
+    """
+    Replace a half-year announcement-date period_end only with exact source text.
+
+    This is the narrow positive counterpart to
+    `_announcement_date_period_end_mismatch`: title dates still fail closed unless
+    an explicit half-year period-end phrase is present in parsed source text.
+    """
+
+    report_type = str(
+        pass1_result.get("report_type") or pass1_result.get("period_type") or ""
+    ).strip()
+    if report_type != "H":
+        return False
+    if source_period_end_evidence.get("period_type") != "H":
+        return False
+    if source_period_end_evidence.get("reason") != "half_year_ended_explicit_date":
+        return False
+
+    hits = source_period_end_evidence.get("hits")
+    if not isinstance(hits, list) or not any(
+        isinstance(hit, dict)
+        and hit.get("source") == "source_text"
+        and hit.get("reason") == "half_year_ended_explicit_date"
+        for hit in hits
+    ):
+        return False
+
+    current_period_end = parse_period_end(str(pass1_result.get("period_end") or ""))
+    source_period_end = parse_period_end(
+        str(source_period_end_evidence.get("period_end") or "")
+    )
+    if current_period_end is None or source_period_end is None:
+        return False
+    if current_period_end == source_period_end:
+        return False
+
+    title_text = str(title or "")
+    if not _has_half_year_title_hint({}, [title_text]):
+        return False
+    title_date = _leading_announcement_date_from_title(title_text)
+    if title_date is None or title_date != current_period_end:
+        return False
+
+    pass1_result["period_end"] = source_period_end.isoformat()
+    pass1_result["_source_period_end_binding"] = {
+        "reason": "explicit_source_half_year_period_end_over_announcement_title_date",
+        "from_period_end": current_period_end.isoformat(),
+        "to_period_end": source_period_end.isoformat(),
+        "source_period_end_reason": source_period_end_evidence.get("reason"),
+    }
+    return True
+
+
 def _announcement_date_period_end_mismatch(
     payload: dict,
 ) -> tuple[str, str, str] | None:
@@ -4063,6 +4128,12 @@ def run_multipass_extraction(
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
     if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
         pass1["period_end"] = source_period_end_evidence["period_end"]
+    else:
+        _bind_explicit_source_period_end_over_announcement_date(
+            pass1,
+            source_period_end_evidence,
+            title,
+        )
     pass1["_source_period_evidence"] = source_period_evidence
     pass1["_source_period_end_evidence"] = source_period_end_evidence
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
