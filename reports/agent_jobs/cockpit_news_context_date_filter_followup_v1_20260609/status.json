@@ -1,0 +1,36 @@
+{
+  "job_id": "cockpit_news_context_date_filter_followup_v1_20260609",
+  "status": "complete",
+  "created_at": "2026-06-09T00:25:31+10:00",
+  "branch": "safe/cockpit-news-context-date-filter-v1-20260609",
+  "base_head": "6f0a120986302f6bb2588d60866dff982749fab0",
+  "mode": "safe_extension",
+  "review_findings_addressed": [
+    {
+      "finding": "direct_sqlite_news_fallback_ignored_date_bounds",
+      "status": "fixed"
+    },
+    {
+      "finding": "no_backend_warning_said_news_context_disabled_even_with_sqlite_fallback",
+      "status": "fixed"
+    }
+  ],
+  "github_mutations": [],
+  "forbidden_actions_avoided": [
+    "github_issue_or_pr_mutation",
+    "news_ingest",
+    "db_qdrant_redis_or_news_store_mutation",
+    "extraction_or_backfill",
+    "prompt_gold_label_or_model_config_mutation",
+    "stash_pop_drop_clean_or_overwrite"
+  ],
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_list_active_read_only": "PASS",
+    "focused_router_and_warning_tests": "PASS",
+    "config_router_tests": "PASS",
+    "ruff_touched_files": "PASS",
+    "git_diff_check": "PASS",
+    "full_chat_status_widget_file": "PRE_EXISTING_UNRELATED_FAILURE"
+  }
+}
