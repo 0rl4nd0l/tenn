@@ -236,6 +236,24 @@ function ChatReadinessPanel({ model }: { model: ChatReadinessViewModel }) {
   )
 }
 
+function buildReadinessBlockedMessage(model: ChatReadinessViewModel): string {
+  const blockers = model.capabilityRows
+    .filter((row) => !row.ready)
+    .slice(0, 3)
+    .map((row) => {
+      const blocker = row.blockers[0] || row.status
+      return `- ${row.label}: ${blocker}`
+    })
+  const actions = model.safeActivationActions.slice(0, 2)
+  return [
+    'DATA_MISSING / readiness blocker:',
+    ...blockers,
+    '',
+    'Normal analysis is blocked until required answer capabilities are ready.',
+    ...actions.map((action) => `- next_action: ${action}`),
+  ].join('\n').trim()
+}
+
 const ACTION_CONFIRM_INPUTS = new Set([
   '/confirm',
   'confirm',
@@ -1346,6 +1364,11 @@ export function ChatScreen() {
         await ingestYouTubeUrl(detectedUrl)
         return
       }
+    }
+
+    if (!content.startsWith('/') && !readinessModel.normalAnalysisAllowed) {
+      appendSystemMessage(buildReadinessBlockedMessage(readinessModel))
+      return
     }
 
     clearStatusFallbackTimers()

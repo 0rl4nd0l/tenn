@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useCockpitStore } from '@/lib/cockpit-store'
@@ -213,5 +214,47 @@ describe('ChatScreen readiness', () => {
     expect(screen.getByText('asx_periodic_financials table unavailable')).toBeInTheDocument()
     expect(screen.getByText('Local news and RAG')).toBeInTheDocument()
     expect(screen.getByText('ENABLE_QDRANT=false')).toBeInTheDocument()
+  })
+
+  it('blocks normal chat submission when readiness is not answer-ready', async () => {
+    vi.mocked(fetchChatReadiness).mockResolvedValue({
+      schema_version: 1,
+      ticker: 'BHP',
+      answer_ready: false,
+      normal_analysis_allowed: false,
+      capabilities: {
+        financial_fact: {
+          id: 'financial_fact',
+          label: 'Financial facts',
+          status: 'DATA_MISSING',
+          ready: false,
+          blockers: ['asx_periodic_financials table unavailable'],
+        },
+        model_route_runtime: {
+          id: 'model_route_runtime',
+          label: 'Model route and runtime',
+          status: 'READY',
+          ready: true,
+          blockers: [],
+        },
+      },
+      summary: {
+        primary_blockers: ['financial_fact'],
+        safe_activation_actions: [
+          'Run reviewed metric extraction for the ticker before numeric financial questions.',
+        ],
+      },
+    })
+    const user = userEvent.setup()
+
+    renderChatScreen()
+
+    expect(await screen.findByText('Normal analysis blocked')).toBeInTheDocument()
+    await user.type(screen.getByPlaceholderText('Enter command or query...'), 'What was BHP revenue?{enter}')
+
+    expect(await screen.findByText(/Normal analysis is blocked until required answer capabilities are ready/i)).toBeInTheDocument()
+    expect(screen.getByText(/Financial facts: asx_periodic_financials table unavailable/i)).toBeInTheDocument()
+    expect(streamChat).not.toHaveBeenCalled()
+    expect(sendChatMessage).not.toHaveBeenCalled()
   })
 })
