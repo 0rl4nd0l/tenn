@@ -8,9 +8,12 @@ from typing import Any
 
 import yaml
 
+from shared.news_artifacts import NEWS_ARTIFACT_ROOT_ENV, NEWS_CONTEXT_DB_ENV
+
 logger = logging.getLogger(__name__)
 
 _env_loaded = False
+COCKPIT_NEWS_DB_PATH_ENV = "COCKPIT_NEWS_DB_PATH"
 
 
 def load_env(repo_root: Path | None = None) -> None:
@@ -573,6 +576,36 @@ def _sync_tool_debug_env(cfg: dict[str, Any]) -> None:
         os.environ["COCKPIT_TOOL_DEBUG"] = "failures"
 
 
+def _news_context_db_path_override() -> str:
+    explicit = (
+        os.getenv(COCKPIT_NEWS_DB_PATH_ENV, "").strip()
+        or os.getenv(NEWS_CONTEXT_DB_ENV, "").strip()
+    )
+    if explicit:
+        return str(Path(explicit).expanduser())
+
+    artifact_root = os.getenv(NEWS_ARTIFACT_ROOT_ENV, "").strip()
+    if artifact_root:
+        return str(Path(artifact_root).expanduser() / "news.sqlite")
+
+    return ""
+
+
+def _apply_news_context_env_overrides(cfg: dict[str, Any]) -> None:
+    news_db_path = _news_context_db_path_override()
+    if not news_db_path:
+        return
+
+    cfg.setdefault("rag", {})
+    if not isinstance(cfg["rag"], dict):
+        cfg["rag"] = {}
+    news_cfg = cfg["rag"].setdefault("news_context", {})
+    if not isinstance(news_cfg, dict):
+        news_cfg = {}
+        cfg["rag"]["news_context"] = news_cfg
+    news_cfg["db_path"] = news_db_path
+
+
 @dataclass
 class RuntimeFlags:
     config_path: str
@@ -664,6 +697,7 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
     cfg["db"]["database_url"] = os.getenv(
         "DATABASE_URL", "sqlite:///./data/fe_local.db"
     )
+    _apply_news_context_env_overrides(cfg)
 
     cm = cfg.get("cockpit_llm") or {}
     llm = cfg.get("llm") or {}

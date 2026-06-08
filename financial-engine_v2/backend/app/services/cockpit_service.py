@@ -1168,6 +1168,15 @@ class CockpitService:
         rag_cfg = cfg.get("rag") if isinstance(cfg.get("rag"), dict) else {}
         qual_company = None
         qual_news = None
+        news_cfg = (
+            rag_cfg.get("news_context")
+            if isinstance(rag_cfg.get("news_context"), dict)
+            else None
+        )
+        news_context_db_path = str((news_cfg or {}).get("db_path") or "").strip()
+        news_context_corpus_filter = str(
+            (news_cfg or {}).get("corpus_filter") or "news"
+        ).strip()
         if self.backend_api_client is not None:
             qc_cfg = (
                 rag_cfg.get("qualitative_context")
@@ -1187,11 +1196,6 @@ class CockpitService:
                         "CockpitService: qual_context (company) disabled: %s", exc
                     )
 
-            news_cfg = (
-                rag_cfg.get("news_context")
-                if isinstance(rag_cfg.get("news_context"), dict)
-                else None
-            )
             if context_enabled(news_cfg, default=False):
                 try:
                     qual_news = build_qual_context_reader(
@@ -1214,6 +1218,8 @@ class CockpitService:
             backend_api_client=self.backend_api_client,
             qual_context_company_reader=qual_company,
             qual_context_news_reader=qual_news,
+            news_context_db_path=news_context_db_path,
+            news_context_corpus_filter=news_context_corpus_filter,
             state_store=self.state_store,
         )
         self.config["cockpit_llm"] = self._effective_cockpit_llm_config(
