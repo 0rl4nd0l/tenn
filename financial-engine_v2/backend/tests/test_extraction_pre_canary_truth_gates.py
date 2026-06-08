@@ -181,6 +181,156 @@ def test_source_period_evidence_detects_annual_and_ambiguous_cases():
     assert ambiguous["reason"] == "ambiguous"
 
 
+def test_source_period_evidence_ctn_quarterly_activity_report_beats_annual_reference():
+    """CTN quarterly evidence must not be hijacked by a historical annual reference."""
+    from app.services.multipass_extraction import _detect_source_period_evidence
+
+    evidence = _detect_source_period_evidence(
+        (
+            "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_"
+            "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+        ),
+        (
+            "Quarterly Activity Report. Period ending 31st March 2022. "
+            "Notes are prepared on a historical cost basis. "
+            "Refer to the 2014 Annual Report to Shareholders for background."
+        ),
+    )
+
+    assert evidence["period_type"] == "Q"
+    assert evidence["reason"] == "quarterly_source_precedence_over_annual_report_reference"
+    hits = evidence["hits"]
+    assert any(hit["reason"] == "appendix_5b_source_phrase" for hit in hits)
+    assert any(
+        hit["reason"] == "quarterly_activity_report_source_phrase"
+        and hit["source"] == "source_text"
+        for hit in hits
+    )
+    assert any(
+        hit["reason"] == "annual_report_title" and hit["source"] == "source_text"
+        for hit in hits
+    )
+
+
+def test_source_period_evidence_detects_appendix_5b_quarterly_source():
+    from app.services.multipass_extraction import _detect_source_period_evidence
+
+    evidence = _detect_source_period_evidence(
+        "Appendix 5B - Quarterly Cash Flow Report",
+        (
+            "Appendix 5B Mining exploration entity or oil and gas exploration "
+            "entity quarterly cash flow report. Quarter ended 31/03/2022."
+        ),
+    )
+
+    assert evidence["period_type"] == "Q"
+    assert any(
+        hit["reason"] == "appendix_5b_source_phrase" for hit in evidence["hits"]
+    )
+
+
+def test_source_period_evidence_keeps_true_mixed_annual_quarterly_ambiguous():
+    from app.services.multipass_extraction import _detect_source_period_evidence
+
+    title_annual = _detect_source_period_evidence(
+        "Annual Report and Appendix 5B",
+        "Quarterly Activity Report. Period ending 31st March 2022.",
+    )
+    assert title_annual["period_type"] is None
+    assert title_annual["reason"] == "ambiguous"
+
+    explicit_annual = _detect_source_period_evidence(
+        "Appendix 5B",
+        (
+            "Annual report for the year ended 31 December 2025. "
+            "Quarterly Activity Report."
+        ),
+    )
+    assert explicit_annual["period_type"] is None
+    assert explicit_annual["reason"] == "ambiguous"
+
+
+def test_source_document_classifier_preserves_ctn_quarterly_candidate():
+    from app.services.multipass_extraction import classify_source_document
+
+    classification = classify_source_document(
+        (
+            "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_"
+            "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+        ),
+        (
+            "Quarterly Activity Report. Period ending 31st March 2022. "
+            "Refer to the 2014 Annual Report to Shareholders for background."
+        ),
+    )
+
+    assert classification.document_class == "financial_report"
+    assert classification.extraction_candidate_allowed is True
+    assert classification.canary_candidate_allowed is True
+    assert (
+        classification.reason
+        == "quarterly_source_precedence_over_annual_report_reference"
+    )
+    assert "quarterly_activity_report_source_phrase" in classification.evidence
+
+
+def test_validate_gate_accepts_ctn_q_payload_with_quarterly_source_evidence():
+    from app.services.multipass_extraction import (
+        _detect_source_period_evidence,
+        _validate_gate,
+    )
+
+    source_period_evidence = _detect_source_period_evidence(
+        (
+            "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_"
+            "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf"
+        ),
+        (
+            "Quarterly Activity Report. Period ending 31st March 2022. "
+            "Refer to the 2014 Annual Report to Shareholders for background."
+        ),
+    )
+    payload = _good_payload(period_type="Q", scale="thousands")
+    payload["period_end"] = "2022-03-31"
+    payload["metrics"] = {metric_name: None for metric_name in payload["metrics"]}
+    payload["metrics"]["operating_cf"] = -164_000
+    payload["row_refs"] = {
+        "operating_cf": "Net cash from / (used in) operating activities (164)"
+    }
+    payload["source_period_type"] = source_period_evidence["period_type"]
+    payload["source_period_evidence"] = source_period_evidence
+
+    status, error = _validate_gate(payload)
+
+    assert status in ("ok", "ok_low_confidence")
+    assert error is None
+
+
+def test_validate_gate_still_rejects_q_payload_against_explicit_annual_period_end():
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="Q", scale="thousands")
+    payload["period_end"] = "2022-03-31"
+    payload["metrics"] = {metric_name: None for metric_name in payload["metrics"]}
+    payload["metrics"]["operating_cf"] = -164_000
+    payload["row_refs"] = {
+        "operating_cf": "Net cash from / (used in) operating activities (164)"
+    }
+    payload["source_period_end_evidence"] = {
+        "period_type": "A",
+        "period_end": "2022-12-31",
+        "reason": "year_ended_explicit_date",
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error == (
+        "validation_gate:period_source_mismatch:"
+        "payload=Q:source=A:year_ended_explicit_date"
+    )
+
+
 def test_explicit_source_period_end_conflict_is_hard_blocked():
     from app.services.multipass_extraction import (
         _detect_source_period_end_evidence,
