@@ -2,6 +2,7 @@ import { useCockpitStore } from './cockpit-store'
 import type {
   AvailableModelsResponse,
   ClaimVerificationResponse,
+  ChatReadinessResponse,
   ChatResponse,
   ChatRuntimeTarget,
   ContextDocument,
@@ -422,6 +423,13 @@ export function isBackendHealthy(health?: HealthResponse): boolean {
   const backendService = health?.services?.find((service) => service.name === 'backend')
   if (backendService) return isHealthyService(backendService)
   return health?.status === 'healthy'
+}
+
+/** Chat answer readiness – GET /api/cockpit/chat/readiness */
+export async function fetchChatReadiness(ticker?: string | null): Promise<ChatReadinessResponse> {
+  const normalizedTicker = String(ticker || '').trim().toUpperCase()
+  const query = normalizedTicker ? `?ticker=${encodeURIComponent(normalizedTicker)}` : ''
+  return apiFetch<ChatReadinessResponse>(`/api/cockpit/chat/readiness${query}`, undefined, 30_000)
 }
 
 /** Shared chat sessions – GET /api/cockpit/chat/sessions */

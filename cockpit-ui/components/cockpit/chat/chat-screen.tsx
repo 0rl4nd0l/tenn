@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { MessageClaimVerification } from './message-claim-verification'
@@ -37,6 +38,7 @@ import {
   getActionJob,
   getChatSessionMessages,
   deleteChatSessionRemote,
+  fetchChatReadiness,
   type ActionJobStatus,
 } from '@/lib/api-client'
 import { deleteChatSession, loadChatSession, saveChatSession } from '@/lib/chat-session-store'
@@ -53,6 +55,10 @@ import {
 import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
 import { applyApiDefaultOverride, isApiRoutedMessage } from '@/lib/chat-routing'
+import {
+  summarizeChatReadiness,
+  type ChatReadinessViewModel,
+} from '@/lib/cockpit-chat-readiness'
 import type { ChatMessage as ChatMessageType, ActionPreview, ChatProviderError } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 import {
@@ -162,6 +168,90 @@ function buildProviderErrorNotice(providerError: ChatProviderError | null | unde
   }
   const message = String(providerError.message || '').trim()
   return message || 'Claude API credits are exhausted. Top up Anthropic credits in Plans & Billing.'
+}
+
+function ChatReadinessPanel({ model }: { model: ChatReadinessViewModel }) {
+  if (!model.shouldRender) {
+    return null
+  }
+
+  const toneClass = model.tone === 'blocked'
+    ? 'border-red-500/35 bg-red-500/[0.07] text-red-50'
+    : model.tone === 'warning'
+      ? 'border-amber-500/35 bg-amber-500/[0.07] text-amber-50'
+      : 'border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-50'
+  const icon = model.tone === 'blocked'
+    ? <AlertTriangle className="h-4 w-4 shrink-0" />
+    : model.tone === 'warning'
+      ? <Info className="h-4 w-4 shrink-0" />
+      : <CheckCircle2 className="h-4 w-4 shrink-0" />
+  const rows = model.capabilityRows
+    .filter((row) => !row.ready || row.status === 'DEGRADED')
+    .slice(0, 5)
+  const actions = model.safeActivationActions.slice(0, 3)
+
+  return (
+    <section className={`rounded-md border px-3 py-2 font-mono text-xs ${toneClass}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        {icon}
+        <span className="font-semibold uppercase tracking-[0.14em]">{model.headline}</span>
+        {model.tickerLabel ? (
+          <span className="rounded border border-current/25 px-2 py-0.5 text-[11px]">
+            {model.tickerLabel}
+          </span>
+        ) : null}
+        <span className="text-current/75">{model.detail}</span>
+      </div>
+
+      {rows.length > 0 ? (
+        <div className="mt-2 grid gap-1.5 md:grid-cols-2">
+          {rows.map((row) => (
+            <div key={row.id} className="min-w-0 rounded border border-current/15 bg-black/20 px-2 py-1">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <span className="min-w-0 break-words text-current/95">{row.label}</span>
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-current/65">
+                  {row.status}
+                </span>
+              </div>
+              {row.blockers.length > 0 ? (
+                <div className="mt-1 break-words text-[11px] text-current/70">
+                  {row.blockers[0]}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {actions.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-current/75">
+          {actions.map((action) => (
+            <span key={action} className="rounded border border-current/15 bg-black/15 px-2 py-0.5">
+              {action}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function buildReadinessBlockedMessage(model: ChatReadinessViewModel): string {
+  const blockers = model.capabilityRows
+    .filter((row) => !row.ready)
+    .slice(0, 3)
+    .map((row) => {
+      const blocker = row.blockers[0] || row.status
+      return `- ${row.label}: ${blocker}`
+    })
+  const actions = model.safeActivationActions.slice(0, 2)
+  return [
+    'DATA_MISSING / readiness blocker:',
+    ...blockers,
+    '',
+    'Normal analysis is blocked until required answer capabilities are ready.',
+    ...actions.map((action) => `- next_action: ${action}`),
+  ].join('\n').trim()
 }
 
 const ACTION_CONFIRM_INPUTS = new Set([
@@ -595,7 +685,22 @@ export function ChatScreen() {
     refetchInterval: 30000,
     retry: 1,
   })
+  const {
+    data: chatReadinessData,
+    isLoading: chatReadinessLoading,
+    error: chatReadinessError,
+  } = useQuery({
+    queryKey: ['cockpit-chat-readiness', activeTicker || 'global'],
+    queryFn: () => fetchChatReadiness(activeTicker || undefined),
+    enabled: hasHydrated,
+    refetchInterval: 30000,
+    retry: 1,
+  })
   const config = parseCockpitConfig(configData)
+  const readinessModel = summarizeChatReadiness(chatReadinessData, {
+    isLoading: chatReadinessLoading,
+    error: chatReadinessError,
+  })
   const [tickerDraft, setTickerDraft] = useState('')
   const [showTickerInput, setShowTickerInput] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -1259,6 +1364,11 @@ export function ChatScreen() {
         await ingestYouTubeUrl(detectedUrl)
         return
       }
+    }
+
+    if (!content.startsWith('/') && !readinessModel.normalAnalysisAllowed) {
+      appendSystemMessage(buildReadinessBlockedMessage(readinessModel))
+      return
     }
 
     clearStatusFallbackTimers()
@@ -2265,6 +2375,7 @@ export function ChatScreen() {
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4 pb-4">
+          <ChatReadinessPanel model={readinessModel} />
           {(latestIngest || takeaways || attached.attached.length > 0) ? (
             <div className="space-y-3 rounded-lg border border-border/60 bg-black/10 p-3">
               <div className="flex items-center justify-between gap-2">
