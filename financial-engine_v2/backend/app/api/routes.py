@@ -1,4 +1,8 @@
+import logging
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from celery import Celery
 from app.core.config import settings
@@ -8,6 +12,9 @@ from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.providers.universe import ASX20
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.pipeline import backfill_ticker_sync
+from app.services.chat_agent import ChatAgent
+
+logger = logging.getLogger(__name__)
 
 router=APIRouter()
 celery=Celery("fe_api", broker=settings.celery_broker_url, backend=settings.celery_result_backend)
@@ -74,3 +81,30 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
         return {"mode":"sync", **result}
     celery.send_task("backfill_ticker", args=[ticker.upper()], queue="default", routing_key="default")
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}
+
+
+# ---------------------------------------------------------------------------
+# Chat / Agent endpoint
+# ---------------------------------------------------------------------------
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    history: list[ChatMessage] = Field(default_factory=list)
+
+@router.post("/chat")
+def chat(body: ChatRequest, db: Session = Depends(get_db)):
+    agent = ChatAgent(db)
+    result = agent.run(
+        message=body.message,
+        history=[{"role": m.role, "content": m.content} for m in body.history],
+    )
+    logger.info(
+        "Chat completed: iterations=%s tools=%s",
+        result.get("iterations"),
+        [tc.get("name") for tc in result.get("tool_calls", [])],
+    )
+    return result

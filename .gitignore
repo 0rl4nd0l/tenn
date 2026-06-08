@@ -6,6 +6,8 @@ __pycache__/
 *.log
 .DS_Store
 reports/
+.venv/
+financial-engine_v2/.venv
 financial-engine_v2/.env
 financial-engine_v2/.env.local
 financial-engine_v2/.env.docker
