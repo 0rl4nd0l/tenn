@@ -91,3 +91,69 @@ def test_apply_runtime_flags_prefers_cockpit_state_db_env(
     )
 
     assert cfg["memory"]["state_db"] == "/shared/cockpit/state.db"
+
+
+def test_apply_runtime_flags_prefers_cockpit_news_db_path_env(
+    monkeypatch, tmp_path: Path
+):
+    monkeypatch.setenv("COCKPIT_NEWS_DB_PATH", "/cockpit/news.sqlite")
+    monkeypatch.setenv("TENN_NEWS_CONTEXT_DB", "/shared/news.sqlite")
+    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", "/shared/qual_context")
+
+    cfg = apply_runtime_flags(
+        {"rag": {"news_context": {"db_path": "reports/qual_context/news.sqlite"}}},
+        RuntimeFlags(
+            config_path="config/cockpit.yaml",
+            profile="default",
+            read_only=False,
+            no_web=False,
+            repo_root=tmp_path,
+        ),
+    )
+
+    assert cfg["rag"]["news_context"]["db_path"] == "/cockpit/news.sqlite"
+
+
+def test_apply_runtime_flags_uses_tenn_news_context_db_env(
+    monkeypatch, tmp_path: Path
+):
+    monkeypatch.delenv("COCKPIT_NEWS_DB_PATH", raising=False)
+    monkeypatch.setenv("TENN_NEWS_CONTEXT_DB", "/shared/news.sqlite")
+    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", "/shared/qual_context")
+
+    cfg = apply_runtime_flags(
+        {"rag": {"news_context": {"db_path": "reports/qual_context/news.sqlite"}}},
+        RuntimeFlags(
+            config_path="config/cockpit.yaml",
+            profile="default",
+            read_only=False,
+            no_web=False,
+            repo_root=tmp_path,
+        ),
+    )
+
+    assert cfg["rag"]["news_context"]["db_path"] == "/shared/news.sqlite"
+
+
+def test_apply_runtime_flags_derives_news_db_from_artifact_root_env(
+    monkeypatch, tmp_path: Path
+):
+    artifact_root = tmp_path / "qual_context"
+    monkeypatch.delenv("COCKPIT_NEWS_DB_PATH", raising=False)
+    monkeypatch.delenv("TENN_NEWS_CONTEXT_DB", raising=False)
+    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", str(artifact_root))
+
+    cfg = apply_runtime_flags(
+        {"rag": {"news_context": {"db_path": "reports/qual_context/news.sqlite"}}},
+        RuntimeFlags(
+            config_path="config/cockpit.yaml",
+            profile="default",
+            read_only=False,
+            no_web=False,
+            repo_root=tmp_path,
+        ),
+    )
+
+    assert cfg["rag"]["news_context"]["db_path"] == str(
+        artifact_root / "news.sqlite"
+    )
