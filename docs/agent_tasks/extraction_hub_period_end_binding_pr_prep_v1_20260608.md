@@ -11,6 +11,7 @@ allowed_files:
   - docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md
   - financial-engine_v2/backend/app/services/multipass_extraction.py
   - financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py
+  - financial-engine_v2/backend/tests/test_multipass_extraction.py
   - reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/README.md
   - reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json
   - reports/agent_jobs/extraction_hub_period_end_binding_pr_prep_v1_20260608/README.md

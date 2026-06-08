@@ -410,6 +410,7 @@ def test_hub_explicit_source_period_end_overrides_announcement_date():
     from app.services.multipass_extraction import (
         _bind_explicit_source_period_end_over_announcement_date,
         _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
         _validate_gate,
     )
 
@@ -427,6 +428,14 @@ def test_hub_explicit_source_period_end_overrides_announcement_date():
     assert evidence["period_type"] == "H"
     assert evidence["period_end"] == "2023-12-31"
     assert any(hit["source"] == "source_text" for hit in evidence["hits"])
+    assert _has_source_text_period_end_hit(evidence) is True
+    assert (
+        _has_source_text_period_end_hit(
+            evidence,
+            reason="half_year_ended_explicit_date",
+        )
+        is True
+    )
 
     pass1 = {"report_type": "H", "period_end": "2024-02-20"}
     changed = _bind_explicit_source_period_end_over_announcement_date(
@@ -465,6 +474,7 @@ def test_hub_title_date_only_period_end_remains_fail_closed():
     from app.services.multipass_extraction import (
         _bind_explicit_source_period_end_over_announcement_date,
         _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
         _validate_gate,
     )
 
@@ -478,6 +488,7 @@ def test_hub_title_date_only_period_end_remains_fail_closed():
     )
     assert evidence["period_end"] is None
     assert evidence["reason"] == "not_detected"
+    assert _has_source_text_period_end_hit(evidence) is False
 
     pass1 = {"report_type": "H", "period_end": "2024-02-20"}
     changed = _bind_explicit_source_period_end_over_announcement_date(
@@ -513,6 +524,7 @@ def test_lbl_1h_fy26_label_only_period_end_remains_fail_closed():
     from app.services.multipass_extraction import (
         _bind_explicit_source_period_end_over_announcement_date,
         _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
         _validate_gate,
     )
 
@@ -526,6 +538,7 @@ def test_lbl_1h_fy26_label_only_period_end_remains_fail_closed():
     )
     assert evidence["period_end"] is None
     assert evidence["reason"] == "not_detected"
+    assert _has_source_text_period_end_hit(evidence) is False
 
     pass1 = {"report_type": "H", "period_end": "2026-02-20"}
     changed = _bind_explicit_source_period_end_over_announcement_date(
@@ -561,6 +574,7 @@ def test_title_only_explicit_period_end_does_not_override_announcement_date():
     from app.services.multipass_extraction import (
         _bind_explicit_source_period_end_over_announcement_date,
         _detect_source_period_end_evidence,
+        _has_source_text_period_end_hit,
         _validate_gate,
     )
 
@@ -572,6 +586,7 @@ def test_title_only_explicit_period_end_does_not_override_announcement_date():
     assert evidence["period_type"] == "H"
     assert evidence["period_end"] == "2023-12-31"
     assert all(hit["source"] == "title" for hit in evidence["hits"])
+    assert _has_source_text_period_end_hit(evidence) is False
 
     pass1 = {"report_type": "H", "period_end": "2024-02-20"}
     changed = _bind_explicit_source_period_end_over_announcement_date(

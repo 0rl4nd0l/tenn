@@ -61,6 +61,8 @@ LBL boundary:
 
 - `_detect_source_period_end_evidence` now records each hit source as `title` or
   `source_text`.
+- `_has_source_text_period_end_hit` centralizes the source-bound test used by
+  period-end binding paths.
 - Added `_bind_explicit_source_period_end_over_announcement_date`.
 - The binder only fires when:
   - Pass 1/classifier period type is `H`;
@@ -70,6 +72,10 @@ LBL boundary:
   - the current `period_end` differs from the source period end;
   - the title has a half-year hint; and
   - the current `period_end` equals the leading announcement title date.
+- Missing Pass 1 `period_end` is now filled only when the explicit period-end
+  evidence has a parsed `source_text` hit.
+- Appendix wrapper period-end propagation uses the same source-text-hit guard,
+  so title-only Appendix 4D evidence cannot re-enter through the wrapper path.
 - The reconciled payload surfaces `source_period_end_binding` for traceability.
 
 ## Saved-Artifact Replay
@@ -97,6 +103,7 @@ fail-closed.
 - `docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md`
 - `financial-engine_v2/backend/app/services/multipass_extraction.py`
 - `financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py`
+- `financial-engine_v2/backend/tests/test_multipass_extraction.py`
 - `reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/README.md`
 - `reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json`
 
@@ -104,13 +111,13 @@ fail-closed.
 
 Recorded in `validation.json`.
 
-Focused checks passed:
+Focused checks passed after the PR #336 title-only follow-up:
 
 - Task card validate.
 - Registry `list-active --read-only`.
 - `py_compile` for `multipass_extraction.py`.
-- Focused HUB/LBL/source-period tests: `8 passed`.
-- Existing announcement-date guard subset: `3 passed`.
+- Focused HUB/LBL/source-period tests: `14 passed`.
+- Existing announcement-date and half-year run-path subset: `5 passed`.
 - Saved-artifact replay: HUB `+1/+9`, LBL `+0/+0`.
 
 Full `test_extraction_pre_canary_truth_gates.py` under isolated `uv` reported
@@ -121,6 +128,13 @@ change.
 Subagent diff review flagged one test gap: the title-only explicit-period
 negative needed an end-to-end `_validate_gate` assertion. That assertion was
 added, and the focused test set was rerun successfully.
+
+PR #336 follow-up review fix: title-only explicit period-end evidence is also
+blocked when Pass 1 misses `period_end` entirely. The negative run-path test
+uses `2024-02-20 Half-year ended 31 December 2023 HUB.pdf` as title-only
+evidence and verifies `period_end` stays missing; the positive run-path test
+uses parsed source text `Appendix 4D. Half-year ended 31 December 2023` and
+verifies `period_end=2023-12-31`.
 
 ## Unsafe Actions Avoided
 

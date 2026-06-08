@@ -2420,6 +2420,25 @@ def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str
     return {"period_type": None, "period_end": None, "reason": "not_detected", "hits": []}
 
 
+def _has_source_text_period_end_hit(
+    evidence: dict[str, Any], reason: str | None = None
+) -> bool:
+    hits = evidence.get("hits")
+    if not isinstance(hits, list):
+        return False
+    for hit in hits:
+        if not isinstance(hit, dict):
+            continue
+        if hit.get("source") != "source_text":
+            continue
+        if reason is not None and hit.get("reason") != reason:
+            continue
+        if parse_period_end(str(hit.get("period_end") or "")) is None:
+            continue
+        return True
+    return False
+
+
 def _early_period_source_text(
     sections: list[dict],
     *,
@@ -3348,13 +3367,18 @@ def _build_appendix_wrapper_source_payload(
         return {"is_wrapper": False}
 
     source_sections = _source_sections_for_pages(sections)
+    source_text_period_end = (
+        period_end_evidence.get("period_end")
+        if _has_source_text_period_end_hit(period_end_evidence)
+        else None
+    )
     source_payload: dict[str, Any] = {
         "is_wrapper": True,
         "document_subtype": subtype,
         "document_title": str(title or "").strip(),
         "period_type": period_end_evidence.get("period_type")
         or period_evidence.get("period_type"),
-        "period_end": period_end_evidence.get("period_end"),
+        "period_end": source_text_period_end,
         "scale": scale,
         "currency": _normalize_currency_code(currency) or None,
         "wrapper_disclosures": _detect_appendix_wrapper_disclosures(source_text),
@@ -3761,13 +3785,9 @@ def _bind_explicit_source_period_end_over_announcement_date(
         return False
     if source_period_end_evidence.get("reason") != "half_year_ended_explicit_date":
         return False
-
-    hits = source_period_end_evidence.get("hits")
-    if not isinstance(hits, list) or not any(
-        isinstance(hit, dict)
-        and hit.get("source") == "source_text"
-        and hit.get("reason") == "half_year_ended_explicit_date"
-        for hit in hits
+    if not _has_source_text_period_end_hit(
+        source_period_end_evidence,
+        reason="half_year_ended_explicit_date",
     ):
         return False
 
@@ -4126,7 +4146,11 @@ def run_multipass_extraction(
         )
     if observer is not None:
         observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
-    if not pass1.get("period_end") and source_period_end_evidence.get("period_end"):
+    if (
+        not pass1.get("period_end")
+        and source_period_end_evidence.get("period_end")
+        and _has_source_text_period_end_hit(source_period_end_evidence)
+    ):
         pass1["period_end"] = source_period_end_evidence["period_end"]
     else:
         _bind_explicit_source_period_end_over_announcement_date(

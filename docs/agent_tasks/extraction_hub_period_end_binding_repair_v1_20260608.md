@@ -10,6 +10,7 @@ allowed_files:
   - docs/agent_tasks/extraction_hub_period_end_binding_repair_v1_20260608.md
   - financial-engine_v2/backend/app/services/multipass_extraction.py
   - financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py
+  - financial-engine_v2/backend/tests/test_multipass_extraction.py
   - reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/README.md
   - reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json
 approval_required: false
@@ -100,6 +101,10 @@ used as evidence only, not as a patch source.
   and does not infer `2025-12-31`.
 - Negative: exact source evidence does not override a non-announcement-date
   payload period end.
+- Negative: missing Pass 1 `period_end` is not filled from title-only explicit
+  half-year period-end evidence.
+- Positive: missing Pass 1 `period_end` is filled from parsed source-text
+  half-year period-end evidence.
 
 ## Validation
 

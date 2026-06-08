@@ -3,8 +3,21 @@ Unit tests for the 4-pass multipass extraction pipeline.
 LLM calls are mocked — these test logic, not model quality.
 """
 
-import pytest
+from types import ModuleType
 from unittest.mock import patch, MagicMock
+
+import pytest
+
+
+def _fake_docling_extract_module(fake_doc):
+    module = ModuleType("app.services.docling_extract")
+
+    class ExtractionTimeoutError(Exception):
+        pass
+
+    module.ExtractionTimeoutError = ExtractionTimeoutError
+    module.extract_structured = lambda *args, **kwargs: fake_doc
+    return module
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +147,152 @@ def test_run_multipass_uses_explicit_front_matter_period_end_when_pass1_misses_i
     assert result.payload["period_end"] == "2025-12-31"
     assert result.payload["period_start"] == date(2025, 1, 1)
     assert result.payload["source_period_end_evidence"]["period_end"] == "2025-12-31"
+
+
+def test_run_multipass_blocks_title_only_half_year_period_end_distinct_when_pass1_misses_it():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 2
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "text": (
+                    "Appendix 4D interim financial report without an exact "
+                    "source-text period-end date."
+                ),
+                "page": 1,
+            },
+        ]
+
+    pass1_missing_period = {
+        "report_type": "H",
+        "period_end": None,
+        "currency": "AUD",
+        "scale": "thousands",
+        "classifier_confidence": 0.97,
+    }
+    pass3a_results = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 4,
+            "pass3_confidence": 0.9,
+            "operating_cf": 1_000_000,
+            "investing_cf": -200_000,
+            "financing_cf": 300_000,
+        }
+    ]
+
+    with patch.dict(
+        "sys.modules",
+        {"app.services.docling_extract": _fake_docling_extract_module(_FakeDoc())},
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_missing_period,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/hub-title-only.pdf",
+            {
+                "document_id": "hub-title-only",
+                "ticker": "HUB",
+                "title": "2024-02-20 Half-year ended 31 December 2023 HUB.pdf",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert pass1_missing_period["period_end"] is None
+    assert result.status == "failed"
+    assert result.error == "validation_gate:missing_period_end"
+    assert result.payload["period_end"] is None
+    assert result.payload["source_period_end_evidence"]["period_end"] == "2023-12-31"
+    assert all(
+        hit["source"] == "title"
+        for hit in result.payload["source_period_end_evidence"]["hits"]
+    )
+
+
+def test_run_multipass_uses_source_text_half_year_period_end_distinct_when_pass1_misses_it():
+    from datetime import date
+
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    class _FakeDoc:
+        extraction_method = "pymupdf"
+        page_count = 2
+        docling_version = None
+        tables = []
+        sections = [
+            {
+                "text": (
+                    "Appendix 4D. Half-year ended 31 December 2023. "
+                    "Current period: 1 July 2023 to 31 December 2023."
+                ),
+                "page": 1,
+            },
+        ]
+
+    pass1_missing_period = {
+        "report_type": "H",
+        "period_end": None,
+        "currency": "AUD",
+        "scale": "thousands",
+        "classifier_confidence": 0.97,
+    }
+    pass3a_results = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 4,
+            "pass3_confidence": 0.9,
+            "operating_cf": 1_000_000,
+            "investing_cf": -200_000,
+            "financing_cf": 300_000,
+        }
+    ]
+
+    with patch.dict(
+        "sys.modules",
+        {"app.services.docling_extract": _fake_docling_extract_module(_FakeDoc())},
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=pass1_missing_period,
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value={},
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        return_value=pass3a_results,
+    ):
+        result = run_multipass_extraction(
+            "/fake/hub-source-text.pdf",
+            {
+                "document_id": "hub-source-text",
+                "ticker": "HUB",
+                "title": "HUB Appendix 4D interim financial report.pdf",
+            },
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert pass1_missing_period["period_end"] == "2023-12-31"
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.error is None
+    assert result.payload["period_type"] == "H"
+    assert result.payload["period_end"] == "2023-12-31"
+    assert result.payload["period_start"] == date(2023, 7, 1)
+    assert result.payload["source_period_end_evidence"]["period_end"] == "2023-12-31"
+    assert any(
+        hit["source"] == "source_text"
+        for hit in result.payload["source_period_end_evidence"]["hits"]
+    )
 
 
 @pytest.mark.parametrize(

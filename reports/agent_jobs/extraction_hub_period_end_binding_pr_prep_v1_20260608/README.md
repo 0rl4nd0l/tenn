@@ -32,8 +32,9 @@ mutation.
 - Registry read-only: passed; no active jobs.
 - GitHub auth: passed via `gh auth status`.
 - Duplicate PR check: no existing PR found for the branch or repair commit.
-- Focused HUB/LBL/source-period tests: `8 passed, 1 warning`.
-- Existing announcement-date guard subset: `3 passed, 1 warning`.
+- Focused HUB/LBL/source-period tests: `14 passed, 1 warning`.
+- Existing announcement-date and half-year run-path subset:
+  `5 passed, 1 warning`.
 - `py_compile`: passed.
 - JSON validation: passed.
 - Pre-stage task-card `check-diff`: passed for the unignored task card.
@@ -54,3 +55,13 @@ Draft PR creation: passed.
 The PR is intentionally draft. It should remain HUB-only and should not be used
 to authorize LBL fiscal-label inference, CTN changes, count runs, broad
 extraction, backfill, runtime service routes, or production-data mutation.
+
+## PR #336 Follow-Up
+
+The review finding on title-only missing-`period_end` fill was addressed on the
+same draft PR branch. The follow-up keeps the direct missing-period fill and the
+Appendix wrapper period-end propagation source-bound: parsed `source_text` hits
+are accepted, title-only hits are not.
+
+No merge, ready-for-review transition, issue mutation, broad extraction, count
+run, service route, or production-data mutation is authorized by this follow-up.
