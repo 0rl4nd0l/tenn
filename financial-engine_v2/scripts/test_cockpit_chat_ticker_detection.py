@@ -32,6 +32,18 @@ class CockpitChatTickerDetectionTests(unittest.TestCase):
         c = self._controller()
         self.assertEqual(c._detect_ticker("bhp price xxx"), "BHP")
 
+    def test_detect_ticker_ignores_month_token_in_on_date_phrase(self):
+        c = self._controller()
+        self.assertEqual(c._detect_ticker("what was bhp on Feb 3 2025"), "BHP")
+
+    def test_detect_ticker_ignores_month_token_in_price_on_date_phrase(self):
+        c = self._controller()
+        self.assertEqual(c._detect_ticker("what was bhp price on Feb 3 2025"), "BHP")
+
+    def test_detect_ticker_allows_month_like_symbol_without_date_context(self):
+        c = self._controller()
+        self.assertEqual(c._detect_ticker("analyse MAY"), "MAY")
+
 
 if __name__ == "__main__":
     unittest.main()
