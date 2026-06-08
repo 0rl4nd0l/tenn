@@ -1,0 +1,16 @@
+{
+  "count24_rerun_justified": false,
+  "count32_status": "blocked",
+  "data_missing": [
+    "Runtime row refs for count-24 accepted and failed rows are not consistently present.",
+    "Exact selected table/page provenance for NIC, DXC, HUB, LBL, CTN, and CXO is not present in current artifacts.",
+    "Metric-local same-page scale binding is captured for AZJ/EDU only and remains incomplete for a repeated repair.",
+    "Source-bound nearest-$100k policy for AZJ remains unresolved."
+  ],
+  "generated_at": "2026-06-07T11:44:02.213706Z",
+  "job_id": "extraction_scale_table_provenance_harness_v1_20260607",
+  "next_safe_repair_path": "Implement no production scale propagation yet. First add/capture metric-local selected-page scale provenance for AZJ and one additional same-page candidate, while keeping EDU mixed surfaces fail-closed; then consider one narrow same-page propagation repair only if two clean cases prove the same source-bound root cause.",
+  "production_extraction_code_repair_made": false,
+  "repeated_root_cause_proven_for_production_repair": false,
+  "safe_extension_made": "harness_only"
+}

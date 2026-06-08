@@ -1,0 +1,20 @@
+{
+  "count24_rerun_justified": false,
+  "count32_status": "blocked",
+  "data_missing": [
+    "second_clean_same_page_case_with_metric_local_trace",
+    "runtime_row_refs_for_cxo_accepted_metrics",
+    "runtime_metric_source_scales_for_cxo",
+    "runtime_metric_scale_sources_for_cxo",
+    "runtime_common_metric_source_scale_trace_for_cxo"
+  ],
+  "fix_made": "none",
+  "generated_at": "2026-06-08T00:42:16.089431Z",
+  "job_id": "extraction_metric_local_same_page_scale_provenance_v1_20260608",
+  "next_prompt": "/goal Build an exact-doc no-write runtime provenance capture for CXO plus one additional clean scale-known control from the fixed scale-table harness, without running count-24, count-32, random samples, broad extraction, backfill, DB/Qdrant/news/memory writes, source-PDF edits, prompt/gold/runtime/schema changes, or truth-gate loosening. Capture row_refs, selected table/page, row/cell text, table-local scale, same-page scale, document-level scale, metric_source_scales, metric_scale_sources, and _common_metric_source_scale input/output. Implement no production repair unless two clean cases prove the same source-bound root cause.",
+  "next_safe_repair_path": "Do not patch production scale propagation yet. First capture exact runtime metric-local provenance for one additional clean same-page candidate or accepted control using an approved no-write route that records row_refs, selected table/page, table-local scale, same-page scale, metric_source_scales, metric_scale_sources, and common-scale input/output.",
+  "production_extraction_code_repair_made": false,
+  "repeated_root_cause_proven_for_production_repair": false,
+  "root_cause_decision": "AZJ proves a clean same-page scale-propagation candidate, but the fixed harness and current artifacts do not provide a second clean same-page failure with metric-local row/page/source-scale trace. EDU remains mixed and fail-closed; CXO is a clean scale-known control, not a failed same-page propagation case.",
+  "safe_extension_made": "report_only_metric_local_provenance_capture"
+}
