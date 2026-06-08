@@ -30,7 +30,7 @@ DO_NOT_REPORT = (
 STATIC_DO_REPORT = (
     "A2M is visible through Qdrant-backed /rag/query according to the "
     "integrated read-only smoke.",
-    "Legacy /mnt/sdb2 SQLite has A2M evidence but is provenance-only, not the "
+    "Legacy SQLite evidence exists but is provenance-only, not the "
     "canonical current consumer.",
     "Cockpit query route reachability works through /rag/query.",
     "Cockpit/news health status is represented by /api/cockpit/news/status.",
@@ -115,6 +115,13 @@ def _redacted_operator_diagnostics() -> dict[str, str]:
     }
 
 
+def _public_news_artifact_root_source(source: object) -> str:
+    source_text = str(source or "unknown")
+    if "/" in source_text or "\\" in source_text:
+        return "resolved_live_artifact_root"
+    return source_text
+
+
 def _redact_public_news_health_status(payload: dict[str, Any]) -> dict[str, Any]:
     public_payload = dict(payload)
     news_artifact_root = payload.get("news_artifact_root")
@@ -125,7 +132,7 @@ def _redact_public_news_health_status(payload: dict[str, Any]) -> dict[str, Any]
     )
     public_payload["news_artifact_root"] = {
         "status": "redacted",
-        "source": str(root_source),
+        "source": _public_news_artifact_root_source(root_source),
     }
     public_payload["canonical_sqlite_projection_paths"] = _redacted_operator_diagnostics()
     public_payload["evidence_reports"] = _redacted_operator_diagnostics()

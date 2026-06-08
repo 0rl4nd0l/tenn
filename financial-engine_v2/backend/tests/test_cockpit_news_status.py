@@ -51,6 +51,7 @@ def test_default_news_health_status_redacts_operator_diagnostics(tmp_path) -> No
     }
     assert "collection" not in payload["qdrant_retrieval"]
     assert "absolute_path" not in payload_text
+    assert "/mnt" not in payload_text
     assert str(tmp_path) not in payload_text
     assert "reports/agent_jobs" not in payload_text
 
@@ -101,6 +102,7 @@ def test_cockpit_news_status_route_exposes_contract_and_keeps_news_status_absent
     assert payload["evidence_reports"]["status"] == "redacted"
     assert "collection" not in payload["qdrant_retrieval"]
     assert "absolute_path" not in payload_text
+    assert "/mnt" not in payload_text
     assert "reports/agent_jobs" not in payload_text
 
     assert client.get("/api/news/status").status_code == 404
