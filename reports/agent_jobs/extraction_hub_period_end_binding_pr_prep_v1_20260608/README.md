@@ -1,6 +1,6 @@
 # HUB Period-End Binding PR Prep
 
-State: `VALIDATING_PUSH`
+State: `DONE`
 
 ## Objective
 
@@ -38,8 +38,19 @@ mutation.
 - JSON validation: passed.
 - Pre-stage task-card `check-diff`: passed for the unignored task card.
 
-Final staged `check-diff`, branch push, and draft PR creation are pending.
+Final staged `check-diff`: passed.
+
+Branch push: passed.
+
+Draft PR creation: passed.
 
 ## PR
 
-Pending.
+- Draft PR: https://github.com/0rl4nd0l/tenn/pull/336
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Head: `safe/extraction-hub-period-end-binding-v1-20260608`
+- State at creation check: open draft, `mergeStateStatus=UNSTABLE`.
+
+The PR is intentionally draft. It should remain HUB-only and should not be used
+to authorize LBL fiscal-label inference, CTN changes, count runs, broad
+extraction, backfill, runtime service routes, or production-data mutation.

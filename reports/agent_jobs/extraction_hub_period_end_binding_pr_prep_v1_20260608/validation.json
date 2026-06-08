@@ -67,8 +67,16 @@
   ],
   "github": {
     "duplicate_pr_check": "passed_no_existing_branch_or_commit_pr",
-    "push": "pending",
-    "draft_pr": "pending"
+    "push": "passed",
+    "draft_pr": {
+      "status": "created",
+      "url": "https://github.com/0rl4nd0l/tenn/pull/336",
+      "number": 336,
+      "is_draft": true,
+      "base": "migration/clean-runtime-baseline-reconstruct-v1",
+      "head": "safe/extraction-hub-period-end-binding-v1-20260608",
+      "merge_state_status_at_creation_check": "UNSTABLE"
+    }
   },
   "forbidden_actions_not_run": [
     "merge",
