@@ -18,7 +18,7 @@ Note: `python run.py` is **NOT** the canonical startup path for agents (it is a 
 - Use phase gates in `docs/phase_checklist.md`.
 - Keep both files updated during runs and before handoff.
 
-## Run in 3 steps
+## Batch workflow in 3 steps
 1. Create/activate your main venv at repo root.
 2. Install deps:
    - `pip install -r requirements.txt`
@@ -26,7 +26,7 @@ Note: `python run.py` is **NOT** the canonical startup path for agents (it is a 
 3. Run:
    - `python run.py`
 
-That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
+That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded. It runs ingestion workflows; it is not the canonical backend startup path for agents.
 
 ## Isolated AU News Collector (`newspaper4k`)
 For a separate, research-only AU finance article collector, use:
