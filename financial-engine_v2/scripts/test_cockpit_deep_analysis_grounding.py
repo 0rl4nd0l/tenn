@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT))
 
+from cockpit.core.answer_readiness import AnswerReadiness  # noqa: E402
 from cockpit.core.chat import ChatController  # noqa: E402
 
 
@@ -113,7 +114,7 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "### 3. Refinancing Risk\n"
         )
         self.assertTrue(
-            self.controller._looks_like_framework_only_analysis(  # noqa: SLF001
+            AnswerReadiness.looks_like_framework_only_analysis(
                 answer=answer,
                 ticker="MGR",
                 local_payload=self.local_payload,
@@ -128,7 +129,7 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "- qual score 0.651 from MGR liquidity update presentation flags liquidity focus.\n"
         )
         self.assertFalse(
-            self.controller._looks_like_framework_only_analysis(  # noqa: SLF001
+            AnswerReadiness.looks_like_framework_only_analysis(
                 answer=answer,
                 ticker="MGR",
                 local_payload=self.local_payload,
@@ -136,10 +137,11 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
         )
 
     def test_grounded_deep_brief_contains_evidence_sections(self):
-        text = self.controller._build_grounded_deep_analysis_brief(  # noqa: SLF001
+        text = AnswerReadiness.build_grounded_deep_analysis_brief(
             ticker="MGR",
             message="deep analysis analyse MGR with focus on liquidity pressure",
             local_payload=self.local_payload,
+            build_price_reply=ChatController._build_price_reply,
         )
         self.assertIn("Verdict:", text)
         self.assertIn("Evidence:", text)
@@ -147,7 +149,7 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
         self.assertIn("Counterpoints:", text)
         self.assertIn("Unknowns:", text)
         self.assertIn("[source:", text.lower())
-        self.assertFalse(self.controller._violates_deep_output_contract(text))  # noqa: SLF001
+        self.assertFalse(AnswerReadiness.violates_deep_output_contract(text))
 
     def test_deep_output_contract_detects_missing_headers(self):
         text = (
@@ -158,7 +160,7 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "- 2025-12-31: debt maturity note\n"
             "- score 0.590 | covenant discussion\n"
         )
-        self.assertTrue(self.controller._violates_deep_output_contract(text))  # noqa: SLF001
+        self.assertTrue(AnswerReadiness.violates_deep_output_contract(text))
 
     def test_deep_output_contract_requires_source_anchors(self):
         text = (
@@ -176,7 +178,7 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "Unknowns:\n"
             "- debt ladder detail not explicitly disclosed.\n"
         )
-        self.assertTrue(self.controller._violates_deep_output_contract(text))  # noqa: SLF001
+        self.assertTrue(AnswerReadiness.violates_deep_output_contract(text))
 
     def test_grounded_deep_brief_dedupes_qual_hits_and_cleans_paths(self):
         payload = {
@@ -209,10 +211,11 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "price_state": {"ok": False, "error": "price unavailable"},
             "financials": [],
         }
-        text = self.controller._build_grounded_deep_analysis_brief(  # noqa: SLF001
+        text = AnswerReadiness.build_grounded_deep_analysis_brief(
             ticker="MGR",
             message="deep analysis analyse MGR with focus on liquidity pressure",
             local_payload=payload,
+            build_price_reply=ChatController._build_price_reply,
         )
         score_lines = [line for line in text.splitlines() if line.strip().startswith("- score ")]
         self.assertEqual(len(score_lines), 2)
@@ -273,10 +276,11 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "price_state": {"ok": False, "error": "price unavailable"},
             "financials": [],
         }
-        text = self.controller._build_grounded_deep_analysis_brief(  # noqa: SLF001
+        text = AnswerReadiness.build_grounded_deep_analysis_brief(
             ticker="MGR",
             message="deep analysis analyse MGR with focus on liquidity pressure",
             local_payload=payload,
+            build_price_reply=ChatController._build_price_reply,
         )
         self.assertIn("undrawn debt facilities", text.lower())
         self.assertIn("[source:", text.lower())
@@ -312,10 +316,11 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "price_state": {"ok": False, "error": "price unavailable"},
             "financials": [],
         }
-        text = self.controller._build_grounded_deep_analysis_brief(  # noqa: SLF001
+        text = AnswerReadiness.build_grounded_deep_analysis_brief(
             ticker="MGR",
             message="deep analysis analyse MGR",
             local_payload=payload,
+            build_price_reply=ChatController._build_price_reply,
         )
         self.assertIn("Extraction failed for MGR 1H26 Interim Report", text)
         self.assertIn("[source: extraction_runs/documents]", text)
@@ -339,10 +344,11 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             },
             "financials": [],
         }
-        text = self.controller._build_grounded_deep_analysis_brief(  # noqa: SLF001
+        text = AnswerReadiness.build_grounded_deep_analysis_brief(
             ticker="MGR",
             message="deep analysis analyse MGR",
             local_payload=payload,
+            build_price_reply=ChatController._build_price_reply,
         )
         self.assertIn("[source: price_horizon_1y]", text)
         self.assertIn("total_return=12.50%", text)
@@ -364,10 +370,11 @@ class CockpitDeepAnalysisGroundingTests(unittest.TestCase):
             "price_state": {"ok": False, "error": "price unavailable"},
             "financials": [],
         }
-        text = self.controller._build_grounded_deep_analysis_brief(  # noqa: SLF001
+        text = AnswerReadiness.build_grounded_deep_analysis_brief(
             ticker="MGR",
             message="deep analysis analyse MGR",
             local_payload=payload,
+            build_price_reply=ChatController._build_price_reply,
         )
         self.assertIn("Web fact:", text)
         self.assertIn("[source: https://www.asx.com.au/example]", text)

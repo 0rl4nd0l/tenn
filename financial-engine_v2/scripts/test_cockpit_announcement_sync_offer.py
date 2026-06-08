@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT))
 
+from cockpit.core.answer_readiness import AnswerReadiness  # noqa: E402
 from cockpit.core.chat import ChatController  # noqa: E402
 
 
@@ -61,7 +62,7 @@ class CockpitAnnouncementSyncOfferTests(unittest.TestCase):
 
     def test_missing_docs_marks_stale_and_offers_update(self):
         c = self._controller()
-        sync = c._compute_announcement_sync_status("BHP", docs=[], message="analyse bhp")
+        sync = AnswerReadiness.compute_announcement_sync_status("BHP", docs=[], message="analyse bhp")
         self.assertEqual(sync["status"], "missing")
         self.assertTrue(sync["needs_update_offer"])
 
@@ -74,7 +75,7 @@ class CockpitAnnouncementSyncOfferTests(unittest.TestCase):
         c = self._controller()
         fresh = datetime.now(timezone.utc) - timedelta(hours=12)
         docs = [{"published_at": fresh.isoformat(), "title": "Recent announcement"}]
-        sync = c._compute_announcement_sync_status("BHP", docs=docs, message="analyse bhp")
+        sync = AnswerReadiness.compute_announcement_sync_status("BHP", docs=docs, message="analyse bhp")
         self.assertEqual(sync["status"], "fresh")
         self.assertFalse(sync["needs_update_offer"])
         offer = c._build_ticker_update_offer("BHP", sync)
@@ -86,7 +87,7 @@ class CockpitAnnouncementSyncOfferTests(unittest.TestCase):
         c = self._controller()
         stale = datetime.now(timezone.utc) - timedelta(hours=240)
         docs = [{"published_at": stale.isoformat(), "title": "Old announcement"}]
-        sync = c._compute_announcement_sync_status("BHP", docs=docs, message="latest bhp announcements")
+        sync = AnswerReadiness.compute_announcement_sync_status("BHP", docs=docs, message="latest bhp announcements")
         self.assertEqual(sync["status"], "stale")
         self.assertTrue(sync["needs_update_offer"])
         offer = c._build_ticker_update_offer("BHP", sync)
