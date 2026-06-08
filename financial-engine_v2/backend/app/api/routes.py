@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 from celery import Celery
 from app.core.config import settings
@@ -14,6 +14,15 @@ celery=Celery("fe_api", broker=settings.celery_broker_url, backend=settings.cele
 celery.conf.task_default_queue = "default"
 celery.conf.task_default_exchange = "default"
 celery.conf.task_default_routing_key = "default"
+
+
+def _require_ingestion_key(x_api_key: str | None = Header(default=None)):
+    expected=(settings.ingestion_api_key or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Ingestion endpoints are disabled until INGESTION_API_KEY is configured")
+    if x_api_key != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
 
 @router.get("/health")
 def health(): return {"status":"ok"}
@@ -59,7 +68,7 @@ def price(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 @router.post("/backfill/asx20")
-def backfill_asx20(years:int=1, process_documents:bool=False):
+def backfill_asx20(years:int=1, process_documents:bool=False, _auth:None=Depends(_require_ingestion_key)):
     if settings.task_mode.lower()=="sync":
         results=[backfill_ticker_sync(t, years=years, process_documents=process_documents) for t in ASX20]
         return {"mode":"sync","processed":len(results),"results":results}
@@ -68,7 +77,7 @@ def backfill_asx20(years:int=1, process_documents:bool=False):
     return {"mode":"celery","enqueued":len(ASX20),"tickers":ASX20}
 
 @router.post("/backfill/ticker/{ticker}")
-def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
+def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False, _auth:None=Depends(_require_ingestion_key)):
     if settings.task_mode.lower()=="sync":
         result=backfill_ticker_sync(ticker.upper(), years=years, process_documents=process_documents)
         return {"mode":"sync", **result}

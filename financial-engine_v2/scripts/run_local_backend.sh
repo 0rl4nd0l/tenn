@@ -32,4 +32,4 @@ export MARKETINDEX_ANNOUNCEMENTS_FILE="${MARKETINDEX_ANNOUNCEMENTS_FILE:-../data
 
 mkdir -p ./data/asx/docs
 
-exec "$ROOT_DIR/.venv/bin/uvicorn" app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+exec "$ROOT_DIR/.venv/bin/uvicorn" app.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}"
