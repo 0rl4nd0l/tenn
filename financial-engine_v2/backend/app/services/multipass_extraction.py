@@ -2027,6 +2027,14 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
     (
         "Q",
+        "quarterly_source_phrase",
+        re.compile(
+            r"\bquarterly[-\s]+(?:cash[-\s]+flow|activities|activity|report)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "Q",
         "appendix_5b_source_phrase",
         re.compile(r"\bappendix[-\s]+5b\b", re.IGNORECASE),
     ),
@@ -2035,14 +2043,6 @@ _SOURCE_PERIOD_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "quarterly_activity_report_source_phrase",
         re.compile(
             r"\bquarterly[-\s]+activit(?:y|ies)[-\s]+report\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Q",
-        "quarterly_source_phrase",
-        re.compile(
-            r"\bquarterly[-\s]+(?:cash[-\s]+flow|activities|activity|report)\b",
             re.IGNORECASE,
         ),
     ),

@@ -33,6 +33,17 @@ mutation.
 - Duplicate PR check: no existing PR found for the PR branch or CTN commits.
 - Focused pytest: passed via isolated `uv` environment:
   `19 passed, 1 warning`.
+- CI follow-up: GitHub `lint-and-test` initially failed one pre-existing
+  classifier expectation because mixed `Quarterly activities report and Appendix
+  5B` text reported `appendix_5b_source_phrase` instead of the legacy
+  `quarterly_source_phrase`. The follow-up preserves the legacy classifier
+  reason ordering while keeping Appendix 5B evidence in the hit list for CTN
+  precedence.
+- Post-fix local validation:
+  - targeted classifier + CTN guard tests: `10 passed, 1 warning`;
+  - expanded extraction slice
+    `test_multipass_extraction.py test_extraction_pre_canary_truth_gates.py`:
+    `203 passed, 1 warning`.
 - CTN-only saved-artifact scorecard replay: passed; previous
   `period_source_mismatch` replayed as `ok`, observed gain `+1` document and
   `+6` non-null canonical metrics.

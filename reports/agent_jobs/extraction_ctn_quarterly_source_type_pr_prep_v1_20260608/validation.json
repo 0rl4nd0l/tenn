@@ -26,6 +26,30 @@
       "exit_code": 0,
       "summary": "19 passed, 1 warning in 0.81s"
     },
+    "ci_followup": {
+      "initial_github_lint_and_test": {
+        "status": "completed",
+        "conclusion": "failure",
+        "details_url": "https://github.com/0rl4nd0l/tenn/actions/runs/27137884823/job/80094884451",
+        "failure": "test_source_document_classifier_preserves_valid_report_candidates expected quarterly_source_phrase but got appendix_5b_source_phrase"
+      },
+      "local_fix": {
+        "file": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "summary": "Preserve legacy quarterly_source_phrase ordering for mixed quarterly/Appendix 5B classifier reason while retaining Appendix 5B and quarterly activity hits for CTN precedence."
+      },
+      "targeted_pytest_after_fix": {
+        "exit_code": 0,
+        "summary": "10 passed, 1 warning in 0.29s"
+      },
+      "expanded_local_pytest_after_fix": {
+        "exit_code": 0,
+        "summary": "203 passed, 1 warning in 2.74s",
+        "command_scope": [
+          "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+          "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py"
+        ]
+      }
+    },
     "ctn_saved_artifact_replay": {
       "exit_code": 0,
       "previous_status": "failed",
