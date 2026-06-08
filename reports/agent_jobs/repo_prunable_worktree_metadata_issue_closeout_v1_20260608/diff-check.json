@@ -1,0 +1,58 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/repo_prunable_worktree_metadata_issue_closeout_v1_20260608.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/validation.md",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_prune_allowed": false,
+      "allowed_files": [
+        "docs/agent_tasks/repo_prunable_worktree_metadata_issue_closeout_v1_20260608.md",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/README.md",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/status.json",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/validation.md",
+        "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608/diff-check.json"
+      ],
+      "approval_reference": "User said proceed after PR #332 publish/merge path.",
+      "approval_required": true,
+      "github_issue": 329,
+      "github_mutation_allowed": "issue_329_comment_and_close_only",
+      "job_id": "repo_prunable_worktree_metadata_issue_closeout_v1_20260608",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/repo_prunable_worktree_metadata_issue_closeout_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "issue_closeout_only",
+      "requested_primary_lane": "Repo Hygiene",
+      "supporting_lanes": [
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
