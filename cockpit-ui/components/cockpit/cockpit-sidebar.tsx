@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -43,8 +43,8 @@ import {
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
-import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
+import { GpuActivityDialog } from '@/components/cockpit/gpu-activity-dialog'
+import { HostActivityDialog } from '@/components/cockpit/host-activity-dialog'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { 
@@ -130,10 +130,36 @@ function formatClock(time: Date | null): string {
   })
 }
 
+function serviceStatusLabel(status: ServiceHealth['status'] | undefined): string {
+  switch (status) {
+    case 'healthy':
+      return 'AVAILABLE'
+    case 'degraded':
+      return 'DEGRADED'
+    case 'down':
+      return 'UNAVAILABLE'
+    case 'unknown':
+    default:
+      return 'UNKNOWN'
+  }
+}
+
+function serviceStatusSummary(kind: 'Host' | 'GPU', status: ServiceHealth['status'] | undefined): string {
+  if (status === 'healthy') {
+    return `${kind} telemetry available. Open details for diagnostics.`
+  }
+  if (status === 'degraded') {
+    return `${kind} telemetry degraded. Open details for diagnostics.`
+  }
+  if (status === 'down') {
+    return `${kind} telemetry unavailable. Open details for diagnostics.`
+  }
+  return `${kind} telemetry pending. Open details for diagnostics.`
+}
+
 export function CockpitSidebar({
   backendHealthy,
   backendLastHealthyAt,
-  backendError,
   gpuHealth,
   hostHealth,
   sessionCost,
@@ -145,10 +171,6 @@ export function CockpitSidebar({
   }
   const pathname = usePathname()
   const { 
-    chatModel, 
-    apiDefaultEnabled,
-    preferences,
-    sessionStats, 
     sessionId, 
     setSessionId,
     setActiveTicker
@@ -276,27 +298,21 @@ export function CockpitSidebar({
     return () => clearTimeout(timeout)
   }, [configNotice])
 
-  const activeModelLabel = useMemo(() => {
-    if (sessionStats.activeModel && sessionStats.activeModel !== 'local') {
-      return sessionStats.activeModel
-    }
-    return configSummary.model ?? '--'
-  }, [configSummary.model, sessionStats.activeModel])
-  const routeModeLabel = apiDefaultEnabled
-    ? 'API default'
-    : preferences.chatRoutingPolicyOverride !== 'config_default'
-      ? preferences.chatRoutingPolicyOverride
-      : 'adaptive'
-
   const displayNotice = backendHealthy
     ? configNotice
+      ? {
+          level: configNotice.level,
+          message:
+            configNotice.level === 'critical'
+              ? 'Config requires attention. Open Settings for details.'
+              : 'Runtime config unavailable. Open Settings for details.',
+        }
+      : null
     : {
         level: 'critical' as const,
-        message: backendError ?? configNotice?.message ?? 'Backend is unavailable',
+        message: 'Backend unavailable. Open Operations for details.',
       }
 
-  const gpuSummary = useMemo(() => getGpuSummary(gpuHealth), [gpuHealth])
-  const hostSummary = useMemo(() => getHostSummary(hostHealth), [hostHealth])
   const configFieldCount = [
     configSummary.model,
     configSummary.maxTokens,
@@ -307,9 +323,15 @@ export function CockpitSidebar({
   const configStatusLabel = lastConfigSyncAt
     ? (configFieldCount === 5 ? 'synced' : 'partial')
     : 'pending'
+  const runtimeStatusLabel = !backendHealthy
+    ? 'needs setup'
+    : configNotice?.level === 'critical'
+      ? 'needs attention'
+      : lastConfigSyncAt
+        ? (configFieldCount === 5 ? 'ready' : 'partial')
+        : 'pending'
 
   const gpuHealthy = gpuHealth?.status === 'healthy'
-  const gpuProcesses = useMemo(() => getGpuProcesses(gpuHealth), [gpuHealth])
 
   return (
     <Sidebar
@@ -443,7 +465,7 @@ export function CockpitSidebar({
                             : 'bg-[oklch(0.58_0.22_25)]'
                         }`} />
                         <span className="text-muted-foreground">
-                          HOST: {hostHealth?.status === 'healthy' ? 'RUNNING' : (hostHealth?.status ?? 'UNKNOWN').toUpperCase()}
+                          HOST: {serviceStatusLabel(hostHealth?.status)}
                         </span>
                       </div>
                       <span className="flex items-center gap-1 text-[10px] text-muted-foreground/80">
@@ -452,7 +474,7 @@ export function CockpitSidebar({
                       </span>
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground/90 pl-4 font-mono break-words">
-                      {hostSummary}
+                      {serviceStatusSummary('Host', hostHealth?.status)}
                     </div>
                   </button>
               </HostActivityDialog>
@@ -469,7 +491,7 @@ export function CockpitSidebar({
                             : 'bg-[oklch(0.7_0.05_250)]'
                         }`} />
                         <span className="text-muted-foreground">
-                          GPU: {gpuHealthy ? 'VISIBLE' : (gpuHealth?.status ?? 'UNKNOWN').toUpperCase()}
+                          GPU: {serviceStatusLabel(gpuHealth?.status)}
                         </span>
                       </div>
                       <span className="flex items-center gap-1 text-[10px] text-muted-foreground/80">
@@ -478,12 +500,7 @@ export function CockpitSidebar({
                       </span>
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground/90 pl-4 font-mono break-words">
-                      {gpuSummary}
-                    </div>
-                    <div className="mt-1 pl-4 text-[10px] font-mono text-muted-foreground/75">
-                      {gpuProcesses.length > 0
-                        ? `${gpuProcesses.length} active GPU process${gpuProcesses.length === 1 ? '' : 'es'}`
-                        : 'No active GPU compute processes'}
+                      {serviceStatusSummary('GPU', gpuHealth?.status)}
                     </div>
                   </button>
               </GpuActivityDialog>
@@ -491,23 +508,25 @@ export function CockpitSidebar({
                 config status: {configStatusLabel} {lastConfigSyncAt ? `• ${formatClock(lastConfigSyncAt)}` : ''}
               </div>
 
-              <div className="mt-2 space-y-1 rounded border border-sidebar-border/80 bg-black/20 px-2 py-1.5">
+              <div
+                className="mt-2 space-y-1 rounded border border-sidebar-border/80 bg-black/20 px-2 py-1.5"
+                data-testid="cockpit-config-summary"
+              >
                 <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                   <Cpu className="h-3 w-3" />
-                  Cockpit Config
-                </div>
-                <div className="text-[11px] text-foreground font-mono">route: {routeModeLabel}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">
-                  {apiDefaultEnabled ? 'local fallback' : 'selected'}: {chatModel}
-                </div>
-                <div className="text-[11px] text-muted-foreground font-mono">active: {activeModelLabel}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">
-                  max_tokens: {configSummary.maxTokens ?? '--'} | temp:{' '}
-                  {configSummary.temperature?.toFixed(2) ?? '--'}
+                  Runtime Readiness
                 </div>
                 <div className="text-[11px] text-muted-foreground font-mono">
-                  routing: {configSummary.routingPolicy ?? '--'} | profile: {configSummary.profile ?? '--'}
+                  runtime: {runtimeStatusLabel}
                 </div>
+                <div className="text-[11px] text-muted-foreground font-mono">config: {configStatusLabel}</div>
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-muted-foreground/85 hover:text-foreground"
+                >
+                  Open operator settings
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
               </div>
 
               {displayNotice?.message && (

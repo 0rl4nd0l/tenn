@@ -1,0 +1,56 @@
+{
+  "job_id": "cockpit_global_chrome_operator_detail_gate_v1_20260526",
+  "lane": "Reporting",
+  "execution_mode": "safe_extension",
+  "production_data_access": false,
+  "target_system_layer": "Client",
+  "github_issue": 109,
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui install --frozen-lockfile",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run components/cockpit/cockpit-sidebar.test.tsx components/cockpit/cockpit-status-bar.test.tsx",
+      "result": "passed",
+      "details": "4 tests passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec eslint components/cockpit/cockpit-sidebar.tsx components/cockpit/cockpit-sidebar.test.tsx components/cockpit/cockpit-status-bar.tsx components/cockpit/cockpit-status-bar.test.tsx",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui exec tsc --noEmit",
+      "result": "passed"
+    },
+    {
+      "command": "corepack pnpm --dir cockpit-ui build",
+      "result": "passed"
+    },
+    {
+      "command": "Playwright CLI screenshots for /, /full-chat, and /operations on http://127.0.0.1:3110",
+      "result": "passed",
+      "details": "Screenshots saved under reports/agent_jobs/cockpit_global_chrome_operator_detail_gate_v1_20260526; backend-offline console errors expected because backend was not started"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_global_chrome_operator_detail_gate_v1_20260526.md",
+      "result": "passed"
+    }
+  ]
+}

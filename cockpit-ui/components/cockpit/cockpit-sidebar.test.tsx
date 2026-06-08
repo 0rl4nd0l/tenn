@@ -10,6 +10,7 @@ import {
   listChatSessions,
 } from '@/lib/api-client'
 import { deleteChatSession } from '@/lib/chat-session-store'
+import type { ServiceHealth } from '@/lib/cockpit-types'
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/full-chat',
@@ -27,7 +28,9 @@ vi.mock('@/lib/chat-session-store', () => ({
   loadAllChatSessions: vi.fn(() => []),
 }))
 
-function renderSidebar() {
+type SidebarProps = Parameters<typeof CockpitSidebar>[0]
+
+function renderSidebar(overrides: Partial<SidebarProps> = {}) {
   return render(
     <SidebarProvider>
       <CockpitSidebar
@@ -37,6 +40,7 @@ function renderSidebar() {
         gpuHealth={null}
         hostHealth={null}
         sessionCost={0}
+        {...overrides}
       />
     </SidebarProvider>,
   )
@@ -106,5 +110,59 @@ describe('CockpitSidebar chat sessions', () => {
     })
     expect(deleteChatSession).toHaveBeenCalledWith('session-alpha')
     expect(useCockpitStore.getState().sessionId).toBe('active-session')
+  })
+
+  it('keeps raw host, GPU, and config internals out of normal sidebar chrome', async () => {
+    const rawGpuError = 'Command failed: nvidia-smi --query-gpu=name,temperature.gpu'
+    const rawHostCommand = '/usr/bin/top -b -n 1'
+    const hostHealth: ServiceHealth = {
+      name: 'host',
+      status: 'down',
+      error: rawHostCommand,
+      details: {},
+    }
+    const gpuHealth: ServiceHealth = {
+      name: 'gpu',
+      status: 'unknown',
+      error: rawGpuError,
+      details: {
+        processes: [
+          {
+            pid: 1234,
+            command: 'python local-model-worker.py --model qwen3.5-35b-a3b-apex',
+          },
+        ],
+      },
+    }
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          llm_model: 'model:qwen3.5-35b-a3b-apex',
+          max_tokens: 8192,
+          temperature: 0.67,
+          routing_policy: 'api_preferred',
+          profile: 'ops',
+        }),
+      })),
+    )
+
+    renderSidebar({ hostHealth, gpuHealth })
+
+    expect(await screen.findByTestId('cockpit-config-summary')).toHaveTextContent('Runtime Readiness')
+    expect(screen.getByText('Host telemetry unavailable. Open details for diagnostics.')).toBeInTheDocument()
+    expect(screen.getByText('GPU telemetry pending. Open details for diagnostics.')).toBeInTheDocument()
+    expect(screen.getByText('Open operator settings')).toBeInTheDocument()
+
+    expect(screen.queryByText(/nvidia-smi/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/local-model-worker/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/qwen3\.5-35b-a3b-apex/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/max_tokens/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/temp/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/api_preferred/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/profile: ops/i)).not.toBeInTheDocument()
   })
 })
