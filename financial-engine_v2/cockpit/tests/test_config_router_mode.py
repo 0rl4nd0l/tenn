@@ -96,9 +96,12 @@ def test_apply_runtime_flags_prefers_cockpit_state_db_env(
 def test_apply_runtime_flags_prefers_cockpit_news_db_path_env(
     monkeypatch, tmp_path: Path
 ):
-    monkeypatch.setenv("COCKPIT_NEWS_DB_PATH", "/cockpit/news.sqlite")
-    monkeypatch.setenv("TENN_NEWS_CONTEXT_DB", "/shared/news.sqlite")
-    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", "/shared/qual_context")
+    legacy_path = tmp_path / "legacy-news.sqlite"
+    tenn_path = tmp_path / "tenn-news.sqlite"
+    artifact_root = tmp_path / "qual_context"
+    monkeypatch.setenv("COCKPIT_NEWS_DB_PATH", str(legacy_path))
+    monkeypatch.setenv("TENN_NEWS_CONTEXT_DB", str(tenn_path))
+    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", str(artifact_root))
 
     cfg = apply_runtime_flags(
         {"rag": {"news_context": {"db_path": "reports/qual_context/news.sqlite"}}},
@@ -111,15 +114,17 @@ def test_apply_runtime_flags_prefers_cockpit_news_db_path_env(
         ),
     )
 
-    assert cfg["rag"]["news_context"]["db_path"] == "/cockpit/news.sqlite"
+    assert cfg["rag"]["news_context"]["db_path"] == str(legacy_path)
 
 
 def test_apply_runtime_flags_uses_tenn_news_context_db_env(
     monkeypatch, tmp_path: Path
 ):
+    tenn_path = tmp_path / "tenn-news.sqlite"
+    artifact_root = tmp_path / "qual_context"
     monkeypatch.delenv("COCKPIT_NEWS_DB_PATH", raising=False)
-    monkeypatch.setenv("TENN_NEWS_CONTEXT_DB", "/shared/news.sqlite")
-    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", "/shared/qual_context")
+    monkeypatch.setenv("TENN_NEWS_CONTEXT_DB", str(tenn_path))
+    monkeypatch.setenv("TENN_NEWS_ARTIFACT_ROOT", str(artifact_root))
 
     cfg = apply_runtime_flags(
         {"rag": {"news_context": {"db_path": "reports/qual_context/news.sqlite"}}},
@@ -132,7 +137,7 @@ def test_apply_runtime_flags_uses_tenn_news_context_db_env(
         ),
     )
 
-    assert cfg["rag"]["news_context"]["db_path"] == "/shared/news.sqlite"
+    assert cfg["rag"]["news_context"]["db_path"] == str(tenn_path)
 
 
 def test_apply_runtime_flags_derives_news_db_from_artifact_root_env(
@@ -154,6 +159,4 @@ def test_apply_runtime_flags_derives_news_db_from_artifact_root_env(
         ),
     )
 
-    assert cfg["rag"]["news_context"]["db_path"] == str(
-        artifact_root / "news.sqlite"
-    )
+    assert cfg["rag"]["news_context"]["db_path"] == str(artifact_root / "news.sqlite")

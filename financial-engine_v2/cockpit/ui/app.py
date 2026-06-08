@@ -351,6 +351,15 @@ class CockpitApp(App):
         rag_cfg = config.get("rag") or {}
         qual_company = None
         qual_news = None
+        news_cfg = (
+            rag_cfg.get("news_context")
+            if isinstance(rag_cfg.get("news_context"), dict)
+            else None
+        )
+        news_context_db_path = str((news_cfg or {}).get("db_path") or "").strip()
+        news_context_corpus_filter = str(
+            (news_cfg or {}).get("corpus_filter") or "news"
+        ).strip()
 
         if self._backend_client is not None:
             qc_cfg = (
@@ -371,11 +380,6 @@ class CockpitApp(App):
                         f"qual_context (company) disabled: {exc}"
                     )
 
-            news_cfg = (
-                rag_cfg.get("news_context")
-                if isinstance(rag_cfg.get("news_context"), dict)
-                else None
-            )
             if context_enabled(news_cfg, default=False):
                 try:
                     qual_news = build_qual_context_reader(
@@ -402,6 +406,8 @@ class CockpitApp(App):
             backend_api_client=self._backend_client,
             qual_context_company_reader=qual_company,
             qual_context_news_reader=qual_news,
+            news_context_db_path=news_context_db_path,
+            news_context_corpus_filter=news_context_corpus_filter,
             state_store=self.state_store,
         )
         self.chat_controller = ChatController(

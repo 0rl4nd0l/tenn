@@ -1362,6 +1362,33 @@ class ToolRouter:
                     "error": str(exc)[:400],
                 }
 
+        if self.news_context_db_path and ticker:
+            try:
+                payload = self._query_news_sqlite_context(
+                    ticker=ticker,
+                    corpus_filter=self.news_context_corpus_filter,
+                    top_k=top_k,
+                )
+                hits = payload.get("hits") if isinstance(payload, dict) else []
+                hits = hits if isinstance(hits, list) else []
+                logger.info(
+                    "news_context: source=sqlite_path_fallback results=%d", len(hits)
+                )
+                return {
+                    "ok": bool(payload.get("ok")) if isinstance(payload, dict) else False,
+                    "hits": hits,
+                    "_source": "sqlite_fallback",
+                    "error": payload.get("error") if isinstance(payload, dict) else None,
+                }
+            except Exception as exc:
+                logger.info("news_context: sqlite path fallback failed: %s", exc)
+                return {
+                    "ok": False,
+                    "hits": [],
+                    "_source": "sqlite_fallback",
+                    "error": str(exc)[:400],
+                }
+
         logger.info("news_context: no backend or reader configured")
         return {
             "ok": False,
