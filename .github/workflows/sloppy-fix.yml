@@ -16,6 +16,7 @@ jobs:
     outputs:
       auth_enabled: ${{ steps.auth.outputs.enabled }}
       seeded_issue_count: ${{ steps.sloppy_issues.outputs.found_count }}
+      fixed_issue_count: ${{ steps.sloppy_fix.outputs['issues-fixed'] }}
     permissions:
       actions: read
       contents: write
@@ -85,6 +86,7 @@ jobs:
           fi
 
       - name: Sloppy fix (Claude)
+        id: sloppy_fix
         if: ${{ steps.auth.outputs.enabled == 'true' && (github.event_name != 'workflow_run' || (steps.sloppy_issues.outputs.found_count != '0' && steps.sloppy_issues.outputs.found_count != 'missing_artifact')) }}
         uses: braedonsaunders/sloppy@main
         with:
@@ -97,6 +99,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+      - name: Fail Sloppy fix when seeded issues remain unfixed
+        if: ${{ steps.auth.outputs.enabled == 'true' && github.event_name == 'workflow_run' && steps.sloppy_issues.outputs.found_count != '0' && steps.sloppy_issues.outputs.found_count != 'missing_artifact' }}
+        shell: bash
+        env:
+          SEEDED_ISSUE_COUNT: ${{ steps.sloppy_issues.outputs.found_count }}
+          FIXED_ISSUE_COUNT: ${{ steps.sloppy_fix.outputs['issues-fixed'] }}
+        run: |
+          set -euo pipefail
+          fixed="${FIXED_ISSUE_COUNT:-0}"
+          if [[ ! "$fixed" =~ ^[0-9]+$ ]]; then
+            echo "::error::Sloppy Scan reported ${SEEDED_ISSUE_COUNT} found issue(s), but Sloppy Fix returned an invalid fixed issue count: ${fixed:-<empty>}. Failing closed."
+            exit 1
+          fi
+          if (( fixed <= 0 )); then
+            echo "::error::Sloppy Scan reported ${SEEDED_ISSUE_COUNT} found issue(s), but Sloppy Fix fixed zero. Failing closed."
+            exit 1
+          fi
+          echo "Sloppy Fix fixed ${fixed} issue(s) from ${SEEDED_ISSUE_COUNT} seeded finding(s)."
 
       - name: Skip sloppy fix (no Claude credentials)
         if: ${{ steps.auth.outputs.enabled != 'true' }}
@@ -131,6 +152,7 @@ jobs:
           FIX_ENABLED: ${{ needs.fix.outputs.auth_enabled }}
           FIX_RESULT: ${{ needs.fix.result }}
           SEEDED_ISSUE_COUNT: ${{ needs.fix.outputs.seeded_issue_count }}
+          FIXED_ISSUE_COUNT: ${{ needs.fix.outputs.fixed_issue_count }}
         with:
           script: |
             const pr = context.payload.workflow_run.pull_requests?.[0];
@@ -138,15 +160,19 @@ jobs:
 
             const fixEnabled = process.env.FIX_ENABLED === 'true';
             const fixResult = process.env.FIX_RESULT || 'unknown';
+            const seededIssueCount = process.env.SEEDED_ISSUE_COUNT || '';
+            const fixedIssueCount = process.env.FIXED_ISSUE_COUNT || '0';
             let status;
             if (!fixEnabled) {
               status = 'Sloppy Fix ran automatically after Sloppy Scan, but no Claude credentials were available.';
-            } else if (process.env.SEEDED_ISSUE_COUNT === 'missing_artifact') {
+            } else if (seededIssueCount === 'missing_artifact') {
               status = 'Sloppy Fix ran automatically after Sloppy Scan and skipped because no scan issues artifact was available.';
-            } else if (process.env.SEEDED_ISSUE_COUNT === '0') {
+            } else if (seededIssueCount === '0') {
               status = 'Sloppy Fix ran automatically after Sloppy Scan and skipped because the scan reported no found issues.';
             } else if (fixResult === 'success') {
-              status = 'Sloppy Fix completed automatically after Sloppy Scan.';
+              status = `Sloppy Fix completed automatically after Sloppy Scan and fixed ${fixedIssueCount} issue(s).`;
+            } else if (seededIssueCount && seededIssueCount !== 'manual') {
+              status = `Sloppy Fix failed closed after Sloppy Scan reported ${seededIssueCount} found issue(s) and Sloppy Fix fixed ${fixedIssueCount} issue(s).`;
             } else {
               status = `Sloppy Fix attempted automatically after Sloppy Scan and ended with ${fixResult}.`;
             }

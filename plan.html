@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tenn Production Readiness Plan - 2026-06-07</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #16211f;
+      --muted: #56615e;
+      --line: #c8d0cc;
+      --panel: #f6f8f7;
+      --accent: #0f6f66;
+      --warn: #9a5a00;
+      --risk: #9b1c31;
+      --done: #19633d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+      line-height: 1.45;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+    }
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 30px 0 10px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 12px; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.94em;
+      background: #eef2f0;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .notice {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px 16px;
+      margin: 18px 0;
+    }
+    .notice strong { color: var(--accent); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .milestone {
+      border: 1px solid var(--line);
+      padding: 16px;
+      min-height: 300px;
+      background: #fff;
+    }
+    .milestone .topline {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .num {
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+    }
+    .tag {
+      display: inline-block;
+      margin: 2px 6px 8px 0;
+      border: 1px solid var(--line);
+      padding: 2px 7px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--panel);
+    }
+    dl {
+      margin: 10px 0 0;
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 7px 10px;
+      font-size: 14px;
+    }
+    dt {
+      color: var(--muted);
+      font-weight: 700;
+    }
+    dd { margin: 0; }
+    .risk { color: var(--risk); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
+    .done { color: var(--done); font-weight: 700; }
+    .footer {
+      margin-top: 26px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 820px) {
+      main { padding: 22px 14px 42px; }
+      .meta, .grid { grid-template-columns: 1fr; }
+      dl { grid-template-columns: 1fr; }
+      dt { margin-top: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Tenn Production Readiness Plan</h1>
+      <div class="meta">
+        <div><strong>Created:</strong> 2026-06-07 Australia/Melbourne</div>
+        <div><strong>Purpose:</strong> compaction-persistent resume plan</div>
+        <div><strong>Clean resume worktree:</strong> <code>/home/l4nd0/tenn-sloppy-fix-provider-failclosed-v1-20260607</code></div>
+        <div><strong>Dirty live checkout:</strong> <code>/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1</code></div>
+      </div>
+    </header>
+
+    <section class="notice">
+      <p><strong>Operating rule:</strong> preserve the dirty shared checkout. Start implementation from clean sibling worktrees, create or validate a task card before edits, keep allowlists exact, and treat green automation as evidence only when it proves the actual production behavior.</p>
+      <p><strong>Current known local anchors:</strong> safe dependency-install policy is committed locally at <code>0ae8cacd</code>; Sloppy fail-closed worktree exists at <code>7443d9f2</code> with no edits; Sloppy action deps were installed in <code>/tmp/sloppy-action</code> and local action tests passed.</p>
+    </section>
+
+    <h2>10 Next Milestones</h2>
+    <section class="grid">
+      <article class="milestone">
+        <div class="topline"><div class="num">1</div><div><h3>Lock The Resume Baseline</h3><span class="tag">P0</span><span class="tag">control plane</span></div></div>
+        <p>Re-check branch, HEAD, remote, dirt, worktrees, open PRs, and relevant Actions runs before changing anything.</p>
+        <dl>
+          <dt>Why</dt><dd>Prevents stale handoff claims from becoming implementation assumptions.</dd>
+          <dt>Exit evidence</dt><dd>Fresh preflight command output captured in the task report.</dd>
+          <dt>Next action</dt><dd>Run repo preflight in the clean worktree and dirty checkout; record exact HEADs.</dd>
+          <dt>Do not</dt><dd>Clean, stash, reset, rebase, merge, or absorb unrelated dirt.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">2</div><div><h3>Make Sloppy Fix Fail Closed</h3><span class="tag">P0</span><span class="tag">automation</span></div></div>
+        <p>Patch Sloppy Fix so a seeded scan with found issues cannot finish green when it fixes zero and skips all findings.</p>
+        <dl>
+          <dt>Why</dt><dd>Live evidence showed 3 seeded findings, 0 fixes, 3 skips, and a successful workflow.</dd>
+          <dt>Exit evidence</dt><dd>Workflow static tests prove provider selection, seeded count propagation, and zero-fix failure gate.</dd>
+          <dt>Next action</dt><dd>Create task card in <code>tenn-sloppy-fix-provider-failclosed-v1-20260607</code>, patch <code>.github/workflows/sloppy-fix.yml</code>, add focused tests.</dd>
+          <dt>Risk</dt><dd><span class="risk">Do not</span> just switch providers and leave degraded zero-fix success possible.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">3</div><div><h3>Validate Sloppy On A Real Issue Run</h3><span class="tag">P0</span><span class="tag">verification</span></div></div>
+        <p>After the workflow patch lands, run or dispatch Sloppy against a known issue-bearing scan and verify the gate behavior.</p>
+        <dl>
+          <dt>Why</dt><dd>Static YAML checks do not prove the live action produces the expected outputs.</dd>
+          <dt>Exit evidence</dt><dd>GitHub run URL showing either fixes produced or a deliberate failed status when seeded findings remain unfixed.</dd>
+          <dt>Next action</dt><dd>Request explicit GitHub write/dispatch approval, then run a bounded proof against the known Sloppy proof issue branch.</dd>
+          <dt>Gate</dt><dd>No production-ready claim until live Actions evidence exists.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">4</div><div><h3>Land Agent Contract And Registry Safety</h3><span class="tag">P0</span><span class="tag">coordination</span></div></div>
+        <p>Get the mainline agent contract/read-only registry work merged before relying on registry commands in future implementation lanes.</p>
+        <dl>
+          <dt>Why</dt><dd>Unsafe or missing read-only registry behavior blocks reliable multi-agent control.</dd>
+          <dt>Exit evidence</dt><dd>Merged PR containing <code>scripts/agent_job_contract.py</code> and safe read-only registry behavior on main.</dd>
+          <dt>Next action</dt><dd>Refresh PR state, checks, mergeability, and branch drift; do not mutate GitHub without approval.</dd>
+          <dt>Fallback</dt><dd>Record <code>DATA_MISSING</code> when safe read-only registry evidence is unavailable.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">5</div><div><h3>Port And Install Daily Closeout</h3><span class="tag">P0</span><span class="tag">automation</span></div></div>
+        <p>Move daily closeout from local proof into a mainline, installable, user-timer-backed runner.</p>
+        <dl>
+          <dt>Why</dt><dd>The repo-side runner exists locally, but the live user timers still do not include daily closeout.</dd>
+          <dt>Exit evidence</dt><dd>Mainline PR merged, systemd templates verified, user timer installed/enabled only after explicit host approval.</dd>
+          <dt>Next action</dt><dd>Use the existing automation-runner main-port branch as the starting point.</dd>
+          <dt>Do not</dt><dd>Enable host timers silently.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">6</div><div><h3>Reconcile Extraction Mainline Drift</h3><span class="tag">P0</span><span class="tag">extraction</span></div></div>
+        <p>Bring multipass extraction, parser routing, Docling/PyMuPDF routing, and truth gates onto current mainline.</p>
+        <dl>
+          <dt>Why</dt><dd>Production readiness is blocked if extraction paths are stubs or disabled while reports claim readiness.</dd>
+          <dt>Exit evidence</dt><dd>Focused regression proving non-stub multipass output and enabled truth gates on the merged baseline.</dd>
+          <dt>Next action</dt><dd>Refresh extraction PR/branch state and validate against exact task-card allowlists.</dd>
+          <dt>Invariant</dt><dd>Do not promote LLM output into canonical financial truth.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">7</div><div><h3>Resolve Extraction Lock Readiness</h3><span class="tag">P1</span><span class="tag">runtime safety</span></div></div>
+        <p>Replace ambiguous zero-byte lock evidence with a safe active-job proof or cleanup plan.</p>
+        <dl>
+          <dt>Why</dt><dd>A stale or ambiguous lock can block real work or hide active extraction ownership.</dd>
+          <dt>Exit evidence</dt><dd>Report proving whether <code>tenn_extraction_active.lock</code> maps to an active process/job, with safe next action.</dd>
+          <dt>Next action</dt><dd>Read-only inspect lock metadata, process table, and reports; request approval before deleting or mutating locks.</dd>
+          <dt>Risk</dt><dd><span class="warn">Never</span> remove a lock without active-job disproof and explicit permission.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">8</div><div><h3>Prove News Health Cannot Mask Failure</h3><span class="tag">P0</span><span class="tag">news</span></div></div>
+        <p>Keep nightly news fail-closed for zero fetched/upserted articles and stale fallback data, then verify the live cron path.</p>
+        <dl>
+          <dt>Why</dt><dd>News health must not report provider or Qdrant success when the actual feed is empty or stale.</dd>
+          <dt>Exit evidence</dt><dd>Temp-artifact run and tests proving zero-upsert/stale fallback returns unhealthy status.</dd>
+          <dt>Next action</dt><dd>Re-run origin/main wrapper tests and cron-path dry run after related branches merge.</dd>
+          <dt>Do not</dt><dd>Mutate live news stores, Qdrant, or SQLite fallback data without exact approval.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">9</div><div><h3>Reconcile Runtime DB And Cockpit Data Sources</h3><span class="tag">P1</span><span class="tag">runtime data</span></div></div>
+        <p>Map which DBs are expected, which are branch-local artifacts, and which runtime paths Cockpit actually uses.</p>
+        <dl>
+          <dt>Why</dt><dd>Missing or branch-local DBs can make dashboards appear broken or make tests pass against the wrong state.</dd>
+          <dt>Exit evidence</dt><dd>Read-only inventory of DB paths, owners, creation paths, and whether each is required, optional, stale, or generated.</dd>
+          <dt>Next action</dt><dd>Audit config and entrypoints before creating any DB; prefer explicit <code>DATA_MISSING</code> over fake placeholders.</dd>
+          <dt>Do not</dt><dd>Create empty DBs just to satisfy path checks.</dd>
+        </dl>
+      </article>
+
+      <article class="milestone">
+        <div class="topline"><div class="num">10</div><div><h3>Run Production Readiness Gate</h3><span class="tag">P0</span><span class="tag">release gate</span></div></div>
+        <p>After the P0 slices land, run a single evidence-driven gate that decides whether Tenn is production-ready or still blocked.</p>
+        <dl>
+          <dt>Why</dt><dd>Separate green checks can still leave cross-system degraded operation.</dd>
+          <dt>Exit evidence</dt><dd>One report listing every P0/P1 gate, exact command/run evidence, residual risks, rollback steps, and final <code>READY</code> or <code>NOT_READY</code>.</dd>
+          <dt>Next action</dt><dd>Define the gate after Sloppy, registry, daily closeout, extraction, news, and runtime DB evidence is refreshed.</dd>
+          <dt>Standard</dt><dd>No readiness claim from stale memory, partial branch state, or tests that do not cover the requirement.</dd>
+        </dl>
+      </article>
+    </section>
+
+    <section class="notice">
+      <h2>Immediate Resume Prompt</h2>
+      <p><code>Proceed with milestone 2 from /home/l4nd0/tenn-sloppy-fix-provider-failclosed-v1-20260607/plan.html: create a task card, patch Sloppy Fix so seeded found issues with zero fixes cannot pass green, add focused workflow tests, validate, and report. Preserve the dirty shared checkout and do not push or dispatch GitHub Actions without explicit approval.</code></p>
+    </section>
+
+    <div class="footer">
+      Persisted artifact path: <code>/home/l4nd0/tenn-sloppy-fix-provider-failclosed-v1-20260607/plan.html</code>
+    </div>
+  </main>
+</body>
+</html>
