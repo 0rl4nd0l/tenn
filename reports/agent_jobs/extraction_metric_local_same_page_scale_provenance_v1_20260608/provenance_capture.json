@@ -1,0 +1,2838 @@
+{
+  "data_missing": [
+    "second_clean_same_page_case_with_metric_local_trace",
+    "runtime_row_refs_for_cxo_accepted_metrics",
+    "runtime_metric_source_scales_for_cxo",
+    "runtime_metric_scale_sources_for_cxo",
+    "runtime_common_metric_source_scale_trace_for_cxo"
+  ],
+  "documents": {
+    "AZJ": {
+      "common_metric_source_scale_trace": {
+        "input": {
+          "fallback_scale": "unknown",
+          "metric_source_scales": {},
+          "metrics": {
+            "capex": -350500.0,
+            "cash_end": 10500000.0,
+            "ebit": 578100.0,
+            "financing_cf": -434000.0,
+            "investing_cf": -349300.0,
+            "net_debt": -10498850.9,
+            "np_attributable": 226600.0,
+            "operating_cf": 788200.0,
+            "revenue": 1428200.0,
+            "shares_outstanding": 2500130.0
+          }
+        },
+        "output": "unknown"
+      },
+      "count24_summary": {
+        "confidence": 0.905,
+        "currency": "AUD",
+        "document_class": "unknown_document",
+        "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+        "elapsed_s": 161.13,
+        "error": "validation_gate:scale_unknown",
+        "metrics": {
+          "capex": -350500.0,
+          "cash_end": 10500000.0,
+          "ebit": null,
+          "financing_cf": -434000.0,
+          "investing_cf": -349300.0,
+          "net_debt": -10498850.9,
+          "np_attributable": null,
+          "operating_cf": 788200.0,
+          "revenue": null,
+          "shares_outstanding": 2500130.0
+        },
+        "non_null_metrics": 7,
+        "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+        "period_end": "2025-06-30",
+        "period_type": "A",
+        "risk_notes": [],
+        "sanity": {
+          "cash_end_positive": true,
+          "period_end_valid": true,
+          "period_type_valid": true,
+          "shares_positive": true
+        },
+        "scale": "unknown",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+          "period_end": "2025-06-30",
+          "period_type": "A",
+          "scale": "unknown"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata is insufficient to classify the document; normal downstream gates still decide whether extraction is safe.",
+          "document_class": "unknown_document",
+          "evidence": [],
+          "extraction_candidate_allowed": true,
+          "reason": "not_detected"
+        },
+        "status": "failed",
+        "ticker": "AZJ",
+        "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+      },
+      "current_behavior_expected_or_bug": "bug_candidate: fail-closed is correct, but same-page millions needs metric-local binding proof",
+      "diagnostic_data_missing": [
+        "runtime_row_refs",
+        "runtime_metric_source_scales",
+        "runtime_metric_scale_sources",
+        "full_pass3a_llm_outputs"
+      ],
+      "diagnostic_final_payload_scale_decision": {
+        "common_metric_source_scale_from_persisted_summary": "unknown",
+        "count24_final_scale": "unknown",
+        "why_common_metric_source_scale_did_or_did_not_set_scale": "Persisted count24 summary does not contain row_refs, metric_source_scales, or metric_scale_sources. With no explicit per-metric source scales available, _common_metric_source_scale falls back to the payload scale, which is unknown for this failed document."
+      },
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "document_level_scale_markers": {
+        "early_source_text_scale": "millions",
+        "table_header_scale": "unknown"
+      },
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "validation_gate:scale_unknown",
+      "final_gate": {
+        "confidence_metrics": 0.933,
+        "error": "validation_gate:scale_unknown",
+        "non_null_metrics": 10,
+        "payload_scale": "unknown",
+        "scale_validation": "pass",
+        "status": "failed"
+      },
+      "metric_local_rows": {
+        "capex": {
+          "final_value": -350500.0,
+          "page_number": 13,
+          "runtime_row_ref": "Payments for property, plant and equipment",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "Co",
+                "nsolidated st",
+                "atement of cas",
+                "h flows"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "For the yea",
+                "r ended 30 Jun",
+                "e 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Network",
+              "Pty Ltd"
+            ],
+            "page_number": 13,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "cash_end": {
+          "final_value": 10500000.0,
+          "page_number": 13,
+          "runtime_row_ref": "Cash and cash equivalents at the end of the financial year",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "Co",
+                "nsolidated st",
+                "atement of cas",
+                "h flows"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "For the yea",
+                "r ended 30 Jun",
+                "e 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Network",
+              "Pty Ltd"
+            ],
+            "page_number": 13,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "ebit": {
+          "final_value": 578100.0,
+          "page_number": 9,
+          "runtime_row_ref": "Operating profit",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| Operating profit | | 578.1 | 576.4"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "Au",
+                "rizon Netwo",
+                "rk Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "Consolida",
+                "ted income",
+                "statement"
+              ],
+              [
+                "",
+                "",
+                "For the yea",
+                "r ended 30",
+                "June 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "Au",
+              "rizon Netwo",
+              "rk Pty Ltd"
+            ],
+            "page_number": 9,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "",
+              "578.1",
+              "576.4"
+            ]
+          ],
+          "source_table": "income_statement"
+        },
+        "financing_cf": {
+          "final_value": -434000.0,
+          "page_number": 13,
+          "runtime_row_ref": "Net cash outflow from financing activities",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "Co",
+                "nsolidated st",
+                "atement of cas",
+                "h flows"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "For the yea",
+                "r ended 30 Jun",
+                "e 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Network",
+              "Pty Ltd"
+            ],
+            "page_number": 13,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "investing_cf": {
+          "final_value": -349300.0,
+          "page_number": 13,
+          "runtime_row_ref": "Net cash outflow from investing activities",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "Co",
+                "nsolidated st",
+                "atement of cas",
+                "h flows"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "For the yea",
+                "r ended 30 Jun",
+                "e 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Network",
+              "Pty Ltd"
+            ],
+            "page_number": 13,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "net_debt": {
+          "final_value": -10498850.9,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "total_debt(1149)-cash_end(10500000)",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        },
+        "np_attributable": {
+          "final_value": 226600.0,
+          "page_number": 9,
+          "runtime_row_ref": "Profit for the year attributable to the owners of Aurizon Network Pty Ltd",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| Profit for the year attributable to the owners of Aurizon Network Pty Ltd | | 226.6 | 237.6"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "Au",
+                "rizon Netwo",
+                "rk Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "Consolida",
+                "ted income",
+                "statement"
+              ],
+              [
+                "",
+                "",
+                "For the yea",
+                "r ended 30",
+                "June 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "Au",
+              "rizon Netwo",
+              "rk Pty Ltd"
+            ],
+            "page_number": 9,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "",
+              "226.6",
+              "237.6"
+            ]
+          ],
+          "source_table": "income_statement"
+        },
+        "operating_cf": {
+          "final_value": 788200.0,
+          "page_number": 13,
+          "runtime_row_ref": "Net cash inflow from operating activities",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Au",
+                "rizon Network",
+                "Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "Co",
+                "nsolidated st",
+                "atement of cas",
+                "h flows"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "For the yea",
+                "r ended 30 Jun",
+                "e 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Network",
+              "Pty Ltd"
+            ],
+            "page_number": 13,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "revenue": {
+          "final_value": 1428200.0,
+          "page_number": 9,
+          "runtime_row_ref": "Revenue from continuing operations",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| Revenue from continuing operations | 1 1 | ,428.2 | 1,435.3"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "Au",
+                "rizon Netwo",
+                "rk Pty Ltd"
+              ],
+              [
+                "",
+                "",
+                "Consolida",
+                "ted income",
+                "statement"
+              ],
+              [
+                "",
+                "",
+                "For the yea",
+                "r ended 30",
+                "June 2025"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "2025",
+                "2024"
+              ],
+              [
+                "",
+                "",
+                "Notes",
+                "$m",
+                "$m"
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "Au",
+              "rizon Netwo",
+              "rk Pty Ltd"
+            ],
+            "page_number": 9,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "1 1",
+              ",428.2",
+              "1,435.3"
+            ]
+          ],
+          "source_table": "income_statement"
+        },
+        "shares_outstanding": {
+          "final_value": 2500130.0,
+          "page_number": 39,
+          "runtime_row_ref": "At 30 June 2025",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| At 30 June 2025 | | | | | | | 250,0 | 00,130 | 349.7"
+          ],
+          "selected_table_page_scale": {
+            "caption": "",
+            "head_rows": [
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Notes",
+                "to the consoli"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "For th"
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "13 Equity",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ]
+            ],
+            "headers": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Netw",
+              "ork Pty Ltd"
+            ],
+            "page_number": 39,
+            "same_page_scale": "millions",
+            "same_page_scale_snippets": [
+              "$m",
+              "$m",
+              "$m",
+              "$m",
+              "$m"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "250,0",
+              "00,130",
+              "349.7"
+            ]
+          ],
+          "source_table": "share_capital"
+        }
+      },
+      "repair_classification": "clean_same_page_propagation_candidate",
+      "selected_tables": {
+        "balance_sheet": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "",
+              "",
+              "Consolidated stateme",
+              "nt of financial",
+              "positio"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "As at 30 Ju",
+              "ne 202"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "30 June",
+              "30 Jun"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "2025",
+              "202"
+            ],
+            [
+              "",
+              "",
+              "",
+              "Notes",
+              "$m",
+              "$m"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "Consolidated stateme",
+            "nt of financial",
+            "positio"
+          ],
+          "page_number": 11,
+          "same_page_scale": "millions",
+          "same_page_scale_snippets": [
+            "$m",
+            "$m"
+          ],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "cashflow_statement": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Au",
+              "rizon Network",
+              "Pty Ltd"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "Co",
+              "nsolidated st",
+              "atement of cas",
+              "h flows"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "For the yea",
+              "r ended 30 Jun",
+              "e 2025"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "2025",
+              "2024"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Notes",
+              "$m",
+              "$m"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Au",
+            "rizon Network",
+            "Pty Ltd"
+          ],
+          "page_number": 13,
+          "same_page_scale": "millions",
+          "same_page_scale_snippets": [
+            "$m",
+            "$m"
+          ],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "highlights": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "Results for the year",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "page_number": 16,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "income_statement": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "",
+              "Au",
+              "rizon Netwo",
+              "rk Pty Ltd"
+            ],
+            [
+              "",
+              "",
+              "Consolida",
+              "ted income",
+              "statement"
+            ],
+            [
+              "",
+              "",
+              "For the yea",
+              "r ended 30",
+              "June 2025"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "2025",
+              "2024"
+            ],
+            [
+              "",
+              "",
+              "Notes",
+              "$m",
+              "$m"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "Au",
+            "rizon Netwo",
+            "rk Pty Ltd"
+          ],
+          "page_number": 9,
+          "same_page_scale": "millions",
+          "same_page_scale_snippets": [
+            "$m",
+            "$m"
+          ],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "share_capital": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Notes",
+              "to the consoli"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "For th"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "13 Equity",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Au",
+            "rizon Netw",
+            "ork Pty Ltd"
+          ],
+          "page_number": 39,
+          "same_page_scale": "millions",
+          "same_page_scale_snippets": [
+            "$m",
+            "$m",
+            "$m",
+            "$m",
+            "$m"
+          ],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        }
+      },
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "ticker": "AZJ"
+    },
+    "CXO": {
+      "accepted_output_audit": {
+        "checks": {
+          "half_year_period_end_not_leading_announcement_date": true,
+          "period_end_present": true,
+          "period_type_present": true,
+          "revenue_positive_if_present": true,
+          "row_refs_or_extraction_run_id_available": false,
+          "scale_source_bound": true,
+          "shares_positive_if_present": true,
+          "source_class_allowed": true
+        },
+        "provenance_note": "The runtime row shape does not expose page/table/row refs or extraction_run_id in this report-local runner output.",
+        "risk_reasons": [
+          "row_refs_or_extraction_run_id_available"
+        ],
+        "scale": "thousands",
+        "source_document_class": "financial_report",
+        "status": "ok"
+      },
+      "cache_table_scale_evidence": {
+        "cache_path": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/financial-engine_v2/data/reports/extraction_cache/docling_extract/2745e28f57d68071f16a84674ce0efa782ed186463c9140ceb9790bf38103b11-2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4.pymupdf.json",
+        "cache_path_exists": true,
+        "candidate_tables": [
+          {
+            "caption": "For personal use only",
+            "head_rows": [
+              [
+                "Consolidated statement of cash flows",
+                "Current quarter $A’000",
+                "Year to date (3 months) $A’000"
+              ],
+              [
+                "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de",
+                "- - - - (1,707) (2,325) - 276 - - - -",
+                "- - - - (1,707) (2,325) - 276 - - - -"
+              ],
+              [
+                "",
+                "(3,756)",
+                "(3,756)"
+              ]
+            ],
+            "headers": [
+              "Consolidated statement of cash flows",
+              "Current quarter $A’000",
+              "Year to date (3 months) $A’000"
+            ],
+            "page_number": 14,
+            "row_count": 3,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000"
+            ],
+            "table_index": 15,
+            "table_local_scale": "thousands"
+          },
+          {
+            "caption": "For personal use only",
+            "head_rows": [
+              [
+                "2. Cash flows from investing activities 2.1 Payments to acquire or for: (a) entities (b) tenements (c) property, plant a",
+                "- - (19,014) (3,154) -",
+                "- - (19,014) (3,154) -"
+              ]
+            ],
+            "headers": [
+              "2. Cash flows from investing activities 2.1 Payments to acquire or for: (a) entities (b) tenements (c) property, plant and equipment (d) exploration & evaluatio",
+              "- - (19,014) (3,154) -",
+              "- - (19,014) (3,154) -"
+            ],
+            "page_number": 14,
+            "row_count": 1,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000"
+            ],
+            "table_index": 16,
+            "table_local_scale": "unknown"
+          },
+          {
+            "caption": "",
+            "head_rows": [
+              [
+                "Consolidated statement of cash flows",
+                "Current quarter $A’000",
+                "Year to date (3 months) $A’000"
+              ],
+              [
+                "(f) other non-current assets - mine development 2.2 Proceeds from the disposal of: (a) entities (b) tenements (c) proper",
+                "(13,676) - - - - - - - - -",
+                "(13,676) - - - - - - - - -"
+              ],
+              [
+                "",
+                "(35,844)",
+                "(35,844)"
+              ]
+            ],
+            "headers": [
+              "Consolidated statement of cash flows",
+              "Current quarter $A’000",
+              "Year to date (3 months) $A’000"
+            ],
+            "page_number": 15,
+            "row_count": 3,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000"
+            ],
+            "table_index": 17,
+            "table_local_scale": "thousands"
+          },
+          {
+            "caption": "For personal use only",
+            "head_rows": [
+              [
+                "3. Cash flows from financing activities 3.1 Proceeds from issues of equity securities (excluding convertible debt securi",
+                "- - 281 (21) - - - - (337)",
+                "- - 281 (21) - - - - (337)"
+              ],
+              [
+                "",
+                "(77)",
+                "(77)"
+              ]
+            ],
+            "headers": [
+              "3. Cash flows from financing activities 3.1 Proceeds from issues of equity securities (excluding convertible debt securities) 3.2 Proceeds from issue of convert",
+              "- - 281 (21) - - - - (337)",
+              "- - 281 (21) - - - - (337)"
+            ],
+            "page_number": 15,
+            "row_count": 2,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000"
+            ],
+            "table_index": 18,
+            "table_local_scale": "unknown"
+          },
+          {
+            "caption": "",
+            "head_rows": [
+              [
+                "Consolidated statement of cash flows",
+                "Current quarter $A’000",
+                "Year to date (3 months) $A’000"
+              ],
+              [
+                "4. Net increase / (decrease) in cash and cash equivalents for the period",
+                "",
+                ""
+              ],
+              [
+                "4.1 Cash and cash equivalents at beginning of period 4.2 Net cash from / (used in) operating activities (item 1.9 above)",
+                "135,198 (3,756) (35,844) (77) -",
+                "135,198 (3,756) (35,844) (77) -"
+              ],
+              [
+                "",
+                "95,521",
+                "95,521"
+              ]
+            ],
+            "headers": [
+              "Consolidated statement of cash flows",
+              "Current quarter $A’000",
+              "Year to date (3 months) $A’000"
+            ],
+            "page_number": 16,
+            "row_count": 4,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000",
+              "$A’000",
+              "$A’000",
+              "$A'000"
+            ],
+            "table_index": 19,
+            "table_local_scale": "thousands"
+          },
+          {
+            "caption": "For personal use only",
+            "head_rows": [
+              [
+                "5. Reconciliation of cash and cash equivalents at the end of the quarter (as shown in the consolidated statement of cash",
+                "Current quarter $A’000",
+                "Previous quarter $A’000"
+              ],
+              [
+                "5.1 Bank balances 5.2 Call deposits 5.3 Bank overdrafts 5.4 Other (provide details) 5.5 Cash and cash equivalents at end",
+                "95,521 - - -",
+                "135,198 - - -"
+              ],
+              [
+                "",
+                "95,521",
+                "135,198"
+              ]
+            ],
+            "headers": [
+              "5. Reconciliation of cash and cash equivalents at the end of the quarter (as shown in the consolidated statement of cash flows) to the related items in the acco",
+              "Current quarter $A’000",
+              "Previous quarter $A’000"
+            ],
+            "page_number": 16,
+            "row_count": 3,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000",
+              "$A’000",
+              "$A’000",
+              "$A'000"
+            ],
+            "table_index": 20,
+            "table_local_scale": "thousands"
+          },
+          {
+            "caption": "For personal use only",
+            "head_rows": [
+              [
+                "6. Payments to related parties of the entity and their associates",
+                "Current quarter $A'000"
+              ],
+              [
+                "6.1 Aggregate amount of payments to related parties and their 232 associates included in item 1 6.2 Aggregate amount of ",
+                "232"
+              ],
+              [
+                "",
+                "-"
+              ]
+            ],
+            "headers": [
+              "6. Payments to related parties of the entity and their associates",
+              "Current quarter $A'000"
+            ],
+            "page_number": 16,
+            "row_count": 3,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000",
+              "$A’000",
+              "$A’000",
+              "$A'000"
+            ],
+            "table_index": 21,
+            "table_local_scale": "thousands"
+          },
+          {
+            "caption": "",
+            "head_rows": [
+              [
+                "7. Financing facilities Total facility Amount drawn Note: the term “facility’ includes all forms amount at at quarter en",
+                "",
+                "Total facility amount at quarter end $A’000",
+                "Amount drawn at quarter end $A’000"
+              ],
+              [
+                "",
+                "",
+                "-",
+                "-"
+              ],
+              [
+                "",
+                "",
+                "-",
+                "-"
+              ],
+              [
+                "",
+                "",
+                "-",
+                "-"
+              ]
+            ],
+            "headers": [
+              "7. Financing facilities Total facility Amount drawn Note: the term “facility’ includes all forms amount at at quarter end of financing arrangements available to",
+              "",
+              "Total facility amount at quarter end $A’000",
+              "Amount drawn at quarter end $A’000"
+            ],
+            "page_number": 17,
+            "row_count": 6,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000",
+              "$A’000"
+            ],
+            "table_index": 22,
+            "table_local_scale": "thousands"
+          },
+          {
+            "caption": "",
+            "head_rows": [
+              [
+                "8. Estimated cash available for future operating activities",
+                "$A’000"
+              ],
+              [
+                "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif",
+                "(3,756) (3,154) (6,910) 95,521 -"
+              ],
+              [
+                "",
+                "95,521"
+              ]
+            ],
+            "headers": [
+              "8. Estimated cash available for future operating activities",
+              "$A’000"
+            ],
+            "page_number": 18,
+            "row_count": 3,
+            "same_page_scale": "thousands",
+            "same_page_scale_snippets": [
+              "$A’000"
+            ],
+            "table_index": 23,
+            "table_local_scale": "thousands"
+          }
+        ],
+        "data_missing": []
+      },
+      "common_metric_source_scale_trace": "DATA_MISSING",
+      "count24_summary": {
+        "confidence": 1.0,
+        "currency": "AUD",
+        "document_class": "financial_report",
+        "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+        "elapsed_s": 48.85,
+        "error": null,
+        "metrics": {
+          "capex": -1707000.0,
+          "cash_end": 95521000.0,
+          "ebit": null,
+          "financing_cf": -337000.0,
+          "investing_cf": -35844000.0,
+          "net_debt": null,
+          "np_attributable": null,
+          "operating_cf": -3756000.0,
+          "revenue": null,
+          "shares_outstanding": null
+        },
+        "non_null_metrics": 5,
+        "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+        "period_end": "2022-09-30",
+        "period_type": "Q",
+        "risk_notes": [],
+        "sanity": {
+          "cash_end_positive": true,
+          "period_end_valid": true,
+          "period_type_valid": true
+        },
+        "scale": "thousands",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+          "period_end": "2022-09-30",
+          "period_type": "Q",
+          "scale": "thousands"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "quarterly_source_phrase"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "quarterly_source_phrase"
+        },
+        "status": "ok",
+        "ticker": "CXO",
+        "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf"
+      },
+      "current_behavior_expected_or_bug": "expected_ok_control",
+      "data_missing": [
+        "runtime_row_refs",
+        "runtime_metric_source_scales",
+        "runtime_metric_scale_sources",
+        "runtime_common_metric_source_scale_trace",
+        "runtime_selected_table_for_accepted_metrics"
+      ],
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "ok",
+      "metric_local_rows": {
+        "capex": {
+          "final_value": -1707000.0,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "cash_end": {
+          "final_value": 95521000.0,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "ebit": {
+          "final_value": null,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "financing_cf": {
+          "final_value": -337000.0,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "investing_cf": {
+          "final_value": -35844000.0,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "net_debt": {
+          "final_value": null,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "np_attributable": {
+          "final_value": null,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "operating_cf": {
+          "final_value": -3756000.0,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "revenue": {
+          "final_value": null,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        },
+        "shares_outstanding": {
+          "final_value": null,
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_table_page_scale": "DATA_MISSING"
+        }
+      },
+      "repair_classification": "clean_scale_known_control_not_second_same_page_root_cause",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "ticker": "CXO"
+    },
+    "EDU": {
+      "common_metric_source_scale_trace": {
+        "input": {
+          "fallback_scale": "unknown",
+          "metric_source_scales": {},
+          "metrics": {
+            "capex": null,
+            "cash_end": null,
+            "ebit": null,
+            "financing_cf": -3590738.0,
+            "investing_cf": -464151.0,
+            "net_debt": null,
+            "np_attributable": null,
+            "operating_cf": 1100996.0,
+            "revenue": 6807.0,
+            "shares_outstanding": null
+          }
+        },
+        "output": "unknown"
+      },
+      "count24_summary": {
+        "confidence": 0.533,
+        "currency": "AUD",
+        "document_class": "financial_report",
+        "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+        "elapsed_s": 136.91,
+        "error": "validation_gate:scale_unknown",
+        "metrics": {
+          "capex": null,
+          "cash_end": null,
+          "ebit": null,
+          "financing_cf": -3590738.0,
+          "investing_cf": -464151.0,
+          "net_debt": null,
+          "np_attributable": null,
+          "operating_cf": 1100996.0,
+          "revenue": 6807.0,
+          "shares_outstanding": null
+        },
+        "non_null_metrics": 4,
+        "pdf_path": "mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+        "period_end": "2023-12-31",
+        "period_type": "A",
+        "risk_notes": [],
+        "sanity": {
+          "period_end_valid": true,
+          "period_type_valid": true,
+          "revenue_positive": true
+        },
+        "scale": "unknown",
+        "source_bound": {
+          "currency": "AUD",
+          "document_title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+          "period_end": "2023-12-31",
+          "period_type": "A",
+          "scale": "unknown"
+        },
+        "source_document_classification": {
+          "canary_candidate_allowed": true,
+          "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+          "document_class": "financial_report",
+          "evidence": [
+            "annual_report_title"
+          ],
+          "extraction_candidate_allowed": true,
+          "reason": "annual_report_title"
+        },
+        "status": "failed",
+        "ticker": "EDU",
+        "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf"
+      },
+      "current_behavior_expected_or_bug": "expected_safe_fail: mixed selected surfaces must fail closed",
+      "diagnostic_data_missing": [
+        "runtime_row_refs",
+        "runtime_metric_source_scales",
+        "runtime_metric_scale_sources",
+        "full_pass3a_llm_outputs"
+      ],
+      "diagnostic_final_payload_scale_decision": {
+        "common_metric_source_scale_from_persisted_summary": "unknown",
+        "count24_final_scale": "unknown",
+        "why_common_metric_source_scale_did_or_did_not_set_scale": "Persisted count24 summary does not contain row_refs, metric_source_scales, or metric_scale_sources. With no explicit per-metric source scales available, _common_metric_source_scale falls back to the payload scale, which is unknown for this failed document."
+      },
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "document_level_scale_markers": {
+        "early_source_text_scale": "unknown",
+        "table_header_scale": "unknown"
+      },
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "validation_gate:scale_unknown",
+      "final_gate": {
+        "confidence_metrics": 0.533,
+        "error": "validation_gate:scale_unknown",
+        "non_null_metrics": 4,
+        "payload_scale": "unknown",
+        "scale_validation": "pass",
+        "status": "failed"
+      },
+      "metric_local_rows": {
+        "capex": {
+          "final_value": null,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        },
+        "cash_end": {
+          "final_value": null,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        },
+        "ebit": {
+          "final_value": null,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        },
+        "financing_cf": {
+          "final_value": -3590738.0,
+          "page_number": 53,
+          "runtime_row_ref": "Net cash (used in) / provided by financing activities",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| Net cash (used in) / provided by financing activities | | | | | | (3,590,738) | | | 2,900,564 |"
+          ],
+          "selected_table_page_scale": {
+            "caption": "Merged cashflow statement (Appendix 5B)",
+            "head_rows": [
+              [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462"
+              ],
+              [
+                "",
+                "Net cash flows from discontinued operating activities",
+                "",
+                "",
+                "7",
+                "",
+                "",
+                "(244,466)"
+              ],
+              [
+                "",
+                "Net cash provided by / (used in) operating activities",
+                "",
+                "",
+                "26(b)",
+                "",
+                "",
+                "1,100,996"
+              ],
+              [
+                "",
+                "Cash flow from investing activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "Net cash flows from continuing investing activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "(464,151)"
+              ],
+              [
+                "",
+                "Net cash flows from discontinued investing activities",
+                "",
+                "",
+                "7",
+                "",
+                "",
+                "-"
+              ]
+            ],
+            "headers": [
+              "",
+              "Net cash flows from continuing operating activities",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "1,345,462",
+              "",
+              "",
+              "(1,776,389)",
+              ""
+            ],
+            "page_number": 53,
+            "same_page_scale": "units",
+            "same_page_scale_snippets": [
+              "$",
+              "$"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "(3,590,738)",
+              "",
+              "",
+              "2,900,564"
+            ]
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "investing_cf": {
+          "final_value": -464151.0,
+          "page_number": 53,
+          "runtime_row_ref": "Net cash used in investing activities",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| Net cash used in investing activities | | | | | | (464,151) | | | (1,124,455) |"
+          ],
+          "selected_table_page_scale": {
+            "caption": "Merged cashflow statement (Appendix 5B)",
+            "head_rows": [
+              [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462"
+              ],
+              [
+                "",
+                "Net cash flows from discontinued operating activities",
+                "",
+                "",
+                "7",
+                "",
+                "",
+                "(244,466)"
+              ],
+              [
+                "",
+                "Net cash provided by / (used in) operating activities",
+                "",
+                "",
+                "26(b)",
+                "",
+                "",
+                "1,100,996"
+              ],
+              [
+                "",
+                "Cash flow from investing activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "Net cash flows from continuing investing activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "(464,151)"
+              ],
+              [
+                "",
+                "Net cash flows from discontinued investing activities",
+                "",
+                "",
+                "7",
+                "",
+                "",
+                "-"
+              ]
+            ],
+            "headers": [
+              "",
+              "Net cash flows from continuing operating activities",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "1,345,462",
+              "",
+              "",
+              "(1,776,389)",
+              ""
+            ],
+            "page_number": 53,
+            "same_page_scale": "units",
+            "same_page_scale_snippets": [
+              "$",
+              "$"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "(464,151)",
+              "",
+              "",
+              "(1,124,455)"
+            ]
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "net_debt": {
+          "final_value": null,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        },
+        "np_attributable": {
+          "final_value": null,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        },
+        "operating_cf": {
+          "final_value": 1100996.0,
+          "page_number": 53,
+          "runtime_row_ref": "Net cash provided by / (used in) operating activities",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| Net cash provided by / (used in) operating activities | | | 26(b) | | | 1,100,996 | | | (1,975,438) |"
+          ],
+          "selected_table_page_scale": {
+            "caption": "Merged cashflow statement (Appendix 5B)",
+            "head_rows": [
+              [
+                "",
+                "Net cash flows from continuing operating activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "1,345,462"
+              ],
+              [
+                "",
+                "Net cash flows from discontinued operating activities",
+                "",
+                "",
+                "7",
+                "",
+                "",
+                "(244,466)"
+              ],
+              [
+                "",
+                "Net cash provided by / (used in) operating activities",
+                "",
+                "",
+                "26(b)",
+                "",
+                "",
+                "1,100,996"
+              ],
+              [
+                "",
+                "Cash flow from investing activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "Net cash flows from continuing investing activities",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "(464,151)"
+              ],
+              [
+                "",
+                "Net cash flows from discontinued investing activities",
+                "",
+                "",
+                "7",
+                "",
+                "",
+                "-"
+              ]
+            ],
+            "headers": [
+              "",
+              "Net cash flows from continuing operating activities",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "1,345,462",
+              "",
+              "",
+              "(1,776,389)",
+              ""
+            ],
+            "page_number": 53,
+            "same_page_scale": "units",
+            "same_page_scale_snippets": [
+              "$",
+              "$"
+            ],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "",
+              "",
+              "26(b)",
+              "",
+              "",
+              "1,100,996",
+              "",
+              "",
+              "(1,975,438)"
+            ]
+          ],
+          "source_table": "cashflow_statement"
+        },
+        "revenue": {
+          "final_value": 6807.0,
+          "page_number": 6,
+          "runtime_row_ref": "FY23 Revenue and",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "| FY23 Revenue and | FY23 EBITDA | | |"
+          ],
+          "selected_table_page_scale": {
+            "caption": "CORPORATE SNAPSHOT",
+            "head_rows": [
+              [
+                "",
+                "CORPORATE SN",
+                "APSHOT",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "C O M P A N Y O V E R V",
+                "I E W",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "$21.6m",
+                "$0.5m",
+                "",
+                "",
+                ""
+              ],
+              [
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+              ]
+            ],
+            "headers": [
+              "",
+              "CORPORATE SN",
+              "APSHOT",
+              "",
+              "",
+              ""
+            ],
+            "page_number": 6,
+            "same_page_scale": "unknown",
+            "same_page_scale_snippets": [],
+            "table_index": null,
+            "table_local_scale": "unknown"
+          },
+          "selected_value_cells": [
+            [
+              "FY23 EBITDA",
+              "",
+              ""
+            ]
+          ],
+          "source_table": "income_statement"
+        },
+        "shares_outstanding": {
+          "final_value": null,
+          "page_number": "DATA_MISSING",
+          "runtime_row_ref": "DATA_MISSING",
+          "runtime_scale_source": "DATA_MISSING",
+          "runtime_source_scale": "DATA_MISSING",
+          "selected_row": [
+            "DATA_MISSING"
+          ],
+          "selected_table_page_scale": null,
+          "selected_value_cells": [
+            "DATA_MISSING"
+          ],
+          "source_table": "DATA_MISSING"
+        }
+      },
+      "repair_classification": "fail_closed_mixed_selected_surfaces",
+      "selected_tables": {
+        "balance_sheet": {
+          "caption": "A T 3 1 D E C E M B E R 2 0 2 3",
+          "head_rows": [
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "2023"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "Notes",
+              "",
+              "",
+              "$"
+            ],
+            [
+              "",
+              "Current assets",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Cash and cash equivalents 26",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "3,121,297"
+            ],
+            [
+              "Trade and other receivables 13",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "303,861"
+            ],
+            [
+              "Income tax receivable 2",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "-"
+            ]
+          ],
+          "headers": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "2023",
+            "",
+            "",
+            "2022",
+            ""
+          ],
+          "page_number": 51,
+          "same_page_scale": "units",
+          "same_page_scale_snippets": [
+            "$",
+            "$"
+          ],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "cashflow_statement": {
+          "caption": "Merged cashflow statement (Appendix 5B)",
+          "head_rows": [
+            [
+              "",
+              "Net cash flows from continuing operating activities",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "1,345,462"
+            ],
+            [
+              "",
+              "Net cash flows from discontinued operating activities",
+              "",
+              "",
+              "7",
+              "",
+              "",
+              "(244,466)"
+            ],
+            [
+              "",
+              "Net cash provided by / (used in) operating activities",
+              "",
+              "",
+              "26(b)",
+              "",
+              "",
+              "1,100,996"
+            ],
+            [
+              "",
+              "Cash flow from investing activities",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "Net cash flows from continuing investing activities",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "(464,151)"
+            ],
+            [
+              "",
+              "Net cash flows from discontinued investing activities",
+              "",
+              "",
+              "7",
+              "",
+              "",
+              "-"
+            ]
+          ],
+          "headers": [
+            "",
+            "Net cash flows from continuing operating activities",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "1,345,462",
+            "",
+            "",
+            "(1,776,389)",
+            ""
+          ],
+          "page_number": 53,
+          "same_page_scale": "units",
+          "same_page_scale_snippets": [
+            "$",
+            "$"
+          ],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "highlights": {
+          "caption": "OPERATIONAL HIGHLIGHTS",
+          "head_rows": [
+            [
+              "High (Ikon up 4",
+              "",
+              "er education ) enrolments 4%",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "Voca enrol rebui T4’23 e on PC FY23 N PCP",
+              "",
+              "tional (ALG) ments lding nrolments up 9% P SEs up 41% on",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "High (Ikon up 4",
+            "",
+            "er education ) enrolments 4%",
+            "",
+            ""
+          ],
+          "page_number": 7,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "income_statement": {
+          "caption": "CORPORATE SNAPSHOT",
+          "head_rows": [
+            [
+              "",
+              "CORPORATE SN",
+              "APSHOT",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "C O M P A N Y O V E R V",
+              "I E W",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "$21.6m",
+              "$0.5m",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "CORPORATE SN",
+            "APSHOT",
+            "",
+            "",
+            ""
+          ],
+          "page_number": 6,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        },
+        "share_capital": {
+          "caption": "",
+          "head_rows": [
+            [
+              "",
+              "The p",
+              "erf",
+              "ormance",
+              "rights",
+              "w",
+              "ere provide",
+              "d at no"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "terms",
+              ":",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "• Ve",
+              "sti",
+              "ng condit",
+              "ion: th",
+              "re",
+              "e (3) years o",
+              "f conti"
+            ],
+            [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          ],
+          "headers": [
+            "",
+            "The p",
+            "erf",
+            "ormance",
+            "rights",
+            "w",
+            "ere provide",
+            "d at no",
+            "co",
+            "st to",
+            "the recip",
+            "ients and",
+            "have th",
+            "e foll",
+            "owing",
+            "principal"
+          ],
+          "page_number": 44,
+          "same_page_scale": "unknown",
+          "same_page_scale_snippets": [],
+          "table_index": null,
+          "table_local_scale": "unknown"
+        }
+      },
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "ticker": "EDU"
+    }
+  },
+  "generated_at": "2026-06-08T00:42:16.076820Z",
+  "job_id": "extraction_metric_local_same_page_scale_provenance_v1_20260608",
+  "mode": "no_write_existing_artifact_capture",
+  "second_candidate_decision": {
+    "reason": "No second clean same-page failure case with metric-local row refs, metric_source_scales, metric_scale_sources, selected table/page, and common-scale trace exists in current artifacts.",
+    "status": "DATA_MISSING"
+  },
+  "source_artifacts": {
+    "accepted_output_audit": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_bounded_validation_v1_20260607/accepted_output_audit.json",
+    "count24_sample_results": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607/reports/agent_jobs/extraction_count24_bounded_validation_v1_20260607/sample_results.json",
+    "harness_manifest": "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_scale_table_provenance_harness_v1_20260607/harness_manifest.json",
+    "pass3a_capture": "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_azj_edu_pass3a_provenance_capture_v1_20260607/provenance_capture.json",
+    "selected_table_diagnostic": "/home/l4nd0/tenn-metric-local-same-page-scale-provenance-v1-20260608/reports/agent_jobs/extraction_selected_table_provenance_diagnostic_v1_20260607/diagnostic_results.json"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "candidate_count": 1,
+  "cases": [
+    {
+      "classification": "primary_same_page_candidate",
+      "current_behavior_expected_or_bug": "bug_candidate: fail-closed is correct, but same-page millions needs metric-local binding proof",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "validation_gate:scale_unknown",
+      "has_pass3a_metric_local_capture": true,
+      "reason": "Selected formal statement pages have same-page millions evidence; metric source scale fields are still missing.",
+      "root_cause_group": "same_page_scale_candidate_not_repeated",
+      "same_page_candidate": true,
+      "ticker": "AZJ"
+    },
+    {
+      "classification": "fail_closed_mixed_surfaces",
+      "current_behavior_expected_or_bug": "expected_safe_fail: mixed selected surfaces must fail closed",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "validation_gate:scale_unknown",
+      "has_pass3a_metric_local_capture": true,
+      "reason": "Selected surfaces are mixed/unclean and must fail closed.",
+      "root_cause_group": "mixed_selected_surfaces_fail_closed",
+      "same_page_candidate": false,
+      "ticker": "EDU"
+    },
+    {
+      "classification": "parser_or_table_coverage_gap",
+      "current_behavior_expected_or_bug": "expected_safe_fail: parser/table coverage gap, not a scale-binding repair",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "validation_gate:scale_unknown",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Coverage gap precedes any same-page propagation repair.",
+      "root_cause_group": "parser_table_coverage_gap",
+      "same_page_candidate": false,
+      "ticker": "WHC"
+    },
+    {
+      "classification": "not_same_page_candidate",
+      "current_behavior_expected_or_bug": "expected_safe_fail_pending_policy_audit",
+      "document_id": "50398d3d-27f7-4d9e-8a26-a2d69f128a1c",
+      "expected_document_class": "DATA_MISSING: webcast-details policy audit required",
+      "expected_status_or_gate": "validation_gate:scale_unknown",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Harness class is not a same-page propagation candidate.",
+      "root_cause_group": "document_family_policy_gap",
+      "same_page_candidate": false,
+      "ticker": "NIC"
+    },
+    {
+      "classification": "not_same_page_candidate",
+      "current_behavior_expected_or_bug": "expected_safe_fail: label guard is working",
+      "document_id": "f8a24788-dbe0-48f7-ad41-654f2c8a3845",
+      "expected_document_class": "results_presentation",
+      "expected_status_or_gate": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Harness class is not a same-page propagation candidate.",
+      "root_cause_group": "existing_truth_gate_working",
+      "same_page_candidate": false,
+      "ticker": "DXC"
+    },
+    {
+      "classification": "not_same_page_candidate",
+      "current_behavior_expected_or_bug": "expected_safe_fail: announcement-date period guard is working",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "expected_document_class": "half_year_financial_report_appendix4d",
+      "expected_status_or_gate": "validation_gate:announcement_date_period_end",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Harness class is not a same-page propagation candidate.",
+      "root_cause_group": "period_source_fail_closed",
+      "same_page_candidate": false,
+      "ticker": "HUB"
+    },
+    {
+      "classification": "selected_table_scale_binding_case",
+      "current_behavior_expected_or_bug": "expected_safe_fail_now; earlier accepted output was unsafe",
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "expected_document_class": "results_presentation",
+      "expected_status_or_gate": "validation_gate:announcement_date_period_end",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Harness class requires explicit table-local scale binding.",
+      "root_cause_group": "selected_table_scale_binding_after_period_repair",
+      "same_page_candidate": false,
+      "ticker": "LBL"
+    },
+    {
+      "classification": "not_same_page_candidate",
+      "current_behavior_expected_or_bug": "expected_safe_fail: period/source gate is working",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "expected_document_class": "appendix5b_quarterly_cash_flow_report",
+      "expected_status_or_gate": "validation_gate:period_source_mismatch",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Harness class is not a same-page propagation candidate.",
+      "root_cause_group": "period_source_fail_closed",
+      "same_page_candidate": false,
+      "ticker": "CTN"
+    },
+    {
+      "classification": "clean_control_not_repair_case",
+      "current_behavior_expected_or_bug": "expected_ok_control",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "expected_document_class": "financial_report",
+      "expected_status_or_gate": "ok",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Accepted control has scale=thousands, but current artifacts do not expose runtime selected table/row refs for metric-local proof.",
+      "root_cause_group": "clean_scale_known_control",
+      "same_page_candidate": false,
+      "ticker": "CXO"
+    },
+    {
+      "classification": "not_same_page_candidate",
+      "current_behavior_expected_or_bug": "expected_safe_fail_control",
+      "document_id": "aadead44-11f3-46d5-933b-6f2c8792e6f9",
+      "expected_document_class": "meeting_or_proxy_notice",
+      "expected_status_or_gate": "validation_gate:source_noncandidate:meeting_or_proxy_notice",
+      "has_pass3a_metric_local_capture": false,
+      "reason": "Harness class is not a same-page propagation candidate.",
+      "root_cause_group": "clean_noncandidate_control",
+      "same_page_candidate": false,
+      "ticker": "EQR"
+    }
+  ],
+  "generated_at": "2026-06-08T00:42:16.076797Z",
+  "job_id": "extraction_metric_local_same_page_scale_provenance_v1_20260608",
+  "mode": "no_write_existing_artifact_candidate_audit",
+  "second_candidate_decision": {
+    "reason": "No second clean same-page failure case with metric-local row refs, metric_source_scales, metric_scale_sources, selected table/page, and common-scale trace exists in current artifacts.",
+    "status": "DATA_MISSING"
+  }
+}
