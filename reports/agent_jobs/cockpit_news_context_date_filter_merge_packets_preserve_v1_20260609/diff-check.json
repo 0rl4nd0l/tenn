@@ -1,18 +1,5 @@
 {
-  "changed_files": [
-    {
-      "path": "docs/agent_tasks/cockpit_news_context_date_filter_merge_execution_v1_20260609.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/cockpit_news_context_date_filter_merge_gate_v1_20260609.md",
-      "status": "??"
-    },
-    {
-      "path": "docs/agent_tasks/cockpit_news_context_date_filter_merge_packets_preserve_v1_20260609.md",
-      "status": "??"
-    }
-  ],
+  "changed_files": [],
   "disallowed_files": [],
   "issues": [],
   "ok": true,

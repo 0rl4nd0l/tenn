@@ -1,0 +1,58 @@
+{
+  "job_id": "cockpit_news_context_date_filter_merge_packets_preserve_v1_20260609",
+  "status": "complete",
+  "created_at": "2026-06-09T09:18:25+10:00",
+  "mode": "report_artifact_preservation_and_pr_publish",
+  "branch": "safe/cockpit-news-context-date-filter-merge-packets-preserve-v1-20260609",
+  "base": "migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head_at_branch": "bf133f06047360545905b2950830645fe9649d98",
+  "preservation_commit": "19d8e0af82c95e6729e8c9511bdecf832e76d685",
+  "preserved_packets": [
+    "cockpit_news_context_date_filter_merge_gate_v1_20260609",
+    "cockpit_news_context_date_filter_merge_execution_v1_20260609"
+  ],
+  "github_mutations": [
+    {
+      "type": "branch_push",
+      "branch": "safe/cockpit-news-context-date-filter-merge-packets-preserve-v1-20260609",
+      "head": "19d8e0af82c95e6729e8c9511bdecf832e76d685"
+    },
+    {
+      "type": "draft_pr_create",
+      "pr": 339,
+      "url": "https://github.com/0rl4nd0l/tenn/pull/339"
+    }
+  ],
+  "pr_readback": {
+    "number": 339,
+    "state": "OPEN",
+    "is_draft": true,
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "safe/cockpit-news-context-date-filter-merge-packets-preserve-v1-20260609",
+    "mergeable": "MERGEABLE",
+    "merge_state_status": "UNSTABLE",
+    "checks": {
+      "lint-and-test": "IN_PROGRESS",
+      "scan": "IN_PROGRESS"
+    }
+  },
+  "validation": {
+    "registry_list_active_read_only": "PASS",
+    "preserve_task_card_validate": "PASS",
+    "preserve_task_card_check_diff": "PASS",
+    "git_diff_check": "PASS",
+    "preserved_packet_json_parse": "PASS",
+    "existing_pr_check_before_create": "PASS_NONE_FOUND",
+    "branch_push": "PASS",
+    "draft_pr_create": "PASS",
+    "draft_pr_readback": "PASS"
+  },
+  "forbidden_actions_avoided": [
+    "runtime_code_or_test_change",
+    "pr_merge",
+    "mark_ready_for_review",
+    "issue_mutation",
+    "branch_ref_worktree_or_stash_delete",
+    "db_qdrant_redis_news_store_or_production_data_mutation"
+  ]
+}
