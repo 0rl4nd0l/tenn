@@ -480,6 +480,19 @@ class ToolRouter:
         return dt.astimezone(timezone.utc)
 
     @classmethod
+    def _date_filter_yyyy_mm_dd(cls, value: Any) -> str | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        dt = cls._parse_timestamp_utc(text)
+        if dt is not None:
+            return dt.date().isoformat()
+        candidate = text[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", candidate):
+            return candidate
+        return None
+
+    @classmethod
     def _compute_price_state(cls, price_payload: dict[str, Any]) -> dict[str, Any]:
         ticker = str((price_payload or {}).get("ticker") or "").strip().upper() or None
         symbol = (
@@ -987,6 +1000,8 @@ class ToolRouter:
         ticker: str,
         corpus_filter: str,
         top_k: int = 10,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> dict[str, Any]:
         """Read pre-ranked news chunks from context_chunks SQLite table."""
         import json as _json
@@ -1008,10 +1023,27 @@ class ToolRouter:
             col_cursor = conn.execute("PRAGMA table_info(context_chunks)")
             columns = {row[1] for row in col_cursor.fetchall()}
             has_relevance = "ticker_relevance_json" in columns
+            if "doc_date" in columns:
+                date_expr = "COALESCE(NULLIF(doc_date, ''), substr(published_at, 1, 10))"
+            else:
+                date_expr = "substr(published_at, 1, 10)"
+
+            where_clauses = ["ticker LIKE ?"]
+            params: list[Any] = [f"%|{ticker_upper}|%"]
+            from_date = self._date_filter_yyyy_mm_dd(date_from)
+            to_date = self._date_filter_yyyy_mm_dd(date_to)
+            if from_date:
+                where_clauses.append(f"{date_expr} >= ?")
+                params.append(from_date)
+            if to_date:
+                where_clauses.append(f"{date_expr} <= ?")
+                params.append(to_date)
 
             rows = conn.execute(
-                "SELECT * FROM context_chunks WHERE ticker LIKE ? ORDER BY published_at DESC",
-                (f"%|{ticker_upper}|%",),
+                "SELECT * FROM context_chunks WHERE "
+                + " AND ".join(where_clauses)
+                + " ORDER BY published_at DESC",
+                tuple(params),
             ).fetchall()
         finally:
             conn.close()
@@ -1368,6 +1400,8 @@ class ToolRouter:
                     ticker=ticker,
                     corpus_filter=self.news_context_corpus_filter,
                     top_k=top_k,
+                    date_from=date_from,
+                    date_to=date_to,
                 )
                 hits = payload.get("hits") if isinstance(payload, dict) else []
                 hits = hits if isinstance(hits, list) else []

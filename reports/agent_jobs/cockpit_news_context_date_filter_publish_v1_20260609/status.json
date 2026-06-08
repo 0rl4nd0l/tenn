@@ -1,0 +1,52 @@
+{
+  "job_id": "cockpit_news_context_date_filter_publish_v1_20260609",
+  "status": "complete",
+  "created_at": "2026-06-09T00:31:29+10:00",
+  "mode": "publish_pr_only",
+  "branch": "safe/cockpit-news-context-date-filter-v1-20260609",
+  "implementation_commit": "a91d09caa4a5eee4366abe9214e417d3d7643f9c",
+  "base": "migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head_at_publish": "6f0a120986302f6bb2588d60866dff982749fab0",
+  "github_mutations": [
+    {
+      "type": "branch_push",
+      "branch": "safe/cockpit-news-context-date-filter-v1-20260609",
+      "head": "a91d09caa4a5eee4366abe9214e417d3d7643f9c"
+    },
+    {
+      "type": "draft_pr_create",
+      "pr": 337,
+      "url": "https://github.com/0rl4nd0l/tenn/pull/337"
+    }
+  ],
+  "pr_readback": {
+    "number": 337,
+    "state": "OPEN",
+    "is_draft": true,
+    "base": "migration/clean-runtime-baseline-reconstruct-v1",
+    "head": "safe/cockpit-news-context-date-filter-v1-20260609",
+    "mergeable": "MERGEABLE",
+    "merge_state_status": "UNSTABLE",
+    "checks": {
+      "scan": "SUCCESS",
+      "lint-and-test": "IN_PROGRESS"
+    }
+  },
+  "forbidden_actions_avoided": [
+    "pr_merge",
+    "mark_ready_for_review",
+    "issue_mutation",
+    "branch_ref_worktree_or_stash_delete",
+    "db_qdrant_redis_news_store_or_production_data_mutation"
+  ],
+  "validation": {
+    "gh_auth_status": "PASS",
+    "existing_pr_check_before_create": "PASS_NONE_FOUND",
+    "publish_task_card_validate": "PASS",
+    "publish_task_card_check_diff": "PASS",
+    "git_diff_check": "PASS",
+    "branch_push": "PASS",
+    "draft_pr_create": "PASS",
+    "draft_pr_readback": "PASS"
+  }
+}

@@ -504,6 +504,94 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
             self.assertEqual(len(hits), 1)
             self.assertEqual(hits[0].get("title"), "BHP guidance update")
 
+    def test_get_news_context_sqlite_path_fallback_honors_date_bounds(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "news.sqlite"
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    """
+                    CREATE TABLE context_chunks (
+                        chunk_id TEXT PRIMARY KEY,
+                        corpus TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        text TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        published_at TEXT NOT NULL,
+                        doc_date TEXT NOT NULL,
+                        ticker TEXT NOT NULL,
+                        company TEXT NOT NULL
+                    )
+                    """
+                )
+                conn.executemany(
+                    """
+                    INSERT INTO context_chunks(
+                        chunk_id, corpus, title, text, source, url, published_at, doc_date, ticker, company
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (
+                            "news_newspaper4k:art_bhp_old:0",
+                            "news_newspaper4k",
+                            "BHP January update",
+                            "Older BHP news outside the requested window.",
+                            "afr.com",
+                            "https://example.com/bhp-old",
+                            "2026-01-15T01:00:00Z",
+                            "2026-01-15",
+                            "|BHP|",
+                            "BHP",
+                        ),
+                        (
+                            "news_newspaper4k:art_bhp_march:0",
+                            "news_newspaper4k",
+                            "BHP March guidance update",
+                            "BHP guidance update inside the requested window.",
+                            "afr.com",
+                            "https://example.com/bhp-march",
+                            "2026-03-04T01:00:00Z",
+                            "2026-03-04",
+                            "|BHP|",
+                            "BHP",
+                        ),
+                        (
+                            "news_newspaper4k:art_bhp_april:0",
+                            "news_newspaper4k",
+                            "BHP April update",
+                            "Future BHP news outside the requested window.",
+                            "afr.com",
+                            "https://example.com/bhp-april",
+                            "2026-04-02T01:00:00Z",
+                            "2026-04-02",
+                            "|BHP|",
+                            "BHP",
+                        ),
+                    ],
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            router = self._router(
+                company_reader=None,
+                news_reader=None,
+                news_context_db_path=db_path,
+                news_context_corpus_filter="news",
+            )
+            payload = router.get_news_context(
+                "BHP guidance",
+                top_k=5,
+                ticker="BHP",
+                date_from="2026-03-01",
+                date_to="2026-03-31",
+            )
+
+            self.assertTrue(payload.get("ok"))
+            hits = payload.get("hits", [])
+            self.assertEqual([hit.get("title") for hit in hits], ["BHP March guidance update"])
+
     def test_news_sqlite_fallback_ranks_primary_company_above_broad_sector_mention(
         self,
     ):

@@ -1,0 +1,39 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_news_context_date_filter_publish_v1_20260609.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_news_context_date_filter_publish_v1_20260609/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_news_context_date_filter_publish_v1_20260609.md",
+        "reports/agent_jobs/cockpit_news_context_date_filter_publish_v1_20260609/README.md",
+        "reports/agent_jobs/cockpit_news_context_date_filter_publish_v1_20260609/status.json",
+        "reports/agent_jobs/cockpit_news_context_date_filter_publish_v1_20260609/validation.json",
+        "reports/agent_jobs/cockpit_news_context_date_filter_publish_v1_20260609/diff-check.json"
+      ],
+      "approval_reference": "User said proceed after commit a91d09ca and next safe step was push/open a small PR.",
+      "approval_required": true,
+      "github_mutation_allowed": "push_branch_and_open_draft_pr_only",
+      "job_id": "cockpit_news_context_date_filter_publish_v1_20260609",
+      "lane": "Reporting",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/cockpit_news_context_date_filter_publish_v1_20260609",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "publish_pr_only",
+      "supporting_lanes": [
+        "Query Orchestration"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

@@ -393,9 +393,15 @@ class CockpitApp(App):
                         f"qual_context (news) disabled: {exc}"
                     )
         else:
-            self._startup_warnings.append(
-                "backend.api_base_url not set — price, RAG, and news context disabled"
-            )
+            if news_context_db_path:
+                self._startup_warnings.append(
+                    "backend.api_base_url not set — price and backend RAG disabled; "
+                    "news context will use SQLite fallback"
+                )
+            else:
+                self._startup_warnings.append(
+                    "backend.api_base_url not set — price, RAG, and news context disabled"
+                )
 
         self.tool_router = ToolRouter(
             db_reader=self.db_reader,
