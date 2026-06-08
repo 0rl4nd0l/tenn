@@ -1,0 +1,43 @@
+{
+  "changed_files": [
+    {
+      "path": "scripts/news_pipeline/providers/newspaper4k.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_news_pipeline_providers.py",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/news_pipeline_newspaper4k_replay_v1_20260608.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/news_pipeline_newspaper4k_replay_v1_20260608/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        "docs/agent_tasks/news_pipeline_newspaper4k_replay_v1_20260608.md",
+        "scripts/news_pipeline/providers/newspaper4k.py",
+        "scripts/test_news_pipeline_providers.py",
+        "reports/agent_jobs/news_pipeline_newspaper4k_replay_v1_20260608/README.md",
+        "reports/agent_jobs/news_pipeline_newspaper4k_replay_v1_20260608/status.json",
+        "reports/agent_jobs/news_pipeline_newspaper4k_replay_v1_20260608/validation.json",
+        "reports/agent_jobs/news_pipeline_newspaper4k_replay_v1_20260608/diff-check.json"
+      ],
+      "approval_required": true,
+      "job_id": "news_pipeline_newspaper4k_replay_v1_20260608",
+      "lane": "Query Orchestration",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/news_pipeline_newspaper4k_replay_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}

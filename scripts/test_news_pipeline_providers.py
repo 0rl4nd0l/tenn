@@ -1,5 +1,7 @@
 import importlib
+import contextlib
 import datetime as dt
+import io
 import json
 import sys
 import tempfile
@@ -101,8 +103,11 @@ class ProviderTests(unittest.TestCase):
             def iso_utc(value: dt.datetime) -> str:
                 return value.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
-            @staticmethod
-            def extract_from_source(source: Source, **_kwargs: object):
+            captured_kwargs: list[dict[str, object]] = []
+
+            @classmethod
+            def extract_from_source(cls, source: Source, **kwargs: object):
+                cls.captured_kwargs.append(dict(kwargs))
                 suffix = source.url.rsplit("-", 1)[-1]
                 return [Article(suffix)], {"source_articles_seen": 1, "download_errors": 0}
 
@@ -110,22 +115,34 @@ class ProviderTests(unittest.TestCase):
         NEWSPAPER4K._collector = FakeCollector
         try:
             provider = NEWSPAPER4K.Newspaper4kProvider(sources_file=Path("unused.txt"), sleep_seconds=0)
-            batches = list(
-                provider.fetch_window_batches(
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                batches = list(
+                    provider.fetch_window_batches(
+                        window_start_utc="2026-05-07T00:00:00Z",
+                        window_end_utc="2026-05-07T23:59:59Z",
+                        tickers=["BHP"],
+                    )
+                )
+            self.assertEqual([len(batch) for batch in batches], [1, 1])
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("[newspaper4k]", stderr.getvalue())
+            self.assertTrue(FakeCollector.captured_kwargs)
+            self.assertFalse(any("playwright_domains" in item for item in FakeCollector.captured_kwargs))
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                rows = provider.fetch_window(
                     window_start_utc="2026-05-07T00:00:00Z",
                     window_end_utc="2026-05-07T23:59:59Z",
                     tickers=["BHP"],
                 )
-            )
-            self.assertEqual([len(batch) for batch in batches], [1, 1])
-
-            rows = provider.fetch_window(
-                window_start_utc="2026-05-07T00:00:00Z",
-                window_end_utc="2026-05-07T23:59:59Z",
-                tickers=["BHP"],
-            )
             self.assertIsInstance(rows, list)
             self.assertEqual(len(rows), 2)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("[newspaper4k]", stderr.getvalue())
         finally:
             NEWSPAPER4K._collector = previous
 
