@@ -168,6 +168,9 @@ read-only work. If approval is required for the next meaningful step, stop.
 - `.codex/config.toml` and `.codex/hooks.json` are Codex config/hooks surfaces.
   Treat `.codex/skills` references as legacy/custom unless local evidence proves
   compatibility is intentionally required.
+- Generic engineering skills that need issue tracker, triage label, or
+  domain-doc configuration should read `docs/agents/issue-tracker.md`,
+  `docs/agents/triage-labels.md`, and `docs/agents/domain.md`.
 - Do not mirror all host skills into Tenn. Repo skills should wrap Tenn-specific
   workflows.
 - Use subagents only when they save context, increase independent verification,
