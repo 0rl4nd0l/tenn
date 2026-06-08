@@ -23,6 +23,8 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
   - GET `/api/docs?ticker=BHP`
   - GET `/api/financials?ticker=BHP`
   - GET `/api/risk?document_id=...`
+  - GET `/api/price?ticker=BHP&range=1mo&interval=1d&exchange=ASX`
+    - Returns `400` for invalid query params and `502` for upstream provider failures.
   - POST `/api/backfill/asx20`
   - POST `/api/backfill/ticker/{ticker}`
 
@@ -74,8 +76,12 @@ Defaults in local mode:
 - Auto-create tables enabled
 - Embeddings/Qdrant/LLM extraction disabled by default
 - MarketIndex fallback enabled by default (`ENABLE_MARKETINDEX_FALLBACK=true`) using `../data/raw/marketindex_announcements.json`
-- If MarketIndex URLs return Cloudflare `403`, those docs are marked `blocked_marketindex_403` and skipped
-- MarketIndex documents are treated as headed-only and marked `blocked_marketindex_headed_required` in local non-headed mode
+- MarketIndex marker states you may see in `documents.pdf_sha256`:
+  - `blocked_marketindex_403` (Cloudflare `403`)
+  - `blocked_marketindex_headed_required` (non-headed mode cannot fetch)
+  - `blocked_marketindex_no_candidate` (no candidate PDF link found during headed recovery)
+  - `blocked_marketindex_headed_error` (headed recovery fetch/runtime failure)
+- Successful headed recovery rewrites marker values to a real file SHA256 hash.
 
 ## Headed MarketIndex Recovery (Manual)
 Use this manual command after backfill to recover blocked/pending MarketIndex docs with a headed browser session.
@@ -97,14 +103,19 @@ Recommended sequence:
 3. Run PDF integrity audit before enabling extraction/embeddings
 
 ## Production CLIs
-These are the two production workflows currently packaged.
+These are the operational ingestion workflows currently packaged.
 
 1. Ticker-based full announcement history gathering:
    - `python3 scripts/full_history_ticker_sync.py --ticker BHP --years 10`
    - `python3 scripts/full_history_ticker_sync.py --ticker BHP,RIO,CSL --years 10`
    - `python3 scripts/full_history_ticker_sync.py --asx10 --years 10`
    - `python3 scripts/full_history_ticker_sync.py --ticker-universe-file data/raw/asx_ticker_universe.txt --max-tickers 50 --years 10`
+   - `python3 scripts/full_history_ticker_sync.py --ticker BHP --years 10 --health-json ../reports/research_engine_health.json --allow-warning`
    - Includes retry handling and automatic pending-download resume.
+   - Runs a preflight health gate using `--health-json` (default `../reports/research_engine_health.json`).
+     - `overall_status=degraded` blocks execution.
+     - `overall_status=warning` blocks unless `--allow-warning` is set.
+     - Missing snapshot only warns and allows execution.
    - Includes optional ticker pacing controls (`--ticker-delay-seconds`, `--ticker-delay-jitter-seconds`) and per-ticker progress logs.
    - Includes automatic post-ingestion announcement-type classification into folders under `data/asx/importance/{ticker}/{announcement_type}`.
    - Source docs are also sorted under `data/asx/docs/{ticker}/{announcement_type}` (configurable).
@@ -123,10 +134,29 @@ These are the two production workflows currently packaged.
 
 3. Daily ASX all-announcements ingest (separate from ticker backfill):
    - `python3 scripts/daily_asx_all_announcements_action.py --date 2026-02-18`
+   - `python3 scripts/daily_asx_all_announcements_action.py --date 2026-02-18 --process-documents`
    - Ingests all announcements detected on ASX for the target day, inserts new docs, downloads PDFs, and classifies.
-   - Includes conservative ASX request pacing defaults in sweep mode (`request_delay_ms=700`, `request_jitter_ms=900`, `failure_backoff_ms=2500`).
+   - Best for a single explicit day (`--date`). For lookback windows and fallback ticker sweep behavior, use `daily_asx_marketwide_action.py`.
+   - For multi-day pacing/throttle controls, use `asx_enrichment_sweep_action.py` (`--request-delay-ms`, `--request-jitter-ms`, `--failure-backoff-ms`).
    - Output JSON: `reports/asx/daily_asx_all_announcements_report.json`
    - JSON reports include `run_metadata` (script, python version, git branch/commit/dirty flag).
+
+4. Daily ASX market-wide lookback (rolling window + optional fallback):
+   - `python3 scripts/daily_asx_marketwide_action.py --days 1`
+   - `python3 scripts/daily_asx_marketwide_action.py --days 3 --fallback-max-tickers 500`
+   - `python3 scripts/daily_asx_marketwide_action.py --days 1 --disable-marketwide-fallback`
+   - Uses market-wide discovery first, then optional fallback ticker sweep when market-wide results are empty.
+   - Output JSON: `reports/asx/daily_asx_marketwide_action_report.json`
+
+5. Bulk ASX enrichment + long-horizon runs:
+   - Sweep window (ingest/download/classify with guardrails):
+     - `python3 scripts/asx_enrichment_sweep_action.py --end-date 2026-02-18 --days-back 30`
+     - `python3 scripts/asx_enrichment_sweep_action.py --days-back 365 --max-new-docs 5000 --download-existing-missing`
+   - Chunked long-horizon runner (calls sweep script in chunks and writes rollup):
+     - `python3 scripts/run_asx_enrichment_chunked.py --total-days-back 1825 --chunk-days 14`
+   - Probe known system tickers (from DB) for broad backfill coverage:
+     - `python3 scripts/probe_all_system_tickers.py --years 5`
+   - Constraint: in `asx_enrichment_sweep_action.py`, `--process-documents` disables embeddings by default unless `--with-embeddings` is explicitly set.
 
 ## Simplest Run (One Command)
 If you want a single command with hardcoded defaults, use:
@@ -134,13 +164,14 @@ If you want a single command with hardcoded defaults, use:
 - `python3 run.py`
 
 This wrapper runs:
-- ticker full-history gathering
-- daily MarketIndex scrape/download
+- default: ticker full-history gathering + daily MarketIndex scrape/download (`workflow="both"`)
+- optional: ASX market-wide workflow only (`workflow="daily_asx_marketwide"`)
 
 All config is hardcoded in `run.py` under `CONFIG`.
 
 Common edits in `run.py`:
-- `CONFIG["workflow"]`: `"both"`, `"full_history"`, or `"daily_marketindex"`
+- `CONFIG["workflow"]`: `"both"`, `"full_history"`, `"daily_marketindex"`, or `"daily_asx_marketwide"`
+- `CONFIG["daily_asx_marketwide"]["days"]` / `["process_documents"]` / `["skip_download"]`
 
 ## Announcement Type Classification (Manual Backfill)
 Rebuild announcement-type folders for existing ingested docs:
@@ -200,12 +231,19 @@ Key bindings:
 Operational controls:
 - Single active action at a time (new runs are blocked while one job is running).
 - "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
+- Cockpit action id `daily_asx_marketwide` currently runs `scripts/daily_asx_all_announcements_action.py` with `--date` semantics (single-day ingest).
 
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)
-- `EXTRACT_MODEL` (default `llama3.1:8b`)
+- `EXTRACT_MODEL` (`.env.example` sets `llama3.1:8b`; config/local launcher fallback is `llama3:latest`)
 - `DOCS_ROOT` (default `/data/asx/docs`)
+- `ENABLE_IMPORTANCE_CLASSIFICATION` (default `true`; enable/disable post-ingestion announcement classification)
+- `IMPORTANCE_OUTPUT_ROOT` (default `data/asx/importance`)
+- `IMPORTANCE_MATERIALIZE_OUTPUT` (default `false`; write JSON artifacts for classified docs)
+- `IMPORTANCE_INCLUDE_PDF_TEXT` (default `true`; include extracted text in classification artifact payloads)
+- `IMPORTANCE_LINK_MODE` (default `symlink`; falls back to copy when symlink is unavailable)
+- `IMPORTANCE_SORT_SOURCE_DOCS` (default `true`; sort source PDFs into `{ticker}/{announcement_type}` folders)
 
 ## Current model prompting + iteration setup
 - Prompting is schema-first and centralized in `backend/app/services/extraction.py` (`build_prompt`).

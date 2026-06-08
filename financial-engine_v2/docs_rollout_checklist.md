@@ -67,3 +67,45 @@ Validation:
 Validation:
 - [x] Schema-level tests.
 - [x] Gate evaluation tests using curated fixtures.
+
+## Phase 6: Workflow Taxonomy + Health-Gated Full History
+- [ ] README workflow matrix matches runtime entrypoints:
+  - [ ] `scripts/full_history_ticker_sync.py`
+  - [ ] `scripts/daily_marketindex_action.py`
+  - [ ] `scripts/daily_asx_all_announcements_action.py`
+  - [ ] `scripts/daily_asx_marketwide_action.py`
+  - [ ] `scripts/asx_enrichment_sweep_action.py`
+  - [ ] `scripts/run_asx_enrichment_chunked.py`
+  - [ ] `scripts/probe_all_system_tickers.py`
+- [ ] `run.py` workflow options documented with current values (`both`, `full_history`, `daily_marketindex`, `daily_asx_marketwide`).
+- [ ] `full_history_ticker_sync.py` health gate behavior documented (`--health-json`, `--allow-warning`).
+
+Validation:
+- [ ] Dry-run smoke:
+  - [ ] `python3 scripts/full_history_ticker_sync.py --ticker BHP --years 1 --dry-run`
+  - [ ] `python3 scripts/daily_asx_marketwide_action.py --days 1 --dry-run`
+  - [ ] `python3 scripts/asx_enrichment_sweep_action.py --days-back 2 --dry-run`
+- [ ] Health gate block behavior verified from synthetic `overall_status=degraded` snapshot.
+
+## Phase 7: Marker Lifecycle + Headed Recovery
+- [ ] Marker lifecycle documented for `documents.pdf_sha256`:
+  - [ ] `blocked_marketindex_403`
+  - [ ] `blocked_marketindex_headed_required`
+  - [ ] `blocked_marketindex_no_candidate`
+  - [ ] `blocked_marketindex_headed_error`
+- [ ] Recovery runbook includes headed-only constraint and expected exit codes.
+- [ ] Marker transition checks added to operator validation notes.
+
+Validation:
+- [ ] Run `recover_marketindex_headed.py --dry-run` and verify candidate resolution output.
+- [ ] Confirm successful recoveries replace `blocked_*` markers with real SHA256 values.
+
+## Phase 8: Cockpit Guardrails + API Surface Parity
+- [ ] Cockpit docs reflect single-active-job policy and kill behavior.
+- [ ] Cockpit quality gate expectations documented (report JSON must exist and pass action-specific checks).
+- [ ] Public API docs include `/api/price` (params: `ticker`, `range`, `interval`, `exchange`) and provider-failure behavior.
+
+Validation:
+- [ ] Execute one heavy action while another is running; verify guard blocks conflicting launch.
+- [ ] Run a quality-gated action and confirm gate result is reflected in cockpit logs.
+- [ ] `GET /api/price` smoke tested for one ASX ticker and one non-ASX ticker suffix mapping.
