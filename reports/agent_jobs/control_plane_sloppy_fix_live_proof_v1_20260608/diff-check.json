@@ -1,0 +1,83 @@
+{
+  "changed_files": [
+    {
+      "path": ".github/workflows/sloppy-fix.yml",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/control_plane_sloppy_fix_live_proof_v1_20260608.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/control_plane_sloppy_fix_provider_failclosed_v1_20260607.md",
+      "status": "A"
+    },
+    {
+      "path": "plan.html",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_sloppy_fix_provider_failclosed_v1_20260607/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_sloppy_fix_provider_failclosed_v1_20260607/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/control_plane_sloppy_fix_provider_failclosed_v1_20260607/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/test_sloppy_fix_workflow.py",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allowed_files": [
+        ".github/workflows/sloppy-fix.yml",
+        "scripts/test_sloppy_fix_workflow.py",
+        "docs/agent_tasks/control_plane_sloppy_fix_provider_failclosed_v1_20260607.md",
+        "docs/agent_tasks/control_plane_sloppy_fix_live_proof_v1_20260608.md",
+        "reports/agent_jobs/control_plane_sloppy_fix_provider_failclosed_v1_20260607/README.md",
+        "reports/agent_jobs/control_plane_sloppy_fix_provider_failclosed_v1_20260607/validation.json",
+        "reports/agent_jobs/control_plane_sloppy_fix_provider_failclosed_v1_20260607/diff-check.json",
+        "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/README.md",
+        "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/validation.json",
+        "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608/diff-check.json",
+        "plan.html"
+      ],
+      "approval_required": true,
+      "job_id": "control_plane_sloppy_fix_live_proof_v1_20260608",
+      "lane": "Evaluation",
+      "mutation_mode": "report_only",
+      "output_dir": "reports/agent_jobs/control_plane_sloppy_fix_live_proof_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
