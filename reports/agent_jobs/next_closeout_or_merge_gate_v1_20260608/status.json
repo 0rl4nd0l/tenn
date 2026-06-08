@@ -1,0 +1,88 @@
+{
+  "job_id": "next_closeout_or_merge_gate_v1_20260608",
+  "status": "complete",
+  "created_at": "2026-06-08T21:41:49+10:00",
+  "mode": "result_review",
+  "primary_lane": "Repo Hygiene",
+  "validator_lane": "Reporting",
+  "target_base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "reviewed_prs": [
+    149,
+    164
+  ],
+  "decisions": {
+    "149": "MERGE_READY_REPORT_ARTIFACT",
+    "164": "MERGE_READY_REPORT_ONLY_WITH_FOLLOWUP_329"
+  },
+  "reviewer_verdict": "PASS_WITH_FOLLOWUPS",
+  "github_readback": {
+    "73": {
+      "state": "OPEN",
+      "title": "[Financial Truth] ASX evidence-bound extraction redesign parent tracker"
+    },
+    "137": {
+      "state": "CLOSED",
+      "title": "[Repo Hygiene] Park stale query-orchestration audit preservation commit"
+    },
+    "146": {
+      "state": "CLOSED",
+      "title": "[Repo Hygiene] Review prunable git worktree metadata before branch audits rely on worktree inventory"
+    },
+    "329": {
+      "state": "OPEN",
+      "title": "[Repo Hygiene] Approval-gated prune of stale git worktree metadata"
+    },
+    "pr149": {
+      "state": "OPEN",
+      "is_draft": false,
+      "merge_state_status": "CLEAN",
+      "mergeable": "MERGEABLE",
+      "head": "safe/repo-hygiene-park-stale-query-audit-v1-20260531",
+      "head_commit": "8f7a0ab745e32d25fb41a9e49335ba9a7036ac7d",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      }
+    },
+    "pr164": {
+      "state": "OPEN",
+      "is_draft": false,
+      "merge_state_status": "CLEAN",
+      "mergeable": "MERGEABLE",
+      "head": "safe/repo-prunable-worktree-metadata-review-v1-20260531",
+      "head_commit": "325087369bcc3b6796c71efb21a5a7dee0c5b8e8",
+      "checks": {
+        "lint-and-test": "SUCCESS",
+        "scan": "SUCCESS"
+      }
+    }
+  },
+  "github_mutations": [],
+  "forbidden_actions_avoided": [
+    "issue_closure",
+    "pr_merge",
+    "actual_git_worktree_prune",
+    "branch_delete",
+    "reset_stash_rebase_cherry_pick",
+    "product_runtime_data_mutation"
+  ],
+  "data_missing": [],
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_list_active_read_only": "PASS",
+    "pr149_task_card_validate": "PASS",
+    "pr149_report_json_parse": "PASS",
+    "pr149_branch_diff_check": "PASS",
+    "pr149_merge_probe": "PASS",
+    "pr164_task_card_validate": "PASS",
+    "pr164_report_json_parse": "PASS",
+    "pr164_branch_diff_check": "PASS",
+    "pr164_merge_probe": "PASS"
+  },
+  "next_safe_steps": [
+    "Merge PR #149 if operator accepts report-artifact preservation.",
+    "Merge PR #164 if operator accepts report-only worktree metadata evidence preservation.",
+    "Use #329 and a separate explicit cleanup task card for any actual git worktree prune.",
+    "Keep #73 open; use child Financial Truth issues/tasks only."
+  ]
+}
