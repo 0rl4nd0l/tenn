@@ -1,0 +1,18 @@
+{
+  "branch": "safe/news-pipeline-newspaper4k-replay-v1-20260608",
+  "head_before_commit": "ca65fe244048464b473a7789e1a66aff864de577",
+  "job_id": "news_pipeline_newspaper4k_replay_v1_20260608",
+  "mode": "safe_extension",
+  "status": "READY_FOR_LOCAL_COMMIT",
+  "stop_boundary": "commit local branch only; stop before push or PR",
+  "updated_at": "2026-06-08T19:12:57+10:00",
+  "validation": {
+    "dry_run_newspaper4k": "pass",
+    "git_diff_check": "pass",
+    "py_compile": "pass",
+    "registry_read_only": "pass",
+    "task_card_validate": "pass",
+    "test_news_pipeline_providers": "pass",
+    "test_run_news_pipeline": "pass"
+  }
+}

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import inspect
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
@@ -179,29 +180,34 @@ class Newspaper4kProvider(ProviderClient):
         keywords = collector.parse_keywords(None, "")
         finance_include = list(collector.DEFAULT_FINANCE_URL_INCLUDE_TOKENS)
         finance_exclude = list(collector.DEFAULT_FINANCE_URL_EXCLUDE_TOKENS)
+        supports_playwright_domains = "playwright_domains" in inspect.signature(
+            collector.extract_from_source
+        ).parameters
 
         total_rows = 0
         for index, spec in enumerate(sources):
             try:
-                articles, stats = collector.extract_from_source(
-                    source=spec,
-                    max_articles=self.max_articles_per_source,
-                    min_text_chars=self.min_text_chars,
-                    min_keyword_hits=self.min_keyword_hits,
-                    request_timeout_seconds=self.request_timeout_seconds,
-                    finance_url_gate=self.finance_url_gate,
-                    finance_url_include_tokens=finance_include,
-                    finance_url_exclude_tokens=finance_exclude,
-                    finance_url_gate_exempt_domains=[],
-                    article_url_gate_exempt_domains=ARTICLE_GATE_EXEMPT_DOMAINS,
-                    keywords=keywords,
-                    recent_cutoff=recent_cutoff,
-                    raw_html_dir=self.raw_html_dir,
-                    http_cookie=self.http_cookie,
-                    playwright_domains=self.playwright_domains,
-                )
+                kwargs: Dict[str, Any] = {
+                    "source": spec,
+                    "max_articles": self.max_articles_per_source,
+                    "min_text_chars": self.min_text_chars,
+                    "min_keyword_hits": self.min_keyword_hits,
+                    "request_timeout_seconds": self.request_timeout_seconds,
+                    "finance_url_gate": self.finance_url_gate,
+                    "finance_url_include_tokens": finance_include,
+                    "finance_url_exclude_tokens": finance_exclude,
+                    "finance_url_gate_exempt_domains": [],
+                    "article_url_gate_exempt_domains": ARTICLE_GATE_EXEMPT_DOMAINS,
+                    "keywords": keywords,
+                    "recent_cutoff": recent_cutoff,
+                    "raw_html_dir": self.raw_html_dir,
+                    "http_cookie": self.http_cookie,
+                }
+                if supports_playwright_domains:
+                    kwargs["playwright_domains"] = self.playwright_domains
+                articles, stats = collector.extract_from_source(**kwargs)
             except Exception as exc:
-                print(f"[newspaper4k] source {spec.url} error: {exc}", flush=True)
+                print(f"[newspaper4k] source {spec.url} error: {exc}", file=sys.stderr, flush=True)
                 continue
 
             source_rows: List[Dict[str, Any]] = []
@@ -232,6 +238,7 @@ class Newspaper4kProvider(ProviderClient):
             print(
                 f"[newspaper4k] {spec.url} seen={stats.get('source_articles_seen', 0)} "
                 f"kept={kept} errors={stats.get('download_errors', 0)}",
+                file=sys.stderr,
                 flush=True,
             )
             if source_rows:
