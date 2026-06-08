@@ -1,0 +1,104 @@
+{
+  "blocked_items": [
+    "Actual pass3a row_refs, metric_source_scales, metric_scale_sources, and debug_capture payload are DATA_MISSING because no existing parser cache was available and the public runtime/parser route would write parser cache on a cache miss."
+  ],
+  "commands": [
+    {
+      "command": "pwd && git branch --show-current && git rev-parse HEAD && git remote -v && git status --short --untracked-files=all && sed -n '1,260p' AGENTS.md",
+      "exit_status": 0,
+      "purpose": "Preflight and repo constitution read"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "purpose": "Safe read-only registry inspection"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+      "exit_status": 0,
+      "purpose": "Task-card validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/task_card_validate.log"
+    },
+    {
+      "command": "python3 reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+      "exit_status": 1,
+      "purpose": "Initial capture attempt with default python3",
+      "summary": "Failed because default python3 could not import fitz/PyMuPDF."
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+      "exit_status": 0,
+      "purpose": "Exact-doc no-write provenance capture using the existing read-only repo-family venv",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/capture_runtime_provenance.log"
+    },
+    {
+      "command": "python3 -m py_compile reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+      "exit_status": 0,
+      "purpose": "Syntax validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/runtime_provenance_capture.json",
+      "exit_status": 0,
+      "purpose": "Runtime provenance JSON parse validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/common_metric_source_scale_trace.json",
+      "exit_status": 0,
+      "purpose": "Common scale trace JSON parse validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/status.json",
+      "exit_status": 0,
+      "purpose": "Status JSON parse validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/validation.json",
+      "exit_status": 0,
+      "purpose": "Validation JSON parse validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "purpose": "Whitespace validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff --no-write-report docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+      "exit_status": 0,
+      "purpose": "Allowed-files diff validation",
+      "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    }
+  ],
+  "data_missing": [
+    "debug_capture_full_payload",
+    "existing_parser_cache_json",
+    "full_pass3a_llm_outputs",
+    "runtime_metric_scale_sources",
+    "runtime_metric_source_scales",
+    "runtime_row_refs"
+  ],
+  "exact_docs_used": [
+    {
+      "case_id": "control_CXO_36e172ec",
+      "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+      "ticker": "CXO"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR"
+    }
+  ],
+  "production_repair_implemented": false,
+  "state": "DONE_WITH_RISK",
+  "task_card_validation": "passed",
+  "two_cases_shared_source_bound_production_root_cause": false,
+  "validation_status": "passed_with_data_missing"
+}

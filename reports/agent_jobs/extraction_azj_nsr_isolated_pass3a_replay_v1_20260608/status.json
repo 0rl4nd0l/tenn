@@ -1,0 +1,46 @@
+{
+  "azj_gap_reproduced": false,
+  "cache_root": "/tmp/tenn-azj-nsr-isolated-pass3a-replay-v1-20260608-run-20260608064212/reports/extraction_cache/docling_extract",
+  "close_scale_table_path": true,
+  "data_missing": [],
+  "decision": "DO_NOT_FIX_FROM_THIS_REPLAY",
+  "errors": [],
+  "exact_docs_used": [
+    {
+      "case_id": "suspect_AZJ_488d6f1a",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "expected_gap": "metric_source_scales_missing_despite_same_page_millions_evidence",
+      "expected_period_end": "2025-06-30",
+      "expected_period_type": "A",
+      "role": "suspect",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "ticker": "AZJ",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf"
+    },
+    {
+      "case_id": "control_NSR_f2240712",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "expected_period_end": "2021-12-31",
+      "expected_period_type": "H",
+      "expected_scale": "thousands",
+      "role": "clean_control",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "ticker": "NSR",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf"
+    }
+  ],
+  "isolated_cache_used": true,
+  "job_id": "extraction_azj_nsr_isolated_pass3a_replay_v1_20260608",
+  "nsr_control_clean": true,
+  "pass3a_field_capture": {
+    "common_metric_source_scale_trace": true,
+    "metric_scale_sources": true,
+    "metric_source_scales": true,
+    "pass3a_outputs": true,
+    "row_refs": true,
+    "selected_table_page": true,
+    "table_same_page_document_scale_evidence": true
+  },
+  "production_repair_implemented": false,
+  "state": "DONE"
+}

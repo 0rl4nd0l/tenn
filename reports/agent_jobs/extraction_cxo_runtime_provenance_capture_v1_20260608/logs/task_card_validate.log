@@ -1,0 +1,35 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_audit_code_changes": true,
+    "allow_unapproved_safe_extension": false,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/README.md",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/runtime_provenance_capture.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/common_metric_source_scale_trace.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/status.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/validation.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/task_card_validate.log",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/capture_runtime_provenance.log",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    ],
+    "approval_required": false,
+    "github_mutation_allowed": false,
+    "job_id": "extraction_cxo_runtime_provenance_capture_v1_20260608",
+    "lane": "Financial Truth",
+    "mutation_mode": "audit_only",
+    "output_dir": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance",
+      "Reporting",
+      "Repo Hygiene"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}

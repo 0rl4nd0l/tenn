@@ -1,0 +1,1846 @@
+### task_card_validate
+COMMAND: python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md
+{
+  "issues": [],
+  "metadata": {
+    "allow_audit_code_changes": true,
+    "allow_unapproved_safe_extension": false,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/README.md",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/runtime_provenance_capture.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/common_metric_source_scale_trace.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/status.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/validation.json",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/task_card_validate.log",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/capture_runtime_provenance.log",
+      "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+    ],
+    "approval_required": false,
+    "github_mutation_allowed": false,
+    "job_id": "extraction_cxo_runtime_provenance_capture_v1_20260608",
+    "lane": "Financial Truth",
+    "mutation_mode": "audit_only",
+    "output_dir": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance",
+      "Reporting",
+      "Repo Hygiene"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}
+EXIT_STATUS=0
+### registry_read_only
+COMMAND: python3 scripts/agent_job_registry.py list-active --read-only
+{
+  "active_jobs": [],
+  "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+  "lock_acquired": false,
+  "ok": true,
+  "read_only": true,
+  "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+  "registry_scope": "shared",
+  "repo_root": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608",
+  "warnings": []
+}
+EXIT_STATUS=0
+
+### py_compile
+COMMAND: python3 -m py_compile reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py
+EXIT_STATUS=0
+
+### json_runtime
+COMMAND: python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/runtime_provenance_capture.json
+{
+    "common_metric_source_scale_trace": {
+        "36e172ec-2650-4a9f-9ef0-a4366a3b8d31": {
+            "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+            "fallback": "thousands",
+            "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+            "input_payload": {
+                "metric_source_scales": {},
+                "metrics": {
+                    "capex": -1707000.0,
+                    "cash_end": 95521000.0,
+                    "ebit": null,
+                    "financing_cf": -337000.0,
+                    "investing_cf": -35844000.0,
+                    "net_debt": null,
+                    "np_attributable": null,
+                    "operating_cf": -3756000.0,
+                    "revenue": null,
+                    "shares_outstanding": null
+                }
+            },
+            "output": "thousands"
+        },
+        "f2240712-9dde-41e0-88fa-29c1a0080dab": {
+            "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+            "fallback": "thousands",
+            "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+            "input_payload": {
+                "metric_source_scales": {},
+                "metrics": {
+                    "capex": -96221000.0,
+                    "cash_end": 57387000.0,
+                    "ebit": 274928000.0,
+                    "financing_cf": -7761000.0,
+                    "investing_cf": -96221000.0,
+                    "net_debt": null,
+                    "np_attributable": 274116000.0,
+                    "operating_cf": 65489000.0,
+                    "revenue": 131645000.0,
+                    "shares_outstanding": null
+                }
+            },
+            "output": "thousands"
+        }
+    },
+    "control_selection": {
+        "clean_scale_control_candidates": [
+            {
+                "case_id": "control_NSR_f2240712",
+                "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+                "expected_classification": "financial_report",
+                "non_null_metrics": 8,
+                "period_end": "2021-12-31",
+                "period_type": "H",
+                "scale": "thousands",
+                "ticker": "NSR"
+            },
+            {
+                "case_id": "control_CXO_36e172ec",
+                "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+                "expected_classification": "financial_report",
+                "non_null_metrics": 5,
+                "period_end": "2022-09-30",
+                "period_type": "Q",
+                "scale": "thousands",
+                "ticker": "CXO"
+            },
+            {
+                "case_id": "prior_gpt_appendix4d_c10a88ab",
+                "document_id": "c10a88ab-4290-4395-9521-7f96c50b03c4",
+                "expected_classification": "financial_report",
+                "non_null_metrics": null,
+                "period_end": "2024-06-30",
+                "period_type": "H",
+                "scale": "thousands",
+                "ticker": "GPT"
+            },
+            {
+                "case_id": "control_WHC_0be5515d",
+                "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+                "expected_classification": "unknown_document",
+                "non_null_metrics": 9,
+                "period_end": "2023-06-30",
+                "period_type": "A",
+                "scale": "thousands",
+                "ticker": "WHC"
+            }
+        ],
+        "selected": [
+            "control_CXO_36e172ec",
+            "control_NSR_f2240712"
+        ],
+        "why_nsr": "Live harness contains the recommended NSR case as an ok financial_report clean scale-known control with thousands scale and 8 non-null metrics; no cleaner financial_report control was identified for this exact-doc capture."
+    },
+    "data_missing": [
+        "debug_capture_full_payload",
+        "existing_parser_cache_json",
+        "full_pass3a_llm_outputs",
+        "runtime_metric_scale_sources",
+        "runtime_metric_source_scales",
+        "runtime_row_refs"
+    ],
+    "documents": [
+        {
+            "capture_status": "partial_no_write_capture",
+            "case_id": "control_CXO_36e172ec",
+            "common_metric_source_scale_trace": {
+                "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                "fallback": "thousands",
+                "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+                "input_payload": {
+                    "metric_source_scales": {},
+                    "metrics": {
+                        "capex": -1707000.0,
+                        "cash_end": 95521000.0,
+                        "ebit": null,
+                        "financing_cf": -337000.0,
+                        "investing_cf": -35844000.0,
+                        "net_debt": null,
+                        "np_attributable": null,
+                        "operating_cf": -3756000.0,
+                        "revenue": null,
+                        "shares_outstanding": null
+                    }
+                },
+                "output": "thousands"
+            },
+            "count24_summary": {
+                "confidence": 1.0,
+                "currency": "AUD",
+                "error": null,
+                "metrics": {
+                    "capex": -1707000.0,
+                    "cash_end": 95521000.0,
+                    "ebit": null,
+                    "financing_cf": -337000.0,
+                    "investing_cf": -35844000.0,
+                    "net_debt": null,
+                    "np_attributable": null,
+                    "operating_cf": -3756000.0,
+                    "revenue": null,
+                    "shares_outstanding": null
+                },
+                "non_null_metrics": 5,
+                "period_end": "2022-09-30",
+                "period_type": "Q",
+                "persisted_metric_scale_sources": "DATA_MISSING",
+                "persisted_metric_source_scales": "DATA_MISSING",
+                "persisted_row_refs": "DATA_MISSING",
+                "scale": "thousands",
+                "source_bound": {
+                    "currency": "AUD",
+                    "document_title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+                    "period_end": "2022-09-30",
+                    "period_type": "Q",
+                    "scale": "thousands"
+                },
+                "source_document_classification": {
+                    "canary_candidate_allowed": true,
+                    "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+                    "document_class": "financial_report",
+                    "evidence": [
+                        "quarterly_source_phrase"
+                    ],
+                    "extraction_candidate_allowed": true,
+                    "reason": "quarterly_source_phrase"
+                },
+                "status": "ok"
+            },
+            "data_missing": [
+                "existing_parser_cache_json",
+                "full_pass3a_llm_outputs",
+                "runtime_row_refs",
+                "runtime_metric_source_scales",
+                "runtime_metric_scale_sources",
+                "debug_capture_full_payload"
+            ],
+            "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+            "document_level_scale": {
+                "count24_final_scale": "thousands",
+                "from_first_page_text": "unknown",
+                "from_tables": "unknown"
+            },
+            "expected": {
+                "non_null_metrics": 5,
+                "period_end": "2022-09-30",
+                "period_type": "Q",
+                "scale": "thousands"
+            },
+            "harness_expected_classification": "financial_report",
+            "harness_expected_gate_or_status": "ok",
+            "no_write_evidence": {
+                "parser_cache_paths_unchanged": true,
+                "source_pdf_stat_unchanged": true
+            },
+            "no_write_runtime_route": {
+                "called_extract_structured_public_cache_wrapper": false,
+                "called_pass3a_llm_extractor": false,
+                "called_private_in_memory_pymupdf_helper": true,
+                "called_run_multipass_extraction": false,
+                "reason": "Public parser/runtime path writes parser cache on cache miss; this runner uses private in-memory parser helper only."
+            },
+            "parser_cache_after": [],
+            "parser_cache_before": [],
+            "parser_capture": {
+                "method": "pymupdf",
+                "page_count": 19,
+                "section_count": 1242,
+                "table_count": 25
+            },
+            "per_metric_runtime_provenance": {
+                "capex": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de",
+                                        "- - - - (1,707) (2,325) - 276 - - - -",
+                                        "- - - - (1,707) (2,325) - 276 - - - -"
+                                    ],
+                                    "row_index": 1,
+                                    "row_label": "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de"
+                                },
+                                {
+                                    "cells": [
+                                        "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif",
+                                        "(3,756) (3,154) (6,910) 95,521 -",
+                                        ""
+                                    ],
+                                    "row_index": 14,
+                                    "row_label": "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 14,
+                            "table_index": null,
+                            "table_local_scale": "thousands"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -1707000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "cash_end": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "4. Net increase / (decrease) in cash and cash equivalents for the period",
+                                        "",
+                                        ""
+                                    ],
+                                    "row_index": 7,
+                                    "row_label": "4. Net increase / (decrease) in cash and cash equivalents for the period"
+                                },
+                                {
+                                    "cells": [
+                                        "4.1 Cash and cash equivalents at beginning of period 4.2 Net cash from / (used in) operating activities (item 1.9 above)",
+                                        "135,198 (3,756) (35,844) (77) -",
+                                        "135,198 (3,756) (35,844) (77) -"
+                                    ],
+                                    "row_index": 8,
+                                    "row_label": "4.1 Cash and cash equivalents at beginning of period 4.2 Net cash from / (used in) operating activities (item 1.9 above)"
+                                },
+                                {
+                                    "cells": [
+                                        "5. Reconciliation of cash and cash equivalents at the end of the quarter (as shown in the consolidated statement of cash",
+                                        "Current quarter $A\u2019000",
+                                        "Previous quarter $A\u2019000"
+                                    ],
+                                    "row_index": 10,
+                                    "row_label": "5. Reconciliation of cash and cash equivalents at the end of the quarter (as shown in the consolidated statement of cash"
+                                },
+                                {
+                                    "cells": [
+                                        "5.1 Bank balances 5.2 Call deposits 5.3 Bank overdrafts 5.4 Other (provide details) 5.5 Cash and cash equivalents at end",
+                                        "95,521 - - -",
+                                        "135,198 - - -"
+                                    ],
+                                    "row_index": 11,
+                                    "row_label": "5.1 Bank balances 5.2 Call deposits 5.3 Bank overdrafts 5.4 Other (provide details) 5.5 Cash and cash equivalents at end"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 14,
+                            "table_index": null,
+                            "table_local_scale": "thousands"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": 95521000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "ebit": {
+                    "candidate_selected_tables_for_metric": [],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "financing_cf": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "3. Cash flows from financing activities 3.1 Proceeds from issues of equity securities (excluding convertible debt securi",
+                                        "- - 281 (21) - - - - (337)",
+                                        "- - 281 (21) - - - - (337)"
+                                    ],
+                                    "row_index": 5,
+                                    "row_label": "3. Cash flows from financing activities 3.1 Proceeds from issues of equity securities (excluding convertible debt securi"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 14,
+                            "table_index": null,
+                            "table_local_scale": "thousands"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -337000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "investing_cf": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de",
+                                        "- - - - (1,707) (2,325) - 276 - - - -",
+                                        "- - - - (1,707) (2,325) - 276 - - - -"
+                                    ],
+                                    "row_index": 1,
+                                    "row_label": "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de"
+                                },
+                                {
+                                    "cells": [
+                                        "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif",
+                                        "(3,756) (3,154) (6,910) 95,521 -",
+                                        ""
+                                    ],
+                                    "row_index": 14,
+                                    "row_label": "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif"
+                                },
+                                {
+                                    "cells": [
+                                        "a",
+                                        "",
+                                        "investing activities,"
+                                    ],
+                                    "row_index": 35,
+                                    "row_label": "a"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 14,
+                            "table_index": null,
+                            "table_local_scale": "thousands"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -35844000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "net_debt": {
+                    "candidate_selected_tables_for_metric": [],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "np_attributable": {
+                    "candidate_selected_tables_for_metric": [],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "operating_cf": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de",
+                                        "- - - - (1,707) (2,325) - 276 - - - -",
+                                        "- - - - (1,707) (2,325) - 276 - - - -"
+                                    ],
+                                    "row_index": 1,
+                                    "row_label": "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration & evaluation (b) de"
+                                },
+                                {
+                                    "cells": [
+                                        "4.1 Cash and cash equivalents at beginning of period 4.2 Net cash from / (used in) operating activities (item 1.9 above)",
+                                        "135,198 (3,756) (35,844) (77) -",
+                                        "135,198 (3,756) (35,844) (77) -"
+                                    ],
+                                    "row_index": 8,
+                                    "row_label": "4.1 Cash and cash equivalents at beginning of period 4.2 Net cash from / (used in) operating activities (item 1.9 above)"
+                                },
+                                {
+                                    "cells": [
+                                        "8. Estimated cash available for future operating activities",
+                                        "$A\u2019000",
+                                        ""
+                                    ],
+                                    "row_index": 13,
+                                    "row_label": "8. Estimated cash available for future operating activities"
+                                },
+                                {
+                                    "cells": [
+                                        "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif",
+                                        "(3,756) (3,154) (6,910) 95,521 -",
+                                        ""
+                                    ],
+                                    "row_index": 14,
+                                    "row_label": "8.1 Net cash from / (used in) operating activities (item 1.9) (3,756) 8.2 (Payments for exploration & evaluation classif"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 14,
+                            "table_index": null,
+                            "table_local_scale": "thousands"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -3756000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "revenue": {
+                    "candidate_selected_tables_for_metric": [],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "shares_outstanding": {
+                    "candidate_selected_tables_for_metric": [],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                }
+            },
+            "selected_tables": {
+                "cashflow_statement": {
+                    "caption": "Merged cashflow statement (Appendix 5B)",
+                    "first_rows": [
+                        [
+                            "Consolidated statement of cash flows",
+                            "Current quarter $A\u2019000",
+                            "Year to date (3 months) $A\u2019000"
+                        ],
+                        [
+                            "1. Cash flows from operating activities 1.1 Receipts from customers 1.2 Payments for (a) exploration",
+                            "- - - - (1,707) (2,325) - 276 - - - -",
+                            "- - - - (1,707) (2,325) - 276 - - - -"
+                        ],
+                        [
+                            "",
+                            "(3,756)",
+                            "(3,756)"
+                        ],
+                        [
+                            "(f) other non-current assets - mine development 2.2 Proceeds from the disposal of: (a) entities (b) ",
+                            "(13,676) - - - - - - - - -",
+                            "(13,676) - - - - - - - - -"
+                        ],
+                        [
+                            "",
+                            "(35,844)",
+                            "(35,844)"
+                        ],
+                        [
+                            "3. Cash flows from financing activities 3.1 Proceeds from issues of equity securities (excluding con",
+                            "- - 281 (21) - - - - (337)",
+                            "- - 281 (21) - - - - (337)"
+                        ],
+                        [
+                            "",
+                            "(77)",
+                            "(77)"
+                        ],
+                        [
+                            "4. Net increase / (decrease) in cash and cash equivalents for the period",
+                            "",
+                            ""
+                        ]
+                    ],
+                    "headers": [
+                        "Consolidated statement of cash flows",
+                        "Current quarter $A\u2019000",
+                        "Year to date (3 months) $A\u2019000"
+                    ],
+                    "label": "cashflow_statement",
+                    "metric_schema": [
+                        "operating_cf",
+                        "investing_cf",
+                        "financing_cf",
+                        "cash_end",
+                        "capex"
+                    ],
+                    "page_number": 14,
+                    "row_count": 51,
+                    "same_page_scale": "thousands",
+                    "same_page_scale_evidence_snippets": [
+                        "$A\u2019000",
+                        "$A\u2019000"
+                    ],
+                    "table_index": null,
+                    "table_local_scale": "thousands"
+                }
+            },
+            "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+            "source_pdf_after": {
+                "exists": true,
+                "mode": "0o674",
+                "mtime_ns": 1771425709256758885,
+                "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+                "size_bytes": 1128282
+            },
+            "source_pdf_before": {
+                "exists": true,
+                "mode": "0o674",
+                "mtime_ns": 1771425709256758885,
+                "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+                "size_bytes": 1128282
+            },
+            "ticker": "CXO",
+            "title": "2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf"
+        },
+        {
+            "capture_status": "partial_no_write_capture",
+            "case_id": "control_NSR_f2240712",
+            "common_metric_source_scale_trace": {
+                "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                "fallback": "thousands",
+                "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+                "input_payload": {
+                    "metric_source_scales": {},
+                    "metrics": {
+                        "capex": -96221000.0,
+                        "cash_end": 57387000.0,
+                        "ebit": 274928000.0,
+                        "financing_cf": -7761000.0,
+                        "investing_cf": -96221000.0,
+                        "net_debt": null,
+                        "np_attributable": 274116000.0,
+                        "operating_cf": 65489000.0,
+                        "revenue": 131645000.0,
+                        "shares_outstanding": null
+                    }
+                },
+                "output": "thousands"
+            },
+            "count24_summary": {
+                "confidence": 1.0,
+                "currency": "AUD",
+                "error": null,
+                "metrics": {
+                    "capex": -96221000.0,
+                    "cash_end": 57387000.0,
+                    "ebit": 274928000.0,
+                    "financing_cf": -7761000.0,
+                    "investing_cf": -96221000.0,
+                    "net_debt": null,
+                    "np_attributable": 274116000.0,
+                    "operating_cf": 65489000.0,
+                    "revenue": 131645000.0,
+                    "shares_outstanding": null
+                },
+                "non_null_metrics": 8,
+                "period_end": "2021-12-31",
+                "period_type": "H",
+                "persisted_metric_scale_sources": "DATA_MISSING",
+                "persisted_metric_source_scales": "DATA_MISSING",
+                "persisted_row_refs": "DATA_MISSING",
+                "scale": "thousands",
+                "source_bound": {
+                    "currency": "AUD",
+                    "document_title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+                    "period_end": "2021-12-31",
+                    "period_type": "H",
+                    "scale": "thousands"
+                },
+                "source_document_classification": {
+                    "canary_candidate_allowed": true,
+                    "definition": "Source metadata has explicit annual, half-year, quarterly, or appendix financial-report evidence and may proceed through normal extraction gates.",
+                    "document_class": "financial_report",
+                    "evidence": [
+                        "half_year_source_phrase",
+                        "six_months_ended_source_phrase"
+                    ],
+                    "extraction_candidate_allowed": true,
+                    "reason": "half_year_source_phrase"
+                },
+                "status": "ok"
+            },
+            "data_missing": [
+                "existing_parser_cache_json",
+                "full_pass3a_llm_outputs",
+                "runtime_row_refs",
+                "runtime_metric_source_scales",
+                "runtime_metric_scale_sources",
+                "debug_capture_full_payload"
+            ],
+            "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+            "document_level_scale": {
+                "count24_final_scale": "thousands",
+                "from_first_page_text": "unknown",
+                "from_tables": "thousands"
+            },
+            "expected": {
+                "non_null_metrics": 8,
+                "period_end": "2021-12-31",
+                "period_type": "H",
+                "scale": "thousands"
+            },
+            "harness_expected_classification": "financial_report",
+            "harness_expected_gate_or_status": "ok",
+            "no_write_evidence": {
+                "parser_cache_paths_unchanged": true,
+                "source_pdf_stat_unchanged": true
+            },
+            "no_write_runtime_route": {
+                "called_extract_structured_public_cache_wrapper": false,
+                "called_pass3a_llm_extractor": false,
+                "called_private_in_memory_pymupdf_helper": true,
+                "called_run_multipass_extraction": false,
+                "reason": "Public parser/runtime path writes parser cache on cache miss; this runner uses private in-memory parser helper only."
+            },
+            "parser_cache_after": [],
+            "parser_cache_before": [],
+            "parser_capture": {
+                "method": "pymupdf",
+                "page_count": 29,
+                "section_count": 2006,
+                "table_count": 30
+            },
+            "per_metric_runtime_provenance": {
+                "capex": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "e",
+                                        "Purchase of pr",
+                                        "operty, plant",
+                                        "and",
+                                        "equipment",
+                                        "(402)",
+                                        "(225)"
+                                    ],
+                                    "row_index": 21,
+                                    "row_label": "e"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 12,
+                            "table_index": 11,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -96221000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "cash_end": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "o",
+                                        "Cash and cash",
+                                        "equivalents",
+                                        "at 1",
+                                        "July",
+                                        "95,910",
+                                        "90,352"
+                                    ],
+                                    "row_index": 38,
+                                    "row_label": "o"
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Cash and cash",
+                                        "equivalents",
+                                        "at 3",
+                                        "1 December",
+                                        "57,387",
+                                        "48,065"
+                                    ],
+                                    "row_index": 39,
+                                    "row_label": ""
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 12,
+                            "table_index": 11,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": 57387000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "ebit": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "",
+                                        "Profit before inco",
+                                        "me tax",
+                                        "",
+                                        "",
+                                        "274,928",
+                                        "101,141"
+                                    ],
+                                    "row_index": 32,
+                                    "row_label": ""
+                                }
+                            ],
+                            "label": "income_statement",
+                            "page_number": 8,
+                            "table_index": 7,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": 274928000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "financing_cf": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "",
+                                        "Repayment of",
+                                        "borrowings",
+                                        "",
+                                        "",
+                                        "(794,429)",
+                                        "-"
+                                    ],
+                                    "row_index": 28,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Proceeds from",
+                                        "borrowings",
+                                        "",
+                                        "",
+                                        "844,535",
+                                        "260,872"
+                                    ],
+                                    "row_index": 30,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "a",
+                                        "Interest and ot",
+                                        "her finance c",
+                                        "osts",
+                                        "paid",
+                                        "(11,889)",
+                                        "(9,777)"
+                                    ],
+                                    "row_index": 32,
+                                    "row_label": "a"
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Borrowings to j",
+                                        "oint venture",
+                                        "",
+                                        "",
+                                        "-",
+                                        "(4,950)"
+                                    ],
+                                    "row_index": 33,
+                                    "row_label": ""
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 12,
+                            "table_index": 11,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -7761000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "investing_cf": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [],
+                            "label": "cashflow_statement",
+                            "page_number": 12,
+                            "table_index": 11,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": -96221000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "net_debt": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "",
+                                        "",
+                                        "Borrowings",
+                                        "",
+                                        "",
+                                        "",
+                                        "11",
+                                        "188,293"
+                                    ],
+                                    "row_index": 33,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "r",
+                                        "",
+                                        "Borrowings",
+                                        "",
+                                        "",
+                                        "",
+                                        "11",
+                                        "623,209"
+                                    ],
+                                    "row_index": 44,
+                                    "row_label": "r"
+                                }
+                            ],
+                            "label": "balance_sheet",
+                            "page_number": 10,
+                            "table_index": 9,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "np_attributable": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "",
+                                        "Profit after tax",
+                                        "",
+                                        "",
+                                        "",
+                                        "274,116",
+                                        "101,378"
+                                    ],
+                                    "row_index": 36,
+                                    "row_label": ""
+                                }
+                            ],
+                            "label": "income_statement",
+                            "page_number": 8,
+                            "table_index": 7,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": 274116000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "operating_cf": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "",
+                                        "Receipts from",
+                                        "customers",
+                                        "",
+                                        "",
+                                        "143,302",
+                                        "105,900"
+                                    ],
+                                    "row_index": 10,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "l",
+                                        "Payments to su",
+                                        "ppliers and e",
+                                        "mpl",
+                                        "oyees",
+                                        "(77,790)",
+                                        "(53,506)"
+                                    ],
+                                    "row_index": 11,
+                                    "row_label": "l"
+                                }
+                            ],
+                            "label": "cashflow_statement",
+                            "page_number": 12,
+                            "table_index": 11,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": 65489000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "revenue": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "",
+                                        "Revenue from ren",
+                                        "tal income",
+                                        "",
+                                        "",
+                                        "122,070",
+                                        "91,811"
+                                    ],
+                                    "row_index": 9,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Revenue from co",
+                                        "ntracts with",
+                                        "customers",
+                                        "",
+                                        "9,266",
+                                        "7,316"
+                                    ],
+                                    "row_index": 11,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Interest income",
+                                        "",
+                                        "",
+                                        "",
+                                        "309",
+                                        "482"
+                                    ],
+                                    "row_index": 13,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Total revenue",
+                                        "",
+                                        "",
+                                        "",
+                                        "131,645",
+                                        "99,609"
+                                    ],
+                                    "row_index": 15,
+                                    "row_label": ""
+                                },
+                                {
+                                    "cells": [
+                                        "",
+                                        "Income tax (expe",
+                                        "nse) / ben",
+                                        "efit",
+                                        "4",
+                                        "(812)",
+                                        "237"
+                                    ],
+                                    "row_index": 34,
+                                    "row_label": ""
+                                }
+                            ],
+                            "label": "income_statement",
+                            "page_number": 8,
+                            "table_index": 7,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": 131645000.0,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                },
+                "shares_outstanding": {
+                    "candidate_selected_tables_for_metric": [
+                        {
+                            "candidate_row_cell_text": [],
+                            "label": "balance_sheet",
+                            "page_number": 10,
+                            "table_index": 9,
+                            "table_local_scale": "unknown"
+                        },
+                        {
+                            "candidate_row_cell_text": [
+                                {
+                                    "cells": [
+                                        "l",
+                                        "number of shares",
+                                        "in the Co",
+                                        "mpany and th",
+                                        "e number",
+                                        "of units in the",
+                                        "Trust shall be equal and t",
+                                        "hat the"
+                                    ],
+                                    "row_index": 11,
+                                    "row_label": "l"
+                                }
+                            ],
+                            "label": "share_capital",
+                            "page_number": 13,
+                            "table_index": 12,
+                            "table_local_scale": "unknown"
+                        }
+                    ],
+                    "final_metric_value_from_count24_summary": null,
+                    "runtime_metric_scale_source": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_metric_source_scale": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+                    "runtime_row_ref": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE"
+                }
+            },
+            "selected_tables": {
+                "balance_sheet": {
+                    "caption": "INTERIM STATEMENT OF FINANCIAL POSITION",
+                    "first_rows": [
+                        [
+                            "",
+                            "",
+                            "As at 31 Decem",
+                            "b",
+                            "er 2021",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "as",
+                            "at 31 Dec as"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "2021"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "Notes",
+                            "$\u2019000"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "ASSETS",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "Current assets",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "Cash and cash",
+                            "e",
+                            "quivalents",
+                            "",
+                            "",
+                            "57,387"
+                        ]
+                    ],
+                    "headers": [
+                        "",
+                        "",
+                        "As at 31 Decem",
+                        "b",
+                        "er 2021",
+                        "",
+                        "",
+                        "",
+                        ""
+                    ],
+                    "label": "balance_sheet",
+                    "metric_schema": [
+                        "net_debt",
+                        "total_debt",
+                        "shares_outstanding"
+                    ],
+                    "page_number": 10,
+                    "row_count": 68,
+                    "same_page_scale": "thousands",
+                    "same_page_scale_evidence_snippets": [
+                        "$\u2019000",
+                        "$\u2019000"
+                    ],
+                    "table_index": 9,
+                    "table_local_scale": "unknown"
+                },
+                "cashflow_statement": {
+                    "caption": "INTERIM STATEMENT OF CASHFLOWS",
+                    "first_rows": [
+                        [
+                            "",
+                            "",
+                            "INTERI",
+                            "M",
+                            "STATEMENT OF CASHFLO",
+                            "WS",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "F",
+                            "or the six month",
+                            "s ended 31",
+                            "Dece",
+                            "mber 2021",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "2021",
+                            "2020"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "$\u2019000",
+                            "$\u2019000"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ]
+                    ],
+                    "headers": [
+                        "",
+                        "",
+                        "INTERI",
+                        "M",
+                        "STATEMENT OF CASHFLO",
+                        "WS",
+                        ""
+                    ],
+                    "label": "cashflow_statement",
+                    "metric_schema": [
+                        "operating_cf",
+                        "investing_cf",
+                        "financing_cf",
+                        "cash_end",
+                        "capex"
+                    ],
+                    "page_number": 12,
+                    "row_count": 46,
+                    "same_page_scale": "thousands",
+                    "same_page_scale_evidence_snippets": [
+                        "$\u2019000",
+                        "$\u2019000"
+                    ],
+                    "table_index": 11,
+                    "table_local_scale": "unknown"
+                },
+                "income_statement": {
+                    "caption": "INTERIM STATEMENT OF PROFIT OR LOSS",
+                    "first_rows": [
+                        [
+                            "",
+                            "INT",
+                            "ERIM",
+                            "STATEMENT OF PROFIT",
+                            "OR LO",
+                            "SS",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "F",
+                            "or the six months",
+                            "ended 31 D",
+                            "ecember 2021",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "2021",
+                            "2020"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "$\u2019000",
+                            "$\u2019000"
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "Notes",
+                            "",
+                            ""
+                        ]
+                    ],
+                    "headers": [
+                        "",
+                        "INT",
+                        "ERIM",
+                        "STATEMENT OF PROFIT",
+                        "OR LO",
+                        "SS",
+                        ""
+                    ],
+                    "label": "income_statement",
+                    "metric_schema": [
+                        "revenue",
+                        "ebit",
+                        "np_attributable"
+                    ],
+                    "page_number": 8,
+                    "row_count": 58,
+                    "same_page_scale": "thousands",
+                    "same_page_scale_evidence_snippets": [
+                        "$\u2019000",
+                        "$\u2019000"
+                    ],
+                    "table_index": 7,
+                    "table_local_scale": "unknown"
+                },
+                "share_capital": {
+                    "caption": "NOTES TO THE FINANCIAL STATEMENTS",
+                    "first_rows": [
+                        [
+                            "",
+                            "N",
+                            "OTES",
+                            "TO THE",
+                            "FINA",
+                            "NCIAL",
+                            "STATEMENTS",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "1. Corporat",
+                            "e inform",
+                            "ation",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ],
+                        [
+                            "",
+                            "National Storage",
+                            "REIT (\u201cthe",
+                            "Group\u201d or \u201cN",
+                            "SR\u201d) is a join",
+                            "t quotation o",
+                            "f National Storage Holdin",
+                            "gs Limited"
+                        ],
+                        [
+                            "",
+                            "(\u201cNSH\u201d or \u201cthe Co",
+                            "mpany\u201d) a",
+                            "nd its contro",
+                            "lled entities",
+                            "(\u201cNSH Group",
+                            "\u201d) and National Storage",
+                            "Property Tru"
+                        ],
+                        [
+                            "",
+                            "(\u201cNSPT\u201d or \u201cthe Tr",
+                            "ust\u201d) and it",
+                            "s controlled e",
+                            "ntities (\u201cNS",
+                            "PT Group\u201d) on",
+                            "the Australian Securities",
+                            "Exchange"
+                        ],
+                        [
+                            "",
+                            "(\u201cASX\u201d).",
+                            "",
+                            "",
+                            "",
+                            "",
+                            "",
+                            ""
+                        ]
+                    ],
+                    "headers": [
+                        "",
+                        "N",
+                        "OTES",
+                        "TO THE",
+                        "FINA",
+                        "NCIAL",
+                        "STATEMENTS",
+                        ""
+                    ],
+                    "label": "share_capital",
+                    "metric_schema": [
+                        "shares_outstanding"
+                    ],
+                    "page_number": 13,
+                    "row_count": 70,
+                    "same_page_scale": "thousands",
+                    "same_page_scale_evidence_snippets": [
+                        "rounded to the nearest thousand dollars ($\u2019000) unless otherwise stated."
+                    ],
+                    "table_index": 12,
+                    "table_local_scale": "unknown"
+                }
+            },
+            "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+            "source_pdf_after": {
+                "exists": true,
+                "mode": "0o664",
+                "mtime_ns": 1772359264450408775,
+                "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+                "size_bytes": 716803
+            },
+            "source_pdf_before": {
+                "exists": true,
+                "mode": "0o664",
+                "mtime_ns": 1772359264450408775,
+                "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+                "size_bytes": 716803
+            },
+            "ticker": "NSR",
+            "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf"
+        }
+    ],
+    "forbidden_actions_observed": {
+        "broad_extraction_or_backfill_run": false,
+        "count24_rerun": false,
+        "count32_run": false,
+        "db_qdrant_redis_news_memory_mutation": false,
+        "github_mutation": false,
+        "pass3a_llm_call": false,
+        "production_repair": false,
+        "prompt_gold_label_runtime_schema_config_change": false,
+        "public_extract_structured_cache_wrapper_call": false,
+        "random_sample_run": false,
+        "run_multipass_extraction_call": false,
+        "service_start": false,
+        "source_pdf_edit": false
+    },
+    "generated_at": "2026-06-08T02:05:02.719586+00:00",
+    "job_id": "extraction_cxo_runtime_provenance_capture_v1_20260608",
+    "production_repair": {
+        "implemented": false,
+        "why": "The two clean controls did not prove the same source-bound production root cause. Missing pass3a provenance is an evidence availability gap under the no-write constraints."
+    },
+    "root_cause_assessment": {
+        "assessment": "Both exact docs are clean accepted count24 controls, but the available persisted summaries omit runtime pass3a row refs and metric source-scale fields, and no existing parser cache was available. This is a no-write capture evidence gap, not proof of a shared source-bound production extraction defect.",
+        "shared_capture_evidence_gap": true,
+        "two_cases_shared_source_bound_production_root_cause": false
+    },
+    "runner_mode": "private_in_memory_pymupdf_plus_persisted_count24_summary_no_pass3a",
+    "scope": "exact_doc_no_write_runtime_provenance_capture_for_cxo_plus_nsr",
+    "state": "DONE_WITH_RISK"
+}
+EXIT_STATUS=0
+
+### json_common_trace
+COMMAND: python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/common_metric_source_scale_trace.json
+{
+    "36e172ec-2650-4a9f-9ef0-a4366a3b8d31": {
+        "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+        "fallback": "thousands",
+        "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+        "input_payload": {
+            "metric_source_scales": {},
+            "metrics": {
+                "capex": -1707000.0,
+                "cash_end": 95521000.0,
+                "ebit": null,
+                "financing_cf": -337000.0,
+                "investing_cf": -35844000.0,
+                "net_debt": null,
+                "np_attributable": null,
+                "operating_cf": -3756000.0,
+                "revenue": null,
+                "shares_outstanding": null
+            }
+        },
+        "output": "thousands"
+    },
+    "f2240712-9dde-41e0-88fa-29c1a0080dab": {
+        "actual_runtime_input_output": "DATA_MISSING_NO_PASS3A_DEBUG_CAPTURE",
+        "fallback": "thousands",
+        "input_kind": "count24_summary_without_pass3a_metric_source_scales",
+        "input_payload": {
+            "metric_source_scales": {},
+            "metrics": {
+                "capex": -96221000.0,
+                "cash_end": 57387000.0,
+                "ebit": 274928000.0,
+                "financing_cf": -7761000.0,
+                "investing_cf": -96221000.0,
+                "net_debt": null,
+                "np_attributable": 274116000.0,
+                "operating_cf": 65489000.0,
+                "revenue": 131645000.0,
+                "shares_outstanding": null
+            }
+        },
+        "output": "thousands"
+    }
+}
+EXIT_STATUS=0
+
+### json_status
+COMMAND: python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/status.json
+{
+    "data_missing": [
+        "debug_capture_full_payload",
+        "existing_parser_cache_json",
+        "full_pass3a_llm_outputs",
+        "runtime_metric_scale_sources",
+        "runtime_metric_source_scales",
+        "runtime_row_refs"
+    ],
+    "exact_docs_used": [
+        {
+            "case_id": "control_CXO_36e172ec",
+            "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+            "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+            "ticker": "CXO"
+        },
+        {
+            "case_id": "control_NSR_f2240712",
+            "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+            "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+            "ticker": "NSR"
+        }
+    ],
+    "generated_at": "2026-06-08T02:05:02.719586+00:00",
+    "job_id": "extraction_cxo_runtime_provenance_capture_v1_20260608",
+    "production_repair_implemented": false,
+    "report_path": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/README.md",
+    "shared_capture_evidence_gap": true,
+    "state": "DONE_WITH_RISK",
+    "task_card": "docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+    "two_cases_shared_source_bound_production_root_cause": false
+}
+EXIT_STATUS=0
+
+### json_validation
+COMMAND: python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/validation.json
+{
+    "blocked_items": [
+        "Actual pass3a row_refs, metric_source_scales, metric_scale_sources, and debug_capture payload are DATA_MISSING because no existing parser cache was available and the public runtime/parser route would write parser cache on a cache miss."
+    ],
+    "commands": [
+        {
+            "command": "pwd && git branch --show-current && git rev-parse HEAD && git remote -v && git status --short --untracked-files=all && sed -n '1,260p' AGENTS.md",
+            "exit_status": 0,
+            "purpose": "Preflight and repo constitution read"
+        },
+        {
+            "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+            "exit_status": 0,
+            "purpose": "Safe read-only registry inspection"
+        },
+        {
+            "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+            "exit_status": 0,
+            "purpose": "Task-card validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/task_card_validate.log"
+        },
+        {
+            "command": "python3 reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+            "exit_status": 1,
+            "purpose": "Initial capture attempt with default python3",
+            "summary": "Failed because default python3 could not import fitz/PyMuPDF."
+        },
+        {
+            "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+            "exit_status": 0,
+            "purpose": "Exact-doc no-write provenance capture using the existing read-only repo-family venv",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/capture_runtime_provenance.log"
+        },
+        {
+            "command": "python3 -m py_compile reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+            "exit_status": 0,
+            "purpose": "Syntax validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        },
+        {
+            "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/runtime_provenance_capture.json",
+            "exit_status": 0,
+            "purpose": "Runtime provenance JSON parse validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        },
+        {
+            "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/common_metric_source_scale_trace.json",
+            "exit_status": 0,
+            "purpose": "Common scale trace JSON parse validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        },
+        {
+            "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/status.json",
+            "exit_status": 0,
+            "purpose": "Status JSON parse validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        },
+        {
+            "command": "python3 -m json.tool reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/validation.json",
+            "exit_status": 0,
+            "purpose": "Validation JSON parse validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        },
+        {
+            "command": "git diff --check",
+            "exit_status": 0,
+            "purpose": "Whitespace validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        },
+        {
+            "command": "python3 scripts/agent_job_contract.py check-diff --no-write-report docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+            "exit_status": 0,
+            "purpose": "Allowed-files diff validation",
+            "raw_log": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+        }
+    ],
+    "data_missing": [
+        "debug_capture_full_payload",
+        "existing_parser_cache_json",
+        "full_pass3a_llm_outputs",
+        "runtime_metric_scale_sources",
+        "runtime_metric_source_scales",
+        "runtime_row_refs"
+    ],
+    "exact_docs_used": [
+        {
+            "case_id": "control_CXO_36e172ec",
+            "document_id": "36e172ec-2650-4a9f-9ef0-a4366a3b8d31",
+            "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CXO/financial_performance/2022-10-31_quarterly-activities-and-cashflow-report-30-september-2022_36e172ec-2650-4a9f-9ef0-a4366a3b8d31.pdf",
+            "ticker": "CXO"
+        },
+        {
+            "case_id": "control_NSR_f2240712",
+            "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+            "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+            "ticker": "NSR"
+        }
+    ],
+    "production_repair_implemented": false,
+    "state": "DONE_WITH_RISK",
+    "task_card_validation": "passed",
+    "two_cases_shared_source_bound_production_root_cause": false,
+    "validation_status": "passed_with_data_missing"
+}
+EXIT_STATUS=0
+
+### git_diff_check
+COMMAND: git diff --check
+EXIT_STATUS=0
+
+### task_card_check_diff
+COMMAND: python3 scripts/agent_job_contract.py check-diff --no-write-report docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": null,
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": false,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_cxo_runtime_provenance_capture_v1_20260608.md",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/README.md",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/capture_runtime_provenance.py",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/runtime_provenance_capture.json",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/common_metric_source_scale_trace.json",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/status.json",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/validation.json",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/task_card_validate.log",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/capture_runtime_provenance.log",
+        "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608/logs/validation.log"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_cxo_runtime_provenance_capture_v1_20260608",
+      "lane": "Financial Truth",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/extraction_cxo_runtime_provenance_capture_v1_20260608",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting",
+        "Repo Hygiene"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}
+EXIT_STATUS=0
