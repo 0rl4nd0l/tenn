@@ -576,34 +576,30 @@ def _sync_tool_debug_env(cfg: dict[str, Any]) -> None:
         os.environ["COCKPIT_TOOL_DEBUG"] = "failures"
 
 
-def _news_context_db_path_override() -> str:
-    explicit = (
+def _apply_news_context_env_overrides(cfg: dict[str, Any]) -> None:
+    """Align Cockpit news context config with shared nightly news artifact env vars."""
+    rag_cfg = cfg.setdefault("rag", {})
+    if not isinstance(rag_cfg, dict):
+        rag_cfg = {}
+        cfg["rag"] = rag_cfg
+
+    news_cfg = rag_cfg.setdefault("news_context", {})
+    if not isinstance(news_cfg, dict):
+        news_cfg = {}
+        rag_cfg["news_context"] = news_cfg
+
+    news_db_override = (
         os.getenv(COCKPIT_NEWS_DB_PATH_ENV, "").strip()
         or os.getenv(NEWS_CONTEXT_DB_ENV, "").strip()
     )
-    if explicit:
-        return str(Path(explicit).expanduser())
-
-    artifact_root = os.getenv(NEWS_ARTIFACT_ROOT_ENV, "").strip()
-    if artifact_root:
-        return str(Path(artifact_root).expanduser() / "news.sqlite")
-
-    return ""
-
-
-def _apply_news_context_env_overrides(cfg: dict[str, Any]) -> None:
-    news_db_path = _news_context_db_path_override()
-    if not news_db_path:
-        return
-
-    cfg.setdefault("rag", {})
-    if not isinstance(cfg["rag"], dict):
-        cfg["rag"] = {}
-    news_cfg = cfg["rag"].setdefault("news_context", {})
-    if not isinstance(news_cfg, dict):
-        news_cfg = {}
-        cfg["rag"]["news_context"] = news_cfg
-    news_cfg["db_path"] = news_db_path
+    if not news_db_override:
+        news_artifact_root = os.getenv(NEWS_ARTIFACT_ROOT_ENV, "").strip()
+        if news_artifact_root:
+            news_db_override = str(
+                Path(news_artifact_root).expanduser() / "news.sqlite"
+            )
+    if news_db_override:
+        news_cfg["db_path"] = news_db_override
 
 
 @dataclass
