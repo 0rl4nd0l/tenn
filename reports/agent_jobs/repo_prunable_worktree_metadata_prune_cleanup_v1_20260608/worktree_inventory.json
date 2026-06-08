@@ -1,0 +1,3528 @@
+{
+  "actual_prune_run": false,
+  "command": "git worktree list --porcelain",
+  "data_missing_nonprunable_path_absent_entries": 0,
+  "dry_run_command": "git worktree prune --dry-run",
+  "dry_run_removal_lines": 0,
+  "dry_run_stderr_present": false,
+  "entries": [
+    {
+      "branch": "refs/heads/preserve/dirty-work-20260430T065748Z",
+      "classification": "active_or_present",
+      "head": "c102f3f21505a01a8333b2f442dc2403cf67b509",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn"
+    },
+    {
+      "branch": "refs/heads/safe/a2m-chat-synthesis-smoke-v1-20260525",
+      "classification": "active_or_present",
+      "head": "c8d605e3de625c9f456edc0f3896b571a68f6b25",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-a2m-chat-synthesis-smoke-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/a2m-news-projection-integration-readonly-smoke-controller-v1-20260525",
+      "classification": "active_or_present",
+      "head": "b47d0497d24ec8dce5bf3e75c314b5c3a758ef7c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-a2m-news-projection-controller-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/audit/a2m-news-projection-path-remediation-v1-20260525",
+      "classification": "active_or_present",
+      "head": "3eb87220b3834ecd510202118d0c1820d7f9aa36",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-a2m-news-projection-path-remediation-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/audit/a2m-news-trace-entity-linking-v1-20260519",
+      "classification": "active_or_present",
+      "head": "0b8c4d942be5d6251bfa5e7c4da3ddfa85b33173",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-a2m-news-trace-audit-v1-20260519"
+    },
+    {
+      "branch": "refs/heads/audit/a2m-recall-chat-visible-evidence-gap-v1-20260526",
+      "classification": "active_or_present",
+      "head": "53051b8b03441ee8da46a3923c86d50c8e8fabc2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-a2m-recall-chat-visible-evidence-gap-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/audit/a2m-runtime-activation-chat-timeout-v1-20260525",
+      "classification": "active_or_present",
+      "head": "c8d605e3de625c9f456edc0f3896b571a68f6b25",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-a2m-runtime-activation-chat-timeout-audit-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-aau-canary-gold-fixture-v1-20260529",
+      "classification": "active_or_present",
+      "head": "1be18324d838fdcbfc73278e1248753d6074480e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-aau-canary-gold-fixture-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-aau-canary-loaded-code-preflight-v1-20260529",
+      "classification": "active_or_present",
+      "head": "f549d9e580e3c3a9d4d076db1fd9021033e3a297",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-aau-canary-loaded-code-preflight-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-aau-runtime-reload-canary-approval-packet-v1-20260529",
+      "classification": "active_or_present",
+      "head": "ba46abbaf1f385efcf286613759f5f295735e47d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-aau-runtime-reload-canary-approval-packet-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/agent-contract-registry-main-v1-20260607",
+      "classification": "active_or_present",
+      "head": "9d1810cd25d3d9af9e63d012e885760f1df014d0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-agent-contract-registry-main-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/announcement-context-missing-table-degraded-v1-20260602",
+      "classification": "active_or_present",
+      "head": "baf943b871af440c38691814d09018d2a825d03b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-announcement-context-missing-table-degraded-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/appendix4c-candidate-sidecar-parser-v1-20260602",
+      "classification": "active_or_present",
+      "head": "f4d4f560a6dbbf1abe22e831100bdd177f72d8f7",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix4c-candidate-sidecar-parser-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-10x-approved-gate-v1-20260517",
+      "classification": "active_or_present",
+      "head": "970779b4b3ec6f2021697e32e9bed23fce7a9000",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-10x-approved-gate-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-10x-candidate-artifact-v1-20260517",
+      "classification": "active_or_present",
+      "head": "7f7ada15828902e051c7cb2a791fa33a4a1fcb88",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-10x-candidate-artifact-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-10x-no-regression-suite-v1-20260517",
+      "classification": "active_or_present",
+      "head": "ae2dfd81cdfc40f17b42f48304e3166810859c08",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-10x-no-regression-suite-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-alt-gre-pdf-run-v1-20260516",
+      "classification": "active_or_present",
+      "head": "370583e4630c4f78bcb7ad2cadd2480ba177193e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-alt-gre-pdf-run-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-broader-corpus-gate-v1-20260516",
+      "classification": "active_or_present",
+      "head": "f4332173fb9f1c2ede948de30a3f3c8858fc6349",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-broader-corpus-gate-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-candidate-artifact-runner-v1-20260516",
+      "classification": "active_or_present",
+      "head": "6411ccb5844673c627ea7f3aa4e783cc32da9bd8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-candidate-artifact-runner-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-candidate-scorer-v1-20260516",
+      "classification": "active_or_present",
+      "head": "9996010ff33b84c47a959886e9a7817e311c94d0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-candidate-scorer-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-cash-end-line-preference-v1-20260516",
+      "classification": "active_or_present",
+      "head": "3c5e21d5701fe8d609079ef759084a91fcd11851",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-cash-end-line-preference-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-confirmed-fixture-artifacts-v1-20260516",
+      "classification": "active_or_present",
+      "head": "f2387eace0e273d45161d5d6063366449c7e58d2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-confirmed-fixture-artifacts-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-confirmed-label-importer-v1-20260516",
+      "classification": "active_or_present",
+      "head": "4123b4d8191c79dfafedfa272a9fa16542d464d8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-confirmed-label-importer-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-deterministic-parser-v1-20260516",
+      "classification": "active_or_present",
+      "head": "8991cbfd7c5a8653cad837493dbb71127c506c86",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-deterministic-parser-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-expanded-gate-after-reconciliation-v1-20260517",
+      "classification": "active_or_present",
+      "head": "86d9a50e77ea6b475771c55c94ebca01ea611ab2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-expanded-gate-after-reconciliation-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-full-gold-folder-harvest-v1-20260517",
+      "classification": "active_or_present",
+      "head": "6b9ee98f662514aff9eb91b7a89a6d00f263c53b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-full-gold-folder-harvest-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-gold-folder-label-expansion-v1-20260516",
+      "classification": "active_or_present",
+      "head": "accae277e3e748ca57c7f08f8ffd125089729755",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-gold-folder-label-expansion-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-gre-sep-investing-cf-fix-v1-20260517",
+      "classification": "active_or_present",
+      "head": "ca00e21461ef01a2824802156dcbd75054bc4048",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-gre-sep-investing-cf-fix-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-label-review-packet-v1-20260516",
+      "classification": "active_or_present",
+      "head": "e850ff87e892c88bf211e0dadd73de4fd4773782",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-label-review-packet-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/integrate/appendix5b-parser-current-v1-20260516",
+      "classification": "active_or_present",
+      "head": "5f9f0edee335350c0f9fbe00eb9eb0bfbc40143d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-parser-current-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/integrate/appendix5b-prm-gate-stack-canonical-integration-v1-20260524",
+      "classification": "active_or_present",
+      "head": "c5e3f7c50ce3cc2f2597a0bfd1406cddeb818967",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-prm-gate-stack-canonical-integration-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-real-docling-run-v1-20260516",
+      "classification": "active_or_present",
+      "head": "69745dc5748e49bede068a9addb16e3df8eee154",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-real-docling-run-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-real-table-manifest-v1-20260516",
+      "classification": "active_or_present",
+      "head": "03f6e11dbe8cec07fbd2005b7574e8bd75e58508",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-real-table-manifest-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-recurring-gate-integration-v1-20260517",
+      "classification": "active_or_present",
+      "head": "5d08ee34cb2e1781d77de841847bb371ffbaa1e6",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-recurring-gate-integration-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-report-gate-refresh-v1-20260531",
+      "classification": "active_or_present",
+      "head": "985d63e7d1ea9e1f6da9fcc1bcfda4f59f9a2e28",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-report-gate-refresh-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-scale-header-propagation-v1-20260516",
+      "classification": "active_or_present",
+      "head": "4bff6cdc12d13454f24e48f8155a997ac08bacd8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-scale-header-propagation-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/appendix5b-supplemental-review-packet-v1-20260517",
+      "classification": "active_or_present",
+      "head": "24c14b0fb1832e5fd04fdb91d53febfa2d6cc776",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-appendix5b-supplemental-review-packet-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/audit/asx-appendix5b-sidecar-gate-report-v1-20260521",
+      "classification": "active_or_present",
+      "head": "d33d0c54f33e8f1c39a1304c4ee8d9e2be04f5af",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-asx-appendix5b-sidecar-gate-report-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/asx-appendix5b-sidecar-parser-v1-20260521",
+      "classification": "active_or_present",
+      "head": "dcbf72448223c7551e7631dfc00c20e23d9dda96",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-asx-appendix5b-sidecar-parser-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/audit/asx-deterministic-extraction-extension-v1-20260519",
+      "classification": "active_or_present",
+      "head": "0b8c4d942be5d6251bfa5e7c4da3ddfa85b33173",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-asx-deterministic-extraction-audit-v1-20260519"
+    },
+    {
+      "branch": "refs/heads/safe/asx-document-type-fixture-contract-v1-20260520",
+      "classification": "active_or_present",
+      "head": "5239513b4bbb3a29bf65675687d99e8772f40f66",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-asx-document-type-fixture-contract-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/audit/automation-topology-reconciliation-v1-20260526",
+      "classification": "active_or_present",
+      "head": "26f58dfb4c7308d086e335024a8ba4a594fde724",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-automation-topology-reconciliation-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-azj-edu-pass3a-provenance-v1-20260607",
+      "classification": "active_or_present",
+      "head": "88ff726412b31757f65b13b7ad127afca31305b3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-azj-edu-pass3a-provenance-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/backend-chat-evidence-guard-v1-20260524",
+      "classification": "active_or_present",
+      "head": "4021a1a981b8f9b47b83ee34012a5187ad405dcb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-backend-chat-evidence-guard-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/backend-companies-model-import-integration-v1-20260516",
+      "classification": "active_or_present",
+      "head": "a7549aa2ae052477587e17415f542d235d85601f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-backend-companies-model-import-integration-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/codex/backend-models-companies-import-validity-v1-20260513",
+      "classification": "active_or_present",
+      "head": "2cc0f7180767eadad0fdc469ba7baf0138e0db33",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-backend-models-companies-import-validity-v1-20260513"
+    },
+    {
+      "branch": "refs/heads/runtime/backend-reload-csl-stateless-smoke-v1-20260524",
+      "classification": "active_or_present",
+      "head": "f79a71ddd6d4a13f3db159fd3212f6ab76613b0f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-backend-reload-csl-stateless-smoke-v1-20260524"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "3749270c381984d921001e4c5dc82c2a4266a458",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-canonical-gpt-appendix4d-payload-validation-v1-20260605"
+    },
+    {
+      "branch": "refs/heads/safe/chat-evidence-taxonomy-deep-v1-20260604",
+      "classification": "active_or_present",
+      "head": "ee6229e891327ce76abe5532ab34d1a88510450f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-chat-evidence-taxonomy-deep-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/safe/chat-pending-action-normal-followup-v1-20260602",
+      "classification": "active_or_present",
+      "head": "e00c56d0e8361d06e3888138ef232b1ea66a1a06",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-chat-pending-action-normal-followup-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/audit/chat-ticker-intent-misclassification-v1-20260602",
+      "classification": "active_or_present",
+      "head": "6c3852c8a72ba1dd539288e6c7f2d858ab7b311d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-chat-ticker-intent-misclassification-audit-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/chat-ticker-intent-misclassification-fix-v1-20260602",
+      "classification": "active_or_present",
+      "head": "c1fcf24b9f6084dac17e65be2c4ae094f0a7d59c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-chat-ticker-intent-misclassification-fix-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-attachment-upload-guard-v1-20260601-clean",
+      "classification": "active_or_present",
+      "head": "45b6f055c4020c3f4758e88d75204a0795e00c9c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-clean-cockpit-chat-attachment-upload-guard-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/audit/youtube-transcription-strategy-memory-audit-v1-20260526-clean",
+      "classification": "active_or_present",
+      "head": "d06432d48b7bed6f3fc007eaa4971ff764028387",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-clean-youtube-transcription-strategy-memory-audit-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-intel-ops-v1-20260602",
+      "classification": "active_or_present",
+      "head": "792752480faa0eea62e8753e23e5a7e966252a2f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-intel-ops-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-marketplace-assistant-v1-20260602",
+      "classification": "active_or_present",
+      "head": "48015194cd85f1b02d395770734895f9eb577b3d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-marketplace-assistant-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-marketplace-mission-v1-20260602",
+      "classification": "active_or_present",
+      "head": "6c8438029265fcd21e7df7336f4f46feca64affc",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-marketplace-mission-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-news-history-clean-v1-20260602",
+      "classification": "active_or_present",
+      "head": "d10fa74b610c345b3a579f04d2f53f3d631ac1e2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-news-history-clean-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-news-history-v1-20260602",
+      "classification": "active_or_present",
+      "head": "ea54524886a43e94ab8aab9b6951cd3434618e8c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-news-history-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-thesis-audit-v1-20260602",
+      "classification": "active_or_present",
+      "head": "0a4b706ec21c0f873e61ba63bf8769301229658a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-thesis-audit-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-verification-header-clean-v1-20260602",
+      "classification": "active_or_present",
+      "head": "6b6accd206718632e796acb7c5eb6aef9cc5df3b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-verification-header-clean-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-accessible-controls-verification-header-v1-20260602",
+      "classification": "active_or_present",
+      "head": "4ea2afcfb3077c980b3f72da3bdd077dfd72353f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-accessible-controls-verification-header-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-ebay-sync-route-guard-v1-20260527",
+      "classification": "active_or_present",
+      "head": "5aa9d08cc1e8194b8f4e14bd174deed3cb73bc28",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-action-control-guard-contract-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-action-control-residual-closeout-v1-20260527",
+      "classification": "active_or_present",
+      "head": "a6959e3ace16e69af7b982d7c98a18ecb8c90113",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-action-control-residual-closeout-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/audit/cockpit-action-control-route-guard-audit-v1-20260602",
+      "classification": "active_or_present",
+      "head": "5476306e16e5c0b273cb33875ab9f28a1185691c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-action-control-route-guard-audit-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/audit/cockpit-announcement-context-schema-audit-v1-20260601",
+      "classification": "active_or_present",
+      "head": "247fd1003cfce98b6dff94061b8f135ed2f0b22b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-announcement-context-schema-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-answer-readiness-deep-module-pr-v1-20260606",
+      "classification": "active_or_present",
+      "head": "fa969ae7d26c366efafde45d0cf9e9b522531b89",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-answer-readiness-deep-module-pr-v1-20260606"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-answer-readiness-deep-module-v1-20260605",
+      "classification": "active_or_present",
+      "head": "014d108287fabf8c355f5d66ccafa28777ebaf88",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-answer-readiness-deep-module-v1-20260605"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-answer-readiness-v1-20260604",
+      "classification": "active_or_present",
+      "head": "0c5c7ca9ac14165f36e9b2dc8a33d33ef5480941",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-answer-readiness-pr-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-attached-source-handoff-preserve-candidate-v1-20260516",
+      "classification": "active_or_present",
+      "head": "972eeb11b084c7ca2e5a06b37d48715c90f60a1e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-attached-source-handoff-preserve-candidate-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-attached-source-handoff-v1-20260516",
+      "classification": "active_or_present",
+      "head": "ea9b1b5e1605792c28daae99135c047ed8eb352c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-attached-source-handoff-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-attachment-upload-guard-v1-20260601",
+      "classification": "active_or_present",
+      "head": "ba29811ead52aa8931e4fae9fbf30a7353fd1af4",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-chat-attachment-upload-guard-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-control-prompt-guard-v1-20260519",
+      "classification": "active_or_present",
+      "head": "2e73de32ac7783635bf54fde432c9239babc29b9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-chat-control-prompt-guard-v1-20260519"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-operator-diagnostics-gate-v1-20260602",
+      "classification": "active_or_present",
+      "head": "bde3046ea1dc481e15cc8afdd4d36b3977d847a1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-chat-operator-diagnostics-gate-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-chat-stateless-smoke-harness-v1-20260524",
+      "classification": "active_or_present",
+      "head": "8c2406d4d6a3be2ab24cf1ae053ab86b8d85f99d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-chat-stateless-smoke-harness-integrate-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-stateless-smoke-harness-v1-20260524",
+      "classification": "active_or_present",
+      "head": "f3f76b0e8c8ab8a1fd795a61d650753e8337c074",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-chat-stateless-smoke-harness-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-chat-visible-evidence-gap-labels-v1-20260524",
+      "classification": "active_or_present",
+      "head": "62b8c6e0175b337b8f3f1d5613c3443956c53ea1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-chat-visible-evidence-gap-labels-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-claims-verify-api-key-guard-v1-20260602",
+      "classification": "active_or_present",
+      "head": "f8beec49d06c6e2f3f708c3f79ace025b55743c7",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-claims-verify-api-key-guard-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-current-news-missing-discipline-v1-20260517",
+      "classification": "active_or_present",
+      "head": "155141f68535e2568ccd65ff0450bc5bb4366df0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-current-news-missing-discipline-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/audit/cockpit-feature-honesty-v1-20260521",
+      "classification": "active_or_present",
+      "head": "731ee197135572be6916f22664dc76a04f865094",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-feature-honesty-audit-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-feedback-codex-deploy-route-guard-v1-20260602",
+      "classification": "active_or_present",
+      "head": "6f21cd5c65a84f7b3b183dcfeae90f6c76a720b6",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-feedback-codex-deploy-route-guard-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-gpu-activity-telemetry-degraded-clean-v1-20260602",
+      "classification": "active_or_present",
+      "head": "c076a6a86bfa0de4833911599f48181643126107",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-gpu-activity-telemetry-degraded-clean-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-gpu-activity-telemetry-degraded-v1-20260601",
+      "classification": "active_or_present",
+      "head": "6c87292fa076ec566cb3ee9fa16e837dd6195590",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-gpu-activity-telemetry-degraded-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-home-actionability-v1-20260522",
+      "classification": "active_or_present",
+      "head": "1bf59cf4591d617b60bb1e52de7857d39b8fa4cb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-home-actionability-v1-20260522"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-home-strategy-lab-declutter-review-v1-20260525",
+      "classification": "active_or_present",
+      "head": "578bd1ed9cb989e594f15595cf8afadd885fa788",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-home-strategy-lab-declutter-integrate-review-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-home-strategy-lab-declutter-v1-20260525",
+      "classification": "active_or_present",
+      "head": "f9a92ae3af20539ef1cae22426115c5deaea5cbd",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-home-strategy-lab-declutter-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-investigation-read-route-guard-v1-20260602",
+      "classification": "active_or_present",
+      "head": "d35157cab940c36d7ea4fcdd520ccf3682b95790",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-investigation-read-route-guard-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-llama-gpu-primary-display-v1-20260601",
+      "classification": "active_or_present",
+      "head": "d8454f825c9fd4be7cd7bcbf05ee6684b1a81637",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-llama-gpu-primary-display-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-mobile-chrome-compact-v1-20260601",
+      "classification": "active_or_present",
+      "head": "efc025469bbc05d2aa3be63d1a1a0941606a4149",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-mobile-chrome-compact-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-news-status-route-guard-v1-20260602",
+      "classification": "active_or_present",
+      "head": "7b5f2bd452f1935e413b1f172bbf3f81bff6c05b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-news-status-route-guard-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-next-theme-hydration-v1-20260522",
+      "classification": "active_or_present",
+      "head": "8729c7329630099465cd2264a63b7c1b83b61a20",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-next-theme-hydration-v1-20260522"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-operations-backfill-review-gate-clean-v1-20260602",
+      "classification": "active_or_present",
+      "head": "706ae8871db8bf032d971ec3803cbdbe05ea6dc8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-operations-backfill-review-gate-clean-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-operations-backfill-review-gate-v1-20260602",
+      "classification": "active_or_present",
+      "head": "cb92d89bb82c549ab2b5bfe73fcdbc17eee63f07",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-operations-backfill-review-gate-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-referent-missing-source-guard-v1-20260517",
+      "classification": "active_or_present",
+      "head": "8bc223b8f022a580f588e59b8b4e0face94e3c0b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-referent-missing-source-guard-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-source-grounding-semantics-v1-20260517",
+      "classification": "active_or_present",
+      "head": "c3adb8af08de18297b917cf47b7a38b13874fd7c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-source-grounding-semantics-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-source-parity-suggested-actions-v1-20260603",
+      "classification": "active_or_present",
+      "head": "cf5d68a2d9ec9a6bee46faa6c5f6428aef19da91",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-source-parity-suggested-actions-v1-20260603"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-strategy-lab-route-guard-v1-20260602",
+      "classification": "active_or_present",
+      "head": "242a253275347974170d33914e402084e8cea9d4",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-strategy-lab-route-guard-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-telemetry-command-redaction-v1-20260602",
+      "classification": "active_or_present",
+      "head": "e6f9981ca77fe94c97b6fc4e5867108725432f84",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-telemetry-command-redaction-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-telemetry-route-access-guard-v1-20260602",
+      "classification": "active_or_present",
+      "head": "1340402aedc8696b2bbe475eabc2cb7f3bfdc058",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-telemetry-route-access-guard-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/audit/cockpit-tenn-functionality-audit-v1-20260602",
+      "classification": "active_or_present",
+      "head": "5866393ad6c547dacb2df1bc96fd23afa1f0f18f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-tenn-functionality-audit-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-tool-source-trace-recall-v1-20260517",
+      "classification": "active_or_present",
+      "head": "1ec0ed9a1bac8e95ce465f5f0b77f9d1df8e1576",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-tool-source-trace-recall-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-ui-evidence-envelope-visibility-gaps-v1-20260601",
+      "classification": "active_or_present",
+      "head": "e356cc37e22796b5853c4e7e8cb6df881ca40dbb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-evidence-envelope-visibility-gaps-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-ui-consolidated-merge-v1-20260604",
+      "classification": "active_or_present",
+      "head": "31d878c539905aba38727889273a85ee2bc60e26",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-merge-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-ui-overnight-orchestrator-v1-20260521",
+      "classification": "active_or_present",
+      "head": "2348eddb62ca7403e7eb82eeb9d97ee896bdf7ab",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-overnight-orchestrator-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-ui-usefulness-current-head-v1-20260521",
+      "classification": "active_or_present",
+      "head": "7a8c872f8b652a5433afd1614eb4a657b0fc1f8d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-usefulness-current-head-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-ui-usefulness-integrate-v1-20260521",
+      "classification": "active_or_present",
+      "head": "2617337678bc82f03024dd06781dc1b52ddf63a9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-usefulness-integrate-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/codex/cockpit-ui-usefulness-vertical-slice-v1-20260525",
+      "classification": "active_or_present",
+      "head": "82bd8f7258779a4fffcbcafcec332b1b6589202a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-usefulness-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-ui-usefulness-vertical-slice-v1-20260521",
+      "classification": "active_or_present",
+      "head": "8c85519046247c98a4b0756f3df6abec46e8f195",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-ui-usefulness-vertical-slice-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-watchlist-empty-state-actionability-v1-20260526",
+      "classification": "active_or_present",
+      "head": "4f4a9b6e2acfb10be649d5a0a4c1933f52ecdd59",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cockpit-watchlist-empty-state-actionability-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/codex-automation-control-loop-v1-20260608",
+      "classification": "active_or_present",
+      "head": "cc99cec1bfc4ee79aac407a8caeed8d4baec2f6b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-codex-automation-control-loop-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/codex-automation-runner-main-port-v1-20260607",
+      "classification": "active_or_present",
+      "head": "7b1a414f7f0169c833b0a474360892ec54efdb46",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-codex-automation-runner-main-port-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/codex-automated-audit-runners-v1-20260516",
+      "classification": "active_or_present",
+      "head": "8e444b6b267d777da97c6ca5d751487040757042",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-codex-automations-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/codex-daily-closeout-runner-v1-20260607",
+      "classification": "active_or_present",
+      "head": "e1bf70d5ffbff695c0d10907c451b0f62901bacf",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-codex-daily-closeout-runner-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/company-context-provisioning-v1-20260607",
+      "classification": "active_or_present",
+      "head": "15fff7bc240b5e2538bef2543a653b7c6269bf02",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-company-context-provisioning-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/company-context-runner-v1-20260607",
+      "classification": "active_or_present",
+      "head": "ee2e2faa6222dafedfca73f250ce262bdb0e0e70",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-company-context-runner-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/audit/confirmed-metric-extracted-payload-scorecard-v1-20260531",
+      "classification": "active_or_present",
+      "head": "5bb646682233de28d156dba256fc7195fefb636b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-confirmed-metric-extracted-payload-scorecard-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/confirmed_metric_scoring_gap_safe_extension_v1_20260524",
+      "classification": "active_or_present",
+      "head": "4289f1591aa3f79053aad242c053c1a8f30f5e3a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-confirmed-metric-scoring-gap-safe-extension-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/control-plane-completion-consolidation-v1-20260607",
+      "classification": "active_or_present",
+      "head": "10c162a5162b3e5fc1306cdd908b23bfa6f0a5a8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-control-plane-completion-consolidation-v1-20260607"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "63576e3594b06ced8b94fc7a2928f7aada87d897",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-control-plane-pr-closeout-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-count24-approval-packet-v1-20260607",
+      "classification": "active_or_present",
+      "head": "286658aebd26d0d02d4cb52433040329ff3e02c5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-count24-approval-packet-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-selected-table-provenance-diagnostic-v1-20260607",
+      "classification": "active_or_present",
+      "head": "1a1b1c2a7d7fec23d420a509b44dc5d18b59e0fb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-count24-bounded-validation-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/audit/cross-route-evidence-envelope-regression-matrix-v1-20260601",
+      "classification": "active_or_present",
+      "head": "a25d674daa4774d7650044efe993d7f2fdeab8ef",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-cross-route-evidence-envelope-regression-matrix-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-ctn-quarterly-source-type-precedence-current-v1-20260608",
+      "classification": "active_or_present",
+      "head": "c7a80b8c9677950310180493d81423e8f1b816ee",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-ctn-quarterly-source-type-current-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-ctn-quarterly-source-type-precedence-v1-20260608",
+      "classification": "active_or_present",
+      "head": "0d4c8925e0513d210edc3dcc8e34c6571f3acdda",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-ctn-quarterly-source-type-precedence-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/docling-native-crash-runtime-probe-v1-20260516",
+      "classification": "active_or_present",
+      "head": "1ac0c47ea8148c48ce91e4d22eb04a36f09fc5e3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-docling-native-crash-runtime-probe-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/docling-page-batch-batch-eval-v1-20260516",
+      "classification": "active_or_present",
+      "head": "ed40265711a34e56ce64b7eb97bc1ce56413ac24",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-docling-page-batch-batch-eval-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/docling-page-batch-comparator-v1-20260516",
+      "classification": "active_or_present",
+      "head": "47336a0e0ec38ce7aa90df9c8c6818fec73bcdae",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-docling-page-batch-comparator-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/eval-spine-curated-ingestion-v2-20260521",
+      "classification": "active_or_present",
+      "head": "b3341825edb1494fde425d33d3ca9989051b62ca",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-eval-spine-curated-ingestion-v2-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/evaluation-cockpit-ui-lint-gate-v1-20260526",
+      "classification": "active_or_present",
+      "head": "9b72b2619cd05ae5134dc1611a60e1b0816879c1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-evaluation-cockpit-ui-lint-gate-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/audit/evaluation-spine-duckdb-schema-v1-20260520",
+      "classification": "active_or_present",
+      "head": "669bff1c7e4f16a7f3f67a887ed77bd833cd5ade",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-evaluation-spine-duckdb-audit-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/codex/evidence-label-module-upgrade-20260531",
+      "classification": "active_or_present",
+      "head": "6b6e8a812260beed573e3ab6d6524d682c75f666",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-evidence-label-upgrade-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-aau-integrated-baseline-v1-20260529",
+      "classification": "active_or_present",
+      "head": "e2029835efbd2eb6425f089d703841eb20625bf7",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-aau-integration-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-appendix4d-profit-after-tax-alias-v1-20260602",
+      "classification": "active_or_present",
+      "head": "9eb6f076a830f79a3f26aac1de4841b1e78c2d12",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-appendix4d-profit-after-tax-alias-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-appendix4d-wrapper-gate-current-origin-v1-20260604",
+      "classification": "active_or_present",
+      "head": "1e2723add1c94faae935e023a4349aa9567d6ae0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-appendix4d-wrapper-gate-current-origin-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-architecture-map-v1-20260516",
+      "classification": "active_or_present",
+      "head": "9aeaf6a39fb2abd361fa91f5f6479bddeced8035",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-architecture-map-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-bhp-canary-gold-fixture-v1-20260529",
+      "classification": "active_or_present",
+      "head": "fc16f2e7760e68bc7674c7af73895db899809937",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-bhp-canary-gold-fixture-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-bounded-canary-approval-packet-v1-20260527",
+      "classification": "active_or_present",
+      "head": "3b7f78c9ce4570e14b8f0de63fc66325ee8a47ca",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-bounded-canary-approval-packet-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-broad-accuracy-family-matrix-repair-gate-v1-20260608",
+      "classification": "active_or_present",
+      "head": "ca65fe244048464b473a7789e1a66aff864de577",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-broad-accuracy-family-matrix-repair-gate-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-broad-accuracy-push-v1-20260602",
+      "classification": "active_or_present",
+      "head": "bbc75ea61f290c5172575a620cc777c9b24b6965",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-broad-accuracy-push-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-broad-metric-family-capability-map-v1-20260608",
+      "classification": "active_or_present",
+      "head": "ca65fe244048464b473a7789e1a66aff864de577",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-broad-metric-family-capability-map-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-broad-runtime-after-pls-evidence-v1-20260602",
+      "classification": "active_or_present",
+      "head": "8f664ec9c3f40d8a07cc3d39a3262d3ffea1d5f7",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-broad-runtime-after-pls-evidence-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/contain/extraction-canary-advisory-selection-v1-20260529",
+      "classification": "active_or_present",
+      "head": "159923d80de3b50f3970e45c1540bbdfd8a88619",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-canary-advisory-selection-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-canary-restore-execution-preflight-v1-20260531",
+      "classification": "active_or_present",
+      "head": "852749e53446d2dbb911f11a9415598e06ca746b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-canary-docrow-recovery-plan-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/contain/extraction-canary-output-containment-clv-ctm-v1-20260528",
+      "classification": "active_or_present",
+      "head": "19c3b7e7d3e85eef468ef0b0b0de6f98ec2608ff",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-canary-output-containment-clv-ctm-v1-20260528"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-canary-output-exposure-audit-clv-ctm-v1-20260527",
+      "classification": "active_or_present",
+      "head": "c43d255b01e414eab78d91a1dfbd1b54716a1cdb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-canary-output-exposure-audit-clv-ctm-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-canary-scale-gate-side-effect-audit-v1-20260527",
+      "classification": "active_or_present",
+      "head": "d85a8876594ac7f0a4389e0044d2597f1b2ae4e0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-canary-scale-gate-side-effect-audit-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-confirmed-payload-scorecard-preserve-v1-20260608",
+      "classification": "active_or_present",
+      "head": "6e8be73cf5e16f8923d33f60ad7887c70aef1bd9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-confirmed-payload-preserve-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-contract-parity-guard-v1-20260526",
+      "classification": "active_or_present",
+      "head": "d08a3e96d61d8315491f5efbea61134bbd7735f6",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-contract-parity-guard-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-cxo-runtime-provenance-capture-v1-20260608",
+      "classification": "active_or_present",
+      "head": "72bda92a57a7c0ae2e4209cec476f4af822911b5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-cxo-runtime-provenance-capture-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/integrate/extraction-empty-risk-note-suppression-canonical-v1-20260527",
+      "classification": "active_or_present",
+      "head": "2d9067f0c5b75025886ab782f993bcb532492b48",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-empty-risk-note-canonical-integrate-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-empty-risk-note-suppression-v1-20260527",
+      "classification": "active_or_present",
+      "head": "26f6e5a2ea6402ae609a269769aa08ea48df94b8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-empty-risk-note-suppression-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-eval-foundation-combined-v1-20260527",
+      "classification": "active_or_present",
+      "head": "700ca5ddc1bba8dba2432316ab972b80b36f248a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-eval-foundation-combined-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-goal-proof-matrix-v1-20260529",
+      "classification": "active_or_present",
+      "head": "65023edea48801d384d12e3bd4e5764d9ac5cb61",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-goal-proof-matrix-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-goal-proof-matrix-v2-20260529",
+      "classification": "active_or_present",
+      "head": "8a0c003e98b5f0bcfa1cc8ccb7b62046fdcaf3dd",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-goal-proof-matrix-v2-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-gpt-appendix4d-classifier-diagnostic-v1-20260602",
+      "classification": "active_or_present",
+      "head": "c1f19e1f44067165dec1551923160fcf3f1b7941",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-gpt-appendix4d-classifier-diagnostic-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-gpt-appendix4d-payload-construction-repair-v1-20260604",
+      "classification": "active_or_present",
+      "head": "c5ebb425b00bb0da2cbbc0675a04af673d62642c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-gpt-appendix4d-payload-construction-repair-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/integrate/extraction-metric-ontology-gate-v1-20260531",
+      "classification": "active_or_present",
+      "head": "d3426d9930baf0c9ebdadde3ea3614465afdc485",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-integration-ready-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-low-confidence-context-surfacing-v1-20260529",
+      "classification": "active_or_present",
+      "head": "3c0ad6e9fe0fe0b8b2ca6bb82d865a6b9e33304b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-low-confidence-context-surfacing-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-mainline-core-port-v1-20260607",
+      "classification": "active_or_present",
+      "head": "8c23b43f779cec9f0a8de3a5ebd0ca55f637e39b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-mainline-core-port-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-metric-ontology-gate-v1-20260531",
+      "classification": "active_or_present",
+      "head": "95d47ee9fbc1f9727081bb3b2454be13e1f84315",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-gate-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-metric-ontology-prepersist-v1-20260531",
+      "classification": "active_or_present",
+      "head": "f011e2cee27cd08d354106f64b07eb6f4063e6b4",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-metric-ontology-prepersist-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-orchestrator-parallel-safe-progress-v1-20260526",
+      "classification": "active_or_present",
+      "head": "8635833b7d7359ed55daf0495eb49c5457bab91d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-orchestrator-parallel-safe-progress-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-payload-actuals-coverage-gate-v1-20260531",
+      "classification": "active_or_present",
+      "head": "20444bd9a78c9656660cbaa809fca79352938054",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-payload-actuals-coverage-gate-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-payload-gate-blocking-summary-v1-20260531",
+      "classification": "active_or_present",
+      "head": "2eca7194b8bf93215010821fc08952c8b816cedb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-payload-gate-blocking-summary-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-payload-scorecard-builder-v1-20260526",
+      "classification": "active_or_present",
+      "head": "bb833aa8f916806e7151d0a49a094592644db418",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-payload-scorecard-builder-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-payload-scorecard-cli-gate-v1-20260531",
+      "classification": "active_or_present",
+      "head": "cf44ca541a7f9391ce4b6514b41c110e7c625fa1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-payload-scorecard-cli-gate-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-period-source-binding-repair-v1-20260608",
+      "classification": "active_or_present",
+      "head": "df821df661c1218d8155d6addaf44e3b3b9e6a14",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-period-source-binding-repair-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-period-source-exact-evidence-audit-v1-20260608",
+      "classification": "active_or_present",
+      "head": "0d4c8925e0513d210edc3dcc8e34c6571f3acdda",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-period-source-exact-evidence-audit-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-pr-stack-cleanup-v1-20260531",
+      "classification": "active_or_present",
+      "head": "52992356680a82bbc8c37ed1ce29cbafd3509c16",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-pr-stack-cleanup-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-pr129-merge-closeout-v1-20260531",
+      "classification": "active_or_present",
+      "head": "026ac165b28a71efbe272b6884778e1483735706",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-pr129-merge-closeout-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-pr129-merge-readiness-v1-20260531",
+      "classification": "active_or_present",
+      "head": "9523a4c1d98c009f28a3c3dd6f9c767921c9fbae",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-pr129-merge-readiness-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-pymupdf-cache-source-readonly-fix-v1-20260527",
+      "classification": "active_or_present",
+      "head": "d00bb4eb3519e6d2c05555b2df980943a17d5dfd",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-pymupdf-cache-source-readonly-fix-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-real-gold-corpus-baseline-v1-20260529",
+      "classification": "active_or_present",
+      "head": "d1582329040c02f93da4fb975ef9046576db6eac",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-real-gold-corpus-baseline-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-real-gold-source-path-resolver-v1-20260529",
+      "classification": "active_or_present",
+      "head": "9fbcac9b585805151c16b03684904d87a0bed75a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-real-gold-source-path-resolver-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-real-gold-source-path-validation-baseline-v1-20260529",
+      "classification": "active_or_present",
+      "head": "5395d9fb318d2c706dab7e269435aea88a88278b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-real-gold-source-path-validation-baseline-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-runtime-approval-packet-v1-20260531",
+      "classification": "active_or_present",
+      "head": "2d5b54a996df288ca9ee9511bf921670ea232afb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-runtime-approval-packet-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-runtime-mode-selector-integration-v1-20260516",
+      "classification": "active_or_present",
+      "head": "1fe8a030936bc93376750bad8e2305a41d26d685",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-runtime-mode-selector-integration-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-runtime-readiness-refresh-v2-20260529",
+      "classification": "active_or_present",
+      "head": "fe0f57ff8b37fcf739b2e7542fe3f634c179f97c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-runtime-readiness-refresh-v2-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-second-canary-batch-v1-20260527",
+      "classification": "active_or_present",
+      "head": "41f29df097409f7617c518db25b15bfcba8471ea",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-second-canary-batch-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-second-canary-failure-taxonomy-v1-20260527",
+      "classification": "active_or_present",
+      "head": "c43d255b01e414eab78d91a1dfbd1b54716a1cdb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-second-canary-failure-taxonomy-audit-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-source-asset-manifest-metadata-safe-extension-v1-20260526",
+      "classification": "active_or_present",
+      "head": "8f87683c87306267d8280704bf6a0116f4183096",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-source-asset-manifest-metadata-safe-extension-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-storage-metric-contract-gate-v1-20260531",
+      "classification": "active_or_present",
+      "head": "b3c6ae0877ac51029d335f44011f34befa1237d8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-storage-metric-contract-gate-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-terminal-state-candidate-manifest-v1-20260527",
+      "classification": "active_or_present",
+      "head": "2f7af32d81d677dfd4eb213bc140c005b5b79e35",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-terminal-state-candidate-manifest-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/audit/extraction-terminal-state-live-candidate-export-v1-20260527",
+      "classification": "active_or_present",
+      "head": "ab2e0e9343c1d5bb3567c2aa3623e45957d534bf",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-terminal-state-live-candidate-export-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/runtime/extraction-third-canary-runtime-v1-20260529",
+      "classification": "active_or_present",
+      "head": "4adf887b9ffec39fd4d4f93c45dcf9bc66bbea33",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-third-canary-runtime-v1-20260529"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "6caa3e72399be3a21155134632e76393334f03f1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-extraction-verdict-audit-20260531"
+    },
+    {
+      "branch": "refs/heads/migration/clean-runtime-baseline-20260517",
+      "classification": "active_or_present",
+      "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-fast-dev-storage-v1"
+    },
+    {
+      "branch": "refs/heads/safe/tenn-frame-design-skill-v1-20260607",
+      "classification": "active_or_present",
+      "head": "0f65137c904cb1dcd9a96719c018b942c8c3c07a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-frame-design-skill-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/tenn-git-hygiene-skill-v1-20260607",
+      "classification": "active_or_present",
+      "head": "f8d4b1e507ce4eab1d176c13295369e47ff8f92f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-git-hygiene-skill-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/github-issue-branch-hygiene-visibility-v1-20260525",
+      "classification": "active_or_present",
+      "head": "134b0619690b2bf0e80f0b6f66cb4e976d23772c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-github-issue-branch-hygiene-visibility-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/github-issue-templates-v1-20260525",
+      "classification": "active_or_present",
+      "head": "42991e8f560c449a1f486f5bd38eef37d758739a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-github-issue-templates-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/gold-folder-confirmed-source-audit-v1-20260516",
+      "classification": "active_or_present",
+      "head": "d88fd9c022d0b0a260f8b6e003191413c06f4e3f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-gold-folder-confirmed-source-audit-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/gold-metric-coverage-audit-v1-20260516",
+      "classification": "active_or_present",
+      "head": "7182e2f8d07ae2fe9314404a28e1a404bc5fc281",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-gold-metric-coverage-audit-v1-20260516"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "2f9a2607630c93f828baab8a63cedc068a485585",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-gpt-appendix4d-e2e-pr294-v1-20260604"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "2f9a2607630c93f828baab8a63cedc068a485585",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-gpt-appendix4d-targeted-pr294-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/audit/green-pr-status-comments-v1-20260602",
+      "classification": "active_or_present",
+      "head": "c97eae49aef5a97142063b4692a22edbf987a7fa",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-green-pr-status-comments-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/health-snapshot-artifact-paths-v1-20260607",
+      "classification": "active_or_present",
+      "head": "f4f95a76b9ad8b8aa0f3c8256c62fa7589ac4312",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-health-snapshot-artifact-paths-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/audit/home-data-missing-jam-triage-v1-20260526",
+      "classification": "active_or_present",
+      "head": "04d9308cee5b18f2efd85711b952f40a3c79e7a4",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-home-data-missing-jam-triage-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/audit/home-portfolio-panel-no-data-audit-v1-20260601",
+      "classification": "active_or_present",
+      "head": "e503b2537e9f86b4ee2999799a4b9087adf564e9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-home-portfolio-panel-no-data-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/home-source-detail-takeaways-api-key-v1-20260602",
+      "classification": "active_or_present",
+      "head": "4ec576ca8ffb95815d9d325b45e37da381a56051",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-home-source-detail-takeaways-api-key-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/intel-pulse-supported-metric-population-v1-20260531",
+      "classification": "active_or_present",
+      "head": "a87d1e489d679b378d16e957eea37b916a0fd0d3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-intel-pulse-supported-metric-population-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/repo-hygiene/registry-readonly-list-active-v1-20260606",
+      "classification": "active_or_present",
+      "head": "ba7ddbfc66f1d3bfb3adc7458d46262b2ea6861f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue-78-agent-constitution-skills-v1-20260606"
+    },
+    {
+      "branch": "refs/heads/safe/issue-closeout-sweep-v1-20260529",
+      "classification": "active_or_present",
+      "head": "219b95edf4ba0afe9c80593df914b5c741aae112",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue-closeout-sweep-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/safe/issue-closeout-sweep-v1-20260531",
+      "classification": "active_or_present",
+      "head": "5cf55c411264bc9ee792b09d73a6949e88dbaed0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue-closeout-sweep-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/audit/issue-pr-linkage-status-comments-v1-20260602",
+      "classification": "active_or_present",
+      "head": "0e1433114dfae06ad1289d427b7afbdbeaa916fa",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue-pr-linkage-status-comments-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/codex/long-running-issue-resolution-batch-v1-20260526",
+      "classification": "active_or_present",
+      "head": "57e17fd9677cdb3122f56d32754ced71e9ba018c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue-resolution-batch-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/audit/issue97-payload-scorecard-status-v1-20260602",
+      "classification": "active_or_present",
+      "head": "f740e5e8fceecb9d477b4f70fca143b0a9a0908d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue97-payload-scorecard-status-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/audit/issue98-current-branch-status-v1-20260602",
+      "classification": "active_or_present",
+      "head": "d52d3913489df05eee2e6c0ac7ea953a89a6cdac",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-issue98-current-branch-status-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/audit/jam-failure-to-request-search-triage-v1-20260601",
+      "classification": "active_or_present",
+      "head": "5601ec0a5d9e5973487b8063df555be145e79ead",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-jam-failure-to-request-search-triage-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/legacy-worker-tasks-quarantine-review-v1-20260608",
+      "classification": "active_or_present",
+      "head": "38a6ac5e46171d10e201ce41f4201a32f981e68b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-legacy-worker-tasks-quarantine-review-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/legacy-worker-tasks-quarantine-v1-20260602",
+      "classification": "active_or_present",
+      "head": "5a9f371407d3fd6e6538dd59429024175954ad4c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-legacy-worker-tasks-quarantine-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/work/m40-8001-validation-v1-20260517",
+      "classification": "active_or_present",
+      "head": "6111b8fd9f59150f01a437fc6448de79716fd734",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-m40-8001-validation-v1"
+    },
+    {
+      "branch": "refs/heads/safe/marketplace-capture-missing-token-disabled-v1-20260602",
+      "classification": "active_or_present",
+      "head": "4bb40bdb7ce165921842debdcc2a4b920d424120",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-marketplace-capture-missing-token-disabled-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/marketplace-capture-single-use-token-v1-20260602",
+      "classification": "active_or_present",
+      "head": "62a307d08eb0f29f9e9873a6891a209da7550b6b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-marketplace-capture-single-use-token-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/memory-ambiguous-linked-ticker-identity-v1-20260516",
+      "classification": "active_or_present",
+      "head": "b4db78dd24de5414816e13aa707c51eacee14bd2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-ambiguous-linked-ticker-identity-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-anthropic-answer-path-smoke-v1-20260516",
+      "classification": "active_or_present",
+      "head": "110c393920ae68b1c33f80ca1408875eb0fd6162",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-anthropic-answer-path-smoke-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/integrate/memory-chat-company-context-routing-nvme-v1-20260517",
+      "classification": "active_or_present",
+      "head": "d082a603c72fa44dec2ef4a8b47f50b32c61bd40",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-chat-company-context-routing-nvme-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/memory-chat-company-context-routing-v1-20260517",
+      "classification": "active_or_present",
+      "head": "dc3cd6b1cae8ba2d962233f7efcc958544fb7bae",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-chat-company-context-routing-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/safe/memory-interticker-cleanup-batch5-approved-200-20260514",
+      "classification": "active_or_present",
+      "head": "fe4c940d5dcfd35ffd2382481db5cbeaebf5a2d5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-cleanup-batch5-approved-200-20260514"
+    },
+    {
+      "branch": "refs/heads/safe/memory-interticker-cleanup-batch6-approved-163-20260514",
+      "classification": "active_or_present",
+      "head": "ea53505629bf7318dcbe2b68b353fa692b67ca80",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-cleanup-batch6-approved-163-20260514"
+    },
+    {
+      "branch": "refs/heads/integrate/memory-companies-signal-routing-stack-v1-20260516",
+      "classification": "active_or_present",
+      "head": "b4d530c2237edb837f717034edd07bfa8db0f86d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-companies-signal-routing-stack-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/memory-contamination-root-cause-audit-v1-20260519",
+      "classification": "active_or_present",
+      "head": "2e73de32ac7783635bf54fde432c9239babc29b9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-contamination-root-cause-audit-v1-20260519"
+    },
+    {
+      "branch": "refs/heads/safe/memory-integrity-audit-guard-v1-20260516",
+      "classification": "active_or_present",
+      "head": "69168518f5fd198672fe7d51eb6035e1b9878a58",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-integrity-audit-guard-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-integrity-validation-company-v1-20260516",
+      "classification": "active_or_present",
+      "head": "d3cbf8abd2685d81cd24df8adc010265099c86e0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-integrity-validation-company-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-integrity-validation-gate-v1-20260516",
+      "classification": "active_or_present",
+      "head": "9999ff451ae3ceb8602fd8dce0e5d5bd3b1f8a15",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-integrity-validation-gate-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-live-context-root-resolution-nvme-v1-20260516",
+      "classification": "active_or_present",
+      "head": "f61536258c9a6897e78b97cbdfc86616e1211866",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-live-context-root-resolution-nvme-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-live-context-root-resolution-v1-20260516",
+      "classification": "active_or_present",
+      "head": "b0f26d67f791b41635ca1c7c7b891e880cbbc9a9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-live-context-root-resolution-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/integration/memory-contamination-root-cause-v1-20260516",
+      "classification": "active_or_present",
+      "head": "5cb71fe5e9049f61edee61d71a7fc0bdd3afb8ee",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-live-integration-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/memory-live-inventory-readonly-v1-20260519",
+      "classification": "active_or_present",
+      "head": "0b8c4d942be5d6251bfa5e7c4da3ddfa85b33173",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-live-inventory-readonly-v1-20260519"
+    },
+    {
+      "branch": "refs/heads/audit/memory-live-row-audit-v1-20260516",
+      "classification": "active_or_present",
+      "head": "79c54640ffab719207eea9a13bf974a30f19aa4f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-live-row-audit-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-market-be-linked-ticker-cleanup-v1-20260516",
+      "classification": "active_or_present",
+      "head": "097899910d61f81caa62eb3188cf1fd952fc5f9d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-market-be-linked-ticker-cleanup-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/memory-market-linked-ticker-canonical-reconcile-v1-20260516",
+      "classification": "active_or_present",
+      "head": "ed6d8cd6b9441644a101e47c2a3968a2a0fb0d88",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-market-linked-ticker-canonical-reconcile-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-market-linked-ticker-cleanup-v1-20260516",
+      "classification": "active_or_present",
+      "head": "e1e79ff6bf81f8091d8fe0c2c01728cd47eb0409",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-market-linked-ticker-cleanup-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-market-unsupported-linked-ticker-cleanup-v1-20260516",
+      "classification": "active_or_present",
+      "head": "b45f494f27ad6ffea37b52ac561bfc1bd4f43591",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-market-unsupported-linked-ticker-cleanup-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-memo-signal-routing-remedy-v1-20260516",
+      "classification": "active_or_present",
+      "head": "88790507ffc1839ed098e78250b28020efd589ef",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-memo-signal-routing-remedy-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-news-memo-signal-routing-fixture-integration-v1-20260516",
+      "classification": "active_or_present",
+      "head": "3f5a0e4327de38cc721a1668eee5a210cb97a8bb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-news-memo-signal-routing-fixture-integration-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/integrate/memory-nvme-fastdev-context-root-v1-20260517",
+      "classification": "active_or_present",
+      "head": "f22a9ae8da5aff0780171f129395f2102137ba50",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-nvme-fastdev-context-root-v1-20260517"
+    },
+    {
+      "branch": "refs/heads/audit/memory-operator-review-prep-v2-20260521",
+      "classification": "active_or_present",
+      "head": "945b75ffdb0f1424b601a6d1355214f8c2e07c1a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-operator-review-prep-v2-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/memory-remaining-write-paths-v1-20260516",
+      "classification": "active_or_present",
+      "head": "c106852a64b9e1d729d18efb923cdaf1ba115f79",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-remaining-write-paths-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-research-root-host-data-preference-v1-20260516",
+      "classification": "active_or_present",
+      "head": "d0e0571f01e8f80c8f7a90b45be2ad454672e6bf",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-research-root-host-data-preference-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-runtime-path-status-preserve-integration-v1-20260516",
+      "classification": "active_or_present",
+      "head": "fc345ed61f1b390489401ba6763599ea756cbf75",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-runtime-path-status-preserve-integration-v2-20260516",
+      "classification": "active_or_present",
+      "head": "d4b4bc1c3fc92cf18a31ae58588864390f1a35e2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v2-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-runtime-path-status-preserve-integration-v3-20260516",
+      "classification": "active_or_present",
+      "head": "0524e9a8303cbf838f805c7f2575aef3bf26e7e1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-runtime-path-status-preserve-integration-v3-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-runtime-path-status-v1-20260516",
+      "classification": "active_or_present",
+      "head": "7e3a3ff1d8ec1a84a26d314eefe331c11dd33217",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-runtime-path-status-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-stale-fallback-research-memory-quarantine-v1-20260516",
+      "classification": "active_or_present",
+      "head": "ccbe47905b0fdcda989f7e342e4eef406b9264ed",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-stale-fallback-research-memory-quarantine-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-system-fitness-audit-v1-20260531",
+      "classification": "active_or_present",
+      "head": "65dba98d8a53f43e027e7071bf181af8977107b5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-system-fitness-audit-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/memory-validation-gate-isolation-v1-20260516",
+      "classification": "active_or_present",
+      "head": "80f71c50cdff151cea014a36a865e34b1331622e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-validation-gate-isolation-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/memory-workbench-write-confirmation-gates-v1-20260602",
+      "classification": "active_or_present",
+      "head": "4a7892a963ac00fa5d3a98ce022681a6ffea8388",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-memory-workbench-write-confirmation-gates-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/merge-parking-docs-validation-slice-v1-20260524",
+      "classification": "active_or_present",
+      "head": "de3f1f5619f42b29981bffb5f1c0370b1ad2cb67",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-merge-parking-docs-validation-slice-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
+      "classification": "active_or_present",
+      "head": "2e94f631cae7f5121f4c4f74ec501ed644db178e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-merge-parking-registry-integrate-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-azj-nsr-pass3a-replay-v1-20260608",
+      "classification": "active_or_present",
+      "head": "9c513b261b8246ec30c17a15b22cd5bda7d26153",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-metric-extraction-pass3a-replay-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/audit/metric-extraction-runtime-coverage-repair-v1-20260531",
+      "classification": "active_or_present",
+      "head": "61931d62a566270ce841c4777a5183374581b80e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-metric-extraction-runtime-coverage-repair-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/audit/metric-extraction-system-audit-v1-20260526",
+      "classification": "active_or_present",
+      "head": "841cd8c91382731cff4e162d2299d08caee6d687",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-metric-extraction-system-audit-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/audit/metric-schema-contract-alignment-v1-20260531",
+      "classification": "active_or_present",
+      "head": "21cf6aee46b403e0def0d5f79064e151b1c04ce3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-metric-schema-contract-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/natural-language-local-news-intent-route-v1-20260526",
+      "classification": "active_or_present",
+      "head": "389117ca25218e47219045976e53327591f916e9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-natural-language-local-news-intent-route-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/news-context-path-alignment-v1-20260607",
+      "classification": "active_or_present",
+      "head": "2db27d912140cb352ede93f81fba9f16ca5a8b96",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-context-path-alignment-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/news-downstream-sync-fallback-repair-v1-20260515",
+      "classification": "active_or_present",
+      "head": "9eae87915bd341f5b8e2268fce960ee7be31355c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-downstream-sync-fallback-repair-v1-20260515"
+    },
+    {
+      "branch": "refs/heads/safe/news-health-signal-v1-20260607",
+      "classification": "active_or_present",
+      "head": "64aba2c6af35522f5488bcc6873df6be6d57a4a1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-health-signal-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/audit/news-ingestion-throughput-profile-v1-20260601",
+      "classification": "active_or_present",
+      "head": "92926298c50f29f1be057a5fe9f1e59ae31cdd51",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-ingestion-throughput-profile-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/news-loader-ollama-url-hardening-v1-20260515",
+      "classification": "active_or_present",
+      "head": "a1802c757b5472c8721e97e38d9cfdd841218f58",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-loader-ollama-url-hardening-v1-20260515"
+    },
+    {
+      "branch": "refs/heads/safe/news-pipeline-newspaper4k-replay-v1-20260608",
+      "classification": "active_or_present",
+      "head": "035d437c3f0740e39895f53e2a0fdda441c61d89",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-pipeline-newspaper4k-replay-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/audit/news-projection-materialization-parity-repair-planning-v1-20260602",
+      "classification": "active_or_present",
+      "head": "2119eed02ecec210d04a316f70571e8776e72991",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-projection-materialization-parity-repair-planning-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/news-retrieval-parity-a2m-v1-20260520",
+      "classification": "active_or_present",
+      "head": "29ca31340ac65f63ba9baf0ef8d483dcd218bde5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-news-retrieval-parity-a2m-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/safe/next-closeout-or-merge-gate-v1-20260608",
+      "classification": "active_or_present",
+      "head": "f8913eb7b5f46ed46c0e1903fdbfb44007fd4e1d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-next-closeout-or-merge-gate-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/next5-existing-evidence-closeout-v1-20260531",
+      "classification": "active_or_present",
+      "head": "979ff9e66973805b5d491a3cc4dc257c63fd49d3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-next5-existing-evidence-closeout-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/nightly-news-cron-restore-v1-20260607",
+      "classification": "active_or_present",
+      "head": "489fa369de721204c670e69a824e1787ed452933",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-nightly-news-cron-restore-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/tmp/sloppy-fix-demo",
+      "classification": "active_or_present",
+      "head": "98b5827a3f23e25feeb7b945e9875b94c05226b5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+    },
+    {
+      "branch": "refs/heads/runtime/nvme-live-preserve-20260516",
+      "classification": "active_or_present",
+      "head": "b0f26d67f791b41635ca1c7c7b891e880cbbc9a9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-nvme-live-preserve-20260516"
+    },
+    {
+      "branch": "refs/heads/codex/offline-artifact-authority-20260531",
+      "classification": "active_or_present",
+      "head": "8517f6503a1b3fe50e9efa3bbc80f48e491a3357",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-offline-artifact-authority-20260531"
+    },
+    {
+      "branch": "refs/heads/codex/offline-authority-review-artifacts-20260531",
+      "classification": "active_or_present",
+      "head": "ce5b4f8a30bd67745e9b191354790a73f7453dc8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-offline-authority-review-artifacts-20260531"
+    },
+    {
+      "branch": "refs/heads/codex/overview-news-commentary-approval-v1-20260516",
+      "classification": "active_or_present",
+      "head": "5551d28a930d43bd97ec00b2428315d532909840",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-overview-news-commentary-approval-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-period-semantics-aau-v1-20260529",
+      "classification": "active_or_present",
+      "head": "eb6ba6a57fe47b664871b39ce3e242b94b8dacf6",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-period-semantics-aau-v1-20260529"
+    },
+    {
+      "branch": "refs/heads/orchestrate/post-nvme-next-work-v1-20260521",
+      "classification": "active_or_present",
+      "head": "b475758d0020a48bb787815f1a1a7e08ee33d1a8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-nvme-next-work-orchestrator-v1-20260521"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "c311f4206af868984128526d1790a2d7109a5e5e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr297-count16-validation-v1-20260605"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-post-pr297-failure-taxonomy-v1-20260605",
+      "classification": "active_or_present",
+      "head": "3eb1782766a16d80e3b3c0015f3263e327f3e3dc",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr297-failure-taxonomy-v1-20260605"
+    },
+    {
+      "branch": "refs/heads/integrate/extraction-post-pr297-scale-marker-repair-v1-20260606",
+      "classification": "active_or_present",
+      "head": "babd56cd9c013df418d872548839d32b25ca5ece",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr297-scale-marker-canonical-integration-v1-20260606"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-post-pr299-broad-accuracy-push-v1-20260606",
+      "classification": "active_or_present",
+      "head": "55209fb52c31661f00d35db8044efdf9456195cc",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr299-broad-accuracy-push-v1-20260606"
+    },
+    {
+      "branch": "refs/heads/integrate/extraction-post-pr299-accepted-output-audit-v1-20260607",
+      "classification": "active_or_present",
+      "head": "75a3d8aed5171c1c16204c0744b07259a5a0bc3b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr299-integration-accepted-output-audit-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-post-pr301-broad-accuracy-push-v1-20260607",
+      "classification": "active_or_present",
+      "head": "1a7370f4056e40d93e40bf4b070d6c3e4143a66d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr301-broad-accuracy-push-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-post-pr301-broad-accuracy-integration-v1-20260607",
+      "classification": "active_or_present",
+      "head": "47655e1b66afa6a1f2336945ac8a5a5c972c1595",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-post-pr301-integration-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/pr39-c01-reconciliation-preservation-v1-20260527",
+      "classification": "active_or_present",
+      "head": "a1dabf98e14bc987dd60c0664f52e5cc4a2d8daf",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-pr39-c01-reconciliation-preservation-v1-20260527"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "9940a9a78bad0694ce9066528a8f40067128eb2f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-pr39-ci-fix-20260525"
+    },
+    {
+      "branch": "refs/heads/audit/process-document-rag-guardrails-v1-20260514",
+      "classification": "active_or_present",
+      "head": "1a7e2ae6319e65f9f84604ff570bf3363b523ac7",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-process-document-rag-guardrails-audit-v1-20260514"
+    },
+    {
+      "branch": "refs/heads/safe/process-document-rag-guardrails-fixture-fix-v1-20260515",
+      "classification": "active_or_present",
+      "head": "5037f385c03780a78b5b5c461d006bf51ba06439",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-process-document-rag-guardrails-fixture-fix-v1-20260515"
+    },
+    {
+      "branch": "refs/heads/safe/provenance-worker-git-env-parity-v1-20260531",
+      "classification": "active_or_present",
+      "head": "0409d5cc310e147cbfe3b098612d6b9e891395dd",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-provenance-worker-git-env-parity-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-quantdinger-repeatability-review-path-v1-20260525",
+      "classification": "active_or_present",
+      "head": "faef3084f7ca40f9094d8083e623611476422511",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-qdlab-repeatability-review-path-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-quantdinger-repeatability-harness-v1-20260525",
+      "classification": "active_or_present",
+      "head": "0e2800067e2f917957645322cdcdb446ce32ecab",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-quantdinger-repeatability-harness-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/audit/query-eval-integration-readiness-v1-20260516",
+      "classification": "active_or_present",
+      "head": "20079a01e363f257cc6006945eb297bccc5257d7",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-query-eval-integration-readiness-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/query-inference-engine-phase1-closeout-v1-20260601",
+      "classification": "active_or_present",
+      "head": "0e9565d2cd4536702d0217fff604f57c33bf8fd8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-query-inference-engine-phase1-closeout-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/audit/query-legacy-chat-envelope-current-readiness-v1-20260516",
+      "classification": "active_or_present",
+      "head": "0524e9a8303cbf838f805c7f2575aef3bf26e7e1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-query-legacy-chat-envelope-current-readiness-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/query-legacy-chat-route-ownership-v1-20260601",
+      "classification": "active_or_present",
+      "head": "536f0f09a7847be15c8c31ad9561621a4b963671",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-query-legacy-chat-route-ownership-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/audit/query-legacy-chat-route-ownership-v1-20260602",
+      "classification": "active_or_present",
+      "head": "de247e3866a01fb9e32eb0a78c52dc89df4659f3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-query-legacy-chat-route-ownership-v1-20260602"
+    },
+    {
+      "branch": "refs/heads/safe/query-news-loader-ollama-hardening-integration-v1-20260516",
+      "classification": "active_or_present",
+      "head": "90c60755be7fac347691e635a09a89abe675618c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-query-news-loader-ollama-hardening-integration-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/real-gold-review-asset-bundle-clean-v1-20260601",
+      "classification": "active_or_present",
+      "head": "8f35fc622e5c7579042444d9ec775268ed3d3b22",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-real-gold-review-asset-bundle-clean-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/audit/real-gold-review-asset-bundle-v1-20260531",
+      "classification": "active_or_present",
+      "head": "0dd8a03b4b6cd2945c439c55ef438edf91c919fe",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-real-gold-review-asset-bundle-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reconcile-merge-parking-registry-to-origin-v1-20260604",
+      "classification": "active_or_present",
+      "head": "4457f358eb9d2a640d6d86718a6e2a9072e81254",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reconcile-merge-parking-registry-to-origin-v1-20260604"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "5a902c7e84aabc103914145de0feec569dd5efec",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-registry-readonly-final-validate-v1-20260526"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "5a902c7e84aabc103914145de0feec569dd5efec",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-registry-readonly-final-validate2-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/codex/registry-readonly-no-lock-integration-v1-20260526",
+      "classification": "active_or_present",
+      "head": "92897ce40fa99d1a9915dcc976cbb5f0333cdb4a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-registry-readonly-integration-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/registry-readonly-no-lock-list-active-v1-20260525",
+      "classification": "active_or_present",
+      "head": "af69c6fef20070f06d3b57594c9847d2ba98448a",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-registry-readonly-no-lock-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/rented-gpu-runtime-port-v1-20260514",
+      "classification": "active_or_present",
+      "head": "5da86ab3eaba8962ee3abce75632399053bd98a3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-rented-gpu-runtime-port-v1-20260514"
+    },
+    {
+      "branch": "refs/heads/audit/repo-hygiene-agent-docs-refresh-v1-20260601",
+      "classification": "active_or_present",
+      "head": "9a83af729e40009cc8c63b2ac2514adff3efc098",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-hygiene-agent-docs-refresh-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/audit/repo-hygiene-safe-audits-v1-20260525",
+      "classification": "active_or_present",
+      "head": "5c22ade1153fa90d96f150f4bc66be179f535cdb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-hygiene-audits-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/repo-hygiene-retire-cursor-rules-refs-v1-20260601",
+      "classification": "active_or_present",
+      "head": "9ac7387ac53b814b14d0a7a6130e8747968d6539",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-hygiene-retire-cursor-rules-refs-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/repo-native-goal-schema-slice-v1-20260524",
+      "classification": "active_or_present",
+      "head": "1fc51bad7f5b7b9cc2cadd52f8d26c74194100e3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-native-goal-schema-slice-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/repo-native-goal-schema-slice-v1-20260524-clean-codex",
+      "classification": "active_or_present",
+      "head": "cf825692cc8448820b6b493ad4baeeebabfcf9eb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-native-goal-schema-slice-v1-20260524-clean-codex"
+    },
+    {
+      "branch": "refs/heads/safe/repo-prunable-worktree-metadata-prune-cleanup-v1-20260608",
+      "classification": "active_or_present",
+      "head": "d97b3a2a1e9c755b536bb862ce3b47b9e28266db",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-prunable-worktree-metadata-prune-cleanup-v1-20260608"
+    },
+    {
+      "branch": "refs/heads/safe/repo-prunable-worktree-metadata-review-v1-20260531",
+      "classification": "active_or_present",
+      "head": "325087369bcc3b6796c71efb21a5a7dee0c5b8e8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-repo-prunable-worktree-metadata-review-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-accessible-controls-chat-holdings-v1-20260601",
+      "classification": "active_or_present",
+      "head": "3ef6e74d3cb6d57c68271668142bc6abb58bd691",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-accessible-controls-chat-holdings-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-accessible-controls-memory-updater-v1-20260601",
+      "classification": "active_or_present",
+      "head": "83cd17da3d5b6b34f55a20a9254dfbe60548fa07",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-accessible-controls-memory-updater-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-accessible-form-controls-audit-v1-20260601",
+      "classification": "active_or_present",
+      "head": "5e9b9e5e08e936b164f8b1f05484af4912617e32",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-accessible-form-controls-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-audit-closeout-batch-v1-20260531",
+      "classification": "active_or_present",
+      "head": "2f5b34fcefe22a07a790886a768f6b23d69863b3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-audit-closeout-batch-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-boot-health-bff-contract-v1-20260601",
+      "classification": "active_or_present",
+      "head": "61f849fefe673910829752584973e35f3fe86d41",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-boot-health-bff-contract-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-global-chrome-operator-detail-gate-v1-20260531",
+      "classification": "active_or_present",
+      "head": "9dd1b87c4db087d611833d34d4ccee66933666b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-global-chrome-operator-detail-gate-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-history-timestamp-truth-v1-20260526",
+      "classification": "active_or_present",
+      "head": "8f3911b8fa02c4553b5aaa85bdf47410d24394b8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-history-timestamp-truth-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-home-narrative-readonly-adapter-v1-20260601",
+      "classification": "active_or_present",
+      "head": "0326a1e4ac3dbabb69cef2cf5809eb06b9803c11",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-home-narrative-readonly-adapter-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-home-workspace-priority-v1-20260531",
+      "classification": "active_or_present",
+      "head": "459583646a332d49cc43ade2eaf0ec10bd48df06",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-home-workspace-priority-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-intel-pulse-signals-memory-capability-v1-20260601",
+      "classification": "active_or_present",
+      "head": "ea83205384384e7b502aaa6404c2ce6c1aaf9a07",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-intel-pulse-signals-memory-capability-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-local-console-cleanliness-v1-20260531",
+      "classification": "active_or_present",
+      "head": "dddc4130583c98f41915c78274c410a6ab610355",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-local-console-cleanliness-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-marketplace-empty-state-actionability-v1-20260601",
+      "classification": "active_or_present",
+      "head": "e04ef65de1d63c65267bad5b0ba22bbc9b164fd4",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-marketplace-empty-state-actionability-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-operations-readiness-contract-v1-20260531",
+      "classification": "active_or_present",
+      "head": "4ed0bb9304c939ae84e6d3ea7b44a44b87ffe158",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-operations-readiness-contract-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-prompt-lab-operator-gate-v1-20260601",
+      "classification": "active_or_present",
+      "head": "4a2f7f0864059327b322f122cf88870c49578f53",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-prompt-lab-operator-gate-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-ui-safe-issues-v1-20260525",
+      "classification": "active_or_present",
+      "head": "27001ec09286765e437e579a4481f9e785cb71fe",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-ui-safe-issues-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-verification-source-pdf-bff-auth-v1-20260601",
+      "classification": "active_or_present",
+      "head": "d6e2bdcf1345cccabfbaf5870009492b75cfbfef",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-verification-source-pdf-bff-auth-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/reporting-watchlist-empty-state-actionability-v1-20260531",
+      "classification": "active_or_present",
+      "head": "a8b4c3c79464ea58860847f231b634b7bac53333",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-reporting-watchlist-empty-state-actionability-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/audit/root-owned-python-cache-validation-blocker-v1-20260601",
+      "classification": "active_or_present",
+      "head": "73532a4456652c012f2ef2f626193430075617de",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-root-owned-python-cache-validation-blocker-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/safe/runtime-action-news-reliability-bundle-v1-20260527",
+      "classification": "active_or_present",
+      "head": "d778140303515e7b9a298a77a7aa3931b8f6164e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-runtime-action-news-reliability-bundle-v1-20260527"
+    },
+    {
+      "branch": "refs/heads/audit/runtime-llama-server-8001-owner-resolution-v1-20260601",
+      "classification": "active_or_present",
+      "head": "6af373fae580c9826ed4234982efa3a5563b70d9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-runtime-llama-server-8001-owner-resolution-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/audit/runtime-redis-role-reconciliation-v1-20260601",
+      "classification": "active_or_present",
+      "head": "84b6bf78fadadff48f4e04448f3cf1a1b4e2b705",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-runtime-redis-role-reconciliation-audit-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/docs/safe-dependency-install-policy-v1-20260607",
+      "classification": "active_or_present",
+      "head": "0ae8cacd7c7b03ab35b253a5115cb5a9b794eb12",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-safe-dependency-install-policy-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/sloppy-fix-auto-after-scan-v1-20260607",
+      "classification": "active_or_present",
+      "head": "10c162a5162b3e5fc1306cdd908b23bfa6f0a5a8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-sloppy-fix-auto-after-scan-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/sloppy-fix-missing-artifact-skip-v1-20260607",
+      "classification": "active_or_present",
+      "head": "d2e188f0d76a6a821e10d3a8cea3272d2968fdad",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-sloppy-fix-default-branch-auto-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/audit/sloppy-fix-live-verification-v1-20260607",
+      "classification": "active_or_present",
+      "head": "08ad2fcbc9ac2a471b5ae9e8479514da3fe49bba",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-sloppy-fix-live-verification-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/sloppy-fix-manual-only-main-pr-v1-20260521",
+      "classification": "active_or_present",
+      "head": "163697c9091f44c61c28318fe5eac7269ee7dfe9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-sloppy-fix-manual-only-main-pr-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/sloppy-fix-manual-only-v1-20260521",
+      "classification": "active_or_present",
+      "head": "4a6164237638b8876cfee1ad7570359b9a6b74b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-sloppy-fix-manual-only-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/sloppy-fix-provider-failclosed-v1-20260607",
+      "classification": "active_or_present",
+      "head": "38b08f1c05246eb6c8d0a59a3d4839592872bccf",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-sloppy-fix-provider-failclosed-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/smoke-sync-mode-gate-v1-20260516",
+      "classification": "active_or_present",
+      "head": "3944aafb84182a7aa7b59672555d2c660ba81d3f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-smoke-sync-mode-gate-v1-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/smoke-sync-mode-gate-v2-20260516",
+      "classification": "active_or_present",
+      "head": "08fa2402c5296682ea46b3bad803481d981a47ea",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-smoke-sync-mode-gate-v2-20260516"
+    },
+    {
+      "branch": "refs/heads/safe/source-label-fixture-matrix-v1-20260531",
+      "classification": "active_or_present",
+      "head": "5b1192a07a175f6a3fd9bd4875f79cbb0a2147db",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-source-label-fixture-matrix-v1-20260531"
+    },
+    {
+      "branch": "refs/heads/safe/stateless-chat-memory-read-suppression-v1-20260524",
+      "classification": "active_or_present",
+      "head": "8ec2e73108854e96a1c04c4c749ebe700cd4328c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-stateless-chat-memory-read-suppression-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/status-route-contract-news-health-v1-20260525",
+      "classification": "active_or_present",
+      "head": "923e010a31206bbbc349242e637e51474c121336",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-status-route-contract-news-health-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-artifact-review-value-layer-v1-20260524",
+      "classification": "active_or_present",
+      "head": "0141021b4622b999e3c5ca82f3dd6f559186cda9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-artifact-review-value-layer-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-artifact-schema-phase2-v1-20260520",
+      "classification": "active_or_present",
+      "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-artifact-schema-phase2-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-mocked-adapter-design-phase3-v1-20260520",
+      "classification": "active_or_present",
+      "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-mocked-adapter-design-phase3-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-mocked-adapter-tests-phase3b-reconciled-v1-20260521",
+      "classification": "active_or_present",
+      "head": "76042591ab19ae3ed1aba554b1635919e51d5844",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-mocked-adapter-tests-phase3b-reconciled-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-offline-mock-transport-phase3c-v1-20260521",
+      "classification": "active_or_present",
+      "head": "76042591ab19ae3ed1aba554b1635919e51d5844",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-offline-mock-transport-phase3c-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-phase3g-isolated-rerun-v1-20260522",
+      "classification": "active_or_present",
+      "head": "6d8ecff855a8c7f27d5b270bd0ed01473d696ffb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-phase3g-isolated-rerun-v1-20260522"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-phase3g-mergeback-v1-20260524",
+      "classification": "active_or_present",
+      "head": "e170f6b255ca4229462d4167861775e82ea3df34",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-phase3g-mergeback-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/audit/strategy-lab-quantdinger-fit-audit-v1-20260520",
+      "classification": "active_or_present",
+      "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-quantdinger-fit-audit-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/audit/strategy-lab-quantdinger-phase1-sandbox-v1-20260520",
+      "classification": "active_or_present",
+      "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase1-sandbox-v1-20260520"
+    },
+    {
+      "branch": "refs/heads/audit/strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521",
+      "classification": "active_or_present",
+      "head": "6c6748fe87e57b9d3b6c890e8551e7c288bc51b0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-quantdinger-phase2-artifact-schema-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/audit/strategy-lab-quantdinger-readonly-sidecar-online-v1-20260524",
+      "classification": "active_or_present",
+      "head": "8c2406d4d6a3be2ab24cf1ae053ab86b8d85f99d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-quantdinger-readonly-sidecar-online-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/audit/strategy-lab-quantdinger-readonly-sidecar-smoke-exec-v1-20260524",
+      "classification": "active_or_present",
+      "head": "0ee837f7dc0706f1b0ff6d6c900522f4c2b43090",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-quantdinger-readonly-sidecar-smoke-exec-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-quantdinger-readonly-transport-progress-v1-20260525",
+      "classification": "active_or_present",
+      "head": "2c1b77db0a44c0b9454c21ca8c053050bc9bb7b6",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-quantdinger-readonly-transport-progress-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-readonly-analyst-workflow-v1-20260601",
+      "classification": "active_or_present",
+      "head": "6b378b08c2c94020a77456e284f49dbb3a4c4b9c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-readonly-analyst-workflow-v1-20260601"
+    },
+    {
+      "branch": "refs/heads/integrate/strategy-lab-readonly-subsystem-maturation-clean-worktree-v1-20260525",
+      "classification": "active_or_present",
+      "head": "5a6c0c00b58c056fcf93933a9d1dd5754daa3338",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-readonly-clean-integrate-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/strategy-lab-readonly-subsystem-maturation-v1-20260525",
+      "classification": "active_or_present",
+      "head": "e5e12fe990d1264210237e9d219ec044dd010a71",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-readonly-subsystem-maturation-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/audit/strategy-lab-schema-lineage-reconciliation-v1-20260521",
+      "classification": "active_or_present",
+      "head": "76042591ab19ae3ed1aba554b1635919e51d5844",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-schema-lineage-reconciliation-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/codex/strategy-lab-verified-readonly-status-v1-20260525",
+      "classification": "active_or_present",
+      "head": "be44dd84ff3054d530584e7fae5d25c6fd295aeb",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strategy-lab-verified-readonly-status-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/strict-local-news-context-claim-verified-route-v1-20260526",
+      "classification": "active_or_present",
+      "head": "1a758c6eeca9a541a08138c8136e2b6721cd54f0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-strict-local-news-context-claim-verified-route-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/task-card-dirt-hygiene-v1-20260524",
+      "classification": "active_or_present",
+      "head": "97b1dc4b61bdea3c61cad206fb2ee8864a6cce75",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-task-card-dirt-hygiene-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/integrate/ticker-news-retrieval-ranking-projection-merge-review-v1-20260525",
+      "classification": "active_or_present",
+      "head": "326b60db92bf286344c2bb90ed504ab5378a94a2",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-merge-review-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/ticker-news-retrieval-ranking-projection-system-fix-v1-20260525",
+      "classification": "active_or_present",
+      "head": "9bfd0a6afabcafbfee7d061bbca11ba55b2cdbf1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-ticker-news-retrieval-ranking-projection-system-fix-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/ticker-news-source-grounding-system-fix-merge-review-v1-20260525",
+      "classification": "active_or_present",
+      "head": "173a8750caa4602e5791ee072673db17e708c5d3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-ticker-news-source-grounding-system-fix-merge-review-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/ticker-news-source-grounding-system-fix-v1-20260525",
+      "classification": "active_or_present",
+      "head": "703d8ada2fccb29f1a77c8a401e1c4fafd046497",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-ticker-news-source-grounding-system-fix-v1-20260525"
+    },
+    {
+      "branch": "refs/heads/safe/trust-foundation-followup-implementation-controller-v1-20260524",
+      "classification": "active_or_present",
+      "head": "f83e8c9a541d651585358e04e82376d5df1c63d0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-trust-foundation-followup-implementation-controller-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/integrate/trust-foundation-followup-canonical-v1-20260524",
+      "classification": "active_or_present",
+      "head": "a6db9760621e274c4621e98eee338a7b7ba34010",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-trust-foundation-followup-integrate-canonical-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/trust-foundation-next-phase-longrun-v1-20260524",
+      "classification": "active_or_present",
+      "head": "f18fdc2d7f9a766a26ac724122d091bbabbaf0e8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-trust-foundation-next-phase-longrun-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/trust-foundation-parallel-push-v1-20260524",
+      "classification": "active_or_present",
+      "head": "72c6d95c70d5b8f6e4ab816967dacc14692941ef",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-trust-foundation-parallel-push-v1-20260524"
+    },
+    {
+      "branch": "refs/heads/safe/two-shot-dev-flow-control-surface-current-base-v1-20260607",
+      "classification": "active_or_present",
+      "head": "259cd9254111fc96b5f5001bbe91f9f20bb657f3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-two-shot-dev-flow-control-surface-current-base-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/safe/two-shot-dev-flow-control-surface-v1-20260607",
+      "classification": "active_or_present",
+      "head": "2c067c363122642782d9d29f61966e281ee85bdd",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-two-shot-dev-flow-control-surface-v1-20260607"
+    },
+    {
+      "branch": "refs/heads/audit/unattended-safe-batch-v1-20260514",
+      "classification": "active_or_present",
+      "head": "03f794d236ac90600884c7232743001146fde97b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-unattended-safe-batch-v1-20260514"
+    },
+    {
+      "branch": "refs/heads/safe/codex-workday-checkin-protocol-v1-20260521",
+      "classification": "active_or_present",
+      "head": "7a8c872f8b652a5433afd1614eb4a657b0fc1f8d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-workday-checkin-protocol-v1-20260521"
+    },
+    {
+      "branch": "refs/heads/safe/youtube-intake-quality-gates-v1-20260526",
+      "classification": "active_or_present",
+      "head": "41a6c7e98bae77f05d9db55560b8b06f6f41fec1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-youtube-intake-quality-gates-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/safe/youtube-provenance-metadata-through-chunks-v1-20260526",
+      "classification": "active_or_present",
+      "head": "e9afc8698682f6b629e63e33833165c2b5c3e324",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-youtube-provenance-metadata-through-chunks-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/codex/youtube-transcript-ie-20260516",
+      "classification": "active_or_present",
+      "head": "355ae4d5e459c5ef6f1a7940ceb0f0c57c2c36f0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-youtube-transcript-ie-20260516"
+    },
+    {
+      "branch": "refs/heads/audit/youtube-transcription-strategy-memory-audit-v1-20260526",
+      "classification": "active_or_present",
+      "head": "5a11bfa950c41817fa8685980acca6c5655e4be5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/home/l4nd0/tenn-youtube-transcription-strategy-memory-audit-v1-20260526"
+    },
+    {
+      "branch": "refs/heads/audit/ab-isolation-real-gold-cap-timeout",
+      "classification": "active_or_present",
+      "head": "ae86d6a875c8d964dbc79425112eb3552b9212c9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-ab-isolation-20260421"
+    },
+    {
+      "branch": "refs/heads/audit/tenn-agent-mcp-auth-design-before-chatgpt-20260507",
+      "classification": "active_or_present",
+      "head": "e387e9c60d1b54c67a331e46290d12ddc8880638",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-auth-design-before-chatgpt-20260507"
+    },
+    {
+      "branch": "refs/heads/audit/tenn-agent-mcp-connector-dry-run-plan-20260507",
+      "classification": "active_or_present",
+      "head": "dd903ca572d0cd54598249587491df493dfbbd47",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-connector-dry-run-plan-20260507"
+    },
+    {
+      "branch": "refs/heads/safe/tenn-agent-mcp-http-adapter-v0-20260507",
+      "classification": "active_or_present",
+      "head": "e387e9c60d1b54c67a331e46290d12ddc8880638",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-http-adapter-v0-20260507"
+    },
+    {
+      "branch": "refs/heads/audit/tenn-agent-mcp-oauth-local-smoke-20260507",
+      "classification": "active_or_present",
+      "head": "dd903ca572d0cd54598249587491df493dfbbd47",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-smoke-20260507"
+    },
+    {
+      "branch": "refs/heads/safe/tenn-agent-mcp-oauth-local-v1-20260507",
+      "classification": "active_or_present",
+      "head": "dd903ca572d0cd54598249587491df493dfbbd47",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-oauth-local-v1-20260507"
+    },
+    {
+      "branch": "refs/heads/safe/tenn-agent-mcp-v0-audit-scaffold-20260507",
+      "classification": "active_or_present",
+      "head": "9911b9d0835d9c4b87ada6eea598e1f253379dc9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-audit-scaffold-20260507"
+    },
+    {
+      "branch": "refs/heads/safe/tenn-agent-mcp-v0-clean-integration-20260507",
+      "classification": "active_or_present",
+      "head": "dfd3014f1b94d4733096cce162c08ee42dcebee0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-agent-mcp-v0-clean-integration-20260507"
+    },
+    {
+      "branch": "refs/heads/codex/backend-import-validity-companies-model-v1",
+      "classification": "active_or_present",
+      "head": "1976399726afd7adfb64e714c2d3c73f6103cd72",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-backend-import-validity-companies-model-v1"
+    },
+    {
+      "branch": "refs/heads/bounded/contract-closure-chat-provenance",
+      "classification": "active_or_present",
+      "head": "850d4523e6c3149a5c6d4f4e0ad6f02412700b5d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-bounded-closure"
+    },
+    {
+      "branch": "refs/heads/repair/canonical10-import-valid",
+      "classification": "active_or_present",
+      "head": "5405802b0b7dbddc946a0545db1f1b69e63ecae8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-canonical10-import"
+    },
+    {
+      "branch": "refs/heads/audit/cockpit-home-backend-bff-contract-v1",
+      "classification": "active_or_present",
+      "head": "4f9736ce7d683db6d1786a215b0f6efc286f90e9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-audit-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-home-bff-route-v1",
+      "classification": "active_or_present",
+      "head": "53b60a71cc2196915d2dbe92d95d9ef927539f03",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-route-integrate"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-home-bff-route-v1",
+      "classification": "active_or_present",
+      "head": "c00ee6b36087e290f8f9dc0c59cb29da0dac0793",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-bff-route-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-home-live-wiring-and-sidebar-fix",
+      "classification": "active_or_present",
+      "head": "3d49c9d2197e4135cb688da31c5938f75e48ae43",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-integration-final"
+    },
+    {
+      "branch": "refs/heads/safe/cockpit-home-live-wiring-v1",
+      "classification": "active_or_present",
+      "head": "bae8b8fea5b3df720492d966d88f4b5914f0059c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-live-wiring-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/cockpit-home-news-snapshot-v1-20260508",
+      "classification": "active_or_present",
+      "head": "c0549d754cb501254873b34c66d9aec7d12b95d8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-landing-20260508"
+    },
+    {
+      "branch": "refs/heads/codex/cockpit-home-news-snapshot-v1-20260508",
+      "classification": "active_or_present",
+      "head": "c0549d754cb501254873b34c66d9aec7d12b95d8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-home-news-snapshot-v1-20260508"
+    },
+    {
+      "branch": "refs/heads/codex/cockpit-shell-sidebar-nested-button-fix-v1",
+      "classification": "active_or_present",
+      "head": "b573e0d231d83d394e3915afa3be1d594ea6313c",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-cockpit-shell-sidebar-nested-button-fix-v1"
+    },
+    {
+      "branch": "refs/heads/codex/anthropic-extraction-routing",
+      "classification": "active_or_present",
+      "head": "dfdb41caa17acc4149b1994d9ab5ce908c0a6881",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-anthropic-routing"
+    },
+    {
+      "branch": "refs/heads/cloud/c1-extraction-quality-gap-audit-20260421-122136",
+      "classification": "active_or_present",
+      "head": "29ec35d347dc7f564fb11d86fb4bdf031475d205",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c1-extraction-quality-gap-audit"
+    },
+    {
+      "branch": "refs/heads/cloud/c2-cockpit-routing-regression-tests-20260421-122136",
+      "classification": "active_or_present",
+      "head": "de8aaa23c3faf1008aa6c5d5d5c90c5113a2becc",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c2-cockpit-routing-regression-tests"
+    },
+    {
+      "branch": "refs/heads/cloud/c3-extraction-truth-real-gold-eval-20260421-122136",
+      "classification": "active_or_present",
+      "head": "65eda921419df5840aec99e8914db94e2d1c0518",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c3-extraction-truth-real-gold-eval"
+    },
+    {
+      "branch": "refs/heads/cloud/c4-system-contract-conformance-matrix-20260421-122136",
+      "classification": "active_or_present",
+      "head": "088f6e6483172ce2b5d294259ababa960edf19bf",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c4-system-contract-conformance-matrix"
+    },
+    {
+      "branch": "refs/heads/cloud/c5-multipass-extraction-performance-profile-20260421-122136",
+      "classification": "active_or_present",
+      "head": "9919e49a12e89d7813728fc4ceb35da74ddb7379",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-cloud-20260421-122136/c5-multipass-extraction-performance-profile"
+    },
+    {
+      "branch": "refs/heads/fix/codex-youtube-selection-auto-20260504",
+      "classification": "active_or_present",
+      "head": "c64dcbc334b8f8b168db39b3645fcec38455894e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-codex-youtube-selection-20260504"
+    },
+    {
+      "branch": "refs/heads/audit/eval-instrumentation-bounded-20260421",
+      "classification": "active_or_present",
+      "head": "49a5d34a49b105bdba28ac5ed42649d57b4f4976",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-eval-instrumentation-20260421"
+    },
+    {
+      "branch": "refs/heads/audit/query-legacy-api-chat-taxonomy-v1",
+      "classification": "active_or_present",
+      "head": "9defaed58dc0af1738003ac0215f89205ea02f7d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-g006-legacy-api-chat-audit"
+    },
+    {
+      "branch": "refs/heads/feature/holdings-intent-routing-v1",
+      "classification": "active_or_present",
+      "head": "b7807cac31b5c853cd947653bae54d4ebf33df8e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-holdings-intent-routing-v1"
+    },
+    {
+      "branch": "refs/heads/integration/holdings-intent-routing-v1-review",
+      "classification": "active_or_present",
+      "head": "94c1f88caba4e7338e289f6733091e2f65807c6e",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-holdings-intent-routing-v1-integration-review"
+    },
+    {
+      "branch": "refs/heads/safe/query-legacy-chat-envelope-compat-v1",
+      "classification": "active_or_present",
+      "head": "9fc3d158f0cab218ae17343c00a56cf4d66cc240",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-compat-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/query-legacy-chat-envelope-compat-v1",
+      "classification": "active_or_present",
+      "head": "bcdb57dc9aa31181d08974d34716e4f53e00d485",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-integrate"
+    },
+    {
+      "branch": "refs/heads/integrate/query-legacy-chat-envelope-merge-into-preserve-v1",
+      "classification": "active_or_present",
+      "head": "d86321f7e234738320745ae3e86256e169122cf8",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-merge-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/query-legacy-chat-envelope-refresh-candidate-v1",
+      "classification": "active_or_present",
+      "head": "487edc1a9873923428f11536f19c6212546487c0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-refresh-candidate-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/query-legacy-chat-envelope-refresh-candidate-v2",
+      "classification": "active_or_present",
+      "head": "0423e03322985f3789a85d25f41581f23e707733",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-legacy-chat-envelope-refresh-candidate-v2"
+    },
+    {
+      "branch": "refs/heads/main",
+      "classification": "active_or_present",
+      "head": "2944b1172f61892022a702632d55c905e3d9f83d",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-main-reconcile"
+    },
+    {
+      "branch": "refs/heads/integrate/marketplace-from-baseline-20260430",
+      "classification": "active_or_present",
+      "head": "e20017b106f21a9b6e90f174b272815e155d55e0",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-integration-20260430"
+    },
+    {
+      "branch": "refs/heads/safe/marketplace-match-recency-contract-v1",
+      "classification": "active_or_present",
+      "head": "a8062e65baa3ee8bc2236c1c67c24db3c3194162",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-contract-v1"
+    },
+    {
+      "branch": "refs/heads/safe/marketplace-match-recency-ui-v1",
+      "classification": "active_or_present",
+      "head": "9b4c0b761bb87dbf0782def7f007958bd83ce997",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-match-recency-ui-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/marketplace-recency-current-target-v1",
+      "classification": "active_or_present",
+      "head": "047c7b6646a0591c12d3255a38a0bf8c8fd85ea3",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-recency-current-target-v1"
+    },
+    {
+      "branch": "refs/heads/integrate/marketplace-recency-integration-v1",
+      "classification": "active_or_present",
+      "head": "e1fe995a521b970f3ca732fa058f5853c768b3f6",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-recency-integration-v1"
+    },
+    {
+      "branch": "refs/heads/safe/marketplace-scanner-instrumentation-v1",
+      "classification": "active_or_present",
+      "head": "17ca8e377fc224c95e0d5a7dfd9c412e7315a496",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-marketplace-scanner-instrumentation-v1"
+    },
+    {
+      "branch": "refs/heads/codex/news-memo-env-gated-fallback-provenance-integration-v1",
+      "classification": "active_or_present",
+      "head": "3dda92a4de06629a748ded84c407b185b9504405",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-integration-v1"
+    },
+    {
+      "branch": "refs/heads/codex/news-memo-env-gated-fallback-provenance-v1",
+      "classification": "active_or_present",
+      "head": "ebae61336f9aeb63bb7eaeabb666614f1d84061f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-news-memo-env-gated-fallback-provenance-v1"
+    },
+    {
+      "branch": "refs/heads/codex/news-memo-signal-routing-candidate-fixture-v1",
+      "classification": "active_or_present",
+      "head": "0e5e7df9d155a93b6d42febf89b4acec8b560183",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-news-memo-signal-routing-candidate-fixture-v1"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "31ffd55dda6c22b0f39a7a6ba996835a94dc2d18",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-pr-wave0-review-20260603"
+    },
+    {
+      "branch": "refs/heads/integrate/preserve-chat-envelope-source-label-20260506",
+      "classification": "active_or_present",
+      "head": "77ce4600c42b699c02f223a69a84827566cec7a5",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-preserve-chat-source-label-integrate"
+    },
+    {
+      "branch": "refs/heads/codex/shared-router-strict-eval-acceptance-gate-v1",
+      "classification": "active_or_present",
+      "head": "570ea5704fc41f45d52bb5bfee90858c51e1bbfe",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-shared-router-strict-eval-gate-v1"
+    },
+    {
+      "branch": "refs/heads/codex/source-label-998d68e-clean-integration-20260506",
+      "classification": "active_or_present",
+      "head": "4f9736ce7d683db6d1786a215b0f6efc286f90e9",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate"
+    },
+    {
+      "branch": "refs/heads/codex/source-label-998d68e-clean-integration-retry-20260506",
+      "classification": "active_or_present",
+      "head": "52f2b7558d796e90267e14599a916c2eb4a94ebc",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-label-998d68e-integrate-retry"
+    },
+    {
+      "branch": "refs/heads/work/source-label-equivalence-audit",
+      "classification": "active_or_present",
+      "head": "998d68ee70c1092d82b4dbc5b0363b38331865ca",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-label-equivalence-audit"
+    },
+    {
+      "branch": "refs/heads/work/source-label-v1a",
+      "classification": "active_or_present",
+      "head": "5034e4771cf76e04a63f999a722481cc4d83f3ee",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-label-v1a"
+    },
+    {
+      "branch": "refs/heads/codex/source-page-viewer-import-repair-integration-v1",
+      "classification": "active_or_present",
+      "head": "b72596a6bd7dd36eb2c49580f49f751760b57eda",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-source-page-viewer-import-repair-integration-v1"
+    },
+    {
+      "branch": "refs/heads/stabilize/integration-baseline-20260430T065748Z",
+      "classification": "active_or_present",
+      "head": "5d6ed585f739a5770f04713c085f3da2be8c076b",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-stabilization-baseline-20260430T065748Z"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "31ffd55dda6c22b0f39a7a6ba996835a94dc2d18",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/sdb2/home/l4nd0/tenn-wave0-pr248-investigation-route-guard-tdd-v1-20260603"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-col-parser-current-value-repair-v1-20260604",
+      "classification": "active_or_present",
+      "head": "ab06d41ba534307dfbb4469b4ca12dcd12e1c8b1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/tenn-nvme2/tenn/tmp/tenn-col-parser-current-value-repair-v1-20260604"
+    },
+    {
+      "branch": "refs/heads/safe/extraction-live-contract-truth-gates-v1-20260603-nvme",
+      "classification": "active_or_present",
+      "head": "ab06d41ba534307dfbb4469b4ca12dcd12e1c8b1",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/mnt/tenn-nvme2/tenn/tmp/tenn-extraction-contract-restore-v1-nvme"
+    },
+    {
+      "branch": "refs/heads/audit/appendix4d4e-contract-expansion-v1",
+      "classification": "active_or_present",
+      "head": "5bfdc3f4f74834fe2e654cc9e2f52c40d7039172",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/tmp/tenn-appendix4d4e-contract-audit"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "669d003026c68ce6ef667db7266f665f8a7dd7bd",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/tmp/tenn-merge-parking-review-wrapper-gate-20260604"
+    },
+    {
+      "classification": "active_or_present",
+      "detached": true,
+      "head": "7443d9f248346210ada834e1fd19ab923ace192f",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/tmp/tenn-origin-main-news-verify-20260607"
+    },
+    {
+      "branch": "refs/heads/codex/extraction-provenance-replay-reports-v1-20260608",
+      "classification": "active_or_present",
+      "head": "a4fd1988d89a0a5ed0a19b7699cb5691bd6d7dec",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/tmp/tenn-replay-pr-LskTtF"
+    },
+    {
+      "branch": "refs/heads/codex/extraction-scale-table-selector-v1-20260608",
+      "classification": "active_or_present",
+      "head": "55ef1fa125d316b67d7beea3a5bc2d8bc71f4096",
+      "path_exists": true,
+      "prunable": false,
+      "worktree": "/tmp/tenn-selector-pr-ziyrOK"
+    }
+  ],
+  "generated_at": "2026-06-08T12:22:42.967871+00:00",
+  "hard_stop_path_exists_entries": 0,
+  "metadata_only_stale_entries": 0,
+  "needs_owner_review_entries": 0,
+  "prunable_entries": 0,
+  "total_entries": 439
+}

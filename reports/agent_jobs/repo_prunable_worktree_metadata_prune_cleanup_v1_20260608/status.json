@@ -1,0 +1,51 @@
+{
+  "job_id": "repo_prunable_worktree_metadata_prune_cleanup_v1_20260608",
+  "status": "complete",
+  "decision": "NO_OP_CURRENTLY_PRUNABLE",
+  "mode": "approval_packet_only",
+  "actual_prune_allowed": false,
+  "github_issue": 329,
+  "github_mutations": [],
+  "forbidden_actions_avoided": [
+    "actual_git_worktree_prune",
+    "branch_delete",
+    "branch_ref_delete",
+    "real_worktree_directory_delete",
+    "reset_stash_clean_rebase_merge_cherry_pick",
+    "product_runtime_data_mutation",
+    "issue_closure"
+  ],
+  "issue_readback": {
+    "329": {
+      "state": "OPEN",
+      "title": "[Repo Hygiene] Approval-gated prune of stale git worktree metadata",
+      "url": "https://github.com/0rl4nd0l/tenn/issues/329"
+    }
+  },
+  "inventory": {
+    "total_entries": 439,
+    "prunable_entries": 0,
+    "metadata_only_stale_entries": 0,
+    "hard_stop_path_exists_entries": 0,
+    "needs_owner_review_entries": 0,
+    "data_missing_nonprunable_path_absent_entries": 0
+  },
+  "dry_run": {
+    "command": "git worktree prune --dry-run",
+    "output_bytes": 0,
+    "removal_lines": 0,
+    "stderr_present": false
+  },
+  "validation": {
+    "task_card_validate": "PASS",
+    "registry_list_active_read_only": "PASS",
+    "worktree_inventory_json_parse": "PASS",
+    "status_json_parse": "PASS",
+    "issue_329_readback": "PASS",
+    "git_diff_check": "PASS",
+    "task_card_check_diff": "PASS",
+    "diff_check_json_written": "PASS",
+    "actual_prune_run": "NO"
+  },
+  "next_safe_step": "Run an issue-closeout/reviewer pass for #329 using this no-op dry-run evidence; do not run actual prune unless a new fresh dry-run shows removal candidates and the operator explicitly approves."
+}
