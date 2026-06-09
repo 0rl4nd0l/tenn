@@ -1,0 +1,25 @@
+{
+  "job_id": "cockpit_mobile_chrome_compact_v1_20260601",
+  "issue": 46,
+  "lane": "Reporting",
+  "execution_mode": "safe_extension",
+  "collision_risk": "LOW",
+  "branch": "safe/cockpit-mobile-chrome-compact-v1-20260601",
+  "status": "released_pending_pr",
+  "registry_claim_released": true,
+  "production_data_access": false,
+  "files_changed": [
+    "docs/agent_tasks/cockpit_mobile_chrome_compact_v1_20260601.md",
+    "cockpit-ui/components/cockpit/cockpit-layout.tsx",
+    "cockpit-ui/lib/cockpit-mobile-chrome.ts",
+    "cockpit-ui/lib/cockpit-mobile-chrome.test.ts",
+    "reports/agent_jobs/cockpit_mobile_chrome_compact_v1_20260601/README.md",
+    "reports/agent_jobs/cockpit_mobile_chrome_compact_v1_20260601/status.json",
+    "reports/agent_jobs/cockpit_mobile_chrome_compact_v1_20260601/validation.json",
+    "reports/agent_jobs/cockpit_mobile_chrome_compact_v1_20260601/diff-check.json"
+  ],
+  "contested_surfaces_touched": false,
+  "route_specific_files_touched": false,
+  "validation_result": "pass",
+  "remaining_scope": "Route-specific mobile sweeps remain out of scope for this first shared-shell slice."
+}

@@ -1,0 +1,59 @@
+{
+  "job_id": "cockpit_mobile_chrome_compact_v1_20260601",
+  "browser_plugin": "absent",
+  "browser_fallback": "Playwright",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_mobile_chrome_compact_v1_20260601.md",
+      "result": "pass"
+    },
+    {
+      "name": "registry_claim",
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_mobile_chrome_compact_v1_20260601.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "registry_overlap",
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_mobile_chrome_compact_v1_20260601.md --repo-root .",
+      "result": "pass"
+    },
+    {
+      "name": "focused_vitest",
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run lib/cockpit-mobile-chrome.test.ts",
+      "result": "pass",
+      "detail": "1 file passed; 3 tests passed"
+    },
+    {
+      "name": "focused_eslint",
+      "command": "corepack pnpm --dir cockpit-ui exec eslint components/cockpit/cockpit-layout.tsx lib/cockpit-mobile-chrome.ts lib/cockpit-mobile-chrome.test.ts",
+      "result": "pass"
+    },
+    {
+      "name": "playwright_mobile_390x844",
+      "result": "pass",
+      "detail": "Financial Cockpit rendered nonblank with no framework overlay, no console errors, no bad HTTP responses, 844px shell wrapper, in-viewport footer, and shell content overflow auto"
+    },
+    {
+      "name": "playwright_desktop_1440x1000",
+      "result": "pass",
+      "detail": "Financial Cockpit rendered nonblank with no framework overlay, no console errors, no bad HTTP responses, 1000px shell wrapper, in-viewport footer, and desktop shell content overflow hidden"
+    },
+    {
+      "name": "playwright_desktop_toggle",
+      "result": "pass",
+      "detail": "Switch to iPhone Scale changed to Switch to Desktop Scale and compact shell overflow switched to auto"
+    },
+    {
+      "name": "generated_file_drift",
+      "result": "pass",
+      "detail": "next-env.d.ts drift from local Next.js dev server was restored before staging"
+    },
+    {
+      "name": "runtime_cleanup",
+      "result": "pass",
+      "detail": "local Next.js dev server and isolated backend were stopped after rendered validation"
+    }
+  ],
+  "remaining_scope": "Shared-shell first slice only; route-specific mobile sweeps remain out of scope."
+}
