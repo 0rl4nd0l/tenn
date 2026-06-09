@@ -1,0 +1,93 @@
+{
+  "command_checks": [
+    {
+      "command": "pwd && git branch --show-current && git rev-parse HEAD && git remote -v && git status --short --untracked-files=all",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_deployment_readiness_current_canonical_v1_20260609.md",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "note": "Read-only registry returned active_jobs=[] and lock_acquired=false.",
+      "status": "pass"
+    },
+    {
+      "command": "git ls-remote origin refs/heads/migration/clean-runtime-baseline-reconstruct-v1",
+      "exit_code": 0,
+      "note": "Remote canonical resolved to ee839fd9d7cd438aa1f6953642ef3bb0080b252a.",
+      "status": "pass"
+    },
+    {
+      "command": "git merge-base --is-ancestor bf133f06047360545905b2950830645fe9649d98 ee839fd9d7cd438aa1f6953642ef3bb0080b252a",
+      "exit_code": 0,
+      "note": "The approved count-24 target remains an ancestor of current remote canonical.",
+      "status": "pass"
+    },
+    {
+      "command": "for pr in 336 331 309 196; do gh pr view \"$pr\" --json number,title,state,mergedAt,mergeCommit,headRefName,baseRefName,isDraft,url; done",
+      "exit_code": 0,
+      "note": "Executed as read-only PR lookups, one PR at a time.",
+      "status": "pass"
+    },
+    {
+      "command": "for issue in 73 96 97 286; do gh issue view \"$issue\" --json number,title,state,labels,url,updatedAt; done",
+      "exit_code": 0,
+      "note": "Executed as read-only issue lookups, one issue at a time.",
+      "status": "pass"
+    },
+    {
+      "command": "python3 - <<'PY' ... read count-24 status/failure/audit JSON from sibling worktree ... PY",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "command": "git worktree list --porcelain",
+      "exit_code": 0,
+      "note": "Used only to distinguish local-only packet branches and active worktrees from merged PR evidence.",
+      "status": "pass"
+    },
+    {
+      "command": "nvidia-smi -i 1 --query-gpu=index,name,temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw --format=csv,noheader,nounits",
+      "exit_code": 0,
+      "note": "Active Tesla M40 was 37 C and 0 percent utilization during closeout.",
+      "status": "pass"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_deployment_readiness_current_canonical_v1_20260609.md --repo-root . --no-write-report",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "command": "python3 - <<'PY' ... json.loads() for reports/agent_jobs/extraction_deployment_readiness_current_canonical_v1_20260609/*.json ... PY",
+      "exit_code": 0,
+      "status": "pass"
+    }
+  ],
+  "generated_at": "2026-06-09T06:42:50Z",
+  "job_id": "extraction_deployment_readiness_current_canonical_v1_20260609",
+  "no_scope_breach": {
+    "backfill_run": false,
+    "broad_extraction_run": false,
+    "count24_run_in_this_closeout": false,
+    "count32_run": false,
+    "github_mutated": false,
+    "random_sample_run": false,
+    "runtime_or_data_mutated": false
+  },
+  "validation_status": "PASS_WITH_RISK",
+  "why_risk_remains": [
+    "The closeout is report-only and does not add new extraction accuracy evidence.",
+    "The prior count-24 result was success-with-risk, not broad deployment proof.",
+    "Open GitHub blocker issues still require provenance, scorecard, and terminal extraction work."
+  ]
+}

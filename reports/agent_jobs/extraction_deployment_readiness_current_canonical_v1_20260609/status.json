@@ -1,0 +1,140 @@
+{
+  "blocked_for_broad_deployment": true,
+  "current_checkout": {
+    "branch": "safe/cockpit-news-context-date-filter-merge-packets-preserve-v1-20260609",
+    "head": "932284857b02f469429482d1e9080870ca55a7a1",
+    "head_is_ancestor_of_remote_canonical": true,
+    "remote_canonical_head": "ee839fd9d7cd438aa1f6953642ef3bb0080b252a",
+    "remote_canonical_is_ancestor_of_head": false,
+    "worktree": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1"
+  },
+  "deployment_readiness_decision": "NOT_READY",
+  "generated_at": "2026-06-09T06:40:26Z",
+  "github_read_only": {
+    "issues": [
+      {
+        "number": 73,
+        "state": "OPEN",
+        "title": "[Financial Truth] ASX evidence-bound extraction redesign parent tracker",
+        "updated_at": "2026-06-08T11:22:14Z"
+      },
+      {
+        "number": 96,
+        "state": "OPEN",
+        "title": "[Query Orchestration] Most PDF-path documents lack terminal extraction",
+        "updated_at": "2026-06-07T11:16:13Z"
+      },
+      {
+        "number": 97,
+        "state": "OPEN",
+        "title": "[Evaluation] Generate extracted-payload scorecard for confirmed metric coverage",
+        "updated_at": "2026-06-01T17:27:55Z"
+      },
+      {
+        "number": 286,
+        "state": "OPEN",
+        "title": "[Financial Truth] Add field-level provenance and accounting number parsing to extraction outputs",
+        "updated_at": "2026-06-03T01:36:30Z"
+      }
+    ],
+    "prs": [
+      {
+        "merge_commit": "356c495d8a6f3fb09d1cf3d2aa7d3a79b0a6e448",
+        "merged_at": "2026-06-08T22:47:17Z",
+        "number": 336,
+        "state": "MERGED",
+        "title": "[codex] Fix HUB half-year period binding from source evidence"
+      },
+      {
+        "merge_commit": "c5c39d128a6e1ea23415f08803844677add1efdd",
+        "merged_at": "2026-06-08T13:26:40Z",
+        "number": 331,
+        "state": "MERGED",
+        "title": "fix(extraction): prefer CTN quarterly source evidence"
+      },
+      {
+        "merge_commit": "bfe3a77ec6692d5052eefec7454461e75459f7e3",
+        "merged_at": "2026-06-07T06:48:18Z",
+        "number": 309,
+        "state": "MERGED",
+        "title": "Preserve count-24 approval packet"
+      },
+      {
+        "merge_commit": "bf65f8b2510af8e592f40a1ac58bd9bc5a706cc9",
+        "merged_at": "2026-06-08T23:23:37Z",
+        "number": 196,
+        "state": "MERGED",
+        "title": "[Reporting] Gate Operations universe backfill review"
+      }
+    ]
+  },
+  "job_id": "extraction_deployment_readiness_current_canonical_v1_20260609",
+  "local_only_context": {
+    "count24_approval_packet_current_canonical_branch": "safe/extraction-count24-approval-packet-current-canonical-v1-20260609",
+    "count24_bounded_validation_branch": "safe/extraction-count24-bounded-validation-current-canonical-v1-20260609",
+    "count24_bounded_validation_commit": "cc2a2df5a3eef0b0d43a300620d8d33aeea63d6a",
+    "count32_packet_branch_observed": "safe/extraction-count32-approval-packet-post-count24-v1-20260609",
+    "count32_packet_is_execution_evidence": false
+  },
+  "no_scope_breach": {
+    "backfill_run": false,
+    "broad_extraction_run": false,
+    "count24_run_in_this_closeout": false,
+    "count32_run": false,
+    "db_mutated": false,
+    "full_ticker_universe_extraction_run": false,
+    "github_mutated": false,
+    "gold_labels_mutated": false,
+    "gpu_config_mutated": false,
+    "memory_mutated": false,
+    "model_config_mutated": false,
+    "news_mutated": false,
+    "prompts_mutated": false,
+    "qdrant_mutated": false,
+    "random_sample_run": false,
+    "redis_mutated": false,
+    "runtime_config_mutated": false,
+    "source_pdfs_mutated": false
+  },
+  "prior_count24": {
+    "accepted_count": 12,
+    "accepted_missing_row_refs_or_extraction_run_id": 12,
+    "approved_head": "bf133f06047360545905b2950830645fe9649d98",
+    "count32_decision": "not authorized; requires a separate approval packet after operator review",
+    "failed_count": 12,
+    "failure_taxonomy": {
+      "classifier_low_confidence:0.0": 1,
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 2,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "validation_gate:announcement_date_period_end": 1,
+      "validation_gate:insufficient_metrics": 1,
+      "validation_gate:metric_label_mismatch": 1,
+      "validation_gate:scale_unknown": 2
+    },
+    "ok_count": 11,
+    "ok_low_confidence_count": 1,
+    "sample_completed": true,
+    "seed": 20260602,
+    "side_effect_clean": true,
+    "total": 24,
+    "unsafe_accepted_output_count": 0,
+    "verdict": "COUNT24_SUCCESS_WITH_RISK"
+  },
+  "read_only_registry": {
+    "active_jobs": [],
+    "lock_acquired": false,
+    "ok": true
+  },
+  "root_causes": [
+    "accepted rows do not expose durable page/table/row provenance or extraction_run_id",
+    "source-document classification still admits or blocks mixed document classes inconsistently",
+    "scale binding remains incomplete on formal reports",
+    "metric ontology and label gates still hit canonical/adjacent-label mismatches",
+    "confirmed-payload scorecard coverage remains open"
+  ],
+  "status": "closed_out_audit_only",
+  "validation_status": "PASS_WITH_RISK"
+}
