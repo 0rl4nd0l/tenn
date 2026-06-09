@@ -1,0 +1,57 @@
+{
+  "job_id": "cockpit_news_context_date_filter_merge_execution_v1_20260609",
+  "status": "complete",
+  "created_at": "2026-06-09T08:46:44+10:00",
+  "mode": "mark_ready_and_merge_pr_only",
+  "target_pr": 337,
+  "target_base": "migration/clean-runtime-baseline-reconstruct-v1",
+  "target_head": "safe/cockpit-news-context-date-filter-v1-20260609",
+  "github_mutations": [
+    {
+      "type": "mark_ready_for_review",
+      "pr": 337
+    },
+    {
+      "type": "pr_merge",
+      "pr": 337,
+      "merged_at": "2026-06-08T22:46:35Z",
+      "merge_commit": "1d307e0bec051e1a2590c8e6c1399ae3ce574e73"
+    }
+  ],
+  "pre_merge_readback": {
+    "state": "OPEN",
+    "is_draft": false,
+    "mergeable": "MERGEABLE",
+    "merge_state_status": "CLEAN",
+    "checks": {
+      "lint-and-test": "SUCCESS",
+      "scan": "SUCCESS"
+    }
+  },
+  "post_merge_readback": {
+    "state": "MERGED",
+    "merged_at": "2026-06-08T22:46:35Z",
+    "merge_commit": "1d307e0bec051e1a2590c8e6c1399ae3ce574e73",
+    "origin_target_head_after_fetch": "c6cd87ebbd93bd98710bb0fa654862c7f944a34e",
+    "target_head_note": "origin target advanced after PR #337 via PR #296; PR #337 merge commit remains contained in target"
+  },
+  "validation": {
+    "merge_execution_task_card_validate": "PASS",
+    "merge_execution_task_card_check_diff_pre_mutation": "PASS",
+    "git_diff_check": "PASS",
+    "fresh_pr_readback_pre_ready": "PASS",
+    "mark_ready_for_review": "PASS",
+    "fresh_pr_readback_pre_merge": "PASS",
+    "pr_merge": "PASS",
+    "post_merge_pr_readback": "PASS",
+    "origin_target_fetch": "PASS",
+    "pr337_merge_commit_contained_in_target": "PASS"
+  },
+  "forbidden_actions_avoided": [
+    "source_branch_delete",
+    "push_commit",
+    "issue_mutation",
+    "branch_ref_worktree_or_stash_delete",
+    "db_qdrant_redis_news_store_or_production_data_mutation"
+  ]
+}

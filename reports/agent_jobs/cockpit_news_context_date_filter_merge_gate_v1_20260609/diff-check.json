@@ -1,0 +1,40 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_news_context_date_filter_merge_gate_v1_20260609.md",
+      "status": "??"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_news_context_date_filter_merge_gate_v1_20260609/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_news_context_date_filter_merge_gate_v1_20260609.md",
+        "reports/agent_jobs/cockpit_news_context_date_filter_merge_gate_v1_20260609/README.md",
+        "reports/agent_jobs/cockpit_news_context_date_filter_merge_gate_v1_20260609/status.json",
+        "reports/agent_jobs/cockpit_news_context_date_filter_merge_gate_v1_20260609/validation.json",
+        "reports/agent_jobs/cockpit_news_context_date_filter_merge_gate_v1_20260609/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": false,
+      "job_id": "cockpit_news_context_date_filter_merge_gate_v1_20260609",
+      "lane": "Reporting",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/cockpit_news_context_date_filter_merge_gate_v1_20260609",
+      "owner": "Codex",
+      "production_data_access": false,
+      "requested_mutation_mode": "merge_readiness_review",
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Evaluation"
+      ],
+      "timeout_seconds": 1800
+    },
+    "ok": true
+  }
+}
