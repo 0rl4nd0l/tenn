@@ -103,6 +103,31 @@ export interface StrategyLabReviewPacket extends StrategyLabReviewPacketSource {
   availability: StrategyLabReviewQueueAvailability;
 }
 
+export type StrategyLabAnalystWorkflowKind =
+  | 'interpret_existing_backtest'
+  | 'compare_repeatability_outputs'
+  | 'explain_regime_limits'
+  | 'attach_pending_review_evidence';
+
+export interface StrategyLabAnalystWorkflow {
+  id: string;
+  label: string;
+  kind: StrategyLabAnalystWorkflowKind;
+  analyst_question: string;
+  analyst_value: string;
+  source_item_ids: string[];
+  workflow_steps: string[];
+  expected_readonly_output: string[];
+  review_status: 'PENDING_REVIEW';
+  source_mode: 'repo_artifacts_only';
+  current_sidecar_available: false;
+  execution_allowed: false;
+  canonical_financial_truth: false;
+  real_transport: false;
+  promotion_blockers: string[];
+  data_missing: string[];
+}
+
 export interface StrategyLabReviewWorkflow {
   schema_version: 'cockpit_strategy_lab_review_workflow_v1';
   generated_at: string;
@@ -115,6 +140,7 @@ export interface StrategyLabReviewWorkflow {
   sort_options: string[];
   filter_facets: string[];
   group_summaries: StrategyLabReviewQueueGroupSummary[];
+  analyst_workflows: StrategyLabAnalystWorkflow[];
   review_queue: StrategyLabReviewQueueItem[];
   experiment_sessions: StrategyLabExperimentSessionSource[];
   export_packets: StrategyLabReviewPacket[];
@@ -413,6 +439,117 @@ export const STRATEGY_LAB_REVIEW_PACKETS: StrategyLabReviewPacketSource[] = [
   },
 ];
 
+export const STRATEGY_LAB_ANALYST_WORKFLOWS: StrategyLabAnalystWorkflow[] = [
+  {
+    id: 'interpret_existing_qd_backtest',
+    label: 'Interpret an existing QuantDinger backtest artifact',
+    kind: 'interpret_existing_backtest',
+    analyst_question: 'What does the saved QuantDinger backtest artifact say, and what should an analyst not infer from it?',
+    analyst_value:
+      'Turns repo-backed backtest evidence into a bounded review brief without running a sidecar or treating the result as advice.',
+    source_item_ids: ['runtime_clean_reprobe_proof', 'repeatability_clean_reprobe_matrix'],
+    workflow_steps: [
+      'Open the saved backtest request and final response artifacts.',
+      'Summarize the reported strategy result, input assumptions, and available provenance.',
+      'List every DATA_MISSING item and every non-live/non-canonical limitation beside the summary.',
+    ],
+    expected_readonly_output: [
+      'PENDING_REVIEW backtest interpretation',
+      'source artifact references',
+      'DATA_MISSING and limitation list',
+    ],
+    review_status: 'PENDING_REVIEW',
+    source_mode: 'repo_artifacts_only',
+    current_sidecar_available: false,
+    execution_allowed: false,
+    canonical_financial_truth: false,
+    real_transport: false,
+    promotion_blockers: ['human_review_decision absent', 'current_sidecar_available=false'],
+    data_missing: ['human_review_decision', 'current_sidecar_runtime', 'investment_correctness_review'],
+  },
+  {
+    id: 'compare_qd_repeatability_outputs',
+    label: 'Compare repeatability and re-probe outputs',
+    kind: 'compare_repeatability_outputs',
+    analyst_question: 'Are the saved repeatability and re-probe packets internally consistent enough for human review?',
+    analyst_value:
+      'Helps an analyst decide whether the evidence package is coherent before considering any future Strategy Lab promotion.',
+    source_item_ids: ['repeatability_clean_reprobe_matrix', 'cleanup_revoke_zero_order_packet'],
+    workflow_steps: [
+      'Compare saved validation, runtime proof, zero-order proof, revoke proof, and cleanup proof records.',
+      'Separate stable repo-backed facts from historical runtime facts.',
+      'Escalate missing commit refs, review decisions, or current runtime checks as blockers.',
+    ],
+    expected_readonly_output: [
+      'repeatability consistency note',
+      'historical-vs-current boundary',
+      'promotion blocker list',
+    ],
+    review_status: 'PENDING_REVIEW',
+    source_mode: 'repo_artifacts_only',
+    current_sidecar_available: false,
+    execution_allowed: false,
+    canonical_financial_truth: false,
+    real_transport: false,
+    promotion_blockers: ['source_commit_ref incomplete', 'no current runtime probe in this workflow'],
+    data_missing: ['source_commit_ref', 'current_listener_probe_for_this_task', 'review_owner'],
+  },
+  {
+    id: 'explain_qd_regime_result_limits',
+    label: 'Explain a saved regime result and its limits',
+    kind: 'explain_regime_limits',
+    analyst_question: 'What can the saved regime artifact explain, and what remains outside evidence?',
+    analyst_value:
+      'Makes the regime fixture useful as a constrained sanity-check input while preserving DATA_MISSING for current detection.',
+    source_item_ids: ['runtime_clean_reprobe_proof', 'degraded_sidecar_unavailable_fixture', 'degraded_timeout_fixture'],
+    workflow_steps: [
+      'Read the saved regime request and response artifacts.',
+      'Explain the reported regime fields as historical sandbox evidence only.',
+      'Pair the explanation with unavailable and timeout degraded-state fixtures.',
+    ],
+    expected_readonly_output: [
+      'PENDING_REVIEW regime explanation',
+      'degraded-state limitation summary',
+      'current detector DATA_MISSING list',
+    ],
+    review_status: 'PENDING_REVIEW',
+    source_mode: 'repo_artifacts_only',
+    current_sidecar_available: false,
+    execution_allowed: false,
+    canonical_financial_truth: false,
+    real_transport: false,
+    promotion_blockers: ['current_sidecar_available=false', 'real timeout and retry behavior not implemented'],
+    data_missing: ['current_regime_endpoint', 'real_timeout_budget', 'retry_attempt_evidence'],
+  },
+  {
+    id: 'attach_qd_pending_review_evidence',
+    label: 'Attach QD evidence to a strategy idea as pending review',
+    kind: 'attach_pending_review_evidence',
+    analyst_question: 'Which saved QD evidence can be attached to a strategy idea without promoting it?',
+    analyst_value:
+      'Gives analysts a bounded evidence-attachment workflow that preserves provenance while denying execution and canonical truth.',
+    source_item_ids: ['promotion_gate_bundle', 'unresolved_risk_register', 'human_review_decision_absent'],
+    workflow_steps: [
+      'Select only repo-backed review queue items and export packets.',
+      'Attach source paths, provenance labels, DATA_MISSING, and promotion blockers to the strategy idea.',
+      'Keep the attachment PENDING_REVIEW and exclude all order, store-write, or canonical-truth fields.',
+    ],
+    expected_readonly_output: [
+      'pending-review evidence attachment packet',
+      'source path and provenance labels',
+      'promotion denied until separate approval',
+    ],
+    review_status: 'PENDING_REVIEW',
+    source_mode: 'repo_artifacts_only',
+    current_sidecar_available: false,
+    execution_allowed: false,
+    canonical_financial_truth: false,
+    real_transport: false,
+    promotion_blockers: ['human_review_decision absent', 'approved_adapter_task_card absent'],
+    data_missing: ['review_decision', 'approved_adapter_task_card', 'persistent_artifact_store'],
+  },
+];
+
 export function buildStrategyLabReviewWorkflow({
   generatedAt,
   reviewQueue,
@@ -436,6 +573,7 @@ export function buildStrategyLabReviewWorkflow({
     sort_options: ['priority_then_sort_key', 'group_then_priority', 'availability_then_priority'],
     filter_facets: ['group', 'review_status', 'availability', 'priority', 'filter_tags'],
     group_summaries: summarizeReviewQueue(reviewQueue),
+    analyst_workflows: STRATEGY_LAB_ANALYST_WORKFLOWS,
     review_queue: sortReviewQueue(reviewQueue),
     experiment_sessions: experimentSessions,
     export_packets: exportPackets,

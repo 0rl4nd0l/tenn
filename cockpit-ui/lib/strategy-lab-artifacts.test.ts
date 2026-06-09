@@ -96,6 +96,28 @@ describe('Strategy Lab artifacts contract', () => {
       review_status: 'PENDING_REVIEW',
       current_sidecar_available: false,
     });
+    expect(payload.review_workflow.analyst_workflows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'interpret_existing_qd_backtest',
+          kind: 'interpret_existing_backtest',
+          review_status: 'PENDING_REVIEW',
+          source_mode: 'repo_artifacts_only',
+          current_sidecar_available: false,
+          execution_allowed: false,
+          canonical_financial_truth: false,
+          real_transport: false,
+        }),
+      ]),
+    );
+    expect(
+      payload.review_workflow.analyst_workflows.find((workflow) => workflow.id === 'interpret_existing_qd_backtest')
+        ?.expected_readonly_output,
+    ).toContain('PENDING_REVIEW backtest interpretation');
+    expect(
+      payload.review_workflow.analyst_workflows.find((workflow) => workflow.id === 'attach_qd_pending_review_evidence')
+        ?.promotion_blockers,
+    ).toContain('human_review_decision absent');
     expect(payload.boundary_flags).toMatchObject({
       read_only: true,
       live_trading: false,
@@ -187,5 +209,14 @@ describe('Strategy Lab artifacts contract', () => {
     expect(workflow.current_sidecar_available).toBe(false);
     expect(workflow.source_mode).toBe('repo_artifacts_only');
     expect(workflow.sort_options).toContain('priority_then_sort_key');
+    expect(workflow.analyst_workflows.map((item) => item.id)).toEqual([
+      'interpret_existing_qd_backtest',
+      'compare_qd_repeatability_outputs',
+      'explain_qd_regime_result_limits',
+      'attach_qd_pending_review_evidence',
+    ]);
+    expect(workflow.analyst_workflows.every((item) => item.review_status === 'PENDING_REVIEW')).toBe(true);
+    expect(workflow.analyst_workflows.every((item) => item.execution_allowed === false)).toBe(true);
+    expect(workflow.analyst_workflows.every((item) => item.canonical_financial_truth === false)).toBe(true);
   });
 });
