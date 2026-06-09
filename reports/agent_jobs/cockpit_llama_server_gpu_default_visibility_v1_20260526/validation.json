@@ -1,0 +1,79 @@
+{
+  "artifact_type": "agent_job_validation_v1",
+  "generated_at": "2026-06-01T20:55:00+10:00",
+  "job_id": "cockpit_llama_server_gpu_default_visibility_v1_20260526",
+  "results": {
+    "gpu_process_guard": {
+      "command": "scripts/gpu_process_guard.sh --check",
+      "result": "PASS"
+    },
+    "task_card_validate": {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/cockpit_llama_server_gpu_default_visibility_v1_20260526.md",
+      "result": "PASS"
+    },
+    "registry_list_active": {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "result": "PASS: active Financial Truth job observed without overlap"
+    },
+    "registry_check_overlap": {
+      "command": "python3 scripts/agent_job_registry.py check-overlap docs/agent_tasks/cockpit_llama_server_gpu_default_visibility_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_claim": {
+      "command": "python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_llama_server_gpu_default_visibility_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_reclaim_after_allowlist_update": {
+      "command": "python3 scripts/agent_job_registry.py release cockpit_llama_server_gpu_default_visibility_v1_20260526 --repo-root . && python3 scripts/agent_job_registry.py claim docs/agent_tasks/cockpit_llama_server_gpu_default_visibility_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    },
+    "registry_release": {
+      "command": "python3 scripts/agent_job_registry.py release cockpit_llama_server_gpu_default_visibility_v1_20260526 --repo-root .",
+      "result": "PASS"
+    },
+    "duplicate_search": {
+      "command": "gh issue/pr searches for issue #61 GPU/llama-server terms",
+      "result": "PASS: no exact open PR found; adjacent #90 and #113 are separate"
+    },
+    "dependency_install": {
+      "command": "corepack pnpm --dir cockpit-ui install --frozen-lockfile",
+      "result": "PASS"
+    },
+    "focused_vitest": {
+      "command": "corepack pnpm --dir cockpit-ui exec vitest run lib/gpu-display.test.ts",
+      "result": "PASS: 1 file / 4 tests"
+    },
+    "focused_eslint": {
+      "command": "corepack pnpm --dir cockpit-ui exec eslint app/api/cockpit/health/route.ts app/api/cockpit/metrics/gpu/route.ts lib/gpu-display.ts lib/gpu-display.test.ts",
+      "result": "PASS"
+    },
+    "full_vitest_accidental_run": {
+      "command": "corepack pnpm --dir cockpit-ui test -- lib/gpu-display.test.ts",
+      "result": "FAIL_UNRELATED_PREEXISTING: command ran broader suite; failures were in Home/Marketplace tests outside this diff"
+    },
+    "full_eslint": {
+      "command": "corepack pnpm --dir cockpit-ui lint",
+      "result": "FAIL_UNRELATED_PREEXISTING: thesis-audit-screen.tsx unescaped quote errors outside this diff"
+    },
+    "gpu_runtime_evidence": {
+      "command": "nvidia-smi GPU/process queries plus ps command inspection",
+      "result": "PASS: active llama-server mapped to Tesla M40 GPU UUID while first host GPU was GT 1030"
+    },
+    "json_validation": {
+      "command": "jq empty reports/agent_jobs/cockpit_llama_server_gpu_default_visibility_v1_20260526/*.json",
+      "result": "PASS"
+    },
+    "path_redaction": {
+      "command": "host-local absolute path redaction scan over task card, code diff, and report bundle",
+      "result": "PASS"
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    "task_card_check_diff": {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/cockpit_llama_server_gpu_default_visibility_v1_20260526.md --repo-root .",
+      "result": "PASS"
+    }
+  }
+}
