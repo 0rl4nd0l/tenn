@@ -201,6 +201,19 @@ Operational controls:
 - Single active action at a time (new runs are blocked while one job is running).
 - "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
 
+News context DB resolution:
+- Cockpit defaults to `rag.news_context.db_path=reports/qual_context/news.sqlite`
+  from `config/cockpit.yaml`.
+- Env precedence is `COCKPIT_NEWS_DB_PATH`, then `TENN_NEWS_CONTEXT_DB`,
+  then `TENN_NEWS_ARTIFACT_ROOT/news.sqlite`.
+- When the configured value is the default relative path, startup picks the
+  newest existing `news.sqlite` among the nightly artifact root and repo-local
+  candidates. Explicit absolute paths are used as-is.
+- The matching nightly refresh wrapper is
+  `financial-engine_v2/scripts/nightly_news.sh`; see
+  `../docs/news_corpus_pipeline.md` for health gates, artifacts, and
+  troubleshooting.
+
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)

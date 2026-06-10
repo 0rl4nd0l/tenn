@@ -25,7 +25,7 @@
 - Phase gates: `phase_checklist.md`
 - Contextualization (RAG) workflow: `contextualization_workflow.md`
 - Canonical datasets: `canonical_datasets.md`
-- News corpus pipeline (experimental, research-only): `news_corpus_pipeline.md`
+- News corpus pipeline, nightly ops, and Cockpit news DB resolution: `news_corpus_pipeline.md`
 
 ### Migration / historical
 
