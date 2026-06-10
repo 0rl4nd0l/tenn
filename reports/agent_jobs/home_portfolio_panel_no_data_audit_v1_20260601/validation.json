@@ -1,0 +1,40 @@
+{
+  "job_id": "home_portfolio_panel_no_data_audit_v1_20260601",
+  "checks": [
+    {
+      "name": "backend_health_redacted",
+      "status": "pass",
+      "evidence": "GET 127.0.0.1:8000/api/health returned status ok"
+    },
+    {
+      "name": "backend_portfolio_redacted_summary",
+      "status": "pass",
+      "evidence": "GET 127.0.0.1:8000/api/cockpit/home/portfolio returned ok true, data_state PARTIAL, holdings_count 78, priced_holdings_count 78, total_value null, currency null, and currency ambiguity missing codes"
+    },
+    {
+      "name": "raw_payload_redaction",
+      "status": "pass",
+      "evidence": "No holding rows, tickers, account details, local paths, or raw personal portfolio values are committed"
+    },
+    {
+      "name": "open_pr_overlap",
+      "status": "blocked",
+      "evidence": "PR #134 overlaps likely frontend files; PR #159 overlaps likely backend files"
+    },
+    {
+      "name": "frontend_bff_payload",
+      "status": "pass",
+      "evidence": "Temporary isolated Next.js dev server returned a BFF portfolio payload with data_state PARTIAL, holdings_count 78, priced_holdings_count 78, total_value null, currency null, and currency ambiguity missing codes"
+    },
+    {
+      "name": "headless_ui_text_inspection",
+      "status": "pass",
+      "evidence": "Home portfolio panel rendered Total Value DATA_MISSING, Day Change DATA_MISSING, Coverage 100%, 78/78 priced, and both currency ambiguity signals"
+    },
+    {
+      "name": "registry_release",
+      "status": "pass",
+      "evidence": "Registry claim for home_portfolio_panel_no_data_audit_v1_20260601 was released before final staging"
+    }
+  ]
+}

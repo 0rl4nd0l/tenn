@@ -1,0 +1,20 @@
+{
+  "job_id": "home_portfolio_panel_no_data_audit_v1_20260601",
+  "issue": 86,
+  "status": "ready_for_review",
+  "decision": "keep_open_partial_state_clarity_followup",
+  "lane": "Reporting",
+  "execution_mode": "audit_only",
+  "collision_risk": "medium",
+  "branch": "audit/home-portfolio-panel-no-data-audit-v1-20260601",
+  "worktree": "isolated",
+  "claimed_at": "2026-06-01T11:06:21.868743Z",
+  "released_at": "2026-06-01T11:09:49.511626Z",
+  "registry_release": "pass",
+  "implementation_blocked_by": [
+    "PR #134 overlaps Cockpit Home frontend files",
+    "PR #159 overlaps Cockpit Home backend files",
+    "fix choice requires product decision on partial-state portfolio display"
+  ],
+  "raw_personal_portfolio_rows_committed": false
+}
