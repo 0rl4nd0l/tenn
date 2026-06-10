@@ -16,6 +16,12 @@ allowed_files:
   - reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/code_review.json
   - reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/validation.json
   - reports/agent_jobs/extraction_whc_parser_openability_sidecar_v1_20260610/diff-check.json
+  - docs/agent_tasks/extraction_whc_openability_exact_source_smoke_v1_20260610.md
+  - reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/README.md
+  - reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/live_git_status.json
+  - reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/exact_source_smoke.json
+  - reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/validation.json
+  - reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/diff-check.json
 approval_required: false
 allow_unapproved_safe_extension: true
 timeout_seconds: 7200
@@ -55,6 +61,8 @@ Target evidence:
 - Add focused mocked tests in `test_docling_extract.py`.
 - Use dependency-injected command runners or pure functions for OCR/openability
   tests; do not require live OCR binaries in unit tests.
+- Run one exact-source read-only smoke only with a temporary data root, and
+  record the result as report-local evidence.
 
 ## Hard Stops
 
@@ -78,6 +86,8 @@ Target evidence:
   period phrase, scale phrase, and row candidates without normalizing values.
 - Positive: diagnostic payload round-trips through parser cache without changing
   `tables` or `sections`.
+- Positive: mixed statement pages plus a scale-note page classify parser cell
+  loss from OCR statement pages, not unrelated nonempty note-page noise.
 - Negative: default parser extraction does not run the diagnostic path.
 - Negative: OCR command failure records `DATA_MISSING` and does not promote
   metrics.

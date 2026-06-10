@@ -38,6 +38,8 @@ behavior and canonical extraction output remain unchanged.
   diagnostics.
 - The diagnostic payload records statement labels, source period phrases, scale
   phrases, and source row text only.
+- Refined classification so mixed scale-note pages with non-statement parser
+  noise do not mask empty OCR statement-page parser cells.
 - The diagnostic payload does not emit accepted metrics or normalized values.
 - Diagnostic rows are not routed into `StructuredDocument.tables`,
   `multipass_extraction.py`, selected tables, row refs, metric source scales, or
@@ -47,9 +49,12 @@ behavior and canonical extraction output remain unchanged.
 
 - Task card validate: passed.
 - Registry read-only: `ok=true`, `active_jobs=[]`.
-- Focused pytest: `22 passed in 0.27s`.
+- Focused pytest: `23 passed in 0.31s`.
 - `py_compile`: passed.
 - `ruff`: passed.
+- Exact WHC source smoke: `ocr_openability_provenance_gap`, statement pages
+  57/58/60, scale pages 57/58/61, parser statement-page table count 10, parser
+  statement-page nonempty cell count 0.
 - JSON validation: passed.
 - `git diff --check`: passed.
 - Task-card `check-diff`: passed.

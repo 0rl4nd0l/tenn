@@ -4,7 +4,8 @@
   "work_log": {
     "assumptions": [
       "The sidecar remains provenance-only because no diagnostics are appended to StructuredDocument.tables or consumed by multipass_extraction.py.",
-      "Default extraction behavior remains unchanged because openability_diagnostics defaults to false."
+      "Default extraction behavior remains unchanged because openability_diagnostics defaults to false.",
+      "The statement-page classification refinement is diagnostic-only and does not alter canonical extraction inputs."
     ],
     "sources_used": [
       "git diff for financial-engine_v2/backend/app/services/docling_extract.py",
@@ -19,7 +20,9 @@
       "financial-engine_v2/backend/tests/test_docling_extract.py"
     ],
     "validation_checks": [
-      "Targeted pytest passed before review: 22 passed"
+      "Targeted pytest passed after statement-page refinement: 23 passed",
+      "py_compile passed",
+      "ruff passed"
     ]
   },
   "result": {

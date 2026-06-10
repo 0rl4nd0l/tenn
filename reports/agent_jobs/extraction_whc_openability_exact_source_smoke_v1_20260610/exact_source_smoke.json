@@ -1,0 +1,446 @@
+{
+  "decision_inputs": {
+    "canonical_output_changed": false,
+    "classification": "ocr_openability_provenance_gap",
+    "feeds_canonical_output": false,
+    "has_openability_diagnostic": true,
+    "parser_all_diagnostic_pages_empty": false,
+    "parser_statement_page_nonempty_cell_count": 0,
+    "parser_statement_page_table_count": 10,
+    "parser_tables_present_but_cells_missing": true,
+    "row_candidate_counts": [
+      {
+        "page": 57,
+        "row_candidate_count": 8,
+        "verdict": "PROVENANCE_CAPTURED"
+      },
+      {
+        "page": 58,
+        "row_candidate_count": 5,
+        "verdict": "PROVENANCE_CAPTURED"
+      },
+      {
+        "page": 60,
+        "row_candidate_count": 7,
+        "verdict": "PROVENANCE_CAPTURED"
+      },
+      {
+        "page": 61,
+        "row_candidate_count": 0,
+        "verdict": "DATA_MISSING"
+      }
+    ],
+    "scale_pages": [
+      57,
+      58,
+      61
+    ],
+    "statement_pages": [
+      57,
+      58,
+      60
+    ]
+  },
+  "diagnostic": {
+    "canonical_output_changed": false,
+    "diagnostic_pages": [
+      57,
+      58,
+      60,
+      61
+    ],
+    "feeds_canonical_output": false,
+    "not_an_extraction_result": true,
+    "ocr_records": [
+      {
+        "page": 57,
+        "period_phrases": [
+          "For the year ended 30 June 2022"
+        ],
+        "row_candidate_count": 8,
+        "row_candidates": [
+          {
+            "source_text": "Revenue 21"
+          },
+          {
+            "source_text": "Profit/(loss) before net financial expense 2,821,254"
+          },
+          {
+            "source_text": "Finance expense (56,825)"
+          },
+          {
+            "source_text": "finance expense 5.2"
+          },
+          {
+            "source_text": "Net finance expense 5.2"
+          },
+          {
+            "source_text": "Profit/(loss) before tax 2,765,893"
+          },
+          {
+            "source_text": "profit/(loss) for the year 1,951,965"
+          },
+          {
+            "source_text": "Net profit/(loss) for the year 1,951,965"
+          }
+        ],
+        "scale_phrases": [
+          "$000"
+        ],
+        "source": "openability_ocr",
+        "statement_evidence_found": true,
+        "statement_label": "income_statement",
+        "verdict": "PROVENANCE_CAPTURED"
+      },
+      {
+        "page": 58,
+        "period_phrases": [
+          "As at 30 June 2022"
+        ],
+        "row_candidate_count": 5,
+        "row_candidates": [
+          {
+            "source_text": "Cash and cash equivalents 1,215,460"
+          },
+          {
+            "source_text": "interest-bearing liabilities 51"
+          },
+          {
+            "source_text": "Total liabilities 1,912,899"
+          },
+          {
+            "source_text": "Net assets 4,211,634"
+          },
+          {
+            "source_text": "Total equity 4,211,634"
+          }
+        ],
+        "scale_phrases": [
+          "$000"
+        ],
+        "source": "openability_ocr",
+        "statement_evidence_found": true,
+        "statement_label": "balance_sheet",
+        "verdict": "PROVENANCE_CAPTURED"
+      },
+      {
+        "page": 60,
+        "period_phrases": [
+          "For the year ended 30 June 2022"
+        ],
+        "row_candidate_count": 7,
+        "row_candidates": [
+          {
+            "source_text": "Net cash from operating activities 3.4"
+          },
+          {
+            "source_text": "Purchase of property, plant and equipment (124,210)"
+          },
+          {
+            "source_text": "Net cash used in investing activities (177,195)"
+          },
+          {
+            "source_text": "Net cash used in financing activities (1,232,370)"
+          },
+          {
+            "source_text": "cash and cash equivalents 1,120,258"
+          },
+          {
+            "source_text": "Cash and cash equivalents at 1"
+          },
+          {
+            "source_text": "Cash and cash equivalents at 30"
+          }
+        ],
+        "scale_phrases": [],
+        "source": "openability_ocr",
+        "statement_evidence_found": true,
+        "statement_label": "cashflow_statement",
+        "verdict": "PROVENANCE_CAPTURED"
+      },
+      {
+        "page": 61,
+        "period_phrases": [
+          "For the year ended 30 June 2022",
+          "for the year ended 30 June 2022"
+        ],
+        "row_candidate_count": 0,
+        "row_candidates": [],
+        "scale_phrases": [
+          "rounded to the nearest\nthousand"
+        ],
+        "source": "openability_ocr",
+        "statement_evidence_found": false,
+        "statement_label": null,
+        "verdict": "DATA_MISSING"
+      }
+    ],
+    "parser_output": {
+      "diagnostic_page_cell_count": 374,
+      "diagnostic_page_nonempty_cell_count": 15,
+      "diagnostic_page_table_count": 11,
+      "diagnostic_pages": [
+        57,
+        58,
+        60,
+        61
+      ],
+      "extraction_method": "pymupdf",
+      "gap_classification": "DATA_MISSING",
+      "page_count": 116,
+      "per_page": [
+        {
+          "page": 57,
+          "section_count": 1,
+          "section_samples": [
+            "For personal use only"
+          ],
+          "table_cell_count": 96,
+          "table_count": 3,
+          "table_nonempty_cell_count": 0,
+          "tables": [
+            {
+              "caption": "For personal use only",
+              "cell_count": 72,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 16,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 8,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            }
+          ]
+        },
+        {
+          "page": 58,
+          "section_count": 1,
+          "section_samples": [
+            "For personal use only"
+          ],
+          "table_cell_count": 132,
+          "table_count": 4,
+          "table_nonempty_cell_count": 0,
+          "tables": [
+            {
+              "caption": "For personal use only",
+              "cell_count": 52,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 28,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 32,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 20,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            }
+          ]
+        },
+        {
+          "page": 60,
+          "section_count": 1,
+          "section_samples": [
+            "For personal use only"
+          ],
+          "table_cell_count": 96,
+          "table_count": 3,
+          "table_nonempty_cell_count": 0,
+          "tables": [
+            {
+              "caption": "For personal use only",
+              "cell_count": 28,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 20,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            },
+            {
+              "caption": "For personal use only",
+              "cell_count": 48,
+              "headers": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "nonempty_cell_count": 0,
+              "sample_nonempty_cells": []
+            }
+          ]
+        },
+        {
+          "page": 61,
+          "section_count": 4,
+          "section_samples": [
+            "\u2212",
+            "\u2212",
+            "\u2212",
+            "For personal use only"
+          ],
+          "table_cell_count": 50,
+          "table_count": 1,
+          "table_nonempty_cell_count": 15,
+          "tables": [
+            {
+              "caption": "",
+              "cell_count": 50,
+              "headers": [
+                "only",
+                ""
+              ],
+              "nonempty_cell_count": 15,
+              "sample_nonempty_cells": [
+                "only",
+                "use",
+                "personal",
+                "For",
+                "\u2212",
+                "\u2212",
+                "\u2212",
+                "use"
+              ]
+            }
+          ]
+        }
+      ],
+      "source_pdf_page_count": 0,
+      "statement_cells_preserved": true,
+      "tables_present_on_diagnostic_pages": true
+    },
+    "provenance_only": true,
+    "schema": "docling_openability_diagnostics_v1",
+    "source_pdf_written": false,
+    "summary": {
+      "canonical_repair_ready": false,
+      "classification": "ocr_openability_provenance_gap",
+      "ocr_scale_pages_with_evidence": [
+        57,
+        58,
+        61
+      ],
+      "ocr_statement_pages_with_evidence": [
+        57,
+        58,
+        60
+      ],
+      "parser_all_diagnostic_pages_empty": false,
+      "parser_statement_page_nonempty_cell_count": 0,
+      "parser_statement_page_table_count": 10,
+      "parser_tables_present_but_cells_missing": true,
+      "source_statement_evidence_found": true,
+      "why_not_canonical_ready": "Openability diagnostics are not routed into selected statement tables, row refs, metric source scales, or canonical extraction gates."
+    }
+  },
+  "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+  "job_id": "extraction_whc_openability_exact_source_smoke_v1_20260610",
+  "mode": "exact_source_read_only_local_smoke",
+  "negative_controls": {
+    "accepted_metrics_key_present": false,
+    "canonical_extraction_run": false,
+    "canonical_metrics_emitted": false,
+    "normalized_value_key_present": false,
+    "production_cache_written": false,
+    "service_route_run": false,
+    "source_pdf_written": false
+  },
+  "requested_pages": [
+    57,
+    58,
+    60,
+    61
+  ],
+  "source_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+  "source_pdf_readable": true,
+  "status": "DONE",
+  "structured_document_summary": {
+    "extraction_method": "pymupdf",
+    "page_count": 116,
+    "section_count": 1064,
+    "sections_changed_for_canonical_output": false,
+    "source_pdf_page_count": 0,
+    "table_count": 138,
+    "tables_changed_for_canonical_output": false
+  },
+  "temporary_cache_files_created_before_cleanup": [
+    "reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+  ],
+  "temporary_cache_root_removed": true,
+  "ticker": "WHC"
+}

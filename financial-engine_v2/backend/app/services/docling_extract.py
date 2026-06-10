@@ -658,6 +658,23 @@ def _build_openability_diagnostics(
         parser_output.get("tables_present_on_diagnostic_pages") is True
         and parser_output.get("statement_cells_preserved") is False
     )
+    statement_parser_pages = [
+        item
+        for item in parser_output.get("per_page", [])
+        if int(item.get("page") or 0) in statement_pages
+    ]
+    statement_page_table_count = sum(
+        int(item.get("table_count") or 0) for item in statement_parser_pages
+    )
+    statement_page_nonempty_cell_count = sum(
+        int(item.get("table_nonempty_cell_count") or 0)
+        for item in statement_parser_pages
+    )
+    statement_page_cell_loss = (
+        bool(statement_pages)
+        and statement_page_table_count > 0
+        and statement_page_nonempty_cell_count == 0
+    )
     return {
         "schema": "docling_openability_diagnostics_v1",
         "provenance_only": True,
@@ -672,10 +689,15 @@ def _build_openability_diagnostics(
             "ocr_statement_pages_with_evidence": sorted(set(statement_pages)),
             "ocr_scale_pages_with_evidence": sorted(set(scale_pages)),
             "source_statement_evidence_found": bool(statement_pages),
-            "parser_tables_present_but_cells_missing": cache_cells_missing,
+            "parser_tables_present_but_cells_missing": statement_page_cell_loss,
+            "parser_all_diagnostic_pages_empty": cache_cells_missing,
+            "parser_statement_page_table_count": statement_page_table_count,
+            "parser_statement_page_nonempty_cell_count": (
+                statement_page_nonempty_cell_count
+            ),
             "classification": (
                 "ocr_openability_provenance_gap"
-                if statement_pages and cache_cells_missing
+                if statement_page_cell_loss
                 else "DATA_MISSING"
             ),
             "canonical_repair_ready": False,

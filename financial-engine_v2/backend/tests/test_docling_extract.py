@@ -209,6 +209,74 @@ def test_openability_diagnostics_round_trips_without_changing_tables(
     assert cache_doc.parser_diagnostics["openability"] == diagnostic
 
 
+def test_openability_classification_uses_statement_pages_not_scale_note_noise(
+    monkeypatch,
+):
+    doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=57,
+                caption="For personal use only",
+                rows=[["", ""], ["", ""]],
+                headers=["", ""],
+            ),
+            DoclingTable(
+                page_number=61,
+                caption="",
+                rows=[["only", ""], ["use", "personal"]],
+                headers=["only", ""],
+            ),
+        ],
+        sections=[],
+        extraction_method="pymupdf",
+        page_count=61,
+        source_pdf_page_count=61,
+    )
+
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_openability_ocr_for_pages",
+        lambda pdf_path, pages, runner=None: [
+            {
+                "page": 57,
+                "source": "openability_ocr",
+                "statement_label": "income_statement",
+                "statement_evidence_found": True,
+                "period_phrases": ["For the year ended 30 June 2022"],
+                "scale_phrases": ["$000"],
+                "row_candidates": [{"source_text": "Revenue 4,920,102"}],
+                "row_candidate_count": 1,
+                "verdict": "PROVENANCE_CAPTURED",
+            },
+            {
+                "page": 61,
+                "source": "openability_ocr",
+                "statement_label": None,
+                "statement_evidence_found": False,
+                "period_phrases": ["For the year ended 30 June 2022"],
+                "scale_phrases": ["rounded to the nearest thousand"],
+                "row_candidates": [],
+                "row_candidate_count": 0,
+                "verdict": "DATA_MISSING",
+            },
+        ],
+    )
+
+    diagnostic = docling_extract._build_openability_diagnostics(
+        pdf_path="/tmp/fake.pdf",
+        doc=doc,
+        pages=[57, 61],
+        runner=FakeOpenabilityRunner(),
+    )
+
+    summary = diagnostic["summary"]
+    assert summary["parser_all_diagnostic_pages_empty"] is False
+    assert summary["parser_tables_present_but_cells_missing"] is True
+    assert summary["parser_statement_page_table_count"] == 1
+    assert summary["parser_statement_page_nonempty_cell_count"] == 0
+    assert summary["classification"] == "ocr_openability_provenance_gap"
+
+
 def test_openability_ocr_failure_stays_data_missing():
     records = docling_extract._run_openability_ocr_for_pages(
         "/tmp/nonexistent.pdf",
