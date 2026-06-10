@@ -1,0 +1,83 @@
+{
+  "status": "complete",
+  "updated_at": "2026-06-10T11:55:51+10:00",
+  "mode": "safe_extension_report_local_only",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_ocr_openability_probe_report_local_v1_20260610.md",
+      "exit_code": 0,
+      "result": "ok=true; issues=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "result": "ok=true; active_jobs=[]; lock_acquired=false"
+    },
+    {
+      "command": "python3 reports/agent_jobs/extraction_whc_ocr_openability_probe_report_local_v1_20260610/test_whc_ocr_openability_probe.py",
+      "exit_code": 0,
+      "result": "ok=true; tests=8"
+    },
+    {
+      "command": "python3 reports/agent_jobs/extraction_whc_ocr_openability_probe_report_local_v1_20260610/whc_ocr_openability_probe.py --mode saved-evidence",
+      "exit_code": 0,
+      "result": "Generated report-local whc_ocr_openability_probe.json from saved WHC evidence and saved parser cache."
+    },
+    {
+      "command": "python3 -m py_compile reports/agent_jobs/extraction_whc_ocr_openability_probe_report_local_v1_20260610/whc_ocr_openability_probe.py reports/agent_jobs/extraction_whc_ocr_openability_probe_report_local_v1_20260610/test_whc_ocr_openability_probe.py",
+      "exit_code": 0,
+      "result": "Compile check passed."
+    },
+    {
+      "command": "for f in reports/agent_jobs/extraction_whc_ocr_openability_probe_report_local_v1_20260610/*.json; do jq empty \"$f\" || exit 1; done",
+      "exit_code": 0,
+      "result": "All final report JSON artifacts valid, including validation.json."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_whc_ocr_openability_probe_report_local_v1_20260610.md --repo-root .",
+      "exit_code": 0,
+      "result": "ok=true; disallowed_files=[]"
+    },
+    {
+      "command": "git diff --name-only -- financial-engine_v2 scripts docs reports .codex .agents | sort",
+      "exit_code": 0,
+      "result": "No tracked product/runtime/parser/schema/prompt/gold changes detected."
+    }
+  ],
+  "sidecar_assertions": {
+    "classification": "ocr_openability_provenance_gap",
+    "provenance_only": true,
+    "not_an_extraction_result": true,
+    "canonical_output_changed": false,
+    "parser_cache_written": false,
+    "statement_table_cache_pages": [
+      57,
+      58,
+      60
+    ],
+    "statement_page_nonempty_cell_count": 0,
+    "canonical_repair_ready": false,
+    "no_accepted_metrics_key": true,
+    "no_normalized_value_key": true
+  },
+  "forbidden_surface_audit": {
+    "docling_extract_changed": false,
+    "multipass_extraction_changed": false,
+    "parser_cache_changed": false,
+    "canonical_output_changed": false,
+    "source_pdf_mutated_or_copied": false,
+    "db_qdrant_redis_news_memory_mutation": false,
+    "prompt_gold_schema_runtime_model_gpu_mutation": false,
+    "extraction_run": false,
+    "count_sample_run": false,
+    "backfill_run": false,
+    "service_route_run": false,
+    "pr_318_patch_mining": false
+  },
+  "result": "Report-local implementation validated. The sidecar captures provenance evidence only and leaves canonical extraction fail-closed."
+}

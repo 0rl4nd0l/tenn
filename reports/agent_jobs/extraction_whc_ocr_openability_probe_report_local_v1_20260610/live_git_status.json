@@ -1,0 +1,27 @@
+{
+  "status": "complete",
+  "updated_at": "2026-06-10T11:55:51+10:00",
+  "worktree": "/home/l4nd0/tenn-whc-ocr-openability-probe-report-local-v1-20260610",
+  "branch": "safe/extraction-whc-ocr-openability-probe-report-local-v1-20260610",
+  "head": "aeb72fe23b0353e9cca7a1e89848cea4a42c1a0f",
+  "target_remote_branch": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "target_remote_head": "aeb72fe23b0353e9cca7a1e89848cea4a42c1a0f",
+  "remote_fetch": "origin\thttps://github.com/0rl4nd0l/tenn.git (fetch)",
+  "registry_read_only": {
+    "ok": true,
+    "active_jobs": [],
+    "lock_acquired": false,
+    "registry_scope": "shared"
+  },
+  "git_status_short": [
+    "?? docs/agent_tasks/extraction_whc_ocr_openability_probe_report_local_v1_20260610.md"
+  ],
+  "report_files_gitignored": true,
+  "base_checkout_dirt_not_touched": [
+    "?? docs/agent_tasks/extraction_count24_approval_packet_current_canonical_v1_20260609.md"
+  ],
+  "open_pr_search": {
+    "query": "WHC OCR openability parser-cache parser cache",
+    "direct_matching_open_prs": []
+  }
+}
