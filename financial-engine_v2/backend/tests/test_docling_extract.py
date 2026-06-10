@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -25,6 +26,56 @@ def _test_cache_path(pdf_path: Path, cache_suffix: str) -> Path:
     cache_path = docling_extract._cache_path_for_pdf(str(pdf_path), cache_suffix)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     return cache_path
+
+
+class FakeOpenabilityRunner:
+    def __init__(self, *, fail_render: bool = False, fail_ocr: bool = False):
+        self.fail_render = fail_render
+        self.fail_ocr = fail_ocr
+        self.calls: list[list[str]] = []
+
+    def run(self, args: list[str], *, timeout: int = 120):
+        self.calls.append(args)
+        if args[0] == "pdftoppm":
+            if self.fail_render:
+                return docling_extract.OpenabilityCommandResult(
+                    args=args,
+                    returncode=1,
+                    stdout="",
+                    stderr="render failed",
+                )
+            page = args[2]
+            prefix = Path(args[-1])
+            (prefix.parent / f"{prefix.name}-{page}.png").write_text(
+                "fake image",
+                encoding="utf-8",
+            )
+            return docling_extract.OpenabilityCommandResult(
+                args=args,
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+        if args[0] == "tesseract":
+            if self.fail_ocr:
+                return docling_extract.OpenabilityCommandResult(
+                    args=args,
+                    returncode=1,
+                    stdout="",
+                    stderr="ocr failed",
+                )
+            return docling_extract.OpenabilityCommandResult(
+                args=args,
+                returncode=0,
+                stdout=(
+                    "Consolidated statement of cash flows\n"
+                    "For the year ended 30 June 2022\n"
+                    "$000 $000\n"
+                    "Net cash from operating activities 2,529,823\n"
+                ),
+                stderr="",
+            )
+        raise AssertionError(f"unexpected command: {args}")
 
 
 def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
@@ -61,6 +112,149 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
     loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == cached_doc
+
+
+def test_openability_diagnostics_default_off_does_not_run(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    parsed_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=1,
+                caption="For personal use only",
+                rows=[["", ""], ["", ""]],
+                headers=["", ""],
+            )
+        ],
+        sections=[{"heading": False, "text": "For personal use only", "page": 1}],
+        extraction_method="pymupdf",
+        page_count=1,
+        source_pdf_page_count=1,
+    )
+
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: parsed_doc)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+    monkeypatch.setattr(
+        docling_extract,
+        "_build_openability_diagnostics",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("openability diagnostics should be opt-in")
+        ),
+    )
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="pymupdf")
+
+    assert loaded.parser_diagnostics == {}
+
+
+def test_openability_diagnostics_round_trips_without_changing_tables(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    parsed_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=1,
+                caption="For personal use only",
+                rows=[["", ""], ["", ""]],
+                headers=["", ""],
+            )
+        ],
+        sections=[{"heading": False, "text": "For personal use only", "page": 1}],
+        extraction_method="pymupdf",
+        page_count=1,
+        source_pdf_page_count=1,
+    )
+    runner = FakeOpenabilityRunner()
+
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: parsed_doc)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+
+    loaded = docling_extract.extract_structured(
+        str(pdf_path),
+        backend="pymupdf",
+        openability_diagnostics=True,
+        openability_pages=[1],
+        openability_runner=runner,
+    )
+
+    assert loaded.tables == parsed_doc.tables
+    assert loaded.sections == parsed_doc.sections
+    diagnostic = loaded.parser_diagnostics["openability"]
+    assert diagnostic["provenance_only"] is True
+    assert diagnostic["feeds_canonical_output"] is False
+    assert diagnostic["canonical_output_changed"] is False
+    assert diagnostic["summary"]["classification"] == "ocr_openability_provenance_gap"
+    assert diagnostic["summary"]["canonical_repair_ready"] is False
+    assert diagnostic["ocr_records"][0]["statement_label"] == "cashflow_statement"
+    assert diagnostic["ocr_records"][0]["period_phrases"] == [
+        "For the year ended 30 June 2022"
+    ]
+    assert diagnostic["ocr_records"][0]["scale_phrases"] == ["$000"]
+    assert diagnostic["ocr_records"][0]["row_candidates"] == [
+        {"source_text": "Net cash from operating activities 2,529,823"}
+    ]
+
+    payload_text = json.dumps(diagnostic)
+    assert "accepted_metrics" not in payload_text
+    assert "normalized_value" not in payload_text
+
+    cache_doc = docling_extract._load_cache(
+        docling_extract._cache_path_for_pdf(str(pdf_path), ".pymupdf.json")
+    )
+    assert cache_doc.tables == parsed_doc.tables
+    assert cache_doc.parser_diagnostics["openability"] == diagnostic
+
+
+def test_openability_ocr_failure_stays_data_missing():
+    records = docling_extract._run_openability_ocr_for_pages(
+        "/tmp/nonexistent.pdf",
+        [1],
+        runner=FakeOpenabilityRunner(fail_render=True),
+    )
+
+    assert records == [
+        {
+            "page": 1,
+            "source": "openability_ocr",
+            "statement_evidence_found": False,
+            "verdict": "DATA_MISSING",
+            "error": "pdftoppm_failed",
+            "stderr": "render failed",
+        }
+    ]
+
+
+def test_openability_diagnostics_reject_unbounded_page_request():
+    doc = StructuredDocument(page_count=20, source_pdf_page_count=20)
+
+    with pytest.raises(ValueError, match="exceeds"):
+        docling_extract._build_openability_diagnostics(
+            pdf_path="/tmp/nonexistent.pdf",
+            doc=doc,
+            pages=list(range(1, docling_extract.OPENABILITY_DIAGNOSTIC_MAX_PAGES + 2)),
+            runner=FakeOpenabilityRunner(),
+        )
+
+
+def test_openability_text_parser_preserves_source_text_only():
+    parsed = docling_extract._parse_openability_text(
+        57,
+        "Consolidated statement of comprehensive income\n"
+        "For the year ended 30 June 2022\n"
+        "$000\n"
+        "Revenue 4,920,102\n",
+        source="test",
+    )
+
+    assert parsed["statement_label"] == "income_statement"
+    assert parsed["period_phrases"] == ["For the year ended 30 June 2022"]
+    assert parsed["scale_phrases"] == ["$000"]
+    assert parsed["row_candidates"] == [{"source_text": "Revenue 4,920,102"}]
+    assert "normalized_value" not in json.dumps(parsed)
 
 
 def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypatch):

@@ -17,6 +17,7 @@ import logging
 import multiprocessing as mp
 import os
 import re
+import subprocess
 import tempfile
 import threading
 import time
@@ -52,6 +53,56 @@ DOCLING_PAGE_BATCH_PROFILE_TARGET_ENV = "DOCLING_PAGE_BATCH_PROFILE_TARGET"
 DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE_ENV = "DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE"
 DOCLING_PAGE_BATCH_PROFILE_DEFAULT_BATCH_SIZE = 8
 DOCLING_EXTRACT_CACHE_DIR = "docling_extract"
+OPENABILITY_DIAGNOSTIC_MAX_PAGES = 8
+
+OPENABILITY_STATEMENT_PATTERNS = {
+    "income_statement": re.compile(
+        r"statement\s+of\s+(?:comprehensive\s+)?income", re.IGNORECASE
+    ),
+    "balance_sheet": re.compile(
+        r"statement\s+of\s+financial\s+position", re.IGNORECASE
+    ),
+    "cashflow_statement": re.compile(
+        r"statement\s+of\s+cash\s+flows?", re.IGNORECASE
+    ),
+}
+OPENABILITY_PERIOD_PATTERN = re.compile(
+    r"\b(?:For\s+the\s+(?:half\s+)?year\s+ended|As\s+at)\s+"
+    r"\d{1,2}\s+[A-Za-z]+\s+\d{4}\b",
+    re.IGNORECASE,
+)
+OPENABILITY_SCALE_PATTERN = re.compile(
+    r"(\$[\s']*000|nearest\s+thousand|rounded\s+to\s+the\s+nearest\s+thousand)",
+    re.IGNORECASE,
+)
+OPENABILITY_ROW_PATTERNS = [
+    re.compile(r"\bRevenue\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bProfit/\(loss\).*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bFinance expense\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bNet finance expense\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bNet profit/\(loss\).*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bCash and cash equivalents\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bInterest-bearing liabilities\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bTotal liabilities\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bNet assets\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(r"\bTotal equity\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?", re.IGNORECASE),
+    re.compile(
+        r"\bNet cash from operating activities\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bPurchase of property, plant and equipment\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bNet cash used in investing activities\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bNet cash used in financing activities\b.*?\(?-?\d[\d,]*(?:\.\d+)?\)?",
+        re.IGNORECASE,
+    ),
+]
 
 
 class ExtractionTimeoutError(Exception):
@@ -81,6 +132,34 @@ class StructuredDocument:
     docling_version: str = (
         ""  # populated at extraction time; used for cache invalidation
     )
+    parser_diagnostics: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class OpenabilityCommandResult:
+    args: list[str]
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+class OpenabilityCommandRunner:
+    """Subprocess seam for opt-in OCR/openability diagnostics."""
+
+    def run(self, args: list[str], *, timeout: int = 120) -> OpenabilityCommandResult:
+        completed = subprocess.run(
+            args,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        return OpenabilityCommandResult(
+            args=args,
+            returncode=completed.returncode,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+        )
 
 
 def validate_docling_environment() -> None:
@@ -310,6 +389,326 @@ def _observed_page_numbers(doc: StructuredDocument) -> list[int]:
     return sorted(pages)
 
 
+def _flatten_table_cells(rows: list[Any]) -> list[str]:
+    cells: list[str] = []
+    for row in rows or []:
+        if isinstance(row, list):
+            cells.extend(str(cell or "") for cell in row)
+        else:
+            cells.append(str(row or ""))
+    return cells
+
+
+def _openability_nonempty_cells(table: DoclingTable) -> list[str]:
+    return [cell for cell in _flatten_table_cells(table.rows) if cell.strip()]
+
+
+def _openability_candidate_pages(doc: StructuredDocument) -> list[int]:
+    pages = {
+        table.page_number
+        for table in doc.tables
+        if table.page_number > 0
+        and _flatten_table_cells(table.rows)
+        and not _openability_nonempty_cells(table)
+    }
+    return sorted(pages)
+
+
+def _validate_openability_pages(
+    pages: list[int],
+    *,
+    page_count: int,
+) -> list[int]:
+    normalized = sorted({int(page) for page in pages})
+    if not normalized:
+        return []
+    if len(normalized) > OPENABILITY_DIAGNOSTIC_MAX_PAGES:
+        raise ValueError(
+            "openability diagnostics page request exceeds "
+            f"{OPENABILITY_DIAGNOSTIC_MAX_PAGES} pages"
+        )
+    invalid = [
+        page
+        for page in normalized
+        if page <= 0 or (page_count > 0 and page > page_count)
+    ]
+    if invalid:
+        raise ValueError(
+            f"openability diagnostics page request outside PDF bounds: {invalid}"
+        )
+    return normalized
+
+
+def _openability_statement_label(text: str) -> str | None:
+    for label, pattern in OPENABILITY_STATEMENT_PATTERNS.items():
+        if pattern.search(text):
+            return label
+    return None
+
+
+def _openability_row_candidates(text: str) -> list[dict[str, str]]:
+    candidates: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for raw_line in text.splitlines():
+        line = re.sub(r"\s+", " ", raw_line).strip()
+        if not line:
+            continue
+        for pattern in OPENABILITY_ROW_PATTERNS:
+            match = pattern.search(line)
+            if not match:
+                continue
+            source_text = match.group(0).strip()
+            if source_text in seen:
+                continue
+            seen.add(source_text)
+            candidates.append({"source_text": source_text})
+    return candidates
+
+
+def _parse_openability_text(page: int, text: str, *, source: str) -> dict[str, Any]:
+    statement_label = _openability_statement_label(text)
+    row_candidates = _openability_row_candidates(text)
+    period_phrases = sorted(
+        {match.group(0).strip() for match in OPENABILITY_PERIOD_PATTERN.finditer(text)}
+    )
+    scale_phrases = sorted(
+        {match.group(1).strip() for match in OPENABILITY_SCALE_PATTERN.finditer(text)}
+    )
+    return {
+        "page": page,
+        "source": source,
+        "statement_label": statement_label,
+        "statement_evidence_found": statement_label is not None,
+        "period_phrases": period_phrases,
+        "scale_phrases": scale_phrases,
+        "row_candidates": row_candidates,
+        "row_candidate_count": len(row_candidates),
+        "verdict": (
+            "PROVENANCE_CAPTURED"
+            if statement_label or row_candidates
+            else "DATA_MISSING"
+        ),
+    }
+
+
+def _summarize_openability_parser_output(
+    doc: StructuredDocument,
+    pages: list[int],
+) -> dict[str, Any]:
+    per_page: list[dict[str, Any]] = []
+    for page in pages:
+        page_tables = [table for table in doc.tables if table.page_number == page]
+        page_sections = [
+            str(section.get("text") or "").strip()
+            for section in doc.sections
+            if isinstance(section, dict)
+            and int(section.get("page") or 0) == page
+            and str(section.get("text") or "").strip()
+        ]
+        tables = []
+        for table in page_tables:
+            cells = _flatten_table_cells(table.rows)
+            nonempty = [cell for cell in cells if cell.strip()]
+            tables.append(
+                {
+                    "caption": table.caption,
+                    "headers": table.headers,
+                    "cell_count": len(cells),
+                    "nonempty_cell_count": len(nonempty),
+                    "sample_nonempty_cells": nonempty[:8],
+                }
+            )
+        table_count = len(tables)
+        cell_count = sum(int(item["cell_count"]) for item in tables)
+        nonempty_count = sum(int(item["nonempty_cell_count"]) for item in tables)
+        per_page.append(
+            {
+                "page": page,
+                "section_count": len(page_sections),
+                "section_samples": page_sections[:5],
+                "table_count": table_count,
+                "table_cell_count": cell_count,
+                "table_nonempty_cell_count": nonempty_count,
+                "tables": tables,
+            }
+        )
+
+    total_tables = sum(int(item["table_count"]) for item in per_page)
+    total_cells = sum(int(item["table_cell_count"]) for item in per_page)
+    total_nonempty = sum(int(item["table_nonempty_cell_count"]) for item in per_page)
+    return {
+        "extraction_method": doc.extraction_method,
+        "page_count": doc.page_count,
+        "source_pdf_page_count": doc.source_pdf_page_count,
+        "diagnostic_pages": pages,
+        "tables_present_on_diagnostic_pages": total_tables > 0,
+        "diagnostic_page_table_count": total_tables,
+        "diagnostic_page_cell_count": total_cells,
+        "diagnostic_page_nonempty_cell_count": total_nonempty,
+        "statement_cells_preserved": total_nonempty > 0,
+        "gap_classification": (
+            "parser_openability_or_ocr_gap"
+            if total_tables > 0 and total_nonempty == 0
+            else "DATA_MISSING"
+        ),
+        "per_page": per_page,
+    }
+
+
+def _run_openability_ocr_for_pages(
+    pdf_path: str,
+    pages: list[int],
+    *,
+    runner: OpenabilityCommandRunner | None = None,
+) -> list[dict[str, Any]]:
+    runner = runner or OpenabilityCommandRunner()
+    records: list[dict[str, Any]] = []
+    with tempfile.TemporaryDirectory(prefix="docling-openability-") as tmp_dir:
+        tmp_root = Path(tmp_dir)
+        for page in pages:
+            prefix = tmp_root / f"page_{page}"
+            render = runner.run(
+                [
+                    "pdftoppm",
+                    "-f",
+                    str(page),
+                    "-l",
+                    str(page),
+                    "-r",
+                    "200",
+                    "-png",
+                    str(pdf_path),
+                    str(prefix),
+                ],
+                timeout=120,
+            )
+            if render.returncode != 0:
+                records.append(
+                    {
+                        "page": page,
+                        "source": "openability_ocr",
+                        "statement_evidence_found": False,
+                        "verdict": "DATA_MISSING",
+                        "error": "pdftoppm_failed",
+                        "stderr": render.stderr.strip()[:500],
+                    }
+                )
+                continue
+            images = sorted(tmp_root.glob(f"page_{page}-*.png"))
+            if not images:
+                records.append(
+                    {
+                        "page": page,
+                        "source": "openability_ocr",
+                        "statement_evidence_found": False,
+                        "verdict": "DATA_MISSING",
+                        "error": "rendered_image_missing",
+                    }
+                )
+                continue
+            ocr = runner.run(["tesseract", str(images[0]), "stdout"], timeout=120)
+            if ocr.returncode != 0:
+                records.append(
+                    {
+                        "page": page,
+                        "source": "openability_ocr",
+                        "statement_evidence_found": False,
+                        "verdict": "DATA_MISSING",
+                        "error": "tesseract_failed",
+                        "stderr": ocr.stderr.strip()[:500],
+                    }
+                )
+                continue
+            records.append(
+                _parse_openability_text(page, ocr.stdout, source="openability_ocr")
+            )
+    return records
+
+
+def _build_openability_diagnostics(
+    *,
+    pdf_path: str,
+    doc: StructuredDocument,
+    pages: list[int] | None = None,
+    runner: OpenabilityCommandRunner | None = None,
+) -> dict[str, Any]:
+    requested_pages = pages if pages is not None else _openability_candidate_pages(doc)
+    diagnostic_pages = _validate_openability_pages(
+        requested_pages,
+        page_count=doc.source_pdf_page_count or doc.page_count,
+    )
+    parser_output = _summarize_openability_parser_output(doc, diagnostic_pages)
+    ocr_records = (
+        _run_openability_ocr_for_pages(pdf_path, diagnostic_pages, runner=runner)
+        if diagnostic_pages
+        else []
+    )
+    statement_pages = [
+        int(record["page"])
+        for record in ocr_records
+        if record.get("statement_evidence_found")
+        or int(record.get("row_candidate_count") or 0) > 0
+    ]
+    scale_pages = [
+        int(record["page"])
+        for record in ocr_records
+        if record.get("scale_phrases")
+    ]
+    cache_cells_missing = (
+        parser_output.get("tables_present_on_diagnostic_pages") is True
+        and parser_output.get("statement_cells_preserved") is False
+    )
+    return {
+        "schema": "docling_openability_diagnostics_v1",
+        "provenance_only": True,
+        "not_an_extraction_result": True,
+        "feeds_canonical_output": False,
+        "canonical_output_changed": False,
+        "source_pdf_written": False,
+        "diagnostic_pages": diagnostic_pages,
+        "parser_output": parser_output,
+        "ocr_records": ocr_records,
+        "summary": {
+            "ocr_statement_pages_with_evidence": sorted(set(statement_pages)),
+            "ocr_scale_pages_with_evidence": sorted(set(scale_pages)),
+            "source_statement_evidence_found": bool(statement_pages),
+            "parser_tables_present_but_cells_missing": cache_cells_missing,
+            "classification": (
+                "ocr_openability_provenance_gap"
+                if statement_pages and cache_cells_missing
+                else "DATA_MISSING"
+            ),
+            "canonical_repair_ready": False,
+            "why_not_canonical_ready": (
+                "Openability diagnostics are not routed into selected statement "
+                "tables, row refs, metric source scales, or canonical extraction gates."
+            ),
+        },
+    }
+
+
+def _attach_openability_diagnostics(
+    doc: StructuredDocument,
+    *,
+    pdf_path: str,
+    enabled: bool,
+    pages: list[int] | None = None,
+    runner: OpenabilityCommandRunner | None = None,
+) -> StructuredDocument:
+    if not enabled:
+        return doc
+    diagnostics = dict(doc.parser_diagnostics or {})
+    if "openability" not in diagnostics:
+        diagnostics["openability"] = _build_openability_diagnostics(
+            pdf_path=pdf_path,
+            doc=doc,
+            pages=pages,
+            runner=runner,
+        )
+        doc.parser_diagnostics = diagnostics
+    return doc
+
+
 def _docling_cache_looks_stale(
     cached: StructuredDocument,
     *,
@@ -503,6 +902,9 @@ def extract_structured(
     *,
     backend: str = "",
     strict_backend: bool = False,
+    openability_diagnostics: bool = False,
+    openability_pages: list[int] | None = None,
+    openability_runner: OpenabilityCommandRunner | None = None,
 ) -> StructuredDocument:
     """
     Main entry point. Returns StructuredDocument for the given PDF path.
@@ -541,8 +943,24 @@ def extract_structured(
                             f"docling strict backend rejected garbled cached output for {pdf_path}"
                         )
                     result = _extract_pymupdf(pdf_path)
+                    result = _attach_openability_diagnostics(
+                        result,
+                        pdf_path=pdf_path,
+                        enabled=openability_diagnostics,
+                        pages=openability_pages,
+                        runner=openability_runner,
+                    )
                     _save_cache(_pymupdf_cache_path(pdf_path), result)
                     return result
+                cached = _attach_openability_diagnostics(
+                    cached,
+                    pdf_path=pdf_path,
+                    enabled=openability_diagnostics,
+                    pages=openability_pages,
+                    runner=openability_runner,
+                )
+                if openability_diagnostics:
+                    _save_cache(cache_path, cached)
                 logger.info(
                     "Using cached %s extraction for %s",
                     cached.extraction_method,
@@ -569,6 +987,13 @@ def extract_structured(
                 page_count,
             )
             result = _extract_pymupdf(pdf_path)
+            result = _attach_openability_diagnostics(
+                result,
+                pdf_path=pdf_path,
+                enabled=openability_diagnostics,
+                pages=openability_pages,
+                runner=openability_runner,
+            )
             _save_cache(_pymupdf_cache_path(pdf_path), result)
             return result
         timeout = _compute_docling_timeout(page_count, strict_backend=strict_backend)
@@ -578,6 +1003,13 @@ def extract_structured(
             )
         try:
             result = _run_docling_with_timeout(pdf_path, timeout=timeout)
+            result = _attach_openability_diagnostics(
+                result,
+                pdf_path=pdf_path,
+                enabled=openability_diagnostics,
+                pages=openability_pages,
+                runner=openability_runner,
+            )
             _save_cache(cache_path, result)
             if _has_garbled_tables(result, pdf_path):
                 if strict_backend:
@@ -589,6 +1021,13 @@ def extract_structured(
                     pdf_path,
                 )
                 result = _extract_pymupdf(pdf_path)
+                result = _attach_openability_diagnostics(
+                    result,
+                    pdf_path=pdf_path,
+                    enabled=openability_diagnostics,
+                    pages=openability_pages,
+                    runner=openability_runner,
+                )
                 _save_cache(_pymupdf_cache_path(pdf_path), result)
                 return result
             return result
@@ -603,6 +1042,13 @@ def extract_structured(
                 pdf_path,
             )
             result = _extract_pymupdf(pdf_path)
+            result = _attach_openability_diagnostics(
+                result,
+                pdf_path=pdf_path,
+                enabled=openability_diagnostics,
+                pages=openability_pages,
+                runner=openability_runner,
+            )
             _save_cache(_pymupdf_cache_path(pdf_path), result)
             return result
         except Exception as e:
@@ -614,11 +1060,25 @@ def extract_structured(
                 pdf_path,
             )
             result = _extract_pymupdf(pdf_path)
+            result = _attach_openability_diagnostics(
+                result,
+                pdf_path=pdf_path,
+                enabled=openability_diagnostics,
+                pages=openability_pages,
+                runner=openability_runner,
+            )
             _save_cache(_pymupdf_cache_path(pdf_path), result)
             return result
     else:
         logger.info("PyMuPDF extraction: %s", pdf_path)
         result = _extract_pymupdf(pdf_path)
+        result = _attach_openability_diagnostics(
+            result,
+            pdf_path=pdf_path,
+            enabled=openability_diagnostics,
+            pages=openability_pages,
+            runner=openability_runner,
+        )
         _save_cache(cache_path, result)
         return result
 
@@ -904,6 +1364,8 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
         ],
         "sections": doc.sections,
     }
+    if doc.parser_diagnostics:
+        data["parser_diagnostics"] = doc.parser_diagnostics
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
@@ -926,4 +1388,5 @@ def _load_cache(cache_path: Path) -> StructuredDocument:
         page_count=data.get("page_count", 0),
         source_pdf_page_count=data.get("source_pdf_page_count", 0),
         docling_version=data.get("docling_version", ""),
+        parser_diagnostics=data.get("parser_diagnostics", {}),
     )

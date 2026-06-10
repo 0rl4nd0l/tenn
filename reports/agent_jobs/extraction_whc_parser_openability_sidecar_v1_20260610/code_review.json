@@ -1,0 +1,30 @@
+{
+  "job_id": "extraction_whc_parser_openability_sidecar_v1_20260610",
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "The sidecar remains provenance-only because no diagnostics are appended to StructuredDocument.tables or consumed by multipass_extraction.py.",
+      "Default extraction behavior remains unchanged because openability_diagnostics defaults to false."
+    ],
+    "sources_used": [
+      "git diff for financial-engine_v2/backend/app/services/docling_extract.py",
+      "git diff for financial-engine_v2/backend/tests/test_docling_extract.py"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/docling_extract.py",
+      "financial-engine_v2/backend/tests/test_docling_extract.py"
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/docling_extract.py",
+      "financial-engine_v2/backend/tests/test_docling_extract.py"
+    ],
+    "validation_checks": [
+      "Targeted pytest passed before review: 22 passed"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}
