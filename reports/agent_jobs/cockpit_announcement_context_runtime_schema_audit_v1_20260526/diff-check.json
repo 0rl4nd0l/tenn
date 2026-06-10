@@ -1,0 +1,56 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/cockpit_announcement_context_runtime_schema_audit_v1_20260526.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/cockpit_announcement_context_runtime_schema_audit_v1_20260526.md",
+        "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/README.md",
+        "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/status.json",
+        "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/validation.json",
+        "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": "branch_push_pr_and_issue_comment",
+      "job_id": "cockpit_announcement_context_runtime_schema_audit_v1_20260526",
+      "lane": "Provenance",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/cockpit_announcement_context_runtime_schema_audit_v1_20260526",
+      "owner": "Codex",
+      "production_data_access": false,
+      "related_issue": 84,
+      "supporting_lanes": [
+        "Query Orchestration",
+        "Reporting"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}
