@@ -1,0 +1,58 @@
+{
+  "code_changed": false,
+  "extraction_run": false,
+  "github_mutation_allowed": false,
+  "job_id": "extraction_guard_saved_artifact_scorecard_replay_v1_20260611",
+  "mutation_mode": "audit_only",
+  "production_data_access": false,
+  "risk_note": "Saved-artifact guard aggregation only; no broad current scorecard run.",
+  "status": "DONE_WITH_RISK",
+  "summary": {
+    "azj_nsr_scale_table_path_closed": true,
+    "ctn_observed_gain": {
+      "blocked_non_null_canonical_metrics": 6,
+      "documents": 1,
+      "inputs": {
+        "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+        "scorecard_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/agent_jobs/extraction_confirmed_payload_scorecard_v1_20260608/scorecard.json",
+        "source_audit_path": "/home/l4nd0/tenn-extraction-period-source-exact-evidence-audit-v1-20260608/reports/agent_jobs/extraction_period_source_exact_evidence_audit_v1_20260608/evidence_audit.json",
+        "ticker": "CTN"
+      },
+      "metric_names": [
+        "capex",
+        "cash_end",
+        "financing_cf",
+        "investing_cf",
+        "operating_cf",
+        "shares_outstanding"
+      ],
+      "mode": "saved_artifact_scorecard_replay_only_no_extraction",
+      "previous_error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "previous_status": "failed",
+      "replay_error": null,
+      "replay_status": "ok",
+      "source_period_end_evidence": {
+        "period_end": "2022-03-31",
+        "period_type": "Q",
+        "reason": "quarter_ended_explicit_date"
+      },
+      "source_period_evidence": {
+        "period_type": "Q",
+        "reason": "quarterly_source_precedence_over_annual_report_reference"
+      },
+      "status": "observed_saved_artifact_replay"
+    },
+    "guard_case_count": 6,
+    "hub_observed_gain": {
+      "blocked_non_null_metrics": 9,
+      "documents": 1
+    },
+    "lbl_fail_closed_preserved": true,
+    "observed_incremental_saved_artifact_gain_from_repair_packets": {
+      "accepted_document_delta": 3,
+      "canonical_metric_delta": 23
+    },
+    "pass_guard_count": 6,
+    "whc_current_accepted_metrics": 8
+  }
+}
