@@ -1,0 +1,7 @@
+{
+  "job_id": "extraction_whc_openability_runtime_endpoint_rerun_v1_20260611",
+  "status": "PASSED",
+  "check_diff_ok": true,
+  "disallowed_files": [],
+  "forbidden_surface_audit": "passed"
+}
