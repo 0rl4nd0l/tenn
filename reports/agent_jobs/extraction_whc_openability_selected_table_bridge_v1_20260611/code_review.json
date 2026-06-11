@@ -1,0 +1,33 @@
+{
+  "job_id": "extraction_whc_openability_selected_table_bridge_v1_20260611",
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "The bridge remains opt-in because openability_selected_tables defaults to false.",
+      "Default extraction behavior remains unchanged because diagnostics are requested only when openability_diagnostics or openability_selected_tables is true.",
+      "Synthetic tables still pass through Pass 2, Pass 3a, Pass 4, and existing validation gates."
+    ],
+    "sources_used": [
+      "git diff for financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "git diff for financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "files_read": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "files_modified": [
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "validation_checks": [
+      "Focused pytest passed: 190 passed",
+      "py_compile passed",
+      "ruff passed"
+    ]
+  },
+  "result": {
+    "critical": [],
+    "warnings": [],
+    "suggestions": []
+  }
+}

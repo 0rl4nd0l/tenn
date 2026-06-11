@@ -1,0 +1,62 @@
+{
+  "job_id": "extraction_whc_openability_selected_table_bridge_v1_20260611",
+  "status": "DONE_WITH_RISK",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_openability_selected_table_bridge_v1_20260611.md",
+      "exit_status": 0,
+      "result": "ok=true"
+    },
+    {
+      "name": "registry_list_active_read_only",
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "result": "ok=true active_jobs=[]"
+    },
+    {
+      "name": "focused_pytest",
+      "command": "cd financial-engine_v2/backend && PYTHONPATH=. /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest tests/test_multipass_extraction.py -q",
+      "exit_status": 0,
+      "result": "190 passed in 2.13s",
+      "raw_log": "/tmp/tenn_whc_openability_selected_table_pytest.log"
+    },
+    {
+      "name": "py_compile",
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit_status": 0,
+      "result": "passed",
+      "raw_log": "/tmp/tenn_whc_openability_selected_table_pycompile.log"
+    },
+    {
+      "name": "ruff",
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_status": 0,
+      "result": "All checks passed!",
+      "raw_log": "/tmp/tenn_whc_openability_selected_table_ruff.log"
+    }
+  ],
+  "negative_controls": [
+    "openability_selected_tables defaults to false",
+    "default run_multipass_extraction does not request openability diagnostics",
+    "default run_multipass_extraction does not add bridge tables",
+    "missing period evidence prevents that statement page from bridging",
+    "missing scale evidence prevents all openability bridge tables",
+    "low-confidence row candidates are ignored",
+    "synthetic tables still pass through existing Pass 2/3a/4 validation gates"
+  ],
+  "forbidden_actions_not_run": [
+    "no count-24/count-32/random sample",
+    "no broad extraction/backfill/full ticker-universe extraction",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory/source-PDF mutation",
+    "no prompt/gold/schema/runtime/model/GPU mutation",
+    "no docling_extract.py change",
+    "no PR #318 patch mining",
+    "no GitHub write"
+  ],
+  "data_missing": [
+    "No saved-artifact scorecard gain is claimed because exact WHC extraction and scorecard replay were not run under this task.",
+    "The integration is tested with mocked LLM responses; live model behavior remains DATA_MISSING until an exact WHC replay card allows it."
+  ]
+}
