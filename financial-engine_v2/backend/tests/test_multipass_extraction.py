@@ -4213,6 +4213,10 @@ class _OpenabilityDoc:
     parser_diagnostics = {"openability": _whc_openability_diagnostic()}
 
 
+class _OpenabilityPeriodOnlyDoc(_OpenabilityDoc):
+    sections = [{"text": "Whitehaven Coal 2022 Annual Report.", "page": 1}]
+
+
 def test_openability_selected_tables_builds_statement_tables_from_source_bound_diagnostics():
     from app.services.multipass_extraction import (
         _build_openability_selected_tables,
@@ -4255,6 +4259,45 @@ def test_openability_selected_tables_fail_closed_without_period_or_scale_evidenc
     assert _build_openability_selected_tables(_MissingScaleDoc()) == []
 
 
+def test_openability_period_source_text_reuses_existing_ambiguous_period_guard():
+    from app.services.multipass_extraction import (
+        _detect_source_period_end_evidence,
+        _openability_period_source_text,
+    )
+
+    class _AmbiguousPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    _AmbiguousPeriodDoc.parser_diagnostics["openability"]["ocr_records"][0][
+        "period_phrases"
+    ] = [
+        "For the year ended 30 June 2022",
+        "For the year ended 31 December 2021",
+    ]
+
+    evidence = _detect_source_period_end_evidence(
+        "",
+        _openability_period_source_text(_AmbiguousPeriodDoc()),
+    )
+
+    assert evidence["reason"] == "ambiguous"
+    assert evidence["period_end"] is None
+
+
+def test_openability_period_source_text_ignores_malformed_period_phrases():
+    from app.services.multipass_extraction import _openability_period_source_text
+
+    class _MalformedPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    for record in _MalformedPeriodDoc.parser_diagnostics["openability"][
+        "ocr_records"
+    ]:
+        record["period_phrases"] = "For the year ended 30 June 2022"
+
+    assert _openability_period_source_text(_MalformedPeriodDoc()) == ""
+
+
 def test_run_multipass_default_does_not_request_openability_bridge():
     from app.services.multipass_extraction import run_multipass_extraction
 
@@ -4262,7 +4305,7 @@ def test_run_multipass_default_does_not_request_openability_bridge():
 
     def _capture_extract(*args, **kwargs):
         captured_kwargs.update(kwargs)
-        return _OpenabilityDoc()
+        return _OpenabilityPeriodOnlyDoc()
 
     captured_table_count = []
 
@@ -4277,7 +4320,7 @@ def test_run_multipass_default_does_not_request_openability_bridge():
         "app.services.multipass_extraction._run_pass1_classifier",
         return_value={
             "report_type": "A",
-            "period_end": "2022-06-30",
+            "period_end": None,
             "currency": "AUD",
             "scale": "thousands",
             "classifier_confidence": 0.95,
@@ -4296,6 +4339,8 @@ def test_run_multipass_default_does_not_request_openability_bridge():
     assert captured_kwargs["openability_diagnostics"] is False
     assert captured_table_count == [0]
     assert result.status == "failed"
+    assert result.error == "validation_gate:missing_period_end"
+    assert result.payload["source_period_end_evidence"]["reason"] == "not_detected"
 
 
 def test_run_multipass_opt_in_routes_openability_tables_through_existing_gates():
@@ -4342,12 +4387,12 @@ def test_run_multipass_opt_in_routes_openability_tables_through_existing_gates()
 
     with patch(
         "app.services.docling_extract.extract_structured",
-        return_value=_OpenabilityDoc(),
+        return_value=_OpenabilityPeriodOnlyDoc(),
     ) as extract_mock, patch(
         "app.services.multipass_extraction._run_pass1_classifier",
         return_value={
             "report_type": "A",
-            "period_end": "2022-06-30",
+            "period_end": None,
             "currency": "AUD",
             "scale": "unknown",
             "classifier_confidence": 0.95,
@@ -4372,6 +4417,8 @@ def test_run_multipass_opt_in_routes_openability_tables_through_existing_gates()
     assert extract_mock.call_args.kwargs["openability_pages"] == [57, 58, 60, 61]
     assert len(debug_capture["openability_selected_tables"]) == 3
     assert result.status in {"ok", "ok_low_confidence"}
+    assert result.payload["period_end"] == "2022-06-30"
+    assert result.payload["source_period_end_evidence"]["reason"] == "year_ended_explicit_date"
     assert result.payload["scale"] == "thousands"
     assert result.payload["revenue"] == 4_920_102_000
     assert result.payload["operating_cf"] == 2_529_823_000

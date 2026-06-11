@@ -1061,6 +1061,44 @@ _OPENABILITY_SYNTHETIC_CAPTIONS = {
 }
 
 
+def _valid_openability_diagnostics(structured_doc: Any) -> dict[str, Any] | None:
+    diagnostics = getattr(structured_doc, "parser_diagnostics", {}) or {}
+    openability = diagnostics.get("openability")
+    if not isinstance(openability, dict):
+        return None
+    if openability.get("schema") != "docling_openability_diagnostics_v1":
+        return None
+    if openability.get("provenance_only") is not True:
+        return None
+    if openability.get("feeds_canonical_output") is not False:
+        return None
+    if openability.get("canonical_output_changed") is not False:
+        return None
+    return openability
+
+
+def _openability_period_source_text(structured_doc: Any) -> str:
+    """Return exact reporting-period phrases captured by openability diagnostics."""
+    openability = _valid_openability_diagnostics(structured_doc)
+    if openability is None:
+        return ""
+    records = openability.get("ocr_records")
+    if not isinstance(records, list):
+        return ""
+    phrases: list[str] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        period_phrases = record.get("period_phrases")
+        if not isinstance(period_phrases, list):
+            continue
+        for phrase in period_phrases:
+            text = str(phrase or "").strip()
+            if text and text not in phrases:
+                phrases.append(text)
+    return _combined_source_text(phrases)
+
+
 def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
     """
     Convert existing opt-in openability diagnostics into synthetic statement tables.
@@ -1071,17 +1109,8 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
     """
     from app.services.docling_extract import DoclingTable
 
-    diagnostics = getattr(structured_doc, "parser_diagnostics", {}) or {}
-    openability = diagnostics.get("openability")
-    if not isinstance(openability, dict):
-        return []
-    if openability.get("schema") != "docling_openability_diagnostics_v1":
-        return []
-    if openability.get("provenance_only") is not True:
-        return []
-    if openability.get("feeds_canonical_output") is not False:
-        return []
-    if openability.get("canonical_output_changed") is not False:
+    openability = _valid_openability_diagnostics(structured_doc)
+    if openability is None:
         return []
 
     records = openability.get("ocr_records")
@@ -4203,13 +4232,22 @@ def run_multipass_extraction(
         first_page_sections = structured_doc.sections[:3]
     first_page_text = " ".join(s["text"] for s in first_page_sections)
     early_period_text = _early_period_source_text(structured_doc.sections)
+    openability_period_text = (
+        _openability_period_source_text(structured_doc)
+        if openability_selected_tables
+        else ""
+    )
+    source_period_text = _combined_source_text(
+        early_period_text or first_page_text,
+        openability_period_text,
+    )
     title = doc_metadata.get("title", "")
 
     source_period_evidence = _detect_source_period_evidence(
-        title, early_period_text or first_page_text
+        title, source_period_text
     )
     source_period_end_evidence = _detect_source_period_end_evidence(
-        title, early_period_text or first_page_text
+        title, source_period_text
     )
     source_document_classification = classify_source_document(title, first_page_text)
     if not source_document_classification.extraction_candidate_allowed:

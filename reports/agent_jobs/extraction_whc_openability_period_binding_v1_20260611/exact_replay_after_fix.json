@@ -1,0 +1,227 @@
+{
+  "accepted_canonical_metrics": true,
+  "confidence_metrics": 1.0,
+  "currency": "AUD",
+  "debug_capture": {
+    "openability_selected_tables": [
+      {
+        "caption": null,
+        "page_number": null,
+        "row_count": 0
+      },
+      {
+        "caption": null,
+        "page_number": null,
+        "row_count": 0
+      },
+      {
+        "caption": null,
+        "page_number": null,
+        "row_count": 0
+      }
+    ],
+    "pass3a_results": [
+      {
+        "_markdown": "Source row | For the year ended 30 June 2022 $000 | Diagnostic value candidates\n--- | --- | ---\nNet cash from operating activities 3.4 2,529,823 138,765 | 2,529,823 | 3.4 | 2,529,823 | 138,765\nPurchase of property, plant and equipment (124,210) (68,693) | (124,210) | (124,210) | (68,693)\nNet cash used in investing activities (177,195) (103,591) | (177,195) | (177,195) | (103,591)\nNet cash used in financing activities (1,232,370) (46,732) | (1,232,370) | (1,232,370) | (46,732)\nNet change in cash and cash equivalents 1,120,258 (1,558) | 1,120,258 | 1,120,258 | (1,558)\nCash and cash equivalents at 1 July 95,202 106,760 | 95,202 | 1 | 95,202 | 106,760\nCash and cash equivalents at 30 June 1,215,460 95,202 | 1,215,460 | 30 | 1,215,460 | 95,202",
+        "_page_number": 60,
+        "_scale": "thousands",
+        "_scale_source": "table",
+        "_source": "cashflow_statement",
+        "_thinking": "Found row 'Net cash from operating activities' for operating_cf, verified column header '$'000'. Found row 'Purchase of property, plant and equipment' for capex. Found row 'Net cash used in investing activities' for investing_cf. Found row 'Net cash used in financing activities' for financing_cf. Found row 'Cash and cash equivalents at 30 June' for cash_end.",
+        "capex": -124210000.0,
+        "cash_end": 1215460000.0,
+        "financing_cf": -1232370000.0,
+        "investing_cf": -177195000.0,
+        "operating_cf": 2529823000.0,
+        "pass3_confidence": 1.0,
+        "period_col": null,
+        "row_refs": {
+          "capex": "Purchase of property, plant and equipment",
+          "cash_end": "Cash and cash equivalents at 30 June",
+          "financing_cf": "Net cash used in financing activities",
+          "investing_cf": "Net cash used in investing activities",
+          "operating_cf": "Net cash from operating activities"
+        }
+      },
+      {
+        "_markdown": "Source row | For the year ended 30 June 2022 $000 | Diagnostic value candidates\n--- | --- | ---\nRevenue 21 4,920,102 1,556,976 | 4,920,102 | 21 | 4,920,102 | 1,556,976\nProfit/(loss) before net financial expense 2,821,254 (706,181) | 2,821,254 | 2,821,254 | (706,181)\nFinance expense (56,825) (62,242) | (56,825) | (56,825) | (62,242)\nNet finance expense 5.2 (55,361) (62,014) | (55,361) | 5.2 | (55,361) | (62,014)\nProfit/(loss) before tax 2,765,893 (768,195) | 2,765,893 | 2,765,893 | (768,195)\nNet profit/(loss) for the year 1,951,965 (543,914) | 1,951,965 | 1,951,965 | (543,914)",
+        "_page_number": 57,
+        "_scale": "thousands",
+        "_scale_source": "table",
+        "_source": "income_statement",
+        "_thinking": "Found row 'Revenue' with value 4,920,102 for the period ending 2022-06-30. Found row 'Profit/(loss) before tax' with value 2,765,893 as EBIT equivalent. Found row 'Net profit/(loss) for the year' with value 1,951,965.",
+        "ebit": 2765893000.0,
+        "np_attributable": 1951965000.0,
+        "pass3_confidence": 1.0,
+        "period_col": null,
+        "revenue": 4920102000.0,
+        "row_refs": {
+          "ebit": "Profit/(loss) before tax",
+          "np_attributable": "Net profit/(loss) for the year",
+          "revenue": "Revenue"
+        }
+      },
+      {
+        "_markdown": "Source row | As at 30 June 2022 $000 | Diagnostic value candidates\n--- | --- | ---\nCash and cash equivalents 1,215,460 95,202 | 1,215,460 | 1,215,460 | 95,202\ninterest-bearing liabilities 51 77,843 75,116 | 77,843 | 51 | 77,843 | 75,116\ninterest-bearing liabilities 51 166,854 917,597 | 166,854 | 51 | 166,854 | 917,597\nTotal liabilities 1,912,899 1,687,128 | 1,912,899 | 1,912,899 | 1,687,128\nNet assets 4,211,634 2,705,738 | 4,211,634 | 4,211,634 | 2,705,738\nTotal equity 4,211,634 2,705,738 | 4,211,634 | 4,211,634 | 2,705,738",
+        "_page_number": 58,
+        "_scale": "thousands",
+        "_scale_source": "table",
+        "_source": "balance_sheet",
+        "_thinking": "Found 'Cash and cash equivalents' with value 1,215,460 and 'Total liabilities' with value 1,912,899. Net debt is calculated as Total liabilities minus Cash and cash equivalents. However, the table does not explicitly label net debt or shares outstanding.",
+        "net_debt": -302571000.0,
+        "pass3_confidence": 0.3333333333333333,
+        "period_col": null,
+        "row_refs": {
+          "net_debt": "Cash and cash equivalents, Total liabilities"
+        },
+        "shares_outstanding": null,
+        "total_debt": null
+      }
+    ]
+  },
+  "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+  "job_id": "extraction_whc_openability_period_binding_v1_20260611",
+  "metric_scale_sources": {
+    "capex": "table",
+    "cash_end": "table",
+    "ebit": "table",
+    "financing_cf": "table",
+    "investing_cf": "table",
+    "np_attributable": "table",
+    "operating_cf": "table",
+    "revenue": "table"
+  },
+  "metric_source_scales": {
+    "capex": "thousands",
+    "cash_end": "thousands",
+    "ebit": "thousands",
+    "financing_cf": "thousands",
+    "investing_cf": "thousands",
+    "np_attributable": "thousands",
+    "operating_cf": "thousands",
+    "revenue": "thousands"
+  },
+  "mode": "exact_single_document_openability_selected_table_replay_after_period_binding_fix",
+  "non_null_metric_count": 8,
+  "non_null_metrics": {
+    "capex": -124210000.0,
+    "cash_end": 1215460000.0,
+    "ebit": 2765893000.0,
+    "financing_cf": -1232370000.0,
+    "investing_cf": -177195000.0,
+    "np_attributable": 1951965000.0,
+    "operating_cf": 2529823000.0,
+    "revenue": 4920102000.0
+  },
+  "observed_gain_vs_prior_runtime_replay": {
+    "accepted_document_delta": 1,
+    "canonical_metric_delta": 8,
+    "prior_runtime_replay_error": "validation_gate:missing_period_end",
+    "prior_runtime_replay_status": "failed"
+  },
+  "parameters": {
+    "openability_pages": [
+      57,
+      58,
+      60,
+      61
+    ],
+    "openability_selected_tables": true,
+    "parser_backend": "pymupdf",
+    "skip_narrative": true
+  },
+  "period_end": "2022-06-30",
+  "period_start": "2021-07-01",
+  "period_type": "A",
+  "process_local_env_overrides": {
+    "DATA_ROOT": "/tmp/tenn_whc_openability_period_binding_replay_data_2551653",
+    "EXTRACTION_LLAMACPP_URL": "http://127.0.0.1:11434",
+    "EXTRACTION_PARALLEL": "0",
+    "EXTRACT_MODEL": "qwen2.5:32b",
+    "OLLAMA_URL": "http://127.0.0.1:11434"
+  },
+  "provenance": {
+    "capex": "cashflow_statement:page_60:Purchase of property, plant and equipment",
+    "cash_end": "cashflow_statement:page_60:Cash and cash equivalents at 30 June",
+    "ebit": "income_statement:page_57:Profit/(loss) before tax",
+    "financing_cf": "cashflow_statement:page_60:Net cash used in financing activities",
+    "investing_cf": "cashflow_statement:page_60:Net cash used in investing activities",
+    "np_attributable": "income_statement:page_57:Net profit/(loss) for the year",
+    "operating_cf": "cashflow_statement:page_60:Net cash from operating activities",
+    "revenue": "income_statement:page_57:Revenue"
+  },
+  "result_error": null,
+  "result_status": "ok",
+  "row_refs": {
+    "capex": "Purchase of property, plant and equipment",
+    "cash_end": "Cash and cash equivalents at 30 June",
+    "ebit": "Profit/(loss) before tax",
+    "financing_cf": "Net cash used in financing activities",
+    "investing_cf": "Net cash used in investing activities",
+    "np_attributable": "Net profit/(loss) for the year",
+    "operating_cf": "Net cash from operating activities",
+    "revenue": "Revenue"
+  },
+  "scale": "thousands",
+  "scale_validation": "pass",
+  "source_bound": {
+    "currency": "AUD",
+    "document_title": "2022 Annual Report",
+    "period_end": "2022-06-30",
+    "period_type": "A",
+    "scale": "thousands"
+  },
+  "source_pdf": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+  "source_pdf_readable": true,
+  "source_period_end_evidence": {
+    "hits": [
+      {
+        "evidence": "For the year ended 30 June 2022",
+        "period_end": "2022-06-30",
+        "period_type": "A",
+        "reason": "year_ended_explicit_date",
+        "source": "source_text"
+      },
+      {
+        "evidence": "for the year ended 30 June 2022",
+        "period_end": "2022-06-30",
+        "period_type": "A",
+        "reason": "year_ended_explicit_date",
+        "source": "source_text"
+      }
+    ],
+    "period_end": "2022-06-30",
+    "period_type": "A",
+    "reason": "year_ended_explicit_date"
+  },
+  "source_period_evidence": {
+    "hits": [
+      {
+        "period_type": "A",
+        "reason": "annual_report_title",
+        "source": "title"
+      },
+      {
+        "period_type": "A",
+        "reason": "annual_report_title",
+        "source": "source_text"
+      },
+      {
+        "period_type": "A",
+        "reason": "year_ended_source_phrase",
+        "source": "source_text"
+      }
+    ],
+    "period_type": "A",
+    "reason": "annual_report_title"
+  },
+  "status": "DONE",
+  "structured_extraction": null,
+  "temporary_cache_file_count_before_cleanup": 1,
+  "temporary_cache_files_before_cleanup": [
+    "reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+  ],
+  "temporary_data_root": "/tmp/tenn_whc_openability_period_binding_replay_data_2551653",
+  "temporary_data_root_removed": true,
+  "ticker": "WHC"
+}

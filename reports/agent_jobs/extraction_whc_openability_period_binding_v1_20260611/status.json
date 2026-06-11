@@ -1,0 +1,17 @@
+{
+  "github_mutation_allowed": false,
+  "job_id": "extraction_whc_openability_period_binding_v1_20260611",
+  "mutation_mode": "safe_extension",
+  "production_data_access": false,
+  "result": {
+    "accepted_document_delta_vs_prior_runtime_replay": 1,
+    "accepted_metric_delta_vs_prior_runtime_replay": 8,
+    "code_changed": true,
+    "exact_replay_status": "ok",
+    "non_null_metric_count": 8,
+    "period_end": "2022-06-30"
+  },
+  "risk_note": "DONE_WITH_RISK because validation is exact WHC-only, not broad scorecard validation.",
+  "selected_decision": "C: WHC exact evidence proved a narrow opt-in period-source binding fix.",
+  "status": "DONE_WITH_RISK"
+}
