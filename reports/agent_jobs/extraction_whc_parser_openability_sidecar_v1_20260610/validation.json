@@ -23,22 +23,22 @@
       "name": "focused_pytest",
       "command": "cd financial-engine_v2/backend && PYTHONPATH=. /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest tests/test_docling_extract.py -q",
       "exit_status": 0,
-      "result": "23 passed in 0.31s",
-      "raw_log": "/tmp/tenn_whc_openability_statement_page_pytest.log"
+            "result": "25 passed in 0.27s",
+            "raw_log": "/tmp/tenn_whc_openability_row_quality_final_pytest.log"
     },
     {
       "name": "py_compile",
       "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/docling_extract.py",
       "exit_status": 0,
       "result": "passed",
-      "raw_log": "/tmp/tenn_whc_openability_statement_page_pycompile.log"
+            "raw_log": "/tmp/tenn_whc_openability_row_quality_final_pycompile.log"
     },
     {
       "name": "ruff",
       "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/services/docling_extract.py financial-engine_v2/backend/tests/test_docling_extract.py",
       "exit_status": 0,
       "result": "All checks passed!",
-      "raw_log": "/tmp/tenn_whc_openability_statement_page_ruff.log"
+            "raw_log": "/tmp/tenn_whc_openability_row_quality_final_ruff.log"
     },
     {
       "name": "json_validation",
@@ -69,7 +69,8 @@
     "tests assert no accepted_metrics or normalized_value in diagnostic payload",
     "OCR command failure records DATA_MISSING",
     "unbounded page requests are rejected",
-    "mixed scale-note nonempty parser noise does not mask empty statement-page parser cells"
+        "mixed scale-note nonempty parser noise does not mask empty statement-page parser cells",
+        "note references and comparative values are preserved separately from candidate current-period value text"
   ],
   "forbidden_actions_not_run": [
     "no extraction run",
@@ -84,7 +85,7 @@
   ],
   "data_missing": [
     "No saved-artifact scorecard gain exists for this slice because canonical extraction remains unchanged.",
-    "The opt-in diagnostic path was validated with mocked OCR tests and one exact-source WHC smoke, but not routed into canonical extraction.",
+        "The opt-in diagnostic path was validated with mocked OCR tests and exact-source WHC smoke reruns, but not routed into canonical extraction.",
     "The live WHC smoke is recorded separately under extraction_whc_openability_exact_source_smoke_v1_20260610 and remains non-canonical."
   ]
 }

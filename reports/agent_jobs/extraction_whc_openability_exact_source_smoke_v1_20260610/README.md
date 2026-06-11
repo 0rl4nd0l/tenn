@@ -20,6 +20,11 @@ openability gap without canonical output changes:
 - OCR scale pages with evidence: 57, 58, 61
 - Parser statement-page table count: 10
 - Parser statement-page nonempty cell count: 0
+- Current-period row candidate examples:
+  - Revenue: `4,920,102`
+  - Net cash from operating activities: `2,529,823`
+  - Cash and cash equivalents: `1,215,460`
+  - Purchase of property, plant and equipment: `(124,210)`
 - `feeds_canonical_output=false`
 - `canonical_output_changed=false`
 - No accepted metrics or normalized values were emitted.

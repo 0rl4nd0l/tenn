@@ -195,7 +195,12 @@ def test_openability_diagnostics_round_trips_without_changing_tables(
     ]
     assert diagnostic["ocr_records"][0]["scale_phrases"] == ["$000"]
     assert diagnostic["ocr_records"][0]["row_candidates"] == [
-        {"source_text": "Net cash from operating activities 2,529,823"}
+        {
+            "source_text": "Net cash from operating activities 2,529,823",
+            "candidate_value_text": "2,529,823",
+            "value_text_candidates": ["2,529,823"],
+            "candidate_value_quality": "financial_amount",
+        }
     ]
 
     payload_text = json.dumps(diagnostic)
@@ -244,7 +249,14 @@ def test_openability_classification_uses_statement_pages_not_scale_note_noise(
                 "statement_evidence_found": True,
                 "period_phrases": ["For the year ended 30 June 2022"],
                 "scale_phrases": ["$000"],
-                "row_candidates": [{"source_text": "Revenue 4,920,102"}],
+                "row_candidates": [
+                    {
+                        "source_text": "Revenue 4,920,102",
+                        "candidate_value_text": "4,920,102",
+                        "value_text_candidates": ["4,920,102"],
+                        "candidate_value_quality": "financial_amount",
+                    }
+                ],
                 "row_candidate_count": 1,
                 "verdict": "PROVENANCE_CAPTURED",
             },
@@ -321,8 +333,56 @@ def test_openability_text_parser_preserves_source_text_only():
     assert parsed["statement_label"] == "income_statement"
     assert parsed["period_phrases"] == ["For the year ended 30 June 2022"]
     assert parsed["scale_phrases"] == ["$000"]
-    assert parsed["row_candidates"] == [{"source_text": "Revenue 4,920,102"}]
+    assert parsed["row_candidates"] == [
+        {
+            "source_text": "Revenue 4,920,102",
+            "candidate_value_text": "4,920,102",
+            "value_text_candidates": ["4,920,102"],
+            "candidate_value_quality": "financial_amount",
+        }
+    ]
     assert "normalized_value" not in json.dumps(parsed)
+
+
+def test_openability_text_parser_preserves_terminal_amount_after_note_refs():
+    parsed = docling_extract._parse_openability_text(
+        57,
+        "Revenue 2.1 4,920,102\n"
+        "Net cash from operating activities 3.4 2,529,823\n",
+        source="test",
+    )
+
+    assert parsed["row_candidates"] == [
+        {
+            "source_text": "Revenue 2.1 4,920,102",
+            "candidate_value_text": "4,920,102",
+            "value_text_candidates": ["2.1", "4,920,102"],
+            "candidate_value_quality": "financial_amount",
+        },
+        {
+            "source_text": "Net cash from operating activities 3.4 2,529,823",
+            "candidate_value_text": "2,529,823",
+            "value_text_candidates": ["3.4", "2,529,823"],
+            "candidate_value_quality": "financial_amount",
+        },
+    ]
+
+
+def test_openability_text_parser_uses_first_current_period_amount_before_comparative():
+    parsed = docling_extract._parse_openability_text(
+        57,
+        "Revenue 2.1 4,920,102 1,556,976\n",
+        source="test",
+    )
+
+    assert parsed["row_candidates"] == [
+        {
+            "source_text": "Revenue 2.1 4,920,102 1,556,976",
+            "candidate_value_text": "4,920,102",
+            "value_text_candidates": ["2.1", "4,920,102", "1,556,976"],
+            "candidate_value_quality": "financial_amount",
+        }
+    ]
 
 
 def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypatch):

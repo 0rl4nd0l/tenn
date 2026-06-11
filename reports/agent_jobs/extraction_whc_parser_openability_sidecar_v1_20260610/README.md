@@ -40,6 +40,9 @@ behavior and canonical extraction output remain unchanged.
   phrases, and source row text only.
 - Refined classification so mixed scale-note pages with non-statement parser
   noise do not mask empty OCR statement-page parser cells.
+- Refined OCR row candidates so note references and comparative columns are
+  preserved separately, while the first high-quality financial amount is tagged
+  as `candidate_value_text`.
 - The diagnostic payload does not emit accepted metrics or normalized values.
 - Diagnostic rows are not routed into `StructuredDocument.tables`,
   `multipass_extraction.py`, selected tables, row refs, metric source scales, or
@@ -49,12 +52,15 @@ behavior and canonical extraction output remain unchanged.
 
 - Task card validate: passed.
 - Registry read-only: `ok=true`, `active_jobs=[]`.
-- Focused pytest: `23 passed in 0.31s`.
+- Focused pytest: `25 passed in 0.30s`.
 - `py_compile`: passed.
 - `ruff`: passed.
 - Exact WHC source smoke: `ocr_openability_provenance_gap`, statement pages
   57/58/60, scale pages 57/58/61, parser statement-page table count 10, parser
   statement-page nonempty cell count 0.
+- Exact WHC row candidates now preserve current-period values including revenue
+  `4,920,102`, operating cash flow `2,529,823`, cash `1,215,460`, and capex
+  `(124,210)` without canonical promotion.
 - JSON validation: passed.
 - `git diff --check`: passed.
 - Task-card `check-diff`: passed.
@@ -63,9 +69,9 @@ behavior and canonical extraction output remain unchanged.
 ## Remaining Risk
 
 This is real parser-code progress, but it is not WHC canonical extraction yet.
-The next slice must consume the preserved diagnostics into a selected-table
-integration path with negative controls before canonical WHC metrics can be
-accepted.
+The next slice can consume the preserved diagnostics into a selected-table
+integration path with negative controls. Canonical WHC metrics must still remain
+fail-closed until page/table/header/row/period/scale provenance is bound.
 
 ## Next Recommended Task
 

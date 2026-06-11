@@ -11,12 +11,12 @@
     "row_candidate_counts": [
       {
         "page": 57,
-        "row_candidate_count": 8,
+        "row_candidate_count": 6,
         "verdict": "PROVENANCE_CAPTURED"
       },
       {
         "page": 58,
-        "row_candidate_count": 5,
+        "row_candidate_count": 6,
         "verdict": "PROVENANCE_CAPTURED"
       },
       {
@@ -28,6 +28,112 @@
         "page": 61,
         "row_candidate_count": 0,
         "verdict": "DATA_MISSING"
+      }
+    ],
+    "row_candidate_samples": [
+      {
+        "page": 57,
+        "rows": [
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "4,920,102",
+            "source_text": "Revenue 21 4,920,102 1,556,976",
+            "value_text_candidates": [
+              "21",
+              "4,920,102",
+              "1,556,976"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "2,821,254",
+            "source_text": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+            "value_text_candidates": [
+              "2,821,254",
+              "(706,181)"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(56,825)",
+            "source_text": "Finance expense (56,825) (62,242)",
+            "value_text_candidates": [
+              "(56,825)",
+              "(62,242)"
+            ]
+          }
+        ]
+      },
+      {
+        "page": 58,
+        "rows": [
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "1,215,460",
+            "source_text": "Cash and cash equivalents 1,215,460 95,202",
+            "value_text_candidates": [
+              "1,215,460",
+              "95,202"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "77,843",
+            "source_text": "interest-bearing liabilities 51 77,843 75,116",
+            "value_text_candidates": [
+              "51",
+              "77,843",
+              "75,116"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "166,854",
+            "source_text": "interest-bearing liabilities 51 166,854 917,597",
+            "value_text_candidates": [
+              "51",
+              "166,854",
+              "917,597"
+            ]
+          }
+        ]
+      },
+      {
+        "page": 60,
+        "rows": [
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "2,529,823",
+            "source_text": "Net cash from operating activities 3.4 2,529,823 138,765",
+            "value_text_candidates": [
+              "3.4",
+              "2,529,823",
+              "138,765"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(124,210)",
+            "source_text": "Purchase of property, plant and equipment (124,210) (68,693)",
+            "value_text_candidates": [
+              "(124,210)",
+              "(68,693)"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(177,195)",
+            "source_text": "Net cash used in investing activities (177,195) (103,591)",
+            "value_text_candidates": [
+              "(177,195)",
+              "(103,591)"
+            ]
+          }
+        ]
+      },
+      {
+        "page": 61,
+        "rows": []
       }
     ],
     "scale_pages": [
@@ -57,31 +163,63 @@
         "period_phrases": [
           "For the year ended 30 June 2022"
         ],
-        "row_candidate_count": 8,
+        "row_candidate_count": 6,
         "row_candidates": [
           {
-            "source_text": "Revenue 21"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "4,920,102",
+            "source_text": "Revenue 21 4,920,102 1,556,976",
+            "value_text_candidates": [
+              "21",
+              "4,920,102",
+              "1,556,976"
+            ]
           },
           {
-            "source_text": "Profit/(loss) before net financial expense 2,821,254"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "2,821,254",
+            "source_text": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+            "value_text_candidates": [
+              "2,821,254",
+              "(706,181)"
+            ]
           },
           {
-            "source_text": "Finance expense (56,825)"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(56,825)",
+            "source_text": "Finance expense (56,825) (62,242)",
+            "value_text_candidates": [
+              "(56,825)",
+              "(62,242)"
+            ]
           },
           {
-            "source_text": "finance expense 5.2"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(55,361)",
+            "source_text": "Net finance expense 5.2 (55,361) (62,014)",
+            "value_text_candidates": [
+              "5.2",
+              "(55,361)",
+              "(62,014)"
+            ]
           },
           {
-            "source_text": "Net finance expense 5.2"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "2,765,893",
+            "source_text": "Profit/(loss) before tax 2,765,893 (768,195)",
+            "value_text_candidates": [
+              "2,765,893",
+              "(768,195)"
+            ]
           },
           {
-            "source_text": "Profit/(loss) before tax 2,765,893"
-          },
-          {
-            "source_text": "profit/(loss) for the year 1,951,965"
-          },
-          {
-            "source_text": "Net profit/(loss) for the year 1,951,965"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "1,951,965",
+            "source_text": "Net profit/(loss) for the year 1,951,965 (543,914)",
+            "value_text_candidates": [
+              "1,951,965",
+              "(543,914)"
+            ]
           }
         ],
         "scale_phrases": [
@@ -97,22 +235,63 @@
         "period_phrases": [
           "As at 30 June 2022"
         ],
-        "row_candidate_count": 5,
+        "row_candidate_count": 6,
         "row_candidates": [
           {
-            "source_text": "Cash and cash equivalents 1,215,460"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "1,215,460",
+            "source_text": "Cash and cash equivalents 1,215,460 95,202",
+            "value_text_candidates": [
+              "1,215,460",
+              "95,202"
+            ]
           },
           {
-            "source_text": "interest-bearing liabilities 51"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "77,843",
+            "source_text": "interest-bearing liabilities 51 77,843 75,116",
+            "value_text_candidates": [
+              "51",
+              "77,843",
+              "75,116"
+            ]
           },
           {
-            "source_text": "Total liabilities 1,912,899"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "166,854",
+            "source_text": "interest-bearing liabilities 51 166,854 917,597",
+            "value_text_candidates": [
+              "51",
+              "166,854",
+              "917,597"
+            ]
           },
           {
-            "source_text": "Net assets 4,211,634"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "1,912,899",
+            "source_text": "Total liabilities 1,912,899 1,687,128",
+            "value_text_candidates": [
+              "1,912,899",
+              "1,687,128"
+            ]
           },
           {
-            "source_text": "Total equity 4,211,634"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "4,211,634",
+            "source_text": "Net assets 4,211,634 2,705,738",
+            "value_text_candidates": [
+              "4,211,634",
+              "2,705,738"
+            ]
+          },
+          {
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "4,211,634",
+            "source_text": "Total equity 4,211,634 2,705,738",
+            "value_text_candidates": [
+              "4,211,634",
+              "2,705,738"
+            ]
           }
         ],
         "scale_phrases": [
@@ -131,25 +310,70 @@
         "row_candidate_count": 7,
         "row_candidates": [
           {
-            "source_text": "Net cash from operating activities 3.4"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "2,529,823",
+            "source_text": "Net cash from operating activities 3.4 2,529,823 138,765",
+            "value_text_candidates": [
+              "3.4",
+              "2,529,823",
+              "138,765"
+            ]
           },
           {
-            "source_text": "Purchase of property, plant and equipment (124,210)"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(124,210)",
+            "source_text": "Purchase of property, plant and equipment (124,210) (68,693)",
+            "value_text_candidates": [
+              "(124,210)",
+              "(68,693)"
+            ]
           },
           {
-            "source_text": "Net cash used in investing activities (177,195)"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(177,195)",
+            "source_text": "Net cash used in investing activities (177,195) (103,591)",
+            "value_text_candidates": [
+              "(177,195)",
+              "(103,591)"
+            ]
           },
           {
-            "source_text": "Net cash used in financing activities (1,232,370)"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "(1,232,370)",
+            "source_text": "Net cash used in financing activities (1,232,370) (46,732)",
+            "value_text_candidates": [
+              "(1,232,370)",
+              "(46,732)"
+            ]
           },
           {
-            "source_text": "cash and cash equivalents 1,120,258"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "1,120,258",
+            "source_text": "Net change in cash and cash equivalents 1,120,258 (1,558)",
+            "value_text_candidates": [
+              "1,120,258",
+              "(1,558)"
+            ]
           },
           {
-            "source_text": "Cash and cash equivalents at 1"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "95,202",
+            "source_text": "Cash and cash equivalents at 1 July 95,202 106,760",
+            "value_text_candidates": [
+              "1",
+              "95,202",
+              "106,760"
+            ]
           },
           {
-            "source_text": "Cash and cash equivalents at 30"
+            "candidate_value_quality": "financial_amount",
+            "candidate_value_text": "1,215,460",
+            "source_text": "Cash and cash equivalents at 30 June 1,215,460 95,202",
+            "value_text_candidates": [
+              "30",
+              "1,215,460",
+              "95,202"
+            ]
           }
         ],
         "scale_phrases": [],

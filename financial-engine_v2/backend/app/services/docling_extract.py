@@ -103,6 +103,7 @@ OPENABILITY_ROW_PATTERNS = [
         re.IGNORECASE,
     ),
 ]
+OPENABILITY_VALUE_TOKEN_PATTERN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
 
 
 class ExtractionTimeoutError(Exception):
@@ -453,15 +454,32 @@ def _openability_row_candidates(text: str) -> list[dict[str, str]]:
         line = re.sub(r"\s+", " ", raw_line).strip()
         if not line:
             continue
-        for pattern in OPENABILITY_ROW_PATTERNS:
-            match = pattern.search(line)
-            if not match:
-                continue
-            source_text = match.group(0).strip()
-            if source_text in seen:
-                continue
-            seen.add(source_text)
-            candidates.append({"source_text": source_text})
+        if not any(pattern.search(line) for pattern in OPENABILITY_ROW_PATTERNS):
+            continue
+        value_tokens = OPENABILITY_VALUE_TOKEN_PATTERN.findall(line)
+        if not value_tokens:
+            continue
+        financial_amounts = [
+            token
+            for token in value_tokens
+            if "," in token
+            or token.startswith("(")
+            or len(token.strip("()-").split(".")[0]) >= 4
+        ]
+        candidate_value = (financial_amounts or value_tokens)[0]
+        if line in seen:
+            continue
+        seen.add(line)
+        candidates.append(
+            {
+                "source_text": line,
+                "candidate_value_text": candidate_value,
+                "value_text_candidates": value_tokens,
+                "candidate_value_quality": (
+                    "financial_amount" if financial_amounts else "low_confidence"
+                ),
+            }
+        )
     return candidates
 
 
