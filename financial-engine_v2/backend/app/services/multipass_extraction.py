@@ -1138,9 +1138,12 @@ def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
         caption_base = _OPENABILITY_SYNTHETIC_CAPTIONS.get(statement_label)
         if not caption_base:
             continue
+        raw_period_phrases = record.get("period_phrases")
+        if not isinstance(raw_period_phrases, list):
+            continue
         period_phrases = [
             str(phrase).strip()
-            for phrase in (record.get("period_phrases") or [])
+            for phrase in raw_period_phrases
             if str(phrase or "").strip()
         ]
         if not period_phrases:

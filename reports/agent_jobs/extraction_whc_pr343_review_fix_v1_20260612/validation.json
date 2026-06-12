@@ -1,0 +1,74 @@
+{
+  "commands": [
+    {
+      "cmd": "PYTHONPATH=. .../.venv/bin/python -m pytest tests/test_docling_extract.py::test_openability_diagnostics_rebuilds_when_cached_pages_mismatch tests/test_multipass_extraction.py::test_openability_selected_tables_ignores_malformed_period_phrases -q",
+      "exit_code": 0,
+      "result": "2 passed in 0.47s"
+    },
+    {
+      "cmd": "PYTHONPATH=. .../.venv/bin/python -m pytest tests/test_docling_extract.py tests/test_multipass_extraction.py -q",
+      "exit_code": 0,
+      "result": "219 passed in 1.94s"
+    },
+    {
+      "cmd": "PYTHONPATH=. .../.venv/bin/python -m py_compile app/services/docling_extract.py app/services/multipass_extraction.py",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "cmd": ".../.venv/bin/ruff check app/services/docling_extract.py app/services/multipass_extraction.py tests/test_docling_extract.py tests/test_multipass_extraction.py",
+      "exit_code": 0,
+      "result": "All checks passed!"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+      "exit_code": 0,
+      "result": "ok=true, issues=[]"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "result": "ok=true, active_jobs=[]"
+    },
+    {
+      "cmd": "git diff --check",
+      "exit_code": 0,
+      "result": "passed"
+    },
+    {
+      "cmd": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+      "exit_code": 0,
+      "result": "ok=true, disallowed_files=[]"
+    }
+  ],
+  "forbidden_surface_audit": {
+    "changed_paths": [
+      "docs/agent_tasks/extraction_whc_pr343_review_fix_v1_20260612.md",
+      "financial-engine_v2/backend/app/services/docling_extract.py",
+      "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "financial-engine_v2/backend/tests/test_docling_extract.py",
+      "financial-engine_v2/backend/tests/test_multipass_extraction.py"
+    ],
+    "forbidden_actions_not_run": [
+      "count-24",
+      "count-32",
+      "broad extraction",
+      "random samples",
+      "backfill",
+      "service routes",
+      "DB/Qdrant/Redis/news/memory/source-PDF mutation",
+      "prompt/gold/schema/runtime/model/GPU mutation",
+      "PR #318 patch mining",
+      "PR #343 merge",
+      "PR #340 close/merge"
+    ],
+    "forbidden_marker_hits": []
+  },
+  "negative_controls": [
+    "Default openability diagnostics remain opt-in.",
+    "Malformed period_phrases payloads do not provide source-bound period evidence.",
+    "Openability diagnostics remain provenance-sidecar and are not canonical output by default."
+  ],
+  "risk_reason": "Local validation passed; post-push GitHub CI/scan must rerun on the new commit before merge.",
+  "status": "DONE_WITH_RISK"
+}

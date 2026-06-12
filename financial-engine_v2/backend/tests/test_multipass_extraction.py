@@ -4298,6 +4298,20 @@ def test_openability_period_source_text_ignores_malformed_period_phrases():
     assert _openability_period_source_text(_MalformedPeriodDoc()) == ""
 
 
+def test_openability_selected_tables_ignores_malformed_period_phrases():
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    class _MalformedPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    for record in _MalformedPeriodDoc.parser_diagnostics["openability"][
+        "ocr_records"
+    ]:
+        record["period_phrases"] = "For the year ended 30 June 2022"
+
+    assert _build_openability_selected_tables(_MalformedPeriodDoc()) == []
+
+
 def test_run_multipass_default_does_not_request_openability_bridge():
     from app.services.multipass_extraction import run_multipass_extraction
 

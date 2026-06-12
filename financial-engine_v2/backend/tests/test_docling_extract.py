@@ -214,6 +214,77 @@ def test_openability_diagnostics_round_trips_without_changing_tables(
     assert cache_doc.parser_diagnostics["openability"] == diagnostic
 
 
+def test_openability_diagnostics_rebuilds_when_cached_pages_mismatch(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+    old_mtime = time.time() - 10
+    os.utime(pdf_path, (old_mtime, old_mtime))
+
+    extract_calls = []
+
+    def _make_doc() -> StructuredDocument:
+        return StructuredDocument(
+            tables=[
+                DoclingTable(
+                    page_number=1,
+                    caption="For personal use only",
+                    rows=[["", ""], ["", ""]],
+                    headers=["", ""],
+                ),
+                DoclingTable(
+                    page_number=2,
+                    caption="For personal use only",
+                    rows=[["", ""], ["", ""]],
+                    headers=["", ""],
+                ),
+            ],
+            sections=[
+                {"heading": False, "text": "For personal use only", "page": 1},
+                {"heading": False, "text": "For personal use only", "page": 2},
+            ],
+            extraction_method="pymupdf",
+            page_count=2,
+            source_pdf_page_count=2,
+        )
+
+    def _extract(path: str) -> StructuredDocument:
+        extract_calls.append(path)
+        return _make_doc()
+
+    runner = FakeOpenabilityRunner()
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", _extract)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 2)
+
+    first = docling_extract.extract_structured(
+        str(pdf_path),
+        backend="pymupdf",
+        openability_diagnostics=True,
+        openability_pages=[1],
+        openability_runner=runner,
+    )
+    assert first.parser_diagnostics["openability"]["diagnostic_pages"] == [1]
+
+    second = docling_extract.extract_structured(
+        str(pdf_path),
+        backend="pymupdf",
+        openability_diagnostics=True,
+        openability_pages=[2],
+        openability_runner=runner,
+    )
+
+    assert extract_calls == [str(pdf_path)]
+    assert second.parser_diagnostics["openability"]["diagnostic_pages"] == [2]
+    assert [
+        args[2] for args in runner.calls if args and args[0] == "pdftoppm"
+    ] == ["1", "2"]
+    cache_doc = docling_extract._load_cache(
+        docling_extract._cache_path_for_pdf(str(pdf_path), ".pymupdf.json")
+    )
+    assert cache_doc.parser_diagnostics["openability"]["diagnostic_pages"] == [2]
+
+
 def test_openability_classification_uses_statement_pages_not_scale_note_noise(
     monkeypatch,
 ):

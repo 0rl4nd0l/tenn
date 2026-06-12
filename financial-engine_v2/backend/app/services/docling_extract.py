@@ -727,6 +727,22 @@ def _build_openability_diagnostics(
     }
 
 
+def _openability_diagnostics_match_pages(
+    existing: Any,
+    diagnostic_pages: list[int],
+) -> bool:
+    if not isinstance(existing, dict):
+        return False
+    existing_pages = existing.get("diagnostic_pages")
+    if not isinstance(existing_pages, list):
+        return False
+    try:
+        normalized_existing = sorted({int(page) for page in existing_pages})
+    except (TypeError, ValueError):
+        return False
+    return normalized_existing == diagnostic_pages
+
+
 def _attach_openability_diagnostics(
     doc: StructuredDocument,
     *,
@@ -738,11 +754,18 @@ def _attach_openability_diagnostics(
     if not enabled:
         return doc
     diagnostics = dict(doc.parser_diagnostics or {})
-    if "openability" not in diagnostics:
+    diagnostic_pages = _validate_openability_pages(
+        pages if pages is not None else _openability_candidate_pages(doc),
+        page_count=doc.source_pdf_page_count or doc.page_count,
+    )
+    if not _openability_diagnostics_match_pages(
+        diagnostics.get("openability"),
+        diagnostic_pages,
+    ):
         diagnostics["openability"] = _build_openability_diagnostics(
             pdf_path=pdf_path,
             doc=doc,
-            pages=pages,
+            pages=diagnostic_pages,
             runner=runner,
         )
         doc.parser_diagnostics = diagnostics
