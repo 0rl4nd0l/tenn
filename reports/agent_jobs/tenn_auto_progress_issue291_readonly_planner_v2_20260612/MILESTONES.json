@@ -1,0 +1,72 @@
+[
+  {
+    "closed_issues": 9,
+    "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+    "due_on": null,
+    "number": 1,
+    "open_issues": 18,
+    "state": "open",
+    "title": "M0 \u2014 Control Plane Hardening",
+    "updated_at": "2026-06-08T11:32:36Z"
+  },
+  {
+    "closed_issues": 1,
+    "description": "Evidence, source provenance, trust boundaries, and DATA_MISSING discipline.",
+    "due_on": null,
+    "number": 2,
+    "open_issues": 3,
+    "state": "open",
+    "title": "M1 \u2014 Trust / Provenance Foundation",
+    "updated_at": "2026-05-31T11:54:11Z"
+  },
+  {
+    "closed_issues": 1,
+    "description": "Evaluation harnesses, baselines, drift checks, and validation coverage.",
+    "due_on": null,
+    "number": 3,
+    "open_issues": 4,
+    "state": "open",
+    "title": "M2 \u2014 Evaluation Spine",
+    "updated_at": "2026-05-31T11:54:14Z"
+  },
+  {
+    "closed_issues": 1,
+    "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+    "due_on": null,
+    "number": 4,
+    "open_issues": 11,
+    "state": "open",
+    "title": "M3 \u2014 Query + Memory Integrity",
+    "updated_at": "2026-06-02T05:16:17Z"
+  },
+  {
+    "closed_issues": 2,
+    "description": "Canonical financial truth, parser coverage, and numeric evidence expansion.",
+    "due_on": null,
+    "number": 5,
+    "open_issues": 2,
+    "state": "open",
+    "title": "M4 \u2014 Financial Truth Expansion",
+    "updated_at": "2026-06-01T17:14:56Z"
+  },
+  {
+    "closed_issues": 4,
+    "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+    "due_on": null,
+    "number": 6,
+    "open_issues": 17,
+    "state": "open",
+    "title": "M5 \u2014 Cockpit Analyst Workflow",
+    "updated_at": "2026-06-02T11:18:05Z"
+  },
+  {
+    "closed_issues": 7,
+    "description": "Runtime services, local automation, schedulers, and operational readiness.",
+    "due_on": null,
+    "number": 7,
+    "open_issues": 7,
+    "state": "open",
+    "title": "M6 \u2014 Runtime / Local Automation",
+    "updated_at": "2026-05-31T12:39:30Z"
+  }
+]
