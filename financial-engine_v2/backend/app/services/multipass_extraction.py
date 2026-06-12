@@ -379,6 +379,15 @@ def _detect_scale_from_source_text(text: Any) -> str:
     return "unknown"
 
 
+def _detect_scale_from_openability_phrase(text: Any) -> str:
+    """Detect explicit scale markers captured by openability diagnostics."""
+    value = str(text or "")
+    for pattern, scale in _SCALE_PATTERNS:
+        if _re.search(pattern, value, _re.IGNORECASE):
+            return scale
+    return "unknown"
+
+
 def _detect_currency_from_tables(tables) -> str | None:
     """
     Detect a dominant document currency from table headers/captions/body rows.
@@ -1043,6 +1052,146 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         labelled["net_debt_note"] = max(net_debt_candidates)[3]
 
     return labelled
+
+
+_OPENABILITY_SYNTHETIC_CAPTIONS = {
+    "income_statement": "Statement of profit or loss and comprehensive income",
+    "balance_sheet": "Statement of financial position",
+    "cashflow_statement": "Statement of cash flows",
+}
+
+
+def _valid_openability_diagnostics(structured_doc: Any) -> dict[str, Any] | None:
+    diagnostics = getattr(structured_doc, "parser_diagnostics", {}) or {}
+    openability = diagnostics.get("openability")
+    if not isinstance(openability, dict):
+        return None
+    if openability.get("schema") != "docling_openability_diagnostics_v1":
+        return None
+    if openability.get("provenance_only") is not True:
+        return None
+    if openability.get("feeds_canonical_output") is not False:
+        return None
+    if openability.get("canonical_output_changed") is not False:
+        return None
+    return openability
+
+
+def _openability_period_source_text(structured_doc: Any) -> str:
+    """Return exact reporting-period phrases captured by openability diagnostics."""
+    openability = _valid_openability_diagnostics(structured_doc)
+    if openability is None:
+        return ""
+    records = openability.get("ocr_records")
+    if not isinstance(records, list):
+        return ""
+    phrases: list[str] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        period_phrases = record.get("period_phrases")
+        if not isinstance(period_phrases, list):
+            continue
+        for phrase in period_phrases:
+            text = str(phrase or "").strip()
+            if text and text not in phrases:
+                phrases.append(text)
+    return _combined_source_text(phrases)
+
+
+def _build_openability_selected_tables(structured_doc: Any) -> list[Any]:
+    """
+    Convert existing opt-in openability diagnostics into synthetic statement tables.
+
+    This does not run OCR and does not normalize values. It only bridges diagnostic
+    source rows into the normal Pass 2/3a table path when period and scale evidence
+    are already explicit in the diagnostic payload.
+    """
+    from app.services.docling_extract import DoclingTable
+
+    openability = _valid_openability_diagnostics(structured_doc)
+    if openability is None:
+        return []
+
+    records = openability.get("ocr_records")
+    if not isinstance(records, list):
+        return []
+
+    scale_evidence: list[tuple[str, str]] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        page = str(record.get("page") or "?")
+        for phrase in record.get("scale_phrases") or []:
+            scale = _detect_scale_from_openability_phrase(phrase)
+            if scale != "unknown":
+                scale_evidence.append((str(phrase).strip(), f"page_{page}"))
+    if not scale_evidence:
+        return []
+    scale_phrase, scale_source = scale_evidence[0]
+
+    synthetic_tables = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        statement_label = str(record.get("statement_label") or "").strip()
+        caption_base = _OPENABILITY_SYNTHETIC_CAPTIONS.get(statement_label)
+        if not caption_base:
+            continue
+        raw_period_phrases = record.get("period_phrases")
+        if not isinstance(raw_period_phrases, list):
+            continue
+        period_phrases = [
+            str(phrase).strip()
+            for phrase in raw_period_phrases
+            if str(phrase or "").strip()
+        ]
+        if not period_phrases:
+            continue
+        row_candidates = record.get("row_candidates")
+        if not isinstance(row_candidates, list):
+            continue
+
+        period_phrase = period_phrases[0]
+        header_value = f"{period_phrase} {scale_phrase}".strip()
+        rows = [["Source row", header_value, "Diagnostic value candidates"]]
+        for candidate in row_candidates:
+            if not isinstance(candidate, dict):
+                continue
+            if candidate.get("candidate_value_quality") != "financial_amount":
+                continue
+            source_text = str(candidate.get("source_text") or "").strip()
+            candidate_value = str(candidate.get("candidate_value_text") or "").strip()
+            if not source_text or not candidate_value:
+                continue
+            value_candidates = candidate.get("value_text_candidates")
+            if isinstance(value_candidates, list):
+                value_candidates_text = " | ".join(
+                    str(value).strip()
+                    for value in value_candidates
+                    if str(value or "").strip()
+                )
+            else:
+                value_candidates_text = candidate_value
+            rows.append([source_text, candidate_value, value_candidates_text])
+
+        if len(rows) <= 1:
+            continue
+        page = int(record.get("page") or 0)
+        caption = (
+            f"{caption_base} (openability diagnostic; page {page}; "
+            f"period={period_phrase}; scale={scale_phrase}; scale_source={scale_source})"
+        )
+        synthetic_tables.append(
+            DoclingTable(
+                page_number=page,
+                caption=caption,
+                headers=rows[0],
+                rows=rows,
+            )
+        )
+
+    return synthetic_tables
 
 
 # ---------------------------------------------------------------------------
@@ -3976,6 +4125,9 @@ def run_multipass_extraction(
     debug_capture: dict[str, Any] | None = None,
     prompt_bundle_id: str | None = None,
     model_override: str | None = None,
+    openability_diagnostics: bool = False,
+    openability_pages: list[int] | None = None,
+    openability_selected_tables: bool = False,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -3991,6 +4143,11 @@ def run_multipass_extraction(
 
     model_override: optional model id to pin for every LLM call in this run
     (e.g. matrix runner comparing ``qwen2.5-14b-instruct`` vs another model).
+
+    openability_selected_tables: explicit diagnostic bridge for parser-openability
+    gaps. Defaults off; when enabled, parser diagnostics are requested and any
+    source-bound openability rows are converted into synthetic tables that still
+    pass through normal Pass 2/3a/4 validation gates.
     """
     from app.services.docling_extract import ExtractionTimeoutError, extract_structured
 
@@ -4020,6 +4177,10 @@ def run_multipass_extraction(
             pdf_path,
             backend=parser_backend or "",
             strict_backend=strict_parser,
+            openability_diagnostics=(
+                openability_diagnostics or openability_selected_tables
+            ),
+            openability_pages=openability_pages,
         )
     except Exception as e:
         # If Docling fails, we must report PARSER_ERROR so Manual Review is triggered.
@@ -4074,13 +4235,22 @@ def run_multipass_extraction(
         first_page_sections = structured_doc.sections[:3]
     first_page_text = " ".join(s["text"] for s in first_page_sections)
     early_period_text = _early_period_source_text(structured_doc.sections)
+    openability_period_text = (
+        _openability_period_source_text(structured_doc)
+        if openability_selected_tables
+        else ""
+    )
+    source_period_text = _combined_source_text(
+        early_period_text or first_page_text,
+        openability_period_text,
+    )
     title = doc_metadata.get("title", "")
 
     source_period_evidence = _detect_source_period_evidence(
-        title, early_period_text or first_page_text
+        title, source_period_text
     )
     source_period_end_evidence = _detect_source_period_end_evidence(
-        title, early_period_text or first_page_text
+        title, source_period_text
     )
     source_document_classification = classify_source_document(title, first_page_text)
     if not source_document_classification.extraction_candidate_allowed:
@@ -4163,10 +4333,29 @@ def run_multipass_extraction(
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
     pass1["_source_document_classification"] = source_document_classification.to_dict()
 
+    structured_tables = list(structured_doc.tables)
+    if openability_selected_tables:
+        openability_tables = _build_openability_selected_tables(structured_doc)
+        if openability_tables:
+            structured_tables.extend(openability_tables)
+            if debug_capture is not None:
+                debug_capture["openability_selected_tables"] = [
+                    {
+                        "page_number": table.page_number,
+                        "caption": table.caption,
+                        "row_count": len(table.rows),
+                    }
+                    for table in openability_tables
+                ]
+            logger.info(
+                "Added %d openability diagnostic selected tables",
+                len(openability_tables),
+            )
+
     # Table-header scale detection is always authoritative — ASX filings print scale
     # explicitly in column headers ($'000, A$M, etc.) which is more reliable than
     # LLM text inference. Run unconditionally; fall back to Pass 1 if headers give nothing.
-    detected = _detect_scale_from_tables(structured_doc.tables)
+    detected = _detect_scale_from_tables(structured_tables)
     if detected != "unknown":
         if pass1.get("scale", "unknown") not in (detected, "unknown", None, ""):
             logger.info(
@@ -4195,7 +4384,7 @@ def run_multipass_extraction(
     if pass1.get("scale", "unknown") in ("unknown", None, ""):
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
-    detected_currency = _detect_currency_from_tables(structured_doc.tables)
+    detected_currency = _detect_currency_from_tables(structured_tables)
     if detected_currency:
         classifier_currency = str(pass1.get("currency") or "").strip().upper()
         if classifier_currency != detected_currency:
@@ -4220,7 +4409,7 @@ def run_multipass_extraction(
     appendix_wrapper_source = _build_appendix_wrapper_source_payload(
         title=title,
         sections=structured_doc.sections,
-        tables=structured_doc.tables,
+        tables=structured_tables,
         period_evidence=source_period_evidence,
         period_end_evidence=source_period_end_evidence,
         scale=pass1.get("scale", "unknown"),
@@ -4242,9 +4431,9 @@ def run_multipass_extraction(
     # Pass 2: Locate tables
     if observer is not None:
         observer.emit("pass2_locator", "running", "Locating statement tables.")
-    labelled = _run_pass2_locator(structured_doc.tables)
+    labelled = _run_pass2_locator(structured_tables)
     pass1["_block_derived_net_debt"] = bool(
-        _document_has_nonnumeric_net_debt_reference(structured_doc.tables)
+        _document_has_nonnumeric_net_debt_reference(structured_tables)
     )
     if observer is not None:
         observer.emit("pass2_locator", "succeeded", "Pass 2 completed.")

@@ -1,0 +1,13 @@
+{
+  "job_id": "extraction_whc_openability_exact_source_smoke_v1_20260610",
+  "status": "DONE_WITH_PARENT_TASK_CARD",
+  "note": "The full worktree diff is governed by docs/agent_tasks/extraction_whc_parser_openability_sidecar_v1_20260610.md because the exact-source smoke proved and refined the production diagnostic implementation.",
+  "changed_files": [
+    "docs/agent_tasks/extraction_whc_openability_exact_source_smoke_v1_20260610.md",
+    "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/README.md",
+    "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/live_git_status.json",
+    "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/exact_source_smoke.json",
+    "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/validation.json",
+    "reports/agent_jobs/extraction_whc_openability_exact_source_smoke_v1_20260610/diff-check.json"
+  ]
+}

@@ -1,0 +1,280 @@
+{
+  "branch": "safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+  "cases": [
+    {
+      "accepted_metric_count": 8,
+      "accepted_non_null_metrics": [
+        "capex",
+        "cash_end",
+        "ebit",
+        "financing_cf",
+        "investing_cf",
+        "np_attributable",
+        "operating_cf",
+        "revenue"
+      ],
+      "after_error": null,
+      "after_period_end": "2022-06-30",
+      "after_status": "ok",
+      "artifact_inputs": [
+        "reports/agent_jobs/extraction_whc_openability_runtime_endpoint_rerun_v1_20260611/replay_result.json",
+        "reports/agent_jobs/extraction_whc_openability_period_binding_v1_20260611/exact_replay_after_fix.json"
+      ],
+      "before_error": "validation_gate:missing_period_end",
+      "before_period_end": null,
+      "before_status": "failed",
+      "case_id": "WHC_9640d9f1_openability_period_binding",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "negative_control": "net_debt was not accepted in the passing replay; weak/derived debt did not inflate the accepted metric count.",
+      "observed_gain": {
+        "accepted_document_delta": 1,
+        "canonical_metric_delta": 8,
+        "prior_runtime_replay_error": "validation_gate:missing_period_end",
+        "prior_runtime_replay_status": "failed"
+      },
+      "source_period_end_reason": "year_ended_explicit_date",
+      "ticker": "WHC",
+      "verdict": "pass_guard"
+    },
+    {
+      "accepted_metric_count": 6,
+      "accepted_non_null_metrics": [
+        "capex",
+        "cash_end",
+        "financing_cf",
+        "investing_cf",
+        "operating_cf",
+        "shares_outstanding"
+      ],
+      "after_error": null,
+      "after_status": "ok",
+      "artifact_inputs": [
+        "reports/agent_jobs/extraction_ctn_quarterly_source_type_precedence_v1_20260608/validation.json"
+      ],
+      "before_error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "before_status": "failed",
+      "case_id": "CTN_dec0b5f1_quarterly_source_precedence",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "negative_control": "True mixed annual/quarterly evidence remains ambiguous per focused CTN tests.",
+      "observed_gain": {
+        "accepted_document_delta": 1,
+        "canonical_metric_delta": 6
+      },
+      "source_period_end_evidence": {
+        "period_end": "2022-03-31",
+        "period_type": "Q",
+        "reason": "quarter_ended_explicit_date"
+      },
+      "source_period_evidence": {
+        "period_type": "Q",
+        "reason": "quarterly_source_precedence_over_annual_report_reference"
+      },
+      "ticker": "CTN",
+      "verdict": "pass_guard"
+    },
+    {
+      "accepted_metric_count": 9,
+      "after_error": null,
+      "after_period_end": "2023-12-31",
+      "after_status": "ok",
+      "artifact_inputs": [
+        "reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json"
+      ],
+      "before_error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+      "before_status": "failed",
+      "case_id": "HUB_419bcca8_half_year_source_period_binding",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "negative_control": "HUB binder requires parsed source_text half-year evidence and does not use title-only period dates.",
+      "observed_gain": {
+        "accepted_document_delta": 1,
+        "canonical_metric_delta": 9
+      },
+      "source_period_end_reason": "half_year_ended_explicit_date",
+      "ticker": "HUB",
+      "verdict": "pass_guard"
+    },
+    {
+      "accepted_metric_count": 0,
+      "after_error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+      "after_status": "failed",
+      "artifact_inputs": [
+        "reports/agent_jobs/extraction_hub_period_end_binding_repair_v1_20260608/validation.json"
+      ],
+      "before_error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2026-02-20:title_date=2026-02-20:leading_title_date",
+      "before_status": "failed",
+      "case_id": "LBL_551c6b84_fail_closed_negative_guard",
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "negative_control": "LBL remains fail-closed because exact source-bound half-year period_end date evidence is missing.",
+      "observed_gain": {
+        "accepted_document_delta": 0,
+        "canonical_metric_delta": 0
+      },
+      "source_period_end_reason": "not_detected",
+      "ticker": "LBL",
+      "verdict": "pass_negative_guard"
+    },
+    {
+      "after_status": "ok",
+      "artifact_inputs": [
+        "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/pass3a_debug_replay.json"
+      ],
+      "case_id": "AZJ_488d6f1a_scale_table_path_closed",
+      "decision": "DO_NOT_FIX_FROM_THIS_REPLAY",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "np_attributable": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "table"
+      },
+      "metric_source_scales": {
+        "capex": "millions",
+        "cash_end": "millions",
+        "ebit": "millions",
+        "financing_cf": "millions",
+        "investing_cf": "millions",
+        "np_attributable": "millions",
+        "operating_cf": "millions",
+        "revenue": "millions",
+        "shares_outstanding": "millions"
+      },
+      "negative_control": "AZJ expected gap was not reproduced; scale-table repair path remains closed from this evidence.",
+      "scale": "millions",
+      "ticker": "AZJ",
+      "verdict": "pass_guard_no_repair"
+    },
+    {
+      "after_status": "ok",
+      "artifact_inputs": [
+        "reports/agent_jobs/extraction_azj_nsr_isolated_pass3a_replay_v1_20260608/pass3a_debug_replay.json"
+      ],
+      "case_id": "NSR_f2240712_scale_control_clean",
+      "decision": "DO_NOT_FIX_FROM_THIS_REPLAY",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "metric_scale_sources": {
+        "capex": "table",
+        "cash_end": "table",
+        "ebit": "table",
+        "financing_cf": "table",
+        "investing_cf": "table",
+        "operating_cf": "table",
+        "revenue": "table",
+        "shares_outstanding": "document"
+      },
+      "metric_source_scales": {
+        "capex": "thousands",
+        "cash_end": "thousands",
+        "ebit": "thousands",
+        "financing_cf": "thousands",
+        "investing_cf": "thousands",
+        "operating_cf": "thousands",
+        "revenue": "thousands",
+        "shares_outstanding": "thousands"
+      },
+      "negative_control": "NSR remains clean control for thousands table-local scale handling.",
+      "scale": "thousands",
+      "ticker": "NSR",
+      "verdict": "pass_guard"
+    }
+  ],
+  "data_missing": [
+    "This packet aggregates saved-artifact guard outcomes only; it is not a fresh broad scorecard or extraction run.",
+    "No current count-16/count-24/count-32 sample was run.",
+    "LBL exact source-bound half-year period_end date remains missing.",
+    "CTN/HUB preserved scorecard row_refs and extraction_run_id remain missing in source artifacts.",
+    "AZJ/NSR artifacts come from isolated pass3a replay, not the current WHC branch runtime."
+  ],
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random sample",
+    "broad extraction",
+    "backfill",
+    "full ticker universe extraction",
+    "service route execution",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source-PDF mutation",
+    "prompt mutation",
+    "gold-label mutation",
+    "schema mutation",
+    "runtime config mutation",
+    "model/GPU config mutation",
+    "production data mutation",
+    "GitHub mutation",
+    "PR #318 patch mining"
+  ],
+  "head": "c97ca6025323dcecebf01fa08bcef920f3ecda93",
+  "job_id": "extraction_guard_saved_artifact_scorecard_replay_v1_20260611",
+  "mode": "saved_artifact_guard_scorecard_replay_only_no_extraction",
+  "next_recommended_task": "Push/update the WHC branch only after an explicit GitHub/PR instruction, or run a broader approved saved-artifact scorecard profile if a merge gate requires it. Do not run count-24 without explicit approval.",
+  "registry_read_only": {
+    "active_jobs": [],
+    "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+    "lock_acquired": false,
+    "ok": true,
+    "read_only": true,
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "registry_scope": "shared",
+    "repo_root": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610",
+    "warnings": []
+  },
+  "status": "DONE_WITH_RISK",
+  "summary": {
+    "azj_nsr_scale_table_path_closed": true,
+    "ctn_observed_gain": {
+      "blocked_non_null_canonical_metrics": 6,
+      "documents": 1,
+      "inputs": {
+        "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+        "scorecard_path": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/reports/agent_jobs/extraction_confirmed_payload_scorecard_v1_20260608/scorecard.json",
+        "source_audit_path": "/home/l4nd0/tenn-extraction-period-source-exact-evidence-audit-v1-20260608/reports/agent_jobs/extraction_period_source_exact_evidence_audit_v1_20260608/evidence_audit.json",
+        "ticker": "CTN"
+      },
+      "metric_names": [
+        "capex",
+        "cash_end",
+        "financing_cf",
+        "investing_cf",
+        "operating_cf",
+        "shares_outstanding"
+      ],
+      "mode": "saved_artifact_scorecard_replay_only_no_extraction",
+      "previous_error": "validation_gate:period_source_mismatch:payload=Q:source=A:annual_report_title",
+      "previous_status": "failed",
+      "replay_error": null,
+      "replay_status": "ok",
+      "source_period_end_evidence": {
+        "period_end": "2022-03-31",
+        "period_type": "Q",
+        "reason": "quarter_ended_explicit_date"
+      },
+      "source_period_evidence": {
+        "period_type": "Q",
+        "reason": "quarterly_source_precedence_over_annual_report_reference"
+      },
+      "status": "observed_saved_artifact_replay"
+    },
+    "guard_case_count": 6,
+    "hub_observed_gain": {
+      "blocked_non_null_metrics": 9,
+      "documents": 1
+    },
+    "lbl_fail_closed_preserved": true,
+    "observed_incremental_saved_artifact_gain_from_repair_packets": {
+      "accepted_document_delta": 3,
+      "canonical_metric_delta": 23
+    },
+    "pass_guard_count": 6,
+    "whc_current_accepted_metrics": 8
+  },
+  "worktree": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610"
+}

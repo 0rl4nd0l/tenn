@@ -1,0 +1,71 @@
+{
+  "job_id": "extraction_whc_openability_exact_replay_v1_20260611",
+  "status": "DONE_WITH_RISK",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_openability_exact_replay_v1_20260611.md",
+      "exit_status": 0,
+      "result": "ok=true"
+    },
+    {
+      "name": "registry_list_active_read_only",
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "result": "ok=true active_jobs=[]"
+    },
+    {
+      "name": "exact_replay",
+      "command": "DATA_ROOT=/tmp/tenn_whc_openability_exact_replay_data_* EXTRACTION_PARALLEL=0 PYTHONPATH=financial-engine_v2/backend timeout 900 venv python run_multipass_extraction(... parser_backend='pymupdf', skip_narrative=True, openability_selected_tables=True, openability_pages=[57,58,60,61])",
+      "exit_status": 0,
+      "result": "result_status=failed result_error=pass1:OLLAMA_URL must be set when provider is 'ollama' non_null_metric_count=0",
+      "raw_log": "/tmp/tenn_whc_openability_exact_replay.log"
+    },
+    {
+      "name": "json_validation",
+      "command": "python3 JSON validation over report artifacts",
+      "exit_status": 0,
+      "result": "validated 5 json artifacts"
+    },
+    {
+      "name": "git_diff_check",
+      "command": "git diff --check",
+      "exit_status": 0,
+      "result": "passed"
+    },
+    {
+      "name": "task_card_check_diff",
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_whc_openability_exact_replay_v1_20260611.md --repo-root . --no-write-report",
+      "exit_status": 0,
+      "result": "ok=true disallowed_files=[]"
+    },
+    {
+      "name": "forbidden_surface_audit",
+      "command": "git diff --cached --name-only plus forbidden surface grep",
+      "exit_status": 0,
+      "result": "passed"
+    }
+  ],
+  "negative_controls": [
+    "source PDF read-only",
+    "temporary DATA_ROOT used for parser cache",
+    "temporary DATA_ROOT removed after replay",
+    "production cache not written",
+    "no canonical metrics accepted",
+    "no code changes made"
+  ],
+  "forbidden_actions_not_run": [
+    "no count-24/count-32/random sample",
+    "no broad extraction/backfill/full ticker-universe extraction",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory/source-PDF mutation",
+    "no prompt/gold/schema/runtime/model/GPU mutation",
+    "no PR #318 patch mining",
+    "no GitHub write"
+  ],
+  "data_missing": [
+    "Exact WHC live/local extraction behavior remains DATA_MISSING because Pass 1 failed before metric extraction.",
+    "Observed scorecard gain remains DATA_MISSING.",
+    "Local extraction runtime configuration is incomplete: OLLAMA_URL is unset while routing selected provider 'ollama'."
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "checks": [
+    {
+      "command": "gh --version && gh auth status",
+      "exit_code": 0,
+      "name": "gh_version_and_auth",
+      "result": "PASS"
+    },
+    {
+      "command": "git fetch --prune origin",
+      "exit_code": 0,
+      "name": "git_fetch_prune_origin",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "name": "registry_list_active_read_only",
+      "result": "PASS"
+    },
+    {
+      "command": "gh pr view 340 --json number,state,baseRefName,headRefName,mergeStateStatus,isDraft,title,url,statusCheckRollup,commits",
+      "exit_code": 0,
+      "name": "pr340_live_read",
+      "result": "PASS"
+    },
+    {
+      "command": "git merge-base --is-ancestor origin/safe/extraction-whc-ocr-openability-probe-report-local-v1-20260610 safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+      "exit_code": 1,
+      "name": "pr340_fast_forward_safety_gate",
+      "result": "EXPECTED_FAIL_NO_PUSH"
+    },
+    {
+      "command": "git merge-base --is-ancestor origin/migration/clean-runtime-baseline-reconstruct-v1 safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+      "exit_code": 0,
+      "name": "base_ancestor_gate",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_pr340_publish_decision_v1_20260612.md",
+      "exit_code": 0,
+      "name": "task_card_validate",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_whc_pr340_publish_decision_v1_20260612.md --repo-root . --no-write-report",
+      "exit_code": 0,
+      "name": "task_card_check_diff",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 json parse over no-push report artifacts",
+      "exit_code": 0,
+      "name": "json_validation",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "name": "git_diff_check",
+      "result": "PASS"
+    }
+  ],
+  "data_missing": [
+    "No GitHub write was performed, so no new CI/Sloppy Scan run exists for local commit 73934040.",
+    "No reconciliation plan was executed for replacing or superseding PR #340."
+  ],
+  "forbidden_actions_not_run": [
+    "git push",
+    "gh pr edit",
+    "gh pr create",
+    "count-24",
+    "count-32",
+    "broad extraction",
+    "random sample",
+    "backfill",
+    "service route execution",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source-PDF mutation",
+    "prompt mutation",
+    "gold-label mutation",
+    "schema mutation",
+    "runtime config mutation",
+    "model/GPU config mutation",
+    "production data mutation",
+    "PR #318 patch mining"
+  ],
+  "job_id": "extraction_whc_pr340_publish_decision_v1_20260612",
+  "status": "PASS_NO_PUSH"
+}

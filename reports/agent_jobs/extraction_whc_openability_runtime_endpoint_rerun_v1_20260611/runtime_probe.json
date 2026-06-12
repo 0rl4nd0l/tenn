@@ -1,0 +1,46 @@
+{
+  "endpoint_results": [
+    {
+      "body_sample": "{\"models\":[{\"name\":\"nomic-embed-text:latest\",\"model\":\"nomic-embed-text:latest\",\"modified_at\":\"2026-04-08T12:09:28.111455629+10:00\",\"size\":274302450,\"digest\":\"0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f\",\"details\":{\"parent_model\":\"\",\"format\":\"gguf\",\"family\":\"nomic-bert\",\"families\":[\"nomic-bert\"],\"parameter_size\":\"137M\",\"quantization_level\":\"F16\"}},{\"name\":\"gpt-oss:20b-cloud\",\"model\":\"gpt-oss:20b-cloud\",\"remote_model\":\"gpt-oss:20b\",\"remote_host\":\"https://ollama.com:443\",\"modified_at\":\"2026-03-09T15:29:39.157874497+11:00\",\"size\":381,\"digest\":\"875e8e3a629ad3c2e66f1f1c461e3d140474212f44a34f4687ae1d927db41690\",\"details\":{\"parent_model\":\"\",\"format\":\"\",\"family\":\"gptoss\",\"families\":[\"gptoss\"],\"parameter_size\":\"20.9B\",\"quantization_level\":\"MXFP4\"}},{\"name\":\"qwen2.5:32b\",\"model\":\"qwen2.5:32b\",\"modified_at\":\"2026-02-19T22:01:37.181408239+11:00\",\"size\":19851349669,\"digest\":\"9f13ba1299afea09d9a956fc6a85becc99115a6d596fae201a5487a03bdc4368\",\"details\":{\"parent_model\":\"\",\"format\":\"",
+      "json_keys": [
+        "models"
+      ],
+      "model_names": [
+        "nomic-embed-text:latest",
+        "gpt-oss:20b-cloud",
+        "qwen2.5:32b"
+      ],
+      "ok": true,
+      "status_code": 200,
+      "url": "http://127.0.0.1:11434/api/tags"
+    },
+    {
+      "body_sample": "{\"object\":\"list\",\"data\":[{\"id\":\"nomic-embed-text:latest\",\"object\":\"model\",\"created\":1775614168,\"owned_by\":\"library\"},{\"id\":\"gpt-oss:20b-cloud\",\"object\":\"model\",\"created\":1773030579,\"owned_by\":\"library\"},{\"id\":\"qwen2.5:32b\",\"object\":\"model\",\"created\":1771498897,\"owned_by\":\"library\"}]}\n",
+      "json_keys": [
+        "data",
+        "object"
+      ],
+      "model_names": [
+        "nomic-embed-text:latest",
+        "gpt-oss:20b-cloud",
+        "qwen2.5:32b"
+      ],
+      "ok": true,
+      "status_code": 200,
+      "url": "http://127.0.0.1:11434/v1/models"
+    },
+    {
+      "error": "<urlopen error [Errno 111] Connection refused>",
+      "error_type": "URLError",
+      "ok": false,
+      "url": "http://127.0.0.1:8080/v1/models"
+    },
+    {
+      "error": "<urlopen error [Errno 111] Connection refused>",
+      "error_type": "URLError",
+      "ok": false,
+      "url": "http://127.0.0.1:8081/v1/models"
+    }
+  ],
+  "status": "DONE"
+}

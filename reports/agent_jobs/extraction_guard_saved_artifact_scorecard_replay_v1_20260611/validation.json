@@ -1,0 +1,110 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_guard_saved_artifact_scorecard_replay_v1_20260611.md",
+      "exit_code": 0,
+      "name": "task_card_validate_after_mode_fix",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "name": "registry_list_active_read_only",
+      "result": "PASS",
+      "summary": {
+        "active_jobs": [],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "lock_acquired": false,
+        "ok": true,
+        "read_only": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610",
+        "warnings": []
+      }
+    },
+    {
+      "command": "python3 generated packet parser over WHC/CTN/HUB/AZJ/NSR JSON artifacts",
+      "exit_code": 0,
+      "name": "saved_artifact_json_parse",
+      "result": "PASS"
+    },
+    {
+      "command": "not run",
+      "exit_code": null,
+      "name": "no_extraction_run",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --name-only excluding task/report artifacts",
+      "exit_code": null,
+      "name": "no_code_change",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_guard_saved_artifact_scorecard_replay_v1_20260611.md --repo-root . --no-write-report",
+      "exit_code": 0,
+      "name": "task_card_check_diff",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 json parse over report artifacts",
+      "exit_code": 0,
+      "name": "json_validation",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "name": "git_diff_check",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --name-only ... | rg forbidden surfaces",
+      "exit_code": 1,
+      "name": "forbidden_surface_path_audit",
+      "result": "PASS",
+      "summary": "No forbidden changed paths matched."
+    }
+  ],
+  "data_missing": [
+    "This packet aggregates saved-artifact guard outcomes only; it is not a fresh broad scorecard or extraction run.",
+    "No current count-16/count-24/count-32 sample was run.",
+    "LBL exact source-bound half-year period_end date remains missing.",
+    "CTN/HUB preserved scorecard row_refs and extraction_run_id remain missing in source artifacts.",
+    "AZJ/NSR artifacts come from isolated pass3a replay, not the current WHC branch runtime."
+  ],
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random sample",
+    "broad extraction",
+    "backfill",
+    "full ticker universe extraction",
+    "service route execution",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source-PDF mutation",
+    "prompt mutation",
+    "gold-label mutation",
+    "schema mutation",
+    "runtime config mutation",
+    "model/GPU config mutation",
+    "production data mutation",
+    "GitHub mutation",
+    "PR #318 patch mining"
+  ],
+  "job_id": "extraction_guard_saved_artifact_scorecard_replay_v1_20260611",
+  "negative_controls": [
+    "net_debt was not accepted in the passing replay; weak/derived debt did not inflate the accepted metric count.",
+    "True mixed annual/quarterly evidence remains ambiguous per focused CTN tests.",
+    "HUB binder requires parsed source_text half-year evidence and does not use title-only period dates.",
+    "LBL remains fail-closed because exact source-bound half-year period_end date evidence is missing.",
+    "AZJ expected gap was not reproduced; scale-table repair path remains closed from this evidence.",
+    "NSR remains clean control for thousands table-local scale handling."
+  ],
+  "status": "PASS"
+}

@@ -4108,6 +4108,340 @@ def test_validation_gate_accepts_null_narrative_fields():
     )
 
 
+def _whc_openability_diagnostic():
+    return {
+        "schema": "docling_openability_diagnostics_v1",
+        "provenance_only": True,
+        "feeds_canonical_output": False,
+        "canonical_output_changed": False,
+        "ocr_records": [
+            {
+                "page": 57,
+                "statement_label": "income_statement",
+                "period_phrases": ["For the year ended 30 June 2022"],
+                "scale_phrases": ["$000"],
+                "row_candidates": [
+                    {
+                        "source_text": "Revenue 21 4,920,102 1,556,976",
+                        "candidate_value_text": "4,920,102",
+                        "value_text_candidates": ["21", "4,920,102", "1,556,976"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                    {
+                        "source_text": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+                        "candidate_value_text": "2,821,254",
+                        "value_text_candidates": ["2,821,254", "(706,181)"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                    {
+                        "source_text": "Unusable subtotal 123",
+                        "candidate_value_text": "123",
+                        "value_text_candidates": ["123"],
+                        "candidate_value_quality": "low_confidence",
+                    },
+                ],
+            },
+            {
+                "page": 58,
+                "statement_label": "balance_sheet",
+                "period_phrases": ["As at 30 June 2022"],
+                "scale_phrases": ["$000"],
+                "row_candidates": [
+                    {
+                        "source_text": "Cash and cash equivalents 1,215,460 95,202",
+                        "candidate_value_text": "1,215,460",
+                        "value_text_candidates": ["1,215,460", "95,202"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                    {
+                        "source_text": "Total liabilities 1,912,899 1,687,128",
+                        "candidate_value_text": "1,912,899",
+                        "value_text_candidates": ["1,912,899", "1,687,128"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                ],
+            },
+            {
+                "page": 60,
+                "statement_label": "cashflow_statement",
+                "period_phrases": ["For the year ended 30 June 2022"],
+                "scale_phrases": [],
+                "row_candidates": [
+                    {
+                        "source_text": "Net cash from operating activities 3.4 2,529,823 138,765",
+                        "candidate_value_text": "2,529,823",
+                        "value_text_candidates": ["3.4", "2,529,823", "138,765"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                    {
+                        "source_text": "Purchase of property, plant and equipment (124,210) (68,693)",
+                        "candidate_value_text": "(124,210)",
+                        "value_text_candidates": ["(124,210)", "(68,693)"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                    {
+                        "source_text": "Cash and cash equivalents at end of year 1,215,460 95,202",
+                        "candidate_value_text": "1,215,460",
+                        "value_text_candidates": ["1,215,460", "95,202"],
+                        "candidate_value_quality": "financial_amount",
+                    },
+                ],
+            },
+            {
+                "page": 61,
+                "statement_label": None,
+                "period_phrases": ["For the year ended 30 June 2022"],
+                "scale_phrases": ["rounded to the nearest thousand"],
+                "row_candidates": [],
+            },
+        ],
+    }
+
+
+class _OpenabilityDoc:
+    extraction_method = "pymupdf"
+    page_count = 61
+    source_pdf_page_count = 61
+    docling_version = "test"
+    sections = [
+        {
+            "text": "Whitehaven Coal 2022 Annual Report For the year ended 30 June 2022.",
+            "page": 1,
+        }
+    ]
+    tables = []
+    parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+
+class _OpenabilityPeriodOnlyDoc(_OpenabilityDoc):
+    sections = [{"text": "Whitehaven Coal 2022 Annual Report.", "page": 1}]
+
+
+def test_openability_selected_tables_builds_statement_tables_from_source_bound_diagnostics():
+    from app.services.multipass_extraction import (
+        _build_openability_selected_tables,
+        _detect_scale_from_table,
+        _run_pass2_locator,
+    )
+
+    tables = _build_openability_selected_tables(_OpenabilityDoc())
+
+    assert [table.page_number for table in tables] == [57, 58, 60]
+    assert all(_detect_scale_from_table(table) == "thousands" for table in tables)
+    assert "Revenue 21 4,920,102 1,556,976" in tables[0].rows[1][0]
+    assert "Unusable subtotal" not in " ".join(
+        " ".join(row) for table in tables for row in table.rows
+    )
+
+    labelled = _run_pass2_locator(tables)
+    assert labelled["income_statement"].page_number == 57
+    assert labelled["balance_sheet"].page_number == 58
+    assert labelled["cashflow_statement"].page_number == 60
+
+
+def test_openability_selected_tables_fail_closed_without_period_or_scale_evidence():
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    class _MissingPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    _MissingPeriodDoc.parser_diagnostics["openability"]["ocr_records"][0][
+        "period_phrases"
+    ] = []
+    period_tables = _build_openability_selected_tables(_MissingPeriodDoc())
+    assert {table.page_number for table in period_tables} == {58, 60}
+
+    class _MissingScaleDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    for record in _MissingScaleDoc.parser_diagnostics["openability"]["ocr_records"]:
+        record["scale_phrases"] = []
+    assert _build_openability_selected_tables(_MissingScaleDoc()) == []
+
+
+def test_openability_period_source_text_reuses_existing_ambiguous_period_guard():
+    from app.services.multipass_extraction import (
+        _detect_source_period_end_evidence,
+        _openability_period_source_text,
+    )
+
+    class _AmbiguousPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    _AmbiguousPeriodDoc.parser_diagnostics["openability"]["ocr_records"][0][
+        "period_phrases"
+    ] = [
+        "For the year ended 30 June 2022",
+        "For the year ended 31 December 2021",
+    ]
+
+    evidence = _detect_source_period_end_evidence(
+        "",
+        _openability_period_source_text(_AmbiguousPeriodDoc()),
+    )
+
+    assert evidence["reason"] == "ambiguous"
+    assert evidence["period_end"] is None
+
+
+def test_openability_period_source_text_ignores_malformed_period_phrases():
+    from app.services.multipass_extraction import _openability_period_source_text
+
+    class _MalformedPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    for record in _MalformedPeriodDoc.parser_diagnostics["openability"][
+        "ocr_records"
+    ]:
+        record["period_phrases"] = "For the year ended 30 June 2022"
+
+    assert _openability_period_source_text(_MalformedPeriodDoc()) == ""
+
+
+def test_openability_selected_tables_ignores_malformed_period_phrases():
+    from app.services.multipass_extraction import _build_openability_selected_tables
+
+    class _MalformedPeriodDoc(_OpenabilityDoc):
+        parser_diagnostics = {"openability": _whc_openability_diagnostic()}
+
+    for record in _MalformedPeriodDoc.parser_diagnostics["openability"][
+        "ocr_records"
+    ]:
+        record["period_phrases"] = "For the year ended 30 June 2022"
+
+    assert _build_openability_selected_tables(_MalformedPeriodDoc()) == []
+
+
+def test_run_multipass_default_does_not_request_openability_bridge():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    captured_kwargs = {}
+
+    def _capture_extract(*args, **kwargs):
+        captured_kwargs.update(kwargs)
+        return _OpenabilityPeriodOnlyDoc()
+
+    captured_table_count = []
+
+    def _capture_pass2(tables):
+        captured_table_count.append(len(tables))
+        return {"unmatched": []}
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        side_effect=_capture_extract,
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "A",
+            "period_end": None,
+            "currency": "AUD",
+            "scale": "thousands",
+            "classifier_confidence": 0.95,
+        },
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        side_effect=_capture_pass2,
+    ):
+        result = run_multipass_extraction(
+            "/fake/whc.pdf",
+            {"document_id": "whc", "ticker": "WHC", "title": "2022 Annual Report"},
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert captured_kwargs["openability_diagnostics"] is False
+    assert captured_table_count == [0]
+    assert result.status == "failed"
+    assert result.error == "validation_gate:missing_period_end"
+    assert result.payload["source_period_end_evidence"]["reason"] == "not_detected"
+
+
+def test_run_multipass_opt_in_routes_openability_tables_through_existing_gates():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    debug_capture = {}
+
+    def _mock_llm(prompt, *args, **kwargs):
+        if "Table type: income_statement" in prompt:
+            return {
+                "revenue": 4_920_102,
+                "ebit": 2_821_254,
+                "np_attributable": 1_952_000,
+                "pass3_confidence": 0.9,
+                "row_refs": {
+                    "revenue": "Revenue 21 4,920,102 1,556,976",
+                    "ebit": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+                    "np_attributable": "Profit/(loss) before net financial expense 2,821,254 (706,181)",
+                },
+            }
+        if "Table type: cashflow_statement" in prompt:
+            return {
+                "operating_cf": 2_529_823,
+                "investing_cf": None,
+                "financing_cf": None,
+                "cash_end": 1_215_460,
+                "capex": -124_210,
+                "pass3_confidence": 0.9,
+                "row_refs": {
+                    "operating_cf": "Net cash from operating activities 3.4 2,529,823 138,765",
+                    "cash_end": "Cash and cash equivalents at end of year 1,215,460 95,202",
+                    "capex": "Purchase of property, plant and equipment (124,210) (68,693)",
+                },
+            }
+        if "Table type: balance_sheet" in prompt:
+            return {
+                "net_debt": None,
+                "total_debt": None,
+                "shares_outstanding": None,
+                "pass3_confidence": 0.0,
+                "row_refs": {},
+            }
+        raise AssertionError(prompt)
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_OpenabilityPeriodOnlyDoc(),
+    ) as extract_mock, patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value={
+            "report_type": "A",
+            "period_end": None,
+            "currency": "AUD",
+            "scale": "unknown",
+            "classifier_confidence": 0.95,
+        },
+    ), patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=_mock_llm,
+    ), patch.dict(
+        "os.environ", {"EXTRACTION_PARALLEL": "0"}
+    ):
+        result = run_multipass_extraction(
+            "/fake/whc.pdf",
+            {"document_id": "whc", "ticker": "WHC", "title": "2022 Annual Report"},
+            llm_client=None,
+            skip_narrative=True,
+            debug_capture=debug_capture,
+            openability_selected_tables=True,
+            openability_pages=[57, 58, 60, 61],
+        )
+
+    assert extract_mock.call_args.kwargs["openability_diagnostics"] is True
+    assert extract_mock.call_args.kwargs["openability_pages"] == [57, 58, 60, 61]
+    assert len(debug_capture["openability_selected_tables"]) == 3
+    assert result.status in {"ok", "ok_low_confidence"}
+    assert result.payload["period_end"] == "2022-06-30"
+    assert result.payload["source_period_end_evidence"]["reason"] == "year_ended_explicit_date"
+    assert result.payload["scale"] == "thousands"
+    assert result.payload["revenue"] == 4_920_102_000
+    assert result.payload["operating_cf"] == 2_529_823_000
+    assert result.payload["capex"] == -124_210_000
+    assert result.payload["metric_source_scales"]["revenue"] == "thousands"
+    assert result.payload["metric_scale_sources"]["revenue"] == "table"
+    assert "Revenue 21 4,920,102 1,556,976" in result.payload["row_refs"]["revenue"]
+
+
 # ---------------------------------------------------------------------------
 # Parallel Pass 3a — verify parallel produces same results as sequential
 # ---------------------------------------------------------------------------

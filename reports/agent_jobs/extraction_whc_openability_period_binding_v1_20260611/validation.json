@@ -1,0 +1,123 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_openability_period_binding_v1_20260611.md",
+      "exit_code": 0,
+      "name": "task_card_validate",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_code": 0,
+      "name": "registry_list_active_read_only",
+      "result": "PASS",
+      "summary": {
+        "active_jobs": [],
+        "git_common_dir": "/mnt/sdb2/home/l4nd0/tenn/.git",
+        "lock_acquired": false,
+        "ok": true,
+        "read_only": true,
+        "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+        "registry_scope": "shared",
+        "repo_root": "/home/l4nd0/tenn-whc-parser-openability-sidecar-v1-20260610",
+        "warnings": []
+      }
+    },
+    {
+      "command": "cd financial-engine_v2/backend && PYTHONPATH=. /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest tests/test_multipass_extraction.py -q",
+      "exit_code": 0,
+      "name": "focused_pytest",
+      "raw_log": "/tmp/tenn_whc_openability_period_binding_pytest.log",
+      "result": "PASS",
+      "summary": "192 passed in 1.93s"
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit_code": 0,
+      "name": "py_compile",
+      "raw_log": "/tmp/tenn_whc_openability_period_binding_pycompile.log",
+      "result": "PASS"
+    },
+    {
+      "command": "/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_code": 0,
+      "name": "ruff",
+      "raw_log": "/tmp/tenn_whc_openability_period_binding_ruff.log",
+      "result": "PASS",
+      "summary": "All checks passed!"
+    },
+    {
+      "artifact": "reports/agent_jobs/extraction_whc_openability_period_binding_v1_20260611/exact_replay_after_fix.json",
+      "command": "DATA_ROOT=/tmp/... OLLAMA_URL=http://127.0.0.1:11434 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:11434 EXTRACT_MODEL=qwen2.5:32b EXTRACTION_PARALLEL=0 PYTHONPATH=financial-engine_v2/backend timeout 900 venv python run_multipass_extraction(... openability_selected_tables=True)",
+      "exit_code": 0,
+      "name": "exact_whc_saved_current_source_replay",
+      "raw_log": "/tmp/tenn_whc_openability_period_binding_exact_replay.log",
+      "result": "PASS",
+      "summary": {
+        "accepted_canonical_metrics": true,
+        "non_null_metric_count": 8,
+        "observed_gain_vs_prior_runtime_replay": {
+          "accepted_document_delta": 1,
+          "canonical_metric_delta": 8,
+          "prior_runtime_replay_error": "validation_gate:missing_period_end",
+          "prior_runtime_replay_status": "failed"
+        },
+        "period_end": "2022-06-30",
+        "result_error": null,
+        "result_status": "ok"
+      }
+    },
+    {
+      "command": "python3 -m json/tool equivalent over report JSON artifacts",
+      "exit_code": 0,
+      "name": "json_validation",
+      "result": "PASS",
+      "summary": "status/live_git_status/validation/exact_replay_after_fix/code_review/diff-check JSON parsed successfully"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "name": "git_diff_check",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "name": "git_diff_cached_check",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_whc_openability_period_binding_v1_20260611.md --repo-root . --no-write-report",
+      "exit_code": 0,
+      "name": "task_card_check_diff_staged",
+      "result": "PASS",
+      "summary": "No disallowed staged files."
+    },
+    {
+      "command": "git diff --cached --name-only | rg '(docling_extract\\.py|source-PDF|prompts?/|gold|schemas?/|runtime/|models?/|gpu|qdrant|redis|news|memory|count-24|count-32)'",
+      "exit_code": 1,
+      "name": "forbidden_surface_path_audit_staged",
+      "result": "PASS",
+      "summary": "No forbidden staged paths matched."
+    }
+  ],
+  "data_missing": [
+    "This exact replay proves WHC only; no count-16/count-24/count-32 or broad corpus scorecard was run under this task.",
+    "The exact replay used local LLM endpoint behavior and can vary in non-gated debug text; accepted metrics and gates are recorded from this run."
+  ],
+  "forbidden_actions_not_run": [
+    "No count-24, count-32, random sample, broad extraction, backfill, full ticker-universe extraction, or service route execution.",
+    "No DB, Qdrant, Redis, news, memory, source-PDF, prompt, gold-label, schema, runtime, model, or GPU mutation.",
+    "No docling_extract.py, parser cache, canonical contract, validation gate, service route, prompt, gold, or schema edits.",
+    "No PR #318 patch mining and no GitHub writes."
+  ],
+  "job_id": "extraction_whc_openability_period_binding_v1_20260611",
+  "negative_controls": [
+    "Default extraction does not request openability diagnostics or selected tables and still fails missing_period_end in the mocked period-only case.",
+    "Ambiguous openability period phrases return reason=ambiguous and period_end=null.",
+    "Malformed string-shaped period_phrases are ignored instead of interpreted as exact date evidence.",
+    "Openability period phrases are used only when openability_selected_tables=True.",
+    "Net debt was not accepted in the passing exact replay because source/provenance gates did not keep it in canonical non-null metrics."
+  ],
+  "status": "PASS"
+}

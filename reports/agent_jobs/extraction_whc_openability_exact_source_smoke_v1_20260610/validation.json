@@ -1,0 +1,44 @@
+{
+  "job_id": "extraction_whc_openability_exact_source_smoke_v1_20260610",
+  "status": "DONE",
+  "checks": [
+    {
+      "name": "task_card_validate",
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_whc_openability_exact_source_smoke_v1_20260610.md",
+      "exit_status": 0,
+      "result": "ok=true"
+    },
+    {
+      "name": "registry_list_active_read_only",
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "result": "ok=true active_jobs=[]"
+    },
+    {
+      "name": "exact_source_smoke",
+      "command": "PYTHONPATH=. venv python call to extract_structured(... backend='pymupdf', openability_diagnostics=True, openability_pages=[57,58,60,61]) with temporary data_root",
+      "exit_status": 0,
+            "result": "classification=ocr_openability_provenance_gap statement_pages=[57,58,60] scale_pages=[57,58,61] parser_statement_page_table_count=10 parser_statement_page_nonempty_cell_count=0 current_period_candidates include revenue=4,920,102 operating_cf=2,529,823 cash=1,215,460 capex=(124,210)"
+    },
+    {
+      "name": "json_validation",
+      "command": "python3 JSON validation over smoke report artifacts",
+      "exit_status": 0,
+      "result": "all smoke JSON artifacts parsed"
+    }
+  ],
+  "negative_controls": [
+    "source PDF read-only",
+    "temporary cache root removed after smoke",
+    "production cache not written",
+    "canonical extraction not run",
+    "service route not run",
+    "canonical metrics not emitted",
+        "accepted_metrics key absent",
+        "normalized_value key absent",
+        "value_text_candidates preserve note references and comparative values separately",
+        "feeds_canonical_output=false",
+    "canonical_output_changed=false"
+  ],
+  "next_decision": "Proceed to a separately carded selected-table integration task only if it preserves fail-closed behavior and keeps canonical output gated until page/table/header/row/period/scale provenance is bound."
+}
