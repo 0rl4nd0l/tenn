@@ -1,0 +1,14 @@
+{
+  "code_changed": false,
+  "github_mutation_allowed": false,
+  "job_id": "extraction_whc_pr340_publish_decision_v1_20260612",
+  "mutation_mode": "audit_only",
+  "next_command": {
+    "create_new_draft_pr": "gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-whc-parser-openability-sidecar-v1-20260610 --title \"chore(extraction): add WHC openability period binding\" --body \"WHC openability period-binding stack. Exact WHC replay now passes with period_end=2022-06-30 and 8 accepted metrics. No count-24/count-32/broad extraction/backfill/service routes/production mutation.\"",
+    "publish_local_branch": "git push -u origin safe/extraction-whc-parser-openability-sidecar-v1-20260610",
+    "why_new_pr_not_pr340": "PR #340 is a distinct one-commit report-local probe branch at d65945b8; the local WHC branch contains an eight-commit stack from current migration base plus report packets."
+  },
+  "pr340_update_safe": false,
+  "reason": "PR #340 remote head is not an ancestor of the local WHC branch, and local is not an ancestor of PR #340 remote head. Updating PR #340 would require a non-fast-forward/replacement or manual reconciliation.",
+  "status": "NO_PUSH_STOPPED"
+}
