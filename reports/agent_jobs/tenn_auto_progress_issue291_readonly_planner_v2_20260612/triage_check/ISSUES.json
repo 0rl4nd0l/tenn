@@ -1,0 +1,5512 @@
+[
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 291,
+    "state": "OPEN",
+    "title": "[Control Plane] Build Codex-native auto-progress skill workflow",
+    "updatedAt": "2026-06-03T13:05:17Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/291"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 288,
+    "state": "OPEN",
+    "title": "[Repo Hygiene] Restore Cockpit UI source and add route-surface parity checks",
+    "updatedAt": "2026-06-03T05:27:40Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/288"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 286,
+    "state": "OPEN",
+    "title": "[Financial Truth] Add field-level provenance and accounting number parsing to extraction outputs",
+    "updatedAt": "2026-06-03T01:36:30Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/286"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 284,
+    "state": "OPEN",
+    "title": "[Data Model] Keep SQLite auto-create schema and Alembic/Postgres migrations aligned",
+    "updatedAt": "2026-06-03T01:36:29Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/284"
+  },
+  {
+    "labels": [
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Priority: P3 lower urgency or backlog work.",
+        "id": "LA_kwDORRPz_M8AAAACklh6AA",
+        "name": "priority:p3"
+      },
+      {
+        "color": "0E8A16",
+        "description": "Risk: low blast radius and well-contained change.",
+        "id": "LA_kwDORRPz_M8AAAACklh6gQ",
+        "name": "risk:low"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "0075CA",
+        "description": "Type: documentation, process, or reporting update.",
+        "id": "LA_kwDORRPz_M8AAAACklh_hA",
+        "name": "type:docs"
+      }
+    ],
+    "milestone": null,
+    "number": 282,
+    "state": "OPEN",
+    "title": "[Repo Hygiene] Normalize compact backend route formatting for maintainability",
+    "updatedAt": "2026-06-03T01:36:27Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/282"
+  },
+  {
+    "labels": [
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 280,
+    "state": "OPEN",
+    "title": "[Runtime] Guard direct uvicorn startup from unsafe production-like defaults",
+    "updatedAt": "2026-06-03T01:36:25Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/280"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 279,
+    "state": "OPEN",
+    "title": "[Runtime] Make MarketIndex fallback headed-recovery requirement explicit in reports and API",
+    "updatedAt": "2026-06-03T01:36:24Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/279"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 275,
+    "state": "OPEN",
+    "title": "[Reporting] Handle candlestick chart action when OHLC data is unavailable",
+    "updatedAt": "2026-06-02T09:13:20Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/275"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      }
+    ],
+    "milestone": null,
+    "number": 266,
+    "state": "OPEN",
+    "title": "[Provenance] Clarify and test physical Qdrant point IDs versus logical vector IDs",
+    "updatedAt": "2026-06-02T06:46:13Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/266"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 265,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Make direct chat_with_tenn flag context-only local news as insufficient for recent-news claims",
+    "updatedAt": "2026-06-02T06:40:59Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/265"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 263,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Do not let model-generated supporting_evidence promote chat sources to claim_verified",
+    "updatedAt": "2026-06-02T06:32:58Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/263"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 262,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Preserve primary RAG evidence when chat also retrieves commentary or news",
+    "updatedAt": "2026-06-02T06:26:22Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/262"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 261,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Isolate malformed source dates during chat recency weighting",
+    "updatedAt": "2026-06-02T06:21:49Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/261"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 260,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Make recency half-life decay match its name or rename it",
+    "updatedAt": "2026-06-02T06:18:57Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/260"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 259,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Align source_weighting final_score with documented credibility formula",
+    "updatedAt": "2026-06-02T06:17:44Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/259"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Priority: P3 lower urgency or backlog work.",
+        "id": "LA_kwDORRPz_M8AAAACklh6AA",
+        "name": "priority:p3"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 258,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Clamp chat session_coherence to documented quality range",
+    "updatedAt": "2026-06-02T06:15:00Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/258"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 257,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Make chat retrieval_precision honor final_score and source_kind",
+    "updatedAt": "2026-06-02T06:13:38Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/257"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 255,
+    "state": "OPEN",
+    "title": "[Financial Truth] Stop heuristic context numbers becoming CanonicalFacts in synthesis guards",
+    "updatedAt": "2026-06-02T06:09:29Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/255"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 254,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Wire or truth-label active chat learning preference updates",
+    "updatedAt": "2026-06-02T06:06:38Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/254"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": null,
+    "number": 253,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Fix documented analyse_ticker analysis entrypoint",
+    "updatedAt": "2026-06-02T05:59:33Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/253"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 252,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Truth-label or implement /rag/query commentary and hybrid sources",
+    "updatedAt": "2026-06-02T05:57:49Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/252"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 250,
+    "state": "OPEN",
+    "title": "[Financial Truth] Keep market-data GET routes read-only or guard OpenBB staging writes",
+    "updatedAt": "2026-06-02T05:47:39Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/250"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 249,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Gate legacy /chat and /api/chat before model or strategy execution",
+    "updatedAt": "2026-06-02T05:44:57Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/249"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 247,
+    "state": "OPEN",
+    "title": "[Reporting] Gate or redact Cockpit news status before exposing projection paths",
+    "updatedAt": "2026-06-02T05:53:46Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/247"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 246,
+    "state": "OPEN",
+    "title": "[Reporting] Fail closed or guard TradingView webhook and alert history routes",
+    "updatedAt": "2026-06-02T05:37:28Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/246"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 245,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Marketplace price-intelligence routes before product and eBay-sync mutation",
+    "updatedAt": "2026-06-02T05:34:27Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/245"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 244,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Gate research synthesis route before server-side LLM inference",
+    "updatedAt": "2026-06-02T05:32:31Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/244"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 243,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Ops job-state reads and stream before exposing run artifacts",
+    "updatedAt": "2026-06-02T05:30:34Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/243"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 242,
+    "state": "OPEN",
+    "title": "[Evaluation] Guard or redact context diagnostics before exposing extraction failures",
+    "updatedAt": "2026-06-02T05:27:51Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/242"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 241,
+    "state": "OPEN",
+    "title": "[Evaluation] Gate extraction review read routes before exposing sessions, errors, and snippets",
+    "updatedAt": "2026-06-02T05:23:54Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/241"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZvEg",
+        "name": "lane:financial-truth"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 240,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Intel Pulse and diagnostic matrix routes before exposing extraction health",
+    "updatedAt": "2026-06-02T05:22:49Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/240"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 239,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit document history route before exposing global PDF paths",
+    "updatedAt": "2026-06-02T05:21:20Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/239"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 238,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Strategy Lab status and artifact routes before exposing repo evidence",
+    "updatedAt": "2026-06-02T05:18:21Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/238"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 236,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Truth-label or implement Cockpit commentary ephemeral-index for long-source chat",
+    "updatedAt": "2026-06-02T05:16:17Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/236"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 235,
+    "state": "OPEN",
+    "title": "[Memory] Gate backend memory read routes before exposing thesis and qualitative memory",
+    "updatedAt": "2026-06-02T05:09:25Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/235"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 234,
+    "state": "OPEN",
+    "title": "[Repo Hygiene] Classify stale extraction contract parity diff-check dirt",
+    "updatedAt": "2026-06-02T05:04:19Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/234"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 232,
+    "state": "OPEN",
+    "title": "[Reporting] Centralize Cockpit browser API-key propagation for guarded BFF calls",
+    "updatedAt": "2026-06-02T04:58:55Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/232"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 231,
+    "state": "OPEN",
+    "title": "[Reporting] Pass API key through Cockpit Home BFF and source-detail requests",
+    "updatedAt": "2026-06-02T05:11:00Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/231"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 230,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit config, model inventory, and queue routes before exposing runtime topology",
+    "updatedAt": "2026-06-02T04:44:18Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/230"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 229,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Gate Cockpit chat and session routes before model/tool execution",
+    "updatedAt": "2026-06-02T04:38:40Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/229"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": null,
+    "number": 227,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit marketplace mission and match state routes before mutation",
+    "updatedAt": "2026-06-02T04:33:08Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/227"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 226,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit holdings and watchlist routes before exposing personal portfolio state",
+    "updatedAt": "2026-06-02T04:31:34Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/226"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 225,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit routing preference mutations before changing runtime policy",
+    "updatedAt": "2026-06-02T04:28:21Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/225"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 224,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Require API key on Cockpit claim verification route",
+    "updatedAt": "2026-06-02T05:24:32Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/224"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 223,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit host and GPU telemetry routes before exposing machine state",
+    "updatedAt": "2026-06-02T04:24:48Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/223"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": null,
+    "number": 222,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Codex investigation read route before exposing output tails",
+    "updatedAt": "2026-06-02T05:40:09Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/222"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 221,
+    "state": "OPEN",
+    "title": "[Reporting] Guard Cockpit feedback capture and resolve write routes",
+    "updatedAt": "2026-06-02T04:18:18Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/221"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 220,
+    "state": "OPEN",
+    "title": "[Provenance] Guard pending commentary transcript list with API key",
+    "updatedAt": "2026-06-02T04:15:22Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/220"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 218,
+    "state": "OPEN",
+    "title": "[Reporting] Redact process command secrets from Cockpit telemetry routes",
+    "updatedAt": "2026-06-02T04:10:44Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/218"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      }
+    ],
+    "milestone": null,
+    "number": 217,
+    "state": "OPEN",
+    "title": "[Reporting] Make Marketplace capture helper tokens single-use before ingest relay",
+    "updatedAt": "2026-06-02T04:44:26Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/217"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      }
+    ],
+    "milestone": null,
+    "number": 216,
+    "state": "OPEN",
+    "title": "[Repo Hygiene] Split unrelated extraction history out of Memory Workbench PR #198 before merge",
+    "updatedAt": "2026-06-02T04:03:22Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/216"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": null,
+    "number": 215,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Cockpit feedback Codex deploy route before spawning investigator",
+    "updatedAt": "2026-06-02T06:12:34Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/215"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 213,
+    "state": "OPEN",
+    "title": "[Reporting] Preserve source_kind when reattaching Recent sources in Cockpit chat",
+    "updatedAt": "2026-06-02T03:52:16Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/213"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 181,
+    "state": "OPEN",
+    "title": "[Reporting] Guard Cockpit chat attachment uploads before holdings or source staging mutation",
+    "updatedAt": "2026-06-02T03:50:02Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/181"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 155,
+    "state": "OPEN",
+    "title": "[Reporting] Route Verification source-PDF opening through an authenticated BFF",
+    "updatedAt": "2026-06-01T14:47:28Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/155"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 154,
+    "state": "OPEN",
+    "title": "[Memory] Gate Memory Workbench writes with explicit confirmation and intent evidence",
+    "updatedAt": "2026-06-02T03:50:30Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/154"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 151,
+    "state": "OPEN",
+    "title": "[Reporting] Wire a read-only Cockpit Home narrative producer or keep explicit DATA_MISSING",
+    "updatedAt": "2026-06-01T14:49:03Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/151"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": null,
+    "number": 147,
+    "state": "OPEN",
+    "title": "[Reporting] Gate Prompt Lab prompt-stack and LLM dry-run surfaces behind operator access",
+    "updatedAt": "2026-06-01T14:46:51Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/147"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 144,
+    "state": "OPEN",
+    "title": "[Reporting] Route Boot readiness through Cockpit health BFF instead of browser-local probes",
+    "updatedAt": "2026-06-01T14:47:28Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/144"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": {
+      "description": "Runtime services, local automation, schedulers, and operational readiness.",
+      "dueOn": null,
+      "number": 7,
+      "title": "M6 \u2014 Runtime / Local Automation"
+    },
+    "number": 142,
+    "state": "OPEN",
+    "title": "[Runtime] Wire git provenance env for worker and GPU worker containers",
+    "updatedAt": "2026-06-01T14:51:03Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/142"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Lane: repository hygiene, worktree state, and merge parking.",
+        "id": "LA_kwDORRPz_M8AAAACklh3hQ",
+        "name": "lane:repo-hygiene"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      }
+    ],
+    "milestone": {
+      "description": "Control plane, issue system, repo hygiene, and operational guardrails.",
+      "dueOn": null,
+      "number": 1,
+      "title": "M0 \u2014 Control Plane Hardening"
+    },
+    "number": 140,
+    "state": "OPEN",
+    "title": "[Repo Hygiene] Clear root-owned Python cache dirs that block validation writes",
+    "updatedAt": "2026-06-01T17:00:16Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/140"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Runtime services, local automation, schedulers, and operational readiness.",
+      "dueOn": null,
+      "number": 7,
+      "title": "M6 \u2014 Runtime / Local Automation"
+    },
+    "number": 123,
+    "state": "OPEN",
+    "title": "[Runtime] Profile and optimise news ingestion throughput",
+    "updatedAt": "2026-06-01T10:45:44Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/123"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 122,
+    "state": "OPEN",
+    "title": "[Reporting] Wire Cockpit chat suggested next actions to guarded actions and progress logs",
+    "updatedAt": "2026-06-03T05:27:40Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/122"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "B60205",
+        "description": "Type: security, access, or trust boundary concern.",
+        "id": "LA_kwDORRPz_M8AAAACklh_IA",
+        "name": "type:security"
+      }
+    ],
+    "milestone": {
+      "description": "Runtime services, local automation, schedulers, and operational readiness.",
+      "dueOn": null,
+      "number": 7,
+      "title": "M6 \u2014 Runtime / Local Automation"
+    },
+    "number": 121,
+    "state": "OPEN",
+    "title": "[Runtime] Audit Cockpit action-control routes for server-side auth guard parity",
+    "updatedAt": "2026-06-02T04:42:28Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/121"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 120,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Pending action proposal can block the next normal chat prompt",
+    "updatedAt": "2026-06-02T03:50:32Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/120"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 119,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Chat treats audit/context prefix as ticker and proposes news ingest",
+    "updatedAt": "2026-06-01T18:56:07Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/119"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "5319E7",
+        "description": "Type: control-plane, agent, task, or issue-system work.",
+        "id": "LA_kwDORRPz_M8AAAACklh-Sg",
+        "name": "type:control-plane"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      }
+    ],
+    "milestone": {
+      "description": "Runtime services, local automation, schedulers, and operational readiness.",
+      "dueOn": null,
+      "number": 7,
+      "title": "M6 \u2014 Runtime / Local Automation"
+    },
+    "number": 113,
+    "state": "OPEN",
+    "title": "[Runtime] Resolve remaining llama-server :8001 owner evidence gap",
+    "updatedAt": "2026-06-01T14:49:03Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/113"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 110,
+    "state": "OPEN",
+    "title": "[Reporting] Operations route renders but never reaches idle during live UI smoke",
+    "updatedAt": "2026-06-01T14:49:03Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/110"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 109,
+    "state": "OPEN",
+    "title": "[Reporting] Global Cockpit chrome exposes raw host/GPU/config internals to analyst users",
+    "updatedAt": "2026-06-01T14:49:03Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/109"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 107,
+    "state": "OPEN",
+    "title": "[Query Orchestration] Chat cannot use visible Holdings and Watchlist context for analyst workflows",
+    "updatedAt": "2026-05-26T07:05:35Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/107"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": {
+      "description": "Evaluation harnesses, baselines, drift checks, and validation coverage.",
+      "dueOn": null,
+      "number": 3,
+      "title": "M2 \u2014 Evaluation Spine"
+    },
+    "number": 104,
+    "state": "OPEN",
+    "title": "[Evaluation] Cross-route evidence-envelope regression matrix for chat, news, Home, and source drawer",
+    "updatedAt": "2026-06-01T14:51:42Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/104"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 103,
+    "state": "OPEN",
+    "title": "[Reporting] Add Home memory-candidate queue for commentary takeaways",
+    "updatedAt": "2026-05-26T06:43:11Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/103"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Evaluation harnesses, baselines, drift checks, and validation coverage.",
+      "dueOn": null,
+      "number": 3,
+      "title": "M2 \u2014 Evaluation Spine"
+    },
+    "number": 102,
+    "state": "OPEN",
+    "title": "[Evaluation] Add YouTube intake quality gates for low-signal and speculative transcripts",
+    "updatedAt": "2026-06-02T03:50:28Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/102"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "C2E0C6",
+        "description": "Mode: bounded safe extension with explicit hard stops.",
+        "id": "LA_kwDORRPz_M8AAAACklh4Xg",
+        "name": "mode:safe-extension"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Evidence, source provenance, trust boundaries, and DATA_MISSING discipline.",
+      "dueOn": null,
+      "number": 2,
+      "title": "M1 \u2014 Trust / Provenance Foundation"
+    },
+    "number": 101,
+    "state": "OPEN",
+    "title": "[Provenance] Persist YouTube source metadata and transcript timing through commentary chunks",
+    "updatedAt": "2026-06-02T03:50:27Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/101"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiQ",
+        "name": "lane:memory"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "C5DEF5",
+        "description": "Type: automation, scheduler, or local runner work.",
+        "id": "LA_kwDORRPz_M8AAAACklh_YA",
+        "name": "type:automation"
+      },
+      {
+        "color": "0e8a16",
+        "description": "Analyst or user value follow-up",
+        "id": "LA_kwDORRPz_M8AAAACkl4WWg",
+        "name": "product-value"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 100,
+    "state": "OPEN",
+    "title": "[Memory] Audit YouTube transcription to strategy-memory integration",
+    "updatedAt": "2026-06-01T14:51:42Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/100"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 93,
+    "state": "OPEN",
+    "title": "Marketplace Matches and Alerts empty states do not explain mission state or next action",
+    "updatedAt": "2026-06-01T14:48:21Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/93"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 92,
+    "state": "OPEN",
+    "title": "Watchlist empty state does not turn existing portfolio or chat context into useful next actions",
+    "updatedAt": "2026-06-01T14:48:21Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/92"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 91,
+    "state": "OPEN",
+    "title": "History screen turns documents without job timestamps into Just now 0ms completed jobs",
+    "updatedAt": "2026-06-01T14:48:21Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/91"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Runtime services, local automation, schedulers, and operational readiness.",
+      "dueOn": null,
+      "number": 7,
+      "title": "M6 \u2014 Runtime / Local Automation"
+    },
+    "number": 90,
+    "state": "OPEN",
+    "title": "GPU Activity reports no GPU processes while llama-server is healthy",
+    "updatedAt": "2026-06-02T03:50:29Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/90"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1xGw",
+        "name": "lane:evaluation"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": {
+      "description": "Evaluation harnesses, baselines, drift checks, and validation coverage.",
+      "dueOn": null,
+      "number": 3,
+      "title": "M2 \u2014 Evaluation Spine"
+    },
+    "number": 89,
+    "state": "OPEN",
+    "title": "Cockpit UI lint gate fails in Thesis Audit and Marketplace screens",
+    "updatedAt": "2026-06-01T14:48:21Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/89"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": {
+      "description": "Evidence, source provenance, trust boundaries, and DATA_MISSING discipline.",
+      "dueOn": null,
+      "number": 2,
+      "title": "M1 \u2014 Trust / Provenance Foundation"
+    },
+    "number": 84,
+    "state": "OPEN",
+    "title": "[Provenance] Audit missing cockpit_announcement_context runtime schema",
+    "updatedAt": "2026-06-01T19:13:20Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/84"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qiw",
+        "name": "risk:high"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj4h8w",
+        "name": "lane:query-orchestration"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZmDA",
+        "name": "lane:provenance"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      }
+    ],
+    "milestone": {
+      "description": "Query orchestration, memory routing, lineage, and answer contract integrity.",
+      "dueOn": null,
+      "number": 4,
+      "title": "M3 \u2014 Query + Memory Integrity"
+    },
+    "number": 83,
+    "state": "OPEN",
+    "title": "[Query] News projection materialization/parity repair planning v1",
+    "updatedAt": "2026-06-01T16:01:41Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/83"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Lane: runtime services, local automation, and operations.",
+        "id": "LA_kwDORRPz_M8AAAACklh32Q",
+        "name": "lane:runtime"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Priority: P1 important near-term work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5Yw",
+        "name": "priority:p1"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "D73A4A",
+        "description": "Type: confirmed bug or incorrect behavior.",
+        "id": "LA_kwDORRPz_M8AAAACklh9pA",
+        "name": "type:bug"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Runtime services, local automation, schedulers, and operational readiness.",
+      "dueOn": null,
+      "number": 7,
+      "title": "M6 \u2014 Runtime / Local Automation"
+    },
+    "number": 61,
+    "state": "OPEN",
+    "title": "Cockpit should default visible GPU to the llama-server GPU",
+    "updatedAt": "2026-06-01T10:59:41Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/61"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "006B75",
+        "description": "Lane: Cockpit analyst workflow and UI surfaces.",
+        "id": "LA_kwDORRPz_M8AAAACklh4JA",
+        "name": "lane:cockpit"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "D93F0B",
+        "description": "Risk: medium blast radius or uncertainty.",
+        "id": "LA_kwDORRPz_M8AAAACklh6QA",
+        "name": "risk:medium"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Type: missing or insufficient validation coverage.",
+        "id": "LA_kwDORRPz_M8AAAACklh-HA",
+        "name": "type:validation-gap"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": {
+      "description": "Cockpit analyst workflow, usability, UI surfaces, and review ergonomics.",
+      "dueOn": null,
+      "number": 6,
+      "title": "M5 \u2014 Cockpit Analyst Workflow"
+    },
+    "number": 53,
+    "state": "OPEN",
+    "title": "Production Cockpit forms rely on placeholders and unlabeled icon controls",
+    "updatedAt": "2026-06-02T09:08:09Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/53"
+  },
+  {
+    "labels": [
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkj1qig",
+        "name": "mode:audit"
+      },
+      {
+        "color": "ededed",
+        "description": "",
+        "id": "LA_kwDORRPz_M8AAAACkkZ8lg",
+        "name": "lane:reporting"
+      },
+      {
+        "color": "FBCA04",
+        "description": "Priority: P2 normal planned work.",
+        "id": "LA_kwDORRPz_M8AAAACklh5sQ",
+        "name": "priority:p2"
+      },
+      {
+        "color": "0E8A16",
+        "description": "Risk: low blast radius and well-contained change.",
+        "id": "LA_kwDORRPz_M8AAAACklh6gQ",
+        "name": "risk:low"
+      },
+      {
+        "color": "0E8A16",
+        "description": "State: ready for scoped execution.",
+        "id": "LA_kwDORRPz_M8AAAACklh6tw",
+        "name": "state:ready"
+      },
+      {
+        "color": "A2EEEF",
+        "description": "Type: usability or analyst workflow friction.",
+        "id": "LA_kwDORRPz_M8AAAACklh-kA",
+        "name": "type:usability"
+      }
+    ],
+    "milestone": null,
+    "number": 52,
+    "state": "OPEN",
+    "title": "Marketplace capture helper enables a dead bookmarklet when opened without a token",
+    "updatedAt": "2026-06-02T04:24:41Z",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/52"
+  }
+]

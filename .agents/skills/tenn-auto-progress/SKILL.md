@@ -112,3 +112,33 @@ A verifier must be able to answer these before Phase 2 or Phase 3:
 - Are registry and dirty-state checks clean enough for the work?
 - Is the validation plan focused and non-destructive?
 - Are GitHub writes, commits, and branch operations still disabled?
+
+## Repo Script
+
+When `scripts/auto_progress.py` exists, use it for deterministic read-only
+planner artifacts instead of manually reconstructing the same issue scan:
+
+```bash
+python3 scripts/auto_progress.py triage-issues \
+  --repo 0rl4nd0l/tenn \
+  --milestone "M0 — Control Plane Hardening" \
+  --labels state:ready \
+  --risk low,medium \
+  --max-candidates 10 \
+  --output-dir reports/agent_jobs/<run_id> \
+  --dry-run
+```
+
+```bash
+python3 scripts/auto_progress.py issue-to-card \
+  --repo 0rl4nd0l/tenn \
+  --issue <number> \
+  --output-dir reports/agent_jobs/<run_id> \
+  --dry-run
+```
+
+The script is dry-run only. It may read GitHub issues and milestones and write
+compact report artifacts under the selected output directory. It must not write
+GitHub, create real task cards outside an approved task-card allowlist, execute
+candidate issues, commit, push, start services, or touch product/runtime/data
+surfaces.

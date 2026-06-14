@@ -1,0 +1,278 @@
+[
+  {
+    "cautions": [],
+    "labels": [
+      "lane:evaluation",
+      "lane:repo-hygiene",
+      "mode:audit",
+      "priority:p2",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane",
+      "type:validation-gap"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 234,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:medium",
+      "repo-hygiene/evaluation",
+      "control-plane",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 85,
+    "title": "[Repo Hygiene] Classify stale extraction contract parity diff-check dirt",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/234"
+  },
+  {
+    "cautions": [],
+    "labels": [
+      "lane:provenance",
+      "lane:reporting",
+      "mode:safe-extension",
+      "priority:p2",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane",
+      "type:security"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 239,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:medium",
+      "control-plane",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 75,
+    "title": "[Reporting] Gate Cockpit document history route before exposing global PDF paths",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/239"
+  },
+  {
+    "cautions": [
+      "controller-issue"
+    ],
+    "labels": [
+      "lane:evaluation",
+      "lane:repo-hygiene",
+      "mode:safe-extension",
+      "priority:p1",
+      "risk:medium",
+      "state:ready",
+      "type:automation",
+      "type:control-plane"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 291,
+    "reasons": [
+      "ready",
+      "priority:p1",
+      "risk:medium",
+      "repo-hygiene/evaluation",
+      "control-plane",
+      "automation",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 67,
+    "title": "[Control Plane] Build Codex-native auto-progress skill workflow",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/291"
+  },
+  {
+    "cautions": [],
+    "labels": [
+      "lane:reporting",
+      "mode:audit",
+      "priority:p2",
+      "risk:medium",
+      "state:ready",
+      "type:bug",
+      "type:control-plane"
+    ],
+    "milestone": "",
+    "number": 217,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:medium",
+      "control-plane",
+      "audit/safe-extension"
+    ],
+    "score": 65,
+    "title": "[Reporting] Make Marketplace capture helper tokens single-use before ingest relay",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/217"
+  },
+  {
+    "cautions": [
+      "financial-truth-adjacent"
+    ],
+    "labels": [
+      "lane:evaluation",
+      "lane:financial-truth",
+      "lane:reporting",
+      "mode:safe-extension",
+      "priority:p2",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane",
+      "type:security"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 240,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:medium",
+      "repo-hygiene/evaluation",
+      "control-plane",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 60,
+    "title": "[Reporting] Gate Intel Pulse and diagnostic matrix routes before exposing extraction health",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/240"
+  },
+  {
+    "cautions": [
+      "financial-truth-adjacent"
+    ],
+    "labels": [
+      "lane:evaluation",
+      "lane:financial-truth",
+      "lane:provenance",
+      "lane:reporting",
+      "mode:safe-extension",
+      "priority:p2",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane",
+      "type:security"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 242,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:medium",
+      "repo-hygiene/evaluation",
+      "control-plane",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 60,
+    "title": "[Evaluation] Guard or redact context diagnostics before exposing extraction failures",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/242"
+  },
+  {
+    "cautions": [
+      "filesystem-cleanup-boundary"
+    ],
+    "labels": [
+      "lane:evaluation",
+      "lane:repo-hygiene",
+      "mode:audit",
+      "priority:p1",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane",
+      "type:validation-gap"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 140,
+    "reasons": [
+      "ready",
+      "priority:p1",
+      "risk:medium",
+      "repo-hygiene/evaluation",
+      "control-plane",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 58,
+    "title": "[Repo Hygiene] Clear root-owned Python cache dirs that block validation writes",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/140"
+  },
+  {
+    "cautions": [],
+    "labels": [
+      "lane:evaluation",
+      "lane:provenance",
+      "lane:reporting",
+      "mode:audit",
+      "priority:p1",
+      "risk:medium",
+      "state:ready",
+      "type:usability",
+      "type:validation-gap"
+    ],
+    "milestone": "",
+    "number": 155,
+    "reasons": [
+      "ready",
+      "priority:p1",
+      "risk:medium",
+      "repo-hygiene/evaluation",
+      "audit/safe-extension"
+    ],
+    "score": 58,
+    "title": "[Reporting] Route Verification source-PDF opening through an authenticated BFF",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/155"
+  },
+  {
+    "cautions": [
+      "runtime-adjacent",
+      "product-adjacent"
+    ],
+    "labels": [
+      "lane:provenance",
+      "lane:query-orchestration",
+      "lane:reporting",
+      "lane:runtime",
+      "mode:safe-extension",
+      "priority:p2",
+      "risk:medium",
+      "state:ready",
+      "type:control-plane",
+      "type:security"
+    ],
+    "milestone": "M0 \u2014 Control Plane Hardening",
+    "number": 247,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:medium",
+      "control-plane",
+      "audit/safe-extension",
+      "milestone:M0 \u2014 Control Plane Hardening"
+    ],
+    "score": 54,
+    "title": "[Reporting] Gate or redact Cockpit news status before exposing projection paths",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/247"
+  },
+  {
+    "cautions": [],
+    "labels": [
+      "lane:reporting",
+      "mode:audit",
+      "priority:p2",
+      "risk:low",
+      "state:ready",
+      "type:usability"
+    ],
+    "milestone": "",
+    "number": 52,
+    "reasons": [
+      "ready",
+      "priority:p2",
+      "risk:low",
+      "audit/safe-extension"
+    ],
+    "score": 50,
+    "title": "Marketplace capture helper enables a dead bookmarklet when opened without a token",
+    "url": "https://github.com/0rl4nd0l/tenn/issues/52"
+  }
+]
