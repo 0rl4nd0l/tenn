@@ -260,6 +260,9 @@ def build_hook_payload(
     if not passed:
         return _blocking_payload(_summarize_failure(card, runs), platform=platform)
 
+    if platform == "codex" and event == "Stop":
+        return _allow_payload(platform)
+
     return _allow_payload(platform, f"Tenn agent-job contract passed: {card.display_path}")
 
 
