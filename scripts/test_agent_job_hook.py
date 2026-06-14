@@ -185,6 +185,21 @@ def test_active_valid_task_card_with_allowed_diff_passes(tmp_path: Path) -> None
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
 
     assert completed.returncode == 0
+    assert payload == {}
+
+
+def test_codex_before_tool_active_valid_task_card_keeps_pass_context(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        platform="codex",
+        event="BeforeTool",
+    )
+
+    assert completed.returncode == 0
     assert payload == {"systemMessage": "Tenn agent-job contract passed: docs/agent_tasks/test-task.md"}
 
 
@@ -297,7 +312,7 @@ def test_active_task_marker_is_supported(tmp_path: Path) -> None:
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
 
     assert completed.returncode == 0
-    assert payload == {"systemMessage": "Tenn agent-job contract passed: docs/agent_tasks/test-task.md"}
+    assert payload == {}
 
 
 def test_active_task_card_blocks_overlap_using_shared_registry_root(tmp_path: Path) -> None:
