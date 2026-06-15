@@ -1,0 +1,72 @@
+{
+  "job_id": "extraction_lbl_companion_period_provenance_v1_20260614",
+  "updated_at": "2026-06-15T10:27:37+10:00",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_lbl_companion_period_provenance_v1_20260614.md",
+      "exit_status": 0,
+      "result": "ok"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 <direct runner for new companion tests>",
+      "exit_status": 1,
+      "result": "RED: ImportError cannot import name '_bind_companion_source_period_end_over_announcement_date'"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "exit_status": 0,
+      "result": "ok"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend python3 <direct runner for 10 focused period-end tests>",
+      "exit_status": 0,
+      "result": "10 focused period-end tests passed"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/.local/bin/uv run --with 'pytest>=8.3.3' --with 'pytest-asyncio>=0.24.0' --with 'pydantic==2.9.2' --with 'pydantic-settings==2.6.1' --with 'python-dateutil==2.9.0.post0' --with 'fastapi==0.115.6' --with 'sqlalchemy==2.0.36' --with 'httpx==0.27.2' --with 'numpy==1.26.4' --with 'pymupdf==1.24.10' --with 'beautifulsoup4==4.12.3' --with 'lxml==5.3.0' pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -k 'period_end or companion'",
+      "exit_status": 0,
+      "result": "11 passed, 15 deselected in 0.23s"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/.local/bin/uv run --with 'pytest>=8.3.3' --with 'pytest-asyncio>=0.24.0' --with 'pydantic==2.9.2' --with 'pydantic-settings==2.6.1' --with 'python-dateutil==2.9.0.post0' --with 'fastapi==0.115.6' --with 'sqlalchemy==2.0.36' --with 'httpx==0.27.2' --with 'numpy==1.26.4' --with 'pymupdf==1.24.10' --with 'beautifulsoup4==4.12.3' --with 'lxml==5.3.0' pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "exit_status": 0,
+      "result": "26 passed in 0.66s"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "exit_status": 0,
+      "result": "ok after reviewer follow-up"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/.local/bin/uv run --with 'pytest>=8.3.3' --with 'pytest-asyncio>=0.24.0' --with 'pydantic==2.9.2' --with 'pydantic-settings==2.6.1' --with 'python-dateutil==2.9.0.post0' --with 'fastapi==0.115.6' --with 'sqlalchemy==2.0.36' --with 'httpx==0.27.2' --with 'numpy==1.26.4' --with 'pymupdf==1.24.10' --with 'beautifulsoup4==4.12.3' --with 'lxml==5.3.0' pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "exit_status": 0,
+      "result": "27 passed in 0.23s"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend /home/l4nd0/.local/bin/uv run --with 'pytest>=8.3.3' --with 'pytest-asyncio>=0.24.0' --with 'pydantic==2.9.2' --with 'pydantic-settings==2.6.1' --with 'python-dateutil==2.9.0.post0' --with 'fastapi==0.115.6' --with 'sqlalchemy==2.0.36' --with 'httpx==0.27.2' --with 'numpy==1.26.4' --with 'pymupdf==1.24.10' --with 'beautifulsoup4==4.12.3' --with 'lxml==5.3.0' pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "exit_status": 0,
+      "result": "28 passed in 0.20s"
+    },
+    {
+      "command": "DATA_ROOT=/tmp/tenn-lbl-companion-canary-20260615 LLAMACPP_URL=http://127.0.0.1:8001 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:11434 OLLAMA_URL=http://127.0.0.1:11434 EXTRACTION_SKIP_NARRATIVE=1 PYTHONPATH=/home/l4nd0/tenn-lbl-companion-period-provenance-v1-20260614/financial-engine_v2/backend timeout 900 /home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python /tmp/tenn_lbl_companion_canary_runner_20260615.py",
+      "exit_status": 0,
+      "result": "period binding passed: period_end=2025-12-31 with companion binding over unsupported pass1 period_end; final status failed with validation_gate:insufficient_metrics:0 after pass3a LLM timeouts"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_lbl_companion_period_provenance_v1_20260614.md",
+      "exit_status": 0,
+      "result": "ok; disallowed_files=[]"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only",
+      "exit_status": 0,
+      "result": "ok; active_jobs=[]; lock_acquired=false"
+    }
+  ],
+  "validation_limits": [
+    "pytest was run through uv with explicit test/runtime dependencies because /usr/bin/python3 has no pip or pytest module",
+    "dependency-stubbed direct runner was used only for the initial RED/GREEN pure helper loop before uv pytest validation",
+    "one targeted LBL runtime canary was run with DATA_ROOT redirected to /tmp",
+    "no broad extraction/count/backfill validation was run"
+  ]
+}

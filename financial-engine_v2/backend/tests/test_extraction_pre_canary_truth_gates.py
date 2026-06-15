@@ -570,6 +570,281 @@ def test_lbl_1h_fy26_label_only_period_end_remains_fail_closed():
     )
 
 
+def test_lbl_companion_appendix_period_binds_with_cross_document_provenance():
+    from app.services.multipass_extraction import (
+        _bind_companion_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _validate_gate,
+    )
+
+    target_path = (
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/"
+        "financial_performance/"
+        "2026-02-20_1h-fy26-results-presentation_"
+        "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    )
+    appendix_path = (
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/"
+        "financial_performance/"
+        "2026-02-20_fy26-half-year-appendix-4d-financial-statements_"
+        "d63cbfaf-cc41-448b-90fa-9f66e55f3993.pdf"
+    )
+    announcement_path = (
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/"
+        "financial_performance/"
+        "2026-02-20_1h-fy26-results-announcement_"
+        "989d03d6-9ba6-4ec6-84cc-fbf930dc120a.pdf"
+    )
+    target_title = target_path.rsplit("/", 1)[-1]
+    target_evidence = _detect_source_period_end_evidence(
+        target_title,
+        "1H FY26 Results Presentation. Half-Year. Five-Year Earnings A$000 1H FY26.",
+    )
+    appendix_evidence = _detect_source_period_end_evidence(
+        appendix_path.rsplit("/", 1)[-1],
+        "Appendix 4D. For the half-year ended 31st December 2025.",
+    )
+    announcement_evidence = _detect_source_period_end_evidence(
+        announcement_path.rsplit("/", 1)[-1],
+        "Results for the six months ended 31 December 2025.",
+    )
+
+    pass1 = {"report_type": "H", "period_end": "2026-02-20", "scale": "millions"}
+    changed = _bind_companion_source_period_end_over_announcement_date(
+        pass1,
+        target_evidence,
+        target_title,
+        target_source_path=target_path,
+        companion_sources=[
+            {
+                "source_path": announcement_path,
+                "period_end_evidence": announcement_evidence,
+                "source_role": "results_announcement",
+                "scale": "millions",
+            },
+            {
+                "source_path": appendix_path,
+                "period_end_evidence": appendix_evidence,
+                "source_role": "appendix4d",
+                "scale": "thousands",
+            },
+        ],
+    )
+
+    assert changed is True
+    assert pass1["period_end"] == "2025-12-31"
+    assert pass1["scale"] == "millions"
+    assert pass1["_source_period_end_binding"] == {
+        "reason": "explicit_companion_source_half_year_period_end_over_announcement_title_date",
+        "from_period_end": "2026-02-20",
+        "to_period_end": "2025-12-31",
+        "source_period_end_reason": "half_year_ended_explicit_date",
+        "target_document_title": target_title,
+        "target_source_path": target_path,
+        "period_source_path": appendix_path,
+        "period_source_role": "appendix4d",
+        "selection_rule": "same_day_same_ticker_companion_period_source",
+        "target_title_announcement_date": "2026-02-20",
+        "corroborating_source_paths": [announcement_path],
+    }
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = appendix_evidence
+    payload["source_period_end_binding"] = pass1["_source_period_end_binding"]
+    payload["source_bound"] = {
+        "period_end": payload["period_end"],
+        "period_type": payload["period_type"],
+        "scale": payload["scale"],
+        "currency": payload["currency"],
+        "document_title": target_title,
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+
+
+def test_companion_period_binding_fails_closed_when_sources_disagree():
+    from app.services.multipass_extraction import (
+        _bind_companion_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+    )
+
+    target_path = (
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/"
+        "financial_performance/"
+        "2026-02-20_1h-fy26-results-presentation_"
+        "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    )
+    target_title = target_path.rsplit("/", 1)[-1]
+    target_evidence = _detect_source_period_end_evidence(
+        target_title,
+        "1H FY26 Results Presentation. Half-Year. Five-Year Earnings A$000 1H FY26.",
+    )
+    appendix_evidence = _detect_source_period_end_evidence(
+        "2026-02-20_fy26-half-year-appendix-4d-financial-statements.pdf",
+        "Appendix 4D. For the half-year ended 31st December 2025.",
+    )
+    conflicting_announcement = _detect_source_period_end_evidence(
+        "2026-02-20_1h-fy26-results-announcement.pdf",
+        "Results for the six months ended 30 June 2025.",
+    )
+
+    pass1 = {"report_type": "H", "period_end": "2026-02-20"}
+    changed = _bind_companion_source_period_end_over_announcement_date(
+        pass1,
+        target_evidence,
+        target_title,
+        target_source_path=target_path,
+        companion_sources=[
+            {
+                "source_path": target_path.replace("presentation", "appendix-4d"),
+                "period_end_evidence": appendix_evidence,
+                "source_role": "appendix4d",
+            },
+            {
+                "source_path": target_path.replace("presentation", "announcement"),
+                "period_end_evidence": conflicting_announcement,
+                "source_role": "results_announcement",
+            },
+        ],
+    )
+
+    assert changed is False
+    assert pass1["period_end"] == "2026-02-20"
+    assert pass1["_companion_source_period_end_binding_error"] == (
+        "companion_period_end_conflict"
+    )
+
+
+def test_companion_period_binding_overrides_unsupported_pass1_period_end():
+    from app.services.multipass_extraction import (
+        _bind_companion_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+    )
+
+    target_path = (
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/"
+        "financial_performance/"
+        "2026-02-20_1h-fy26-results-presentation_"
+        "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    )
+    appendix_path = (
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/"
+        "financial_performance/"
+        "2026-02-20_fy26-half-year-appendix-4d-financial-statements_"
+        "d63cbfaf-cc41-448b-90fa-9f66e55f3993.pdf"
+    )
+    target_title = target_path.rsplit("/", 1)[-1]
+    target_evidence = _detect_source_period_end_evidence(
+        target_title,
+        "1H FY26 Results Presentation. Half-Year. Five-Year Earnings A$000 1H FY26.",
+    )
+    appendix_evidence = _detect_source_period_end_evidence(
+        appendix_path.rsplit("/", 1)[-1],
+        "Appendix 4D. For the half-year ended 31st December 2025.",
+    )
+
+    pass1 = {"report_type": "H", "period_end": "2026-01-31", "scale": "thousands"}
+    changed = _bind_companion_source_period_end_over_announcement_date(
+        pass1,
+        target_evidence,
+        target_title,
+        target_source_path=target_path,
+        companion_sources=[
+            {
+                "source_path": appendix_path,
+                "period_end_evidence": appendix_evidence,
+                "source_role": "appendix4d",
+            },
+        ],
+    )
+
+    assert changed is True
+    assert pass1["period_end"] == "2025-12-31"
+    assert pass1["_source_period_end_binding"]["reason"] == (
+        "explicit_companion_source_half_year_period_end_over_unsupported_pass1_period_end"
+    )
+    assert pass1["_source_period_end_binding"]["from_period_end"] == "2026-01-31"
+    assert pass1["_source_period_end_binding"]["target_title_announcement_date"] == (
+        "2026-02-20"
+    )
+
+
+def test_companion_source_discovery_scans_same_day_same_ticker_roles(
+    tmp_path, monkeypatch
+):
+    from app.services import multipass_extraction as mp
+
+    doc_dir = tmp_path / "data" / "asx" / "docs" / "LBL" / "financial_performance"
+    doc_dir.mkdir(parents=True)
+    target_path = (
+        doc_dir
+        / "2026-02-20_1h-fy26-results-presentation_"
+        "551c6b84-1053-405c-a833-4ecc018e2045.pdf"
+    )
+    appendix_path = (
+        doc_dir
+        / "2026-02-20_fy26-half-year-appendix-4d-financial-statements_"
+        "d63cbfaf-cc41-448b-90fa-9f66e55f3993.pdf"
+    )
+    announcement_path = (
+        doc_dir
+        / "2026-02-20_1h-fy26-results-announcement_"
+        "989d03d6-9ba6-4ec6-84cc-fbf930dc120a.pdf"
+    )
+    off_date_path = (
+        doc_dir
+        / "2026-02-21_fy26-half-year-appendix-4d-financial-statements_"
+        "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.pdf"
+    )
+    generic_path = (
+        doc_dir
+        / "2026-02-20_investor-update_"
+        "bbbbbbbb-cccc-dddd-eeee-ffffffffffff.pdf"
+    )
+    for path in (
+        target_path,
+        appendix_path,
+        announcement_path,
+        off_date_path,
+        generic_path,
+    ):
+        path.write_bytes(b"%PDF-1.4\n")
+
+    read_names = []
+
+    def fake_read_pdf_text(source_path):
+        name = str(source_path).rsplit("/", 1)[-1]
+        read_names.append(name)
+        if "appendix-4d" in name:
+            return "Appendix 4D. For the half-year ended 31st December 2025."
+        if "results-announcement" in name:
+            return "Results for the six months ended 31 December 2025."
+        return ""
+
+    monkeypatch.setattr(
+        mp,
+        "_read_pdf_text_for_companion_period_source",
+        fake_read_pdf_text,
+    )
+
+    sources = mp._discover_same_day_companion_period_sources(str(target_path))
+
+    assert {
+        (source["source_role"], source["period_end_evidence"]["period_end"])
+        for source in sources
+    } == {
+        ("appendix4d", "2025-12-31"),
+        ("results_announcement", "2025-12-31"),
+    }
+    assert sorted(read_names) == sorted(
+        [appendix_path.name, announcement_path.name]
+    )
+
+
 def test_title_only_explicit_period_end_does_not_override_announcement_date():
     from app.services.multipass_extraction import (
         _bind_explicit_source_period_end_over_announcement_date,

@@ -1,0 +1,43 @@
+{
+  "job_id": "extraction_lbl_companion_period_provenance_v1_20260614",
+  "status": "DONE_WITH_RISK",
+  "updated_at": "2026-06-15T10:27:37+10:00",
+  "worktree": "/home/l4nd0/tenn-lbl-companion-period-provenance-v1-20260614",
+  "branch": "safe/extraction-lbl-companion-period-provenance-v1-20260614",
+  "base_head": "efd11b9a44d9d73bf94b86f6d90c8f75342bb0cf",
+  "approved_scope": "narrow LBL companion-source period binding with explicit cross-document provenance and target table-local scale preservation",
+  "unsafe_actions_avoided": [
+    "baseline checkout mutation",
+    "broad extraction",
+    "count run",
+    "backfill",
+    "runtime service start",
+    "database mutation",
+    "qdrant mutation",
+    "redis mutation",
+    "news store mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "github write",
+    "merge",
+    "rebase",
+    "reset",
+    "stash",
+    "clean"
+  ],
+  "files_touched": [
+    "docs/agent_tasks/extraction_lbl_companion_period_provenance_v1_20260614.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+    "reports/agent_jobs/extraction_lbl_companion_period_provenance_v1_20260614/README.md",
+    "reports/agent_jobs/extraction_lbl_companion_period_provenance_v1_20260614/status.json",
+    "reports/agent_jobs/extraction_lbl_companion_period_provenance_v1_20260614/validation.json",
+    "reports/agent_jobs/extraction_lbl_companion_period_provenance_v1_20260614/diff-check.json"
+  ],
+  "blocked_items": [
+    "targeted LBL canary failed final metric gate because local Ollama qwen2.5:32b pass3a calls timed out and produced zero metrics"
+  ],
+  "not_run": [
+    "count-24/count-32/random sample/broad extraction/backfill intentionally not run under the approved narrow scope"
+  ]
+}
