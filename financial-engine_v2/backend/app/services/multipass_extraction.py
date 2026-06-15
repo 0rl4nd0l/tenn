@@ -17,9 +17,11 @@ import json
 import logging
 import os
 import re
+import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Optional
 
 from dateutil import parser as dtparser
@@ -3966,6 +3968,260 @@ def _bind_explicit_source_period_end_over_announcement_date(
     return True
 
 
+_COMPANION_PERIOD_SOURCE_ROLE_PRIORITY = {
+    "appendix4d": 0,
+    "half_year_financial_report": 1,
+    "results_announcement": 2,
+}
+
+
+def _source_identity_from_path(source_path: Any) -> dict[str, str]:
+    path_text = str(source_path or "")
+    parts = [part for part in path_text.split("/") if part]
+    ticker = ""
+    category = ""
+    try:
+        docs_index = parts.index("docs")
+        ticker = parts[docs_index + 1] if len(parts) > docs_index + 1 else ""
+        category = parts[docs_index + 2] if len(parts) > docs_index + 2 else ""
+    except ValueError:
+        pass
+    basename = os.path.basename(path_text)
+    date_match = _LEADING_ANNOUNCEMENT_DATE_RE.search(basename)
+    return {
+        "path": path_text,
+        "basename": basename,
+        "ticker": ticker.upper(),
+        "category": category,
+        "announcement_date": date_match.group("date") if date_match else "",
+    }
+
+
+def _companion_source_role(source_path: Any, title: Any = "") -> str:
+    text = f"{source_path or ''} {title or ''}".lower()
+    compact = re.sub(r"[^a-z0-9]+", "", text)
+    if "appendix4d" in compact:
+        return "appendix4d"
+    if "halfyear" in compact and (
+        "financialreport" in compact or "financialstatements" in compact
+    ):
+        return "half_year_financial_report"
+    if "resultsannouncement" in compact or "announcement" in compact:
+        return "results_announcement"
+    return "companion"
+
+
+def _is_same_day_same_ticker_companion(
+    target_source_path: Any, companion_source_path: Any
+) -> bool:
+    target = _source_identity_from_path(target_source_path)
+    companion = _source_identity_from_path(companion_source_path)
+    if not target["path"] or not companion["path"]:
+        return False
+    if os.path.abspath(target["path"]) == os.path.abspath(companion["path"]):
+        return False
+    if not target["ticker"] or target["ticker"] != companion["ticker"]:
+        return False
+    if not target["announcement_date"] or (
+        target["announcement_date"] != companion["announcement_date"]
+    ):
+        return False
+    if companion["category"] and companion["category"] != "financial_performance":
+        return False
+    if target["category"] and companion["category"]:
+        return target["category"] == companion["category"]
+    return True
+
+
+def _read_pdf_text_for_companion_period_source(source_path: Any) -> str:
+    path = Path(str(source_path or ""))
+    if not path.is_file() or path.suffix.lower() != ".pdf":
+        logger.debug(
+            "companion period source text unavailable: path=%s reason=not_a_pdf_file",
+            path,
+        )
+        return ""
+    try:
+        result = subprocess.run(
+            ["pdftotext", "-f", "1", "-l", "4", str(path), "-"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        logger.debug(
+            "companion period source text unavailable: path=%s reason=pdftotext_unavailable_or_timeout",
+            path,
+        )
+        return ""
+    if result.returncode != 0:
+        logger.debug(
+            "companion period source text unavailable: path=%s reason=pdftotext_failed returncode=%s",
+            path,
+            result.returncode,
+        )
+        return ""
+    return result.stdout[:12000]
+
+
+def _discover_same_day_companion_period_sources(
+    target_source_path: Any,
+) -> list[dict[str, Any]]:
+    target_path = Path(str(target_source_path or ""))
+    if not target_path.parent.is_dir():
+        return []
+
+    companions: list[dict[str, Any]] = []
+    for candidate in sorted(target_path.parent.glob("*.pdf")):
+        if not _is_same_day_same_ticker_companion(target_path, candidate):
+            continue
+        role = _companion_source_role(candidate)
+        if role not in _COMPANION_PERIOD_SOURCE_ROLE_PRIORITY:
+            continue
+        source_text = _read_pdf_text_for_companion_period_source(candidate)
+        evidence = _detect_source_period_end_evidence(candidate.name, source_text)
+        companions.append(
+            {
+                "source_path": str(candidate),
+                "source_role": role,
+                "period_end_evidence": evidence,
+            }
+        )
+    return companions
+
+
+def _bind_companion_source_period_end_over_announcement_date(
+    pass1_result: dict,
+    target_source_period_end_evidence: dict,
+    title: Any,
+    *,
+    target_source_path: Any = "",
+    companion_sources: list[dict[str, Any]] | None = None,
+) -> bool:
+    """
+    Bind a half-year period end from a same-day issuer companion document.
+
+    This intentionally does not infer from filenames, publication dates, or
+    loose title dates.  It only accepts an explicit half-year period-end phrase
+    in companion source text, with same-day same-ticker provenance retained.
+    """
+
+    report_type = str(
+        pass1_result.get("report_type") or pass1_result.get("period_type") or ""
+    ).strip()
+    if report_type != "H":
+        return False
+    if _has_source_text_period_end_hit(
+        target_source_period_end_evidence,
+        reason="half_year_ended_explicit_date",
+    ):
+        return False
+
+    current_period_end = parse_period_end(str(pass1_result.get("period_end") or ""))
+    if current_period_end is None:
+        return False
+    title_text = str(title or "")
+    if not _has_half_year_title_hint({}, [title_text]):
+        return False
+    title_date = _leading_announcement_date_from_title(title_text)
+    if title_date is None:
+        return False
+
+    sources = (
+        companion_sources
+        if companion_sources is not None
+        else _discover_same_day_companion_period_sources(target_source_path)
+    )
+    eligible: list[dict[str, Any]] = []
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        source_path = str(source.get("source_path") or "")
+        if not _is_same_day_same_ticker_companion(target_source_path, source_path):
+            continue
+        evidence = source.get("period_end_evidence")
+        if not isinstance(evidence, dict):
+            continue
+        if evidence.get("period_type") != "H":
+            continue
+        if evidence.get("reason") != "half_year_ended_explicit_date":
+            continue
+        if not _has_source_text_period_end_hit(
+            evidence,
+            reason="half_year_ended_explicit_date",
+        ):
+            continue
+        source_period_end = parse_period_end(str(evidence.get("period_end") or ""))
+        if source_period_end is None:
+            continue
+        role = str(source.get("source_role") or "").strip() or _companion_source_role(
+            source_path
+        )
+        if role not in _COMPANION_PERIOD_SOURCE_ROLE_PRIORITY:
+            continue
+        eligible.append(
+            {
+                "source_path": source_path,
+                "source_role": role,
+                "period_end": source_period_end,
+                "period_end_evidence": evidence,
+            }
+        )
+
+    period_ends = sorted({item["period_end"].isoformat() for item in eligible})
+    if len(period_ends) > 1:
+        pass1_result["_companion_source_period_end_binding_error"] = (
+            "companion_period_end_conflict"
+        )
+        return False
+    if not eligible:
+        return False
+
+    chosen = sorted(
+        eligible,
+        key=lambda item: (
+            _COMPANION_PERIOD_SOURCE_ROLE_PRIORITY.get(item["source_role"], 99),
+            item["source_path"],
+        ),
+    )[0]
+    source_period_end = chosen["period_end"]
+    if current_period_end == source_period_end:
+        return False
+
+    binding_reason = (
+        "explicit_companion_source_half_year_period_end_over_announcement_title_date"
+        if title_date == current_period_end
+        else "explicit_companion_source_half_year_period_end_over_unsupported_pass1_period_end"
+    )
+    binding = {
+        "reason": binding_reason,
+        "from_period_end": current_period_end.isoformat(),
+        "to_period_end": source_period_end.isoformat(),
+        "source_period_end_reason": chosen["period_end_evidence"].get("reason"),
+        "target_document_title": title_text,
+        "target_source_path": str(target_source_path or ""),
+        "period_source_path": chosen["source_path"],
+        "period_source_role": chosen["source_role"],
+        "selection_rule": "same_day_same_ticker_companion_period_source",
+        "target_title_announcement_date": title_date.isoformat(),
+        "corroborating_source_paths": [
+            item["source_path"]
+            for item in sorted(eligible, key=lambda item: item["source_path"])
+            if item["source_path"] != chosen["source_path"]
+        ],
+    }
+
+    evidence_for_payload = dict(chosen["period_end_evidence"])
+    evidence_for_payload["period_source_path"] = chosen["source_path"]
+    evidence_for_payload["period_source_role"] = chosen["source_role"]
+
+    pass1_result["period_end"] = source_period_end.isoformat()
+    pass1_result["_source_period_end_binding"] = binding
+    pass1_result["_companion_source_period_end_evidence"] = evidence_for_payload
+    return True
+
+
 def _announcement_date_period_end_mismatch(
     payload: dict,
 ) -> tuple[str, str, str] | None:
@@ -4323,13 +4579,24 @@ def run_multipass_extraction(
     ):
         pass1["period_end"] = source_period_end_evidence["period_end"]
     else:
-        _bind_explicit_source_period_end_over_announcement_date(
+        same_document_bound = _bind_explicit_source_period_end_over_announcement_date(
             pass1,
             source_period_end_evidence,
             title,
         )
+        if not same_document_bound:
+            _bind_companion_source_period_end_over_announcement_date(
+                pass1,
+                source_period_end_evidence,
+                title,
+                target_source_path=pdf_path,
+            )
+    source_period_end_evidence_for_payload = (
+        pass1.get("_companion_source_period_end_evidence")
+        or source_period_end_evidence
+    )
     pass1["_source_period_evidence"] = source_period_evidence
-    pass1["_source_period_end_evidence"] = source_period_end_evidence
+    pass1["_source_period_end_evidence"] = source_period_end_evidence_for_payload
     pass1["_source_period_type"] = source_period_evidence.get("period_type")
     pass1["_source_document_classification"] = source_document_classification.to_dict()
 
@@ -4411,7 +4678,7 @@ def run_multipass_extraction(
         sections=structured_doc.sections,
         tables=structured_tables,
         period_evidence=source_period_evidence,
-        period_end_evidence=source_period_end_evidence,
+        period_end_evidence=source_period_end_evidence_for_payload,
         scale=pass1.get("scale", "unknown"),
         currency=pass1.get("currency"),
     )
