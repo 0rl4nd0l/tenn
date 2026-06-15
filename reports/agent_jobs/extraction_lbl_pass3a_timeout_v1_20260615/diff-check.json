@@ -1,0 +1,63 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_lbl_pass3a_timeout_v1_20260615.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/serial_canary.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_lbl_pass3a_timeout_v1_20260615.md",
+        "financial-engine_v2/backend/app/services/multipass_extraction.py",
+        "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+        "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+        "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/README.md",
+        "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/status.json",
+        "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/validation.json",
+        "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/diff-check.json",
+        "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615/serial_canary.log"
+      ],
+      "approval_required": false,
+      "job_id": "extraction_lbl_pass3a_timeout_v1_20260615",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_lbl_pass3a_timeout_v1_20260615",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "timeout_seconds": 14400
+    },
+    "ok": true
+  }
+}

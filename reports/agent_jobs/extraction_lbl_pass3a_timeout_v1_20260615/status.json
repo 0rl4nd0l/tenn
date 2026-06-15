@@ -1,0 +1,26 @@
+{
+  "job_id": "extraction_lbl_pass3a_timeout_v1_20260615",
+  "status": "DONE_WITH_RISK",
+  "branch": "safe/extraction-lbl-pass3a-timeout-v1-20260615",
+  "worktree": "/home/l4nd0/tenn-lbl-pass3a-timeout-v1-20260615",
+  "base_head": "e13f616fca2869cd3863dd29fedd606456ed57c8",
+  "result": "Existing EXTRACTION_PARALLEL=0 serial pass3a mode passed the targeted LBL canary; no code change made.",
+  "code_changed": false,
+  "runtime_mutated": false,
+  "production_data_access": false,
+  "subagents_used": [
+    {
+      "id": "019ec9bb-9476-7e40-ade0-11782dd14c72",
+      "name": "Maxwell",
+      "mode": "read_only",
+      "focus": "pass3a prompt sizing, retry, timeout, and zero-metric control flow"
+    },
+    {
+      "id": "019ec9bb-b29c-76d0-b7b6-58f2824ed0a8",
+      "name": "Galileo",
+      "mode": "read_only",
+      "focus": "cached Docling tables, pass2 labels, and table payload shape"
+    }
+  ],
+  "recommended_next": "For the PR #346 LBL validation lane, rerun the targeted canary with EXTRACTION_PARALLEL=0. Do not implement metric fallback from disclosure text."
+}
