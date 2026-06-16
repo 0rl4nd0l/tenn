@@ -1,0 +1,71 @@
+{
+  "job_id": "extraction_issue286_persisted_field_provenance_v1_20260617",
+  "status": "validation_passed",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_issue286_persisted_field_provenance_v1_20260617.md",
+      "exit_code": 0,
+      "summary": "Task card valid after recording owner approval with approval_required=true."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId::test_upsert_persists_metric_field_provenance_for_written_values -q",
+      "exit_code": 1,
+      "summary": "RED: failed with AttributeError because ASXPeriodicFinancial had no metric_provenance attribute."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId::test_upsert_persists_metric_field_provenance_for_written_values -q",
+      "exit_code": 0,
+      "summary": "GREEN: 1 passed."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId -q",
+      "exit_code": 0,
+      "summary": "4 passed; existing source_document_id and confidence_metrics assertions still pass."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_multipass_extraction.py::test_upsert_financial_rows_smoke financial-engine_v2/backend/tests/test_pipeline_stages.py::test_upsert_financial_rows_suppresses_empty_risk_note financial-engine_v2/backend/tests/test_pipeline_stages.py::test_upsert_financial_rows_persists_real_risk_note -q",
+      "exit_code": 0,
+      "summary": "3 focused existing upsert/pipeline persistence tests passed."
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/models/asx_financials.py financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py financial-engine_v2/backend/tests/test_db_integrity.py",
+      "exit_code": 0,
+      "summary": "Touched Python files compile."
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/models/asx_financials.py financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py financial-engine_v2/backend/tests/test_db_integrity.py",
+      "exit_code": 0,
+      "summary": "All checks passed."
+    },
+    {
+      "command": "python3 migration import sanity check",
+      "exit_code": 1,
+      "summary": "System Python lacked alembic; rerun under backend requirements."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... migration import sanity ... PY",
+      "exit_code": 0,
+      "summary": "Migration imports; revision/down_revision/upgrade/downgrade sanity passed."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_issue286_persisted_field_provenance_v1_20260617.md --repo-root .",
+      "exit_code": 0,
+      "summary": "Task-card diff check passed with no disallowed files."
+    },
+    {
+      "command": "git diff --cached --name-only | rg '(^|/)count-?24|count24' && exit 1 || echo 'count24_guard=pass'",
+      "exit_code": 0,
+      "summary": "No staged count-24 paths."
+    },
+    {
+      "command": "git diff --cached --name-only | rg forbidden product/data/runtime/source path pattern && exit 1 || echo 'product_data_runtime_boundary_guard=pass'",
+      "exit_code": 0,
+      "summary": "No staged live DB, Qdrant, Redis, news, memory, source PDF, gold label, prompt, runtime, model/GPU, or service config paths."
+    }
+  ]
+}

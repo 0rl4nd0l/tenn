@@ -198,3 +198,79 @@ class TestNoPlaceholderSourceDocumentId:
             assert rows[0].source_document_id == real_doc_id
         finally:
             session.close()
+
+    def test_upsert_persists_metric_field_provenance_for_written_values(self):
+        """Per-metric provenance must stay coupled to the metric value written."""
+        session = self._make_session()
+        real_doc_id = uuid.uuid4()
+        extraction_run_id = str(uuid.uuid4())
+        doc = SimpleNamespace(ticker="NAB", document_id=real_doc_id)
+        payload = self._minimal_payload()
+        payload["metrics"] = {
+            "revenue": 22_600_000_000.0,
+            "ebit": None,
+        }
+        payload["field_provenance"] = {
+            "revenue": {
+                "metric": "revenue",
+                "source_document_id": str(real_doc_id),
+                "extraction_run_id": extraction_run_id,
+                "source": "income_statement",
+                "table_label": "income_statement",
+                "page_number": 25,
+                "row_ref": "Total revenue",
+                "excerpt": "Total revenue",
+                "scale": "thousands",
+                "currency": "AUD",
+                "period_type": "A",
+                "period_end": "2024-09-30",
+            },
+            "ebit": {
+                "metric": "ebit",
+                "source_document_id": str(real_doc_id),
+                "extraction_run_id": extraction_run_id,
+                "source": "income_statement",
+                "table_label": "income_statement",
+                "page_number": 25,
+                "row_ref": "EBIT",
+                "excerpt": "EBIT",
+                "scale": "thousands",
+                "currency": "AUD",
+                "period_type": "A",
+                "period_end": "2024-09-30",
+            },
+            "cash_end": {
+                "metric": "cash_end",
+                "source_document_id": str(real_doc_id),
+                "extraction_run_id": extraction_run_id,
+                "source": "cash_flow_statement",
+                "page_number": 28,
+            },
+        }
+
+        try:
+            _upsert_financial_rows(session, doc, payload)
+            session.flush()
+            row = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").first()
+
+            assert row is not None
+            assert row.source_document_id == real_doc_id
+            assert row.confidence_metrics == pytest.approx(0.85)
+            assert row.metric_provenance == {
+                "revenue": {
+                    "metric": "revenue",
+                    "source_document_id": str(real_doc_id),
+                    "extraction_run_id": extraction_run_id,
+                    "source": "income_statement",
+                    "table_label": "income_statement",
+                    "page_number": 25,
+                    "row_ref": "Total revenue",
+                    "excerpt": "Total revenue",
+                    "scale": "thousands",
+                    "currency": "AUD",
+                    "period_type": "A",
+                    "period_end": "2024-09-30",
+                }
+            }
+        finally:
+            session.close()

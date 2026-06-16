@@ -1111,6 +1111,45 @@ def download_pdf_for_document(
     return {"document_id": str(doc.document_id), "bytes": len(content)}
 
 
+_FINANCIAL_METRIC_FIELDS = [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+    "shares_outstanding",
+    "total_equity",
+    "interest_expense",
+]
+
+
+def _metric_provenance_for_written_values(
+    *,
+    metrics: Mapping[str, Any],
+    structured: Mapping[str, Any],
+    written_values: Mapping[str, Any],
+) -> dict[str, dict[str, Any]] | None:
+    raw_provenance = structured.get("field_provenance")
+    if not isinstance(raw_provenance, Mapping):
+        raw_provenance = structured.get("metric_provenance")
+    if not isinstance(raw_provenance, Mapping):
+        return None
+
+    metric_provenance: dict[str, dict[str, Any]] = {}
+    for field, value in written_values.items():
+        if value is None or field not in metrics:
+            continue
+        entry = raw_provenance.get(field)
+        if not isinstance(entry, Mapping):
+            continue
+        metric_provenance[field] = dict(entry)
+    return metric_provenance or None
+
+
 def _upsert_financial_rows(db, doc, structured):
     period_type = structured.get("period_type")
     period_end = parse_period_end(structured.get("period_end"))
@@ -1136,23 +1175,18 @@ def _upsert_financial_rows(db, doc, structured):
             )
             db.add(row)
 
-        for field in [
-            "revenue",
-            "ebit",
-            "np_attributable",
-            "operating_cf",
-            "investing_cf",
-            "financing_cf",
-            "capex",
-            "cash_end",
-            "net_debt",
-            "shares_outstanding",
-            "total_equity",
-            "interest_expense",
-        ]:
-            setattr(row, field, _coerce_float(metrics.get(field, None)))
+        written_values = {}
+        for field in _FINANCIAL_METRIC_FIELDS:
+            value = _coerce_float(metrics.get(field, None))
+            setattr(row, field, value)
+            written_values[field] = value
         row.source_document_id = doc.document_id
         row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
+        row.metric_provenance = _metric_provenance_for_written_values(
+            metrics=metrics,
+            structured=structured,
+            written_values=written_values,
+        )
         row.period_start = parse_period_end(structured.get("period_start"))
         row.currency = structured.get("currency") or None
         financial_rows_written = 1
