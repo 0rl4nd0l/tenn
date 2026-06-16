@@ -1,0 +1,32 @@
+{
+  "decision": "C",
+  "decision_label": "Need current saved-artifact scorecard after this repair",
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/362",
+  "repair_commit": "d16c630af158ce3e5bcb3d7180adb7d3cb23273c",
+  "primary_reason": "The bounded LBL repair is source-bound and its single-document replay now proves target row_refs for revenue, ebit, and np_attributable, but this does not prove current saved-artifact corpus impact or broad extraction readiness.",
+  "pr_review_status": {
+    "draft": true,
+    "mergeable": "MERGEABLE",
+    "merge_state_status": "UNSTABLE",
+    "ci_at_snapshot": {
+      "scan": "SUCCESS",
+      "lint-and-test": "IN_PROGRESS"
+    }
+  },
+  "what_this_proves": [
+    "The pushed branch contains the bounded LBL row_ref repair and focused regression.",
+    "The single-document LBL replay returns status ok with period H, period_end 2025-12-31, scale thousands, currency AUD, and seven non-null metrics.",
+    "The target income metrics now carry source-bound row_refs and field_provenance row_refs: revenue=Sales Revenue, ebit=EBIT, np_attributable=NPAT For.",
+    "No forbidden data/runtime/source-pdf/canonical mutation appears in the branch diff or source PDF stat evidence."
+  ],
+  "what_this_does_not_prove": [
+    "It does not prove current saved-artifact scorecard results after the repair.",
+    "It does not prove count-24/count-32 readiness.",
+    "It does not prove broad extraction accuracy or production canonical-write safety.",
+    "It does not prove PR merge readiness while CI is still in progress and the PR is draft."
+  ],
+  "saved_artifact_scorecard_now_justified": true,
+  "count24_preflight_now_justified": false,
+  "count24_reason": "The next evidence should be a report-only current saved-artifact scorecard; count-24 approval refresh should wait until that scorecard is reviewed and no new focused repair is indicated.",
+  "secondary_recommendation": "After CI completes, review PR #362 and run a current saved-artifact scorecard from the PR head or merged candidate. Do not run count-24 until the scorecard supports it or the owner explicitly approves."
+}

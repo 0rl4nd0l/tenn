@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "audited_diff": "origin/migration/clean-runtime-baseline-reconstruct-v1...HEAD",
+  "changed_files": [
+    "docs/agent_tasks/extraction_lbl_income_row_ref_repair_v1_20260616.md",
+    "financial-engine_v2/backend/app/services/multipass_extraction.py",
+    "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/README.md",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/diff-check.json",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/evidence_summary.json",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/green_test.log",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_stderr.log",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_stdout.log",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/live_git_status.json",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/py_compile.log",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/red_test.log",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/ruff.log",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/status.json",
+    "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/validation.json"
+  ],
+  "forbidden_candidates": [],
+  "source_pdf_stat": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf 4669656 1771562545",
+  "forbidden_actions_not_run": [
+    "count-24",
+    "count-32",
+    "random samples",
+    "broad extraction",
+    "backfill",
+    "canonical writes",
+    "DB mutation",
+    "Qdrant mutation",
+    "Redis mutation",
+    "news mutation",
+    "memory mutation",
+    "source PDF mutation",
+    "prompt mutation",
+    "gold label mutation",
+    "schema mutation",
+    "runtime/model/GPU config mutation",
+    "PR #318 use"
+  ]
+}
