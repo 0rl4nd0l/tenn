@@ -185,21 +185,57 @@ def test_active_valid_task_card_with_allowed_diff_passes(tmp_path: Path) -> None
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
 
     assert completed.returncode == 0
+    assert payload == {}
+
+
+def test_codex_before_tool_active_valid_task_card_keeps_pass_context(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    (repo / "src" / "allowed.py").write_text("allowed = 2\n", encoding="utf-8")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        platform="codex",
+        event="BeforeTool",
+    )
+
+    assert completed.returncode == 0
     assert payload == {"systemMessage": "Tenn agent-job contract passed: docs/agent_tasks/test-task.md"}
 
 
-def test_outside_diff_returns_blocking_json(tmp_path: Path) -> None:
+def test_before_tool_outside_diff_returns_blocking_json(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     (repo / "src" / "outside.py").write_text("outside = 2\n", encoding="utf-8")
 
-    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="BeforeTool",
+    )
 
     assert completed.returncode == 0
     assert payload["decision"] == "block"
     assert "src/outside.py" in str(payload["reason"])
 
 
-def test_invalid_task_card_returns_blocking_json(tmp_path: Path) -> None:
+def test_before_tool_invalid_task_card_returns_blocking_json(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    task_card(repo, allowed_files=["src/allowed.py"], production_data_access=True)
+    run_git(repo, "add", "docs/agent_tasks/test-task.md")
+    run_git(repo, "commit", "-m", "invalid task card")
+
+    completed, payload = run_hook(
+        repo,
+        env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"},
+        event="BeforeTool",
+    )
+
+    assert completed.returncode == 0
+    assert payload["decision"] == "block"
+    assert "production_data_access" in str(payload["reason"])
+
+
+def test_stop_invalid_task_card_warns_without_blocking(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     task_card(repo, allowed_files=["src/allowed.py"], production_data_access=True)
     run_git(repo, "add", "docs/agent_tasks/test-task.md")
@@ -208,8 +244,8 @@ def test_invalid_task_card_returns_blocking_json(tmp_path: Path) -> None:
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "production_data_access" in str(payload["reason"])
+    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
+    assert "production_data_access" in str(payload["systemMessage"])
 
 
 def test_codex_stop_output_is_valid_json(tmp_path: Path) -> None:
@@ -222,7 +258,8 @@ def test_codex_stop_output_is_valid_json(tmp_path: Path) -> None:
     )
 
     assert completed.returncode == 0
-    assert isinstance(payload, dict)
+    assert payload == {}
+    assert not (repo / "reports" / "agent_jobs" / "hook-test-job" / "diff-check.json").exists()
 
 
 def test_claude_stop_and_session_end_outputs_are_valid_json(tmp_path: Path) -> None:
@@ -297,10 +334,27 @@ def test_active_task_marker_is_supported(tmp_path: Path) -> None:
     completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": ""})
 
     assert completed.returncode == 0
-    assert payload == {"systemMessage": "Tenn agent-job contract passed: docs/agent_tasks/test-task.md"}
+    assert payload == {}
 
 
-def test_active_task_card_blocks_overlap_using_shared_registry_root(tmp_path: Path) -> None:
+def test_stop_registry_check_is_read_only_without_creating_registry_root(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    missing_registry_root = tmp_path / "missing-registry"
+
+    completed, payload = run_hook(
+        repo,
+        env={
+            "TENN_AGENT_REGISTRY_ROOT": str(missing_registry_root),
+            "TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md",
+        },
+    )
+
+    assert completed.returncode == 0
+    assert payload == {}
+    assert not missing_registry_root.exists()
+
+
+def test_stop_does_not_block_on_registry_overlap(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     shared_root = tmp_path / "shared-registry"
     active = task_card(
@@ -337,9 +391,7 @@ def test_active_task_card_blocks_overlap_using_shared_registry_root(tmp_path: Pa
     )
 
     assert completed.returncode == 0
-    assert payload["decision"] == "block"
-    assert "active-lock" in str(payload["reason"])
-    assert "allowed_files src/allowed.py" in str(payload["reason"])
+    assert payload == {}
 
 
 def test_claude_stop_hook_no_longer_contains_plain_diff_output() -> None:

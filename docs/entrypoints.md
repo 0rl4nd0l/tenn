@@ -1,12 +1,17 @@
-## Entrypoints (Agent Canon)
+## Entrypoints (Runtime Tasks Only)
 
-### Canonical Execution (ENFORCED)
+This document is runtime context. Use it only when a task actually requires
+starting, validating, or diagnosing the Tenn runtime.
 
-`financial-engine_v2/scripts/run_local_backend.sh` is the **ONLY** canonical execution path for this repository.
+Repo-hygiene, docs, task-card, hook, skill, registry, and report-only work
+should not start services by default.
 
-All agents MUST use this path.
+### Canonical Runtime Execution
 
-### Agent Boot Sequence (deterministic)
+`financial-engine_v2/scripts/run_local_backend.sh` is the preferred backend
+startup path when a task requires the local runtime.
+
+### Runtime Boot Sequence
 
 1. Setup venv (canonical: `financial-engine_v2/.venv`).
    - Create: `python3 -m venv financial-engine_v2/.venv`
@@ -35,9 +40,9 @@ All agents MUST use this path.
 | `financial-engine_v2/scripts/cockpit_tui.py` / `python -m cockpit.main` | **SUPPORTED** | Operator UI layer; depends on backend API and optional infra. |
 | `python run.py` | **SUPPORTED (batch)** | Batch orchestrator (runs workflows; not system bootstrap). |
 
-### Prohibited Paths (for agents)
+### Avoid Unless Explicitly Required
 
-Agents MUST NOT use these paths unless a task explicitly requires them:
+Do not use these paths unless a task explicitly requires them:
 
 - `python run.py`
   - Why: runs batch workflows and may depend on external providers/network; it does not define “system is running” (API up) deterministically.

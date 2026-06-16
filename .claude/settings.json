@@ -7,11 +7,6 @@
             "type": "command",
             "command": "echo \"Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null)\" && git status --short 2>/dev/null | head -20 || true",
             "statusMessage": "Loading repo state..."
-          },
-          {
-            "type": "command",
-            "command": "python3 /home/l4nd0/tenn/.claude/hooks/start_memory_check.py 2>/dev/null || true",
-            "statusMessage": "Loading session memories..."
           }
         ]
       }
@@ -37,65 +32,13 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -c \"\nimport json, sys, subprocess, os\ndata = json.load(sys.stdin)\nfp = data.get('tool_input', {}).get('file_path', '')\nif fp and fp.endswith('.py') and os.path.exists(fp):\n    ruff = '/home/l4nd0/tenn/financial-engine_v2/.venv/bin/ruff'\n    if os.path.exists(ruff):\n        subprocess.run([ruff, 'check', '--fix', fp])\n\" 2>/dev/null || true",
-            "statusMessage": "ruff --fix"
-          },
-          {
-            "type": "command",
-            "command": "python3 -c \"\nimport json, sys, os\nd = json.load(sys.stdin)\nfp = d.get('tool_input', {}).get('file_path', '')\nif fp and fp.endswith('.sh') and os.path.exists(fp):\n    os.chmod(fp, 0o755)\n\" 2>/dev/null || true",
-            "statusMessage": "chmod +x"
-          },
-          {
-            "type": "command",
-            "command": "python3 -c \"\nimport json, sys, subprocess, os\nd = json.load(sys.stdin)\nfp = d.get('tool_input', {}).get('file_path', '')\nvenv_pytest = '/home/l4nd0/tenn/financial-engine_v2/.venv/bin/pytest'\nif fp and 'financial-engine_v2/backend/app' in fp and fp.endswith('.py') and os.path.exists(venv_pytest):\n    subprocess.run(\n        [venv_pytest, '-x', '-q', '--tb=short', 'financial-engine_v2/backend/tests/'],\n        cwd='/home/l4nd0/tenn',\n        capture_output=True\n    )\n\" 2>/dev/null || true",
-            "statusMessage": "Running backend tests..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/metadata-updater.sh",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /home/l4nd0/tenn/scripts/agent_job_hook.py --platform claude --event Stop",
+            "command": "repo=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && cd \"$repo\" && python3 scripts/agent_job_hook.py --platform claude --event Stop",
             "statusMessage": "Checking Tenn task card..."
-          },
-          {
-            "type": "command",
-            "command": "python3 -c \"\nimport subprocess, json, os\nos.chdir('/home/l4nd0/tenn')\ndiff = subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout.strip()\nstaged = subprocess.run(['git', 'diff', '--cached', '--name-only'], capture_output=True, text=True).stdout.strip()\nuntracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout.strip()\nchanged = [f for f in set((diff + '\\n' + staged + '\\n' + untracked).splitlines()) if f]\nif changed:\n    count = len(changed)\n    sample = ', '.join(changed[:3]) + (f' +{count-3} more' if count > 3 else '')\n    msg = f'MILESTONE NOT COMMITTED: {count} file(s) changed and not committed ({sample}). Commit working state before ending the session to preserve regression traceability.'\n    print(json.dumps({'systemMessage': msg}))\n\" 2>/dev/null || true",
-            "statusMessage": "Checking for uncommitted milestone state..."
-          },
-          {
-            "type": "command",
-            "command": "python3 -c \"\nimport json, os, subprocess\nos.chdir('/home/l4nd0/tenn')\nstat = subprocess.run(['git', 'diff', '--stat', 'HEAD'], capture_output=True, text=True).stdout.strip()\nif stat:\n    print(json.dumps({'systemMessage': 'Diff summary:\\n' + stat}))\n\" 2>/dev/null || true",
-            "statusMessage": "Summarising changes..."
-          },
-          {
-            "type": "command",
-            "command": "python3 -c \"\nimport json, os, subprocess\nos.chdir('/home/l4nd0/tenn')\ndiff = subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout\nuntracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout\nall_changed = set((diff + untracked).strip().splitlines())\ninfra_patterns = ['.mcp.json', 'settings.json', 'settings.local.json', 'scripts/mcp/', 'scripts/', '.claude/commands/', '.claude/skills/', '.claude/agents/', '.claude/hooks', 'docker-compose', '.env.example']\ndoc_paths = [f for f in all_changed if 'docs/claude/' in f or f == 'CLAUDE.md']\ninfra_changed = [f for f in all_changed if any(p in f for p in infra_patterns) and 'docs/' not in f]\nif infra_changed and not doc_paths:\n    msg = 'Infrastructure/config files changed but no docs/claude/ files updated. Changed infra files: ' + ', '.join(sorted(infra_changed)[:5]) + '. Review docs/claude/mcp-servers.md, current-state.md, hooks.md, commands.md, gap-analysis.md.'\n    print(json.dumps({'systemMessage': msg}))\n\" 2>/dev/null || true",
-            "statusMessage": "Checking doc coverage..."
-          },
-          {
-            "type": "command",
-            "command": "python3 /home/l4nd0/tenn/.claude/hooks/stop_memory_reminder.py 2>/dev/null || true",
-            "statusMessage": "Checking session memories..."
           }
         ]
       }

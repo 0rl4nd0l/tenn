@@ -165,6 +165,8 @@ read-only work. If approval is required for the next meaningful step, stop.
 ## Skill And Subagent Policy
 
 - Repo-backed Codex skills live under `.agents/skills`.
+- See `docs/agents/skill-registry.md` for active, legacy, tool-specific, and
+  reference-only skill root labels.
 - `.codex/config.toml` and `.codex/hooks.json` are Codex config/hooks surfaces.
   Treat `.codex/skills` references as legacy/custom unless local evidence proves
   compatibility is intentionally required.

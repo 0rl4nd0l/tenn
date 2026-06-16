@@ -2,10 +2,11 @@
 
 Custom slash commands available in this repo via `.claude/commands/`. Invoke with `/command-name`.
 
-Most commands now have matching repo-local Codex skill ports under `.codex/skills/`, synced into the active Codex registry with `bash scripts/sync_codex_skills.sh`.
+Repo-backed Tenn Codex skills live under `.agents/skills/`. `.codex/skills` is
+legacy/custom unless a current task card explicitly grandfathers a skill.
 
 ## Source Trace
-- `.codex/skills/*/SKILL.md` (Confirmed — repo-local Codex skill ports)
+- `.agents/skills/*/SKILL.md` (repo-backed Tenn Codex skills)
 - `.claude/commands/*.md` (Confirmed — created 2026-03-20)
 
 ---
@@ -28,7 +29,7 @@ Most commands now have matching repo-local Codex skill ports under `.codex/skill
 | Prompt Structure | `/prompt-structure` | Reference for the structured prompt schema and chaining patterns used across agents. |
 | RAG Stability | `/rag-stability` | Runs `evaluate_rag_stability.py`, interprets drift metrics, outputs STABLE/MINOR DRIFT/MAJOR DRIFT report. |
 | Repo Audit | `/repo-audit` | Full repository audit: preflight, branch inventory, docs completeness, CONFIRMED/INFERRED/UNVERIFIED claims. |
-| Ingest Ticker | `/ingest-ticker <TICKER>` | Runs `full_history_ticker_sync.py` for one or more ASX tickers. Validates args, activates venv, reports per-ticker result. |
+| Ingest Ticker | `/ingest-ticker <TICKER>` | Legacy Claude command. Do not use as current Codex policy unless the referenced ingestion script and runtime prerequisites are revalidated in the current task. |
 | Save | `/save` | Exports the current Claude session as a copyable text block; falls back to Cockpit's latest `reports/cockpit/exports/claude_context.json` when the live transcript is unavailable. |
 
 ### Skills (`.claude/skills/`)
@@ -38,7 +39,7 @@ These are invoked by Claude automatically (not user-facing slash commands).
 | Skill | Invocation | Purpose |
 |-------|-----------|---------|
 | `embedding-change-checklist` | Claude-only | Runs the 5-step RAG/embedding safety checklist before any PR touching `embeddings.py`, `config.py` (EMBED_MODEL), or `alembic/versions/`. |
-| `investigation-orchestrator` | Claude-only and Codex ported | Process skill for larger or harder investigations and redesigns that require mapping, spec-before-edit discipline, and evidence-based implementation. |
+| `investigation-orchestrator` | Claude-only legacy workflow | Process skill for larger or harder investigations and redesigns that require mapping, spec-before-edit discipline, and evidence-based implementation. Port any still-needed Tenn-specific behavior into `.agents/skills` before treating it as Codex policy. |
 
 ---
 

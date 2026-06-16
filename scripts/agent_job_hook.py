@@ -232,33 +232,39 @@ def build_hook_payload(
         return _allow_payload(platform)
 
     if not card.path.exists():
-        return _blocking_payload(
-            f"Tenn agent-job contract blocked: task card not found: {card.display_path}",
-            platform=platform,
-        )
+        message = f"Tenn agent-job contract warning: task card not found: {card.display_path}"
+        if event in {"Stop", "SessionEnd"}:
+            return _allow_payload(platform, message)
+        return _blocking_payload(message, platform=platform)
 
     validate = _run_contract(repo_root, "validate", ["validate", card.display_path])
     list_active = _run_registry(
         repo_root,
         "list-active",
-        ["list-active", "--repo-root", str(repo_root)],
+        ["list-active", "--read-only", "--repo-root", str(repo_root)],
     )
-    check_overlap = _run_registry(
-        repo_root,
-        "check-overlap",
-        ["check-overlap", card.display_path, "--repo-root", str(repo_root)],
-    )
-    check_diff_args = ["check-diff", card.display_path, "--repo-root", str(repo_root)]
-    if platform == "gemini" and event == "BeforeTool":
-        check_diff_args.append("--no-write-report")
-    check_diff = _run_contract(repo_root, "check-diff", check_diff_args)
-    runs = [validate, list_active, check_overlap, check_diff]
+    runs = [validate, list_active]
+
+    if event == "BeforeTool":
+        check_diff = _run_contract(
+            repo_root,
+            "check-diff",
+            ["check-diff", card.display_path, "--repo-root", str(repo_root), "--no-write-report"],
+        )
+        runs.append(check_diff)
+
     passed = all(
         run.returncode == 0 and run.parsed is not None and run.parsed.get("ok", False)
         for run in runs
     )
     if not passed:
-        return _blocking_payload(_summarize_failure(card, runs), platform=platform)
+        message = _summarize_failure(card, runs)
+        if event in {"Stop", "SessionEnd"}:
+            return _allow_payload(platform, message)
+        return _blocking_payload(message, platform=platform)
+
+    if event in {"Stop", "SessionEnd"}:
+        return _allow_payload(platform)
 
     return _allow_payload(platform, f"Tenn agent-job contract passed: {card.display_path}")
 

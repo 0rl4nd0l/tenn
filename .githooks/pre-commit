@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+while IFS= read -r git_env_var; do
+  unset "$git_env_var"
+done < <(git rev-parse --local-env-vars)
+cd "$ROOT"
+
+mapfile -t staged_python < <(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+if [[ "${#staged_python[@]}" -eq 0 ]]; then
+  exit 0
+fi
+
+RUFF="$ROOT/financial-engine_v2/.venv/bin/ruff"
+if [[ ! -x "$RUFF" ]]; then
+  echo "[pre-commit] ruff not found at $RUFF; skipping lint" >&2
+  exit 0
+fi
+
+"$RUFF" check "${staged_python[@]}"
