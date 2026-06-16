@@ -34,9 +34,19 @@ workflow starts coding, inspect the branch-independent Agent Task Ledger and the
 durable committed summary when present:
 
 ```bash
-test -f .git/tenn-agent-registry/task-ledger.jsonl && tail -n 200 .git/tenn-agent-registry/task-ledger.jsonl
+git rev-parse --path-format=absolute --git-common-dir
+test -f <git-common-dir>/tenn-agent-registry/task-ledger.jsonl && tail -n 200 <git-common-dir>/tenn-agent-registry/task-ledger.jsonl
 test -f docs/agent_registry/task_ledger/LEDGER.jsonl && tail -n 200 docs/agent_registry/task_ledger/LEDGER.jsonl
 ```
+
+Do not resolve the live ledger through literal `.git/tenn-agent-registry/task-ledger.jsonl`.
+In linked worktrees, `.git` is a file pointing at a private worktree gitdir,
+while shared repo state belongs under the common git dir. Resolve the live ledger by running
+`git rev-parse --path-format=absolute --git-common-dir`, then append
+`tenn-agent-registry/task-ledger.jsonl`. If `--path-format=absolute` is
+unsupported, fall back to `git rev-parse --git-common-dir` and normalize any
+relative output against the worktree root. `scripts/agent_job_registry.py` is the
+existing shared-registry resolution pattern.
 
 If either ledger file is unavailable, record `DATA_MISSING` for that source and
 run a bounded fallback search before coding:

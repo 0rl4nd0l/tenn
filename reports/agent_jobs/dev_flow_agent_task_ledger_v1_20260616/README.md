@@ -15,7 +15,8 @@ DONE
 - No product/runtime/data/extraction/source/gold-label/prompt/schema/service
   changes.
 - No ledger script.
-- No `.git/tenn-agent-registry/task-ledger.jsonl` mutation in this run.
+- No `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl` mutation in this
+  run.
 - No branch/worktree cleanup, merge, rebase, reset, stash, prune, or deletion.
 - GitHub mutation is limited to opening the approved PR after validation.
 
@@ -25,7 +26,7 @@ DONE
   merge commit `158639adf4ebbe6db7b361f907dc058baa1d42f3`.
 - `git merge-base --is-ancestor 158639adf4ebbe6db7b361f907dc058baa1d42f3 origin/migration/clean-runtime-baseline-reconstruct-v1`
   exited `0`.
-- `.git/tenn-agent-registry/task-ledger.jsonl`: `DATA_MISSING`.
+- `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`: `DATA_MISSING`.
 - `docs/agent_registry/task_ledger/LEDGER.jsonl`: `DATA_MISSING`.
 - Bounded duplicate-work fallback searches for Agent Task Ledger/task-ledger
   across PRs, issues, refs, task cards, reports, and skills returned no matching
@@ -55,7 +56,7 @@ continue, wait for, or use as canonical.
 ## Files Intentionally Not Touched
 
 - Product/runtime/data/extraction/source/gold-label/prompt/schema/service paths.
-- `.git/tenn-agent-registry/task-ledger.jsonl`.
+- `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`.
 - `docs/agent_registry/task_ledger/LEDGER.md`.
 - `docs/agent_registry/task_ledger/LEDGER.jsonl`.
 - count-24 paths.
@@ -143,6 +144,19 @@ ledger script or hook exists.
 
 - Local commits:
   - `38e39eb7` `docs(control-plane): add agent task ledger workflow`
+  - `4e5131fe` `docs(control-plane): record task ledger closeout`
+- Follow-up for Codex Review:
+  - Addressed unresolved P2 review thread on
+    `.agents/skills/tenn-git-guard/SKILL.md` requiring the live ledger to be
+    resolved from `git rev-parse --path-format=absolute --git-common-dir`
+    rather than a literal worktree `.git` path.
+  - Updated the ledger README, task card, and report references to use
+    `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`.
+  - Validation rerun after the follow-up: changed `SKILL.md` parse, task-card
+    validate/check-diff, read-only registry, literal-path guard,
+    `git diff --check`, changed-path guard,
+    product/runtime/data/extraction/count-24 guard, host-global guard, and PR
+    open/unmerged check all passed.
 - PR:
   - #360 `[Control Plane] Add agent task ledger workflow`
   - Base: `migration/clean-runtime-baseline-reconstruct-v1`
