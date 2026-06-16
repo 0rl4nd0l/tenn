@@ -7,7 +7,7 @@ Task Ledger awareness to Tenn dev-flow control-plane files.
 
 ## Current State
 
-DONE
+PR_OPEN
 
 ## Evidence Used
 
@@ -26,6 +26,11 @@ DONE
   `lock_acquired: false`, and no active jobs.
 - Live Task Ledger and committed ledger are `DATA_MISSING`; bounded fallback
   search found no prior matching task/report/PR implementation.
+- PR #361 is open and unmerged:
+  https://github.com/0rl4nd0l/tenn/pull/361
+- PR head commit:
+  `410947f5b7ee35b1c216de94c7978c2511cf0738`.
+- Merge remains pending review, checks, and owner approval.
 
 ## Constraints And Unsafe Actions
 
@@ -67,8 +72,9 @@ DONE
 
 ## Validation Status
 
-Passed locally. See `VALIDATION.md`.
+Passed locally before PR creation. PR #361 is open and unmerged; merge remains
+pending review, checks, and owner approval. See `VALIDATION.md`.
 
 ## Next Recommended Prompt
 
-Review the opened PR after CI; do not merge automatically.
+Review PR #361 after checks complete; do not merge automatically.

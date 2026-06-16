@@ -29,4 +29,7 @@
 
 ## Final Status
 
-Validation passed locally. Ready for local commit, push, and PR creation.
+Validation passed locally before commit, push, and PR creation. PR #361 is now
+open and unmerged at head commit
+`410947f5b7ee35b1c216de94c7978c2511cf0738`. Merge remains pending review,
+checks, and owner approval.
