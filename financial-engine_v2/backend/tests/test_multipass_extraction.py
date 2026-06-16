@@ -1359,6 +1359,28 @@ def test_scale_detects_smart_apostrophe_thousands_marker(marker):
     assert _detect_scale_from_tables([table]) == "thousands"
 
 
+def test_scale_detects_fragmented_statement_unit_row_below_headings():
+    """AZJ-style selected tables can place explicit $m units below split headings."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=9,
+        caption="",
+        headers=["", "", "Consolida", "ted income", "statement"],
+        rows=[
+            ["", "", "Aurizon Netwo", "rk Pty Ltd", ""],
+            ["", "", "For the yea", "r ended 30", "June 2025"],
+            ["", "", "", "", ""],
+            ["", "", "2025", "2024", ""],
+            ["", "Notes", "$m", "$m", ""],
+            ["Revenue from continuing operations", "1", "1,428.2", "1,435.3", ""],
+        ],
+    )
+
+    assert _detect_scale_from_tables([table]) == "millions"
+
+
 def test_scale_unknown_table_preserves_pass1_scale():
     """When table scan returns 'unknown', pass1['scale'] must remain unchanged."""
     from app.services.multipass_extraction import _detect_scale_from_tables
