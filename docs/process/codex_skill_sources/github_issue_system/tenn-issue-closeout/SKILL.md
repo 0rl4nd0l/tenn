@@ -188,7 +188,7 @@ git worktree list --porcelain
 Run these when available; record `DATA_MISSING` instead of guessing if unavailable:
 
 ```bash
-python3 scripts/agent_job_registry.py list-active
+python3 scripts/agent_job_registry.py list-active --read-only
 python3 scripts/agent_job_registry.py check-overlap --help
 python3 scripts/agent_job_contract.py --help
 gh repo view 0rl4nd0l/tenn

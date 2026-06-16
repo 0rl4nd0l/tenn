@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+while IFS= read -r git_env_var; do
+  unset "$git_env_var"
+done < <(git rev-parse --local-env-vars)
+cd "$ROOT"
+
+VENV="$ROOT/financial-engine_v2/.venv"
+RUFF="$VENV/bin/ruff"
+PYTEST="$VENV/bin/pytest"
+
+if [[ -x "$RUFF" ]]; then
+  echo "[pre-push] ruff check..."
+  "$RUFF" check autodev financial-engine_v2/backend scripts
+else
+  echo "[pre-push] ruff not found at $RUFF; skipping lint" >&2
+fi
+
+if [[ -x "$PYTEST" ]]; then
+  echo "[pre-push] hook/tooling tests..."
+  "$PYTEST" -q scripts/test_agent_job_hook.py scripts/test_check_agent_hooks.py scripts/test_agent_job_contract.py
+else
+  echo "[pre-push] pytest not found at $PYTEST; skipping tests" >&2
+fi
+
+if [[ -f scripts/check_markdown_hygiene.sh ]]; then
+  echo "[pre-push] markdown hygiene..."
+  bash scripts/check_markdown_hygiene.sh
+fi

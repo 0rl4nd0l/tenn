@@ -1,3 +1,8 @@
+---
+name: tenn-auto-progress
+description: Use when Tenn needs Codex to choose the next safe unit of work from GitHub issues and milestones without starting execution. Produces read-only planning packets, candidate ranking, and task-card drafts while forbidding GitHub/product/runtime/data/commit mutation unless later approved.
+---
+
 # tenn-auto-progress
 
 Use this skill when Tenn needs Codex to choose the next safe unit of work from

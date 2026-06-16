@@ -15,9 +15,10 @@ registry state, reports, source PDFs, parser output, or metric scorecards.
    context. Current blocker families usually include #73, #96, #97, and #286,
    but live evidence wins.
 3. Validate or create a task card before edits. Keep allowed files exact.
-4. Inspect active registry evidence safely. The current audit found
-   `list-active --read-only` is missing; do not run lock-writing registry
-   commands for read-only audit.
+4. Inspect active registry evidence safely:
+   `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`.
+   If read-only registry inspection is unavailable, record `DATA_MISSING`; do
+   not substitute a lock-writing fallback for read-only audit.
 5. Decide whether the task is audit-only, report-local, or one narrow safe
    extension. If unclear, stop with `WAITING_ON_USER`.
 

@@ -344,7 +344,11 @@ git diff --check
 git status --short --untracked-files=all
 ```
 
-Also parse skill frontmatter for `name` and `description`. If validation fails
-because of unrelated existing dirt, record the blocker and do not clean or widen
-the allowlist. If validation would require runtime or production data access,
-record it as out of scope.
+For skill files, verify the first H1 identifies the skill. YAML frontmatter is
+optional; if present, verify `name` matches the skill directory and
+`description` is non-empty. Do not reject H1-only skills solely because
+frontmatter is absent.
+
+If validation fails because of unrelated existing dirt, record the blocker and
+do not clean or widen the allowlist. If validation would require runtime or
+production data access, record it as out of scope.
