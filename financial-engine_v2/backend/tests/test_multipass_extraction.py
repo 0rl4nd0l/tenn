@@ -360,6 +360,14 @@ def test_run_multipass_uses_source_text_half_year_period_end_distinct_when_pass1
             ),
             "director_interest_notice",
         ),
+        (
+            "half-year-results-webcast-details.pdf",
+            (
+                "Nickel Industries Limited Half Year Results Webcast Details. "
+                "Investors are invited to register for the webcast presentation."
+            ),
+            "webcast_details_notice",
+        ),
     ],
 )
 def test_source_document_classifier_excludes_known_false_positive_classes(

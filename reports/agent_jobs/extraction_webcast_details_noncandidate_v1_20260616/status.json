@@ -1,0 +1,21 @@
+{
+  "branch": "safe/extraction-nic-webcast-details-noncandidate-v1-20260616",
+  "current_state": "DONE",
+  "decision": "SAFE_EXTENSION_IMPLEMENTED",
+  "github_mutation_allowed": true,
+  "issue": 96,
+  "job_id": "extraction_webcast_details_noncandidate_v1_20260616",
+  "mode": "safe_extension",
+  "production_data_access": false,
+  "source_class": "source_noncandidate_webcast_details_notice",
+  "unsafe_actions_avoided": [
+    "no count-24",
+    "no count-32",
+    "no random sample",
+    "no broad extraction",
+    "no backfill",
+    "no DB/Qdrant/news/memory/source-PDF/gold-label/schema/runtime mutation",
+    "no validation gate relaxation"
+  ],
+  "validation_verdict": "PASS"
+}
