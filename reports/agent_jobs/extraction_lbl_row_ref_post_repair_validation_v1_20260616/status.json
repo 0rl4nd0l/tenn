@@ -1,0 +1,17 @@
+{
+  "job_id": "extraction_lbl_row_ref_post_repair_validation_v1_20260616",
+  "status": "DONE_WITH_RISK",
+  "decision": "C",
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/362",
+  "repair_commit": "d16c630af158ce3e5bcb3d7180adb7d3cb23273c",
+  "post_repair_packet_commit": null,
+  "registry_active_jobs": [],
+  "forbidden_mutation": false,
+  "saved_artifact_scorecard_now_justified": true,
+  "count24_preflight_now_justified": false,
+  "remaining_risk": [
+    "PR #362 was draft at snapshot time.",
+    "PR merge state was UNSTABLE because lint-and-test was still IN_PROGRESS at snapshot time.",
+    "Task ledger files were DATA_MISSING."
+  ]
+}

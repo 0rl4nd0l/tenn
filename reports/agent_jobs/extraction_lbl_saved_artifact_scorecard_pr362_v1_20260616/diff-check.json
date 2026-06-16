@@ -1,0 +1,72 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/pr_snapshot.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/readiness_decision.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/saved_artifact_scorecard.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_audit_code_changes": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616.md",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/README.md",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/status.json",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/pr_snapshot.json",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/saved_artifact_scorecard.json",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/readiness_decision.json",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/validation.json",
+        "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616/diff-check.json"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616",
+      "lane": "Financial Truth",
+      "mutation_mode": "audit_only",
+      "output_dir": "reports/agent_jobs/extraction_lbl_saved_artifact_scorecard_pr362_v1_20260616",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Repo Hygiene",
+        "Reporting"
+      ],
+      "timeout_seconds": 3600
+    },
+    "ok": true
+  }
+}

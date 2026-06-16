@@ -1,0 +1,25 @@
+{
+  "count24_approval_packet_refresh_required_now": false,
+  "decision": "READY_FOR_REVIEW_MERGE",
+  "decision_label": "PR #362 can move from draft to ready-for-review and merge consideration",
+  "focused_repair_required": false,
+  "primary_reason": "The current saved-artifact scorecard shows the prior LBL fail-closed guard is repaired: the LBL replay is ok with period H, period_end 2025-12-31, scale thousands, currency AUD, seven non-null metrics, and source-bound row refs for revenue, ebit, and np_attributable. Live PR state is mergeable/CLEAN and CI is green.",
+  "pr_review_transition_supported": true,
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/362",
+  "remaining_risk": [
+    "No count-24/count-32/random sample/broad extraction was run.",
+    "This packet does not prove production canonical-write safety.",
+    "Reviewer judgment on the bounded code diff is still required before merge."
+  ],
+  "saved_artifact_scorecard_current": true,
+  "what_this_does_not_prove": [
+    "Count-24 or count-32 performance.",
+    "Random-sample or broad extraction accuracy.",
+    "Production canonical-write safety."
+  ],
+  "what_this_proves": [
+    "The current PR branch resolves the prior LBL saved-artifact fail-closed row-ref guard.",
+    "The repaired LBL artifact is source-bound for period, scale, currency, and target income row refs.",
+    "The branch has no forbidden changed paths and GitHub CI is green at the current snapshot."
+  ]
+}
