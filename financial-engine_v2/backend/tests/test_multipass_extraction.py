@@ -2811,6 +2811,61 @@ def test_pass4_common_metric_source_scale_overrides_document_scale():
     assert _common_metric_source_scale(payload, "millions") == "thousands"
 
 
+def test_pass4_emits_structured_field_provenance_for_metrics():
+    """Reconciled payloads should expose machine-readable per-metric provenance."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    payload = _run_pass4_reconciler(
+        [
+            {
+                "_source": "income_statement",
+                "_page_number": 25,
+                "_scale": "thousands",
+                "_scale_source": "table",
+                "revenue": 46_547_000,
+                "np_attributable": 39_374_000,
+                "pass3_confidence": 0.9,
+                "row_refs": {
+                    "revenue": "Total revenue",
+                    "np_attributable": "Net profit/(loss) after tax",
+                },
+            }
+        ],
+        {
+            "risk_summary": None,
+            "risk_bullets": None,
+            "guidance_summary": None,
+            "material_changes": None,
+            "confidence_narrative": 0.0,
+        },
+        {
+            "report_type": "A",
+            "period_end": "2025-06-30",
+            "currency": "AUD",
+            "scale": "millions",
+        },
+    )
+
+    assert payload["provenance"]["revenue"] == "income_statement:page_25:Total revenue"
+    assert payload["field_provenance"]["revenue"] == {
+        "metric": "revenue",
+        "source": "income_statement",
+        "table_label": "income_statement",
+        "page_number": 25,
+        "page_tag": "page_25",
+        "row_ref": "Total revenue",
+        "excerpt": "Total revenue",
+        "scale": "thousands",
+        "scale_source": "table",
+        "currency": "AUD",
+        "period_type": "A",
+        "period_end": "2025-06-30",
+    }
+    assert payload["field_provenance"]["np_attributable"]["row_ref"] == (
+        "Net profit/(loss) after tax"
+    )
+
+
 def test_validate_gate_non_aud_returns_ok_low_confidence():
     """Non-AUD currency (e.g. USD, GBP) must downgrade to ok_low_confidence.
 
