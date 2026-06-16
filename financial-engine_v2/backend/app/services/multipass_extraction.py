@@ -4405,8 +4405,6 @@ def run_multipass_extraction(
     source-bound openability rows are converted into synthetic tables that still
     pass through normal Pass 2/3a/4 validation gates.
     """
-    from app.services.docling_extract import ExtractionTimeoutError, extract_structured
-
     bundle = resolve(prompt_bundle_id)
 
     null_payload = {m: None for m in METRIC_FIELDS}
@@ -4469,6 +4467,8 @@ def run_multipass_extraction(
         )
 
     # Extract structured document
+    from app.services.docling_extract import ExtractionTimeoutError, extract_structured
+
     if observer is not None:
         observer.emit("parser", "running", "Loading document parser output.")
     try:
