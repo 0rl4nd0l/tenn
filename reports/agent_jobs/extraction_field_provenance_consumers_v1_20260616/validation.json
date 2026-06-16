@@ -1,0 +1,50 @@
+{
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_field_provenance_consumers_v1_20260616.md",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_provenance_adapter.py::test_from_extraction_payload_prefers_structured_field_provenance financial-engine_v2/backend/tests/test_extraction_review_service.py::test_build_review_item_uses_structured_field_provenance -q",
+      "exit": 1,
+      "result": "red_failed_as_expected",
+      "summary": "adapter returned zero records and review page number was None"
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_provenance_adapter.py::test_from_extraction_payload_prefers_structured_field_provenance financial-engine_v2/backend/tests/test_provenance_adapter.py::test_from_extraction_payload_normalizes_metric_collection financial-engine_v2/backend/tests/test_extraction_eval.py::test_evaluate_fixture_uses_structured_field_provenance_summary financial-engine_v2/backend/tests/test_extraction_review_service.py::test_build_review_item_uses_structured_field_provenance financial-engine_v2/backend/tests/test_extraction_review_service.py::test_build_review_item_includes_provenance_and_snippet -q",
+      "exit": 0,
+      "result": "passed",
+      "summary": "5 passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/provenance.py financial-engine_v2/backend/app/services/extraction_eval.py financial-engine_v2/backend/app/services/extraction_review.py",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/provenance.py financial-engine_v2/backend/app/services/extraction_eval.py financial-engine_v2/backend/app/services/extraction_review.py financial-engine_v2/backend/tests/test_provenance_adapter.py financial-engine_v2/backend/tests/test_extraction_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py",
+      "exit": 0,
+      "result": "passed",
+      "summary": "All checks passed"
+    },
+    {
+      "command": "python3 -m json.tool reports/agent_jobs/extraction_field_provenance_consumers_v1_20260616/status.json >/dev/null && python3 -m json.tool reports/agent_jobs/extraction_field_provenance_consumers_v1_20260616/validation.json >/dev/null",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_field_provenance_consumers_v1_20260616.md --repo-root .",
+      "exit": 0,
+      "result": "passed",
+      "summary": "ok=true; disallowed_files=[]"
+    }
+  ],
+  "job_id": "extraction_field_provenance_consumers_v1_20260616",
+  "validation_scope": "focused_only"
+}

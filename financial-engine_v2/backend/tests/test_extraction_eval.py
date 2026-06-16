@@ -222,6 +222,51 @@ def _select_seg_failure_debug_capture(
     }
 
 
+def test_evaluate_fixture_uses_structured_field_provenance_summary() -> None:
+    fixture = ExtractionFixture(
+        fixture_id="BHP-2025",
+        context=FixtureContext(
+            period_end="2025-12-31",
+            period_type="A",
+            currency="AUD",
+            scale="thousands",
+        ),
+        metrics={"revenue": 12_345_000.0},
+        expected_nulls=[],
+        optional_metrics=[],
+        tolerances={},
+    )
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {"revenue": 12_345_000.0},
+        "field_provenance": {
+            "revenue": {
+                "metric": "revenue",
+                "source": "income_statement",
+                "table_label": "income_statement",
+                "page_number": 7,
+                "page_tag": "page_7",
+                "row_ref": "Revenue from contracts with customers",
+                "excerpt": "Revenue from contracts with customers",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "A",
+                "period_end": "2025-12-31",
+            }
+        },
+    }
+
+    result = evaluate_fixture(fixture, payload["metrics"], payload)
+
+    assert result.provenance_summary["available"] is True
+    assert result.provenance_summary["record_count"] == 1
+    assert result.provenance_summary["status_counts"] == {"precise": 1}
+
+
 def _validate_extraction_runtime_preflight(*, timeout: float = 30.0) -> dict[str, object]:
     extraction_url, requested_model = resolve_extraction_runtime_config()
     headers = build_llm_headers(base_url=extraction_url)

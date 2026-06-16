@@ -84,6 +84,72 @@ def test_build_review_item_includes_provenance_and_snippet(
     assert item["snippet"]["evidence_quality"] == "precise"
 
 
+def test_build_review_item_uses_structured_field_provenance(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    monkeypatch.setattr(
+        review,
+        "build_metric_snippet",
+        lambda **_: {
+            "kind": "line_crop",
+            "evidence_quality": "precise",
+            "status": "ok",
+            "image_path": "reports/extraction_review/snippets/field.png",
+            "ascii_preview": None,
+            "matched_text": "Revenue from contracts with customers",
+            "page_number": 7,
+            "reason": None,
+        },
+    )
+
+    document = SimpleNamespace(
+        document_id="doc-123",
+        ticker="BHP",
+        title="Annual Report",
+        pdf_path=str(pdf_path),
+    )
+    run = SimpleNamespace(
+        run_id="run-123",
+        structured_json={
+            "period_end": "2024-06-30",
+            "period_type": "A",
+            "currency": "AUD",
+            "scale": "thousands",
+            "confidence_metrics": 0.92,
+            "metrics": {"revenue": 12_345_000.0},
+            "field_provenance": {
+                "revenue": {
+                    "metric": "revenue",
+                    "source": "income_statement",
+                    "table_label": "income_statement",
+                    "page_number": 7,
+                    "page_tag": "page_7",
+                    "row_ref": "Revenue from contracts with customers",
+                    "excerpt": "Revenue from contracts with customers",
+                    "scale": "thousands",
+                    "scale_source": "table",
+                    "currency": "AUD",
+                    "period_type": "A",
+                    "period_end": "2024-06-30",
+                }
+            },
+            "_reproducibility": {"resolved_pdf_path": str(pdf_path)},
+        },
+    )
+
+    item = review.build_review_item(None, document, run, "revenue")
+
+    assert item is not None
+    assert item["page_number"] == 7
+    assert item["table_type"] == "income_statement"
+    assert item["matched_text"] == "Revenue from contracts with customers"
+    assert item["evidence_reference"] == run.structured_json["field_provenance"]["revenue"]
+    assert item["provenance_status"] == "precise"
+
+
 def test_build_review_item_includes_method_provenance_and_gold_expected(
     monkeypatch, tmp_path
 ) -> None:
