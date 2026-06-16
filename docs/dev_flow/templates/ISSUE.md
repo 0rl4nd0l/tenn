@@ -8,6 +8,7 @@
 - Branch/HEAD: <branch> / <sha>
 - Related issues/PRs/reports: <links or DATA_MISSING>
 - Git guard decision: <pass|warning|block|data_missing>
+- Evidence grades: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT>
 
 ## Scope In
 - <included work>

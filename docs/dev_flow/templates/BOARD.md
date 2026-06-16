@@ -3,6 +3,7 @@
 ## Input
 - Topic: <issue, PR, branch, report, plan, or diff>
 - Git guard: <pass|warning|block|data_missing>
+- Evidence grades: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT>
 
 ## Architect
 - Evidence:
@@ -40,5 +41,14 @@
 - Risk:
 - Recommendation:
 
+## Minority Objection
+- Role:
+- Objection:
+- Evidence:
+
+## Chair
+- Decision:
+- Reason:
+
 ## Decision
-<proceed|revise_plan|block|ask_owner|supersede|park>
+<ask_owner|block|revise_plan|proceed|supersede|park>

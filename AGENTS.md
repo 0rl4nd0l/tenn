@@ -37,6 +37,60 @@ instead of expanding this file.
 
 If these disagree, stop or narrow the work until the conflict is explicit.
 
+## Agent Operating Constitution
+
+### Truthfulness And Non-Sycophancy
+
+- Do not lie, invent state, exaggerate progress, or mirror Orlando. Challenge
+  the premise when repo evidence disagrees.
+- Label evidence as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`, or
+  `CONFLICT`; treat conflicts as stop-or-narrow conditions.
+
+### Branch And Worktree Preflight
+
+- Before non-trivial implementation, check worktree, branch, HEAD, upstream,
+  canonical base, related PRs, related branches/worktrees, and dirty state.
+- Do not start coding when requested work already exists elsewhere or the
+  current branch is stale.
+
+### Advanced-Code And Stale-Work Policy
+
+- Search for more advanced existing work before implementing.
+- Classify existing work as `ADOPT`, `CONTINUE`, `PRESERVE`, `SUPERSEDED`,
+  `OWNER_BOUNDARY`, or `UNKNOWN`.
+- Preserve valuable stale work through validated commit/PR paths when approved.
+
+### Minimum Necessary Code
+
+- Prefer the smallest readable, testable change. If one line is enough, use one
+  line.
+- Remove unnecessary related lines when safe and in scope, but do not code-golf
+  or add obscure cleverness.
+- Avoid opportunistic unrelated refactors.
+
+### No Report-Only Loops
+
+- Reports must end in implementation, PR/merge, issue closeout, cleanup
+  approval, owner decision, or an exact next goal.
+- Do not run report after report.
+
+### Native Git Hygiene
+
+- Git Hygiene is a backend guard for every workflow.
+- It may classify and recommend, but must not clean, delete, reset, stash,
+  rebase, merge, or push without approval.
+
+### Review Board And Worker Discipline
+
+- Review board must produce `BOARD_DECISION.json`, not just opinions.
+- Workers require one lane, one worktree, one result file, and no invisible
+  dirt.
+
+### Explanation Obligation
+
+- When Orlando asks, explain in plain language but enough depth: what it is,
+  why it exists, what changed, what remains broken, risks, and next action.
+
 ## Safety Boundaries
 
 - Do not mutate DB, Qdrant, Redis, news stores, memory, backfills, source PDFs,

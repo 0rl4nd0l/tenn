@@ -9,6 +9,7 @@ Use `tenn-review-board` before risky implementation, merge, parking, supersede,
 or architecture decisions.
 
 The board is not a discussion loop. It must end with one actionable decision.
+Do not run a board for trivial edits.
 
 ## Preflight
 
@@ -25,9 +26,13 @@ Run independent perspectives and preserve disagreements:
 - validation/test
 - repo hygiene/git guard
 - domain expert when the topic needs domain context
+- chair
 
 Each perspective must state evidence inspected, finding, uncertainty, risk, and
 recommended action.
+
+The skeptic or another role must write one minority objection, even if the final
+decision still proceeds.
 
 ## Outputs
 
@@ -45,6 +50,9 @@ Write:
 - `ask_owner`
 - `supersede`
 - `park`
+
+The safe default is `ask_owner`, not `proceed`. The chair owns the final
+decision and must convert opinions into `BOARD_DECISION.json`.
 
 ## Boundaries
 

@@ -9,6 +9,7 @@ Use `tenn-worker` only when an orchestrator assigns a bounded unit of work.
 
 One worker gets one lane, one worktree, one brief, and one result file. Workers
 must not share a mutation surface.
+`WORKER_RESULT.md` is mandatory.
 
 ## Required Contract
 
@@ -49,3 +50,6 @@ Write `WORKER_RESULT.md` with:
 The orchestrator decides whether to integrate, park, or discard worker output.
 The worker must not push, merge, rebase, delete, clean, or mutate GitHub unless
 the brief explicitly allows that exact action.
+
+If the worker cannot finish inside its lane, it must stop with blockers and
+leave all dirt visible in `WORKER_RESULT.md`.

@@ -9,6 +9,8 @@
 ## Current State
 <current evidence, with DATA_MISSING where needed>
 
+Evidence grade: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT>
+
 ## What Changed
 <diff, issue, PR, report, or history>
 
