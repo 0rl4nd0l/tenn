@@ -2454,6 +2454,7 @@ def _detect_source_noncandidate_class(
         or _source_text_has(compact_title, "notice of meeting proxy form")
         or _source_text_has(compact_title, "notice of annual general meeting")
         or _source_text_has(compact_title, "notice of meeting and explanatory")
+        or _source_text_has(compact_title, "results of meeting")
         or (
             _source_text_has(compact_text, "upcoming general meeting of shareholders")
             and _source_text_has(compact_text, "notice of meeting")

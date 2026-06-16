@@ -312,6 +312,11 @@ def test_run_multipass_uses_source_text_half_year_period_end_distinct_when_pass1
             "meeting_or_proxy_notice",
         ),
         (
+            "results-of-meeting.pdf",
+            "",
+            "meeting_or_proxy_notice",
+        ),
+        (
             "fineos-board-changes.pdf",
             (
                 "Upcoming FINEOS Board changes. Appointment of a new "
@@ -382,6 +387,11 @@ def test_source_document_classifier_excludes_known_false_positive_classes(
         (
             "appendix-4d-half-year-results.pdf",
             "Appendix 4D Half Year Results for the half year ended 31 December 2025.",
+            "half_year_source_phrase",
+        ),
+        (
+            "half-year-results.pdf",
+            "Half-year financial results for the half year ended 31 December 2025.",
             "half_year_source_phrase",
         ),
         (
