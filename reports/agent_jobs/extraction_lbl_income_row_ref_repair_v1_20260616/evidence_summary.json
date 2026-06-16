@@ -1,0 +1,20 @@
+{
+  "source_report_dir": "/home/l4nd0/tenn-lbl-bounded-runtime-execution-v1-20260616/reports/agent_jobs/extraction_lbl_bounded_runtime_execution_v1_20260616",
+  "runtime_status": "ok",
+  "strict_source_bound_accepted": false,
+  "classification": "provenance_gap_row_refs",
+  "target_metrics": ["revenue", "ebit", "np_attributable"],
+  "observed_unknown_row_refs": {
+    "revenue": "unknown",
+    "ebit": "unknown",
+    "np_attributable": "unknown"
+  },
+  "source_bound_income_table_rows": {
+    "revenue": "Sales Revenue",
+    "ebit": "EBIT",
+    "np_attributable": "NPAT For"
+  },
+  "source_table": "income_statement",
+  "page_number": 21,
+  "scale": "thousands"
+}

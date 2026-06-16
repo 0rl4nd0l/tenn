@@ -1642,6 +1642,89 @@ def _parse_accounting_metric_number(value: Any) -> tuple[float, bool] | None:
     return parsed, False
 
 
+def _is_missing_row_ref(value: Any) -> bool:
+    text = " ".join(str(value or "").strip().lower().split())
+    return not text or text in {"unknown", "n/a", "na", "null", "none", "-"}
+
+
+def _markdown_row_labels(table_markdown: str) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for line in str(table_markdown or "").splitlines():
+        if "|" not in line:
+            continue
+        first_cell = line.split("|", 1)[0].strip()
+        if not first_cell or set(first_cell) <= {"-"}:
+            continue
+        normalized = _normalize_filter_text(first_cell)
+        if normalized:
+            labels.setdefault(normalized, first_cell)
+    return labels
+
+
+def _split_row_ref_candidates(value: Any) -> list[str]:
+    if isinstance(value, (list, tuple, set)):
+        raw_items = value
+    else:
+        raw_items = re.split(r"[,;]", str(value or ""))
+    return [str(item or "").strip() for item in raw_items if str(item or "").strip()]
+
+
+def _income_metric_for_row_label(row_label: str) -> str | None:
+    compact = _normalize_filter_text(row_label)
+    if not compact:
+        return None
+    if "ebitda" not in compact and (
+        compact == "ebit"
+        or "earningsbeforeinterestandtax" in compact
+        or "profitfromoperations" in compact
+        or "profitlossfromoperatingactivities" in compact
+        or "operatingprofit" in compact
+        or "statutoryebit" in compact
+        or "operatingincome" in compact
+        or "profitbeforeincometax" in compact
+        or "cashprofitbeforetax" in compact
+    ):
+        return "ebit"
+    if (
+        "npat" in compact
+        or "netprofitaftertax" in compact
+        or "profitaftertax" in compact
+        or "profitlossaftertax" in compact
+        or "profitattributable" in compact
+        or "netprofitattributable" in compact
+    ):
+        return "np_attributable"
+    if "revenue" in compact and not any(
+        marker in compact
+        for marker in ("grossprofit", "otherincome", "interestincome", "netprofit")
+    ):
+        return "revenue"
+    return None
+
+
+def _expand_income_statement_row_refs(
+    row_refs: Any, table_markdown: str, metrics_payload: dict[str, Any]
+) -> dict[str, Any]:
+    refs = dict(row_refs) if isinstance(row_refs, dict) else {}
+    combined_candidates = _split_row_ref_candidates(refs.get("metric_name"))
+    if not combined_candidates:
+        return refs
+
+    source_labels = _markdown_row_labels(table_markdown)
+    for candidate in combined_candidates:
+        source_label = source_labels.get(_normalize_filter_text(candidate))
+        if not source_label:
+            continue
+        metric_name = _income_metric_for_row_label(source_label)
+        if (
+            metric_name in {"revenue", "ebit", "np_attributable"}
+            and metrics_payload.get(metric_name) is not None
+            and _is_missing_row_ref(refs.get(metric_name))
+        ):
+            refs[metric_name] = source_label
+    return refs
+
+
 def _extract_single_table(
     table_type: str,
     table,
@@ -1870,6 +1953,12 @@ def _extract_single_table(
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
         extracted["period_col"] = raw_payload.get("period_col")
+        if table_type == "income_statement":
+            extracted["row_refs"] = _expand_income_statement_row_refs(
+                extracted.get("row_refs"),
+                table_markdown,
+                metrics_payload,
+            )
         if table_type == "balance_sheet" and extracted["row_refs"].get("total_debt"):
             preferred_total_debt_ref = _select_preferred_evidence_row_ref(
                 extracted["row_refs"].get("total_debt"),
