@@ -1,0 +1,16 @@
+{
+  "decision": "ask_owner",
+  "allowed_decisions": [
+    "proceed",
+    "revise_plan",
+    "block",
+    "ask_owner",
+    "supersede",
+    "park"
+  ],
+  "reason": "",
+  "selected_milestone": "",
+  "required_changes": [],
+  "owner_approval_needed": [],
+  "next_goal": ""
+}
