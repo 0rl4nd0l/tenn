@@ -1,0 +1,21 @@
+{
+  "branch": "safe/extraction-scale-source-evidence-fix-v1-20260616",
+  "current_state": "DONE",
+  "decision": "SAFE_EXTENSION_IMPLEMENTED",
+  "issue": 96,
+  "job_id": "extraction_scale_source_unit_row_fix_v1_20260616",
+  "github_mutation_allowed": true,
+  "mode": "safe_extension",
+  "production_data_access": false,
+  "source_class": "parser_table_coverage_scale_source_unit_row",
+  "unsafe_actions_avoided": [
+    "no count-24",
+    "no count-32",
+    "no random sample",
+    "no broad extraction",
+    "no backfill",
+    "no DB/Qdrant/news/memory/source-PDF/gold-label/schema/runtime mutation",
+    "no validation gate relaxation"
+  ],
+  "validation_verdict": "PASS"
+}

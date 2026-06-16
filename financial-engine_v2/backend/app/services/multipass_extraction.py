@@ -224,6 +224,12 @@ _RAW_DOLLAR_UNIT_RE = _re.compile(
     r"(?=\s|$|\)|,|;|:)",
     _re.IGNORECASE,
 )
+_SCALE_UNIT_ROW_CONTEXT_RE = _re.compile(
+    r"^(?:notes?|note|period|current|prior|comparative|fy\d{2,4}|h[12]|"
+    r"q[1-4]|\d{4}|20\d{2}|19\d{2}|as at|for the year|year ended|"
+    r"half year|six months|quarter)$",
+    _re.IGNORECASE,
+)
 
 _MILLION_UNIT_BOUNDARY = r"(?=\s|$|\)|%|,|;|:)"
 _EXPLICIT_CURRENCY_MILLION_PATTERNS: list[tuple[str, str]] = [
@@ -354,6 +360,31 @@ def _detect_scale_from_table(table) -> str:
     for pattern, scale in _SCALE_PATTERNS:
         if _re.search(pattern, combined, _re.IGNORECASE):
             return scale
+
+    # Some parser paths fragment statement headings so the source-unit row
+    # (for example: "Notes | $m | $m") lands just below the first few rows.
+    # Only accept rows that are unit/header context, not arbitrary prose rows.
+    for row in (table.rows or [])[:8]:
+        nonempty = [str(cell).strip() for cell in row if str(cell).strip()]
+        if not nonempty:
+            continue
+        row_text = " ".join(nonempty)
+        detected_scale = "unknown"
+        for pattern, scale in _SCALE_PATTERNS:
+            if _re.search(pattern, row_text, _re.IGNORECASE):
+                detected_scale = scale
+                break
+        if detected_scale == "unknown":
+            continue
+        non_unit_cells = []
+        for cell in nonempty:
+            if any(_re.search(pattern, cell, _re.IGNORECASE) for pattern, _ in _SCALE_PATTERNS):
+                continue
+            if _SCALE_UNIT_ROW_CONTEXT_RE.search(cell):
+                continue
+            non_unit_cells.append(cell)
+        if not non_unit_cells:
+            return detected_scale
     return "unknown"
 
 
