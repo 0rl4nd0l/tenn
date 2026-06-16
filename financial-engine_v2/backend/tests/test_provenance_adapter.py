@@ -102,6 +102,46 @@ def test_from_extraction_payload_normalizes_metric_collection() -> None:
     assert {record.provenance_status for record in records} == {"precise", "derived"}
 
 
+def test_from_extraction_payload_prefers_structured_field_provenance() -> None:
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "A",
+        "confidence_metrics": 0.72,
+        "field_provenance": {
+            "revenue": {
+                "metric": "revenue",
+                "source": "income_statement",
+                "table_label": "income_statement",
+                "page_number": 7,
+                "page_tag": "page_7",
+                "row_ref": "Revenue from contracts with customers",
+                "excerpt": "Revenue from contracts with customers",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "A",
+                "period_end": "2025-12-31",
+                "source_document_id": "123e4567-e89b-12d3-a456-426614174000",
+                "extraction_run_id": "run-42",
+            }
+        },
+    }
+
+    records = from_extraction_payload(payload)
+
+    assert len(records) == 1
+    record = records[0]
+    assert record.source_type == "financial_statement"
+    assert record.source_document_id == "123e4567-e89b-12d3-a456-426614174000"
+    assert record.source_label == "income_statement"
+    assert record.location_ref == "page_7"
+    assert record.period_ref == "2025-12-31:A"
+    assert record.evidence_text == "Revenue from contracts with customers"
+    assert record.provenance_status == "precise"
+    assert record.confidence == 0.72
+    assert record.raw_reference == payload["field_provenance"]["revenue"]
+
+
 def test_from_orchestrator_evidence_handles_financial_truth_payload() -> None:
     record = from_orchestrator_evidence(
         "financial_truth",

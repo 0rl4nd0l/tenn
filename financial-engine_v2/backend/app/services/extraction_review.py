@@ -30,7 +30,7 @@ from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.services.extraction_run_observability import has_run_status
 from app.services.multipass_extraction import METRIC_FIELDS
-from app.services.provenance import from_extraction_provenance
+from app.services.provenance import from_extraction_payload_metric
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
@@ -788,22 +788,10 @@ def build_review_item(
         period_end = str(payload.get("period_end") or "").strip() or None
         period_type = str(payload.get("period_type") or "").strip() or None
         source_document_id = str(getattr(document, "document_id", "") or "").strip()
-        raw_provenance = (
-            payload.get("provenance")
-            if isinstance(payload.get("provenance"), Mapping)
-            else {}
-        )
-        
-        provenance_value = str(raw_provenance.get(metric) or "").strip() or None
-        
-        record = from_extraction_provenance(
-            metric_name=metric,
-            provenance=provenance_value,
+        record = from_extraction_payload_metric(
+            payload,
+            metric,
             source_document_id=source_document_id or None,
-            period_ref=f"{period_end}:{period_type}"
-            if period_end and period_type
-            else (period_end or period_type),
-            confidence=payload.get("confidence_metrics"),
         )
         page_number = _parse_page_number(record.location_ref)
         item_id = f"{run.run_id}:{metric}"

@@ -453,8 +453,11 @@ def _summarize_fixture_eval(evaluation: FixtureEvaluation) -> dict[str, Any]:
 
 
 def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    field_provenance = payload.get("field_provenance")
     provenance = payload.get("provenance")
-    if not isinstance(provenance, Mapping):
+    if not isinstance(field_provenance, Mapping) and not isinstance(
+        provenance, Mapping
+    ):
         return {
             "available": False,
             "status": "unavailable",
@@ -468,7 +471,13 @@ def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
             "metric_summaries": [],
         }
 
-    metric_names = [str(metric_name) for metric_name in provenance]
+    metric_names: list[str] = []
+    for source_map in (field_provenance, provenance):
+        if not isinstance(source_map, Mapping):
+            continue
+        for metric_name in source_map:
+            metric_names.append(str(metric_name))
+    metric_names = list(dict.fromkeys(metric_names))
     records = from_extraction_payload(
         payload,
         source_document_id=str_or_none(payload.get("source_document_id")),
