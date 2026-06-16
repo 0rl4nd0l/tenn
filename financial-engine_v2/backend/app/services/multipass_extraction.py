@@ -97,6 +97,31 @@ SCALE_MULTIPLIERS = {
     "unknown": 1,
 }
 
+_ACCOUNTING_NUMBER_SUFFIX_MULTIPLIERS = {
+    "k": 1_000,
+    "thousand": 1_000,
+    "thousands": 1_000,
+    "m": 1_000_000,
+    "mn": 1_000_000,
+    "million": 1_000_000,
+    "millions": 1_000_000,
+    "b": 1_000_000_000,
+    "bn": 1_000_000_000,
+    "billion": 1_000_000_000,
+    "billions": 1_000_000_000,
+    "t": 1_000_000_000_000,
+    "tn": 1_000_000_000_000,
+    "trillion": 1_000_000_000_000,
+    "trillions": 1_000_000_000_000,
+}
+
+_ACCOUNTING_NUMBER_RE = re.compile(
+    r"^(?P<currency>(?:[A-Z]{1,3}\$|[A-Z]{3}|\$)\s*)?"
+    r"(?P<num>[+-]?(?:\d+(?:,\d{3})+|\d+)(?:\.\d+)?)"
+    r"\s*(?P<suffix>k|thousands?|mn|m|millions?|bn|b|billions?|tn|t|trillions?)?$",
+    re.IGNORECASE,
+)
+
 SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
     "financial_report": (
         "Source metadata has explicit annual, half-year, quarterly, or appendix "
@@ -1549,6 +1574,39 @@ def _table_to_markdown(
     return "\n".join(lines)
 
 
+def _parse_accounting_metric_number(value: Any) -> tuple[float, bool] | None:
+    """Parse pass3a metric values and flag explicit unit suffixes."""
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value), False
+
+    text = " ".join(str(value).split()).strip()
+    if not text or text.lower() in {"n/a", "na", "nil", "none", "null", "-"}:
+        return None
+
+    neg_paren = text.startswith("(") and text.endswith(")")
+    if neg_paren:
+        text = text[1:-1].strip()
+
+    match = _ACCOUNTING_NUMBER_RE.match(text)
+    if not match:
+        return None
+
+    try:
+        parsed = float(match.group("num").replace(",", ""))
+    except ValueError:
+        return None
+
+    if neg_paren:
+        parsed = -abs(parsed)
+
+    suffix = str(match.group("suffix") or "").lower()
+    if suffix:
+        return parsed * _ACCOUNTING_NUMBER_SUFFIX_MULTIPLIERS[suffix], True
+    return parsed, False
+
+
 def _extract_single_table(
     table_type: str,
     table,
@@ -1645,11 +1703,12 @@ def _extract_single_table(
         for metric_name in metrics:
             val = metrics_payload.get(metric_name)
             if val is not None:
-                try:
-                    raw_float = float(val)
-                    effective_multiplier = (
-                        1 if metric_name in _COUNT_METRICS else multiplier_for_table
-                    )
+                parsed_value = _parse_accounting_metric_number(val)
+                if parsed_value is not None:
+                    raw_float, has_explicit_unit = parsed_value
+                    effective_multiplier = 1 if (
+                        metric_name in _COUNT_METRICS or has_explicit_unit
+                    ) else multiplier_for_table
                     scaled = raw_float * effective_multiplier
                     if (
                         effective_multiplier > 1
@@ -1671,7 +1730,7 @@ def _extract_single_table(
                         # metric stores net debt as a positive magnitude.
                         scaled = abs(scaled)
                     extracted[metric_name] = scaled
-                except (TypeError, ValueError):
+                else:
                     extracted[metric_name] = None
             else:
                 extracted[metric_name] = None
