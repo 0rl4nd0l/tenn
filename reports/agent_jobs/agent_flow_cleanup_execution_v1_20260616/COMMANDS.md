@@ -30,7 +30,10 @@ Result:
 - syntax checks passed
 - JSON parse passed
 - shell syntax passed
-- focused tests: `51 passed`
+- focused tests before post-review hardening: `51 passed`
+- focused tests after post-review hardening:
+  `uv run --no-project --with pytest --with pyyaml pytest scripts/test_agent_job_contract.py scripts/test_agent_job_hook.py scripts/test_check_agent_hooks.py`
+  returned `54 passed`
 
 ## Diagnostic Commands
 

@@ -382,7 +382,11 @@ def check_report_artifacts_for_task_card_markdown(
                 if not report_dir.is_dir():
                     issues.append(ValidationIssue("output_dir", f"{output_dir_value} is missing or not a directory"))
 
-        report_paths = _report_artifact_paths(validation.metadata)
+        try:
+            report_paths = _report_artifact_paths(validation.metadata)
+        except ValueError as exc:
+            report_paths = []
+            issues.append(ValidationIssue("allowed_files", str(exc)))
         if not report_paths:
             issues.append(ValidationIssue("allowed_files", "no report artifacts listed under output_dir"))
 

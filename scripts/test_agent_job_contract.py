@@ -349,6 +349,45 @@ def test_check_report_artifacts_fails_for_missing_or_empty_report_files(tmp_path
     assert "reports/agent_jobs/codex-dev-job-1/MISSING.md is missing" in messages
 
 
+def test_check_report_artifacts_returns_structured_error_for_invalid_allowed_file(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(allowed_files=["../outside.md"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    messages = [issue.message for issue in result.issues if issue.field == "allowed_files"]
+    assert any("repo-relative without parent segments" in message for message in messages)
+
+
+def test_check_report_artifacts_cli_returns_json_for_invalid_allowed_file(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    task = repo / "task.md"
+    task.write_text(task_card(allowed_files=["../outside.md"]), encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            "python3",
+            str(Path(ajc.__file__).resolve()),
+            "check-artifacts",
+            str(task),
+            "--repo-root",
+            str(repo),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert completed.returncode == 1
+    assert completed.stderr == ""
+    assert '"ok": false' in completed.stdout
+    assert "repo-relative without parent segments" in completed.stdout
+
+
 def test_check_report_artifacts_rejects_symlink_escape(tmp_path) -> None:
     repo = git_repo(tmp_path)
     external = repo / "external"

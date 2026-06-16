@@ -29,4 +29,6 @@ python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/gi
 .githooks/pre-commit
 GIT_DIR="$(git rev-parse --git-dir)" GIT_PREFIX= .githooks/pre-push
 GIT_DIR="$(git rev-parse --git-dir)" GIT_PREFIX= .githooks/pre-commit
+uv run --no-project --with pytest --with pyyaml pytest scripts/test_agent_job_contract.py scripts/test_agent_job_hook.py scripts/test_check_agent_hooks.py
+TENN_ALLOW_MISSING_HOOK_TOOLS=1 git push
 ```

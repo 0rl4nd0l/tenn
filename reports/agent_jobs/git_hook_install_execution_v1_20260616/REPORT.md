@@ -81,6 +81,11 @@ All checks passed!
 [markdown-hygiene] Internal markdown link scan passed.
 ```
 
+Post-review hardening changed `pre-push` from fail-open to fail-closed when
+`ruff` or `pytest` is missing. A developer can bypass the local tool check only
+by setting `TENN_ALLOW_MISSING_HOOK_TOOLS=1`, which keeps missing-tool pushes
+explicit instead of accidental.
+
 Follow-up push validation found that Git hook invocations export repository
 environment variables into child processes. The hooks now clear Git's local
 environment variables from `git rev-parse --local-env-vars` after resolving the

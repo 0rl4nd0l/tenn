@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -162,3 +163,40 @@ def test_build_report_marks_non_matching_fingerprint(tmp_path: Path) -> None:
     assert not report.ok
     assert report.hooks[0].fingerprint_present is False
     assert any("expected fingerprint" in issue for issue in report.issues)
+
+
+def test_pre_push_fails_without_required_tools_unless_overridden(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    hooks = repo / ".githooks"
+    hooks.mkdir()
+    pre_push = hooks / "pre-push"
+    pre_push.write_text((Path(__file__).resolve().parents[1] / ".githooks" / "pre-push").read_text(), encoding="utf-8")
+    pre_push.chmod(0o755)
+
+    completed = subprocess.run(
+        [str(pre_push)],
+        cwd=repo,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert completed.returncode == 1
+    assert "missing required hook tool" in completed.stderr
+    assert "TENN_ALLOW_MISSING_HOOK_TOOLS=1" in completed.stderr
+
+    overridden_env = os.environ.copy()
+    overridden_env["TENN_ALLOW_MISSING_HOOK_TOOLS"] = "1"
+    overridden = subprocess.run(
+        [str(pre_push)],
+        cwd=repo,
+        env=overridden_env,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert overridden.returncode == 0
+    assert "skipping lint/test checks" in overridden.stderr

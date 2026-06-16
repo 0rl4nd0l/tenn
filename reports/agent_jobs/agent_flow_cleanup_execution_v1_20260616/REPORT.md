@@ -162,7 +162,9 @@ Passed:
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m json.tool .claude/settings.json`
 - `bash -n scripts/sync_codex_skills.sh`
 - `PYTHONDONTWRITEBYTECODE=1 financial-engine_v2/.venv/bin/pytest -q -p no:cacheprovider scripts/test_agent_job_hook.py scripts/test_check_agent_hooks.py scripts/test_agent_job_contract.py`
-  - result: `51 passed`
+  - result before post-review hardening: `51 passed`
+- `uv run --no-project --with pytest --with pyyaml pytest scripts/test_agent_job_contract.py scripts/test_agent_job_hook.py scripts/test_check_agent_hooks.py`
+  - result after post-review hardening: `54 passed`
 - `bash scripts/sync_codex_skills.sh`
   - result: dry-run only, `linked=0`, `would_link=6`, `skipped=0`
 - stale-reference scan found no remaining target conflicts except intentionally
