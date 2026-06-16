@@ -2870,6 +2870,59 @@ def test_pass3a_expands_lbl_income_combined_metric_name_row_refs():
     }
 
 
+def test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit():
+    """Bank total operating income is revenue-equivalent, not EBIT provenance."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _extract_single_table
+
+    table = DoclingTable(
+        page_number=9,
+        caption="Income statement",
+        headers=["A$m", "FY25"],
+        rows=[
+            ["A$m", "FY25"],
+            ["Total operating income", "1,200"],
+            ["Profit before income tax", "450"],
+        ],
+    )
+    raw_response = {
+        "metrics": {
+            "revenue": 1200,
+            "ebit": 450,
+        },
+        "row_refs": {
+            "metric_name": "Total operating income, Profit before income tax",
+        },
+        "pass3_confidence": 0.9,
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=raw_response,
+    ):
+        result = _extract_single_table(
+            "income_statement",
+            table,
+            {
+                "report_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+            },
+            "millions",
+            1_000_000,
+            llm_client=None,
+        )
+
+    assert result is not None
+    assert result["revenue"] == 1_200_000_000
+    assert result["ebit"] == 450_000_000
+    assert result["row_refs"] == {
+        "revenue": "Total operating income",
+        "ebit": "Profit before income tax",
+        "metric_name": "Total operating income, Profit before income tax",
+    }
+
+
 def test_pass4_common_metric_source_scale_overrides_document_scale():
     """A common table-local source scale should become the reconciled payload scale."""
     from app.services.multipass_extraction import (

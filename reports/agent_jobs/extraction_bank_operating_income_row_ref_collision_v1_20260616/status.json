@@ -1,0 +1,20 @@
+{
+  "job_id": "extraction_bank_operating_income_row_ref_collision_v1_20260616",
+  "status": "DONE_WITH_RISK",
+  "branch": "safe/extraction-bank-operating-income-row-ref-collision-v1-20260616",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "f838aeef58fc3573f8a5b47a704e44c26a005cf0",
+  "stranded_fix_commit": "c053cd77250c470af0af7af84764a7dd92fa9d36",
+  "stranded_fix_not_in_base": true,
+  "registry_active_jobs": [],
+  "ledger_status": "DATA_MISSING",
+  "duplicate_work_classification": "proceed_as_new_integration_pr",
+  "implementation_complete": true,
+  "red_test_status": "failed_as_expected",
+  "focused_test_status": "passed",
+  "py_compile_status": "passed",
+  "ruff_status": "passed",
+  "changed_path_guard": "passed",
+  "count24_packet_touched": false,
+  "forbidden_mutation": false
+}

@@ -1673,6 +1673,8 @@ def _income_metric_for_row_label(row_label: str) -> str | None:
     compact = _normalize_filter_text(row_label)
     if not compact:
         return None
+    if compact in {"netinterestincome", "totaloperatingincome"}:
+        return "revenue"
     if "ebitda" not in compact and (
         compact == "ebit"
         or "earningsbeforeinterestandtax" in compact
