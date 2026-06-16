@@ -8,7 +8,7 @@ description: Tenn wrapper around the host improve-codebase-architecture skill. R
 Use this wrapper when Orlando asks for Tenn architecture improvement,
 architecture debt discovery, subsystem shape, or structural refactor planning.
 
-Default mode is report-only. Do not mutate source code from architecture
+Default mode is report/plan only. Do not mutate source code from architecture
 discovery alone.
 
 ## Workflow
@@ -19,7 +19,9 @@ discovery alone.
    but route outputs into Tenn report artifacts.
 4. Avoid stale `.cursor/rules` assumptions unless live repo files prove they
    apply to this checkout.
-5. Produce recommendations, risks, and candidate task cards.
+5. Prefer deletion, simplification, and removal of unused layers over adding
+   new layers.
+6. Produce recommendations, risks, and candidate task cards.
 
 ## Execution Mode
 
@@ -27,7 +29,7 @@ Execution mode requires:
 
 - explicit owner request or approved board decision
 - task card
-- exact `allowed_files`
+- exact scope and `allowed_files`
 - focused validation plan
 - `tenn-code-reviewer` before PR preparation
 

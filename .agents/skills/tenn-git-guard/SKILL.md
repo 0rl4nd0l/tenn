@@ -51,6 +51,35 @@ gh issue list --state all --search "<topic>" --json number,title,state,updatedAt
 Record `DATA_MISSING` for unavailable commands, missing auth, missing upstream,
 or unsafe command surfaces.
 
+## Branch Superiority And Stale Work
+
+Before recommending new implementation, search related branches, worktrees, PRs,
+task cards, and reports for more advanced existing work. Classify each relevant
+candidate:
+
+- `ADOPT`: validated work should be used as-is.
+- `CONTINUE`: useful work should become the active lane.
+- `PRESERVE`: valuable stale work should be committed, PR'd, or parked when
+  approved.
+- `SUPERSEDED`: current base already covers it.
+- `OWNER_BOUNDARY`: needs an owner decision before use or cleanup.
+- `UNKNOWN`: evidence is insufficient.
+
+Do not code over better existing work. Do not leave valuable stale work rotting
+when a validated commit or PR path is in scope and approved.
+
+## Hook Cooperation
+
+Do not reimplement existing hooks. Treat them as backend guards:
+
+- Host `goal_optimizer_pre_tool.py` warns on token or output burn.
+- Host `stop_check.py` handles terminal dirty-warning suppression.
+- Repo `scripts/agent_job_hook.py` handles task-card, registry, and diff
+  contract checks.
+
+Workflow commands should preflight branch, dirty-state, registry, and allowlist
+problems before hooks fire. Stop hooks are backstops.
+
 ## Classify
 
 Classify the worktree and dirty files:

@@ -35,6 +35,12 @@ Lead with findings ordered by severity. Check:
 - product/runtime/data/extraction boundary crossings
 - unreported worker dirt
 - stale branch or PR assumptions
+- whether the diff is the smallest readable, testable change that solves the
+  task
+- unnecessary new abstraction or opportunistic unrelated refactor
+- whether tests/checks actually ran or are honestly marked unavailable
+- unfilled templates that imply approval, success, or evidence that was not
+  provided
 
 ## Output
 

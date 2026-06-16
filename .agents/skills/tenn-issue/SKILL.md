@@ -14,17 +14,23 @@ close GitHub issues unless explicitly approved.
 ## Workflow
 
 1. Restate the owner problem without shrinking it into an easier slice.
-2. Ask at most one or two clarifying questions only when missing input would
-   materially change the issue packet or safety boundary.
-3. Run `tenn-git-guard` preflight.
-4. Search existing issues, PRs, task cards, and reports read-only before
+2. Label issue evidence as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`,
+   or `CONFLICT`. Stop or narrow on unresolved conflicts.
+3. Ask at most one to three high-value clarifying questions only when missing
+   input would materially change the issue packet or safety boundary; otherwise
+   proceed with stated assumptions.
+4. Run `tenn-git-guard` preflight.
+5. Search existing issues, PRs, task cards, branches, worktrees, and reports
+   read-only before reimplementing or
    proposing new tracker mutations.
-5. Use the existing host `diagnose` skill only when the problem needs a repro,
+6. Use the existing host `diagnose` skill only when the problem needs a repro,
    minimization, hypothesis, instrumentation, fix, or regression test loop.
-6. Use `tenn-auto-progress` ideas as a candidate-ranking engine: rank by safety,
+7. Use `tenn-auto-progress` ideas as a candidate-ranking engine only: rank by safety,
    urgency, owner value, available evidence, collision risk, and validation
    cost. Do not execute the ranked candidates in this skill.
-7. Produce issue artifacts and a concrete next goal.
+8. For medium/high-risk issues, produce two plausible implementation plans,
+   compare tradeoffs, then select one.
+9. Produce issue artifacts and an exact next goal.
 
 ## Outputs
 
@@ -34,6 +40,11 @@ Write these under the run report directory:
 - `MILESTONES.md`
 - context pack files or a compact context section
 - `NEXT_GOAL.md`
+
+`NEXT_GOAL.md` must contain a directly executable next prompt or a precise
+`WAITING_ON_USER` approval request. Do not end with another report-only loop
+unless that report directly enables implementation, closeout, cleanup approval,
+PR/merge, or owner decision.
 
 For long or risky work, fold Frame Design into the issue packet by including
 scope, non-negotiables, evidence sources, stop states, and success shape in
