@@ -1,5 +1,7 @@
 # Next Goal
 
-Status: in_progress
+Status: pr_opened
 
-Next action in this run: add RED tests, implement the narrow additive JSON provenance slice, validate, commit, push, and open an unmerged PR against `migration/clean-runtime-baseline-reconstruct-v1`.
+Next action: review PR #364, then merge only if the reviewer accepts the narrow issue #286 persisted provenance implementation.
+
+PR: https://github.com/0rl4nd0l/tenn/pull/364

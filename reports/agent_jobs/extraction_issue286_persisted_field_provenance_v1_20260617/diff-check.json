@@ -1,48 +1,16 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_issue286_persisted_field_provenance_v1_20260617.md",
-      "status": "A"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py",
-      "status": "A"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/models/asx_financials.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/app/services/pipeline.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/backend/tests/test_db_integrity.py",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_issue286_persisted_field_provenance_v1_20260617/DECISIONS.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/extraction_issue286_persisted_field_provenance_v1_20260617/NEXT_GOAL.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_issue286_persisted_field_provenance_v1_20260617/PR_REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_issue286_persisted_field_provenance_v1_20260617/STATE.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_issue286_persisted_field_provenance_v1_20260617/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_issue286_persisted_field_provenance_v1_20260617/validation.json",
-      "status": "A"
+      "status": "M"
     }
   ],
   "disallowed_files": [],

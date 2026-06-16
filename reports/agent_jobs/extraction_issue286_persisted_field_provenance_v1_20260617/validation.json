@@ -1,6 +1,6 @@
 {
   "job_id": "extraction_issue286_persisted_field_provenance_v1_20260617",
-  "status": "validation_passed",
+  "status": "pr_opened",
   "commands": [
     {
       "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_issue286_persisted_field_provenance_v1_20260617.md",
@@ -66,6 +66,11 @@
       "command": "git diff --cached --name-only | rg forbidden product/data/runtime/source path pattern && exit 1 || echo 'product_data_runtime_boundary_guard=pass'",
       "exit_code": 0,
       "summary": "No staged live DB, Qdrant, Redis, news, memory, source PDF, gold label, prompt, runtime, model/GPU, or service config paths."
+    },
+    {
+      "command": "gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-issue286-persisted-field-provenance-v1-20260617 --title \"[Extraction] Persist metric field provenance for ASX financial rows\"",
+      "exit_code": 0,
+      "summary": "Opened PR #364: https://github.com/0rl4nd0l/tenn/pull/364."
     }
   ]
 }

@@ -2,11 +2,13 @@
 
 Date: 2026-06-17
 
-Status: implementation_started
+Status: pr_opened
 
 Worktree: `/home/l4nd0/tenn-issue286-persisted-field-provenance-v1-20260617`
 
 Branch: `safe/extraction-issue286-persisted-field-provenance-v1-20260617`
+
+PR: https://github.com/0rl4nd0l/tenn/pull/364
 
 Base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 
@@ -41,3 +43,8 @@ Rationale: PR #289's old broad temporary-branch `metric_provenance` storage is p
 - No live DB/Qdrant/Redis/news/memory/source PDF/gold label/prompt/runtime/model/GPU/service mutation.
 - No Alembic upgrade against a live database.
 - Product/runtime/data surfaces remain out of scope except the approved schema/persistence/test files.
+
+## Closeout
+
+- VERIFIED: local commit `d2292894` opened PR #364.
+- VERIFIED: PR #364 is open and unmerged at creation time.
