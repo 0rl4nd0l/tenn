@@ -1,0 +1,22 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "9a61c20cf0db988d06948861644d79698f37138c",
+  "branch": "safe/extraction-issue286-closeout-v1-20260616",
+  "current_state": "DONE_WITH_RISK",
+  "decision": "KEEP_OPEN_BOUNDARY_EXPLICIT",
+  "github_issue_comment": "https://github.com/0rl4nd0l/tenn/issues/286#issuecomment-4715842193",
+  "issue": 286,
+  "job_id": "extraction_issue286_closeout_v1_20260616",
+  "pr": "https://github.com/0rl4nd0l/tenn/pull/354",
+  "unsafe_actions_avoided": [
+    "no issue closure",
+    "no code change",
+    "no count-24 or count-32",
+    "no broad extraction or random sample",
+    "no backfill",
+    "no service route execution",
+    "no DB/schema/Qdrant/Redis/news/memory mutation",
+    "no source PDF/gold label/prompt/runtime/model/GPU changes"
+  ],
+  "validation": "focused_report_checks_passed"
+}
