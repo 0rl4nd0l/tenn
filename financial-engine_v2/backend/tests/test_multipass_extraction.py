@@ -417,15 +417,10 @@ def test_source_document_classifier_preserves_valid_report_candidates(
     assert result.reason == period_reason
 
 
-def test_run_multipass_blocks_title_only_source_noncandidate_before_parser():
+def test_run_multipass_blocks_title_only_source_noncandidate_before_parser_import():
     from app.services.multipass_extraction import run_multipass_extraction
 
-    with patch(
-        "app.services.docling_extract.extract_structured",
-        side_effect=AssertionError(
-            "parser should not run for title-only source noncandidate"
-        ),
-    ) as extract_structured:
+    with patch.dict("sys.modules", {"app.services.docling_extract": None}):
         result = run_multipass_extraction(
             "/fake/fineos-board-changes.pdf",
             {
@@ -436,7 +431,6 @@ def test_run_multipass_blocks_title_only_source_noncandidate_before_parser():
             llm_client=None,
         )
 
-    extract_structured.assert_not_called()
     assert result.status == "failed"
     assert result.error == "validation_gate:source_noncandidate:board_change_notice"
     assert result.sections == []

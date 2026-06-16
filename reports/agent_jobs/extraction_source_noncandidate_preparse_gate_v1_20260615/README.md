@@ -8,7 +8,8 @@ extraction from the remaining root-cause matrix after PR #346.
 ## Current State
 
 DONE_WITH_RISK pending PR review. A narrow extraction code/test change blocks
-title-only source noncandidates before parser and metric extraction work.
+title-only source noncandidates before parser import, parser execution, and
+metric extraction work.
 
 ## Why This Class
 
@@ -59,8 +60,12 @@ period binding was already handled by PR #346.
 
 - Added a focused regression test proving an FCL board-change title is blocked
   before `extract_structured()` is called.
+- Updated that regression after Codex review to make `app.services.docling_extract`
+  unimportable, proving the source-noncandidate return path no longer depends
+  on parser module imports such as PyMuPDF.
 - Added a title-only pre-parser source-document classification gate in
   `run_multipass_extraction()`.
+- Deferred the `docling_extract` import until after the title-only gate returns.
 - Returned the existing `validation_gate:source_noncandidate:*` payload shape
   with `source_document_classification` and `source_document_gate`.
 
@@ -76,6 +81,14 @@ period binding was already handled by PR #346.
   `uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_excludes_known_false_positive_classes financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_preserves_valid_report_candidates -q`: exit 0, 13 passed.
 - `python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py`: exit 0.
 - `git diff --check`: exit 0.
+- Review-fix regression:
+  `uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest pytest financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser_import -q`: exit 0, 1 passed.
+- Review-fix focused slice:
+  `uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest pytest financial-engine_v2/backend/tests/test_multipass_extraction.py::test_run_multipass_blocks_title_only_source_noncandidate_before_parser_import financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_excludes_known_false_positive_classes financial-engine_v2/backend/tests/test_multipass_extraction.py::test_source_document_classifier_preserves_valid_report_candidates -q`: exit 0, 13 passed.
+- Review-fix static checks:
+  `python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py`: exit 0;
+  `uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py`: exit 0;
+  `git diff --check`: exit 0.
 
 ## Validation Status
 

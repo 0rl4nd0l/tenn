@@ -14,5 +14,6 @@
     "no DB/Qdrant/Redis/news/memory mutation",
     "no source PDF/gold label/prompt/schema/runtime/model/GPU changes"
   ],
-  "validation": "focused_passed"
+  "review_fix": "deferred parser import until after title-only noncandidate gate; regression now covers docling_extract import failure",
+  "validation": "focused_passed_review_fix"
 }
