@@ -15,6 +15,13 @@ Do not run a board for trivial edits.
 
 Run `tenn-git-guard` first for branch, PR, diff, dirty-state, and registry
 context. Keep GitHub reads read-only unless explicit owner approval exists.
+Review the guard's Task Ledger evidence and duplicate-work classification before
+recommending action.
+
+The board must not recommend new implementation when an open PR or merged
+canonical implementation already solves the request. In those cases, choose
+`park`, `supersede`, `ask_owner`, or a review/merge-oriented next goal instead
+of `proceed`.
 
 ## Required Perspectives
 
@@ -56,6 +63,9 @@ Write:
 
 The safe default is `ask_owner`, not `proceed`. The chair owns the final
 decision and must convert opinions into `BOARD_DECISION.json`.
+`BOARD_DECISION.json` must include ledger fields: `ledger_sources_checked`,
+`duplicate_work_classification`, `matching_candidates`, and
+`duplicate_work_decision`.
 
 ## Boundaries
 

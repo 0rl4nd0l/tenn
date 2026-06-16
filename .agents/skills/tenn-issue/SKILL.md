@@ -20,17 +20,23 @@ close GitHub issues unless explicitly approved.
    input would materially change the issue packet or safety boundary; otherwise
    proceed with stated assumptions.
 4. Run `tenn-git-guard` preflight.
-5. Search existing issues, PRs, task cards, branches, worktrees, and reports
-   read-only before reimplementing or
-   proposing new tracker mutations.
-6. Use the existing host `diagnose` skill only when the problem needs a repro,
+5. Use the guard's Task Ledger search before framing new work. Include live
+   ledger, committed ledger, task cards, reports, branches, worktrees, PRs,
+   issues, and likely touched files when available.
+6. Search existing issues, PRs, task cards, branches, worktrees, and reports
+   read-only before reimplementing or proposing new tracker mutations.
+7. If similar work exists, include it in `ISSUE.md` with the duplicate-work
+   classification and decide whether the next action is continue, adopt,
+   supersede, preserve, or ask Orlando. Do not frame a duplicate new issue as
+   fresh work.
+8. Use the existing host `diagnose` skill only when the problem needs a repro,
    minimization, hypothesis, instrumentation, fix, or regression test loop.
-7. Use `tenn-auto-progress` ideas as a candidate-ranking engine only: rank by safety,
+9. Use `tenn-auto-progress` ideas as a candidate-ranking engine only: rank by safety,
    urgency, owner value, available evidence, collision risk, and validation
    cost. Do not execute the ranked candidates in this skill.
-8. For medium/high-risk issues, produce two plausible implementation plans,
+10. For medium/high-risk issues, produce two plausible implementation plans,
    compare tradeoffs, then select one.
-9. Produce issue artifacts and an exact next goal.
+11. Produce issue artifacts and an exact next goal.
 
 ## Outputs
 
@@ -40,6 +46,10 @@ Write these under the run report directory:
 - `MILESTONES.md`
 - context pack files or a compact context section
 - `NEXT_GOAL.md`
+
+`ISSUE.md` must include a Task Ledger section with ledger availability,
+duplicate-work classification, matching candidates, and the selected action:
+continue, adopt, supersede, preserve, ask owner, or proceed as new work.
 
 `NEXT_GOAL.md` must contain a directly executable next prompt or a precise
 `WAITING_ON_USER` approval request. Do not end with another report-only loop

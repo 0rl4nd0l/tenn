@@ -15,21 +15,31 @@ board decision, task card, or explicit fix request.
 1. Read `ISSUE.md`, `BOARD_DECISION.json`, task card, or the current user fix
    request.
 2. Run `tenn-git-guard` preflight.
-3. Create or validate a task card before any mutation.
-4. Confirm every intended path is inside the task-card `allowed_files`.
-5. Default to the smallest safe diff first. If one readable line solves the
+3. Stop when the guard returns `OPEN_PR_WAIT` or `MERGED_USE_CANONICAL` unless
+   Orlando explicitly overrides with continue, adopt, or supersede instructions.
+   Stop on `OWNER_BOUNDARY` or `UNKNOWN_ASK` when the next meaningful step needs
+   an owner decision.
+4. Create or validate a task card before any mutation.
+5. Confirm every intended path is inside the task-card `allowed_files`.
+6. Write or update Task Ledger state when the workflow is implementation-capable:
+   `claimed` at task acceptance, `implementation_started` before edits,
+   `blocked` or `waiting_on_user` before stopping, `pr_opened` after PR
+   creation, and `done`, `merged`, `parked`, or `superseded` at closeout as
+   applicable. If the ledger file is unavailable, record `DATA_MISSING` in the
+   report and continue only after the guard's bounded fallback search is clean.
+7. Default to the smallest safe diff first. If one readable line solves the
    task, change one line; remove unnecessary related lines only when safely in
    scope.
-6. Use RED/GREEN validation where practical: capture a failing regression test
+8. Use RED/GREEN validation where practical: capture a failing regression test
    or focused check before the fix, then rerun after the change.
-7. Execute one bounded milestone per run.
-8. Deploy bounded `tenn-worker` workers only when they reduce risk or context
+9. Execute one bounded milestone per run.
+10. Deploy bounded `tenn-worker` workers only when they reduce risk or context
    load. Each worker gets one lane, one worktree, one brief, and one result
    file.
-9. Integrate one coherent change at a time.
-10. Run focused validation proportional to blast radius.
-11. Run `tenn-code-reviewer` before PR preparation.
-12. Prepare, push, or open a PR only when the task and owner approval permit it.
+11. Integrate one coherent change at a time.
+12. Run focused validation proportional to blast radius.
+13. Run `tenn-code-reviewer` before PR preparation.
+14. Prepare, push, or open a PR only when the task and owner approval permit it.
 
 ## Outputs
 
@@ -39,6 +49,10 @@ Produce or update:
 - `DECISIONS.md`
 - validation notes
 - `NEXT_GOAL.md`
+
+`STATE.md` or `DECISIONS.md` must record Task Ledger availability, current
+ledger status, duplicate-work classification, ledger update result, and any
+`DATA_MISSING` fallback searches.
 
 Closeout must be one of: PR opened, local commit, failing regression test,
 issue closed, owner decision, or blocked with exact reason. Do not complete with

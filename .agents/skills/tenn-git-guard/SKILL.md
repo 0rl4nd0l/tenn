@@ -27,6 +27,31 @@ git status --short --untracked-files=all
 python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
 ```
 
+## Task Ledger Preflight
+
+`tenn-git-guard` owns duplicate-work preflight. Before any implementation-capable
+workflow starts coding, inspect the branch-independent Agent Task Ledger and the
+durable committed summary when present:
+
+```bash
+test -f .git/tenn-agent-registry/task-ledger.jsonl && tail -n 200 .git/tenn-agent-registry/task-ledger.jsonl
+test -f docs/agent_registry/task_ledger/LEDGER.jsonl && tail -n 200 docs/agent_registry/task_ledger/LEDGER.jsonl
+```
+
+If either ledger file is unavailable, record `DATA_MISSING` for that source and
+run a bounded fallback search before coding:
+
+- task cards under `docs/agent_tasks/`
+- reports under `reports/agent_jobs/`
+- local and remote branches
+- worktrees
+- open, closed, and merged PRs
+- open and closed issues
+- files likely to be touched by the proposed work
+
+Use topic terms, issue numbers, PR numbers, branch names, task ids, and touched
+paths from the owner request or task card. Keep searches read-only.
+
 Determine the comparison base before calculating merge-base:
 
 1. Prefer an explicit task-card or owner-provided base when present.
@@ -50,6 +75,34 @@ gh issue list --state all --search "<topic>" --json number,title,state,updatedAt
 
 Record `DATA_MISSING` for unavailable commands, missing auth, missing upstream,
 or unsafe command surfaces.
+
+## Duplicate-Work Classification
+
+Classify similar work before coding:
+
+- `ACTIVE_CONTINUE`: an active ledger/task/worktree lane should be continued or
+  adopted.
+- `OPEN_PR_WAIT`: an open PR appears to cover the requested work; wait for it or
+  review it instead of starting a duplicate.
+- `MERGED_USE_CANONICAL`: merged work on the selected base already solves the
+  request; use the canonical implementation.
+- `STALE_PRESERVE`: stale or branch-local work may still be valuable and should
+  be preserved, parked, or intentionally superseded before replacing it.
+- `SUPERSEDED_IGNORE`: older work is safely superseded by current canonical
+  state.
+- `OWNER_BOUNDARY`: ownership, cleanup, adoption, supersede, or conflict
+  decision needs Orlando.
+- `UNKNOWN_ASK`: evidence is insufficient and the next meaningful step needs an
+  owner decision.
+
+Block implementation when matching active, open-PR, merged, or owner-boundary
+work exists unless Orlando explicitly chooses continue, adopt, supersede, or
+ignore. When only ledger evidence is missing but fallback search is clean, record
+the `DATA_MISSING` source and allow the caller to proceed with a narrow scope.
+
+Guard output must include `duplicate_work_classification`, evidence sources
+checked, matching candidates, owner decision needed, and final decision:
+`pass`, `warning`, `block`, or `data_missing`.
 
 ## Branch Superiority And Stale Work
 
@@ -108,6 +161,8 @@ Produce short markdown or JSON in the caller's report directory:
 - owner-boundary paths
 - related PRs/issues
 - registry read-only status
+- ledger sources checked
+- duplicate-work classification
 - decision: `pass`, `warning`, `block`, or `data_missing`
 
 ## Prohibited Actions

@@ -12,6 +12,10 @@ Default mutation mode is read-only or report-local. For branch or PR topics,
 run `tenn-git-guard` before making current-state claims.
 Do not present current branch, PR, report, or runtime status as verified unless
 it was checked in the current run.
+For branch, PR, report, task-card, or "has this already been done?" questions,
+include Task Ledger evidence when available. If the live or committed ledger is
+unavailable, say `DATA_MISSING` and summarize the bounded fallback search used
+before explaining current state.
 
 ## Required Explanation Shape
 
@@ -20,6 +24,7 @@ Cover:
 - what it is
 - why it exists
 - current state
+- ledger and duplicate-work status when relevant
 - what changed
 - what is broken
 - risks
