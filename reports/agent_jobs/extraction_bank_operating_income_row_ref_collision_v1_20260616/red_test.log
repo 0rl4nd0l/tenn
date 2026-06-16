@@ -1,0 +1,69 @@
+warning: Ignoring `--extra-index-url` from requirements file: `https://download.pytorch.org/whl/cu118`. Instead, use the `--extra-index-url` command-line argument, or set `extra-index-url` in a `uv.toml` or `pyproject.toml` file.`
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit _
+
+    def test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit():
+        """Bank total operating income is revenue-equivalent, not EBIT provenance."""
+        from app.services.docling_extract import DoclingTable
+        from app.services.multipass_extraction import _extract_single_table
+    
+        table = DoclingTable(
+            page_number=9,
+            caption="Income statement",
+            headers=["A$m", "FY25"],
+            rows=[
+                ["A$m", "FY25"],
+                ["Total operating income", "1,200"],
+                ["Profit before income tax", "450"],
+            ],
+        )
+        raw_response = {
+            "metrics": {
+                "revenue": 1200,
+                "ebit": 450,
+            },
+            "row_refs": {
+                "metric_name": "Total operating income, Profit before income tax",
+            },
+            "pass3_confidence": 0.9,
+        }
+    
+        with patch(
+            "app.services.multipass_extraction._llm_json_call",
+            return_value=raw_response,
+        ):
+            result = _extract_single_table(
+                "income_statement",
+                table,
+                {
+                    "report_type": "A",
+                    "period_end": "2025-06-30",
+                    "currency": "AUD",
+                },
+                "millions",
+                1_000_000,
+                llm_client=None,
+            )
+    
+        assert result is not None
+        assert result["revenue"] == 1_200_000_000
+        assert result["ebit"] == 450_000_000
+>       assert result["row_refs"] == {
+            "revenue": "Total operating income",
+            "ebit": "Profit before income tax",
+            "metric_name": "Total operating income, Profit before income tax",
+        }
+E       AssertionError: assert {'metric_name...ating income'} == {'revenue': '...e income tax'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'ebit': 'Total operating income'} != {'ebit': 'Profit before income tax'}
+E         Right contains 1 more item:
+E         {'revenue': 'Total operating income'}
+E         Use -v to get more diff
+
+financial-engine_v2/backend/tests/test_multipass_extraction.py:2919: AssertionError
+=========================== short test summary info ============================
+FAILED financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit
+1 failed in 0.49s
