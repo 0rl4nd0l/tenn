@@ -23,10 +23,22 @@ git branch --show-current
 git rev-parse HEAD
 git remote -v
 git rev-parse --abbrev-ref --symbolic-full-name @{u}
-git merge-base HEAD origin/migration/clean-runtime-baseline-reconstruct-v1
 git status --short --untracked-files=all
 python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
 ```
+
+Determine the comparison base before calculating merge-base:
+
+1. Prefer an explicit task-card or owner-provided base when present.
+2. When reviewing a PR, use that PR's base branch.
+3. Otherwise use the upstream tracking branch when available.
+4. Otherwise fall back to
+   `origin/migration/clean-runtime-baseline-reconstruct-v1`.
+5. Record `DATA_MISSING` and stop before mutation if no reliable base can be
+   determined.
+
+Then run `git merge-base HEAD <selected-base>` and record both the selected base
+and merge-base SHA in the guard output.
 
 If branch or PR context matters, use read-only GitHub inspection before
 suggesting mutation:

@@ -1,5 +1,5 @@
 {
-  "decision": "proceed",
+  "decision": "ask_owner",
   "allowed_decisions": [
     "proceed",
     "revise_plan",
@@ -9,6 +9,7 @@
     "park"
   ],
   "reason": "",
+  "selected_milestone": "",
   "required_changes": [],
   "owner_approval_needed": [],
   "next_goal": ""
