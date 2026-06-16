@@ -9,7 +9,7 @@ Use this wrapper when Orlando asks for Tenn architecture improvement,
 architecture debt discovery, subsystem shape, or structural refactor planning.
 
 Default mode is report/plan only. Do not mutate source code from architecture
-discovery alone.
+discovery alone. Execution mode requires a task card and exact scope.
 
 ## Workflow
 

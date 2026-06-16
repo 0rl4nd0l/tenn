@@ -41,6 +41,8 @@ Lead with findings ordered by severity. Check:
 - whether tests/checks actually ran or are honestly marked unavailable
 - unfilled templates that imply approval, success, or evidence that was not
   provided
+- counter-lineage evidence when the diff changes metric, evaluation, daemon
+  status, score, pass-rate, or count reporting
 
 ## Output
 

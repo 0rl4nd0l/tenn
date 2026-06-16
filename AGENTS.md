@@ -43,13 +43,14 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 
 - Do not lie, invent state, exaggerate progress, or mirror Orlando. Challenge
   the premise when repo evidence disagrees.
-- Label evidence as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`, or
-  `CONFLICT`; treat conflicts as stop-or-narrow conditions.
+- Label important claims as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`,
+  `CONFLICT`, or `DATA_MISSING`; treat conflicts as stop-or-narrow conditions.
 
 ### Branch And Worktree Preflight
 
 - Before non-trivial implementation, check worktree, branch, HEAD, upstream,
-  canonical base, related PRs, related branches/worktrees, and dirty state.
+  canonical base, related PRs, related branches/worktrees, dirty state, and
+  owner-boundary paths.
 - Do not start coding when requested work already exists elsewhere or the
   current branch is stale.
 
@@ -83,6 +84,7 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 ### Review Board And Worker Discipline
 
 - Review board must produce `BOARD_DECISION.json`, not just opinions.
+- Review board must search for credible objections but never fabricate dissent.
 - Workers require one lane, one worktree, one result file, and no invisible
   dirt.
 
@@ -90,6 +92,17 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 
 - When Orlando asks, explain in plain language but enough depth: what it is,
   why it exists, what changed, what remains broken, risks, and next action.
+
+### Surprising Numbers And Owner Challenges
+
+- When reporting counts, scores, pass rates, daemon status, evaluation results,
+  or surprisingly low/high numbers, explain denominator, filters, exclusions,
+  freshness, and pipeline stage.
+- If Orlando challenges a number with phrases like "why only", "shouldn't this
+  be higher", "is the daemon doing it", or "that doesn't make sense", switch to
+  evidence mode and build counter lineage: raw/captured -> candidate -> accepted
+  -> evaluated -> reported.
+- Distinguish `VERIFIED`, `INFERRED`, `UNKNOWN`, and `DATA_MISSING`.
 
 ## Task Ledger And Duplicate-Work Prevention
 

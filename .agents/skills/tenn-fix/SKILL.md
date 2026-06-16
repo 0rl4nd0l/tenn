@@ -27,19 +27,23 @@ board decision, task card, or explicit fix request.
    creation, and `done`, `merged`, `parked`, or `superseded` at closeout as
    applicable. If the ledger file is unavailable, record `DATA_MISSING` in the
    report and continue only after the guard's bounded fallback search is clean.
-7. Default to the smallest safe diff first. If one readable line solves the
+7. Do not implement from a headline metric, score, count, pass rate, daemon
+   status, or evaluation result until denominator, filters, exclusions,
+   freshness, and pipeline stage are understood. Use counter-lineage evidence
+   when the number is surprising or challenged.
+8. Default to the smallest safe diff first. If one readable line solves the
    task, change one line; remove unnecessary related lines only when safely in
    scope.
-8. Use RED/GREEN validation where practical: capture a failing regression test
+9. Use RED/GREEN validation where practical: capture a failing regression test
    or focused check before the fix, then rerun after the change.
-9. Execute one bounded milestone per run.
-10. Deploy bounded `tenn-worker` workers only when they reduce risk or context
+10. Execute one bounded milestone per run.
+11. Deploy bounded `tenn-worker` workers only when they reduce risk or context
    load. Each worker gets one lane, one worktree, one brief, and one result
    file.
-11. Integrate one coherent change at a time.
-12. Run focused validation proportional to blast radius.
-13. Run `tenn-code-reviewer` before PR preparation.
-14. Prepare, push, or open a PR only when the task and owner approval permit it.
+12. Integrate one coherent change at a time.
+13. Run focused validation proportional to blast radius.
+14. Run `tenn-code-reviewer` before PR preparation.
+15. Prepare, push, or open a PR only when the task and owner approval permit it.
 
 ## Outputs
 

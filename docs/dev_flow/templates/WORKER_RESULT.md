@@ -5,6 +5,13 @@
 - Worktree:
 - Lane:
 - Task card:
+- Parent task ID:
+- Worker ID:
+- Result path:
+
+## Ledger
+- Status:
+- Touched files:
 
 ## Files Changed
 - <path or None>

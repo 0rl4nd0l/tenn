@@ -44,6 +44,10 @@ exists, or set it to `none_found` and explain the checks performed when none is
 credible. Never invent dissent just to satisfy the template. Truthfulness beats
 forced role-play.
 
+For metric, evaluation, daemon-status, pass-rate, or surprising-count decisions,
+the validation/test and domain perspectives must challenge denominator,
+freshness, filters, exclusions, and pipeline stage before the chair decides.
+
 ## Outputs
 
 Write:

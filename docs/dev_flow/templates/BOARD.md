@@ -3,7 +3,9 @@
 ## Input
 - Topic: <issue, PR, branch, report, plan, or diff>
 - Git guard: <pass|warning|block|data_missing>
-- Evidence grades: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT>
+- Evidence grades: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT|DATA_MISSING>
+- Duplicate-work classification: <ACTIVE_CONTINUE|OPEN_PR_WAIT|MERGED_USE_CANONICAL|STALE_PRESERVE|SUPERSEDED_IGNORE|OWNER_BOUNDARY|UNKNOWN_ASK|not_applicable>
+- Counter-lineage required: <yes|no>
 
 ## Architect
 - Evidence:
@@ -25,6 +27,7 @@
 
 ## Validation / Test
 - Evidence:
+- Denominator/freshness challenge:
 - Finding:
 - Risk:
 - Recommendation:
@@ -37,6 +40,7 @@
 
 ## Domain Expert
 - Evidence:
+- Metric/stage challenge:
 - Finding:
 - Risk:
 - Recommendation:
@@ -45,6 +49,7 @@
 - Role:
 - Objection:
 - Evidence:
+- Checks performed when none found:
 
 ## Chair
 - Decision:

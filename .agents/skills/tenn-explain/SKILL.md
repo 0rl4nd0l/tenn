@@ -32,11 +32,39 @@ Cover:
 
 Use plain language, but keep the explanation deep enough to preserve operational
 truth. Mark unavailable evidence as `DATA_MISSING`.
-Label evidence as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`, or
-`CONFLICT` when explaining status.
+Label evidence as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`,
+`CONFLICT`, or `DATA_MISSING` when explaining status.
+
+## Counter Lineage Mode
+
+Use this mode when Orlando asks about surprising metrics, counts, scores, pass
+rates, daemon status, evaluation results, or challenges a number with phrases
+like "why only", "shouldn't this be higher", "is the daemon doing it", or "that
+doesn't make sense".
+
+Required shape:
+
+- headline answer
+- what the number counts
+- what it does not count
+- raw/captured count
+- candidate count
+- accepted count
+- evaluated count
+- filters
+- exclusions
+- source artifacts
+- freshness
+- what changes the number
+- next operational action
+
+Trace the counter lineage as raw/captured -> candidate -> accepted -> evaluated
+-> reported. If any stage cannot be verified in the current run, mark it
+`DATA_MISSING` instead of filling a plausible number.
 
 ## Durable Output
 
-Write `EXPLAIN.md` only when the explanation is reusable, non-trivial, or needed
-as handoff evidence. Do not mutate product/runtime/data/extraction files,
-GitHub, registry state, host-global files, branches, or worktrees.
+Write `EXPLAIN.md` or `COUNTER_LINEAGE.md` only when the explanation is
+reusable, non-trivial, or needed as handoff evidence. Do not mutate
+product/runtime/data/extraction files, GitHub, registry state, host-global
+files, branches, or worktrees.

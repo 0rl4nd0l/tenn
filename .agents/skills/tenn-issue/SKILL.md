@@ -15,7 +15,7 @@ close GitHub issues unless explicitly approved.
 
 1. Restate the owner problem without shrinking it into an easier slice.
 2. Label issue evidence as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`,
-   or `CONFLICT`. Stop or narrow on unresolved conflicts.
+   `CONFLICT`, or `DATA_MISSING`. Stop or narrow on unresolved conflicts.
 3. Ask at most one to three high-value clarifying questions only when missing
    input would materially change the issue packet or safety boundary; otherwise
    proceed with stated assumptions.
@@ -29,14 +29,19 @@ close GitHub issues unless explicitly approved.
    classification and decide whether the next action is continue, adopt,
    supersede, preserve, or ask Orlando. Do not frame a duplicate new issue as
    fresh work.
-8. Use the existing host `diagnose` skill only when the problem needs a repro,
+8. If owner confusion is about a metric, count, pass rate, daemon status,
+   evaluation result, or surprising low/high number, run counter-lineage mode
+   before opening a broad issue. Trace raw/captured -> candidate -> accepted ->
+   evaluated -> reported, including denominator, filters, exclusions,
+   freshness, and source artifacts.
+9. Use the existing host `diagnose` skill only when the problem needs a repro,
    minimization, hypothesis, instrumentation, fix, or regression test loop.
-9. Use `tenn-auto-progress` ideas as a candidate-ranking engine only: rank by safety,
+10. Use `tenn-auto-progress` ideas as a candidate-ranking engine only: rank by safety,
    urgency, owner value, available evidence, collision risk, and validation
    cost. Do not execute the ranked candidates in this skill.
-10. For medium/high-risk issues, produce two plausible implementation plans,
+11. For medium/high-risk issues, produce two plausible implementation plans,
    compare tradeoffs, then select one.
-11. Produce issue artifacts and an exact next goal.
+12. Produce issue artifacts and an exact next goal.
 
 ## Outputs
 
