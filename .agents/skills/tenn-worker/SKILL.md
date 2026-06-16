@@ -24,16 +24,22 @@ The worker brief must include:
 - validation expected
 - stop conditions
 - result path for `WORKER_RESULT.md`
+- parent task id
+- Task Ledger expectations: child ledger entry or required ledger fields in
+  `WORKER_RESULT.md`
 
 ## Required Behavior
 
 1. Run `tenn-git-guard` in the assigned worktree.
 2. Confirm the task card and allowed files before mutation.
-3. Work only inside assigned scope.
-4. Run focused validation if mutation occurred.
-5. Leave no invisible dirt. Every changed, untracked, generated, ignored, or
+3. Write a child ledger entry when the brief provides an approved ledger write
+   path, or include ledger fields in `WORKER_RESULT.md` when ledger writes are
+   unavailable.
+4. Work only inside assigned scope.
+5. Run focused validation if mutation occurred.
+6. Leave no invisible dirt. Every changed, untracked, generated, ignored, or
    skipped file must be reported.
-6. Stop instead of widening scope.
+7. Stop instead of widening scope.
 
 ## Output
 
@@ -41,8 +47,14 @@ Write `WORKER_RESULT.md` with:
 
 - branch
 - worktree
+- parent task id
+- lane
+- ledger status or `DATA_MISSING`
+- task status
 - files changed
+- touched files
 - tests or checks run
+- result path
 - risks
 - blockers and `DATA_MISSING`
 - recommended action

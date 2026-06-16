@@ -91,6 +91,19 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 - When Orlando asks, explain in plain language but enough depth: what it is,
   why it exists, what changed, what remains broken, risks, and next action.
 
+## Task Ledger And Duplicate-Work Prevention
+
+- Before non-trivial work, check the branch-independent Agent Task Ledger and
+  related task cards, reports, branches, worktrees, PRs, and issues.
+- Do not reimplement work that already exists. Classify similar work before
+  coding as active, open-PR, merged-canonical, stale-preserve, superseded,
+  owner-boundary, or unknown.
+- Implementation-capable sessions must write or update a ledger entry for their
+  claim, progress, wait/block state, PR, merge, done, parked, or superseded
+  state.
+- If the ledger is unavailable, record `DATA_MISSING` and perform a bounded
+  fallback search before coding.
+
 ## Safety Boundaries
 
 - Do not mutate DB, Qdrant, Redis, news stores, memory, backfills, source PDFs,
