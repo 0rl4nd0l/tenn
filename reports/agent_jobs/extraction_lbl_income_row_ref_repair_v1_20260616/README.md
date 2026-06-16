@@ -135,3 +135,47 @@ extraction, canonical writes, GitHub writes, or mutation of DB/Qdrant/Redis/news
 Review and commit the bounded LBL row-ref repair from
 `/home/l4nd0/tenn-lbl-income-row-ref-repair-v1-20260616` if the local diff is
 acceptable. Do not run broader extraction until that commit is reviewed.
+
+## Codex Review Follow-Up
+
+Classification: `REAL_FIXED`.
+
+Review thread:
+
+- PR #362 thread `PRRT_kwDORRPz_M6J4su8` on
+  `financial-engine_v2/backend/app/services/multipass_extraction.py:1683`.
+- Concern: `Total operating income` in bank income tables was classified as
+  `ebit` through the generic `operatingincome` substring branch. In a combined
+  `metric_name` row-ref such as
+  `Total operating income, Profit before income tax`, this consumed the EBIT
+  row-ref slot before the true PBT/EBIT row could bind and left `revenue`
+  unbound.
+
+Evidence:
+
+- RED test:
+  `test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit`
+  failed exactly with `ebit: Total operating income` and missing `revenue`.
+- Fix: exact bank revenue-equivalent labels `netinterestincome` and
+  `totaloperatingincome` now map to `revenue` before the generic EBIT branch.
+- GREEN focused tests:
+  - `test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit`
+  - `test_pass3a_expands_lbl_income_combined_metric_name_row_refs`
+  - result: `2 passed`.
+- `py_compile`: passed.
+- `ruff`: passed.
+- `git diff --check`: passed.
+
+PR state caveat:
+
+- Live GitHub reported PR #362 as already `MERGED` at
+  `2026-06-16T12:54:50Z` before this follow-up patch was made.
+- This task did not merge PR #362. If pushed, the follow-up commit lands on the
+  existing branch `safe/extraction-lbl-income-row-ref-repair-v1-20260616`; it
+  does not retroactively change the already-created merge commit.
+
+Unsafe actions still avoided:
+
+- No count-24/count-32, random sample, broad extraction, backfill, service
+  start, canonical write, DB/Qdrant/Redis/news/memory/source-PDF/prompt/gold/
+  schema/runtime/model/GPU mutation, or PR merge action.

@@ -84,6 +84,41 @@
       "np_attributable": "NPAT For"
     }
   },
+  "codex_review_followup": {
+    "classification": "REAL_FIXED",
+    "review_thread": "PRRT_kwDORRPz_M6J4su8",
+    "pr_362_live_state_before_followup_commit": "MERGED",
+    "red_test": {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit",
+      "exit_status": 1,
+      "status": "failed_as_expected_total_operating_income_bound_to_ebit",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/red_test.log"
+    },
+    "green_test": {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt pytest -q financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting_ebit financial-engine_v2/backend/tests/test_multipass_extraction.py::test_pass3a_expands_lbl_income_combined_metric_name_row_refs",
+      "exit_status": 0,
+      "status": "passed",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/green_test.log"
+    },
+    "py_compile": {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run --with-requirements financial-engine_v2/backend/requirements.txt --with-requirements financial-engine_v2/backend/requirements-dev.txt python -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit_status": 0,
+      "status": "passed",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/py_compile.log"
+    },
+    "ruff": {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/multipass_extraction.py financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "exit_status": 0,
+      "status": "passed",
+      "raw_log": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/ruff.log"
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_status": 0,
+      "status": "passed"
+    },
+    "fix_summary": "Exact bank revenue-equivalent row labels netinterestincome and totaloperatingincome now map to revenue before the generic EBIT substring branch."
+  },
   "forbidden_actions_not_run": [
     "count-24",
     "count-32",

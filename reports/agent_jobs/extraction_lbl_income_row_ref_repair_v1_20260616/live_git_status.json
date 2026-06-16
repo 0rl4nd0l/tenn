@@ -1,8 +1,10 @@
 {
   "worktree": "/home/l4nd0/tenn-lbl-income-row-ref-repair-v1-20260616",
   "branch": "safe/extraction-lbl-income-row-ref-repair-v1-20260616",
-  "head": "85250db58bc4ebd5b3e46790311afc7ec7e5b910",
-  "upstream": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "head_before_review_followup": "de4c5c5ec465a440e51c1125fbf831cc8f789621",
+  "upstream": "origin/safe/extraction-lbl-income-row-ref-repair-v1-20260616",
+  "pr_362_state_before_review_followup_commit": "MERGED",
+  "pr_362_merge_commit": "f838aeef58fc3573f8a5b47a704e44c26a005cf0",
   "registry_read_only_active_jobs": [],
   "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
   "live_task_ledger": "DATA_MISSING",

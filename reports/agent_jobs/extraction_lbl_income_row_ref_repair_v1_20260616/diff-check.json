@@ -9,8 +9,32 @@
       "status": "M"
     },
     {
-      "path": "docs/agent_tasks/extraction_lbl_income_row_ref_repair_v1_20260616.md",
-      "status": "??"
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/green_test.log",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/live_git_status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/red_test.log",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/validation.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],
