@@ -6,18 +6,26 @@ implementation-capable agent sessions.
 ## Sources
 
 - Live branch-independent ledger:
-  `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`
+  `<registry_root>/task-ledger.jsonl`
 - Durable committed snapshot:
   `docs/agent_registry/task_ledger/LEDGER.md`
   `docs/agent_registry/task_ledger/LEDGER.jsonl`
 
-The live ledger is host/repo-local and shared by worktrees attached to the same
-git common dir. Linked worktrees have private git dirs, so agents must not
-resolve the live ledger through a literal `.git/tenn-agent-registry` path. Use
-`git rev-parse --path-format=absolute --git-common-dir` when available, or
-normalize `git rev-parse --git-common-dir` output against the worktree root when
-the absolute path option is unsupported. The committed snapshot is a periodic
-summary for future agents and is not expected to be complete immediately.
+The live ledger is host/repo-local and shared through the same registry root as
+`scripts/agent_job_registry.py`. Linked worktrees have private git dirs, so
+agents must not resolve the live ledger through a literal `.git/tenn-agent-registry`
+path. Resolve `<registry_root>` in this order:
+
+1. `TENN_AGENT_REGISTRY_ROOT`
+2. `git config tenn.agentRegistryRoot`
+3. `git rev-parse --path-format=absolute --git-common-dir` plus
+   `tenn-agent-registry`
+4. normalized `git rev-parse --git-common-dir` plus `tenn-agent-registry` when
+   the absolute path option is unavailable
+5. repo-local fallback with a warning when git metadata is unavailable
+
+The committed snapshot is a periodic summary for future agents and is not
+expected to be complete immediately.
 
 ## Required Preflight
 

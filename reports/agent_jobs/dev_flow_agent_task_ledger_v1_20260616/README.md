@@ -15,8 +15,7 @@ DONE
 - No product/runtime/data/extraction/source/gold-label/prompt/schema/service
   changes.
 - No ledger script.
-- No `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl` mutation in this
-  run.
+- No `<registry_root>/task-ledger.jsonl` mutation in this run.
 - No branch/worktree cleanup, merge, rebase, reset, stash, prune, or deletion.
 - GitHub mutation is limited to opening the approved PR after validation.
 
@@ -26,7 +25,7 @@ DONE
   merge commit `158639adf4ebbe6db7b361f907dc058baa1d42f3`.
 - `git merge-base --is-ancestor 158639adf4ebbe6db7b361f907dc058baa1d42f3 origin/migration/clean-runtime-baseline-reconstruct-v1`
   exited `0`.
-- `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`: `DATA_MISSING`.
+- `<registry_root>/task-ledger.jsonl`: `DATA_MISSING`.
 - `docs/agent_registry/task_ledger/LEDGER.jsonl`: `DATA_MISSING`.
 - Bounded duplicate-work fallback searches for Agent Task Ledger/task-ledger
   across PRs, issues, refs, task cards, reports, and skills returned no matching
@@ -56,7 +55,7 @@ continue, wait for, or use as canonical.
 ## Files Intentionally Not Touched
 
 - Product/runtime/data/extraction/source/gold-label/prompt/schema/service paths.
-- `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`.
+- `<registry_root>/task-ledger.jsonl`.
 - `docs/agent_registry/task_ledger/LEDGER.md`.
 - `docs/agent_registry/task_ledger/LEDGER.jsonl`.
 - count-24 paths.
@@ -150,8 +149,12 @@ ledger script or hook exists.
     `.agents/skills/tenn-git-guard/SKILL.md` requiring the live ledger to be
     resolved from `git rev-parse --path-format=absolute --git-common-dir`
     rather than a literal worktree `.git` path.
+  - Addressed follow-up P2 requiring the live ledger to use the same
+    `<registry_root>` precedence as `scripts/agent_job_registry.py`:
+    `TENN_AGENT_REGISTRY_ROOT`, `git config tenn.agentRegistryRoot`, git
+    common-dir registry, then repo-local fallback warning.
   - Updated the ledger README, task card, and report references to use
-    `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`.
+    `<registry_root>/task-ledger.jsonl`.
   - Validation rerun after the follow-up: changed `SKILL.md` parse, task-card
     validate/check-diff, read-only registry, literal-path guard,
     `git diff --check`, changed-path guard,

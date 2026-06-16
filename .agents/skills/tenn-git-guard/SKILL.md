@@ -34,19 +34,31 @@ workflow starts coding, inspect the branch-independent Agent Task Ledger and the
 durable committed summary when present:
 
 ```bash
-git rev-parse --path-format=absolute --git-common-dir
-test -f <git-common-dir>/tenn-agent-registry/task-ledger.jsonl && tail -n 200 <git-common-dir>/tenn-agent-registry/task-ledger.jsonl
+python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
+# Use the registry_root field returned above.
+test -f "$REGISTRY_ROOT/task-ledger.jsonl" && tail -n 200 "$REGISTRY_ROOT/task-ledger.jsonl"
 test -f docs/agent_registry/task_ledger/LEDGER.jsonl && tail -n 200 docs/agent_registry/task_ledger/LEDGER.jsonl
 ```
 
 Do not resolve the live ledger through literal `.git/tenn-agent-registry/task-ledger.jsonl`.
 In linked worktrees, `.git` is a file pointing at a private worktree gitdir,
-while shared repo state belongs under the common git dir. Resolve the live ledger by running
-`git rev-parse --path-format=absolute --git-common-dir`, then append
-`tenn-agent-registry/task-ledger.jsonl`. If `--path-format=absolute` is
-unsupported, fall back to `git rev-parse --git-common-dir` and normalize any
-relative output against the worktree root. `scripts/agent_job_registry.py` is the
-existing shared-registry resolution pattern.
+while shared repo state belongs under the configured registry root. Resolve the
+live ledger from the same `<registry_root>` used by `scripts/agent_job_registry.py`:
+
+1. `TENN_AGENT_REGISTRY_ROOT`
+2. `git config tenn.agentRegistryRoot`
+3. `git rev-parse --path-format=absolute --git-common-dir` plus
+   `tenn-agent-registry`
+4. If `--path-format=absolute` is unsupported, fall back to
+   `git rev-parse --git-common-dir` and normalize any relative output against
+   the worktree root before appending `tenn-agent-registry`
+5. repo-local `.tenn/agent_jobs` fallback with a warning when git metadata is
+   unavailable
+
+Then append `task-ledger.jsonl` to the resolved `registry_root`. When
+`TENN_AGENT_REGISTRY_ROOT` or `tenn.agentRegistryRoot` is configured, use that
+configured root instead of the git common dir so separate-clone and launcher
+setups share the same duplicate-work state.
 
 If either ledger file is unavailable, record `DATA_MISSING` for that source and
 run a bounded fallback search before coding:

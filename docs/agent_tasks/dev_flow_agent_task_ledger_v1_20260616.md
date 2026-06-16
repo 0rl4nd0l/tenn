@@ -55,8 +55,7 @@ gold-label, prompt, schema, service, model, GPU, or host-global state.
 - Do not touch product, frontend, backend runtime, data, extraction, source-PDF,
   gold-label, prompt, schema, DB, Qdrant, Redis, news, memory, service,
   production-data, model, GPU, or count-24 paths.
-- Do not mutate `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl` in this
-  run.
+- Do not mutate `<registry_root>/task-ledger.jsonl` in this run.
 - Do not create a ledger script in this run.
 - Do not install dependencies or start services.
 - Do not run cleanup, delete branches, remove worktrees, merge, rebase, reset,
@@ -69,7 +68,7 @@ gold-label, prompt, schema, service, model, GPU, or host-global state.
 - Current repo path, branch, HEAD, upstream, origin, and status.
 - PR #359 merged state and proof that the selected base contains it.
 - Task Ledger availability:
-  - `<git-common-dir>/tenn-agent-registry/task-ledger.jsonl`
+  - `<registry_root>/task-ledger.jsonl`
   - `docs/agent_registry/task_ledger/LEDGER.jsonl`
 - Bounded duplicate-work fallback search across task cards, reports, branches,
   worktrees, open/merged PRs, and related issues.
