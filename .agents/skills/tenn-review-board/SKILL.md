@@ -31,8 +31,11 @@ Run independent perspectives and preserve disagreements:
 Each perspective must state evidence inspected, finding, uncertainty, risk, and
 recommended action.
 
-The skeptic or another role must write one minority objection, even if the final
-decision still proceeds.
+The board must actively search for credible objections. `BOARD_DECISION.json`
+must include a `minority_objection` field: record the objection clearly when one
+exists, or set it to `none_found` and explain the checks performed when none is
+credible. Never invent dissent just to satisfy the template. Truthfulness beats
+forced role-play.
 
 ## Outputs
 
