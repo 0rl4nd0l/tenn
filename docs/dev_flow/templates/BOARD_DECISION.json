@@ -6,7 +6,8 @@
     "USER_REPORTED",
     "INFERRED",
     "UNKNOWN",
-    "CONFLICT"
+    "CONFLICT",
+    "DATA_MISSING"
   ],
   "allowed_decisions": [
     "proceed",
@@ -20,6 +21,11 @@
   "selected_milestone": "",
   "minority_objection": "none_found",
   "minority_objection_checks": "",
+  "ledger_sources_checked": [],
+  "duplicate_work_classification": "UNKNOWN_ASK",
+  "matching_candidates": [],
+  "duplicate_work_decision": "ask_owner",
+  "counter_lineage_required": false,
   "required_changes": [],
   "owner_approval_needed": [],
   "next_goal": ""

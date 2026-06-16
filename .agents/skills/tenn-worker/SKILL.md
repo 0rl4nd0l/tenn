@@ -48,6 +48,7 @@ Write `WORKER_RESULT.md` with:
 - branch
 - worktree
 - parent task id
+- worker id
 - lane
 - ledger status or `DATA_MISSING`
 - task status

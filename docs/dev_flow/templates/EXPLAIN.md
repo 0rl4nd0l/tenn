@@ -9,7 +9,10 @@
 ## Current State
 <current evidence, with DATA_MISSING where needed>
 
-Evidence grade: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT>
+Evidence grade: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT|DATA_MISSING>
+
+## Counter Lineage
+<Use COUNTER_LINEAGE.md when reusable; otherwise summarize raw/captured -> candidate -> accepted -> evaluated -> reported or not_applicable.>
 
 ## What Changed
 <diff, issue, PR, report, or history>
