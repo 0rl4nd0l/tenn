@@ -1093,6 +1093,63 @@ def test_pass3a_negative_values_preserved():
     assert results[0]["investing_cf"] == -412_000
 
 
+def test_pass3a_parses_common_accounting_number_strings():
+    """Pass3a should coerce source-bound accounting strings before scaling."""
+    from unittest.mock import patch
+
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    table = DoclingTable(
+        page_number=3,
+        caption="Consolidated income statement",
+        rows=[
+            ["", "FY2026"],
+            ["Revenue", "$1.2m"],
+            ["EBIT", "(123)"],
+            ["Net profit attributable", "A$4.5 million"],
+        ],
+        headers=["", "FY2026"],
+    )
+    labelled = {
+        "income_statement": table,
+        "cashflow_statement": None,
+        "balance_sheet": None,
+        "net_debt_note": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2026-06-30",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
+    mock_raw = {
+        "revenue": "$1.2m",
+        "ebit": "(123)",
+        "np_attributable": "A$4.5 million",
+        "pass3_confidence": 0.9,
+        "row_refs": {
+            "revenue": "Revenue",
+            "ebit": "EBIT",
+            "np_attributable": "Net profit attributable",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        return_value=mock_raw,
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["revenue"] == 1_200_000
+    assert results[0]["ebit"] == -123_000
+    assert results[0]["np_attributable"] == 4_500_000
+
+
 def test_pass3a_extracts_net_debt_note():
     """The dedicated note slot should request and return only explicit net_debt."""
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
