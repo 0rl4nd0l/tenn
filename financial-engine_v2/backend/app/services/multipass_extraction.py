@@ -4425,6 +4425,49 @@ def run_multipass_extraction(
         }
     )
 
+    title = doc_metadata.get("title", "")
+    preparse_source_document_classification = classify_source_document(title, "")
+    if not preparse_source_document_classification.extraction_candidate_allowed:
+        error = f"validation_gate:{preparse_source_document_classification.reason}"
+        logger.warning(
+            "source document blocked before parser: title=%r class=%s",
+            title,
+            preparse_source_document_classification.document_class,
+        )
+        null_payload["source_period_evidence"] = _detect_source_period_evidence(
+            title,
+            "",
+        )
+        null_payload["source_period_end_evidence"] = _detect_source_period_end_evidence(
+            title,
+            "",
+        )
+        null_payload["source_document_classification"] = (
+            preparse_source_document_classification.to_dict()
+        )
+        null_payload["source_document_gate"] = (
+            preparse_source_document_classification.reason
+        )
+        if observer is not None:
+            observer.emit(
+                "parser",
+                "blocked",
+                "Source document blocked before parser.",
+                error_code="source_document_non_candidate",
+                details={
+                    "document_class": (
+                        preparse_source_document_classification.document_class
+                    ),
+                    "reason": preparse_source_document_classification.reason,
+                },
+            )
+        return MultipassResult(
+            status="failed",
+            payload=null_payload,
+            sections=[],
+            error=error,
+        )
+
     # Extract structured document
     if observer is not None:
         observer.emit("parser", "running", "Loading document parser output.")
@@ -4500,8 +4543,6 @@ def run_multipass_extraction(
         early_period_text or first_page_text,
         openability_period_text,
     )
-    title = doc_metadata.get("title", "")
-
     source_period_evidence = _detect_source_period_evidence(
         title, source_period_text
     )

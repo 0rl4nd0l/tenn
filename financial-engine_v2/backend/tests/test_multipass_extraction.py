@@ -417,6 +417,37 @@ def test_source_document_classifier_preserves_valid_report_candidates(
     assert result.reason == period_reason
 
 
+def test_run_multipass_blocks_title_only_source_noncandidate_before_parser():
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        side_effect=AssertionError(
+            "parser should not run for title-only source noncandidate"
+        ),
+    ) as extract_structured:
+        result = run_multipass_extraction(
+            "/fake/fineos-board-changes.pdf",
+            {
+                "document_id": "e7290bdf-2865-468c-9a9b-9fcc6a61d446",
+                "ticker": "FCL",
+                "title": "2022-10-24_fineos-board-changes_e7290bdf-2865-468c-9a9b-9fcc6a61d446.pdf",
+            },
+            llm_client=None,
+        )
+
+    extract_structured.assert_not_called()
+    assert result.status == "failed"
+    assert result.error == "validation_gate:source_noncandidate:board_change_notice"
+    assert result.sections == []
+    assert result.payload["source_document_gate"] == (
+        "source_noncandidate:board_change_notice"
+    )
+    assert result.payload["source_document_classification"]["document_class"] == (
+        "board_change_notice"
+    )
+
+
 def _gpt_appendix_4d_sections(*, include_disclosures: bool = True) -> list[dict]:
     sections = [
         {"text": "ASX Announcement", "page": 1},
