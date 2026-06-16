@@ -114,6 +114,35 @@ class DiffCheckResult:
         }
 
 
+@dataclass(frozen=True)
+class ArtifactStatus:
+    path: str
+    exists: bool
+    is_file: bool
+    size_bytes: int | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ArtifactCheckResult:
+    ok: bool
+    validation: ValidationResult
+    output_dir: str | None
+    artifacts: list[ArtifactStatus]
+    issues: list[ValidationIssue]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ok": self.ok,
+            "validation": self.validation.to_dict(),
+            "output_dir": self.output_dir,
+            "artifacts": [artifact.to_dict() for artifact in self.artifacts],
+            "issues": [asdict(issue) for issue in self.issues],
+        }
+
+
 def _require_yaml() -> None:
     if yaml is None:
         raise RuntimeError("PyYAML is required to parse task-card frontmatter but is not available")
@@ -319,6 +348,83 @@ def _allowed_file_set(metadata: dict[str, Any]) -> set[str]:
     return {_normalize_repo_path(item) for item in metadata.get("allowed_files", [])}
 
 
+def _report_artifact_paths(metadata: dict[str, Any]) -> list[str]:
+    output_dir = metadata.get("output_dir")
+    if not isinstance(output_dir, str):
+        return []
+    output_prefix = output_dir.rstrip("/") + "/"
+    return sorted(path for path in _allowed_file_set(metadata) if path.startswith(output_prefix))
+
+
+def check_report_artifacts_for_task_card_markdown(
+    markdown: str,
+    *,
+    repo_root: Path | None = None,
+) -> ArtifactCheckResult:
+    """Verify report artifacts listed in allowed_files exist and are non-empty."""
+    root = repo_root or Path.cwd()
+    validation = validate_task_card_markdown(markdown)
+    issues = list(validation.issues)
+    artifacts: list[ArtifactStatus] = []
+    output_dir: str | None = None
+
+    if validation.ok:
+        output_dir_value = validation.metadata.get("output_dir")
+        job_id = validation.metadata.get("job_id")
+        report_dir: Path | None = None
+        if isinstance(output_dir_value, str) and isinstance(job_id, str):
+            output_dir = output_dir_value
+            try:
+                report_dir = resolve_report_dir(output_dir_value, job_id, repo_root=root)
+            except ValueError as exc:
+                issues.append(ValidationIssue("output_dir", str(exc)))
+            else:
+                if not report_dir.is_dir():
+                    issues.append(ValidationIssue("output_dir", f"{output_dir_value} is missing or not a directory"))
+
+        try:
+            report_paths = _report_artifact_paths(validation.metadata)
+        except ValueError as exc:
+            report_paths = []
+            issues.append(ValidationIssue("allowed_files", str(exc)))
+        if not report_paths:
+            issues.append(ValidationIssue("allowed_files", "no report artifacts listed under output_dir"))
+
+        for path in report_paths:
+            artifact_path = root / path
+            if report_dir is not None:
+                try:
+                    artifact_path.resolve(strict=False).relative_to(report_dir.resolve(strict=False))
+                except ValueError:
+                    issues.append(ValidationIssue("artifacts", f"{path} resolves outside output_dir"))
+                    continue
+            exists = artifact_path.exists()
+            is_file = artifact_path.is_file()
+            size_bytes = artifact_path.stat().st_size if is_file else None
+            artifacts.append(
+                ArtifactStatus(
+                    path=path,
+                    exists=exists,
+                    is_file=is_file,
+                    size_bytes=size_bytes,
+                )
+            )
+            if not exists:
+                issues.append(ValidationIssue("artifacts", f"{path} is missing"))
+            elif not is_file:
+                issues.append(ValidationIssue("artifacts", f"{path} is not a file"))
+            elif size_bytes == 0:
+                issues.append(ValidationIssue("artifacts", f"{path} is empty"))
+
+    return ArtifactCheckResult(
+        ok=not issues,
+        validation=validation,
+        output_dir=output_dir,
+        artifacts=artifacts,
+        issues=issues,
+    )
+
+
 def check_diff_for_task_card_markdown(
     markdown: str,
     *,
@@ -518,6 +624,18 @@ def _build_parser() -> argparse.ArgumentParser:
     check_diff.add_argument("task_card", type=Path)
     check_diff.add_argument("--repo-root", type=Path, default=Path.cwd())
     check_diff.add_argument("--no-write-report", action="store_true")
+    check_artifacts = sub.add_parser(
+        "check-artifacts",
+        help="verify allowed report artifacts under output_dir exist and are non-empty",
+    )
+    check_artifacts.add_argument("task_card", type=Path)
+    check_artifacts.add_argument("--repo-root", type=Path, default=Path.cwd())
+    check_report_artifacts = sub.add_parser(
+        "check-report-artifacts",
+        help="verify allowed report artifacts under output_dir exist and are non-empty",
+    )
+    check_report_artifacts.add_argument("task_card", type=Path)
+    check_report_artifacts.add_argument("--repo-root", type=Path, default=Path.cwd())
     return parser
 
 
@@ -539,6 +657,14 @@ def main(argv: list[str] | None = None) -> int:
             markdown,
             repo_root=args.repo_root,
             write_report=not args.no_write_report,
+        )
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        return 0 if result.ok else 1
+    if args.command in {"check-artifacts", "check-report-artifacts"}:
+        markdown = args.task_card.read_text(encoding="utf-8")
+        result = check_report_artifacts_for_task_card_markdown(
+            markdown,
+            repo_root=args.repo_root,
         )
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
         return 0 if result.ok else 1

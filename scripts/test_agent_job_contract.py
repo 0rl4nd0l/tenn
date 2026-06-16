@@ -298,6 +298,175 @@ def test_check_diff_report_output_stays_under_task_output_dir(tmp_path) -> None:
     assert not (external / "diff-check.json").exists()
 
 
+def test_check_report_artifacts_requires_allowed_output_files(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(task_card(), repo_root=repo)
+
+    assert not result.ok
+    assert "allowed_files" in diff_issue_fields(result)
+    assert "output_dir" in diff_issue_fields(result)
+
+
+def test_check_report_artifacts_passes_for_non_empty_report_files(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    report = report_dir / "REPORT.md"
+    report.write_text("done\n", encoding="utf-8")
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"]),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert result.output_dir == "reports/agent_jobs/codex-dev-job-1"
+    assert result.artifacts[0].path == "reports/agent_jobs/codex-dev-job-1/REPORT.md"
+    assert result.artifacts[0].size_bytes == 5
+
+
+def test_check_report_artifacts_fails_for_missing_or_empty_report_files(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    empty = report_dir / "EMPTY.md"
+    empty.write_text("", encoding="utf-8")
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(
+            allowed_files=[
+                "reports/agent_jobs/codex-dev-job-1/EMPTY.md",
+                "reports/agent_jobs/codex-dev-job-1/MISSING.md",
+            ],
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    messages = [issue.message for issue in result.issues]
+    assert "reports/agent_jobs/codex-dev-job-1/EMPTY.md is empty" in messages
+    assert "reports/agent_jobs/codex-dev-job-1/MISSING.md is missing" in messages
+
+
+def test_check_report_artifacts_returns_structured_error_for_invalid_allowed_file(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(allowed_files=["../outside.md"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    messages = [issue.message for issue in result.issues if issue.field == "allowed_files"]
+    assert any("repo-relative without parent segments" in message for message in messages)
+
+
+def test_check_report_artifacts_cli_returns_json_for_invalid_allowed_file(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    task = repo / "task.md"
+    task.write_text(task_card(allowed_files=["../outside.md"]), encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            "python3",
+            str(Path(ajc.__file__).resolve()),
+            "check-artifacts",
+            str(task),
+            "--repo-root",
+            str(repo),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert completed.returncode == 1
+    assert completed.stderr == ""
+    assert '"ok": false' in completed.stdout
+    assert "repo-relative without parent segments" in completed.stdout
+
+
+def test_check_report_artifacts_rejects_symlink_escape(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    external = repo / "external"
+    external.mkdir()
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    linked = report_dir / "LINKED.md"
+    linked.symlink_to(external / "outside.md")
+    (external / "outside.md").write_text("outside\n", encoding="utf-8")
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/LINKED.md"]),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any("resolves outside output_dir" in issue.message for issue in result.issues)
+
+
+def test_check_report_artifacts_cli_outputs_json(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    task = repo / "task.md"
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text("done\n", encoding="utf-8")
+    task.write_text(
+        task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"]),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            "python3",
+            str(Path(ajc.__file__).resolve()),
+            "check-report-artifacts",
+            str(task),
+            "--repo-root",
+            str(repo),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert completed.returncode == 0
+    assert '"ok": true' in completed.stdout
+
+
+def test_check_artifacts_alias_still_outputs_json(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    task = repo / "task.md"
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text("done\n", encoding="utf-8")
+    task.write_text(
+        task_card(allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"]),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            "python3",
+            str(Path(ajc.__file__).resolve()),
+            "check-artifacts",
+            str(task),
+            "--repo-root",
+            str(repo),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    assert completed.returncode == 0
+    assert '"ok": true' in completed.stdout
+
+
 def test_frontmatter_preservation_round_trip_keeps_metadata_intact() -> None:
     markdown = task_card()
     parsed_before = ajc.parse_task_card(markdown)

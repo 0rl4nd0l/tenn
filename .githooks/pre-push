@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+while IFS= read -r git_env_var; do
+  unset "$git_env_var"
+done < <(git rev-parse --local-env-vars)
+cd "$ROOT"
+
+VENV="$ROOT/financial-engine_v2/.venv"
+RUFF="$VENV/bin/ruff"
+PYTEST="$VENV/bin/pytest"
+
+missing_tools=()
+if [[ ! -x "$RUFF" ]]; then
+  missing_tools+=("ruff at $RUFF")
+fi
+if [[ ! -x "$PYTEST" ]]; then
+  missing_tools+=("pytest at $PYTEST")
+fi
+
+if [[ "${#missing_tools[@]}" -gt 0 ]]; then
+  echo "[pre-push] missing required hook tool(s): ${missing_tools[*]}" >&2
+  if [[ "${TENN_ALLOW_MISSING_HOOK_TOOLS:-}" != "1" ]]; then
+    echo "[pre-push] set TENN_ALLOW_MISSING_HOOK_TOOLS=1 to bypass local tool checks intentionally" >&2
+    exit 1
+  fi
+  echo "[pre-push] TENN_ALLOW_MISSING_HOOK_TOOLS=1 set; skipping lint/test checks" >&2
+else
+  echo "[pre-push] ruff check..."
+  "$RUFF" check autodev financial-engine_v2/backend scripts
+
+  echo "[pre-push] hook/tooling tests..."
+  "$PYTEST" -q scripts/test_agent_job_hook.py scripts/test_check_agent_hooks.py scripts/test_agent_job_contract.py
+fi
+
+if [[ -f scripts/check_markdown_hygiene.sh ]]; then
+  echo "[pre-push] markdown hygiene..."
+  bash scripts/check_markdown_hygiene.sh
+fi
