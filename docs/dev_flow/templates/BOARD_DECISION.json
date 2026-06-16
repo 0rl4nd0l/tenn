@@ -1,0 +1,15 @@
+{
+  "decision": "proceed",
+  "allowed_decisions": [
+    "proceed",
+    "revise_plan",
+    "block",
+    "ask_owner",
+    "supersede",
+    "park"
+  ],
+  "reason": "",
+  "required_changes": [],
+  "owner_approval_needed": [],
+  "next_goal": ""
+}
