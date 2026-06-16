@@ -1,0 +1,19 @@
+{
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base_head": "4b2b9e4c769617e21e94bbc90ec0fc420f170df9",
+  "branch": "safe/extraction-payload-field-provenance-v1-20260616",
+  "current_state": "DONE_WITH_RISK",
+  "issue": 286,
+  "job_id": "extraction_payload_field_provenance_v1_20260616",
+  "pr": null,
+  "selected_class": "payload_level_field_provenance",
+  "unsafe_actions_avoided": [
+    "no count-24 or count-32",
+    "no broad extraction or random sample",
+    "no backfill",
+    "no service route execution",
+    "no DB/Qdrant/Redis/news/memory mutation",
+    "no source PDF/gold label/prompt/schema/runtime/model/GPU changes"
+  ],
+  "validation": "focused_passed"
+}

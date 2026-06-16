@@ -3091,6 +3091,54 @@ _EXTRACTION_RE = re.compile(
 )
 
 
+def _build_field_provenance_entry(
+    *,
+    metric_name: str,
+    source: Any,
+    page: Any,
+    row_ref: Any,
+    scale: Any,
+    scale_source: Any,
+    pass1_result: dict,
+) -> dict[str, Any]:
+    """Build structured payload provenance from already source-bound evidence."""
+    source_text = str(source or "unknown").strip() or "unknown"
+    page_tag = f"page_{page}" if page is not None else "page_?"
+    row_text = str(row_ref or "unknown").strip() or "unknown"
+    scale_text = str(scale or "unknown").strip() or "unknown"
+    scale_source_text = str(scale_source or "unknown").strip() or "unknown"
+
+    entry: dict[str, Any] = {
+        "metric": metric_name,
+        "source": source_text,
+        "table_label": source_text,
+        "page_number": page if page is not None else "unknown",
+        "page_tag": page_tag,
+        "row_ref": row_text,
+        "excerpt": row_text,
+        "scale": scale_text,
+        "scale_source": scale_source_text,
+        "currency": str(pass1_result.get("currency") or "unknown"),
+        "period_type": str(pass1_result.get("report_type") or "unknown"),
+        "period_end": str(pass1_result.get("period_end") or "unknown"),
+    }
+    for output_key, input_keys in {
+        "source_document_id": (
+            "source_document_id",
+            "_source_document_id",
+            "document_id",
+            "_document_id",
+        ),
+        "extraction_run_id": ("extraction_run_id", "_extraction_run_id", "run_id"),
+    }.items():
+        for input_key in input_keys:
+            raw = pass1_result.get(input_key)
+            if raw:
+                entry[output_key] = str(raw)
+                break
+    return entry
+
+
 def _run_pass4_reconciler(
     pass3a_results: list[dict],
     pass3b_result: dict,
@@ -3106,6 +3154,7 @@ def _run_pass4_reconciler(
     """
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
     provenance: dict[str, str] = {}
+    field_provenance: dict[str, dict[str, Any]] = {}
     row_refs: dict[str, str] = {}
     metric_source_scales: dict[str, str] = {}
     metric_scale_sources: dict[str, str] = {}
@@ -3146,6 +3195,15 @@ def _run_pass4_reconciler(
                 thinking_map[m] = extraction.get("_thinking") or ""
                 markdown_map[m] = extraction.get("_markdown") or ""
                 provenance[m] = f"{source}:{page_tag}:{row_ref}"
+                field_provenance[m] = _build_field_provenance_entry(
+                    metric_name=m,
+                    source=source,
+                    page=page,
+                    row_ref=row_ref,
+                    scale=metric_scale,
+                    scale_source=metric_scale_sources.get(m),
+                    pass1_result=pass1_result,
+                )
                 confidence_weighted_sum += conf
                 confidence_weight += 1
 
@@ -3166,6 +3224,15 @@ def _run_pass4_reconciler(
         thinking_map["net_debt"] = explicit_net_debt.get("_thinking") or ""
         markdown_map["net_debt"] = explicit_net_debt.get("_markdown") or ""
         provenance["net_debt"] = f"{source}:{page_tag}:{row_ref}"
+        field_provenance["net_debt"] = _build_field_provenance_entry(
+            metric_name="net_debt",
+            source=source,
+            page=page,
+            row_ref=row_ref,
+            scale=metric_scale,
+            scale_source=metric_scale_sources.get("net_debt"),
+            pass1_result=pass1_result,
+        )
         net_debt_conf = _explicit_net_debt_confidence(explicit_net_debt)
         confidence_weighted_sum += net_debt_conf
         confidence_weight += 1
@@ -3202,6 +3269,17 @@ def _run_pass4_reconciler(
                     provenance["net_debt"] = (
                         f"derived:balance_sheet:{row_ref}"
                     )
+                    field_provenance["net_debt"] = _build_field_provenance_entry(
+                        metric_name="net_debt",
+                        source="derived:balance_sheet",
+                        page=bs_result.get("_page_number"),
+                        row_ref=row_ref,
+                        scale=str(bs_result.get("_scale") or "").strip(),
+                        scale_source=str(
+                            bs_result.get("_scale_source") or "unknown"
+                        ),
+                        pass1_result=pass1_result,
+                    )
                     net_debt_conf = _derived_net_debt_confidence(bs_result)
                     confidence_weighted_sum += net_debt_conf
                     confidence_weight += 1
@@ -3231,6 +3309,17 @@ def _run_pass4_reconciler(
             prose_match = _EXTRACTION_RE.match(prose_prov)
             if prose_match:
                 row_refs["shares_outstanding"] = prose_match.group("detail")
+                field_provenance["shares_outstanding"] = (
+                    _build_field_provenance_entry(
+                        metric_name="shares_outstanding",
+                        source="prose_note",
+                        page=prose_match.group("location").replace("page_", ""),
+                        row_ref=prose_match.group("detail"),
+                        scale=str(pass1_result.get("scale") or "unknown"),
+                        scale_source="document",
+                        pass1_result=pass1_result,
+                    )
+                )
 
     # Weighted average confidence — each source weighted by metrics contributed
     metric_confidence = (
@@ -3258,6 +3347,7 @@ def _run_pass4_reconciler(
         "row_refs": row_refs,
         "metric_source_scales": metric_source_scales,
         "metric_scale_sources": metric_scale_sources,
+        "field_provenance": field_provenance,
         "thinking": thinking_map,
         "markdown_tables": markdown_map,
         "confidence_metrics": round(metric_confidence, 3),
@@ -3645,6 +3735,11 @@ def _apply_appendix_wrapper_source_payload(
     provenance = (
         payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
     )
+    field_provenance = (
+        payload.get("field_provenance")
+        if isinstance(payload.get("field_provenance"), dict)
+        else {}
+    )
     for metric_name, value in wrapper_source.get("metrics", {}).items():
         if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS and value is not None:
             metrics[metric_name] = value
@@ -3655,9 +3750,30 @@ def _apply_appendix_wrapper_source_payload(
     for metric_name, source in wrapper_source.get("provenance", {}).items():
         if metric_name in _APPENDIX_WRAPPER_REQUIRED_METRICS:
             provenance[metric_name] = source
+            source_match = _EXTRACTION_RE.match(str(source))
+            if source_match:
+                page = source_match.group("location").replace("page_", "")
+                row_ref = row_refs.get(metric_name) or source_match.group("detail")
+                field_provenance[metric_name] = _build_field_provenance_entry(
+                    metric_name=metric_name,
+                    source=source_match.group("label"),
+                    page=page,
+                    row_ref=row_ref,
+                    scale=wrapper_source.get("scale") or payload.get("scale"),
+                    scale_source="wrapper",
+                    pass1_result={
+                        "report_type": wrapper_source.get("period_type")
+                        or payload.get("period_type"),
+                        "period_end": wrapper_source.get("period_end")
+                        or payload.get("period_end"),
+                        "currency": wrapper_source.get("currency")
+                        or payload.get("currency"),
+                    },
+                )
     payload["metrics"] = metrics
     payload["row_refs"] = row_refs
     payload["provenance"] = provenance
+    payload["field_provenance"] = field_provenance
 
     if wrapper_source.get("wrapper_disclosures") is not None:
         payload["wrapper_disclosures"] = list(wrapper_source["wrapper_disclosures"])
