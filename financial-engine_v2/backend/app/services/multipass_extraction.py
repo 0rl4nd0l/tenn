@@ -157,6 +157,10 @@ SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
         "Source metadata identifies a director-interest securities notice, not a "
         "financial report; it must not enter canary selection or metric extraction."
     ),
+    "webcast_details_notice": (
+        "Source metadata identifies webcast-details logistics, not a financial "
+        "report; it must not enter canary selection or metric extraction."
+    ),
     "unknown_document": (
         "Source metadata is insufficient to classify the document; normal "
         "downstream gates still decide whether extraction is safe."
@@ -2467,6 +2471,12 @@ def _detect_source_noncandidate_class(
         return (
             "meeting_or_proxy_notice",
             ["meeting_or_proxy_notice_pattern"],
+        )
+
+    if _source_text_has(compact_title, "webcast details"):
+        return (
+            "webcast_details_notice",
+            ["webcast_details_notice_pattern"],
         )
 
     if (

@@ -227,8 +227,8 @@ bounded canary:
   first-page text identifies meeting/proxy notices, board-change notices,
   operational project updates, share-sale/gross-proceeds announcements, or
   pre-results segment re-presentation documents, with Appendix 3Y /
-  change-of-director-interest notices handled as an additional narrow
-  non-financial notice class;
+  change-of-director-interest notices and webcast-details logistics handled as
+  additional narrow non-financial notice classes;
 - broad-sample scorecards preserve narrow source-class exclusions as
   `source_noncandidate:<class>` error-taxonomy entries;
 - EBITDA evidence cannot populate canonical `ebit`;
