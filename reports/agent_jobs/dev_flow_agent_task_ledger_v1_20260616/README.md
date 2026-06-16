@@ -7,7 +7,7 @@ implementation-capable sessions avoid duplicate work before coding.
 
 ## Current State
 
-VALIDATING
+DONE
 
 ## Constraints And Unsafe Actions
 
@@ -113,7 +113,8 @@ is not approved in this run.
 
 ## Validation Status
 
-Passed locally before commit and PR creation. The PR remains unmerged by design.
+Passed locally. PR #360 is open and remains unmerged by design:
+https://github.com/0rl4nd0l/tenn/pull/360
 
 ## Raw Logs
 
@@ -137,6 +138,16 @@ included in the commit.
 The first ledger support pass is instructional/template-only. Enforcement still
 depends on agents following the wrapper skills until a separately approved
 ledger script or hook exists.
+
+## Final Status
+
+- Local commits:
+  - `38e39eb7` `docs(control-plane): add agent task ledger workflow`
+- PR:
+  - #360 `[Control Plane] Add agent task ledger workflow`
+  - Base: `migration/clean-runtime-baseline-reconstruct-v1`
+  - Head: `control-plane/dev-flow-agent-task-ledger-v1-20260616`
+  - State: open, unmerged at closeout.
 
 ## Next Recommended Prompt
 
