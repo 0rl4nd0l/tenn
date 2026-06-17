@@ -71,6 +71,41 @@
       "command": "gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-issue286-persisted-field-provenance-v1-20260617 --title \"[Extraction] Persist metric field provenance for ASX financial rows\"",
       "exit_code": 0,
       "summary": "Opened PR #364: https://github.com/0rl4nd0l/tenn/pull/364."
+    },
+    {
+      "command": "gh pr checks 364",
+      "exit_code": 1,
+      "summary": "Initial PR check status: lint-and-test failed, scan passed."
+    },
+    {
+      "command": "gh api /repos/0rl4nd0l/tenn/actions/jobs/81685684134/logs",
+      "exit_code": 0,
+      "summary": "CI log root cause: revision '0009_periodic_financial_metric_provenance' was 41 chars, and source-inspection guard could not see cash-flow field literals inside _upsert_financial_rows."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_architecture_invariants.py::test_migration_revision_ids_fit_alembic_version_column financial-engine_v2/backend/tests/test_extraction_capability_guards.py::test_pipeline_upsert_field_list_includes_cashflow_fields -q",
+      "exit_code": 0,
+      "summary": "Exact CI failures now pass locally: 2 passed."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId::test_upsert_persists_metric_field_provenance_for_written_values -q",
+      "exit_code": 0,
+      "summary": "Focused provenance persistence test still passes after CI fix."
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py",
+      "exit_code": 0,
+      "summary": "CI-fix touched Python files compile."
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py",
+      "exit_code": 0,
+      "summary": "Targeted ruff passed for CI-fix touched files."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... migration import sanity ... PY",
+      "exit_code": 0,
+      "summary": "Migration sanity passed with shortened revision '0009_metric_provenance'."
     }
   ]
 }

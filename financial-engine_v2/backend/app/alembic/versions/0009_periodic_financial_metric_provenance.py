@@ -3,7 +3,7 @@
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0009_periodic_financial_metric_provenance"
+revision = "0009_metric_provenance"
 down_revision = "0008_asx_structured_created_at"
 branch_labels = None
 depends_on = None

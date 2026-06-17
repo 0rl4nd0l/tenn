@@ -48,3 +48,7 @@ Rationale: PR #289's old broad temporary-branch `metric_provenance` storage is p
 
 - VERIFIED: local commit `d2292894` opened PR #364.
 - VERIFIED: PR #364 is open and unmerged at creation time.
+- VERIFIED: initial PR #364 `lint-and-test` failed on 2026-06-16 because the
+  migration revision id exceeded 32 characters and the field-list guard could
+  no longer see cash-flow literals inside `_upsert_financial_rows`.
+- VERIFIED: local rerun of both exact failing tests passed after the CI fix.

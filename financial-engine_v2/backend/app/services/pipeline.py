@@ -1111,22 +1111,6 @@ def download_pdf_for_document(
     return {"document_id": str(doc.document_id), "bytes": len(content)}
 
 
-_FINANCIAL_METRIC_FIELDS = [
-    "revenue",
-    "ebit",
-    "np_attributable",
-    "operating_cf",
-    "investing_cf",
-    "financing_cf",
-    "capex",
-    "cash_end",
-    "net_debt",
-    "shares_outstanding",
-    "total_equity",
-    "interest_expense",
-]
-
-
 def _metric_provenance_for_written_values(
     *,
     metrics: Mapping[str, Any],
@@ -1175,8 +1159,22 @@ def _upsert_financial_rows(db, doc, structured):
             )
             db.add(row)
 
+        metric_fields = [
+            "revenue",
+            "ebit",
+            "np_attributable",
+            "operating_cf",
+            "investing_cf",
+            "financing_cf",
+            "capex",
+            "cash_end",
+            "net_debt",
+            "shares_outstanding",
+            "total_equity",
+            "interest_expense",
+        ]
         written_values = {}
-        for field in _FINANCIAL_METRIC_FIELDS:
+        for field in metric_fields:
             value = _coerce_float(metrics.get(field, None))
             setattr(row, field, value)
             written_values[field] = value
