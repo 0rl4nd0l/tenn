@@ -1,0 +1,10 @@
+{
+  "base": "migration/clean-runtime-baseline-reconstruct-v1",
+  "branch": "safe/extraction-broad-run-provenance-risk-flags-v1-20260617",
+  "draft_pr": true,
+  "github_mutation_approved_by_user": "proceed",
+  "head_before_publish_scaffold": "f0d48118",
+  "pr_number": null,
+  "pr_url": null,
+  "status": "pending_push_and_pr"
+}
