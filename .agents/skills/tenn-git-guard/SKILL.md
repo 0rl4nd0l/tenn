@@ -155,6 +155,31 @@ Do not reimplement existing hooks. Treat them as backend guards:
 Workflow commands should preflight branch, dirty-state, registry, and allowlist
 problems before hooks fire. Stop hooks are backstops.
 
+## Docs Impact Guard
+
+For implementation-capable workflows, verify that closeout evidence includes a
+Docs Impact Check before readiness, PR, or owner-ready claims. The guard should
+not rewrite docs itself; it should classify missing or stale docs evidence as a
+caller risk.
+
+Required fields:
+
+- `docs_impact`: `DOCS_NOT_REQUIRED | DOCS_UPDATED | DOCS_FOLLOWUP | DATA_MISSING`
+- `docs_checked`
+- `docs_changed`
+- `docs_followup`
+- `reason`
+
+If behavior, schema, command usage, workflow, validation, operator steps,
+artifact shape, API, data model, skill trigger, or safety boundary changed,
+affected docs/templates/skills must be updated or a `DOCS_FOLLOWUP` must be
+recorded. If no docs update is required, record `DOCS_NOT_REQUIRED` with a
+reason. Do not let a PR close out with undocumented behavior changes.
+
+For durable docs, templates, and skills, callers may add freshness metadata:
+`last_verified_commit`, `last_verified_pr`, `source_of_truth_files`,
+`stale_if_files`, `owner`, and `evidence_grade`.
+
 ## Classify
 
 Classify the worktree and dirty files:
@@ -185,6 +210,7 @@ Produce short markdown or JSON in the caller's report directory:
 - registry read-only status
 - ledger sources checked
 - duplicate-work classification
+- docs impact status or `DATA_MISSING`
 - decision: `pass`, `warning`, `block`, or `data_missing`
 
 ## Prohibited Actions

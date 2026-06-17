@@ -18,6 +18,25 @@ Decision: <pass|pass_with_risk|revise|block>
 ## Validation Evidence
 - `<command>`: <exit/status>
 
+## Docs Impact
+- docs_impact: <DOCS_NOT_REQUIRED|DOCS_UPDATED|DOCS_FOLLOWUP|DATA_MISSING>
+- docs_checked:
+  - <path or none>
+- docs_changed:
+  - <path or none>
+- docs_followup:
+  - <issue, task card, report path, or none>
+- reason: <short reason>
+
+## Model And Subagent Routing
+- task_tier: <small|medium|large|critical>
+- recommended_model: <mini/low-cost|standard coding model|high reasoning|high reasoning plus review-board>
+- actual_model: <model tier used or DATA_MISSING>
+- why_this_model: <short reason>
+- worker_model_allowed: <mini/low-cost|standard coding model|high reasoning|not_applicable>
+- worker_decision_limit: <evidence_only|recommendation_only|bounded_implementation|not_applicable>
+- escalation_needed: <yes|no>
+
 ## Diff Discipline
 - Smallest safe readable diff: <yes|no>
 - Unnecessary abstraction added: <yes|no>

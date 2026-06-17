@@ -20,6 +20,8 @@ Run `tenn-git-guard` and inspect:
 - diff scope
 - validation evidence
 - report bundle
+- Docs Impact Check fields
+- model/subagent routing fields
 - product/runtime/data/extraction boundaries
 - GitHub PR metadata when reviewing a PR
 
@@ -41,8 +43,55 @@ Lead with findings ordered by severity. Check:
 - whether tests/checks actually ran or are honestly marked unavailable
 - unfilled templates that imply approval, success, or evidence that was not
   provided
+- missing or dishonest Docs Impact Check fields:
+  - `docs_impact`
+  - `docs_checked`
+  - `docs_changed`
+  - `docs_followup`
+  - `reason`
+- undocumented behavior, schema, command usage, workflow, validation, operator
+  step, artifact shape, API, data model, skill trigger, or safety-boundary
+  changes
+- model/subagent routing fields:
+  - `task_tier`
+  - `recommended_model`
+  - `actual_model`
+  - `why_this_model`
+  - `worker_model_allowed`
+  - `worker_decision_limit`
+  - `escalation_needed`
+- whether small/cheap workers made decisions above their allowed risk tier
 - counter-lineage evidence when the diff changes metric, evaluation, daemon
   status, score, pass-rate, or count reporting
+
+## Docs Impact Gate
+
+Do not pass a PR or owner-ready closeout with undocumented behavior changes.
+If docs were not needed, the diff must record `DOCS_NOT_REQUIRED` and a reason.
+If docs should change but cannot be updated in scope, require `DOCS_FOLLOWUP`
+with a concrete issue, report, or task-card path.
+
+For durable docs, templates, and skills, check whether freshness metadata is
+present when useful: `last_verified_commit`, `last_verified_pr`,
+`source_of_truth_files`, `stale_if_files`, `owner`, and `evidence_grade`.
+
+## Model Routing Gate
+
+Review routing as Codex development-tooling policy, not Tenn runtime behavior.
+Use Tenn-specific escalation only when the diff depends on this repo's
+task-card registry, owner-boundary rules, extraction boundaries, or
+financial-truth safety constraints.
+
+Expected tiers:
+
+- `small`: bounded evidence gathering and simple docs/test tasks; mini/low-cost
+  is acceptable.
+- `medium`: one/two-file implementation; standard coding model is acceptable.
+- `large`: architecture, schema, persistence, or tricky debugging; high
+  reasoning is expected.
+- `critical`: DB/runtime mutation, destructive Git, financial truth, merge
+  conflict, high-risk cleanup, or owner-boundary decision; high reasoning plus
+  review-board is expected.
 
 ## Output
 

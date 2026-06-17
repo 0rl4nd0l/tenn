@@ -9,6 +9,15 @@
 - Worker ID:
 - Result path:
 
+## Model Routing
+- task_tier: <small|medium|large|critical>
+- recommended_model: <mini/low-cost|standard coding model|high reasoning|high reasoning plus review-board>
+- actual_model: <model tier used or DATA_MISSING>
+- why_this_model: <short reason>
+- worker_model_allowed: <mini/low-cost|standard coding model|high reasoning|not_applicable>
+- worker_decision_limit: <evidence_only|recommendation_only|bounded_implementation|not_applicable>
+- escalation_needed: <yes|no>
+
 ## Ledger
 - Status:
 - Touched files:

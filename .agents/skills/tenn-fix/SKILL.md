@@ -37,13 +37,76 @@ board decision, task card, or explicit fix request.
 9. Use RED/GREEN validation where practical: capture a failing regression test
    or focused check before the fix, then rerun after the change.
 10. Execute one bounded milestone per run.
-11. Deploy bounded `tenn-worker` workers only when they reduce risk or context
+11. Classify task difficulty and record model/worker routing before delegating
+   or making high-risk decisions.
+12. Deploy bounded `tenn-worker` workers only when they reduce risk or context
    load. Each worker gets one lane, one worktree, one brief, and one result
    file.
-12. Integrate one coherent change at a time.
-13. Run focused validation proportional to blast radius.
-14. Run `tenn-code-reviewer` before PR preparation.
-15. Prepare, push, or open a PR only when the task and owner approval permit it.
+13. Integrate one coherent change at a time.
+14. Run focused validation proportional to blast radius.
+15. Perform a Docs Impact Check before code review and closeout.
+16. Run `tenn-code-reviewer` before PR preparation.
+17. Prepare, push, or open a PR only when the task and owner approval permit it.
+
+## Docs Impact Check
+
+Every implementation-capable run must perform a Docs Impact Check before
+closeout. This is Codex development-tooling discipline, not Tenn runtime code.
+
+If behavior, schema, command usage, workflow, validation, operator steps,
+artifact shape, API, data model, skill trigger, or safety boundary changed,
+update affected docs/templates/skills in the same task or create a
+`DOCS_FOLLOWUP`.
+
+If no docs update is required, record `DOCS_NOT_REQUIRED` with a reason. Do not
+close out a PR with undocumented behavior changes.
+
+Closeout must record:
+
+- `docs_impact`: `DOCS_NOT_REQUIRED | DOCS_UPDATED | DOCS_FOLLOWUP | DATA_MISSING`
+- `docs_checked`
+- `docs_changed`
+- `docs_followup`
+- `reason`
+
+For durable docs, templates, and skills, prefer freshness metadata when useful:
+`last_verified_commit`, `last_verified_pr`, `source_of_truth_files`,
+`stale_if_files`, `owner`, and `evidence_grade`.
+
+## Model And Worker Routing
+
+Classify the task before choosing workers or final decision authority:
+
+- `small`: grep/search, JSON parse, file listing, report summarization, simple
+  docs update, focused test run. Recommended model: mini/low-cost.
+- `medium`: small bug fix, one/two-file code change, targeted regression, PR
+  comment fix. Recommended model: standard coding model.
+- `large`: multi-file correctness, schema/persistence, architecture change, or
+  tricky debugging. Recommended model: high reasoning.
+- `critical`: DB/runtime mutation, destructive Git, financial truth, merge
+  conflict, high-risk cleanup, or owner-boundary decision. Recommended model:
+  high reasoning plus `tenn-review-board`.
+
+Record:
+
+- `task_tier`
+- `recommended_model`
+- `actual_model`
+- `why_this_model`
+- `worker_model_allowed`
+- `worker_decision_limit`
+- `escalation_needed`
+
+Use smaller/cheaper workers for bounded evidence gathering. Use high reasoning
+models for architecture, schema, financial truth, merge readiness, destructive
+operations, and owner-boundary decisions. Do not let a small model make final
+decisions on high-risk work.
+
+For hard tasks, optionally use a short strategy-bid stage: multiple read-only
+workers propose compact plans, then the orchestrator selects one based on
+testability, blast radius, value, and cost. Delegate subagents only when lanes
+are independent and can be isolated by worktree, branch, result file, and
+task-card allowlist.
 
 ## Outputs
 
@@ -57,6 +120,9 @@ Produce or update:
 `STATE.md` or `DECISIONS.md` must record Task Ledger availability, current
 ledger status, duplicate-work classification, ledger update result, and any
 `DATA_MISSING` fallback searches.
+
+`STATE.md`, `DECISIONS.md`, or the report bundle must also record Docs Impact
+Check fields and Model/Worker Routing fields for the run.
 
 Closeout must be one of: PR opened, local commit, failing regression test,
 issue closed, owner decision, or blocked with exact reason. Do not complete with
