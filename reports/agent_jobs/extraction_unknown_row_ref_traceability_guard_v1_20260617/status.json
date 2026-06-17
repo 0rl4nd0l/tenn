@@ -1,0 +1,39 @@
+{
+  "base_commit": "f6b8a606d391f7e040aa97746098a981edb49841",
+  "behavior_changed": "Structured field_provenance entries with row_ref or excerpt equal to unknown are downgraded to low_traceability instead of being marked precise solely because page_tag exists.",
+  "does_not_prove": [
+    "Does not prove extraction values are correct.",
+    "Does not rerun count-24/count-32 or any extraction sample.",
+    "Does not mutate DB/canonical rows or verify persisted production data."
+  ],
+  "files_changed": [
+    "docs/agent_tasks/extraction_unknown_row_ref_traceability_guard_v1_20260617.md",
+    "financial-engine_v2/backend/app/services/provenance.py",
+    "financial-engine_v2/backend/tests/test_provenance_adapter.py",
+    "reports/agent_jobs/extraction_unknown_row_ref_traceability_guard_v1_20260617/README.md",
+    "reports/agent_jobs/extraction_unknown_row_ref_traceability_guard_v1_20260617/status.json",
+    "reports/agent_jobs/extraction_unknown_row_ref_traceability_guard_v1_20260617/validation.json",
+    "reports/agent_jobs/extraction_unknown_row_ref_traceability_guard_v1_20260617/diff-check.json"
+  ],
+  "generated_at": "2026-06-17T01:04:52Z",
+  "issue": "#286",
+  "job_id": "extraction_unknown_row_ref_traceability_guard_v1_20260617",
+  "mode": "SAFE_EXTENSION_CONSUMER_TRACEABILITY_GUARD",
+  "next_recommended_step": "Use this guard as the final #286 consumer-side traceability fix candidate; next safe step is PR prep/review or owner-approved issue #286 closeout wording, not count-32 yet.",
+  "proves": [
+    "Consumer provenance no longer reports unknown structured row evidence as precise.",
+    "Existing structured field provenance with real row labels remains precise.",
+    "The full provenance adapter focused suite passes."
+  ],
+  "state": "DONE",
+  "unsafe_actions_avoided": [
+    "count-24 rerun",
+    "count-32",
+    "broad extraction",
+    "backfill",
+    "canonical writes",
+    "DB/Qdrant/Redis/news/memory/source-PDF/prompt/gold/schema/runtime/model/GPU mutation",
+    "GitHub mutation",
+    "PR #318 patch use"
+  ]
+}

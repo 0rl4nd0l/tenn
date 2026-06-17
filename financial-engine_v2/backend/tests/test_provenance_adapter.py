@@ -142,6 +142,59 @@ def test_from_extraction_payload_prefers_structured_field_provenance() -> None:
     assert record.raw_reference == payload["field_provenance"]["revenue"]
 
 
+def test_from_extraction_payload_downgrades_unknown_structured_row_ref() -> None:
+    payload = {
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "confidence_metrics": 0.72,
+        "field_provenance": {
+            "financing_cf": {
+                "metric": "financing_cf",
+                "source": "cashflow_statement",
+                "table_label": "cashflow_statement",
+                "page_number": 22,
+                "page_tag": "page_22",
+                "row_ref": "unknown",
+                "excerpt": "unknown",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "source_document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+                "extraction_run_id": "run-unknown-row-ref",
+            },
+            "investing_cf": {
+                "metric": "investing_cf",
+                "source": "cashflow_statement",
+                "table_label": "cashflow_statement",
+                "page_number": 22,
+                "page_tag": "page_22",
+                "row_ref": "Net cash from investing activities",
+                "excerpt": "unknown",
+                "scale": "thousands",
+                "scale_source": "table",
+                "currency": "AUD",
+                "period_type": "H",
+                "period_end": "2025-12-31",
+                "source_document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+                "extraction_run_id": "run-unknown-row-ref",
+            }
+        },
+    }
+
+    records = from_extraction_payload(payload)
+
+    assert len(records) == 2
+    assert {record.source_label for record in records} == {"cashflow_statement"}
+    assert {record.location_ref for record in records} == {"page_22"}
+    assert {record.provenance_status for record in records} == {"low_traceability"}
+    for record in records:
+        validation = validate_provenance_record(record)
+        issue_codes = {issue["code"] for issue in validation["issues"]}
+        assert "low_traceability" in issue_codes
+
+
 def test_from_orchestrator_evidence_handles_financial_truth_payload() -> None:
     record = from_orchestrator_evidence(
         "financial_truth",

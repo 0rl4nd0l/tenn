@@ -57,6 +57,11 @@ def _infer_synthetic(texts: list[str | None]) -> bool:
     )
 
 
+def _is_unknown_evidence(value: Any) -> bool:
+    text = _clean_str(value)
+    return text is not None and text.lower() == "unknown"
+
+
 def _maybe_source_document_id(value: Any) -> str | None:
     text = _clean_str(value)
     if not text:
@@ -204,9 +209,9 @@ def _field_provenance_record(
     if not page_tag:
         page_number = _clean_str(field_provenance.get("page_number"))
         page_tag = f"page_{page_number}" if page_number else None
-    evidence = _clean_str(field_provenance.get("excerpt")) or _clean_str(
-        field_provenance.get("row_ref")
-    )
+    row_ref = field_provenance.get("row_ref")
+    excerpt = field_provenance.get("excerpt")
+    evidence = _clean_str(excerpt) or _clean_str(row_ref)
     period_ref = _compose_period_ref(
         field_provenance.get("period_end") or payload.get("period_end"),
         field_provenance.get("period_type") or payload.get("period_type"),
@@ -226,13 +231,23 @@ def _field_provenance_record(
         parents = ()
         summary = f"{metric} extracted from prose-note fallback."
     else:
-        status = _PRECISE if page_tag else _PARTIAL
-        parents = ()
-        summary = (
-            f"{metric} extracted directly from {source_label}."
-            if status == _PRECISE
-            else f"{metric} has structured provenance with partial location evidence."
+        unknown_evidence = _is_unknown_evidence(row_ref) or _is_unknown_evidence(
+            excerpt
         )
+        status = (
+            _LOW_TRACEABILITY
+            if unknown_evidence
+            else (_PRECISE if page_tag else _PARTIAL)
+        )
+        parents = ()
+        if unknown_evidence:
+            summary = f"{metric} has structured provenance with unknown row evidence."
+        elif status == _PRECISE:
+            summary = f"{metric} extracted directly from {source_label}."
+        else:
+            summary = (
+                f"{metric} has structured provenance with partial location evidence."
+            )
 
     return ProvenanceRecord(
         source_type="financial_statement",
