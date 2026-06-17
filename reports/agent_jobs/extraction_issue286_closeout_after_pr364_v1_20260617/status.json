@@ -1,0 +1,25 @@
+{
+  "job_id": "extraction_issue286_closeout_after_pr364_v1_20260617",
+  "issue": 286,
+  "decision": "PASS_CLOSEOUT",
+  "close_gate": "COMPLETED_WITH_EVIDENCE",
+  "github_issue_mutation": "completed",
+  "issue_state_after_closeout": "CLOSED",
+  "issue_closed_at": "2026-06-17T01:11:22Z",
+  "closeout_comment_url": "https://github.com/0rl4nd0l/tenn/issues/286#issuecomment-4725006163",
+  "evidence_grades": {
+    "issue_286_open_before_closeout": "VERIFIED",
+    "pr_364_merged": "VERIFIED",
+    "canonical_contains_pr364_merge": "VERIFIED",
+    "accounting_number_parsing": "VERIFIED",
+    "payload_field_provenance": "VERIFIED",
+    "field_provenance_consumers": "VERIFIED",
+    "persisted_metric_provenance": "VERIFIED",
+    "existing_extraction_tests_pass": "VERIFIED",
+    "registry_active_jobs": "VERIFIED",
+    "task_ledger": "DATA_MISSING"
+  },
+  "merged_prs": [349, 350, 351, 354, 364],
+  "canonical_merge_commit": "f6b8a606d391f7e040aa97746098a981edb49841",
+  "hard_boundaries_respected": true
+}
