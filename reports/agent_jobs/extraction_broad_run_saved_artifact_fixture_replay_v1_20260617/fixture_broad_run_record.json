@@ -1,0 +1,349 @@
+{
+  "accepted_output_scale_magnitude_risk": {
+    "accepted_output": true,
+    "flag_codes": [],
+    "flag_count": 0,
+    "flags": [],
+    "risk_level": "none"
+  },
+  "confidence": null,
+  "currency": "AUD",
+  "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+  "elapsed_s": null,
+  "error": null,
+  "fixture_mode": "saved_artifact_no_extraction",
+  "fixture_source": "reports/agent_jobs/extraction_lbl_income_row_ref_repair_v1_20260616/lbl_replay_summary.json",
+  "metric_provenance": {
+    "cash_end": {
+      "excerpt": "Cash &Equivalents",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "Cash &Equivalents",
+        "metric": "cash_end",
+        "page_number": 22,
+        "page_tag": "page_22",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "Cash &Equivalents",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "cashflow_statement",
+        "table_label": "cashflow_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 22,
+      "page_tag": "page_22",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "Cash &Equivalents",
+      "source": "cashflow_statement",
+      "source_snippet": "Cash &Equivalents",
+      "table_label": "cashflow_statement",
+      "value": 3999700.0
+    },
+    "ebit": {
+      "excerpt": "EBIT",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "EBIT",
+        "metric": "ebit",
+        "page_number": 21,
+        "page_tag": "page_21",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "EBIT",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "income_statement",
+        "table_label": "income_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 21,
+      "page_tag": "page_21",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "EBIT",
+      "source": "income_statement",
+      "source_snippet": "EBIT",
+      "table_label": "income_statement",
+      "value": 213677000.0
+    },
+    "financing_cf": {
+      "excerpt": "Cashflow from financing",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "Cashflow from financing",
+        "metric": "financing_cf",
+        "page_number": 22,
+        "page_tag": "page_22",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "Cashflow from financing",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "cashflow_statement",
+        "table_label": "cashflow_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 22,
+      "page_tag": "page_22",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "Cashflow from financing",
+      "source": "cashflow_statement",
+      "source_snippet": "Cashflow from financing",
+      "table_label": "cashflow_statement",
+      "value": -4257100.0
+    },
+    "investing_cf": {
+      "excerpt": "Cashflow from investing",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "Cashflow from investing",
+        "metric": "investing_cf",
+        "page_number": 22,
+        "page_tag": "page_22",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "Cashflow from investing",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "cashflow_statement",
+        "table_label": "cashflow_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 22,
+      "page_tag": "page_22",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "Cashflow from investing",
+      "source": "cashflow_statement",
+      "source_snippet": "Cashflow from investing",
+      "table_label": "cashflow_statement",
+      "value": -991800.0
+    },
+    "np_attributable": {
+      "excerpt": "NPAT For",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "NPAT For",
+        "metric": "np_attributable",
+        "page_number": 21,
+        "page_tag": "page_21",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "NPAT For",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "income_statement",
+        "table_label": "income_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 21,
+      "page_tag": "page_21",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "NPAT For",
+      "source": "income_statement",
+      "source_snippet": "NPAT For",
+      "table_label": "income_statement",
+      "value": 22159000.0
+    },
+    "operating_cf": {
+      "excerpt": "Cashflow from operations For",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "Cashflow from operations For",
+        "metric": "operating_cf",
+        "page_number": 22,
+        "page_tag": "page_22",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "Cashflow from operations For",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "cashflow_statement",
+        "table_label": "cashflow_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 22,
+      "page_tag": "page_22",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "Cashflow from operations For",
+      "source": "cashflow_statement",
+      "source_snippet": "Cashflow from operations For",
+      "table_label": "cashflow_statement",
+      "value": 5124600.0
+    },
+    "revenue": {
+      "excerpt": "Sales Revenue",
+      "field_provenance": {
+        "currency": "AUD",
+        "excerpt": "Sales Revenue",
+        "metric": "revenue",
+        "page_number": 21,
+        "page_tag": "page_21",
+        "period_end": "2025-12-31",
+        "period_type": "H",
+        "row_ref": "Sales Revenue",
+        "scale": "thousands",
+        "scale_source": "table",
+        "source": "income_statement",
+        "table_label": "income_statement"
+      },
+      "metric_scale_source": "table",
+      "metric_source_scale": "thousands",
+      "missing_fields": [
+        "provenance_reference"
+      ],
+      "page_number": 21,
+      "page_tag": "page_21",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": null,
+      "row_ref": "Sales Revenue",
+      "source": "income_statement",
+      "source_snippet": "Sales Revenue",
+      "table_label": "income_statement",
+      "value": 230089000.0
+    }
+  },
+  "metrics": {
+    "capex": null,
+    "cash_end": 3999700.0,
+    "ebit": 213677000.0,
+    "financing_cf": -4257100.0,
+    "investing_cf": -991800.0,
+    "net_debt": null,
+    "np_attributable": 22159000.0,
+    "operating_cf": 5124600.0,
+    "revenue": 230089000.0,
+    "shares_outstanding": null
+  },
+  "non_null_metrics": 7,
+  "page_count": null,
+  "pdf_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+  "period_end": "2025-12-31",
+  "period_type": "H",
+  "provenance_audit": {
+    "document_provenance_available": true,
+    "document_provenance_missing": false,
+    "metrics_missing_provenance": [],
+    "metrics_with_provenance": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "investing_cf",
+      "financing_cf",
+      "cash_end"
+    ],
+    "metrics_with_values": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "investing_cf",
+      "financing_cf",
+      "cash_end"
+    ],
+    "provenance_available": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "investing_cf",
+      "financing_cf",
+      "cash_end"
+    ],
+    "provenance_available_count": 7,
+    "provenance_missing": [],
+    "provenance_missing_count": 0
+  },
+  "provenance_available": [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "cash_end"
+  ],
+  "provenance_missing": [],
+  "risk_flags": [],
+  "sanity": {},
+  "scale": "thousands",
+  "scale_validation": "pass",
+  "source_provenance": {
+    "source_bound": {
+      "currency": "AUD",
+      "document_title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "period_end": "2025-12-31",
+      "period_type": "H",
+      "scale": "thousands"
+    },
+    "source_period_end_binding": {
+      "corroborating_source_paths": [],
+      "from_period_end": "2026-01-31",
+      "period_source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-announcement_989d03d6-9ba6-4ec6-84cc-fbf930dc120a.pdf",
+      "period_source_role": "results_announcement",
+      "reason": "explicit_companion_source_half_year_period_end_over_unsupported_pass1_period_end",
+      "selection_rule": "same_day_same_ticker_companion_period_source",
+      "source_period_end_reason": "half_year_ended_explicit_date",
+      "target_document_title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "target_source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "target_title_announcement_date": "2026-02-20",
+      "to_period_end": "2025-12-31"
+    },
+    "source_period_end_evidence": {
+      "hits": [
+        {
+          "evidence": "for the six months ended 31 December 2025",
+          "period_end": "2025-12-31",
+          "period_type": "H",
+          "reason": "half_year_ended_explicit_date",
+          "source": "source_text"
+        }
+      ],
+      "period_end": "2025-12-31",
+      "period_source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-announcement_989d03d6-9ba6-4ec6-84cc-fbf930dc120a.pdf",
+      "period_source_role": "results_announcement",
+      "period_type": "H",
+      "reason": "half_year_ended_explicit_date"
+    }
+  },
+  "status": "ok",
+  "table_count": null,
+  "ticker": "LBL"
+}

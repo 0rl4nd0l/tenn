@@ -1,0 +1,498 @@
+{
+  "accepted_output_scale_magnitude_risk": {
+    "accepted_output": true,
+    "flag_codes": [
+      "all_checked_metrics_below_minimum",
+      "mixed_metric_source_scales",
+      "payload_scale_differs_from_metric_source_scale",
+      "metric_source_scale_missing",
+      "metric_revenue_ratio_high"
+    ],
+    "flag_count": 5,
+    "flags": [
+      {
+        "code": "all_checked_metrics_below_minimum",
+        "metrics": {
+          "ebit": 60.0,
+          "np_attributable": 50.0,
+          "operating_cf": -25.0,
+          "revenue": 1200.0
+        },
+        "period_type": "A",
+        "reason": "all checked metrics fall below loose minimum scale thresholds",
+        "severity": "review",
+        "thresholds": {
+          "ebit": 100000,
+          "np_attributable": 100000,
+          "operating_cf": 100000,
+          "revenue": 1000000
+        }
+      },
+      {
+        "code": "mixed_metric_source_scales",
+        "distinct_scales": [
+          "ones",
+          "thousands"
+        ],
+        "metric_source_scales": {
+          "ebit": "ones",
+          "np_attributable": "thousands",
+          "operating_cf": "thousands",
+          "revenue": "thousands"
+        },
+        "reason": "non-null dollar metrics carry multiple source scales",
+        "severity": "review"
+      },
+      {
+        "code": "payload_scale_differs_from_metric_source_scale",
+        "metric_source_scales": {
+          "ebit": "ones"
+        },
+        "payload_scale": "thousands",
+        "reason": "payload scale differs from one or more metric-local source scales",
+        "severity": "review"
+      },
+      {
+        "code": "metric_source_scale_missing",
+        "metrics": [
+          "cash_end"
+        ],
+        "reason": "metric-local source scale is missing for non-null dollar metrics",
+        "severity": "info"
+      },
+      {
+        "code": "metric_revenue_ratio_high",
+        "metric": "cash_end",
+        "ratio": 16.6667,
+        "reason": "metric magnitude is unusually high relative to revenue",
+        "revenue": 1200.0,
+        "severity": "review",
+        "threshold": 10.0,
+        "value": 20000.0
+      }
+    ],
+    "risk_level": "review"
+  },
+  "currency": "AUD",
+  "document_id": "SYNTH_RISK_2026_A_exact_positive_fixture",
+  "elapsed_s": 0.0,
+  "error": null,
+  "field_provenance": {
+    "cash_end": {
+      "excerpt": "Cash and cash equivalents at period end 20,000",
+      "page_number": 3,
+      "page_tag": "fixture:p3",
+      "row_ref": "Synthetic balance row: cash and equivalents 20,000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of financial position"
+    },
+    "ebit": {
+      "excerpt": "EBIT 60",
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "row_ref": "Synthetic income table row: EBIT 60",
+      "scale": "ones",
+      "scale_source": "synthetic row-local override dollars",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of profit or loss"
+    },
+    "np_attributable": {
+      "excerpt": "Net profit attributable 50",
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "row_ref": "Synthetic income table row: NPAT 50",
+      "scale": "thousands",
+      "scale_source": "synthetic table header A$000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of profit or loss"
+    },
+    "operating_cf": {
+      "excerpt": "Net operating cash flow (25)",
+      "page_number": 2,
+      "page_tag": "fixture:p2",
+      "row_ref": "Synthetic cash-flow row: operating cash flow (25)",
+      "scale": "thousands",
+      "scale_source": "synthetic table header A$000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of cash flows"
+    },
+    "revenue": {
+      "excerpt": "Revenue 1,200",
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "row_ref": "Synthetic income table row: Revenue 1,200",
+      "scale": "thousands",
+      "scale_source": "synthetic table header A$000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of profit or loss"
+    }
+  },
+  "fixture_id": "synthetic_positive_scale_magnitude_risk_v1",
+  "fixture_kind": "exact_synthetic_report_artifact",
+  "forbidden_actions_avoided": [
+    "run_multipass_extraction",
+    "count-24",
+    "count-32",
+    "broad extraction",
+    "broad backfill",
+    "runtime service start",
+    "canonical writes",
+    "DB/Qdrant/Redis/news/memory mutation",
+    "GitHub mutation"
+  ],
+  "metric_provenance": {
+    "cash_end": {
+      "excerpt": "Cash and cash equivalents at period end 20,000",
+      "field_provenance": {
+        "excerpt": "Cash and cash equivalents at period end 20,000",
+        "page_number": 3,
+        "page_tag": "fixture:p3",
+        "row_ref": "Synthetic balance row: cash and equivalents 20,000",
+        "source": "synthetic_positive_risk_fixture",
+        "table_label": "Synthetic statement of financial position"
+      },
+      "metric_scale_source": null,
+      "metric_source_scale": null,
+      "missing_fields": [
+        "metric_source_scale",
+        "metric_scale_source"
+      ],
+      "page_number": 3,
+      "page_tag": "fixture:p3",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": "synthetic:cash_end",
+      "row_ref": "Synthetic balance row: cash and equivalents 20,000",
+      "source": "synthetic_positive_risk_fixture",
+      "source_snippet": "Cash and cash equivalents at period end 20,000",
+      "table_label": "Synthetic statement of financial position",
+      "value": 20000
+    },
+    "ebit": {
+      "excerpt": "EBIT 60",
+      "field_provenance": {
+        "excerpt": "EBIT 60",
+        "page_number": 1,
+        "page_tag": "fixture:p1",
+        "row_ref": "Synthetic income table row: EBIT 60",
+        "scale": "ones",
+        "scale_source": "synthetic row-local override dollars",
+        "source": "synthetic_positive_risk_fixture",
+        "table_label": "Synthetic statement of profit or loss"
+      },
+      "metric_scale_source": "synthetic row-local override dollars",
+      "metric_source_scale": "ones",
+      "missing_fields": [],
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": "synthetic:ebit",
+      "row_ref": "Synthetic income table row: EBIT 60",
+      "source": "synthetic_positive_risk_fixture",
+      "source_snippet": "EBIT 60",
+      "table_label": "Synthetic statement of profit or loss",
+      "value": 60
+    },
+    "np_attributable": {
+      "excerpt": "Net profit attributable 50",
+      "field_provenance": {
+        "excerpt": "Net profit attributable 50",
+        "page_number": 1,
+        "page_tag": "fixture:p1",
+        "row_ref": "Synthetic income table row: NPAT 50",
+        "scale": "thousands",
+        "scale_source": "synthetic table header A$000",
+        "source": "synthetic_positive_risk_fixture",
+        "table_label": "Synthetic statement of profit or loss"
+      },
+      "metric_scale_source": "synthetic table header A$000",
+      "metric_source_scale": "thousands",
+      "missing_fields": [],
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": "synthetic:np_attributable",
+      "row_ref": "Synthetic income table row: NPAT 50",
+      "source": "synthetic_positive_risk_fixture",
+      "source_snippet": "Net profit attributable 50",
+      "table_label": "Synthetic statement of profit or loss",
+      "value": 50
+    },
+    "operating_cf": {
+      "excerpt": "Net operating cash flow (25)",
+      "field_provenance": {
+        "excerpt": "Net operating cash flow (25)",
+        "page_number": 2,
+        "page_tag": "fixture:p2",
+        "row_ref": "Synthetic cash-flow row: operating cash flow (25)",
+        "scale": "thousands",
+        "scale_source": "synthetic table header A$000",
+        "source": "synthetic_positive_risk_fixture",
+        "table_label": "Synthetic statement of cash flows"
+      },
+      "metric_scale_source": "synthetic table header A$000",
+      "metric_source_scale": "thousands",
+      "missing_fields": [],
+      "page_number": 2,
+      "page_tag": "fixture:p2",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": "synthetic:operating_cf",
+      "row_ref": "Synthetic cash-flow row: operating cash flow (25)",
+      "source": "synthetic_positive_risk_fixture",
+      "source_snippet": "Net operating cash flow (25)",
+      "table_label": "Synthetic statement of cash flows",
+      "value": -25
+    },
+    "revenue": {
+      "excerpt": "Revenue 1,200",
+      "field_provenance": {
+        "excerpt": "Revenue 1,200",
+        "page_number": 1,
+        "page_tag": "fixture:p1",
+        "row_ref": "Synthetic income table row: Revenue 1,200",
+        "scale": "thousands",
+        "scale_source": "synthetic table header A$000",
+        "source": "synthetic_positive_risk_fixture",
+        "table_label": "Synthetic statement of profit or loss"
+      },
+      "metric_scale_source": "synthetic table header A$000",
+      "metric_source_scale": "thousands",
+      "missing_fields": [],
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "provenance_available": true,
+      "provenance_missing": false,
+      "provenance_reference": "synthetic:revenue",
+      "row_ref": "Synthetic income table row: Revenue 1,200",
+      "source": "synthetic_positive_risk_fixture",
+      "source_snippet": "Revenue 1,200",
+      "table_label": "Synthetic statement of profit or loss",
+      "value": 1200
+    }
+  },
+  "metric_scale_sources": {
+    "ebit": "synthetic row-local override dollars",
+    "np_attributable": "synthetic table header A$000",
+    "operating_cf": "synthetic table header A$000",
+    "revenue": "synthetic table header A$000"
+  },
+  "metric_source_scales": {
+    "ebit": "ones",
+    "np_attributable": "thousands",
+    "operating_cf": "thousands",
+    "revenue": "thousands"
+  },
+  "metrics": {
+    "capex": null,
+    "cash_end": 20000,
+    "ebit": 60,
+    "financing_cf": null,
+    "investing_cf": null,
+    "net_debt": null,
+    "np_attributable": 50,
+    "operating_cf": -25,
+    "revenue": 1200,
+    "shares_outstanding": null
+  },
+  "mode": "exact_synthetic_no_extraction",
+  "non_null_metrics": 5,
+  "period_end": "2026-06-30",
+  "period_type": "A",
+  "provenance_audit": {
+    "document_provenance_available": true,
+    "document_provenance_missing": false,
+    "metric_provenance": {
+      "cash_end": {
+        "excerpt": "Cash and cash equivalents at period end 20,000",
+        "field_provenance": {
+          "excerpt": "Cash and cash equivalents at period end 20,000",
+          "page_number": 3,
+          "page_tag": "fixture:p3",
+          "row_ref": "Synthetic balance row: cash and equivalents 20,000",
+          "source": "synthetic_positive_risk_fixture",
+          "table_label": "Synthetic statement of financial position"
+        },
+        "metric_scale_source": null,
+        "metric_source_scale": null,
+        "missing_fields": [
+          "metric_source_scale",
+          "metric_scale_source"
+        ],
+        "page_number": 3,
+        "page_tag": "fixture:p3",
+        "provenance_available": true,
+        "provenance_missing": false,
+        "provenance_reference": "synthetic:cash_end",
+        "row_ref": "Synthetic balance row: cash and equivalents 20,000",
+        "source": "synthetic_positive_risk_fixture",
+        "source_snippet": "Cash and cash equivalents at period end 20,000",
+        "table_label": "Synthetic statement of financial position",
+        "value": 20000
+      },
+      "ebit": {
+        "excerpt": "EBIT 60",
+        "field_provenance": {
+          "excerpt": "EBIT 60",
+          "page_number": 1,
+          "page_tag": "fixture:p1",
+          "row_ref": "Synthetic income table row: EBIT 60",
+          "scale": "ones",
+          "scale_source": "synthetic row-local override dollars",
+          "source": "synthetic_positive_risk_fixture",
+          "table_label": "Synthetic statement of profit or loss"
+        },
+        "metric_scale_source": "synthetic row-local override dollars",
+        "metric_source_scale": "ones",
+        "missing_fields": [],
+        "page_number": 1,
+        "page_tag": "fixture:p1",
+        "provenance_available": true,
+        "provenance_missing": false,
+        "provenance_reference": "synthetic:ebit",
+        "row_ref": "Synthetic income table row: EBIT 60",
+        "source": "synthetic_positive_risk_fixture",
+        "source_snippet": "EBIT 60",
+        "table_label": "Synthetic statement of profit or loss",
+        "value": 60
+      },
+      "np_attributable": {
+        "excerpt": "Net profit attributable 50",
+        "field_provenance": {
+          "excerpt": "Net profit attributable 50",
+          "page_number": 1,
+          "page_tag": "fixture:p1",
+          "row_ref": "Synthetic income table row: NPAT 50",
+          "scale": "thousands",
+          "scale_source": "synthetic table header A$000",
+          "source": "synthetic_positive_risk_fixture",
+          "table_label": "Synthetic statement of profit or loss"
+        },
+        "metric_scale_source": "synthetic table header A$000",
+        "metric_source_scale": "thousands",
+        "missing_fields": [],
+        "page_number": 1,
+        "page_tag": "fixture:p1",
+        "provenance_available": true,
+        "provenance_missing": false,
+        "provenance_reference": "synthetic:np_attributable",
+        "row_ref": "Synthetic income table row: NPAT 50",
+        "source": "synthetic_positive_risk_fixture",
+        "source_snippet": "Net profit attributable 50",
+        "table_label": "Synthetic statement of profit or loss",
+        "value": 50
+      },
+      "operating_cf": {
+        "excerpt": "Net operating cash flow (25)",
+        "field_provenance": {
+          "excerpt": "Net operating cash flow (25)",
+          "page_number": 2,
+          "page_tag": "fixture:p2",
+          "row_ref": "Synthetic cash-flow row: operating cash flow (25)",
+          "scale": "thousands",
+          "scale_source": "synthetic table header A$000",
+          "source": "synthetic_positive_risk_fixture",
+          "table_label": "Synthetic statement of cash flows"
+        },
+        "metric_scale_source": "synthetic table header A$000",
+        "metric_source_scale": "thousands",
+        "missing_fields": [],
+        "page_number": 2,
+        "page_tag": "fixture:p2",
+        "provenance_available": true,
+        "provenance_missing": false,
+        "provenance_reference": "synthetic:operating_cf",
+        "row_ref": "Synthetic cash-flow row: operating cash flow (25)",
+        "source": "synthetic_positive_risk_fixture",
+        "source_snippet": "Net operating cash flow (25)",
+        "table_label": "Synthetic statement of cash flows",
+        "value": -25
+      },
+      "revenue": {
+        "excerpt": "Revenue 1,200",
+        "field_provenance": {
+          "excerpt": "Revenue 1,200",
+          "page_number": 1,
+          "page_tag": "fixture:p1",
+          "row_ref": "Synthetic income table row: Revenue 1,200",
+          "scale": "thousands",
+          "scale_source": "synthetic table header A$000",
+          "source": "synthetic_positive_risk_fixture",
+          "table_label": "Synthetic statement of profit or loss"
+        },
+        "metric_scale_source": "synthetic table header A$000",
+        "metric_source_scale": "thousands",
+        "missing_fields": [],
+        "page_number": 1,
+        "page_tag": "fixture:p1",
+        "provenance_available": true,
+        "provenance_missing": false,
+        "provenance_reference": "synthetic:revenue",
+        "row_ref": "Synthetic income table row: Revenue 1,200",
+        "source": "synthetic_positive_risk_fixture",
+        "source_snippet": "Revenue 1,200",
+        "table_label": "Synthetic statement of profit or loss",
+        "value": 1200
+      }
+    },
+    "metrics_missing_provenance": [],
+    "metrics_with_provenance": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "cash_end"
+    ],
+    "metrics_with_values": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "cash_end"
+    ],
+    "provenance_available": [
+      "revenue",
+      "ebit",
+      "np_attributable",
+      "operating_cf",
+      "cash_end"
+    ],
+    "provenance_available_count": 5,
+    "provenance_missing": [],
+    "provenance_missing_count": 0
+  },
+  "provenance_available": [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "cash_end"
+  ],
+  "provenance_missing": [],
+  "risk_flags": [
+    "all_checked_metrics_below_minimum",
+    "mixed_metric_source_scales",
+    "payload_scale_differs_from_metric_source_scale",
+    "metric_source_scale_missing",
+    "metric_revenue_ratio_high"
+  ],
+  "row_refs": {
+    "cash_end": "Synthetic balance row: cash and equivalents 20,000",
+    "ebit": "Synthetic income table row: EBIT 60",
+    "np_attributable": "Synthetic income table row: NPAT 50",
+    "operating_cf": "Synthetic cash-flow row: operating cash flow (25)",
+    "revenue": "Synthetic income table row: Revenue 1,200"
+  },
+  "sanity": {
+    "cash_end_positive": true,
+    "period_end_valid": true,
+    "period_type_valid": true,
+    "revenue_positive": true
+  },
+  "scale": "thousands",
+  "source_path": "reports/agent_jobs/extraction_broad_run_positive_risk_fixture_v1_20260617/positive_fixture_input.json",
+  "status": "ok",
+  "ticker": "SYNTH_RISK"
+}

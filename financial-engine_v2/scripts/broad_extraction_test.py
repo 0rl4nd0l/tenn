@@ -73,8 +73,44 @@ METRIC_FIELDS = [
     "capex", "cash_end", "net_debt", "shares_outstanding",
 ]
 
+DOLLAR_METRIC_FIELDS = [m for m in METRIC_FIELDS if m != "shares_outstanding"]
+REVENUE_RATIO_RISK_FIELDS = [
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+]
+REVENUE_RATIO_REVIEW_THRESHOLD = 10.0
+
 DOCS_ROOT = _REPO_ROOT / "data" / "asx" / "docs"
 RESULTS_DIR = _REPO_ROOT / "scripts" / "broad_test_results"
+
+SCALE_RISK_THRESHOLDS: dict[str, dict[str, float]] = {
+    "A": {
+        "revenue": 1_000_000,
+        "ebit": 100_000,
+        "np_attributable": 100_000,
+        "operating_cf": 100_000,
+    },
+    "H": {
+        "revenue": 500_000,
+        "ebit": 50_000,
+        "np_attributable": 50_000,
+        "operating_cf": 50_000,
+    },
+    "Q": {
+        "revenue": 100_000,
+        "ebit": 10_000,
+    },
+}
+
+DEFAULT_NATIVE_SANITY_CAP = 500_000_000_000
+HIGH_DENOMINATION_NATIVE_SANITY_CAPS = {
+    "IDR": 10_000_000_000_000_000,
+}
 
 SCALE_TABLE_PROVENANCE_REQUIRED_FIELDS = [
     "document_id",
@@ -105,6 +141,321 @@ SCALE_TABLE_PROVENANCE_REQUIRED_FIELDS = [
     "common_metric_source_scale_output",
     "final_gate",
 ]
+
+
+def _clean_text(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in {"none", "null", "unknown"}:
+        return None
+    return text
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        text = _clean_text(value)
+        if text is not None:
+            return text
+    return None
+
+
+def _clean_page_number(value: object) -> object | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip().lower() in {"", "none", "null", "unknown"}:
+        return None
+    return value
+
+
+def _as_dict(value: object) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
+def _coerce_number(value: object) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_currency_code(raw: object) -> str:
+    text = _clean_text(raw)
+    return (text or "AUD").upper()
+
+
+def _native_currency_sanity_cap(raw_currency: object) -> int:
+    return HIGH_DENOMINATION_NATIVE_SANITY_CAPS.get(
+        _normalize_currency_code(raw_currency),
+        DEFAULT_NATIVE_SANITY_CAP,
+    )
+
+
+def _build_metric_provenance_audit(payload: dict) -> dict:
+    """Build compact per-metric provenance for broad-run artifacts."""
+    metrics = _as_dict(payload.get("metrics"))
+    row_refs = _as_dict(payload.get("row_refs"))
+    provenance = _as_dict(payload.get("provenance"))
+    field_provenance = _as_dict(payload.get("field_provenance"))
+    metric_source_scales = _as_dict(payload.get("metric_source_scales"))
+    metric_scale_sources = _as_dict(payload.get("metric_scale_sources"))
+
+    metric_provenance: dict[str, dict] = {}
+    metrics_with_values: list[str] = []
+    metrics_with_provenance: list[str] = []
+    metrics_missing_provenance: list[str] = []
+
+    for metric_name in METRIC_FIELDS:
+        if metrics.get(metric_name) is None:
+            continue
+
+        metrics_with_values.append(metric_name)
+        field = _as_dict(field_provenance.get(metric_name))
+        row_ref = _first_text(field.get("row_ref"), row_refs.get(metric_name))
+        excerpt = _clean_text(field.get("excerpt"))
+        provenance_ref = _clean_text(provenance.get(metric_name))
+        source = _clean_text(field.get("source"))
+        table_label = _clean_text(field.get("table_label"))
+        page_number = _clean_page_number(field.get("page_number"))
+        page_tag = _clean_text(field.get("page_tag"))
+        metric_source_scale = _first_text(
+            field.get("scale"),
+            metric_source_scales.get(metric_name),
+        )
+        metric_scale_source = _first_text(
+            field.get("scale_source"),
+            metric_scale_sources.get(metric_name),
+        )
+
+        missing_fields: list[str] = []
+        for field_name, field_value in (
+            ("row_ref", row_ref),
+            ("excerpt", excerpt),
+            ("source", source),
+            ("table_label", table_label),
+            ("page_number", page_number),
+            ("provenance_reference", provenance_ref),
+            ("metric_source_scale", metric_source_scale),
+            ("metric_scale_source", metric_scale_source),
+        ):
+            if field_value is None:
+                missing_fields.append(field_name)
+        if not field:
+            missing_fields.append("field_provenance")
+
+        provenance_available = any(
+            value is not None
+            for value in (
+                row_ref,
+                excerpt,
+                provenance_ref,
+                source,
+                table_label,
+                page_number,
+                page_tag,
+            )
+        )
+        if provenance_available:
+            metrics_with_provenance.append(metric_name)
+        else:
+            metrics_missing_provenance.append(metric_name)
+
+        metric_provenance[metric_name] = {
+            "value": metrics.get(metric_name),
+            "row_ref": row_ref,
+            "excerpt": excerpt,
+            "source_snippet": excerpt or row_ref,
+            "source": source,
+            "table_label": table_label,
+            "page_number": page_number,
+            "page_tag": page_tag,
+            "provenance_reference": provenance_ref,
+            "field_provenance": field,
+            "metric_source_scale": metric_source_scale,
+            "metric_scale_source": metric_scale_source,
+            "missing_fields": missing_fields,
+            "provenance_available": provenance_available,
+            "provenance_missing": not provenance_available,
+        }
+
+    return {
+        "metric_provenance": metric_provenance,
+        "metrics_with_values": metrics_with_values,
+        "metrics_with_provenance": metrics_with_provenance,
+        "metrics_missing_provenance": metrics_missing_provenance,
+        "provenance_available": metrics_with_provenance,
+        "provenance_missing": metrics_missing_provenance,
+        "provenance_available_count": len(metrics_with_provenance),
+        "provenance_missing_count": len(metrics_missing_provenance),
+        "document_provenance_available": bool(metrics_with_provenance),
+        "document_provenance_missing": bool(metrics_missing_provenance),
+    }
+
+
+def _risk_flag(code: str, severity: str, reason: str, **details: object) -> dict:
+    flag = {
+        "code": code,
+        "severity": severity,
+        "reason": reason,
+    }
+    flag.update({key: value for key, value in details.items() if value is not None})
+    return flag
+
+
+def _build_scale_magnitude_risk(payload: dict, *, accepted_output: bool) -> dict:
+    """Build machine-readable accepted-output scale and magnitude review flags."""
+    metrics = _as_dict(payload.get("metrics"))
+    period_type = _clean_text(payload.get("period_type")) or "A"
+    scale = (_clean_text(payload.get("scale")) or "unknown").lower()
+    currency = _normalize_currency_code(payload.get("currency"))
+    sanity_cap = _native_currency_sanity_cap(currency)
+    flags: list[dict] = []
+
+    non_null_dollar_metrics = {
+        metric_name: _coerce_number(metrics.get(metric_name))
+        for metric_name in DOLLAR_METRIC_FIELDS
+        if metrics.get(metric_name) is not None
+    }
+    non_null_dollar_metrics = {
+        metric_name: value
+        for metric_name, value in non_null_dollar_metrics.items()
+        if value is not None
+    }
+
+    if non_null_dollar_metrics and scale == "unknown":
+        flags.append(
+            _risk_flag(
+                "scale_unknown_with_metrics",
+                "review",
+                "record has non-null dollar metrics but payload scale is unknown",
+                metrics=sorted(non_null_dollar_metrics),
+            )
+        )
+
+    for metric_name, value in non_null_dollar_metrics.items():
+        if abs(value) > sanity_cap:
+            flags.append(
+                _risk_flag(
+                    "metric_exceeds_native_sanity_cap",
+                    "review",
+                    "metric magnitude exceeds native currency sanity cap",
+                    metric=metric_name,
+                    value=value,
+                    threshold=sanity_cap,
+                    currency=currency,
+                )
+            )
+
+    thresholds = SCALE_RISK_THRESHOLDS.get(period_type, SCALE_RISK_THRESHOLDS["A"])
+    checked: dict[str, float] = {}
+    below_threshold: dict[str, float] = {}
+    for metric_name, minimum in thresholds.items():
+        value = non_null_dollar_metrics.get(metric_name)
+        if value is None:
+            continue
+        checked[metric_name] = value
+        if abs(value) < minimum:
+            below_threshold[metric_name] = value
+    if checked and len(checked) == len(below_threshold):
+        flags.append(
+            _risk_flag(
+                "all_checked_metrics_below_minimum",
+                "review",
+                "all checked metrics fall below loose minimum scale thresholds",
+                metrics=below_threshold,
+                period_type=period_type,
+                thresholds={name: thresholds[name] for name in below_threshold},
+            )
+        )
+
+    metric_source_scales = {
+        metric_name: scale_value.lower()
+        for metric_name, scale_value in (
+            (name, _clean_text(value))
+            for name, value in _as_dict(payload.get("metric_source_scales")).items()
+        )
+        if metric_name in non_null_dollar_metrics and scale_value
+    }
+    distinct_metric_scales = sorted(set(metric_source_scales.values()))
+    if len(distinct_metric_scales) > 1:
+        flags.append(
+            _risk_flag(
+                "mixed_metric_source_scales",
+                "review",
+                "non-null dollar metrics carry multiple source scales",
+                metric_source_scales=metric_source_scales,
+                distinct_scales=distinct_metric_scales,
+            )
+        )
+
+    if scale != "unknown":
+        mismatched_scales = {
+            metric_name: metric_scale
+            for metric_name, metric_scale in metric_source_scales.items()
+            if metric_scale != scale
+        }
+        if mismatched_scales:
+            flags.append(
+                _risk_flag(
+                    "payload_scale_differs_from_metric_source_scale",
+                    "review",
+                    "payload scale differs from one or more metric-local source scales",
+                    payload_scale=scale,
+                    metric_source_scales=mismatched_scales,
+                )
+            )
+
+    missing_source_scale = sorted(
+        metric_name
+        for metric_name in non_null_dollar_metrics
+        if metric_name not in metric_source_scales
+    )
+    if missing_source_scale:
+        flags.append(
+            _risk_flag(
+                "metric_source_scale_missing",
+                "info",
+                "metric-local source scale is missing for non-null dollar metrics",
+                metrics=missing_source_scale,
+            )
+        )
+
+    revenue = non_null_dollar_metrics.get("revenue")
+    if revenue is not None and abs(revenue) > 0:
+        for metric_name in REVENUE_RATIO_RISK_FIELDS:
+            value = non_null_dollar_metrics.get(metric_name)
+            if value is None:
+                continue
+            ratio = abs(value) / abs(revenue)
+            if ratio >= REVENUE_RATIO_REVIEW_THRESHOLD:
+                flags.append(
+                    _risk_flag(
+                        "metric_revenue_ratio_high",
+                        "review",
+                        "metric magnitude is unusually high relative to revenue",
+                        metric=metric_name,
+                        value=value,
+                        revenue=revenue,
+                        ratio=round(ratio, 4),
+                        threshold=REVENUE_RATIO_REVIEW_THRESHOLD,
+                    )
+                )
+
+    risk_level = "none"
+    if any(flag["severity"] == "review" for flag in flags):
+        risk_level = "review"
+    elif flags:
+        risk_level = "info"
+
+    return {
+        "accepted_output": accepted_output,
+        "risk_level": risk_level,
+        "flag_count": len(flags),
+        "flag_codes": [flag["code"] for flag in flags],
+        "flags": flags,
+    }
 
 
 def _scale_harness_case(
@@ -647,6 +998,14 @@ def run_one(pdf_path: Path, llm_client) -> dict:
         "table_count": None,
         "page_count": None,
         "sanity": {},
+        "metric_provenance": {},
+        "provenance_available": [],
+        "provenance_missing": [],
+        "provenance_audit": {},
+        "source_provenance": {},
+        "accepted_output_scale_magnitude_risk": {},
+        "risk_flags": [],
+        "scale_validation": None,
     }
 
     t0 = time.monotonic()
@@ -667,6 +1026,35 @@ def run_one(pdf_path: Path, llm_client) -> dict:
         record["scale"] = payload.get("scale")
         record["confidence"] = payload.get("confidence_metrics")
         record["non_null_metrics"] = sum(1 for v in metrics.values() if v is not None)
+        record["scale_validation"] = payload.get("scale_validation")
+
+        provenance_audit = _build_metric_provenance_audit(payload)
+        record["metric_provenance"] = provenance_audit["metric_provenance"]
+        record["provenance_available"] = provenance_audit["provenance_available"]
+        record["provenance_missing"] = provenance_audit["provenance_missing"]
+        record["provenance_audit"] = {
+            key: value
+            for key, value in provenance_audit.items()
+            if key != "metric_provenance"
+        }
+        record["source_provenance"] = {
+            key: payload.get(key)
+            for key in (
+                "source_period_type",
+                "source_period_evidence",
+                "source_period_end_evidence",
+                "source_period_end_binding",
+                "source_document_classification",
+                "source_bound",
+            )
+            if payload.get(key) is not None
+        }
+        scale_magnitude_risk = _build_scale_magnitude_risk(
+            payload,
+            accepted_output=result.status in ("ok", "ok_low_confidence"),
+        )
+        record["accepted_output_scale_magnitude_risk"] = scale_magnitude_risk
+        record["risk_flags"] = scale_magnitude_risk["flag_codes"]
 
         # Sanity checks (only when metric is present)
         sanity = {}
@@ -791,6 +1179,64 @@ def compute_summary(results: list[dict]) -> dict:
         sc = r.get("scale") or "unknown"
         scales[sc] = scales.get(sc, 0) + 1
 
+    provenance_with_counts: dict[str, int] = {}
+    provenance_missing_counts: dict[str, int] = {}
+    documents_with_missing_provenance = 0
+    documents_with_full_provenance = 0
+    documents_with_any_provenance = 0
+    for r in ok_results:
+        audit = _as_dict(r.get("provenance_audit"))
+        with_provenance = audit.get("metrics_with_provenance")
+        missing_provenance = audit.get("metrics_missing_provenance")
+        if not isinstance(with_provenance, list):
+            with_provenance = r.get("provenance_available", [])
+        if not isinstance(missing_provenance, list):
+            missing_provenance = r.get("provenance_missing", [])
+        if not isinstance(with_provenance, list):
+            with_provenance = []
+        if not isinstance(missing_provenance, list):
+            missing_provenance = []
+
+        if with_provenance:
+            documents_with_any_provenance += 1
+        if missing_provenance:
+            documents_with_missing_provenance += 1
+        elif with_provenance:
+            documents_with_full_provenance += 1
+
+        for metric_name in with_provenance:
+            if metric_name in METRIC_FIELDS:
+                provenance_with_counts[metric_name] = (
+                    provenance_with_counts.get(metric_name, 0) + 1
+                )
+        for metric_name in missing_provenance:
+            if metric_name in METRIC_FIELDS:
+                provenance_missing_counts[metric_name] = (
+                    provenance_missing_counts.get(metric_name, 0) + 1
+                )
+
+    risk_flag_distribution: dict[str, int] = {}
+    risk_flagged_documents = 0
+    for r in ok_results:
+        flag_codes: list[str] = []
+        raw_flags = r.get("risk_flags")
+        if isinstance(raw_flags, list):
+            for raw_flag in raw_flags:
+                if isinstance(raw_flag, str):
+                    flag_codes.append(raw_flag)
+                elif isinstance(raw_flag, dict) and raw_flag.get("code"):
+                    flag_codes.append(str(raw_flag["code"]))
+        if not flag_codes:
+            risk = _as_dict(r.get("accepted_output_scale_magnitude_risk"))
+            for raw_flag in risk.get("flags", []):
+                if isinstance(raw_flag, dict) and raw_flag.get("code"):
+                    flag_codes.append(str(raw_flag["code"]))
+
+        if flag_codes:
+            risk_flagged_documents += 1
+        for code in flag_codes:
+            risk_flag_distribution[code] = risk_flag_distribution.get(code, 0) + 1
+
     return {
         "total": total,
         "status_distribution": status_counts,
@@ -803,6 +1249,15 @@ def compute_summary(results: list[dict]) -> dict:
         "unique_tickers": len(tickers),
         "period_type_distribution": period_types,
         "scale_distribution": scales,
+        "provenance_coverage": {
+            "metrics_with_provenance": provenance_with_counts,
+            "metrics_missing_provenance": provenance_missing_counts,
+            "documents_with_any_provenance": documents_with_any_provenance,
+            "documents_with_full_provenance": documents_with_full_provenance,
+            "documents_with_missing_provenance": documents_with_missing_provenance,
+        },
+        "risk_flag_distribution": risk_flag_distribution,
+        "risk_flagged_documents": risk_flagged_documents,
     }
 
 

@@ -1,0 +1,12 @@
+{
+  "base": "migration/clean-runtime-baseline-reconstruct-v1",
+  "branch": "safe/extraction-broad-run-provenance-risk-flags-v1-20260617",
+  "draft_pr": true,
+  "github_mutation_approved_by_user": "proceed",
+  "head_before_publish_scaffold": "f0d48118",
+  "merge_state_at_creation": "UNSTABLE",
+  "pr_number": 369,
+  "pr_state": "OPEN",
+  "pr_url": "https://github.com/0rl4nd0l/tenn/pull/369",
+  "status": "draft_pr_opened"
+}

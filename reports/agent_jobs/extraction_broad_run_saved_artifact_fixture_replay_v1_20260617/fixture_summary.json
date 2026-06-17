@@ -1,0 +1,118 @@
+{
+  "error_classification": {},
+  "metric_coverage": {
+    "capex": {
+      "present": 0,
+      "rate": 0.0,
+      "total": 1
+    },
+    "cash_end": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "ebit": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "financing_cf": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "investing_cf": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "net_debt": {
+      "present": 0,
+      "rate": 0.0,
+      "total": 1
+    },
+    "np_attributable": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "operating_cf": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "revenue": {
+      "present": 1,
+      "rate": 1.0,
+      "total": 1
+    },
+    "shares_outstanding": {
+      "present": 0,
+      "rate": 0.0,
+      "total": 1
+    }
+  },
+  "nonnull_metric_distribution": {
+    "max": 7,
+    "mean": 7,
+    "median": 7,
+    "min": 7
+  },
+  "period_type_distribution": {
+    "H": 1
+  },
+  "provenance_coverage": {
+    "documents_with_any_provenance": 1,
+    "documents_with_full_provenance": 1,
+    "documents_with_missing_provenance": 0,
+    "metrics_missing_provenance": {},
+    "metrics_with_provenance": {
+      "cash_end": 1,
+      "ebit": 1,
+      "financing_cf": 1,
+      "investing_cf": 1,
+      "np_attributable": 1,
+      "operating_cf": 1,
+      "revenue": 1
+    }
+  },
+  "risk_flag_distribution": {},
+  "risk_flagged_documents": 0,
+  "sanity_checks": {
+    "cash_end_positive": {
+      "passed": 0,
+      "rate": 0,
+      "total": 0
+    },
+    "period_end_valid": {
+      "passed": 0,
+      "rate": 0,
+      "total": 0
+    },
+    "period_type_valid": {
+      "passed": 0,
+      "rate": 0,
+      "total": 0
+    },
+    "revenue_positive": {
+      "passed": 0,
+      "rate": 0,
+      "total": 0
+    },
+    "shares_positive": {
+      "passed": 0,
+      "rate": 0,
+      "total": 0
+    }
+  },
+  "scale_distribution": {
+    "thousands": 1
+  },
+  "status_distribution": {
+    "ok": 1
+  },
+  "success_rate": 1.0,
+  "timing": {},
+  "total": 1,
+  "unique_tickers": 1
+}
