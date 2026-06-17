@@ -27,6 +27,23 @@ path. Resolve `<registry_root>` in this order:
 The committed snapshot is a periodic summary for future agents and is not
 expected to be complete immediately.
 
+## Runtime Helper
+
+Use `scripts/agent_task_ledger.py` for ledger operations:
+
+```bash
+python3 scripts/agent_task_ledger.py resolve-path
+python3 scripts/agent_task_ledger.py validate
+python3 scripts/agent_task_ledger.py search --task-id <task_id>
+python3 scripts/agent_task_ledger.py summarize
+python3 scripts/agent_task_ledger.py export-summary
+```
+
+`export-summary` is dry-run by default and requires `--write` to modify tracked
+summary files. `append` writes the live branch-independent ledger and should be
+used only when the active task card or owner approval permits that registry
+mutation.
+
 ## Required Preflight
 
 Before non-trivial implementation, agents should check:
@@ -63,13 +80,28 @@ Use these status values for implementation-capable sessions:
 - `implementation_started`
 - `blocked`
 - `waiting_on_user`
+- `waiting_on_timer`
 - `pr_opened`
 - `merged`
 - `done`
 - `parked`
 - `superseded`
+- `owner_boundary`
 
-No script implementation is included here. Use
-`docs/dev_flow/templates/TASK_LEDGER_ENTRY.json` and
-`docs/dev_flow/templates/TASK_LEDGER_SUMMARY.md` as the initial write and
+## Session Trace Fields
+
+Ledger entries include:
+
+- `session_id`
+- `thread_id`
+- `codex_goal_id`
+- `source_session_ref`
+
+Agents should discover these from explicit environment or current goal metadata
+when available. If no safe source is present, write `DATA_MISSING`. Do not
+invent a Codex session or thread ID, and do not treat registry lease fallback
+IDs as Codex thread/session IDs.
+
+Use `docs/dev_flow/templates/TASK_LEDGER_ENTRY.json` and
+`docs/dev_flow/templates/TASK_LEDGER_SUMMARY.md` as the committed schema and
 summary shapes.

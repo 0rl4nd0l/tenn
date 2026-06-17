@@ -25,6 +25,8 @@ git remote -v
 git rev-parse --abbrev-ref --symbolic-full-name @{u}
 git status --short --untracked-files=all
 python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
+python3 scripts/agent_task_ledger.py resolve-path
+python3 scripts/agent_task_ledger.py validate
 ```
 
 ## Task Ledger Preflight
@@ -35,10 +37,13 @@ durable committed summary when present:
 
 ```bash
 python3 scripts/agent_job_registry.py list-active --read-only --repo-root .
-# Use the registry_root field returned above.
-test -f "$REGISTRY_ROOT/task-ledger.jsonl" && tail -n 200 "$REGISTRY_ROOT/task-ledger.jsonl"
-test -f docs/agent_registry/task_ledger/LEDGER.jsonl && tail -n 200 docs/agent_registry/task_ledger/LEDGER.jsonl
+python3 scripts/agent_task_ledger.py resolve-path
+python3 scripts/agent_task_ledger.py validate
+python3 scripts/agent_task_ledger.py search --text "<topic-or-path>"
 ```
+
+When `scripts/agent_task_ledger.py` is unavailable on an older base, fall back
+to the manual checks below and record `DATA_MISSING` for runtime support.
 
 Do not resolve the live ledger through literal `.git/tenn-agent-registry/task-ledger.jsonl`.
 In linked worktrees, `.git` is a file pointing at a private worktree gitdir,
@@ -70,6 +75,10 @@ run a bounded fallback search before coding:
 - open, closed, and merged PRs
 - open and closed issues
 - files likely to be touched by the proposed work
+
+When session or thread identity is available from explicit environment/current
+goal metadata, report it. If it is unavailable, report
+`session_id=DATA_MISSING` and `thread_id=DATA_MISSING`; do not invent IDs.
 
 Use topic terms, issue numbers, PR numbers, branch names, task ids, and touched
 paths from the owner request or task card. Keep searches read-only.
@@ -184,6 +193,7 @@ Produce short markdown or JSON in the caller's report directory:
 - related PRs/issues
 - registry read-only status
 - ledger sources checked
+- session_id and thread_id when available
 - duplicate-work classification
 - decision: `pass`, `warning`, `block`, or `data_missing`
 

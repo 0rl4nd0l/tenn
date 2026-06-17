@@ -20,9 +20,11 @@ close GitHub issues unless explicitly approved.
    input would materially change the issue packet or safety boundary; otherwise
    proceed with stated assumptions.
 4. Run `tenn-git-guard` preflight.
-5. Use the guard's Task Ledger search before framing new work. Include live
-   ledger, committed ledger, task cards, reports, branches, worktrees, PRs,
-   issues, and likely touched files when available.
+5. Use the guard's Task Ledger search before framing new work. Prefer
+   `python3 scripts/agent_task_ledger.py search` by task id, issue id, PR id,
+   branch, worktree, touched paths, and text. Include live ledger, committed
+   ledger, task cards, reports, branches, worktrees, PRs, issues, and likely
+   touched files when available.
 6. Search existing issues, PRs, task cards, branches, worktrees, and reports
    read-only before reimplementing or proposing new tracker mutations.
 7. If similar work exists, include it in `ISSUE.md` with the duplicate-work
@@ -55,6 +57,8 @@ Write these under the run report directory:
 `ISSUE.md` must include a Task Ledger section with ledger availability,
 duplicate-work classification, matching candidates, and the selected action:
 continue, adopt, supersede, preserve, ask owner, or proceed as new work.
+When prior work has session/thread/source references, include them. If the
+reference is `DATA_MISSING`, say so instead of implying traceability exists.
 
 `NEXT_GOAL.md` must contain a directly executable next prompt or a precise
 `WAITING_ON_USER` approval request. Do not end with another report-only loop
