@@ -1,0 +1,111 @@
+{
+  "job_id": "extraction_issue286_persisted_field_provenance_v1_20260617",
+  "status": "pr_opened",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_issue286_persisted_field_provenance_v1_20260617.md",
+      "exit_code": 0,
+      "summary": "Task card valid after recording owner approval with approval_required=true."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId::test_upsert_persists_metric_field_provenance_for_written_values -q",
+      "exit_code": 1,
+      "summary": "RED: failed with AttributeError because ASXPeriodicFinancial had no metric_provenance attribute."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId::test_upsert_persists_metric_field_provenance_for_written_values -q",
+      "exit_code": 0,
+      "summary": "GREEN: 1 passed."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId -q",
+      "exit_code": 0,
+      "summary": "4 passed; existing source_document_id and confidence_metrics assertions still pass."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_multipass_extraction.py::test_upsert_financial_rows_smoke financial-engine_v2/backend/tests/test_pipeline_stages.py::test_upsert_financial_rows_suppresses_empty_risk_note financial-engine_v2/backend/tests/test_pipeline_stages.py::test_upsert_financial_rows_persists_real_risk_note -q",
+      "exit_code": 0,
+      "summary": "3 focused existing upsert/pipeline persistence tests passed."
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/models/asx_financials.py financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py financial-engine_v2/backend/tests/test_db_integrity.py",
+      "exit_code": 0,
+      "summary": "Touched Python files compile."
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/models/asx_financials.py financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py financial-engine_v2/backend/tests/test_db_integrity.py",
+      "exit_code": 0,
+      "summary": "All checks passed."
+    },
+    {
+      "command": "python3 migration import sanity check",
+      "exit_code": 1,
+      "summary": "System Python lacked alembic; rerun under backend requirements."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... migration import sanity ... PY",
+      "exit_code": 0,
+      "summary": "Migration imports; revision/down_revision/upgrade/downgrade sanity passed."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_issue286_persisted_field_provenance_v1_20260617.md --repo-root .",
+      "exit_code": 0,
+      "summary": "Task-card diff check passed with no disallowed files."
+    },
+    {
+      "command": "git diff --cached --name-only | rg '(^|/)count-?24|count24' && exit 1 || echo 'count24_guard=pass'",
+      "exit_code": 0,
+      "summary": "No staged count-24 paths."
+    },
+    {
+      "command": "git diff --cached --name-only | rg forbidden product/data/runtime/source path pattern && exit 1 || echo 'product_data_runtime_boundary_guard=pass'",
+      "exit_code": 0,
+      "summary": "No staged live DB, Qdrant, Redis, news, memory, source PDF, gold label, prompt, runtime, model/GPU, or service config paths."
+    },
+    {
+      "command": "gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-issue286-persisted-field-provenance-v1-20260617 --title \"[Extraction] Persist metric field provenance for ASX financial rows\"",
+      "exit_code": 0,
+      "summary": "Opened PR #364: https://github.com/0rl4nd0l/tenn/pull/364."
+    },
+    {
+      "command": "gh pr checks 364",
+      "exit_code": 1,
+      "summary": "Initial PR check status: lint-and-test failed, scan passed."
+    },
+    {
+      "command": "gh api /repos/0rl4nd0l/tenn/actions/jobs/81685684134/logs",
+      "exit_code": 0,
+      "summary": "CI log root cause: revision '0009_periodic_financial_metric_provenance' was 41 chars, and source-inspection guard could not see cash-flow field literals inside _upsert_financial_rows."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_architecture_invariants.py::test_migration_revision_ids_fit_alembic_version_column financial-engine_v2/backend/tests/test_extraction_capability_guards.py::test_pipeline_upsert_field_list_includes_cashflow_fields -q",
+      "exit_code": 0,
+      "summary": "Exact CI failures now pass locally: 2 passed."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt --with pytest python -m pytest -c pytest.ini financial-engine_v2/backend/tests/test_db_integrity.py::TestNoPlaceholderSourceDocumentId::test_upsert_persists_metric_field_provenance_for_written_values -q",
+      "exit_code": 0,
+      "summary": "Focused provenance persistence test still passes after CI fix."
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py",
+      "exit_code": 0,
+      "summary": "CI-fix touched Python files compile."
+    },
+    {
+      "command": "uv run --with ruff ruff check financial-engine_v2/backend/app/services/pipeline.py financial-engine_v2/backend/app/alembic/versions/0009_periodic_financial_metric_provenance.py",
+      "exit_code": 0,
+      "summary": "Targeted ruff passed for CI-fix touched files."
+    },
+    {
+      "command": "uv run --with-requirements financial-engine_v2/backend/requirements.txt python - <<'PY' ... migration import sanity ... PY",
+      "exit_code": 0,
+      "summary": "Migration sanity passed with shortened revision '0009_metric_provenance'."
+    }
+  ]
+}
