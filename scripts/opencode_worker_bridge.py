@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -32,6 +33,7 @@ REQUIRED_RESULT_FIELDS = (
 
 DECISION_LIMITS = {"evidence_only", "recommendation_only", "bounded_implementation", "strategy_bid"}
 TASK_TIERS = {"small", "medium", "large", "critical"}
+PERMISSION_PROFILES = {"readonly", "none"}
 MAX_TASK_BYTES = 12000
 MAX_RESULT_BYTES = 32000
 MAX_PROBE_ITEMS = 200
@@ -83,6 +85,184 @@ def json_dump(data: Any) -> str:
     return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
+def readonly_permission_rules() -> dict[str, Any]:
+    """Return restrictive OpenCode permissions for evidence-only workers."""
+    denied_read_patterns = {
+        "*.env": "deny",
+        "*.env.*": "deny",
+        "**/.env": "deny",
+        "**/.env.*": "deny",
+        "**/credentials*": "deny",
+        "**/*credential*": "deny",
+        "**/*token*": "deny",
+        "**/*api_key*": "deny",
+        "**/*apikey*": "deny",
+        "**/*.pem": "deny",
+        "**/*.key": "deny",
+        "**/*.p12": "deny",
+        "**/*.pfx": "deny",
+        "**/*.db": "deny",
+        "**/*.sqlite": "deny",
+        "**/*.sqlite3": "deny",
+    }
+    safe_bash_rules = {
+        "*": "deny",
+        "pwd": "allow",
+        "git diff": "deny",
+        "git diff *": "deny",
+        "git log": "deny",
+        "git log *": "deny",
+        "git show *": "deny",
+        "git blame *": "deny",
+        "git status": "allow",
+        "git status *": "allow",
+        "git diff --stat": "allow",
+        "git diff --stat *": "allow",
+        "git rev-parse": "allow",
+        "git rev-parse *": "allow",
+        "git commit*": "deny",
+        "git push*": "deny",
+        "git merge*": "deny",
+        "git reset*": "deny",
+        "git clean*": "deny",
+        "git stash*": "deny",
+        "git rebase*": "deny",
+        "git checkout*": "deny",
+        "git switch*": "deny",
+        "git cherry-pick*": "deny",
+        "cat": "deny",
+        "cat *": "deny",
+        "ls": "deny",
+        "ls *": "deny",
+        "find *": "deny",
+        "rg *": "deny",
+        "grep *": "deny",
+        "head *": "deny",
+        "tail *": "deny",
+        "wc *": "deny",
+        "echo *": "deny",
+        "rm *": "deny",
+        "mv *": "deny",
+        "cp *": "deny",
+        "chmod *": "deny",
+        "chown *": "deny",
+        "tee *": "deny",
+        "sed -i *": "deny",
+        "perl -pi *": "deny",
+        "python *": "deny",
+        "python3 *": "deny",
+        "node *": "deny",
+        "bash *": "deny",
+        "sh *": "deny",
+        "curl *": "deny",
+        "wget *": "deny",
+    }
+    return {
+        "*": "deny",
+        "read": {"*": "allow", **denied_read_patterns},
+        "list": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "edit": "deny",
+        "bash": safe_bash_rules,
+        "external_directory": "deny",
+        "task": "deny",
+        "todowrite": "deny",
+        "webfetch": "deny",
+        "websearch": "deny",
+        "lsp": "deny",
+        "skill": "deny",
+        "question": "deny",
+        "doom_loop": "ask",
+    }
+
+
+def build_readonly_opencode_config(agent: str) -> dict[str, Any]:
+    permissions = readonly_permission_rules()
+    return {
+        "$schema": "https://opencode.ai/config.json",
+        "permission": permissions,
+        "agent": {
+            agent: {
+                "description": "Read-only evidence scout enforced by Codex worker bridge.",
+                "mode": "primary",
+                "permission": permissions,
+                "tools": {
+                    "write": False,
+                    "edit": False,
+                    "bash": True,
+                },
+            }
+        },
+    }
+
+
+def _nested_get(data: dict[str, Any], keys: Sequence[str]) -> Any:
+    current: Any = data
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def _validate_readonly_permission_block(permission: Any, issues: list[str], prefix: str) -> None:
+    if not isinstance(permission, dict):
+        issues.append(f"{prefix} must be an object")
+        return
+
+    if permission.get("edit") != "deny":
+        issues.append(f"{prefix}.edit must deny edits")
+    if permission.get("external_directory") != "deny":
+        issues.append(f"{prefix}.external_directory must deny external paths")
+    if permission.get("task") != "deny":
+        issues.append(f"{prefix}.task must deny subagents")
+
+    read = permission.get("read")
+    if not isinstance(read, dict):
+        issues.append(f"{prefix}.read must be granular")
+    else:
+        if read.get("*") != "allow":
+            issues.append(f"{prefix}.read.* must allow normal repo reads")
+        for pattern in ("*.env", "*.env.*", "**/.env", "**/.env.*", "**/*.db", "**/*.sqlite", "**/*.sqlite3"):
+            if read.get(pattern) != "deny":
+                issues.append(f"{prefix}.read.{pattern} must deny sensitive files")
+
+    bash = permission.get("bash")
+    if not isinstance(bash, dict):
+        issues.append(f"{prefix}.bash must be granular")
+    else:
+        if bash.get("*") != "deny":
+            issues.append(f"{prefix}.bash.* must deny by default")
+        allowed_bash = {"pwd", "git status", "git status *", "git diff --stat", "git diff --stat *", "git rev-parse", "git rev-parse *"}
+        unexpected_allows = sorted(key for key, value in bash.items() if value == "allow" and key not in allowed_bash)
+        for key in unexpected_allows:
+            issues.append(f"{prefix}.bash.{key} must not remain allowed in readonly profile")
+        for allowed in ("git status", "git status *", "git diff --stat", "git diff --stat *", "git rev-parse", "git rev-parse *"):
+            if bash.get(allowed) != "allow":
+                issues.append(f"{prefix}.bash.{allowed} must allow only safe git inspection")
+        for denied in ("git commit*", "git push*", "git merge*", "git reset*", "git clean*", "git stash*", "rm *"):
+            if bash.get(denied) != "deny":
+                issues.append(f"{prefix}.bash.{denied} must deny mutation/destruction")
+
+
+def validate_readonly_permission_config(config: dict[str, Any], agent: str) -> list[str]:
+    issues: list[str] = []
+    permission = config.get("permission")
+    _validate_readonly_permission_block(permission, issues, "permission")
+
+    agent_permission = _nested_get(config, ("agent", agent, "permission"))
+    _validate_readonly_permission_block(agent_permission, issues, f"agent.{agent}.permission")
+
+    agent_tools = _nested_get(config, ("agent", agent, "tools"))
+    if isinstance(agent_tools, dict):
+        if agent_tools.get("write") is not False or agent_tools.get("edit") is not False:
+            issues.append("selected agent legacy write/edit tools must be disabled")
+    else:
+        issues.append("selected agent legacy tools guard must be present")
+    return issues
+
+
 def resolve_opencode_command(command: str | None = None) -> str | None:
     candidates = [command] if command else ["opencode", "/home/l4nd0/.opencode/bin/opencode", "open-code"]
     for candidate in candidates:
@@ -97,7 +277,7 @@ def resolve_opencode_command(command: str | None = None) -> str | None:
     return None
 
 
-def run_command(args: Sequence[str], timeout_seconds: int) -> CommandResult:
+def run_command(args: Sequence[str], timeout_seconds: int, env: dict[str, str] | None = None) -> CommandResult:
     try:
         completed = subprocess.run(
             list(args),
@@ -105,6 +285,7 @@ def run_command(args: Sequence[str], timeout_seconds: int) -> CommandResult:
             text=True,
             timeout=timeout_seconds,
             check=False,
+            env=env,
         )
         return CommandResult(
             command=list(args),
@@ -130,6 +311,130 @@ def _first_nonempty_line(text: str) -> str | None:
         if stripped:
             return stripped
     return None
+
+
+def build_opencode_env(base_env: dict[str, str] | None, config_content: str | None) -> dict[str, str]:
+    env = dict(os.environ if base_env is None else base_env)
+    if config_content is not None:
+        env["OPENCODE_CONFIG_CONTENT"] = config_content
+    return env
+
+
+def _safe_config_summary(config: dict[str, Any], agent: str) -> dict[str, Any]:
+    permission = config.get("permission") if isinstance(config.get("permission"), dict) else {}
+    agent_permission = _nested_get(config, ("agent", agent, "permission"))
+    return {
+        "global_edit": permission.get("edit") if isinstance(permission, dict) else None,
+        "global_bash_default": _nested_get(permission, ("bash", "*")) if isinstance(permission, dict) else None,
+        "global_external_directory": permission.get("external_directory") if isinstance(permission, dict) else None,
+        "agent_edit": agent_permission.get("edit") if isinstance(agent_permission, dict) else None,
+        "agent_bash_default": _nested_get(agent_permission, ("bash", "*")) if isinstance(agent_permission, dict) else None,
+        "agent_external_directory": agent_permission.get("external_directory") if isinstance(agent_permission, dict) else None,
+    }
+
+
+def verify_readonly_permission_enforcement(
+    opencode_path: str,
+    *,
+    agent: str,
+    config_content: str,
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    env = build_opencode_env(os.environ, config_content)
+    result = run_command([opencode_path, "debug", "config", "--pure"], timeout_seconds=timeout_seconds, env=env)
+    if not result.ok:
+        return {
+            "ok": False,
+            "method": "opencode_config_content_debug_config",
+            "reason": "debug_config_failed",
+            "exit_code": result.exit_code,
+            "stderr": _first_nonempty_line(result.stderr),
+        }
+    try:
+        resolved = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {
+            "ok": False,
+            "method": "opencode_config_content_debug_config",
+            "reason": "debug_config_not_json",
+        }
+
+    issues = validate_readonly_permission_config(resolved, agent)
+    return {
+        "ok": not issues,
+        "method": "opencode_config_content_debug_config",
+        "reason": None if not issues else "resolved_config_not_readonly",
+        "issues": issues,
+        "summary": _safe_config_summary(resolved, agent),
+    }
+
+
+def build_permission_enforcement(
+    *,
+    decision_limit: str,
+    permission_profile: str,
+    agent: str,
+    opencode_path: str,
+    timeout_seconds: int,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    if permission_profile not in PERMISSION_PROFILES:
+        raise BridgeError(f"permission-profile must be one of: {', '.join(sorted(PERMISSION_PROFILES))}")
+
+    if decision_limit != "evidence_only":
+        if permission_profile == "readonly":
+            config = build_readonly_opencode_config(agent)
+            issues = validate_readonly_permission_config(config, agent)
+            if issues:
+                raise BridgeError(f"readonly permission config is invalid: {'; '.join(issues)}")
+            config_content = json.dumps(config, separators=(",", ":"))
+            verification = verify_readonly_permission_enforcement(
+                opencode_path,
+                agent=agent,
+                config_content=config_content,
+                timeout_seconds=min(timeout_seconds, 10),
+            )
+            if not verification.get("ok"):
+                raise BridgeError(
+                    "UNSUPPORTED_PERMISSION_ENFORCEMENT: OpenCode readonly permissions could not be proven"
+                )
+            return (
+                {
+                    "profile": "readonly",
+                    "method": "OPENCODE_CONFIG_CONTENT",
+                    "config_sha256": hashlib.sha256(config_content.encode("utf-8")).hexdigest(),
+                    "verified": True,
+                    "verification": verification,
+                },
+                build_opencode_env(os.environ, config_content),
+            )
+        return ({"profile": "none", "method": "none", "verified": False}, dict(os.environ))
+
+    if permission_profile != "readonly":
+        raise BridgeError("evidence_only workers require --permission-profile readonly")
+
+    config = build_readonly_opencode_config(agent)
+    issues = validate_readonly_permission_config(config, agent)
+    if issues:
+        raise BridgeError(f"readonly permission config is invalid: {'; '.join(issues)}")
+    config_content = json.dumps(config, separators=(",", ":"))
+    verification = verify_readonly_permission_enforcement(
+        opencode_path,
+        agent=agent,
+        config_content=config_content,
+        timeout_seconds=min(timeout_seconds, 10),
+    )
+    if not verification.get("ok"):
+        raise BridgeError("UNSUPPORTED_PERMISSION_ENFORCEMENT: OpenCode readonly permissions could not be proven")
+    return (
+        {
+            "profile": "readonly",
+            "method": "OPENCODE_CONFIG_CONTENT",
+            "config_sha256": hashlib.sha256(config_content.encode("utf-8")).hexdigest(),
+            "verified": True,
+            "verification": verification,
+        },
+        build_opencode_env(os.environ, config_content),
+    )
 
 
 def _parse_json_or_lines(text: str) -> list[str]:
@@ -278,7 +583,7 @@ def build_opencode_command(
     prompt: str,
     server_url: str | None = None,
 ) -> list[str]:
-    args = [opencode_path, "run"]
+    args = [opencode_path, "run", "--pure"]
     if server_url:
         args.extend(["--attach", server_url])
     if agent:
@@ -469,7 +774,50 @@ def validate_result_text(text: str, *, max_bytes: int = MAX_RESULT_BYTES) -> dic
 def validate_result_file(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"ok": False, "fields": {}, "issues": [{"field": "result_path", "message": "file does not exist"}]}
-    return validate_result_text(path.read_text(encoding="utf-8"))
+    result = validate_result_text(path.read_text(encoding="utf-8"))
+    fields = result.get("fields", {})
+    if fields.get("decision_limit") == "evidence_only":
+        meta_path = path.with_name("WORKER_META.json")
+        if not meta_path.exists():
+            result["ok"] = False
+            result["issues"].append(
+                {"field": "permission_enforcement", "message": "WORKER_META.json is required for evidence_only"}
+            )
+        else:
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                result["ok"] = False
+                result["issues"].append(
+                    {"field": "permission_enforcement", "message": "WORKER_META.json must be valid JSON"}
+                )
+            else:
+                enforcement = meta.get("permission_enforcement")
+                if not isinstance(enforcement, dict) or enforcement.get("profile") != "readonly":
+                    result["ok"] = False
+                    result["issues"].append(
+                        {
+                            "field": "permission_enforcement",
+                            "message": "evidence_only requires readonly permission metadata",
+                        }
+                    )
+                elif enforcement.get("verified") is not True:
+                    result["ok"] = False
+                    result["issues"].append(
+                        {
+                            "field": "permission_enforcement",
+                            "message": "evidence_only readonly permission enforcement must be verified",
+                        }
+                    )
+                elif enforcement.get("method") != "OPENCODE_CONFIG_CONTENT":
+                    result["ok"] = False
+                    result["issues"].append(
+                        {
+                            "field": "permission_enforcement",
+                            "message": "evidence_only requires OPENCODE_CONFIG_CONTENT enforcement",
+                        }
+                    )
+    return result
 
 
 def write_json(path: Path, data: Any) -> None:
@@ -541,6 +889,45 @@ def command_run(args: argparse.Namespace) -> int:
         print(json_dump(meta), end="")
         return 127
 
+    try:
+        permission_enforcement, opencode_env = build_permission_enforcement(
+            decision_limit=args.decision_limit,
+            permission_profile=args.permission_profile,
+            agent=args.agent,
+            opencode_path=opencode_path,
+            timeout_seconds=args.timeout_seconds,
+        )
+    except BridgeError as exc:
+        raw_path.write_text(f"{exc}\n", encoding="utf-8")
+        meta.update(
+            {
+                "status": "failed",
+                "failure": "permission_enforcement_failed",
+                "permission_enforcement": {
+                    "profile": args.permission_profile,
+                    "method": "DATA_MISSING",
+                    "verified": False,
+                    "reason": str(exc),
+                },
+                "ended_at": utc_now(),
+            }
+        )
+        write_json(meta_path, meta)
+        result_path.write_text(
+            failure_result(
+                worker_id=args.worker_id,
+                task_tier=args.task_tier,
+                model=args.model,
+                decision_limit=args.decision_limit,
+                summary="OpenCode readonly permission enforcement could not be proven.",
+                evidence_paths=[str(meta_path), str(raw_path)],
+            ),
+            encoding="utf-8",
+        )
+        print(json_dump(meta), end="")
+        return 2
+    meta["permission_enforcement"] = permission_enforcement
+
     prompt = build_worker_prompt(
         worker_id=args.worker_id,
         task_tier=args.task_tier,
@@ -561,7 +948,7 @@ def command_run(args: argparse.Namespace) -> int:
     meta["status"] = "running"
     write_json(meta_path, meta)
 
-    result = run_command(command, timeout_seconds=args.timeout_seconds)
+    result = run_command(command, timeout_seconds=args.timeout_seconds, env=opencode_env)
     raw_path.write_text(
         textwrap.dedent(
             f"""
@@ -709,6 +1096,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--task-file", required=True)
     run.add_argument("--workdir", required=True)
     run.add_argument("--decision-limit", default="evidence_only")
+    run.add_argument("--permission-profile", default="readonly")
     run.add_argument("--task-tier", default="small")
     run.add_argument("--timeout-seconds", type=int, default=600)
     run.add_argument("--opencode-command")

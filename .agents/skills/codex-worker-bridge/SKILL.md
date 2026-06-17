@@ -51,6 +51,7 @@ python3 scripts/opencode_worker_bridge.py run \
   --task-file reports/agent_jobs/<job_id>/workers/evidence-scout-1-task.md \
   --workdir "$PWD" \
   --decision-limit evidence_only \
+  --permission-profile readonly \
   --task-tier small \
   --timeout-seconds 600
 ```
@@ -65,6 +66,11 @@ The bridge writes:
 OpenCode stdout becomes the result artifact. The bridge records failure in
 metadata if OpenCode is missing, times out, exits nonzero, or emits an invalid
 result.
+
+For `evidence_only`, the bridge fails closed unless it can inject and verify a
+restrictive OpenCode permission config through `OPENCODE_CONFIG_CONTENT`.
+`WORKER_META.json` records the profile, method, config hash, and sanitized
+verification summary.
 
 ## Validate And Summarize
 

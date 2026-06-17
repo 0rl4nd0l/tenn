@@ -27,6 +27,7 @@ python3 scripts/opencode_worker_bridge.py run \
   --task-file reports/agent_jobs/<job_id>/workers/evidence-scout-1-task.md \
   --workdir "$PWD" \
   --decision-limit evidence_only \
+  --permission-profile readonly \
   --task-tier small \
   --timeout-seconds 600
 ```
@@ -63,10 +64,20 @@ python3 scripts/opencode_worker_bridge.py ledger-entry \
 For `decision_limit=evidence_only`, result validation rejects final-authority
 claims such as merge approval or no-review-needed conclusions.
 
+Evidence-only runs also require verified permission-enforcement metadata in
+`WORKER_META.json`.
+
 ## Safety
 
 The bridge refuses obvious secret and raw-data paths before invoking OpenCode.
-It also avoids dangerous permission bypass flags when constructing
+For `evidence_only`, it injects a restrictive OpenCode config with
+`OPENCODE_CONFIG_CONTENT`, verifies the resolved config with
+`opencode debug config`, and fails closed if enforcement cannot be proven. The
+readonly profile denies edit/write/patch, external-directory access, subagents,
+web tools, and shell commands by default. Only minimal safe git inspection
+commands are allowed through bash.
+
+The bridge also avoids dangerous permission bypass flags when constructing
 `opencode run`.
 
 Workers are still tool-assisted model processes, not a security sandbox. Keep

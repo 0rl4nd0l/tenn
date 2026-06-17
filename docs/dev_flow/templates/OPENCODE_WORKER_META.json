@@ -13,6 +13,24 @@
   "result_path": "<job-dir>/<worker-id>/WORKER_RESULT.md",
   "raw_output_path": "<job-dir>/<worker-id>/raw_output.txt",
   "status": "<starting|running|completed|result_invalid|failed>",
+  "permission_enforcement": {
+    "profile": "readonly",
+    "method": "OPENCODE_CONFIG_CONTENT",
+    "config_sha256": "<sha256>",
+    "verified": true,
+    "verification": {
+      "ok": true,
+      "method": "opencode_config_content_debug_config",
+      "summary": {
+        "global_edit": "deny",
+        "global_bash_default": "deny",
+        "global_external_directory": "deny",
+        "agent_edit": "deny",
+        "agent_bash_default": "deny",
+        "agent_external_directory": "deny"
+      }
+    }
+  },
   "session_id": "DATA_MISSING",
   "started_at": "<iso-8601-utc>",
   "ended_at": "<iso-8601-utc-or-null>",

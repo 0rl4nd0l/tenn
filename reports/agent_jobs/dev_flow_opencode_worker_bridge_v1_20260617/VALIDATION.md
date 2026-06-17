@@ -6,7 +6,7 @@
 | --- | --- |
 | `python3 scripts/agent_job_contract.py validate docs/agent_tasks/dev_flow_opencode_worker_bridge_v1_20260617.md` | PASS |
 | `python3 -m py_compile scripts/opencode_worker_bridge.py tests/test_opencode_worker_bridge.py` | PASS |
-| `python3 -m unittest tests.test_opencode_worker_bridge` | PASS, 8 tests |
+| `python3 -m unittest tests.test_opencode_worker_bridge` | PASS, 16 tests |
 | Parse changed `.agents/skills/codex-worker-bridge/SKILL.md` frontmatter | PASS |
 | JSON-parse `docs/dev_flow/templates/OPENCODE_WORKER_META.json` | PASS |
 | `git diff --check` | PASS |
@@ -28,6 +28,17 @@ Summary:
   - `deepseek/deepseek-reasoner`
   - `deepseek/deepseek-v4-flash`
   - `deepseek/deepseek-v4-pro`
+
+Readonly enforcement smoke:
+
+- Method: `OPENCODE_CONFIG_CONTENT`
+- Verification command: `opencode debug config`
+- Global `edit`: `deny`
+- Global `bash.*`: `deny`
+- Global `external_directory`: `deny`
+- Agent `edit`: `deny`
+- Agent `bash.*`: `deny`
+- Agent `external_directory`: `deny`
 
 ## Final Staged Checks
 

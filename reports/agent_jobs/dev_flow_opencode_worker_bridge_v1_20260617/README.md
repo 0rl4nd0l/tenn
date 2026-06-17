@@ -13,6 +13,10 @@ delegation. The bridge supports probing OpenCode, running evidence-only workers,
 validating worker result artifacts, summarizing worker outputs, and emitting a
 ledger-compatible JSON entry.
 
+PR #370 review follow-up: evidence-only runs now fail closed unless the bridge
+can inject and verify a restrictive OpenCode permission config. The method is
+recorded in `WORKER_META.json`.
+
 ## Files Touched
 
 - `scripts/opencode_worker_bridge.py`

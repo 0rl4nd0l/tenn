@@ -31,3 +31,12 @@ prompted to read and report only; Codex owns file writes, validation, commits,
 pushes, and PRs.
 
 Decision: no write-worker implementation in this slice.
+
+## PR #370 Review Follow-Up
+
+Codex Review found that prompt-only read-only behavior was insufficient because
+OpenCode defaults can permit edits or shell commands. The follow-up patch now
+requires `--permission-profile readonly` for `decision_limit=evidence_only`,
+injects restrictive permissions through `OPENCODE_CONFIG_CONTENT`, verifies the
+resolved config with `opencode debug config`, and records the enforcement method
+in `WORKER_META.json`.

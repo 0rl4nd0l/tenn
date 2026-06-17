@@ -52,7 +52,10 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             opencode = root / "opencode"
             opencode.write_text(
                 "#!/usr/bin/env python3\n"
-                "import sys\n"
+                "import os, sys\n"
+                "if sys.argv[1:3] == ['debug', 'config']:\n"
+                "    print(os.environ['OPENCODE_CONFIG_CONTENT'])\n"
+                "    raise SystemExit(0)\n"
                 "print('''" + VALID_RESULT.replace("'", "\\'") + "''')\n",
                 encoding="utf-8",
             )
@@ -91,6 +94,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             self.assertTrue((worker_dir / "raw_output.txt").is_file())
             meta = json.loads((worker_dir / "WORKER_META.json").read_text(encoding="utf-8"))
             self.assertEqual(meta["status"], "completed")
+            self.assertEqual(meta["permission_enforcement"]["profile"], "readonly")
+            self.assertEqual(meta["permission_enforcement"]["method"], "OPENCODE_CONFIG_CONTENT")
+            self.assertTrue(meta["permission_enforcement"]["verified"])
 
     def test_result_validation_success(self) -> None:
         result = bridge.validate_result_text(VALID_RESULT)
@@ -108,6 +114,114 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_file_validation_rejects_missing_permission_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result_path = Path(tmp) / "WORKER_RESULT.md"
+            result_path.write_text(VALID_RESULT, encoding="utf-8")
+            result = bridge.validate_result_file(result_path)
+        self.assertFalse(result["ok"])
+        self.assertIn("permission_enforcement", {issue["field"] for issue in result["issues"]})
+
+    def test_result_file_validation_rejects_unverified_permission_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result_path = Path(tmp) / "WORKER_RESULT.md"
+            result_path.write_text(VALID_RESULT, encoding="utf-8")
+            (Path(tmp) / "WORKER_META.json").write_text(
+                json.dumps({"permission_enforcement": {"profile": "readonly", "verified": False}}),
+                encoding="utf-8",
+            )
+            result = bridge.validate_result_file(result_path)
+        self.assertFalse(result["ok"])
+        self.assertIn("permission_enforcement", {issue["field"] for issue in result["issues"]})
+
+    def test_generated_readonly_permission_config_denies_edit(self) -> None:
+        config = bridge.build_readonly_opencode_config("evidence-scout")
+        self.assertEqual(config["permission"]["edit"], "deny")
+        self.assertEqual(config["agent"]["evidence-scout"]["permission"]["edit"], "deny")
+        self.assertFalse(bridge.validate_readonly_permission_config(config, "evidence-scout"))
+
+    def test_generated_readonly_permission_config_denies_dangerous_bash(self) -> None:
+        bash = bridge.build_readonly_opencode_config("evidence-scout")["permission"]["bash"]
+        self.assertEqual(bash["*"], "deny")
+        self.assertEqual(bash["git commit*"], "deny")
+        self.assertEqual(bash["git push*"], "deny")
+        self.assertEqual(bash["git reset*"], "deny")
+        self.assertEqual(bash["git clean*"], "deny")
+        self.assertEqual(bash["rm *"], "deny")
+        self.assertEqual(bash["cat *"], "deny")
+        self.assertEqual(bash["rg *"], "deny")
+        self.assertEqual(bash["grep *"], "deny")
+        self.assertEqual(bash["git status"], "allow")
+        self.assertEqual(bash["git diff --stat"], "allow")
+
+    def test_evidence_only_permission_enforcement_sets_inline_config_env(self) -> None:
+        with mock.patch.object(
+            bridge,
+            "verify_readonly_permission_enforcement",
+            return_value={"ok": True, "method": "opencode_config_content_debug_config"},
+        ):
+            meta, env = bridge.build_permission_enforcement(
+                decision_limit="evidence_only",
+                permission_profile="readonly",
+                agent="evidence-scout",
+                opencode_path="/usr/bin/opencode",
+                timeout_seconds=5,
+            )
+        self.assertEqual(meta["profile"], "readonly")
+        self.assertEqual(meta["method"], "OPENCODE_CONFIG_CONTENT")
+        self.assertTrue(meta["verified"])
+        self.assertIn("OPENCODE_CONFIG_CONTENT", env)
+        injected = json.loads(env["OPENCODE_CONFIG_CONTENT"])
+        self.assertEqual(injected["permission"]["edit"], "deny")
+
+    def test_permission_verification_uses_pure_debug_config(self) -> None:
+        config = bridge.build_readonly_opencode_config("evidence-scout")
+        with mock.patch.object(
+            bridge,
+            "run_command",
+            return_value=bridge.CommandResult(
+                command=[],
+                exit_code=0,
+                stdout=json.dumps(config),
+                stderr="",
+                timed_out=False,
+            ),
+        ) as run_command:
+            result = bridge.verify_readonly_permission_enforcement(
+                "/usr/bin/opencode",
+                agent="evidence-scout",
+                config_content=json.dumps(config),
+                timeout_seconds=5,
+            )
+        self.assertTrue(result["ok"])
+        self.assertEqual(run_command.call_args.args[0], ["/usr/bin/opencode", "debug", "config", "--pure"])
+        self.assertIn("OPENCODE_CONFIG_CONTENT", run_command.call_args.kwargs["env"])
+
+    def test_evidence_only_fails_closed_when_permission_enforcement_unproven(self) -> None:
+        with mock.patch.object(
+            bridge,
+            "verify_readonly_permission_enforcement",
+            return_value={"ok": False, "reason": "debug_config_failed"},
+        ):
+            with self.assertRaises(bridge.BridgeError):
+                bridge.build_permission_enforcement(
+                    decision_limit="evidence_only",
+                    permission_profile="readonly",
+                    agent="evidence-scout",
+                    opencode_path="/usr/bin/opencode",
+                    timeout_seconds=5,
+                )
+
+    def test_evidence_only_rejects_non_readonly_permission_profile(self) -> None:
+        with self.assertRaises(bridge.BridgeError):
+            bridge.build_permission_enforcement(
+                decision_limit="evidence_only",
+                permission_profile="none",
+                agent="evidence-scout",
+                opencode_path="/usr/bin/opencode",
+                timeout_seconds=5,
+            )
 
     def test_ledger_entry_json_shape(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -155,6 +269,7 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             prompt="hello",
         )
         self.assertEqual(command[:2], ["/usr/bin/opencode", "run"])
+        self.assertIn("--pure", command)
         self.assertNotIn("--dangerously-skip-permissions", command)
         self.assertNotIn("--permission-mode", command)
         self.assertIn("--agent", command)
