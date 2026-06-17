@@ -1,0 +1,38 @@
+{
+  "issues": [],
+  "metadata": {
+    "allow_audit_code_changes": true,
+    "allow_unapproved_safe_extension": true,
+    "allowed_files": [
+      "docs/agent_tasks/extraction_broad_run_provenance_risk_flags_v1_20260617.md",
+      "financial-engine_v2/scripts/broad_extraction_test.py",
+      "financial-engine_v2/scripts/test_broad_extraction_test.py",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/GUARD.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/STATE.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/DECISIONS.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/VALIDATION.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/NEXT_GOAL.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/PR_REVIEW.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/WORKER_provenance_inspection.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/WORKER_scale_risk_inspection.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/WORKER_test_design.md",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/validation.json",
+      "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617/diff-check.json"
+    ],
+    "approval_required": false,
+    "github_mutation_allowed": false,
+    "job_id": "extraction_broad_run_provenance_risk_flags_v1_20260617",
+    "lane": "Financial Truth",
+    "mutation_mode": "safe_extension",
+    "output_dir": "reports/agent_jobs/extraction_broad_run_provenance_risk_flags_v1_20260617",
+    "owner": "Codex",
+    "production_data_access": false,
+    "supporting_lanes": [
+      "Evaluation",
+      "Provenance",
+      "Reporting"
+    ],
+    "timeout_seconds": 7200
+  },
+  "ok": true
+}
