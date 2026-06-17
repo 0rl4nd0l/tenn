@@ -25,15 +25,18 @@
     "docs/agent_tasks/dev_flow_ledger_runtime_handoff_v1_20260617.md"
   ],
   "issue_refs": [],
-  "next_action": "stage approved files, commit, push, and open PR",
+  "next_action": "review PR #367 and address only in-scope control-plane findings",
   "owner": "Codex",
   "owner_boundary": false,
   "parent_task_id": null,
-  "pr_refs": [],
+  "pr_refs": [
+    "#367",
+    "https://github.com/0rl4nd0l/tenn/pull/367"
+  ],
   "session_id": "DATA_MISSING",
   "source_session_ref": "codex:thread:019ed3df-4b31-7cd1-8ed8-8bc1981cb7c8",
   "started_at": "2026-06-17T00:00:00Z",
-  "status": "implementation_started",
+  "status": "pr_opened",
   "summary": "Implemented Agent Task Ledger runtime and repo-native handoff workflow; validation passed via uv pytest and unittest.",
   "superseded_by": [],
   "supersedes": [],

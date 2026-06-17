@@ -3,9 +3,9 @@
 ## Executive summary
 
 Agent Task Ledger runtime and repo-native Tenn handoff workflow have been
-implemented in the clean sibling worktree. Current state is `VALIDATED`; pytest
-passed through the approved ephemeral `uv --with pytest` environment, and no
-repo dependency files were modified.
+implemented, validated, committed, pushed, and opened as PR #367. Pytest passed
+through the approved ephemeral `uv --with pytest` environment, and no repo
+dependency files were modified.
 
 ## Session ID / thread ID / goal ID
 
@@ -32,11 +32,15 @@ repo dependency files were modified.
 
 ## Commits
 
-- DATA_MISSING until validation and commit are complete.
+- `c6130f62` - `feat(control-plane): add task ledger runtime and handoff workflow`
+- This handoff update is a report-only follow-up on PR #367.
 
 ## PRs
 
-- DATA_MISSING until validation, push, and PR creation are complete.
+- PR #367: https://github.com/0rl4nd0l/tenn/pull/367
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Head: `control-plane/agent-ledger-runtime-handoff-v1-20260617`
+- State when written: OPEN, unmerged.
 
 ## Issues
 
@@ -80,8 +84,9 @@ repo dependency files were modified.
 
 ## Git status and dirt
 
-Worktree has only approved task-card/report/control-plane/script/test/template
-changes. No staged files at this checkpoint.
+Implementation commit is pushed to PR #367. Local ignored validation caches may
+remain from focused test runs: `.pytest_cache/`, `scripts/__pycache__/`, and
+`tests/__pycache__/`.
 
 ## Ledger status
 
@@ -111,28 +116,27 @@ changes. No staged files at this checkpoint.
 
 ## Owner decisions needed
 
-- None for validation. PR creation remains the next approved action after
-  staging and commit.
+- None for validation or PR creation. Review/merge remains an owner/reviewer
+  decision; this session must not merge PR #367.
 
 ## Next 10 milestones
 
-1. Stage only approved files with `git add -f` for ignored report
-   and `.agents/skills/tenn-handoff/SKILL.md`.
-2. Rerun staged changed-path guard.
-3. Commit with `feat(control-plane): add task ledger runtime and handoff workflow`.
-4. Push `control-plane/agent-ledger-runtime-handoff-v1-20260617`.
-5. Open PR against `migration/clean-runtime-baseline-reconstruct-v1`.
-6. Update handoff/report with PR URL if PR opens.
-7. Future task: decide whether live ledger append should be task-card approved
+1. Review PR #367 and wait for GitHub checks.
+2. Address only control-plane/test/docs/skills/report findings in scope.
+3. Keep product/runtime/data/extraction/count-24 and host-global files untouched.
+4. Merge PR #367 only through the normal owner/reviewer path.
+5. After merge, future sessions should use canonical base before further ledger work.
+6. Future task: decide whether live ledger append should be task-card approved
    by default for implementation-capable sessions.
-8. Future task: document live ledger append approval in task-card policy.
-9. Watch PR checks and address only control-plane failures in scope.
+7. Future task: document live ledger append approval in task-card policy.
+8. Future task: decide whether host-global handoff needs the proposed patch.
+9. Future task: refresh committed `LEDGER.md` after live ledger adoption.
 10. Do not touch product/runtime/data/extraction/count-24 or host-global files.
 
 ## Short next `/goal`
 
 ```text
-/goal Read reports/agent_jobs/dev_flow_ledger_runtime_handoff_v1_20260617/handoff/HANDOFF.md first. Run tenn-git-guard, check Agent Task Ledger/PR/task/report/branch/worktree duplicates, then finish the validation/PR closeout for the Agent Task Ledger runtime and repo-native handoff workflow. Use orchestrated subagents where useful; do not touch product/runtime/data/extraction/count-24 or host-global files.
+/goal Read reports/agent_jobs/dev_flow_ledger_runtime_handoff_v1_20260617/handoff/HANDOFF.md first. Run tenn-git-guard, check Agent Task Ledger/PR/task/report/branch/worktree duplicates, then review PR #367 and address only in-scope control-plane findings. Use orchestrated subagents where useful; do not touch product/runtime/data/extraction/count-24 or host-global files.
 ```
 
 ## Do-not-touch boundaries
@@ -145,10 +149,10 @@ changes. No staged files at this checkpoint.
 ## Evidence grades
 
 - `VERIFIED`: worktree, branch, HEAD, PR #355/#359/#360/#361 merged state,
-  registry read-only state, compile/pytest/unittest/check-diff/JSON/frontmatter
-  checks
+  PR #367 open state, registry read-only state,
+  compile/pytest/unittest/check-diff/JSON/frontmatter checks
 - `USER_REPORTED`: requested objective and approved file scope
 - `INFERRED`: PR #360 is docs/template predecessor, not duplicate runtime work
-- `UNKNOWN`: live PR URL before creation
+- `UNKNOWN`: live PR check result after creation
 - `CONFLICT`: none known
-- `DATA_MISSING`: live ledger file, session ID, PR URL before creation
+- `DATA_MISSING`: live ledger file, session ID

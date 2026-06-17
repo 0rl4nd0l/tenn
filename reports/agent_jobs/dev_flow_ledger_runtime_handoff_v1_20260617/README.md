@@ -1,6 +1,6 @@
 # Dev Flow Ledger Runtime Handoff V1
 
-Status: VALIDATED
+Status: PR_OPEN
 
 ## Objective
 
@@ -14,6 +14,8 @@ host-global files.
 - Branch: `control-plane/agent-ledger-runtime-handoff-v1-20260617`
 - Base/upstream: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - Base HEAD: `6eff52404af61b9717bffb5a250e06209713d517`
+- Commit: `c6130f62`
+- PR: https://github.com/0rl4nd0l/tenn/pull/367
 - Session ID: `DATA_MISSING`
 - Thread ID: `019ed3df-4b31-7cd1-8ed8-8bc1981cb7c8`
 - Goal ID: `f7141898-80f6-4dcd-af60-9f4e0514fcba`
@@ -54,7 +56,7 @@ host-global files.
   summarize exits reported success; runtime now fails those cases and tests
   cover them.
 - STAGING NOTE: `.agents/` is ignored, so `.agents/skills/tenn-handoff/SKILL.md`
-  must be force-added before commit.
+  was force-added before commit.
 
 ## Unsafe Actions Avoided
 
