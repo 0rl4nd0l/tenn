@@ -1,0 +1,101 @@
+{
+  "currency": "AUD",
+  "document_id": "SYNTH_RISK_2026_A_exact_positive_fixture",
+  "field_provenance": {
+    "cash_end": {
+      "excerpt": "Cash and cash equivalents at period end 20,000",
+      "page_number": 3,
+      "page_tag": "fixture:p3",
+      "row_ref": "Synthetic balance row: cash and equivalents 20,000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of financial position"
+    },
+    "ebit": {
+      "excerpt": "EBIT 60",
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "row_ref": "Synthetic income table row: EBIT 60",
+      "scale": "ones",
+      "scale_source": "synthetic row-local override dollars",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of profit or loss"
+    },
+    "np_attributable": {
+      "excerpt": "Net profit attributable 50",
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "row_ref": "Synthetic income table row: NPAT 50",
+      "scale": "thousands",
+      "scale_source": "synthetic table header A$000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of profit or loss"
+    },
+    "operating_cf": {
+      "excerpt": "Net operating cash flow (25)",
+      "page_number": 2,
+      "page_tag": "fixture:p2",
+      "row_ref": "Synthetic cash-flow row: operating cash flow (25)",
+      "scale": "thousands",
+      "scale_source": "synthetic table header A$000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of cash flows"
+    },
+    "revenue": {
+      "excerpt": "Revenue 1,200",
+      "page_number": 1,
+      "page_tag": "fixture:p1",
+      "row_ref": "Synthetic income table row: Revenue 1,200",
+      "scale": "thousands",
+      "scale_source": "synthetic table header A$000",
+      "source": "synthetic_positive_risk_fixture",
+      "table_label": "Synthetic statement of profit or loss"
+    }
+  },
+  "fixture_id": "synthetic_positive_scale_magnitude_risk_v1",
+  "fixture_kind": "exact_synthetic_report_artifact",
+  "fixture_purpose": "positive risk flag coverage without extraction or canonical mutation",
+  "metric_scale_sources": {
+    "ebit": "synthetic row-local override dollars",
+    "np_attributable": "synthetic table header A$000",
+    "operating_cf": "synthetic table header A$000",
+    "revenue": "synthetic table header A$000"
+  },
+  "metric_source_scales": {
+    "ebit": "ones",
+    "np_attributable": "thousands",
+    "operating_cf": "thousands",
+    "revenue": "thousands"
+  },
+  "metrics": {
+    "capex": null,
+    "cash_end": 20000,
+    "ebit": 60,
+    "financing_cf": null,
+    "investing_cf": null,
+    "net_debt": null,
+    "np_attributable": 50,
+    "operating_cf": -25,
+    "revenue": 1200,
+    "shares_outstanding": null
+  },
+  "period_end": "2026-06-30",
+  "period_type": "A",
+  "provenance": {
+    "cash_end": "synthetic:cash_end",
+    "ebit": "synthetic:ebit",
+    "np_attributable": "synthetic:np_attributable",
+    "operating_cf": "synthetic:operating_cf",
+    "revenue": "synthetic:revenue"
+  },
+  "row_refs": {
+    "cash_end": "Synthetic balance row: cash and equivalents 20,000",
+    "ebit": "Synthetic income table row: EBIT 60",
+    "np_attributable": "Synthetic income table row: NPAT 50",
+    "operating_cf": "Synthetic cash-flow row: operating cash flow (25)",
+    "revenue": "Synthetic income table row: Revenue 1,200"
+  },
+  "scale": "thousands",
+  "source_path": "reports/agent_jobs/extraction_broad_run_positive_risk_fixture_v1_20260617/positive_fixture_input.json",
+  "status": "ok",
+  "ticker": "SYNTH_RISK"
+}
