@@ -1,6 +1,6 @@
 # State
 
-Status: `IN_PROGRESS`
+Status: `DONE_WITH_RISK`
 
 ## Publish Scope
 
@@ -10,16 +10,22 @@ Branch:
 Base:
 `migration/clean-runtime-baseline-reconstruct-v1`
 
-Reviewed commits before publish scaffold:
+Published commits:
 
 - `deba6e0b feat(extraction): surface broad-run provenance risk flags`
 - `a0b54e66 test(extraction): replay broad-run provenance fixture`
 - `4f58d1b7 test(extraction): add positive scale risk fixture`
 - `f0d48118 chore(extraction): record broad-run PR readiness`
+- `fa8dc05e chore(extraction): prepare broad-run PR publication`
 
 ## Current State
 
-Publish scaffold created. Push and draft PR creation are pending.
+- Branch pushed to origin.
+- Draft PR opened: `https://github.com/0rl4nd0l/tenn/pull/369`
+- PR base: `migration/clean-runtime-baseline-reconstruct-v1`
+- PR state: `OPEN`
+- PR draft state: `true`
+- Merge state at creation: `UNSTABLE`
 
 ## Task Ledger
 
@@ -30,5 +36,6 @@ Publish scaffold created. Push and draft PR creation are pending.
 
 ## Residual Risk
 
-- PR publication is approved, but merge remains unauthorized.
+- PR publication is complete, but merge remains unauthorized.
+- Remote CI/checks need read-only follow-up.
 - No broad extraction/runtime/data validation is authorized in this task.

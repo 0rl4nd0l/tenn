@@ -40,6 +40,32 @@ Pending before publish scaffold commit:
 - push branch
 - open draft PR
 
+```bash
+python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_broad_run_pr_publish_v1_20260617.md --repo-root .
+```
+
+Result before publish scaffold commit: exit `0`, `ok: true`.
+
+```bash
+git push -u origin safe/extraction-broad-run-provenance-risk-flags-v1-20260617
+```
+
+Result: exit `0`; branch created on origin and set to track
+`origin/safe/extraction-broad-run-provenance-risk-flags-v1-20260617`.
+
+```bash
+gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-broad-run-provenance-risk-flags-v1-20260617 --title "[Extraction] Surface broad-run provenance and scale risk flags" --body-file reports/agent_jobs/extraction_broad_run_pr_publish_v1_20260617/PR_BODY.md
+```
+
+Result: exit `0`; opened `https://github.com/0rl4nd0l/tenn/pull/369`.
+
+```bash
+gh pr view 369 --json number,title,state,isDraft,headRefName,baseRefName,url,mergeStateStatus,reviewDecision
+```
+
+Result: exit `0`; PR #369 is `OPEN`, draft `true`, base
+`migration/clean-runtime-baseline-reconstruct-v1`, merge state `UNSTABLE`.
+
 ## Forbidden Actions Not Run
 
 - No merge.
