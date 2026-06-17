@@ -27,6 +27,44 @@ The worker brief must include:
 - parent task id
 - Task Ledger expectations: child ledger entry or required ledger fields in
   `WORKER_RESULT.md`
+- task tier and model routing fields:
+  - `task_tier`
+  - `recommended_model`
+  - `actual_model`
+  - `why_this_model`
+  - `worker_model_allowed`
+  - `worker_decision_limit`
+  - `escalation_needed`
+
+## Model And Decision Contract
+
+Workers are Codex development-tooling helpers. They should not turn project
+workflows into Tenn-specific runtime machinery unless the assigned task depends
+on this repo's task-card registry, owner-boundary rules, extraction boundaries,
+or financial-truth safety constraints.
+
+Task tiers:
+
+- `small`: grep/search, JSON parse, file listing, report summarization, simple
+  docs update, focused test run. Recommended model: mini/low-cost.
+- `medium`: small bug fix, one/two-file code change, targeted regression, PR
+  comment fix. Recommended model: standard coding model.
+- `large`: multi-file correctness, schema/persistence, architecture change, or
+  tricky debugging. Recommended model: high reasoning.
+- `critical`: DB/runtime mutation, destructive Git, financial truth, merge
+  conflict, high-risk cleanup, or owner-boundary decision. Recommended model:
+  high reasoning plus review-board.
+
+Allowed worker decision limits:
+
+- `evidence_only`: gather facts and report uncertainty.
+- `recommendation_only`: propose a plan; do not mutate or decide.
+- `bounded_implementation`: implement only the exact assigned lane and files.
+
+Small/cheap workers are appropriate for bounded evidence gathering. Small models
+must not make final decisions on high-risk work. Escalate architecture, schema,
+financial truth, merge readiness, destructive operations, and owner-boundary
+decisions back to the orchestrator or review board.
 
 ## Required Behavior
 
@@ -39,7 +77,8 @@ The worker brief must include:
 5. Run focused validation if mutation occurred.
 6. Leave no invisible dirt. Every changed, untracked, generated, ignored, or
    skipped file must be reported.
-7. Stop instead of widening scope.
+7. Respect `worker_decision_limit`; stop instead of widening scope or making a
+   decision above the assigned tier.
 
 ## Output
 
@@ -50,6 +89,13 @@ Write `WORKER_RESULT.md` with:
 - parent task id
 - worker id
 - lane
+- task tier
+- recommended model
+- actual model
+- why this model
+- worker model allowed
+- worker decision limit
+- escalation needed
 - ledger status or `DATA_MISSING`
 - task status
 - files changed
