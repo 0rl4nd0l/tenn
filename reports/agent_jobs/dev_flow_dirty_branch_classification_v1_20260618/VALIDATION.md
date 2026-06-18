@@ -47,6 +47,10 @@
 | `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/validation_environment_autonomy_skill_update_v1_20260617.md --no-write-report` after staging | 0 | Passed with all 11 staged changed files inside `allowed_files`. |
 | `git diff --cached --check` | 0 | No staged whitespace errors. |
 | `git diff --cached --name-status` | 0 | Staged exactly three modified skill files, one task card, and seven report files. |
+| `git commit -m "docs(control-plane): preserve validation environment autonomy guidance"` | 0 | Created commit `90e37007e1baf2c4cbca3cd54774715f71eb105e`. |
+| `git push -u origin control-plane/validation-environment-autonomy-preserve-v1-20260618` | 0 | Pushed the preservation branch to origin. |
+| `gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head control-plane/validation-environment-autonomy-preserve-v1-20260618 ...` | 0 | Opened PR #374. |
+| `gh pr view 374 --json ...` | 0 | PR #374 open; `lint-and-test` queued and `scan` in progress at last check. |
 
 ## Staging Note
 

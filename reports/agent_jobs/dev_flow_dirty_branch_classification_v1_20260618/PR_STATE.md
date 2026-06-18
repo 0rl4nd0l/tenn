@@ -57,3 +57,19 @@ The fetched canonical HEAD is
   `scripts/opencode_worker_bridge.py`, tests, task card, and report bundle.
 - Classification impact: PR #373 establishes the current canonical HEAD and is
   unrelated to the dirty validation-environment guidance.
+
+## PR #374
+
+- State: `OPEN`
+- URL: `https://github.com/0rl4nd0l/tenn/pull/374`
+- Title: `[Control Plane] Preserve validation environment autonomy guidance`
+- Head: `control-plane/validation-environment-autonomy-preserve-v1-20260618`
+- Base: `migration/clean-runtime-baseline-reconstruct-v1`
+- Initial commit:
+  `90e37007e1baf2c4cbca3cd54774715f71eb105e`
+- Last checked merge state: `UNSTABLE`
+- Last checked checks:
+  `lint-and-test` queued, `scan` in progress.
+- Classification impact: PR #374 is the clean preservation path for the novel
+  validation-environment guidance. It intentionally excludes the already-merged
+  skills-bloat card and the old branch's two unrelated local commits.

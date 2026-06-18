@@ -12,6 +12,8 @@ sibling worktree from latest canonical and apply only the novel minimal patch.
 - Base:
   `origin/migration/clean-runtime-baseline-reconstruct-v1` at
   `98e632996aae3bff82627a02b75e64cddd927420`
+- Preservation PR:
+  `https://github.com/0rl4nd0l/tenn/pull/374`
 
 ## Recommended Cleanup Boundary
 
@@ -25,7 +27,7 @@ or branch cleanup would discard more than the five dirty files classified here.
 
 ## Safe Cleanup Shape After PR Review
 
-After the preservation PR is merged or explicitly rejected, the original dirty
+After PR #374 is merged or explicitly rejected, the original dirty
 checkout can be addressed with a separate owner decision:
 
 - Option A: targeted cleanup of only the five dirty/untracked paths classified

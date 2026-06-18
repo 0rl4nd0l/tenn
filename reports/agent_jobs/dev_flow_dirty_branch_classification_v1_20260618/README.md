@@ -8,11 +8,14 @@ and recent dev-flow PRs, then preserve only genuinely novel work.
 
 ## Current State
 
-`VALIDATING`
+`DONE_WITH_RISK`
 
 The requested dirty files were classified. One novel guidance section was
-preserved in a clean sibling worktree as an additive patch on canonical. The
-original dirty checkout was not cleaned, reset, stashed, deleted, or edited.
+preserved in a clean sibling worktree as an additive patch on canonical and
+opened as PR #374:
+`https://github.com/0rl4nd0l/tenn/pull/374`.
+
+The original dirty checkout was not cleaned, reset, stashed, deleted, or edited.
 
 ## Current-Turn Evidence
 
@@ -37,6 +40,8 @@ original dirty checkout was not cleaned, reset, stashed, deleted, or edited.
   `/home/l4nd0/tenn-validation-environment-autonomy-preserve-v1-20260618`.
 - Clean preservation branch:
   `control-plane/validation-environment-autonomy-preserve-v1-20260618`.
+- Preservation PR:
+  `https://github.com/0rl4nd0l/tenn/pull/374`.
 
 ## Files Touched In Clean Worktree
 
@@ -69,6 +74,9 @@ work is the validation-environment guidance only, so the clean preservation
 patch adds that section without deleting current canonical content.
 
 ## Remaining Risk
+
+GitHub checks for PR #374 were still pending at the last live check:
+`lint-and-test` was queued and `scan` was in progress.
 
 The old branch itself still has two local commits not on canonical:
 
