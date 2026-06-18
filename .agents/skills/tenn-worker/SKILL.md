@@ -66,6 +66,31 @@ must not make final decisions on high-risk work. Escalate architecture, schema,
 financial truth, merge readiness, destructive operations, and owner-boundary
 decisions back to the orchestrator or review board.
 
+## Validation Environment Autonomy
+
+If a requested validation command fails because a standard validation tool is
+missing, try safe existing or ephemeral validation environments before blocking.
+
+Resolution order:
+
+1. existing repo venv
+2. documented repo test command
+3. available dependency runner such as `uv`
+4. ephemeral venv under `/tmp` or another throwaway path
+5. `unittest` or stdlib fallback when equivalent
+6. `WAITING_ON_USER` only after safe paths fail
+
+Agents may install standard validation-only dependencies such as `pytest` into
+an ephemeral environment when:
+
+- no repo dependency files or lockfiles are changed
+- no production/runtime venv is modified
+- the dependency is only used for validation
+- the command and result are recorded
+
+Do not mutate project dependencies, CI config, system packages, runtime
+services, or host-global config without explicit approval.
+
 ## Required Behavior
 
 1. Run `tenn-git-guard` in the assigned worktree.
