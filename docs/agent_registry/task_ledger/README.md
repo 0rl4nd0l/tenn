@@ -40,7 +40,7 @@ Common commands:
 python3 scripts/agent_task_ledger.py resolve-path
 python3 scripts/agent_task_ledger.py validate
 python3 scripts/agent_task_ledger.py search --text "<topic-or-path>"
-python3 scripts/agent_task_ledger.py append --task-id "<task-id>" --status claimed --summary "<summary>"
+python3 scripts/agent_task_ledger.py append --entry-file reports/agent_jobs/<job_id>/handoff/LEDGER_ENTRY.json --fill-identity
 ```
 
 Only append to the live ledger when the task card or owner approval permits that

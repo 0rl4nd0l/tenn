@@ -105,6 +105,17 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertIs(payload["ok"], False)
         self.assertTrue(any("task_id" in issue for issue in payload["issues"]))
 
+    def test_validate_missing_entry_file_returns_json_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "missing-entry.json"
+
+            result = run_ledger("validate", "--entry-file", str(missing))
+            payload = load_json(result)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIs(payload["ok"], False)
+        self.assertTrue(any("unable to read file" in issue for issue in payload["issues"]))
+
     def test_validate_rejects_unknown_status(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             entry_file = Path(tmp) / "entry.json"
@@ -132,6 +143,21 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertIs(payload["ok"], True)
         self.assertEqual(len(lines), 1)
         self.assertEqual(written["updated_at"], written["started_at"])
+
+    def test_append_missing_entry_file_returns_json_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            missing = root / "missing-entry.json"
+            ledger = root / "task-ledger.jsonl"
+
+            result = run_ledger("append", "--entry-file", str(missing), "--ledger-path", str(ledger))
+            payload = load_json(result)
+            ledger_exists = ledger.exists()
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIs(payload["ok"], False)
+        self.assertFalse(ledger_exists)
+        self.assertTrue(any("unable to read file" in issue for issue in payload["issues"]))
 
     def test_search_by_task_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -241,6 +267,12 @@ class AgentTaskLedgerTests(unittest.TestCase):
         ]
         for section in required_sections:
             self.assertIn(f"## {section}", template)
+
+    def test_readme_append_example_uses_supported_flags(self) -> None:
+        readme = (REPO_ROOT / "docs/agent_registry/task_ledger/README.md").read_text(encoding="utf-8")
+
+        self.assertIn("append --entry-file", readme)
+        self.assertNotIn("append --task-id", readme)
 
     def test_skill_frontmatter_parses(self) -> None:
         paths = [

@@ -47,6 +47,30 @@
   - result: no findings for disallowed path changes, owner approval gaps,
     product/runtime/data/extraction boundary crossing, stale canonical rollback,
     or missing focused validation.
+- `python3 -m unittest tests/test_agent_task_ledger.py`
+  - exit: 0
+  - result: `Ran 17 tests`; `OK`
+- `python3 scripts/agent_task_ledger.py append --help`
+  - exit: 0
+  - result: confirms `append` accepts `--entry-json` or `--entry-file`, plus
+    optional `--ledger-path` and `--fill-identity`
+- `uv run --no-project --no-cache --with pytest pytest tests/test_agent_task_ledger.py -q`
+  - exit: 0
+  - result: `17 passed, 1 warning, 6 subtests passed`
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/dev_flow_ledger_runtime_handoff_replay_v1_20260618.md --no-write-report`
+  - exit: 0
+  - result: `ok: true`; `disallowed_files: []`
+- `git diff --check`
+  - exit: 0
+  - result: no whitespace errors
+- `git diff --name-only -- financial-engine_v2 count-24 scripts/count-24 docs/count-24 data .codex`
+  - exit: 0
+  - result: no product/runtime/data/count-24/Codex config paths in fix diff
+- `tenn-code-reviewer` P2-fix diff gate
+  - decision: `pass`
+  - result: no findings for disallowed paths, weak validation, owner approval
+    gaps, product/runtime/data/extraction boundary crossing, or stale canonical
+    rollback.
 
 ## Notes
 

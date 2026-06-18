@@ -221,6 +221,8 @@ def _load_entries_from_text(text: str, *, source: str) -> list[dict[str, Any]]:
 def load_entries(path: Path) -> list[dict[str, Any]]:
     try:
         return _load_entries_from_text(path.read_text(encoding="utf-8"), source=str(path))
+    except OSError as exc:
+        raise LedgerError(f"{path}: unable to read file: {exc.strerror or exc}") from exc
     except UnicodeDecodeError as exc:
         raise LedgerError(f"{path}: file must be UTF-8 text") from exc
 
