@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from scripts import agent_task_ledger
@@ -176,6 +177,25 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIs(payload["ok"], False)
         self.assertTrue(any("unable to open ledger for append" in issue for issue in payload["issues"]))
+
+    def test_append_entry_retries_short_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / "task-ledger.jsonl"
+            original_write = agent_task_ledger.os.write
+
+            def short_write(fd: int, data: object) -> int:
+                view = memoryview(data)  # type: ignore[arg-type]
+                chunk_size = max(1, len(view) // 2)
+                return original_write(fd, view[:chunk_size])
+
+            with mock.patch.object(agent_task_ledger.os, "write", side_effect=short_write):
+                agent_task_ledger.append_entry(ledger, sample_entry())
+
+            lines = ledger.read_text(encoding="utf-8").splitlines()
+            written = json.loads(lines[0])
+
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(written["task_id"], "dev_flow_ledger_runtime_handoff_v1_20260617")
 
     def test_search_by_task_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
