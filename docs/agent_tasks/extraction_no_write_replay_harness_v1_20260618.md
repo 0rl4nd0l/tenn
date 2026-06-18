@@ -29,7 +29,7 @@ timeout_seconds: 14400
 output_dir: reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618
 mutation_mode: safe_extension
 production_data_access: false
-github_mutation_allowed: false
+github_mutation_allowed: true
 ---
 
 # Certified No-Write Extraction Replay Harness
@@ -43,6 +43,9 @@ certified manifest.
 The command must run only fixed local cases, isolate parser/cache writes under
 `/tmp`, write durable artifacts only under the selected report directory, and
 emit side-effect evidence that protected surfaces were not changed.
+
+User approval on 2026-06-18 permits publishing this committed harness branch as
+one draft PR. No other GitHub mutation is in scope.
 
 ## Certified V1 Corpus
 
@@ -61,8 +64,9 @@ emit side-effect evidence that protected surfaces were not changed.
 - Do not run count-24, count-32, random samples, broad extraction, backfill, or
   full ticker-universe extraction.
 - Do not fetch missing source artifacts; mark them `DATA_MISSING`.
-- Do not push, open PRs, comment on GitHub, merge, rebase, reset, stash, clean,
-  or delete branches/worktrees.
+- Do not comment on GitHub, merge, rebase, reset, stash, clean, delete
+  branches/worktrees, or perform GitHub mutation beyond pushing this branch and
+  opening/updating one draft PR.
 
 ## Required Runner Contract
 

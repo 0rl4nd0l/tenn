@@ -25,7 +25,7 @@ timeout_seconds: 7200
 output_dir: reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618
 mutation_mode: safe_extension
 production_data_access: false
-github_mutation_allowed: false
+github_mutation_allowed: true
 ---
 
 # Certified Docling No-Write Profile
@@ -35,6 +35,9 @@ github_mutation_allowed: false
 Extend `scripts/extraction_no_write_replay.py` with a certified
 `docling-no-write` profile that lets future agents use docling and an approved
 existing repo/backend venv without asking for fresh approval.
+
+User approval on 2026-06-18 permits publishing this committed harness branch as
+one draft PR. No other GitHub mutation is in scope.
 
 ## Scope
 
@@ -54,7 +57,8 @@ existing repo/backend venv without asking for fresh approval.
 - Do not start services, download models, change runtime/model/GPU config, or
   modify production data.
 - Do not mutate DB, Qdrant, Redis, news stores, memory, source PDFs, prompts,
-  gold labels, registry state, or GitHub.
+  gold labels, or registry state. Do not perform GitHub mutation beyond pushing
+  this branch and opening/updating one draft PR.
 - Do not run broad extraction, count samples, or backfills.
 
 ## Validation

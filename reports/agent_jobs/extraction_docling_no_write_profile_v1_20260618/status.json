@@ -1,6 +1,6 @@
 {
   "branch": "safe/extraction-no-write-replay-harness-v1-20260618",
-  "github_mutation": false,
+  "github_mutation": true,
   "job_id": "extraction_docling_no_write_profile_v1_20260618",
   "profile_added": "docling-no-write",
   "state": "DONE_WITH_RISK",
