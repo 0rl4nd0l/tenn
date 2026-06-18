@@ -2391,16 +2391,15 @@ _STRONG_QUARTERLY_SOURCE_REASONS = frozenset(
     }
 )
 
-_SOURCE_DATE_TEXT_PATTERN = (
-    r"(?P<date>"
+_SOURCE_DATE_TEXT_FRAGMENT = (
     r"\d{1,2}(?:st|nd|rd|th)?\s+"
     r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
     r"Nov(?:ember)?|Dec(?:ember)?)\s+"
     r"\d{4}"
     r"|\d{4}-\d{1,2}-\d{1,2}"
-    r")"
 )
+_SOURCE_DATE_TEXT_PATTERN = rf"(?P<date>{_SOURCE_DATE_TEXT_FRAGMENT})"
 
 _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
@@ -2430,6 +2429,20 @@ _SOURCE_PERIOD_END_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
             re.IGNORECASE,
         ),
     ),
+)
+_CURRENT_PERIOD_RANGE_PATTERN = re.compile(
+    rf"\bcurrent\s+period\s*[:\-]\s*"
+    rf"(?P<start_date>{_SOURCE_DATE_TEXT_FRAGMENT})"
+    rf"\s*(?:to|through|-)\s*"
+    rf"(?P<end_date>{_SOURCE_DATE_TEXT_FRAGMENT})",
+    re.IGNORECASE,
+)
+_COMPARATIVE_PERIOD_CONTEXT_RE = re.compile(
+    r"\b(?:comparative|comparatives|prior|previous|corresponding|pcp)\b",
+    re.IGNORECASE,
+)
+_SAME_DOCUMENT_HALF_YEAR_PERIOD_END_REASONS = frozenset(
+    {"half_year_ended_explicit_date", "current_period_explicit_range"}
 )
 
 _LEADING_ANNOUNCEMENT_DATE_RE = re.compile(
@@ -2712,6 +2725,89 @@ def _normalize_source_date_text(value: Any) -> str:
     return re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.IGNORECASE)
 
 
+def _source_period_match_context(text: str, start: int, end: int) -> str:
+    context = text[max(0, start - 80) : min(len(text), end + 80)]
+    return " ".join(context.split())[:240]
+
+
+def _is_comparative_period_context(text: str, match_start: int) -> bool:
+    line_start = text.rfind("\n", 0, match_start) + 1
+    leading_context = text[line_start:match_start]
+    return bool(_COMPARATIVE_PERIOD_CONTEXT_RE.search(leading_context or ""))
+
+
+def _current_period_range_period_end_hits(source: str, text: str) -> list[dict[str, str]]:
+    hits: list[dict[str, str]] = []
+    if source != "source_text":
+        return hits
+    for match in _CURRENT_PERIOD_RANGE_PATTERN.finditer(text):
+        start_date = parse_period_end(
+            _normalize_source_date_text(match.group("start_date"))
+        )
+        end_date = parse_period_end(_normalize_source_date_text(match.group("end_date")))
+        if start_date is None or end_date is None:
+            continue
+        if _derive_period_start(end_date, "H") != start_date:
+            continue
+        context = _source_period_match_context(text, match.start(), match.end())
+        hits.append(
+            {
+                "period_type": "H",
+                "period_end": end_date.isoformat(),
+                "period_start": start_date.isoformat(),
+                "reason": "current_period_explicit_range",
+                "source": source,
+                "evidence": " ".join(match.group(0).split())[:200],
+                "context": context,
+                "is_comparative_context": "false",
+            }
+        )
+    return hits
+
+
+def _current_period_source_preference(
+    hits: list[dict[str, str]]
+) -> dict[str, Any] | None:
+    current_hits = [
+        hit
+        for hit in hits
+        if hit.get("source") == "source_text"
+        and hit.get("reason") == "current_period_explicit_range"
+    ]
+    if not current_hits:
+        return None
+    current_dates = sorted({hit["period_end"] for hit in current_hits})
+    current_types = sorted({hit["period_type"] for hit in current_hits})
+    if len(current_dates) != 1 or current_types != ["H"]:
+        return None
+
+    period_end = current_dates[0]
+    conflicting_hits = [hit for hit in hits if hit.get("period_end") != period_end]
+    if not conflicting_hits:
+        return None
+    if any(hit.get("is_comparative_context") != "true" for hit in conflicting_hits):
+        return None
+
+    reason = "current_period_explicit_range"
+    for hit in hits:
+        if (
+            hit.get("source") == "source_text"
+            and hit.get("period_end") == period_end
+            and hit.get("reason") == "half_year_ended_explicit_date"
+            and hit.get("is_comparative_context") != "true"
+        ):
+            reason = "half_year_ended_explicit_date"
+            break
+
+    return {
+        "period_type": "H",
+        "period_end": period_end,
+        "reason": reason,
+        "hits": hits,
+        "selection_rule": "current_period_source_text_over_comparative_period_end",
+    }
+
+
 def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str, Any]:
     """
     Detect explicit source period-end dates from typed reporting-period phrases.
@@ -2734,6 +2830,7 @@ def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str
                 parsed = parse_period_end(raw_date)
                 if parsed is None:
                     continue
+                context = _source_period_match_context(text, match.start(), match.end())
                 hits.append(
                     {
                         "period_type": period_type,
@@ -2741,11 +2838,21 @@ def _detect_source_period_end_evidence(title: Any, source_text: Any) -> dict[str
                         "reason": reason,
                         "source": source,
                         "evidence": " ".join(match.group(0).split())[:200],
+                        "context": context,
+                        "is_comparative_context": (
+                            "true"
+                            if _is_comparative_period_context(text, match.start())
+                            else "false"
+                        ),
                     }
                 )
+        hits.extend(_current_period_range_period_end_hits(source, text))
 
     unique_dates = sorted({hit["period_end"] for hit in hits})
     unique_types = sorted({hit["period_type"] for hit in hits})
+    current_period_preference = _current_period_source_preference(hits)
+    if current_period_preference is not None:
+        return current_period_preference
     if len(unique_dates) == 1 and len(unique_types) == 1:
         return {
             "period_type": unique_types[0],
@@ -4242,11 +4349,12 @@ def _bind_explicit_source_period_end_over_announcement_date(
         return False
     if source_period_end_evidence.get("period_type") != "H":
         return False
-    if source_period_end_evidence.get("reason") != "half_year_ended_explicit_date":
+    evidence_reason = str(source_period_end_evidence.get("reason") or "")
+    if evidence_reason not in _SAME_DOCUMENT_HALF_YEAR_PERIOD_END_REASONS:
         return False
     if not _has_source_text_period_end_hit(
         source_period_end_evidence,
-        reason="half_year_ended_explicit_date",
+        reason=evidence_reason,
     ):
         return False
 
