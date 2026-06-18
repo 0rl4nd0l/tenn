@@ -603,7 +603,11 @@ def _match_order_key(match: dict[str, Any]) -> tuple[str, int]:
     entry = match.get("entry", {})
     timestamp = ""
     if isinstance(entry, dict):
-        timestamp = str(entry.get("updated_at") or entry.get("started_at") or "")
+        for field in ("updated_at", "started_at"):
+            value = entry.get(field)
+            if isinstance(value, str) and value.strip() and value != DATA_MISSING:
+                timestamp = value
+                break
     line = match.get("line", 0)
     return timestamp, line if isinstance(line, int) else 0
 

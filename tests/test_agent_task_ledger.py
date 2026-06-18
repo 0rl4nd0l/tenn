@@ -222,6 +222,33 @@ class AgentTaskLedgerTests(unittest.TestCase):
 
         self.assertEqual(classification, "MERGED_USE_CANONICAL")
 
+    def test_classification_sorts_missing_timestamps_before_real_dates(self) -> None:
+        matches = [
+            {
+                "source": "custom",
+                "line": 1,
+                "entry": sample_entry(
+                    task_id="task-a",
+                    status="claimed",
+                    started_at="DATA_MISSING",
+                    updated_at="DATA_MISSING",
+                ),
+            },
+            {
+                "source": "custom",
+                "line": 2,
+                "entry": sample_entry(
+                    task_id="task-a",
+                    status="done",
+                    updated_at="2026-06-18T01:00:00Z",
+                ),
+            },
+        ]
+
+        classification = agent_task_ledger.classify_matches(matches, [])
+
+        self.assertEqual(classification, "MERGED_USE_CANONICAL")
+
     def test_search_by_issue_and_pr(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             ledger = Path(tmp) / "task-ledger.jsonl"
