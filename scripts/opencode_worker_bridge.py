@@ -437,6 +437,49 @@ def build_permission_enforcement(
     )
 
 
+def attach_mode_state(
+    *,
+    decision_limit: str,
+    server_url: str | None,
+    remote_permission_verified: bool = False,
+) -> dict[str, Any]:
+    requested = bool(server_url)
+    state: dict[str, Any] = {
+        "attach_mode_requested": requested,
+        "attach_mode_allowed": False,
+        "remote_permission_verified": bool(remote_permission_verified),
+    }
+    if not requested:
+        return state
+
+    if decision_limit == "evidence_only" and not remote_permission_verified:
+        state["blocked"] = True
+        state["reason"] = "evidence_only_attach_requires_remote_readonly_proof"
+        return state
+
+    state["attach_mode_allowed"] = True
+    return state
+
+
+def resolve_attach_mode(
+    *,
+    decision_limit: str,
+    server_url: str | None,
+    remote_permission_verified: bool = False,
+) -> tuple[str | None, dict[str, Any]]:
+    state = attach_mode_state(
+        decision_limit=decision_limit,
+        server_url=server_url,
+        remote_permission_verified=remote_permission_verified,
+    )
+    if state.get("blocked"):
+        raise BridgeError(
+            "UNSUPPORTED_REMOTE_PERMISSION_ENFORCEMENT: evidence_only workers cannot use "
+            "OPENCODE_SERVER_URL/--attach without proven remote readonly enforcement"
+        )
+    return (server_url if state["attach_mode_allowed"] else None, state)
+
+
 def _parse_json_or_lines(text: str) -> list[str]:
     stripped = text[:MAX_PROBE_TEXT_BYTES].strip()
     if not stripped:
@@ -726,7 +769,12 @@ def _evidence_paths_are_present(value: str | None) -> bool:
     return any("/" in line or "." in Path(line).name for line in concrete)
 
 
-def validate_result_text(text: str, *, max_bytes: int = MAX_RESULT_BYTES) -> dict[str, Any]:
+def validate_result_text(
+    text: str,
+    *,
+    max_bytes: int = MAX_RESULT_BYTES,
+    expected_decision_limit: str | None = None,
+) -> dict[str, Any]:
     issues: list[dict[str, str]] = []
     encoded = text.encode("utf-8")
     if not text.strip():
@@ -742,8 +790,30 @@ def validate_result_text(text: str, *, max_bytes: int = MAX_RESULT_BYTES) -> dic
     if not _evidence_paths_are_present(fields.get("evidence_paths")):
         issues.append({"field": "evidence_paths", "message": "must include at least one concrete evidence path"})
 
-    decision_limit = (fields.get("decision_limit") or "").strip().lower()
-    if decision_limit == "evidence_only":
+    reported_decision_limit = (fields.get("decision_limit") or "").strip().lower()
+    requested_decision_limit = (expected_decision_limit or "").strip().lower()
+    if requested_decision_limit:
+        if requested_decision_limit not in DECISION_LIMITS:
+            issues.append(
+                {
+                    "field": "decision_limit",
+                    "message": f"requested decision_limit is invalid: {requested_decision_limit}",
+                }
+            )
+        elif reported_decision_limit != requested_decision_limit:
+            issues.append(
+                {
+                    "field": "decision_limit",
+                    "message": (
+                        "worker decision_limit "
+                        f"{reported_decision_limit or 'DATA_MISSING'} does not match requested "
+                        f"{requested_decision_limit}"
+                    ),
+                }
+            )
+
+    effective_decision_limit = requested_decision_limit or reported_decision_limit
+    if effective_decision_limit == "evidence_only":
         lower = text.lower()
         authority_phrases = (
             "final decision",
@@ -771,52 +841,76 @@ def validate_result_text(text: str, *, max_bytes: int = MAX_RESULT_BYTES) -> dic
     return {"ok": not issues, "fields": fields, "issues": issues}
 
 
-def validate_result_file(path: Path) -> dict[str, Any]:
+def validate_result_file(path: Path, *, expected_decision_limit: str | None = None) -> dict[str, Any]:
     if not path.exists():
         return {"ok": False, "fields": {}, "issues": [{"field": "result_path", "message": "file does not exist"}]}
-    result = validate_result_text(path.read_text(encoding="utf-8"))
+    meta_path = path.with_name("WORKER_META.json")
+    meta: dict[str, Any] | None = None
+    meta_read_error: str | None = None
+    if meta_path.exists():
+        try:
+            loaded_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            meta_read_error = "WORKER_META.json must be valid JSON"
+        else:
+            if isinstance(loaded_meta, dict):
+                meta = loaded_meta
+            else:
+                meta_read_error = "WORKER_META.json must be a JSON object"
+
+    requested_decision_limit = expected_decision_limit
+    if requested_decision_limit is None and meta is not None:
+        meta_decision_limit = meta.get("decision_limit")
+        if isinstance(meta_decision_limit, str) and meta_decision_limit.strip():
+            requested_decision_limit = meta_decision_limit
+
+    result = validate_result_text(
+        path.read_text(encoding="utf-8"),
+        expected_decision_limit=requested_decision_limit,
+    )
     fields = result.get("fields", {})
-    if fields.get("decision_limit") == "evidence_only":
-        meta_path = path.with_name("WORKER_META.json")
+    effective_decision_limit = (
+        (requested_decision_limit or fields.get("decision_limit") or "")
+        .strip()
+        .lower()
+    )
+    if effective_decision_limit == "evidence_only":
         if not meta_path.exists():
             result["ok"] = False
             result["issues"].append(
                 {"field": "permission_enforcement", "message": "WORKER_META.json is required for evidence_only"}
             )
+        elif meta_read_error:
+            result["ok"] = False
+            result["issues"].append(
+                {"field": "permission_enforcement", "message": meta_read_error}
+            )
         else:
-            try:
-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
+            enforcement = meta.get("permission_enforcement") if meta else None
+            if not isinstance(enforcement, dict) or enforcement.get("profile") != "readonly":
                 result["ok"] = False
                 result["issues"].append(
-                    {"field": "permission_enforcement", "message": "WORKER_META.json must be valid JSON"}
+                    {
+                        "field": "permission_enforcement",
+                        "message": "evidence_only requires readonly permission metadata",
+                    }
                 )
-            else:
-                enforcement = meta.get("permission_enforcement")
-                if not isinstance(enforcement, dict) or enforcement.get("profile") != "readonly":
-                    result["ok"] = False
-                    result["issues"].append(
-                        {
-                            "field": "permission_enforcement",
-                            "message": "evidence_only requires readonly permission metadata",
-                        }
-                    )
-                elif enforcement.get("verified") is not True:
-                    result["ok"] = False
-                    result["issues"].append(
-                        {
-                            "field": "permission_enforcement",
-                            "message": "evidence_only readonly permission enforcement must be verified",
-                        }
-                    )
-                elif enforcement.get("method") != "OPENCODE_CONFIG_CONTENT":
-                    result["ok"] = False
-                    result["issues"].append(
-                        {
-                            "field": "permission_enforcement",
-                            "message": "evidence_only requires OPENCODE_CONFIG_CONTENT enforcement",
-                        }
-                    )
+            elif enforcement.get("verified") is not True:
+                result["ok"] = False
+                result["issues"].append(
+                    {
+                        "field": "permission_enforcement",
+                        "message": "evidence_only readonly permission enforcement must be verified",
+                    }
+                )
+            elif enforcement.get("method") != "OPENCODE_CONFIG_CONTENT":
+                result["ok"] = False
+                result["issues"].append(
+                    {
+                        "field": "permission_enforcement",
+                        "message": "evidence_only requires OPENCODE_CONFIG_CONTENT enforcement",
+                    }
+                )
     return result
 
 
@@ -868,6 +962,36 @@ def command_run(args: argparse.Namespace) -> int:
         "started_at": started_at,
         "session_id": os.environ.get("OPENCODE_SESSION_ID") or os.environ.get("CODEX_THREAD_ID") or "DATA_MISSING",
     }
+    server_url = os.environ.get("OPENCODE_SERVER_URL")
+    attach_state = attach_mode_state(decision_limit=args.decision_limit, server_url=server_url)
+    meta.update(attach_state)
+    if attach_state.get("blocked"):
+        message = (
+            "UNSUPPORTED_REMOTE_PERMISSION_ENFORCEMENT: evidence_only workers cannot use "
+            "OPENCODE_SERVER_URL/--attach without proven remote readonly enforcement"
+        )
+        raw_path.write_text(f"{message}\n", encoding="utf-8")
+        meta.update(
+            {
+                "status": "failed",
+                "failure": "remote_permission_enforcement_failed",
+                "ended_at": utc_now(),
+            }
+        )
+        write_json(meta_path, meta)
+        result_path.write_text(
+            failure_result(
+                worker_id=args.worker_id,
+                task_tier=args.task_tier,
+                model=args.model,
+                decision_limit=args.decision_limit,
+                summary="OpenCode remote readonly permission enforcement could not be proven.",
+                evidence_paths=[str(meta_path), str(raw_path)],
+            ),
+            encoding="utf-8",
+        )
+        print(json_dump(meta), end="")
+        return 2
 
     opencode_path = resolve_opencode_command(args.opencode_command)
     if not opencode_path:
@@ -884,7 +1008,7 @@ def command_run(args: argparse.Namespace) -> int:
             encoding="utf-8",
         )
         meta.update({"status": "failed", "failure": "opencode_not_found", "ended_at": utc_now()})
-        meta["result_validation"] = validate_result_file(result_path)
+        meta["result_validation"] = validate_result_file(result_path, expected_decision_limit=args.decision_limit)
         write_json(meta_path, meta)
         print(json_dump(meta), end="")
         return 127
@@ -942,7 +1066,7 @@ def command_run(args: argparse.Namespace) -> int:
         model=args.model,
         workdir=workdir,
         prompt=prompt,
-        server_url=os.environ.get("OPENCODE_SERVER_URL"),
+        server_url=server_url if meta["attach_mode_allowed"] else None,
     )
     meta["command"] = command[:-1] + ["<prompt>"]
     meta["status"] = "running"
@@ -981,7 +1105,7 @@ def command_run(args: argparse.Namespace) -> int:
             encoding="utf-8",
         )
 
-    validation = validate_result_file(result_path)
+    validation = validate_result_file(result_path, expected_decision_limit=args.decision_limit)
     status = "completed" if result.ok and validation["ok"] else "result_invalid"
     if not result.ok:
         status = "failed"
@@ -1007,7 +1131,7 @@ def command_probe(args: argparse.Namespace) -> int:
 
 
 def command_validate_result(args: argparse.Namespace) -> int:
-    result = validate_result_file(Path(args.result_file))
+    result = validate_result_file(Path(args.result_file), expected_decision_limit=args.decision_limit)
     print(json_dump(result), end="")
     return 0 if result["ok"] else 1
 
@@ -1104,6 +1228,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = subparsers.add_parser("validate-result")
     validate.add_argument("result_file")
+    validate.add_argument("--decision-limit")
     validate.set_defaults(func=command_validate_result)
 
     summarize = subparsers.add_parser("summarize")
