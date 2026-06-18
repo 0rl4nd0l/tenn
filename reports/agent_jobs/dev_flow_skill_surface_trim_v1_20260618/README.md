@@ -48,6 +48,9 @@ Canonical was refreshed before commit/PR follow-through; latest
   - `docs/dev_flow/templates/FRAME.md`
   - `docs/dev_flow/templates/OPERATOR_NOTES.md`
   - worker and PR-review templates
+- Addressed PR #378 review feedback by updating the stale skill-frontmatter
+  test fixture and preserving the bounded-implementation path in
+  `WORKER_TASK.md`.
 
 ## Files Touched
 
@@ -69,6 +72,7 @@ Canonical was refreshed before commit/PR follow-through; latest
 - `docs/dev_flow/templates/WORKER_TASK.md`
 - `docs/dev_flow/templates/WORKER_RESULT.md`
 - `docs/dev_flow/templates/PR_REVIEW.md`
+- `tests/test_agent_task_ledger.py`
 - `reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/*`
 
 ## Files Intentionally Not Touched
@@ -91,8 +95,7 @@ See `VALIDATION.md`.
 - Live skill-loader behavior is inferred from the file surface; this run did
   not start a fresh Codex session to prove the deleted `SKILL.md` files vanish
   from the next session's advertised skills.
-- The implementation is ready for local commit and focused PR creation under
-  the owner's explicit follow-through instruction.
+- PR #378 required one review-fix follow-up before merge.
 
 ## Unsafe Actions Avoided
 

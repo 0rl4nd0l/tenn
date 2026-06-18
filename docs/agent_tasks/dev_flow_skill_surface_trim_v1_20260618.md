@@ -30,6 +30,7 @@ allowed_files:
   - docs/dev_flow/templates/WORKER_TASK.md
   - docs/dev_flow/templates/WORKER_RESULT.md
   - docs/dev_flow/templates/PR_REVIEW.md
+  - tests/test_agent_task_ledger.py
   - reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/README.md
   - reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/VALIDATION.md
   - reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/PR_REVIEW.md
@@ -56,6 +57,8 @@ superseded by PR #375 and do not merge it.
 - Add `docs/dev_flow/SKILLS_SURFACE.md` as the operator/backend surface map.
 - Add lightweight validation that the trimmed skill entrypoints are gone, core
   skill H1s remain valid, and no forbidden path class changed.
+- Update the existing skill-frontmatter fixture so it follows the visible skill
+  surface after `tenn-worker` is removed.
 
 ## Hard Boundaries
 

@@ -17,13 +17,20 @@ Decision: pass
 
 ## Findings
 
-- None found in the reviewed diff.
+- PR #378 P1 was valid: the old skill-frontmatter fixture still referenced
+  deleted `.agents/skills/tenn-worker/SKILL.md`. Fixed by discovering visible
+  `.agents/skills/*/SKILL.md` files and asserting `tenn-worker` is absent.
+- PR #378 P2 was valid: `WORKER_TASK.md` advertised
+  `bounded_implementation` while still forcing read-only behavior. Fixed by
+  making `permission_profile` explicit and separating read-only worker modes
+  from bounded implementation workers.
 
 ## Validation Evidence
 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md`: 0
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md --no-write-report`: 0
 - `git diff --check`: 0
+- `python3 -m unittest tests.test_agent_task_ledger`: 0 after review fix
 - Active removed-entrypoint reference check: 0
 - Product/runtime/data/extraction/count-24 guard: 0
 - Host-global guard: 0

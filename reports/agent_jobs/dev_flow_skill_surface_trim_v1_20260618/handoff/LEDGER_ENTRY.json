@@ -36,7 +36,8 @@
     "docs/dev_flow/templates/OPERATOR_NOTES.md",
     "docs/dev_flow/templates/PR_REVIEW.md",
     "docs/dev_flow/templates/WORKER_RESULT.md",
-    "docs/dev_flow/templates/WORKER_TASK.md"
+    "docs/dev_flow/templates/WORKER_TASK.md",
+    "tests/test_agent_task_ledger.py"
   ],
   "artifacts": [
     "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/README.md",
@@ -46,7 +47,7 @@
     "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/handoff/NEXT_GOAL.md",
     "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/handoff/LEDGER_ENTRY.json"
   ],
-  "summary": "Implemented a reversible repo-only Tenn skill-surface trim from merged canonical PR #375; six auxiliary visible skill entrypoints were rehomed into core skills, docs, and templates.",
+  "summary": "Implemented a reversible repo-only Tenn skill-surface trim from merged canonical PR #375; six auxiliary visible skill entrypoints were rehomed into core skills, docs, templates, and PR #378 review fixture/template repairs.",
   "validation": {
     "status": "passed",
     "commands": [
