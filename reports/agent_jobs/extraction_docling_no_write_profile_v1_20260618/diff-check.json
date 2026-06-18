@@ -1,0 +1,91 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "scripts/extraction_no_write_replay.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_extraction_no_write_replay.py",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/test_extraction_no_write_replay.py",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/README.md",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/status.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/validation.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/diff-check.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/input_manifest.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/replay_results.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/side_effect_audit.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/validation.json",
+        "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/logs/replay.log"
+      ],
+      "approval_required": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_docling_no_write_profile_v1_20260618",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618",
+      "owner": "Codex",
+      "production_data_access": false,
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting"
+      ],
+      "timeout_seconds": 7200
+    },
+    "ok": true
+  }
+}

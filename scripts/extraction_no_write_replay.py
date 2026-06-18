@@ -30,6 +30,15 @@ DEFAULT_REPORT_DIR = (
 )
 APPROVED_TMP_PREFIX = "/tmp/tenn-extraction-no-write-replay-"
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+BASELINE_PROFILE = "baseline-no-write"
+DOCLING_PROFILE = "docling-no-write"
+SUPPORTED_PROFILES = {BASELINE_PROFILE, DOCLING_PROFILE}
+APPROVED_VENV_RELATIVE_PYTHONS = (
+    "financial-engine_v2/.venv/bin/python",
+    "financial-engine_v2/.venv/bin/python3",
+    ".venv/bin/python",
+    ".venv/bin/python3",
+)
 REPORT_OUTPUTS = (
     "input_manifest.json",
     "replay_results.json",
@@ -37,6 +46,43 @@ REPORT_OUTPUTS = (
     "validation.json",
     "logs/replay.log",
 )
+SAFE_ENV_REPORT_KEYS = {
+    "DATA_ROOT",
+    "DATABASE_URL",
+    "TASK_MODE",
+    "AUTO_CREATE_TABLES",
+    "ENABLE_EMBEDDINGS",
+    "ENABLE_EMBEDDING_CACHE",
+    "ENABLE_QDRANT",
+    "ENABLE_MARKETINDEX_FALLBACK",
+    "ENABLE_IMPORTANCE_CLASSIFICATION",
+    "IMPORTANCE_MATERIALIZE_OUTPUT",
+    "ENABLE_SESSION_MEMORY",
+    "ROUTER_FEEDBACK_ENABLED",
+    "OPENBB_SIDECAR_ENABLE_STAGING_WRITES",
+    "REDIS_URL",
+    "CELERY_BROKER_URL",
+    "CELERY_RESULT_BACKEND",
+    "TENN_EXTRACTION_ACTIVE_FILE",
+    "MODEL_ROUTING_CONFIG",
+    "EXTRACTION_SKIP_NARRATIVE",
+    "EXTRACTION_PARALLEL",
+    "LLAMACPP_URL",
+    "EXTRACTION_LLAMACPP_URL",
+    "LLM_URL",
+    "OLLAMA_URL",
+    "LLM_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "EXTRACT_MODEL",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONNOUSERSITE",
+    "HOME",
+    "TMPDIR",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_STATE_HOME",
+}
 METRIC_FIELDS = (
     "revenue",
     "ebit",
@@ -192,6 +238,160 @@ def assert_loopback_url(raw_url: str) -> str:
     if parsed.hostname not in LOOPBACK_HOSTS:
         raise ReplayConfigError(f"LLM URL must be loopback-only: {url}")
     return url
+
+
+def normalize_profile(raw_profile: str) -> str:
+    profile = str(raw_profile or BASELINE_PROFILE).strip()
+    if profile not in SUPPORTED_PROFILES:
+        raise ReplayConfigError(
+            f"unsupported profile {profile!r}; expected one of {sorted(SUPPORTED_PROFILES)}"
+        )
+    return profile
+
+
+def _abspath_no_symlink(path: Path) -> Path:
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def approved_venv_candidates() -> list[Path]:
+    return [_abspath_no_symlink(REPO_ROOT / relative_path) for relative_path in APPROVED_VENV_RELATIVE_PYTHONS]
+
+
+def _resolve_path_no_symlink(path_text: str) -> Path:
+    raw_path = Path(path_text).expanduser()
+    if not raw_path.is_absolute():
+        raw_path = REPO_ROOT / raw_path
+    return _abspath_no_symlink(raw_path)
+
+
+def resolve_approved_venv_python(path_text: str) -> Path:
+    selected = _resolve_path_no_symlink(path_text)
+    candidates = approved_venv_candidates()
+    if selected not in candidates:
+        candidate_text = ", ".join(str(candidate) for candidate in candidates)
+        raise ReplayConfigError(
+            f"venv python is not approved for certified no-write replay: {selected}; "
+            f"approved candidates: {candidate_text}"
+        )
+    return selected
+
+
+def _same_python_path(left: Path, right: Path) -> bool:
+    return _abspath_no_symlink(left) == _abspath_no_symlink(right)
+
+
+def _select_docling_venv_python(requested_venv_python: str) -> tuple[Path | None, dict[str, Any]]:
+    info: dict[str, Any] = {
+        "approved_candidates": [str(candidate) for candidate in approved_venv_candidates()],
+        "current_python": sys.executable,
+        "requested_venv_python": requested_venv_python or None,
+    }
+    current_python = _abspath_no_symlink(Path(sys.executable))
+    for candidate in approved_venv_candidates():
+        if _same_python_path(current_python, candidate):
+            info["selected_venv_python"] = str(candidate)
+            info["current_python_is_selected"] = True
+            info["selected_exists"] = candidate.exists()
+            info["selected_executable"] = os.access(candidate, os.X_OK)
+            return candidate, info
+    if requested_venv_python:
+        selected = resolve_approved_venv_python(requested_venv_python)
+        info["selected_venv_python"] = str(selected)
+        info["current_python_is_selected"] = _same_python_path(current_python, selected)
+        info["selected_exists"] = selected.exists()
+        info["selected_executable"] = os.access(selected, os.X_OK)
+        return selected, info
+    for candidate in approved_venv_candidates():
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            info["selected_venv_python"] = str(candidate)
+            info["current_python_is_selected"] = _same_python_path(current_python, candidate)
+            info["selected_exists"] = True
+            info["selected_executable"] = True
+            return candidate, info
+    info["selected_venv_python"] = None
+    info["current_python_is_selected"] = False
+    info["selected_exists"] = False
+    info["selected_executable"] = False
+    return None, info
+
+
+def _reexec_for_docling_profile(selected_python: Path, args: argparse.Namespace) -> None:
+    argv = [str(selected_python), str(Path(__file__).resolve())] + sys.argv[1:]
+    if not args.venv_python:
+        argv.extend(["--venv-python", str(selected_python)])
+    if not args._profile_reexeced:
+        argv.append("--_profile-reexeced")
+    env: dict[str, str] = {}
+    for key in (
+        "PATH",
+        "LANG",
+        "LC_ALL",
+        "SSL_CERT_FILE",
+        "REQUESTS_CA_BUNDLE",
+        "LLM_API_KEY",
+        "LLAMACPP_URL",
+        "EXTRACTION_LLAMACPP_URL",
+    ):
+        value = os.environ.get(key)
+        if value:
+            env[key] = value
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["PYTHONNOUSERSITE"] = "1"
+    env["TENN_EXTRACTION_NO_WRITE_PROFILE_REEXEC"] = "1"
+    os.execve(str(selected_python), argv, env)
+
+
+def prepare_profile_process(args: argparse.Namespace) -> tuple[str, dict[str, Any], str | None]:
+    profile = normalize_profile(args.profile)
+    profile_info: dict[str, Any] = {
+        "profile": profile,
+        "current_python": sys.executable,
+        "reexeced": bool(args._profile_reexeced),
+    }
+    if profile != DOCLING_PROFILE:
+        return profile, profile_info, None
+
+    selected_python, venv_info = _select_docling_venv_python(args.venv_python)
+    profile_info.update(venv_info)
+    if selected_python is None:
+        return profile, profile_info, "approved_docling_venv_python_missing"
+    if not selected_python.exists():
+        return profile, profile_info, f"approved_docling_venv_python_missing:{selected_python}"
+    if not os.access(selected_python, os.X_OK):
+        return profile, profile_info, f"approved_docling_venv_python_not_executable:{selected_python}"
+    if not _same_python_path(Path(sys.executable), selected_python):
+        if args._profile_reexeced:
+            return profile, profile_info, f"docling_profile_reexec_failed:{selected_python}"
+        _reexec_for_docling_profile(selected_python, args)
+    return profile, profile_info, None
+
+
+def _verify_docling_import() -> tuple[dict[str, Any], str | None]:
+    info: dict[str, Any] = {"python": sys.executable}
+    try:
+        import docling  # type: ignore[import-not-found]
+
+        info["available"] = True
+        info["version"] = getattr(docling, "__version__", "unknown")
+        return info, None
+    except Exception as exc:
+        info["available"] = False
+        info["error"] = f"{type(exc).__name__}: {exc}"
+        return info, "docling_import_failed"
+
+
+def _docling_incompatible_cases(cases: list[dict[str, Any]]) -> list[dict[str, str]]:
+    incompatible: list[dict[str, str]] = []
+    for case in cases:
+        parser_backend = str(case.get("parser_backend") or "docling")
+        if parser_backend != "docling":
+            incompatible.append(
+                {
+                    "case_id": str(case.get("case_id")),
+                    "parser_backend": parser_backend,
+                }
+            )
+    return incompatible
 
 
 def _git_status() -> list[str]:
@@ -757,7 +957,101 @@ def _surface_audit(
     }
 
 
+def _safe_env_report(safe_env: dict[str, str]) -> dict[str, str]:
+    return {key: safe_env[key] for key in sorted(safe_env) if key in SAFE_ENV_REPORT_KEYS}
+
+
+def _forbidden_surface_clean_payload() -> dict[str, bool]:
+    return {
+        "source_pdf_write": False,
+        "normal_parser_cache_write": False,
+        "db_write": False,
+        "qdrant_write": False,
+        "redis_write": False,
+        "news_write": False,
+        "memory_write": False,
+        "prompt_write": False,
+        "gold_label_write": False,
+        "registry_write": False,
+        "runtime_config_write": False,
+        "service_start": False,
+        "github_mutation": False,
+        "broad_extraction": False,
+        "backfill": False,
+        "count_sample": False,
+    }
+
+
+def _write_no_run_artifacts(
+    *,
+    report_dir: Path,
+    manifest_path: Path,
+    cases: list[dict[str, Any]],
+    profile: str,
+    profile_info: dict[str, Any],
+    llm_url: str,
+    data_root: Path | None,
+    safe_env: dict[str, str] | None,
+    status: str,
+    reason: str,
+    details: dict[str, Any] | None = None,
+) -> None:
+    payload = {
+        "status": status,
+        "reason": reason,
+        "details": details or {},
+        "profile": profile,
+        "profile_info": profile_info,
+        "case_count": len(cases),
+        "selected_case_ids": [case["case_id"] for case in cases],
+        "side_effect_pass": True,
+        "preflight_only": True,
+        "loopback_llm_only": True,
+    }
+    input_manifest = {
+        "manifest_path": str(manifest_path),
+        "manifest_sha256": _sha256(manifest_path),
+        "selected_cases": cases,
+        "profile": profile,
+        "profile_info": profile_info,
+        "llm_base_url": llm_url,
+        "data_root": str(data_root) if data_root is not None else None,
+        "safe_env": _safe_env_report(safe_env or {}),
+    }
+    side_effect_audit = {
+        "status": status,
+        "reason": reason,
+        "profile": profile,
+        "profile_info": profile_info,
+        "report_dir": str(report_dir),
+        "report_only_durable_writes": True,
+        "forbidden_surface_mutation": _forbidden_surface_clean_payload(),
+        "forbidden_surface_clean": True,
+        "isolated_cache_contained": True,
+        "isolated_runtime_contained": True,
+    }
+    replay_payload = {
+        "artifact_type": "extraction_no_write_replay_results_v1",
+        "status": status,
+        "profile": profile,
+        "case_count": len(cases),
+        "llm_info": profile_info,
+        "results": [],
+        "reason": reason,
+        "details": details or {},
+    }
+    _write_json(report_dir / "input_manifest.json", input_manifest)
+    _write_json(report_dir / "replay_results.json", replay_payload)
+    _write_json(report_dir / "side_effect_audit.json", side_effect_audit)
+    _write_json(report_dir / "validation.json", payload)
+    log_path = report_dir / "logs" / "replay.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as log:
+        log.write(f"no_run profile={profile} status={status} reason={reason}\n")
+
+
 def run_replay(args: argparse.Namespace) -> int:
+    profile, profile_info, profile_preflight_issue = prepare_profile_process(args)
     manifest_path = resolve_manifest_path(Path(args.case_manifest).expanduser())
     report_dir = resolve_report_dir(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -774,9 +1068,19 @@ def run_replay(args: argparse.Namespace) -> int:
             "status": "DATA_MISSING",
             "reason": "source files missing; refusing live fetch",
             "missing": missing,
+            "profile": profile,
+            "profile_info": profile_info,
         }
         _write_json(report_dir / "validation.json", payload)
-        _write_json(report_dir / "input_manifest.json", {"manifest_path": str(manifest_path), "cases": cases})
+        _write_json(
+            report_dir / "input_manifest.json",
+            {
+                "manifest_path": str(manifest_path),
+                "cases": cases,
+                "profile": profile,
+                "profile_info": profile_info,
+            },
+        )
         _write_json(report_dir / "replay_results.json", payload)
         _write_json(report_dir / "side_effect_audit.json", payload)
         return 2
@@ -791,53 +1095,111 @@ def run_replay(args: argparse.Namespace) -> int:
         data_root = Path(tmp_dir).resolve()
         safe_env = build_safe_env(data_root, llm_url)
         apply_safe_env(safe_env)
+        if profile == DOCLING_PROFILE:
+            incompatible_cases = _docling_incompatible_cases(cases)
+            if incompatible_cases:
+                _write_no_run_artifacts(
+                    report_dir=report_dir,
+                    manifest_path=manifest_path,
+                    cases=cases,
+                    profile=profile,
+                    profile_info=profile_info,
+                    llm_url=llm_url,
+                    data_root=data_root,
+                    safe_env=safe_env,
+                    status="FAIL",
+                    reason="docling_profile_incompatible_manifest_cases",
+                    details={"incompatible_cases": incompatible_cases},
+                )
+                print(
+                    json.dumps(
+                        {
+                            "status": "FAIL",
+                            "reason": "docling_profile_incompatible_manifest_cases",
+                            "report_dir": str(report_dir.relative_to(REPO_ROOT)),
+                            "case_count": len(cases),
+                            "side_effect_pass": True,
+                            "profile": profile,
+                            "preflight_only": True,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                )
+                return 2
+            if profile_preflight_issue:
+                _write_no_run_artifacts(
+                    report_dir=report_dir,
+                    manifest_path=manifest_path,
+                    cases=cases,
+                    profile=profile,
+                    profile_info=profile_info,
+                    llm_url=llm_url,
+                    data_root=data_root,
+                    safe_env=safe_env,
+                    status="DATA_MISSING",
+                    reason=profile_preflight_issue,
+                )
+                print(
+                    json.dumps(
+                        {
+                            "status": "DATA_MISSING",
+                            "reason": profile_preflight_issue,
+                            "report_dir": str(report_dir.relative_to(REPO_ROOT)),
+                            "case_count": len(cases),
+                            "side_effect_pass": True,
+                            "profile": profile,
+                            "preflight_only": True,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                )
+                return 2
+            docling_info, docling_issue = _verify_docling_import()
+            profile_info["docling"] = docling_info
+            if docling_issue:
+                _write_no_run_artifacts(
+                    report_dir=report_dir,
+                    manifest_path=manifest_path,
+                    cases=cases,
+                    profile=profile,
+                    profile_info=profile_info,
+                    llm_url=llm_url,
+                    data_root=data_root,
+                    safe_env=safe_env,
+                    status="DATA_MISSING",
+                    reason=docling_issue,
+                )
+                print(
+                    json.dumps(
+                        {
+                            "status": "DATA_MISSING",
+                            "reason": docling_issue,
+                            "report_dir": str(report_dir.relative_to(REPO_ROOT)),
+                            "case_count": len(cases),
+                            "side_effect_pass": True,
+                            "profile": profile,
+                            "preflight_only": True,
+                        },
+                        indent=2,
+                        sort_keys=True,
+                    )
+                )
+                return 2
         cache_ok, cache_root_text, cache_error, cache_verification_mode = _check_cache_root(data_root)
         input_manifest = {
             "manifest_path": str(manifest_path),
             "manifest_sha256": _sha256(manifest_path),
             "selected_cases": cases,
+            "profile": profile,
+            "profile_info": profile_info,
             "llm_base_url": llm_url,
             "data_root": str(data_root),
             "cache_root": cache_root_text,
             "cache_root_isolated": cache_ok,
             "cache_root_verification_mode": cache_verification_mode,
-            "safe_env": {key: safe_env[key] for key in sorted(safe_env) if key in {
-                "DATA_ROOT",
-                "DATABASE_URL",
-                "TASK_MODE",
-                "AUTO_CREATE_TABLES",
-                "ENABLE_EMBEDDINGS",
-                "ENABLE_EMBEDDING_CACHE",
-                "ENABLE_QDRANT",
-                "ENABLE_MARKETINDEX_FALLBACK",
-                "ENABLE_IMPORTANCE_CLASSIFICATION",
-                "IMPORTANCE_MATERIALIZE_OUTPUT",
-                "ENABLE_SESSION_MEMORY",
-                "ROUTER_FEEDBACK_ENABLED",
-                "OPENBB_SIDECAR_ENABLE_STAGING_WRITES",
-                "REDIS_URL",
-                "CELERY_BROKER_URL",
-                "CELERY_RESULT_BACKEND",
-                "TENN_EXTRACTION_ACTIVE_FILE",
-                "MODEL_ROUTING_CONFIG",
-                "EXTRACTION_SKIP_NARRATIVE",
-                "EXTRACTION_PARALLEL",
-                "LLAMACPP_URL",
-                "EXTRACTION_LLAMACPP_URL",
-                "LLM_URL",
-                "OLLAMA_URL",
-                "LLM_API_KEY",
-                "OPENAI_API_KEY",
-                "ANTHROPIC_API_KEY",
-                "EXTRACT_MODEL",
-                "PYTHONDONTWRITEBYTECODE",
-                "PYTHONNOUSERSITE",
-                "HOME",
-                "TMPDIR",
-                "XDG_CACHE_HOME",
-                "XDG_CONFIG_HOME",
-                "XDG_STATE_HOME",
-            }},
+            "safe_env": _safe_env_report(safe_env),
         }
         _write_json(report_dir / "input_manifest.json", input_manifest)
         if not cache_ok:
@@ -899,6 +1261,8 @@ def run_replay(args: argparse.Namespace) -> int:
         status = "FAIL"
     validation = {
         "status": status,
+        "profile": profile,
+        "profile_info": profile_info,
         "case_count": len(cases),
         "selected_case_ids": [case["case_id"] for case in cases],
         "preflight_only": bool(args.preflight_only),
@@ -916,6 +1280,7 @@ def run_replay(args: argparse.Namespace) -> int:
     replay_payload = {
         "artifact_type": "extraction_no_write_replay_results_v1",
         "status": status,
+        "profile": profile,
         "case_count": len(cases),
         "llm_info": llm_info,
         "results": results,
@@ -938,6 +1303,7 @@ def run_replay(args: argparse.Namespace) -> int:
                 "case_count": len(cases),
                 "side_effect_pass": validation["side_effect_pass"],
                 "preflight_only": bool(args.preflight_only),
+                "profile": profile,
             },
             indent=2,
             sort_keys=True,
@@ -952,6 +1318,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case", action="append", default=[], help="Certified case id/ticker/document id, or all.")
     parser.add_argument("--report-dir", default=DEFAULT_REPORT_DIR)
     parser.add_argument("--llm-base-url", default="")
+    parser.add_argument(
+        "--profile",
+        choices=sorted(SUPPORTED_PROFILES),
+        default=BASELINE_PROFILE,
+        help=(
+            "Certified replay profile. baseline-no-write preserves the current minimal fallback path; "
+            "docling-no-write requires an approved existing repo/backend venv with docling installed."
+        ),
+    )
+    parser.add_argument(
+        "--venv-python",
+        default="",
+        help=(
+            "Approved existing venv Python for docling-no-write. Must be one of "
+            "financial-engine_v2/.venv/bin/python, financial-engine_v2/.venv/bin/python3, "
+            ".venv/bin/python, or .venv/bin/python3."
+        ),
+    )
+    parser.add_argument("--_profile-reexeced", action="store_true", dest="_profile_reexeced", help=argparse.SUPPRESS)
     parser.add_argument(
         "--preflight-only",
         action="store_true",

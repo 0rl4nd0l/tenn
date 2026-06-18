@@ -87,6 +87,26 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         with self.assertRaises(RUNNER.ReplayConfigError):
             RUNNER.assert_loopback_url("https://example.com/v1")
 
+    def test_profile_must_be_certified(self):
+        self.assertEqual(RUNNER.BASELINE_PROFILE, RUNNER.normalize_profile(""))
+        self.assertEqual(RUNNER.DOCLING_PROFILE, RUNNER.normalize_profile(RUNNER.DOCLING_PROFILE))
+        with self.assertRaises(RUNNER.ReplayConfigError):
+            RUNNER.normalize_profile("ad-hoc-docling")
+
+    def test_docling_venv_python_must_be_approved_candidate(self):
+        approved = RUNNER.resolve_approved_venv_python("financial-engine_v2/.venv/bin/python")
+        self.assertTrue(str(approved).endswith("financial-engine_v2/.venv/bin/python"))
+        with self.assertRaises(RUNNER.ReplayConfigError):
+            RUNNER.resolve_approved_venv_python("/tmp/random-venv/bin/python")
+
+    def test_docling_profile_rejects_non_docling_manifest_cases(self):
+        cases = [
+            {"case_id": "HUB", "parser_backend": "docling"},
+            {"case_id": "WHC", "parser_backend": "pymupdf"},
+        ]
+        incompatible = RUNNER._docling_incompatible_cases(cases)
+        self.assertEqual([{"case_id": "WHC", "parser_backend": "pymupdf"}], incompatible)
+
     def test_safe_env_forces_no_write_runtime_defaults(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = RUNNER.build_safe_env(Path(tmp), "http://127.0.0.1:8001")
@@ -121,6 +141,31 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             self.assertTrue(keep.exists())
             self.assertFalse(stale.exists())
             self.assertFalse(stale_log.exists())
+
+    def test_no_run_artifacts_record_data_missing_without_side_effects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report_dir = Path(tmp)
+            manifest_path = report_dir / "manifest.json"
+            manifest_path.write_text("{}", encoding="utf-8")
+            RUNNER._write_no_run_artifacts(
+                report_dir=report_dir,
+                manifest_path=manifest_path,
+                cases=[{"case_id": "HUB"}],
+                profile=RUNNER.DOCLING_PROFILE,
+                profile_info={"profile": RUNNER.DOCLING_PROFILE},
+                llm_url="http://127.0.0.1:8001",
+                data_root=report_dir / "tmp",
+                safe_env={"DATA_ROOT": str(report_dir / "tmp")},
+                status="DATA_MISSING",
+                reason="docling_import_failed",
+            )
+
+            validation = __import__("json").loads((report_dir / "validation.json").read_text(encoding="utf-8"))
+            audit = __import__("json").loads((report_dir / "side_effect_audit.json").read_text(encoding="utf-8"))
+            self.assertEqual("DATA_MISSING", validation["status"])
+            self.assertEqual(RUNNER.DOCLING_PROFILE, validation["profile"])
+            self.assertTrue(audit["forbidden_surface_clean"])
+            self.assertFalse(any(audit["forbidden_surface_mutation"].values()))
 
     def test_infrastructure_failure_detects_runtime_config_failures(self):
         row = {"result": {"status": "failed", "error": "pass1:OLLAMA_URL must be set when provider is 'ollama'"}}

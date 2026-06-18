@@ -1,0 +1,29 @@
+{
+  "case_count": 1,
+  "details": {},
+  "loopback_llm_only": true,
+  "preflight_only": true,
+  "profile": "docling-no-write",
+  "profile_info": {
+    "approved_candidates": [
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python3",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/.venv/bin/python3"
+    ],
+    "current_python": "/usr/bin/python3",
+    "current_python_is_selected": false,
+    "profile": "docling-no-write",
+    "reexeced": false,
+    "requested_venv_python": null,
+    "selected_executable": false,
+    "selected_exists": false,
+    "selected_venv_python": null
+  },
+  "reason": "approved_docling_venv_python_missing",
+  "selected_case_ids": [
+    "HUB"
+  ],
+  "side_effect_pass": true,
+  "status": "DATA_MISSING"
+}

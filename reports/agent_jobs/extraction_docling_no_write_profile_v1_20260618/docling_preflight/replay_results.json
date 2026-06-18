@@ -1,0 +1,25 @@
+{
+  "artifact_type": "extraction_no_write_replay_results_v1",
+  "case_count": 1,
+  "details": {},
+  "llm_info": {
+    "approved_candidates": [
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python3",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/.venv/bin/python3"
+    ],
+    "current_python": "/usr/bin/python3",
+    "current_python_is_selected": false,
+    "profile": "docling-no-write",
+    "reexeced": false,
+    "requested_venv_python": null,
+    "selected_executable": false,
+    "selected_exists": false,
+    "selected_venv_python": null
+  },
+  "profile": "docling-no-write",
+  "reason": "approved_docling_venv_python_missing",
+  "results": [],
+  "status": "DATA_MISSING"
+}
