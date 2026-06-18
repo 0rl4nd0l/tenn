@@ -446,7 +446,12 @@ def append_entry(path: Path, entry: dict[str, Any]) -> None:
     except OSError as exc:
         raise LedgerError(f"{path}: unable to open ledger for append: {exc.strerror or exc}") from exc
     try:
-        os.write(fd, payload)
+        remaining = memoryview(payload)
+        while remaining:
+            written = os.write(fd, remaining)
+            if written <= 0:
+                raise LedgerError(f"{path}: unable to append entry: wrote zero bytes")
+            remaining = remaining[written:]
     except OSError as exc:
         raise LedgerError(f"{path}: unable to append entry: {exc.strerror or exc}") from exc
     finally:
