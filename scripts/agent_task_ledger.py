@@ -620,6 +620,11 @@ def latest_matches_by_task(matches: list[dict[str, Any]]) -> list[dict[str, Any]
     return list(latest.values())
 
 
+def latest_entries_by_task(entries: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    matches = [{"line": index, "entry": entry} for index, entry in enumerate(entries, start=1)]
+    return [match["entry"] for match in latest_matches_by_task(matches)]
+
+
 def classify_matches(matches: list[dict[str, Any]], data_missing: list[str]) -> str:
     if data_missing:
         return "DATA_MISSING_FALLBACK_REQUIRED"
@@ -646,7 +651,7 @@ def classify_matches(matches: list[dict[str, Any]], data_missing: list[str]) -> 
 
 def group_by_status(entries: Iterable[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     grouped = {status: [] for status in SUMMARY_ORDER}
-    for entry in entries:
+    for entry in latest_entries_by_task(entries):
         grouped.setdefault(str(entry.get("status")), []).append(entry)
     return grouped
 

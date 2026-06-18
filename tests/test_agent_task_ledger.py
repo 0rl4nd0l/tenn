@@ -282,6 +282,30 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertEqual([entry["task_id"] for entry in payload["groups"]["claimed"]], ["a"])
         self.assertEqual([entry["task_id"] for entry in payload["groups"]["waiting_on_user"]], ["b"])
 
+    def test_summarize_uses_latest_entry_per_task(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / "task-ledger.jsonl"
+            entries = [
+                sample_entry(
+                    task_id="a",
+                    status="claimed",
+                    updated_at="2026-06-18T00:00:00Z",
+                ),
+                sample_entry(
+                    task_id="a",
+                    status="done",
+                    updated_at="2026-06-18T01:00:00Z",
+                ),
+            ]
+            ledger.write_text("".join(json.dumps(entry, sort_keys=True) + "\n" for entry in entries), encoding="utf-8")
+
+            result = run_ledger("summarize", "--ledger-path", str(ledger), "--format", "json")
+            payload = load_json(result)
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(payload["groups"]["claimed"], [])
+        self.assertEqual([entry["task_id"] for entry in payload["groups"]["done"]], ["a"])
+
     def test_summarize_missing_custom_ledger_path_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             missing = Path(tmp) / "missing.jsonl"
