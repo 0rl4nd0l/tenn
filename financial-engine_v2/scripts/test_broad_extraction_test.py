@@ -61,6 +61,28 @@ def test_compute_summary_keeps_other_validation_gates_grouped():
     assert summary["error_classification"] == {"validation_gate:scale_unknown": 1}
 
 
+def test_compute_summary_groups_accepted_output_risk_gate():
+    summary = compute_summary(
+        [
+            {
+                "status": "failed",
+                "error": (
+                    "validation_gate:accepted_output_scale_magnitude_risk:"
+                    "metric_revenue_ratio_high"
+                ),
+                "ticker": "EDU",
+                "metrics": {},
+                "non_null_metrics": 0,
+                "elapsed_s": 0.1,
+            }
+        ]
+    )
+
+    assert summary["error_classification"] == {
+        "validation_gate:accepted_output_scale_magnitude_risk": 1
+    }
+
+
 def test_scale_table_provenance_harness_includes_required_fixed_cases():
     cases = get_scale_table_provenance_harness_cases()
     tickers = {case["ticker"] for case in cases}
@@ -178,6 +200,58 @@ def test_broad_run_scale_magnitude_risk_flags_are_machine_readable():
     assert "mixed_metric_source_scales" in flags
     assert "payload_scale_differs_from_metric_source_scale" in flags
     assert "metric_revenue_ratio_high" in flags
+
+
+def test_broad_run_review_risk_fails_closed_for_accepted_output():
+    from broad_extraction_test import _accepted_output_risk_gate_error
+
+    error = _accepted_output_risk_gate_error(
+        {
+            "accepted_output": True,
+            "risk_level": "review",
+            "flag_codes": [
+                "metric_revenue_ratio_high",
+                "metric_revenue_ratio_high",
+                "mixed_metric_source_scales",
+            ],
+            "flags": [],
+        }
+    )
+
+    assert error == (
+        "validation_gate:accepted_output_scale_magnitude_risk:"
+        "metric_revenue_ratio_high,mixed_metric_source_scales"
+    )
+
+
+def test_broad_run_info_risk_remains_accepted_for_audit_visibility():
+    from broad_extraction_test import _accepted_output_risk_gate_error
+
+    error = _accepted_output_risk_gate_error(
+        {
+            "accepted_output": True,
+            "risk_level": "info",
+            "flag_codes": ["metric_source_scale_missing"],
+            "flags": [],
+        }
+    )
+
+    assert error is None
+
+
+def test_broad_run_review_risk_does_not_override_already_failed_rows():
+    from broad_extraction_test import _accepted_output_risk_gate_error
+
+    error = _accepted_output_risk_gate_error(
+        {
+            "accepted_output": False,
+            "risk_level": "review",
+            "flag_codes": ["metric_revenue_ratio_high"],
+            "flags": [],
+        }
+    )
+
+    assert error is None
 
 
 def test_broad_run_summary_rolls_up_provenance_and_risk_flags():
