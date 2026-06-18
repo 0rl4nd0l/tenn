@@ -44,13 +44,16 @@ board decision, task card, or explicit fix request.
 10. Execute one bounded milestone per run.
 11. Classify task difficulty and record model/worker routing before delegating
    or making high-risk decisions.
-12. Deploy bounded `tenn-worker` workers only when they reduce risk or context
-   load. Each worker gets one lane, one worktree, one brief, and one result
-   file.
+12. Delegate bounded workers only when they reduce risk or context load. Use
+   `docs/dev_flow/templates/WORKER_TASK.md` and `WORKER_RESULT.md`; each worker
+   gets one lane, one worktree, one brief, one result file, and no shared
+   mutation surface.
 13. Integrate one coherent change at a time.
 14. Run focused validation proportional to blast radius.
 15. Perform a Docs Impact Check before code review and closeout.
-16. Run `tenn-code-reviewer` before PR preparation.
+16. Run the final PR/diff review gate before PR preparation. Use
+   `docs/dev_flow/templates/PR_REVIEW.md` and the host code-reviewer stance
+   only inside Tenn task-card, registry, validation, and forbidden-path gates.
 17. Prepare, push, or open a PR only when the task and owner approval permit it.
 18. When stopping before completion, run or follow `tenn-handoff` so the next
     session has git state, ledger state, validation, and a short next `/goal`.
@@ -139,6 +142,14 @@ an ephemeral environment when:
 
 Do not mutate project dependencies, CI config, system packages, runtime
 services, or host-global config without explicit approval.
+
+## Task-Card And Registry Safety
+
+The old `tenn-task-card-registry-safety` skill is merged into `/fix` and
+`tenn-git-guard`. Before editing, validate the task card, compare every
+intended path to `allowed_files`, inspect registry state through
+`list-active --read-only`, and stop instead of widening scope when dirty state
+or ownership is unclear.
 
 ## Outputs
 

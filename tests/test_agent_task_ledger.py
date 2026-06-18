@@ -434,14 +434,13 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertNotIn("append --task-id", readme)
 
     def test_skill_frontmatter_parses(self) -> None:
-        paths = [
-            ".agents/skills/tenn-git-guard/SKILL.md",
-            ".agents/skills/tenn-issue/SKILL.md",
-            ".agents/skills/tenn-fix/SKILL.md",
-            ".agents/skills/tenn-worker/SKILL.md",
-            ".agents/skills/tenn-explain/SKILL.md",
-            ".agents/skills/tenn-handoff/SKILL.md",
-        ]
+        paths = sorted(
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in (REPO_ROOT / ".agents/skills").glob("*/SKILL.md")
+        )
+        self.assertIn(".agents/skills/tenn-fix/SKILL.md", paths)
+        removed_worker_path = ".agents/skills" + "/tenn-worker/SKILL.md"
+        self.assertNotIn(removed_worker_path, paths)
         for path in paths:
             with self.subTest(path=path):
                 content = (REPO_ROOT / path).read_text(encoding="utf-8")

@@ -1,5 +1,8 @@
 # Worker Result
 
+This is the durable worker contract. It replaces the visible `tenn-worker`
+skill entrypoint.
+
 ## Assignment
 - Branch:
 - Worktree:
@@ -21,6 +24,8 @@
 ## Ledger
 - Status:
 - Touched files:
+- Ledger entry written or DATA_MISSING:
+- Parent task ID:
 
 ## Files Changed
 - <path or None>

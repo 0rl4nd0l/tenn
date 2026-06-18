@@ -1,26 +1,43 @@
 # Worker Task
 
+Use this template instead of a visible `tenn-worker` skill. Workers are backend
+delegations from `/fix`, `/review-board`, or a task-card-approved orchestrator.
+
 worker_id: <stable-worker-id>
 task_tier: <small|medium|large|critical>
 decision_limit: <evidence_only|recommendation_only|bounded_implementation|strategy_bid>
-permission_profile: <readonly>
+permission_profile: <readonly|bounded_write>
 agent: <evidence-scout|docs-scout|validation-scout|other>
 model: <provider/model>
 workdir: <repo-or-worktree-path>
+branch: <branch-name>
+task_card: <repo-relative task-card path>
+allowed_files:
+- <exact repo-relative path, required for bounded_implementation>
+validation_expected:
+- <command or DATA_MISSING>
+result_path: <repo-relative WORKER_RESULT.md path>
 
 ## Objective
 
 <One bounded worker objective.>
 
-## Allowed Evidence
+## Allowed Evidence And Files
 
 - <repo-relative file or directory>
 
 ## Hard Boundaries
 
-- Read, grep, glob, and summarize only.
+- One worker, one lane, one worktree, one result file.
+- Workers must not share mutation surfaces.
+- Evidence-only, recommendation-only, and strategy-bid workers read, grep,
+  glob, and summarize only.
+- Bounded-implementation workers may edit only the exact assigned
+  `allowed_files`, run the assigned validation, and report every changed,
+  generated, skipped, or dirty path in `WORKER_RESULT.md`.
 - Do not edit repo source, docs, templates, config, runtime files, or
-  host-global files.
+  host-global files unless the brief explicitly lists those repo-relative files
+  and sets `decision_limit: bounded_implementation`.
 - Do not run git mutation commands.
 - Evidence-only workers require verified OpenCode read-only permission
   enforcement, not prompt text alone.

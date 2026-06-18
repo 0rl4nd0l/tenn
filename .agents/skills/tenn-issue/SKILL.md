@@ -1,6 +1,6 @@
 ---
 name: tenn-issue
-description: Tenn wrapper for turning vague owner problems into executable issue packets. Runs Git guard, uses diagnose only when debugging or repro is needed, ranks candidates with auto-progress ideas, and writes report-local planning artifacts by default.
+description: Tenn wrapper for turning vague owner problems into executable issue packets. Runs Git guard, uses diagnose only when debugging or repro is needed, ranks candidates internally, and writes report-local planning artifacts by default.
 ---
 
 # Tenn Issue
@@ -38,9 +38,11 @@ close GitHub issues unless explicitly approved.
    freshness, and source artifacts.
 9. Use the existing host `diagnose` skill only when the problem needs a repro,
    minimization, hypothesis, instrumentation, fix, or regression test loop.
-10. Use `tenn-auto-progress` ideas as a candidate-ranking engine only: rank by safety,
-   urgency, owner value, available evidence, collision risk, and validation
-   cost. Do not execute the ranked candidates in this skill.
+10. Rank candidate work internally by safety, urgency, owner value, available
+   evidence, collision risk, and validation cost. This replaces the old
+   `tenn-auto-progress` skill entrypoint; use `scripts/auto_progress.py` only
+   as a dry-run backend utility when the task card/report scope permits it. Do
+   not execute the ranked candidates in this skill.
 11. For medium/high-risk issues, produce two plausible implementation plans,
    compare tradeoffs, then select one.
 12. Produce issue artifacts and an exact next goal.

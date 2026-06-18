@@ -31,7 +31,7 @@ Execution mode requires:
 - task card
 - exact scope and `allowed_files`
 - focused validation plan
-- `tenn-code-reviewer` before PR preparation
+- the final PR/diff review gate before PR preparation
 
 Stop before broad refactors, product/runtime/data/extraction mutation, schema or
 prompt changes, dependency changes, host-global config, or cleanup unless those

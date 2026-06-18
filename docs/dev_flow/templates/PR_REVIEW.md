@@ -1,5 +1,9 @@
 # PR Review
 
+Use this template for the Tenn final diff/PR review gate. It replaces the
+visible `tenn-code-reviewer` skill entrypoint while preserving the same
+read-only review stance.
+
 Decision: <pass|pass_with_risk|revise|block>
 
 ## Scope

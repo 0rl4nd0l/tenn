@@ -1,0 +1,1 @@
+Read `reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/handoff/HANDOFF.md`, verify PR checks for the skill-surface trim PR, and merge only if the owner explicitly approves merge follow-through.
