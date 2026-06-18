@@ -1,0 +1,72 @@
+{
+  "task_id": "dev_flow_skill_surface_trim_v1_20260618",
+  "parent_task_id": "dev_flow_skills_bloat_audit_v1_20260617",
+  "workflow": "tenn-fix",
+  "status": "done",
+  "started_at": "2026-06-18T08:35:00Z",
+  "updated_at": "2026-06-18T08:35:17Z",
+  "owner": "Codex",
+  "session_id": "DATA_MISSING",
+  "thread_id": "019ed9d4-f829-7083-a9e5-a5df56a4f5d0",
+  "codex_goal_id": "DATA_MISSING",
+  "source_session_ref": "DATA_MISSING",
+  "issue_refs": [],
+  "pr_refs": [
+    "#367",
+    "#375"
+  ],
+  "branch": "control-plane/dev-flow-skill-surface-trim-v1-20260618",
+  "worktree": "/home/l4nd0/tenn-dev-flow-skill-surface-trim-v1-20260618",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "files_touched": [
+    "docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md",
+    ".agents/skills/tenn-auto-progress/SKILL.md",
+    ".agents/skills/tenn-code-reviewer/SKILL.md",
+    ".agents/skills/tenn-fix/SKILL.md",
+    ".agents/skills/tenn-frame-design/SKILL.md",
+    ".agents/skills/tenn-git-guard/SKILL.md",
+    ".agents/skills/tenn-git-hygiene/SKILL.md",
+    ".agents/skills/tenn-goal-report/SKILL.md",
+    ".agents/skills/tenn-improve-codebase-architecture/SKILL.md",
+    ".agents/skills/tenn-issue/SKILL.md",
+    ".agents/skills/tenn-task-card-registry-safety/SKILL.md",
+    ".agents/skills/tenn-worker/SKILL.md",
+    "docs/dev_flow/SKILLS_SURFACE.md",
+    "docs/dev_flow/templates/FRAME.md",
+    "docs/dev_flow/templates/OPERATOR_NOTES.md",
+    "docs/dev_flow/templates/PR_REVIEW.md",
+    "docs/dev_flow/templates/WORKER_RESULT.md",
+    "docs/dev_flow/templates/WORKER_TASK.md"
+  ],
+  "artifacts": [
+    "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/README.md",
+    "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/VALIDATION.md",
+    "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/PR_REVIEW.md",
+    "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/handoff/HANDOFF.md",
+    "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/handoff/NEXT_GOAL.md",
+    "reports/agent_jobs/dev_flow_skill_surface_trim_v1_20260618/handoff/LEDGER_ENTRY.json"
+  ],
+  "summary": "Implemented a reversible repo-only Tenn skill-surface trim from merged canonical PR #375; six auxiliary visible skill entrypoints were rehomed into core skills, docs, and templates.",
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "python3 scripts/agent_job_contract.py validate docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md",
+      "python3 scripts/agent_task_ledger.py resolve-path",
+      "python3 scripts/agent_task_ledger.py validate",
+      "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md",
+      "lightweight skill-surface check",
+      "git diff --check",
+      "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md --no-write-report",
+      "product/runtime/data/extraction/count-24 guard",
+      "host-global guard",
+      "git status --short --untracked-files=all"
+    ]
+  },
+  "next_action": "commit_push_open_focused_pr",
+  "owner_boundary": false,
+  "supersedes": [
+    "PR #367 for task-ledger/handoff replay scope only"
+  ],
+  "superseded_by": []
+}

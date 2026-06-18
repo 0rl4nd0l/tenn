@@ -1,5 +1,8 @@
 # Worker Task
 
+Use this template instead of a visible `tenn-worker` skill. Workers are backend
+delegations from `/fix`, `/review-board`, or a task-card-approved orchestrator.
+
 worker_id: <stable-worker-id>
 task_tier: <small|medium|large|critical>
 decision_limit: <evidence_only|recommendation_only|bounded_implementation|strategy_bid>
@@ -18,6 +21,8 @@ workdir: <repo-or-worktree-path>
 
 ## Hard Boundaries
 
+- One worker, one lane, one worktree, one result file.
+- Workers must not share mutation surfaces.
 - Read, grep, glob, and summarize only.
 - Do not edit repo source, docs, templates, config, runtime files, or
   host-global files.

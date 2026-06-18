@@ -8,9 +8,11 @@ description: Use for Tenn /goal work that needs a visible state machine, report 
 Use this skill for `/goal` runs, long-running repo tasks, blocked handoffs, and
 closeout reports.
 
-For long `/goal` runs that need stable judgment before execution, use
-`tenn-frame-design` to create `FRAME.md`, `STATE.md`, `OPERATOR_NOTES.md`, and
-optional `SCRIBE.md` in the same report directory.
+For long `/goal` runs that need stable judgment before execution, use optional
+frame mode by copying the shapes in `docs/dev_flow/templates/FRAME.md`,
+`STATE.md`, and `OPERATOR_NOTES.md` into the same report directory. Keep this
+mode for long, risky, or multi-turn work; narrow tasks only need the normal
+report.
 
 For long `/goal` runs with many files, mixed-risk dirt, cleanup/remediation, or
 work that would otherwise create many small approval loops, prefer two-shot mode:
@@ -40,6 +42,20 @@ reports/agent_jobs/<goal_or_job_id>/README.md
 ```
 
 If the task card provides `output_dir`, use that directory.
+
+## Optional Frame Mode
+
+Frame mode replaces the old `tenn-frame-design` skill entrypoint. Use it only
+when the task needs durable judgment before implementation starts.
+
+Required frame-mode artifacts:
+
+- `FRAME.md`: objective, non-negotiables, scope, evidence, success shape, stop
+  states, and steering log.
+- `STATE.md`: current state, completed work, blockers, next safe action, and
+  validation.
+- `OPERATOR_NOTES.md`: concise user steering, corrections, preferences, and
+  decisions.
 
 ## Required Report Contents
 

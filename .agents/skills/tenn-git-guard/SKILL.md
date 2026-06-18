@@ -8,10 +8,12 @@ description: Native Tenn Git Hygiene backend guard for branch, worktree, dirty-s
 `tenn-git-guard` is a quiet backend guard. It is not a user-facing cleanup
 command by default.
 
-Use it before `/issue`, `/review-board`, `/fix`, `worker`,
-`/explain` for branch or PR topics, `code-reviewer`, and architecture work. Use
-the existing `tenn-git-hygiene` skill for deeper cleanup planning, but keep this
-wrapper focused on preflight and stop decisions.
+Use it before `/issue`, `/review-board`, `/fix`, worker delegation,
+`/explain` for branch or PR topics, final review gates, and architecture work.
+This guard now owns the common task-card, registry, ledger, dirty-state, and
+duplicate-work checks that used to be split across auxiliary skill entrypoints.
+For explicit cleanup/hygiene audits, use the two-shot reference policy in
+`docs/dev_flow/SKILLS_SURFACE.md`.
 
 ## Preflight
 
@@ -230,6 +232,21 @@ Classify the worktree and dirty files:
 
 Block or narrow the workflow when dirty state overlaps the requested mutation
 surface and ownership is unclear.
+
+## Task-Card And Registry Safety
+
+Before any mutation-capable workflow:
+
+- Read or create the narrowest task card required.
+- Run `python3 scripts/agent_job_contract.py validate <task_card>`.
+- Compare intended paths to `allowed_files` before editing.
+- Inspect active jobs with
+  `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`.
+- Treat missing read-only registry evidence as `DATA_MISSING`.
+- Do not claim, heartbeat, release, or check-overlap unless the task card or
+  owner explicitly permits that registry mutation.
+- Stop instead of cleaning unrelated dirt, widening the allowlist, or absorbing
+  owner-boundary files.
 
 ## Allowed Output
 
