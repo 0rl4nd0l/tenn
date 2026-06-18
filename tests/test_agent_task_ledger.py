@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts import agent_task_ledger
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "agent_task_ledger.py"
@@ -170,6 +172,13 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(len(payload["matches"]), 1)
         self.assertEqual(payload["duplicate_work_classification"], "ACTIVE_CONTINUE")
+
+    def test_classification_requires_fallback_when_source_missing_even_with_matches(self) -> None:
+        matches = [{"source": "committed", "line": 1, "entry": sample_entry(status="done")}]
+
+        classification = agent_task_ledger.classify_matches(matches, ["live"])
+
+        self.assertEqual(classification, "DATA_MISSING_FALLBACK_REQUIRED")
 
     def test_search_by_issue_and_pr(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

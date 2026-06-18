@@ -553,8 +553,10 @@ def entry_matches(entry: dict[str, Any], args: argparse.Namespace) -> bool:
 
 
 def classify_matches(matches: list[dict[str, Any]], data_missing: list[str]) -> str:
+    if data_missing:
+        return "DATA_MISSING_FALLBACK_REQUIRED"
     if not matches:
-        return "DATA_MISSING_FALLBACK_REQUIRED" if data_missing else "UNKNOWN_ASK"
+        return "UNKNOWN_ASK"
 
     statuses = {str(match["entry"].get("status")) for match in matches}
     owner_boundary = any(match["entry"].get("owner_boundary") is True for match in matches)
