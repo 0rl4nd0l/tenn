@@ -34,6 +34,10 @@ Implemented state:
 - NSR and CAE remain accepted `info`-risk rows.
 - Existing provenance/risk fields remain machine-readable.
 - Registry job was claimed before edits and released after final validation.
+- Local commit preservation completed at
+  `5cfd6cd65a4ea75f1c4502abb21e8be2dc4061bb`.
+- Owner approval for GitHub mutation was received after local commit
+  preservation and is limited to branch push plus PR creation.
 
-Next action: preserve the validated local diff in a local commit. Push/PR
-requires explicit GitHub approval.
+Next action: rerun focused validation, push the branch, and open a PR. No merge
+or issue mutation is authorized.

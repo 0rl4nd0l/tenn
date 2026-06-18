@@ -8,7 +8,6 @@
 - Keep the gate in the broad-run validation script; do not mutate runtime
   extraction or canonical persisted data.
 - Use saved count-24 JSON for replay proof; do not run PDFs through extraction.
-- Treat this as local preservation plus validation only. No push or PR is
-  authorized.
-- Treat the latest owner `Proceed` as approval for local commit preservation
-  only; GitHub mutation remains unauthorized.
+- Local commit preservation is complete.
+- After the owner replied `Approve`, GitHub mutation is limited to pushing this
+  branch and opening a PR only. Do not merge, force-push, or mutate issues.

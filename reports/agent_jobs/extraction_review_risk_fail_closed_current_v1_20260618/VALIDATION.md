@@ -2,6 +2,8 @@
 
 Validation completed.
 
+PR approval update validation completed after owner replied `Approve`.
+
 Commands:
 
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_review_risk_fail_closed_current_v1_20260618.md --write-report`
@@ -13,7 +15,7 @@ Commands:
 - `python3 -m py_compile financial-engine_v2/scripts/broad_extraction_test.py financial-engine_v2/scripts/test_broad_extraction_test.py reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/saved_artifact_replay.py`
   - Result: passed.
 - `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/scripts/test_broad_extraction_test.py -q`
-  - Result: passed, 13 tests.
+  - Result: passed, 13 tests. Rerun after PR approval: `13 passed in 0.08s`.
 - `/home/l4nd0/tenn-nvme-clean-baseline-reconstruct-v1/financial-engine_v2/.venv/bin/python reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/saved_artifact_replay.py`
   - Result: passed; `ok: true`.
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_review_risk_fail_closed_current_v1_20260618.md --repo-root .`
@@ -26,6 +28,10 @@ Commands:
   - Result: passed.
 - `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_review_risk_fail_closed_current_v1_20260618.md --repo-root .`
   - Result: passed.
+- Tenn code-reviewer gate before PR:
+  - Result: passed; no code-level blocker found.
+  - Scope checked: task-card match, focused validation evidence,
+    product/runtime/data boundaries, and review-risk fail-closed behavior.
 - `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`
   - Result: passed; `active_jobs: []`.
 - Original checkout status recheck

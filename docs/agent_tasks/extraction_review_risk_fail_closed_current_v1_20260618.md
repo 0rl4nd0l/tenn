@@ -28,7 +28,7 @@ output_dir: reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_202
 mutation_mode: safe_extension
 allow_audit_code_changes: true
 production_data_access: false
-github_mutation_allowed: false
+github_mutation_allowed: true
 ---
 
 # Extraction Review-Risk Fail-Closed Current Canonical
@@ -53,6 +53,11 @@ Base:
 
 Source preserve candidate:
 `/home/l4nd0/tenn-review-risk-fail-closed-v1-20260618`
+
+Owner approval update:
+The owner approved GitHub mutation after local commit preservation on
+2026-06-18. The approval is limited to pushing this branch and opening a PR for
+this bounded diff.
 
 ## Read-Only Inputs
 
@@ -82,7 +87,10 @@ Source preserve candidate:
 - Do not mutate DB, Qdrant, Redis, news, memory, source PDFs, prompts,
   gold labels, schemas, runtime/model/GPU/service config, or production data.
 - Do not write outside the allowed files.
-- Do not push, open a PR, or mutate GitHub.
+- Do not mutate GitHub except to push this branch and open a PR for this
+  bounded diff.
+- Do not merge, rebase, force-push, close issues, edit issues, label issues, or
+  comment on issues.
 - Do not use PR #318.
 
 ## Validation
@@ -93,3 +101,5 @@ Source preserve candidate:
 - Run `py_compile` for changed scripts and saved replay.
 - Run the saved-artifact replay and validate its JSON.
 - Run `check-diff`, `check-report-artifacts`, and `git diff --check`.
+- Push this branch and open a PR only after the focused validation remains
+  clean.

@@ -23,5 +23,6 @@ Replay result:
 - Projected status distribution: 14 `failed`, 9 `ok`, 1 `ok_low_confidence`.
 
 No PDF extraction, count sample, broad extraction, backfill, runtime service,
-data-store, source-PDF, prompt, gold-label, schema, GitHub, or production
-mutation is in scope.
+data-store, source-PDF, prompt, gold-label, schema, issue mutation, merge, or
+production mutation is in scope. After local commit preservation, the owner
+approved only pushing this branch and opening a PR for the bounded diff.

@@ -1,16 +1,44 @@
 {
   "changed_files": [
     {
-      "path": "financial-engine_v2/scripts/broad_extraction_test.py",
-      "status": "M"
-    },
-    {
-      "path": "financial-engine_v2/scripts/test_broad_extraction_test.py",
-      "status": "M"
-    },
-    {
       "path": "docs/agent_tasks/extraction_review_risk_fail_closed_current_v1_20260618.md",
-      "status": "??"
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/DECISIONS.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/NEXT_GOAL.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/STATE.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/saved_artifact_replay.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/validation.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],
@@ -39,7 +67,7 @@
         "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/registry_release.json"
       ],
       "approval_required": true,
-      "github_mutation_allowed": false,
+      "github_mutation_allowed": true,
       "job_id": "extraction_review_risk_fail_closed_current_v1_20260618",
       "lane": "Financial Truth",
       "mutation_mode": "safe_extension",
