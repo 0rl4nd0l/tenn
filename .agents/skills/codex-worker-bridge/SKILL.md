@@ -72,11 +72,17 @@ restrictive OpenCode permission config through `OPENCODE_CONFIG_CONTENT`.
 `WORKER_META.json` records the profile, method, config hash, and sanitized
 verification summary.
 
+Evidence-only workers also fail closed when `OPENCODE_SERVER_URL` would trigger
+`opencode run --attach`, because local config verification does not prove the
+remote server enforces readonly permissions. `WORKER_META.json` records
+`attach_mode_allowed` and `remote_permission_verified`.
+
 ## Validate And Summarize
 
 ```bash
 python3 scripts/opencode_worker_bridge.py validate-result \
-  reports/agent_jobs/<job_id>/workers/evidence-scout-1/WORKER_RESULT.md
+  reports/agent_jobs/<job_id>/workers/evidence-scout-1/WORKER_RESULT.md \
+  --decision-limit evidence_only
 
 python3 scripts/opencode_worker_bridge.py summarize \
   --job-dir reports/agent_jobs/<job_id>/workers

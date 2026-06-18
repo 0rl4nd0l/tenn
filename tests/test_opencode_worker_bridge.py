@@ -61,7 +61,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             )
             opencode.chmod(0o755)
 
-            with mock.patch("builtins.print"):
+            with mock.patch.dict(bridge.os.environ, {"OPENCODE_SERVER_URL": ""}, clear=False), mock.patch(
+                "builtins.print"
+            ):
                 rc = bridge.main(
                     [
                         "run",
@@ -97,6 +99,9 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
             self.assertEqual(meta["permission_enforcement"]["profile"], "readonly")
             self.assertEqual(meta["permission_enforcement"]["method"], "OPENCODE_CONFIG_CONTENT")
             self.assertTrue(meta["permission_enforcement"]["verified"])
+            self.assertFalse(meta["attach_mode_requested"])
+            self.assertFalse(meta["attach_mode_allowed"])
+            self.assertFalse(meta["remote_permission_verified"])
 
     def test_result_validation_success(self) -> None:
         result = bridge.validate_result_text(VALID_RESULT)
@@ -114,6 +119,31 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
         self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_requested_decision_limit_mismatch_rejects_result(self) -> None:
+        invalid = VALID_RESULT.replace("decision_limit: evidence_only", "decision_limit: recommendation_only")
+        result = bridge.validate_result_text(invalid, expected_decision_limit="evidence_only")
+        self.assertFalse(result["ok"])
+        self.assertIn("decision_limit", {issue["field"] for issue in result["issues"]})
+
+    def test_worker_supplied_decision_limit_cannot_bypass_evidence_only_metadata_requirement(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result_path = Path(tmp) / "WORKER_RESULT.md"
+            result_path.write_text(
+                VALID_RESULT.replace("decision_limit: evidence_only", "decision_limit: recommendation_only").replace(
+                    "Codex review", "ready to merge"
+                ),
+                encoding="utf-8",
+            )
+            (Path(tmp) / "WORKER_META.json").write_text(
+                json.dumps({"decision_limit": "evidence_only"}),
+                encoding="utf-8",
+            )
+            result = bridge.validate_result_file(result_path)
+        self.assertFalse(result["ok"])
+        issue_fields = {issue["field"] for issue in result["issues"]}
+        self.assertIn("decision_limit", issue_fields)
+        self.assertIn("permission_enforcement", issue_fields)
 
     def test_result_file_validation_rejects_missing_permission_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -222,6 +252,58 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
                 opencode_path="/usr/bin/opencode",
                 timeout_seconds=5,
             )
+
+    def test_evidence_only_fails_closed_when_opencode_server_url_set(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            task_file = root / "task.md"
+            task_file.write_text("Inspect scripts/opencode_worker_bridge.py only.\n", encoding="utf-8")
+            opencode = root / "opencode"
+            opencode.write_text("#!/usr/bin/env python3\nraise SystemExit('opencode should not run')\n", encoding="utf-8")
+            opencode.chmod(0o755)
+
+            with mock.patch.dict(bridge.os.environ, {"OPENCODE_SERVER_URL": "http://127.0.0.1:4096"}, clear=False):
+                with mock.patch("builtins.print"):
+                    rc = bridge.main(
+                        [
+                            "run",
+                            "--job-dir",
+                            str(root / "job"),
+                            "--worker-id",
+                            "scout-1",
+                            "--agent",
+                            "evidence-scout",
+                            "--model",
+                            "deepseek/deepseek-chat",
+                            "--task-file",
+                            str(task_file),
+                            "--workdir",
+                            str(root),
+                            "--decision-limit",
+                            "evidence_only",
+                            "--timeout-seconds",
+                            "5",
+                            "--opencode-command",
+                            str(opencode),
+                        ]
+                    )
+
+            meta = json.loads((root / "job" / "scout-1" / "WORKER_META.json").read_text(encoding="utf-8"))
+        self.assertEqual(rc, 2)
+        self.assertEqual(meta["failure"], "remote_permission_enforcement_failed")
+        self.assertTrue(meta["attach_mode_requested"])
+        self.assertFalse(meta["attach_mode_allowed"])
+        self.assertFalse(meta["remote_permission_verified"])
+
+    def test_non_evidence_attach_policy_is_not_blocked(self) -> None:
+        server_url, meta = bridge.resolve_attach_mode(
+            decision_limit="recommendation_only",
+            server_url="http://127.0.0.1:4096",
+        )
+        self.assertEqual(server_url, "http://127.0.0.1:4096")
+        self.assertTrue(meta["attach_mode_requested"])
+        self.assertTrue(meta["attach_mode_allowed"])
+        self.assertFalse(meta["remote_permission_verified"])
 
     def test_ledger_entry_json_shape(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
