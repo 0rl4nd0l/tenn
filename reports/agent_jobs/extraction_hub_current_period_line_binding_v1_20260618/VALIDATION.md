@@ -15,6 +15,8 @@
 | `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md --repo-root .` | 0 | Diff scope valid; `diff-check.json` written. |
 | `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md` | 0 | All report artifacts exist and are non-empty. |
 | JSON parse for `git_guard.json`, `status.json`, and `validation.json` | 0 | JSON artifacts valid. |
+| `git push -u origin safe/extraction-hub-current-period-line-binding-v1-20260618` | 0 | Branch pushed. |
+| `gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-hub-current-period-line-binding-v1-20260618 ...` | 0 | Draft PR #376 opened. |
 
 ## Not Run
 
@@ -23,6 +25,8 @@
   model/GPU/service mutation, branch cleanup, or unrelated cleanup.
 - No exact-HUB runtime/no-write replay was run; a clearly bounded current-repo
   command was not identified during the publish preflight.
+- GitHub mutation was limited to pushing this branch and opening draft PR #376
+  after user approval.
 
 ## Validation Environment
 

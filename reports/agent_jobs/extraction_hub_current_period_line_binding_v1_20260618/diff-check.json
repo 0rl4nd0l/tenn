@@ -1,16 +1,24 @@
 {
   "changed_files": [
     {
-      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "path": "reports/agent_jobs/extraction_hub_current_period_line_binding_v1_20260618/NEXT_GOAL.md",
       "status": "M"
     },
     {
-      "path": "financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "path": "reports/agent_jobs/extraction_hub_current_period_line_binding_v1_20260618/README.md",
       "status": "M"
     },
     {
-      "path": "docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md",
-      "status": "??"
+      "path": "reports/agent_jobs/extraction_hub_current_period_line_binding_v1_20260618/VALIDATION.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_hub_current_period_line_binding_v1_20260618/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_hub_current_period_line_binding_v1_20260618/validation.json",
+      "status": "M"
     }
   ],
   "disallowed_files": [],

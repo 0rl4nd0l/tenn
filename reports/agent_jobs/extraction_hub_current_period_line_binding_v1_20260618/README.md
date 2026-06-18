@@ -1,8 +1,11 @@
 # HUB Current-Period Line Binding
 
 State: `DONE_WITH_RISK`
-Decision: `PUBLISH_APPROVED_PENDING_PR`
+Decision: `DRAFT_PR_OPENED`
 Generated: `2026-06-18`
+
+Draft PR:
+https://github.com/0rl4nd0l/tenn/pull/376
 
 ## Objective
 
@@ -38,4 +41,4 @@ hits are comparative/prior context. True conflicts still return `ambiguous`.
 
 No extraction, count rerun, DB/Qdrant/Redis/news/memory/source-PDF/gold-label/
 prompt/runtime/model/GPU/service mutation was performed. GitHub mutation is now
-approved only for pushing this branch and opening/updating one draft PR.
+limited to pushing this branch and opening/updating draft PR #376.

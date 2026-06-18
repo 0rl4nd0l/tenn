@@ -55,6 +55,16 @@
       "command": "json parse for git_guard.json, status.json, validation.json",
       "exit": 0,
       "result": "passed"
+    },
+    {
+      "command": "git push -u origin safe/extraction-hub-current-period-line-binding-v1-20260618",
+      "exit": 0,
+      "result": "branch_pushed"
+    },
+    {
+      "command": "gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-hub-current-period-line-binding-v1-20260618",
+      "exit": 0,
+      "result": "draft_pr_opened_376"
     }
   ],
   "not_run": [
