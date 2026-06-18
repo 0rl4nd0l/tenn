@@ -25,8 +25,13 @@ board decision, task card, or explicit fix request.
    `claimed` at task acceptance, `implementation_started` before edits,
    `blocked` or `waiting_on_user` before stopping, `pr_opened` after PR
    creation, and `done`, `merged`, `parked`, or `superseded` at closeout as
-   applicable. If the ledger file is unavailable, record `DATA_MISSING` in the
-   report and continue only after the guard's bounded fallback search is clean.
+   applicable. Use `waiting_on_timer` for timer waits and `owner_boundary` when
+   ownership or approval blocks progress. Prefer
+   `python3 scripts/agent_task_ledger.py append` only when live ledger mutation
+   is allowed by the task card or owner approval. Otherwise write the intended
+   entry under the report bundle and record why live append was skipped. If the
+   ledger file is unavailable, record `DATA_MISSING` in the report and continue
+   only after the guard's bounded fallback search is clean.
 7. Do not implement from a headline metric, score, count, pass rate, daemon
    status, or evaluation result until denominator, filters, exclusions,
    freshness, and pipeline stage are understood. Use counter-lineage evidence
@@ -47,6 +52,8 @@ board decision, task card, or explicit fix request.
 15. Perform a Docs Impact Check before code review and closeout.
 16. Run `tenn-code-reviewer` before PR preparation.
 17. Prepare, push, or open a PR only when the task and owner approval permit it.
+18. When stopping before completion, run or follow `tenn-handoff` so the next
+    session has git state, ledger state, validation, and a short next `/goal`.
 
 ## Docs Impact Check
 

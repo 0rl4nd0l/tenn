@@ -27,6 +27,26 @@ path. Resolve `<registry_root>` in this order:
 The committed snapshot is a periodic summary for future agents and is not
 expected to be complete immediately.
 
+## Runtime Helper
+
+Use `scripts/agent_task_ledger.py` for branch-independent ledger reads and
+writes. It resolves the same registry root used by
+`scripts/agent_job_registry.py` and falls back safely when live state is
+unavailable.
+
+Common commands:
+
+```bash
+python3 scripts/agent_task_ledger.py resolve-path
+python3 scripts/agent_task_ledger.py validate
+python3 scripts/agent_task_ledger.py search --text "<topic-or-path>"
+python3 scripts/agent_task_ledger.py append --entry-file reports/agent_jobs/<job_id>/handoff/LEDGER_ENTRY.json --fill-identity
+```
+
+Only append to the live ledger when the task card or owner approval permits that
+mutation. Otherwise write the intended entry under the report bundle and record
+why live append was skipped.
+
 ## Required Preflight
 
 Before non-trivial implementation, agents should check:
@@ -63,13 +83,25 @@ Use these status values for implementation-capable sessions:
 - `implementation_started`
 - `blocked`
 - `waiting_on_user`
+- `waiting_on_timer`
 - `pr_opened`
 - `merged`
 - `done`
 - `parked`
 - `superseded`
+- `owner_boundary`
 
-No script implementation is included here. Use
-`docs/dev_flow/templates/TASK_LEDGER_ENTRY.json` and
-`docs/dev_flow/templates/TASK_LEDGER_SUMMARY.md` as the initial write and
+## Session Trace Fields
+
+Ledger entries should include source-session fields when available:
+
+- `session_id`
+- `thread_id`
+- `codex_goal_id`
+- `source_session_ref`
+
+Use `DATA_MISSING` when a field is unavailable. Do not invent identifiers.
+
+Use `docs/dev_flow/templates/TASK_LEDGER_ENTRY.json` and
+`docs/dev_flow/templates/TASK_LEDGER_SUMMARY.md` as the committed schema and
 summary shapes.

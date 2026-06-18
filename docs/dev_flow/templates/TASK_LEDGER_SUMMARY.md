@@ -13,6 +13,15 @@ avoid duplicating.
 | --- | --- | --- | --- | --- | --- | --- |
 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 
+## Session Trace
+
+List source-session metadata when it is available. Use `DATA_MISSING` rather
+than inventing IDs.
+
+| Task ID | Session ID | Thread ID | Goal ID | Source Session Ref |
+| --- | --- | --- | --- | --- |
+| TBD | DATA_MISSING | DATA_MISSING | DATA_MISSING | DATA_MISSING |
+
 ## Open PRs
 
 List open PRs that may make new work unnecessary.
@@ -55,3 +64,5 @@ List work that needs Orlando's decision before agents proceed.
 - Classify similar work before coding as `ACTIVE_CONTINUE`, `OPEN_PR_WAIT`,
   `MERGED_USE_CANONICAL`, `STALE_PRESERVE`, `SUPERSEDED_IGNORE`,
   `OWNER_BOUNDARY`, or `UNKNOWN_ASK`.
+- Use `waiting_on_timer` for timer waits and `owner_boundary` when ownership or
+  approval blocks progress.
