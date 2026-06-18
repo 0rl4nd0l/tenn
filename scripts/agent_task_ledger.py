@@ -9,6 +9,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -452,6 +453,47 @@ def append_entry(path: Path, entry: dict[str, Any]) -> None:
         os.close(fd)
 
 
+def _write_temp_text(target: Path, text: str) -> Path:
+    try:
+        fd, raw_tmp_path = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+    except OSError as exc:
+        raise LedgerError(f"{target}: unable to create temporary file: {exc.strerror or exc}") from exc
+    tmp_path = Path(raw_tmp_path)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    except OSError as exc:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+        raise LedgerError(f"{target}: unable to write temporary file: {exc.strerror or exc}") from exc
+    return tmp_path
+
+
+def write_committed_snapshot(md_path: Path, md_text: str, jsonl_path: Path, jsonl_text: str) -> None:
+    targets = ((md_path, md_text), (jsonl_path, jsonl_text))
+    temp_paths: list[Path] = []
+    try:
+        for path, _text in targets:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path.exists() and path.is_dir():
+                raise LedgerError(f"{path}: target is a directory")
+        for path, text in targets:
+            temp_paths.append(_write_temp_text(path, text))
+        for tmp_path, (target_path, _text) in zip(temp_paths, targets):
+            os.replace(tmp_path, target_path)
+    except OSError as exc:
+        raise LedgerError(f"committed ledger snapshot: unable to publish: {exc.strerror or exc}") from exc
+    finally:
+        for tmp_path in temp_paths:
+            try:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+            except OSError:
+                pass
+
+
 def _source_payload(kind: str, path: Path, exists: bool, entry_count: int = 0) -> dict[str, Any]:
     return {
         "kind": kind,
@@ -782,9 +824,23 @@ def cmd_export_summary(args: argparse.Namespace) -> int:
     jsonl_path = root / COMMITTED_LEDGER_JSONL
 
     if args.write:
-        md_path.parent.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(md_text, encoding="utf-8")
-        jsonl_path.write_text(jsonl_text, encoding="utf-8")
+        try:
+            write_committed_snapshot(md_path, md_text, jsonl_path, jsonl_text)
+        except LedgerError as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "write": True,
+                        "source": source,
+                        "targets": {"markdown": str(md_path), "jsonl": str(jsonl_path)},
+                        "issues": [str(exc)],
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+            return 1
 
     payload = {
         "ok": True,

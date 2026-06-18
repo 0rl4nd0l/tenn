@@ -293,6 +293,43 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertIs(payload["ok"], False)
         self.assertTrue(any("missing" in issue for issue in payload["issues"]))
 
+    def test_export_summary_write_failure_leaves_existing_markdown_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            live = root / "live-ledger.jsonl"
+            snapshot_dir = root / "docs" / "agent_registry" / "task_ledger"
+            md_path = snapshot_dir / "LEDGER.md"
+            jsonl_path = snapshot_dir / "LEDGER.jsonl"
+            snapshot_dir.mkdir(parents=True)
+            write_entry(live, sample_entry(status="done"))
+            md_path.write_text("old markdown\n", encoding="utf-8")
+            jsonl_path.mkdir()
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--repo-root",
+                    str(root),
+                    "export-summary",
+                    "--live-ledger-path",
+                    str(live),
+                    "--write",
+                ],
+                cwd=REPO_ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            payload = load_json(result)
+            markdown_after = md_path.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIs(payload["ok"], False)
+        self.assertEqual(markdown_after, "old markdown\n")
+        self.assertTrue(any("target is a directory" in issue for issue in payload["issues"]))
+
     def test_handoff_template_includes_required_sections(self) -> None:
         template = (REPO_ROOT / "docs/dev_flow/templates/HANDOFF.md").read_text(encoding="utf-8")
         required_sections = [

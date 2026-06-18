@@ -120,6 +120,23 @@
   - decision: addressed
   - result: duplicate-work classification now collapses append-only history to
     the latest entry per task before applying status priority.
+- `python3 -m unittest tests/test_agent_task_ledger.py`
+  - exit: 0
+  - result: `Ran 21 tests`; `OK`
+- `uv run --no-project --no-cache --with pytest pytest tests/test_agent_task_ledger.py -q`
+  - exit: 0
+  - result: `21 passed, 1 warning, 6 subtests passed`
+- `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/dev_flow_ledger_runtime_handoff_replay_v1_20260618.md --no-write-report`
+  - exit: 0
+  - result: `ok: true`; `disallowed_files: []`
+- `git diff --check`
+  - exit: 0
+  - result: no whitespace errors
+- Codex Review atomic-snapshot P2 follow-up
+  - decision: addressed
+  - result: `export-summary --write` now preflights both committed snapshot
+    targets, writes both temp files first, and reports structured JSON errors
+    before changing either target when a target is invalid.
 
 ## Notes
 
