@@ -1,0 +1,104 @@
+{
+  "artifact_type": "extraction_no_write_case_manifest_v1",
+  "certification": {
+    "allow_broad_extraction": false,
+    "allow_live_fetch": false,
+    "allow_production_writes": false,
+    "allow_remote_llm": false,
+    "loopback_llm_only": true,
+    "notes": "Certified cases use fixed local source PDFs and isolated parser cache only."
+  },
+  "cases": [
+    {
+      "case_id": "WHC",
+      "role": "openability_period_binding_guard",
+      "ticker": "WHC",
+      "document_id": "9640d9f1-a45b-492d-8df5-9bad0f46431c",
+      "title": "2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "A",
+      "expected_period_end": "2022-06-30",
+      "parser_backend": "pymupdf",
+      "strict_parser": false,
+      "skip_narrative": true,
+      "openability_selected_tables": true,
+      "openability_pages": [
+        57,
+        58,
+        60,
+        61
+      ]
+    },
+    {
+      "case_id": "CTN",
+      "role": "quarterly_source_type_guard",
+      "ticker": "CTN",
+      "document_id": "dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39",
+      "title": "2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "Q",
+      "expected_period_end": "2022-03-31",
+      "parser_backend": "docling",
+      "strict_parser": false,
+      "skip_narrative": true
+    },
+    {
+      "case_id": "HUB",
+      "role": "current_period_line_binding_guard",
+      "ticker": "HUB",
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "title": "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "H",
+      "expected_period_end": "2023-12-31",
+      "parser_backend": "docling",
+      "strict_parser": false,
+      "skip_narrative": true
+    },
+    {
+      "case_id": "LBL",
+      "role": "companion_period_repaired_guard",
+      "ticker": "LBL",
+      "document_id": "551c6b84-1053-405c-a833-4ecc018e2045",
+      "title": "2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "H",
+      "expected_period_end": "2025-12-31",
+      "parser_backend": "docling",
+      "strict_parser": false,
+      "skip_narrative": true
+    },
+    {
+      "case_id": "AZJ",
+      "role": "scale_source_suspect_guard",
+      "ticker": "AZJ",
+      "document_id": "488d6f1a-0180-4fca-8dcf-c4cdfc0f342e",
+      "title": "2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "A",
+      "expected_period_end": "2025-06-30",
+      "parser_backend": "docling",
+      "strict_parser": false,
+      "skip_narrative": true
+    },
+    {
+      "case_id": "NSR",
+      "role": "clean_scale_control",
+      "ticker": "NSR",
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "title": "2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "expected_status": "ok",
+      "expected_period_type": "H",
+      "expected_period_end": "2021-12-31",
+      "parser_backend": "docling",
+      "strict_parser": false,
+      "skip_narrative": true
+    }
+  ]
+}

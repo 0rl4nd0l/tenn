@@ -1,0 +1,37 @@
+{
+  "branch": "safe/extraction-no-write-replay-harness-v1-20260618",
+  "canonical_base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "full_replay_status": "FAIL",
+  "github_mutation": false,
+  "job_id": "extraction_no_write_replay_harness_v1_20260618",
+  "no_write_safety_status": "PASS",
+  "side_effect_evidence": {
+    "forbidden_surface_clean": true,
+    "isolated_cache_contained": true,
+    "isolated_runtime_contained": true,
+    "report_only_durable_writes": true
+  },
+  "state": "DONE_WITH_RISK",
+  "worktree": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618",
+  "remaining_risk": [
+    "WHC full-corpus replay fails validation_gate:period_end_source_mismatch with payload 2022-09-21 and source 2022-06-30.",
+    "Docling was not installed in the ephemeral validation environment; non-WHC cases used PyMuPDF fallback."
+  ],
+  "unsafe_actions_avoided": [
+    "db_write",
+    "qdrant_write",
+    "redis_write",
+    "news_write",
+    "memory_write",
+    "source_pdf_write",
+    "prompt_write",
+    "gold_label_write",
+    "registry_write",
+    "runtime_config_write",
+    "service_start",
+    "github_mutation",
+    "broad_extraction",
+    "count_sample",
+    "backfill"
+  ]
+}
