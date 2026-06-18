@@ -1,7 +1,7 @@
 {
   "artifact_type": "extraction_no_write_harness_publish_validation_v1",
   "job_id": "extraction_no_write_harness_publish_v1_20260618",
-  "state": "IN_PROGRESS",
+  "state": "DONE_WITH_RISK",
   "commands": [
     {
       "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_no_write_harness_publish_v1_20260618.md",
@@ -27,10 +27,22 @@
       "command": "git diff --check",
       "exit_code": 0,
       "status": "PASS"
+    },
+    {
+      "command": "git push -u origin safe/extraction-no-write-replay-harness-v1-20260618",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "gh pr create --draft --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-no-write-replay-harness-v1-20260618 --title \"[codex] Add certified no-write extraction replay harness\"",
+      "exit_code": 0,
+      "status": "PASS",
+      "observed": "https://github.com/0rl4nd0l/tenn/pull/379"
     }
   ],
   "summary": {
     "github_publish_approved": true,
+    "pr_url": "https://github.com/0rl4nd0l/tenn/pull/379",
     "runtime_or_data_mutation": false
   }
 }

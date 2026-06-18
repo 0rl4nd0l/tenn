@@ -1,6 +1,6 @@
 # No-Write Harness Publish Boundary
 
-State: IN_PROGRESS
+State: DONE_WITH_RISK
 
 User approval on 2026-06-18 permits publishing the committed harness branch as
 one draft PR. No merge, rebase, cleanup, runtime, venv, extraction, data, or
@@ -20,3 +20,11 @@ Local commits already present before publish:
 Publish commit to be added:
 
 - record task-card/status GitHub publish boundary
+
+Published draft PR:
+
+- https://github.com/0rl4nd0l/tenn/pull/379
+
+Remaining risk is unchanged: the harness is no-write-safe, but WHC remains
+extraction-red in the saved full replay and docling-backed replay is
+`DATA_MISSING` until an approved existing venv is available.

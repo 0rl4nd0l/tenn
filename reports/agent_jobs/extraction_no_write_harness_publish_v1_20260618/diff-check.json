@@ -1,39 +1,15 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/agent_tasks/extraction_no_write_harness_publish_v1_20260618.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/status.json",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/extraction_no_write_harness_publish_v1_20260618/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_publish_v1_20260618/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_publish_v1_20260618/status.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_publish_v1_20260618/validation.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/status.json",
       "status": "M"
     }
   ],
