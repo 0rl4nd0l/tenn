@@ -458,6 +458,28 @@ def _build_scale_magnitude_risk(payload: dict, *, accepted_output: bool) -> dict
     }
 
 
+def _accepted_output_risk_gate_error(scale_magnitude_risk: dict) -> str | None:
+    """Return a fail-closed validation error for review-level accepted outputs."""
+    risk = _as_dict(scale_magnitude_risk)
+    if risk.get("accepted_output") is not True:
+        return None
+    if risk.get("risk_level") != "review":
+        return None
+
+    codes = [
+        str(code)
+        for code in risk.get("flag_codes", [])
+        if isinstance(code, str) and code.strip()
+    ]
+    if not codes:
+        for flag in risk.get("flags", []):
+            if isinstance(flag, dict) and flag.get("code"):
+                codes.append(str(flag["code"]))
+
+    suffix = ",".join(dict.fromkeys(codes)) if codes else "review"
+    return f"validation_gate:accepted_output_scale_magnitude_risk:{suffix}"
+
+
 def _scale_harness_case(
     *,
     ticker: str,
@@ -1055,6 +1077,10 @@ def run_one(pdf_path: Path, llm_client) -> dict:
         )
         record["accepted_output_scale_magnitude_risk"] = scale_magnitude_risk
         record["risk_flags"] = scale_magnitude_risk["flag_codes"]
+        risk_gate_error = _accepted_output_risk_gate_error(scale_magnitude_risk)
+        if risk_gate_error is not None:
+            record["status"] = "failed"
+            record["error"] = risk_gate_error
 
         # Sanity checks (only when metric is present)
         sanity = {}

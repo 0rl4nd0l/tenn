@@ -1,0 +1,390 @@
+{
+  "accepted_info_rows": [
+    {
+      "document_id": "f2240712-9dde-41e0-88fa-29c1a0080dab",
+      "flag_codes": [
+        "metric_source_scale_missing"
+      ],
+      "risk_level": "info",
+      "status": "ok",
+      "ticker": "NSR"
+    },
+    {
+      "document_id": "91561659-014b-4c88-865d-a6dec2fd8e35",
+      "flag_codes": [
+        "metric_source_scale_missing"
+      ],
+      "risk_level": "info",
+      "status": "ok",
+      "ticker": "CAE"
+    }
+  ],
+  "already_failed_risk_rows": [
+    {
+      "document_id": "419bcca8-213e-4706-8962-8e3bd8adf091",
+      "error": "validation_gate:announcement_date_period_end:period_type=H:period_end=2024-02-20:title_date=2024-02-20:leading_title_date",
+      "flag_codes": [
+        "metric_source_scale_missing"
+      ],
+      "risk_level": "info",
+      "status": "failed",
+      "ticker": "HUB"
+    }
+  ],
+  "checks": {
+    "no_pdf_extraction_invoked": true,
+    "nsr_cae_remain_accepted_info": true,
+    "risk_flags_preserved": true,
+    "whc_edu_reclassified": true
+  },
+  "forbidden_actions_avoided": [
+    "count_24_rerun",
+    "count_32",
+    "random_sampling",
+    "broad_extraction",
+    "broad_backfill",
+    "full_ticker_universe_extraction",
+    "run_multipass_extraction",
+    "runtime_service_start",
+    "data_store_mutation",
+    "source_pdf_mutation",
+    "github_mutation"
+  ],
+  "generated_at_utc": "2026-06-18T04:47:55+00:00",
+  "job_id": "extraction_review_risk_fail_closed_current_v1_20260618",
+  "mode": "saved_artifact_replay_only",
+  "ok": true,
+  "original_summary": {
+    "error_classification": {
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 3,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "source_noncandidate:webcast_details_notice": 1,
+      "validation_gate:announcement_date_period_end": 1,
+      "validation_gate:insufficient_metrics": 1,
+      "validation_gate:metric_label_mismatch": 1,
+      "validation_gate:scale_unknown": 1
+    },
+    "metric_coverage": {
+      "capex": {
+        "present": 10,
+        "rate": 0.8333,
+        "total": 12
+      },
+      "cash_end": {
+        "present": 11,
+        "rate": 0.9167,
+        "total": 12
+      },
+      "ebit": {
+        "present": 6,
+        "rate": 0.5,
+        "total": 12
+      },
+      "financing_cf": {
+        "present": 11,
+        "rate": 0.9167,
+        "total": 12
+      },
+      "investing_cf": {
+        "present": 11,
+        "rate": 0.9167,
+        "total": 12
+      },
+      "net_debt": {
+        "present": 2,
+        "rate": 0.1667,
+        "total": 12
+      },
+      "np_attributable": {
+        "present": 7,
+        "rate": 0.5833,
+        "total": 12
+      },
+      "operating_cf": {
+        "present": 11,
+        "rate": 0.9167,
+        "total": 12
+      },
+      "revenue": {
+        "present": 7,
+        "rate": 0.5833,
+        "total": 12
+      },
+      "shares_outstanding": {
+        "present": 7,
+        "rate": 0.5833,
+        "total": 12
+      }
+    },
+    "nonnull_metric_distribution": {
+      "max": 9,
+      "mean": 6.92,
+      "median": 7.0,
+      "min": 2
+    },
+    "period_type_distribution": {
+      "A": 6,
+      "H": 2,
+      "Q": 4
+    },
+    "provenance_coverage": {
+      "documents_with_any_provenance": 12,
+      "documents_with_full_provenance": 12,
+      "documents_with_missing_provenance": 0,
+      "metrics_missing_provenance": {},
+      "metrics_with_provenance": {
+        "capex": 10,
+        "cash_end": 11,
+        "ebit": 6,
+        "financing_cf": 11,
+        "investing_cf": 11,
+        "net_debt": 2,
+        "np_attributable": 7,
+        "operating_cf": 11,
+        "revenue": 7,
+        "shares_outstanding": 7
+      }
+    },
+    "risk_flag_distribution": {
+      "metric_revenue_ratio_high": 6,
+      "metric_source_scale_missing": 2,
+      "mixed_metric_source_scales": 1,
+      "payload_scale_differs_from_metric_source_scale": 1
+    },
+    "risk_flagged_documents": 4,
+    "sanity_checks": {
+      "cash_end_positive": {
+        "passed": 11,
+        "rate": 1.0,
+        "total": 11
+      },
+      "period_end_valid": {
+        "passed": 12,
+        "rate": 1.0,
+        "total": 12
+      },
+      "period_type_valid": {
+        "passed": 12,
+        "rate": 1.0,
+        "total": 12
+      },
+      "revenue_positive": {
+        "passed": 7,
+        "rate": 1.0,
+        "total": 7
+      },
+      "shares_positive": {
+        "passed": 7,
+        "rate": 1.0,
+        "total": 7
+      }
+    },
+    "scale_distribution": {
+      "millions": 3,
+      "thousands": 8,
+      "units": 1
+    },
+    "status_distribution": {
+      "failed": 12,
+      "ok": 11,
+      "ok_low_confidence": 1
+    },
+    "success_rate": 0.5,
+    "timing": {
+      "max_s": 219.77,
+      "mean_s": 76.58,
+      "median_s": 71.55,
+      "min_s": 0.0,
+      "p95_s": 199.33,
+      "p99_s": 219.77,
+      "total_s": 1838.0
+    },
+    "total": 24,
+    "unique_tickers": 23
+  },
+  "projected_summary": {
+    "error_classification": {
+      "source_noncandidate:board_change_notice": 1,
+      "source_noncandidate:meeting_or_proxy_notice": 3,
+      "source_noncandidate:operational_project_update": 1,
+      "source_noncandidate:pre_results_segment_re_presentation": 1,
+      "source_noncandidate:share_sale_or_gross_proceeds_announcement": 1,
+      "source_noncandidate:webcast_details_notice": 1,
+      "validation_gate:accepted_output_scale_magnitude_risk": 2,
+      "validation_gate:announcement_date_period_end": 1,
+      "validation_gate:insufficient_metrics": 1,
+      "validation_gate:metric_label_mismatch": 1,
+      "validation_gate:scale_unknown": 1
+    },
+    "metric_coverage": {
+      "capex": {
+        "present": 8,
+        "rate": 0.8,
+        "total": 10
+      },
+      "cash_end": {
+        "present": 9,
+        "rate": 0.9,
+        "total": 10
+      },
+      "ebit": {
+        "present": 4,
+        "rate": 0.4,
+        "total": 10
+      },
+      "financing_cf": {
+        "present": 9,
+        "rate": 0.9,
+        "total": 10
+      },
+      "investing_cf": {
+        "present": 9,
+        "rate": 0.9,
+        "total": 10
+      },
+      "net_debt": {
+        "present": 2,
+        "rate": 0.2,
+        "total": 10
+      },
+      "np_attributable": {
+        "present": 5,
+        "rate": 0.5,
+        "total": 10
+      },
+      "operating_cf": {
+        "present": 9,
+        "rate": 0.9,
+        "total": 10
+      },
+      "revenue": {
+        "present": 5,
+        "rate": 0.5,
+        "total": 10
+      },
+      "shares_outstanding": {
+        "present": 5,
+        "rate": 0.5,
+        "total": 10
+      }
+    },
+    "nonnull_metric_distribution": {
+      "max": 9,
+      "mean": 6.5,
+      "median": 6.5,
+      "min": 2
+    },
+    "period_type_distribution": {
+      "A": 4,
+      "H": 2,
+      "Q": 4
+    },
+    "provenance_coverage": {
+      "documents_with_any_provenance": 10,
+      "documents_with_full_provenance": 10,
+      "documents_with_missing_provenance": 0,
+      "metrics_missing_provenance": {},
+      "metrics_with_provenance": {
+        "capex": 8,
+        "cash_end": 9,
+        "ebit": 4,
+        "financing_cf": 9,
+        "investing_cf": 9,
+        "net_debt": 2,
+        "np_attributable": 5,
+        "operating_cf": 9,
+        "revenue": 5,
+        "shares_outstanding": 5
+      }
+    },
+    "risk_flag_distribution": {
+      "metric_source_scale_missing": 2
+    },
+    "risk_flagged_documents": 2,
+    "sanity_checks": {
+      "cash_end_positive": {
+        "passed": 9,
+        "rate": 1.0,
+        "total": 9
+      },
+      "period_end_valid": {
+        "passed": 10,
+        "rate": 1.0,
+        "total": 10
+      },
+      "period_type_valid": {
+        "passed": 10,
+        "rate": 1.0,
+        "total": 10
+      },
+      "revenue_positive": {
+        "passed": 5,
+        "rate": 1.0,
+        "total": 5
+      },
+      "shares_positive": {
+        "passed": 5,
+        "rate": 1.0,
+        "total": 5
+      }
+    },
+    "scale_distribution": {
+      "millions": 3,
+      "thousands": 6,
+      "units": 1
+    },
+    "status_distribution": {
+      "failed": 14,
+      "ok": 9,
+      "ok_low_confidence": 1
+    },
+    "success_rate": 0.4167,
+    "timing": {
+      "max_s": 219.77,
+      "mean_s": 76.58,
+      "median_s": 71.55,
+      "min_s": 0.0,
+      "p95_s": 199.33,
+      "p99_s": 219.77,
+      "total_s": 1838.0
+    },
+    "total": 24,
+    "unique_tickers": 23
+  },
+  "source_artifact": "/home/l4nd0/tenn-count24-current-canonical-execution-v1-20260617/reports/agent_jobs/extraction_count24_current_canonical_execution_v1_20260617/sample_results.json",
+  "transitions": [
+    {
+      "after_error": "validation_gate:accepted_output_scale_magnitude_risk:mixed_metric_source_scales,payload_scale_differs_from_metric_source_scale,metric_revenue_ratio_high",
+      "after_status": "failed",
+      "before_error": null,
+      "before_status": "ok",
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "flag_codes": [
+        "mixed_metric_source_scales",
+        "payload_scale_differs_from_metric_source_scale",
+        "metric_revenue_ratio_high",
+        "metric_revenue_ratio_high"
+      ],
+      "risk_level": "review",
+      "ticker": "WHC"
+    },
+    {
+      "after_error": "validation_gate:accepted_output_scale_magnitude_risk:metric_revenue_ratio_high",
+      "after_status": "failed",
+      "before_error": null,
+      "before_status": "ok",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "flag_codes": [
+        "metric_revenue_ratio_high",
+        "metric_revenue_ratio_high",
+        "metric_revenue_ratio_high",
+        "metric_revenue_ratio_high"
+      ],
+      "risk_level": "review",
+      "ticker": "EDU"
+    }
+  ]
+}
