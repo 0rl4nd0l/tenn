@@ -11,3 +11,4 @@
 - Local commit preservation is complete.
 - After the owner replied `Approve`, GitHub mutation is limited to pushing this
   branch and opening a PR only. Do not merge, force-push, or mutate issues.
+- PR #372 is open for review. Merge and issue mutation remain unauthorized.

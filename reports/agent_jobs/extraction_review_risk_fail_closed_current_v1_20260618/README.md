@@ -1,6 +1,8 @@
 # Review-Risk Fail-Closed Current Canonical
 
-Status: `DONE`.
+Status: `PR_OPEN`.
+
+PR: https://github.com/0rl4nd0l/tenn/pull/372
 
 This safe extension preserves the local accepted-output review-risk fail-closed
 gate on current canonical and proves the behavior with saved count-24 JSON only.

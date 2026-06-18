@@ -1,10 +1,6 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_review_risk_fail_closed_current_v1_20260618.md",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/DECISIONS.md",
       "status": "M"
     },
@@ -25,19 +21,7 @@
       "status": "M"
     },
     {
-      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/diff-check.json",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/saved_artifact_replay.json",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/status.json",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_review_risk_fail_closed_current_v1_20260618/validation.json",
       "status": "M"
     }
   ],

@@ -1,6 +1,8 @@
 # State
 
-Status: `DONE`.
+Status: `PR_OPEN`.
+
+PR: https://github.com/0rl4nd0l/tenn/pull/372
 
 Guard evidence:
 
@@ -38,6 +40,8 @@ Implemented state:
   `5cfd6cd65a4ea75f1c4502abb21e8be2dc4061bb`.
 - Owner approval for GitHub mutation was received after local commit
   preservation and is limited to branch push plus PR creation.
+- Branch was pushed and PR #372 was opened against
+  `migration/clean-runtime-baseline-reconstruct-v1`.
 
-Next action: rerun focused validation, push the branch, and open a PR. No merge
-or issue mutation is authorized.
+Next action: owner/reviewer review of PR #372. No merge or issue mutation is
+authorized.

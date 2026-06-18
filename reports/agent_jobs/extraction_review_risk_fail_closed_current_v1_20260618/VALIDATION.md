@@ -32,6 +32,10 @@ Commands:
   - Result: passed; no code-level blocker found.
   - Scope checked: task-card match, focused validation evidence,
     product/runtime/data boundaries, and review-risk fail-closed behavior.
+- `git push -u origin safe/extraction-review-risk-fail-closed-current-v1-20260618`
+  - Result: passed; branch pushed.
+- `gh pr create --base migration/clean-runtime-baseline-reconstruct-v1 --head safe/extraction-review-risk-fail-closed-current-v1-20260618`
+  - Result: passed; PR #372 opened.
 - `python3 scripts/agent_job_registry.py list-active --read-only --repo-root .`
   - Result: passed; `active_jobs: []`.
 - Original checkout status recheck
