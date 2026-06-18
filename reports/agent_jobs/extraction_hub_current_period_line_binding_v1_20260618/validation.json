@@ -1,0 +1,72 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "exit": 0,
+      "result": "passed_no_active_jobs"
+    },
+    {
+      "command": "implementation worker RED focused test",
+      "exit": 1,
+      "result": "red_confirmed_period_type_none_before_fix"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run ... pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py -k 'hub or explicit_source_period_end or companion'",
+      "exit": 0,
+      "result": "10 passed, 19 deselected"
+    },
+    {
+      "command": "PYTHONPATH=financial-engine_v2/backend uv run ... pytest -q financial-engine_v2/backend/tests/test_extraction_pre_canary_truth_gates.py",
+      "exit": 0,
+      "result": "29 passed"
+    },
+    {
+      "command": "python3 -m py_compile financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md --repo-root . --no-write-report",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md --repo-root .",
+      "exit": 0,
+      "result": "passed_diff_check_json_written"
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/extraction_hub_current_period_line_binding_v1_20260618.md",
+      "exit": 0,
+      "result": "passed"
+    },
+    {
+      "command": "json parse for git_guard.json, status.json, validation.json",
+      "exit": 0,
+      "result": "passed"
+    }
+  ],
+  "not_run": [
+    "extraction",
+    "count-24",
+    "count-32",
+    "random sample",
+    "broad extraction",
+    "backfill",
+    "runtime services",
+    "data-store mutation",
+    "source-PDF mutation",
+    "exact-HUB runtime/no-write replay"
+  ]
+}

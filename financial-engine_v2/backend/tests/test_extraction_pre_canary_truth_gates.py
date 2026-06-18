@@ -470,6 +470,63 @@ def test_hub_explicit_source_period_end_overrides_announcement_date():
     assert error is None
 
 
+def test_hub_current_period_line_beats_comparative_prior_half_year_source_date():
+    from app.services.multipass_extraction import (
+        _bind_explicit_source_period_end_over_announcement_date,
+        _detect_source_period_end_evidence,
+        _validate_gate,
+    )
+
+    document_title = (
+        "2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_"
+        "419bcca8-213e-4706-8962-8e3bd8adf091.pdf"
+    )
+    early_text = (
+        "Appendix 4D - Half-Year Ended 31 December 2023\n"
+        "Current period: 1 July 2023 to 31 December 2023\n"
+        "Prior corresponding period: 1 July 2022 to 31 December 2022\n"
+        "Comparatives are presented for the half-year ended 31 December 2022."
+    )
+
+    evidence = _detect_source_period_end_evidence(document_title, early_text)
+
+    assert evidence["period_type"] == "H"
+    assert evidence["period_end"] == "2023-12-31"
+    assert evidence["reason"] == "half_year_ended_explicit_date"
+    assert evidence["selection_rule"] == (
+        "current_period_source_text_over_comparative_period_end"
+    )
+
+    pass1 = {"report_type": "H", "period_end": "2024-02-20"}
+    changed = _bind_explicit_source_period_end_over_announcement_date(
+        pass1,
+        evidence,
+        document_title,
+    )
+
+    assert changed is True
+    assert pass1["period_end"] == "2023-12-31"
+
+    payload = _good_payload(period_type="H", scale="thousands")
+    payload["period_end"] = pass1["period_end"]
+    payload["source_period_end_evidence"] = evidence
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+
+    true_conflict = _detect_source_period_end_evidence(
+        document_title,
+        (
+            "Appendix 4D - Half-Year Ended 31 December 2024\n"
+            "Current period: 1 July 2023 to 31 December 2023."
+        ),
+    )
+    assert true_conflict["period_end"] is None
+    assert true_conflict["reason"] == "ambiguous"
+
+
 def test_hub_title_date_only_period_end_remains_fail_closed():
     from app.services.multipass_extraction import (
         _bind_explicit_source_period_end_over_announcement_date,

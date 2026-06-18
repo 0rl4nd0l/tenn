@@ -1,0 +1,43 @@
+{
+  "status": "warning",
+  "decision": "pass_with_data_missing_ledger",
+  "worktree": "/home/l4nd0/tenn-hub-current-period-line-binding-v1-20260618",
+  "branch": "safe/extraction-hub-current-period-line-binding-v1-20260618",
+  "head": "44137442fad9cd47bfa938113dbb400b394c69df",
+  "upstream": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "selected_base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "merge_base": "44137442fad9cd47bfa938113dbb400b394c69df",
+  "registry_read_only": {
+    "ok": true,
+    "active_jobs": [],
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry",
+    "read_only": true
+  },
+  "task_ledger": {
+    "live_ledger": "DATA_MISSING",
+    "committed_ledger": "DATA_MISSING",
+    "fallback_search": "checked related PRs, worktrees, branches, task cards, reports, issues, and target files"
+  },
+  "duplicate_work_classification": "CONTINUE_AS_NARROW_FOLLOWUP",
+  "related_work": [
+    {
+      "type": "pr",
+      "id": "#336",
+      "state": "MERGED",
+      "classification": "MERGED_CANONICAL_FOUNDATION_WITH_RESIDUAL_FOLLOWUP",
+      "note": "Clean HUB source-period binding exists on current base; evidence packet proves a remaining current/prior ambiguity not covered by the clean fixture."
+    },
+    {
+      "type": "report",
+      "path": "/home/l4nd0/tenn-hub-period-source-evidence-packet-v1-20260618/reports/agent_jobs/extraction_hub_period_source_evidence_packet_v1_20260618",
+      "classification": "ADOPT_EVIDENCE"
+    }
+  ],
+  "forbidden_boundaries": [
+    "no extraction",
+    "no count reruns",
+    "no DB/Qdrant/Redis/news/memory/source-PDF/gold-label/prompt/runtime/model/GPU/service mutation",
+    "no GitHub mutation",
+    "no unrelated cleanup"
+  ]
+}
