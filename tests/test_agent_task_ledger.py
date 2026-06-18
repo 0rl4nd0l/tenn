@@ -196,6 +196,32 @@ class AgentTaskLedgerTests(unittest.TestCase):
 
         self.assertEqual(classification, "DATA_MISSING_FALLBACK_REQUIRED")
 
+    def test_classification_uses_latest_entry_per_task(self) -> None:
+        matches = [
+            {
+                "source": "custom",
+                "line": 1,
+                "entry": sample_entry(
+                    task_id="task-a",
+                    status="claimed",
+                    updated_at="2026-06-18T00:00:00Z",
+                ),
+            },
+            {
+                "source": "custom",
+                "line": 2,
+                "entry": sample_entry(
+                    task_id="task-a",
+                    status="done",
+                    updated_at="2026-06-18T01:00:00Z",
+                ),
+            },
+        ]
+
+        classification = agent_task_ledger.classify_matches(matches, [])
+
+        self.assertEqual(classification, "MERGED_USE_CANONICAL")
+
     def test_search_by_issue_and_pr(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             ledger = Path(tmp) / "task-ledger.jsonl"

@@ -557,14 +557,36 @@ def entry_matches(entry: dict[str, Any], args: argparse.Namespace) -> bool:
     return all(checks)
 
 
+def _match_order_key(match: dict[str, Any]) -> tuple[str, int]:
+    entry = match.get("entry", {})
+    timestamp = ""
+    if isinstance(entry, dict):
+        timestamp = str(entry.get("updated_at") or entry.get("started_at") or "")
+    line = match.get("line", 0)
+    return timestamp, line if isinstance(line, int) else 0
+
+
+def latest_matches_by_task(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
+    for index, match in enumerate(matches):
+        entry = match.get("entry", {})
+        task_id = entry.get("task_id") if isinstance(entry, dict) else None
+        key = str(task_id) if task_id else f"__match_{index}"
+        current = latest.get(key)
+        if current is None or _match_order_key(match) >= _match_order_key(current):
+            latest[key] = match
+    return list(latest.values())
+
+
 def classify_matches(matches: list[dict[str, Any]], data_missing: list[str]) -> str:
     if data_missing:
         return "DATA_MISSING_FALLBACK_REQUIRED"
     if not matches:
         return "UNKNOWN_ASK"
 
-    statuses = {str(match["entry"].get("status")) for match in matches}
-    owner_boundary = any(match["entry"].get("owner_boundary") is True for match in matches)
+    latest_matches = latest_matches_by_task(matches)
+    statuses = {str(match["entry"].get("status")) for match in latest_matches}
+    owner_boundary = any(match["entry"].get("owner_boundary") is True for match in latest_matches)
     if owner_boundary or statuses & {"owner_boundary", "waiting_on_user"}:
         return "OWNER_BOUNDARY"
     if statuses & {"claimed", "implementation_started"}:
