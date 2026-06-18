@@ -25,8 +25,10 @@ The worker brief must include:
 - stop conditions
 - result path for `WORKER_RESULT.md`
 - parent task id
+- worker id
 - Task Ledger expectations: child ledger entry or required ledger fields in
-  `WORKER_RESULT.md`
+  `WORKER_RESULT.md`, including `session_id`, `thread_id`, `parent_task_id`,
+  `worker_id`, worktree, branch, touched files, status, and result path
 - task tier and model routing fields:
   - `task_tier`
   - `recommended_model`
@@ -113,6 +115,8 @@ Write `WORKER_RESULT.md` with:
 - worktree
 - parent task id
 - worker id
+- session_id
+- thread_id
 - lane
 - task tier
 - recommended model

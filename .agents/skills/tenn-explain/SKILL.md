@@ -16,6 +16,9 @@ For branch, PR, report, task-card, or "has this already been done?" questions,
 include Task Ledger evidence when available. If the live or committed ledger is
 unavailable, say `DATA_MISSING` and summarize the bounded fallback search used
 before explaining current state.
+When explaining dirt or stale work, cite the relevant ledger entry, task id,
+branch, source session reference, and session/thread ID when available. If the
+session or thread reference is `DATA_MISSING`, say so directly.
 
 ## Required Explanation Shape
 
