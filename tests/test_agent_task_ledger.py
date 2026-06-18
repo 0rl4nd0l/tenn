@@ -161,6 +161,22 @@ class AgentTaskLedgerTests(unittest.TestCase):
         self.assertFalse(ledger_exists)
         self.assertTrue(any("unable to read file" in issue for issue in payload["issues"]))
 
+    def test_append_unwritable_ledger_path_returns_json_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            entry_file = root / "entry.json"
+            stale_parent = root / "not-a-directory"
+            ledger = stale_parent / "task-ledger.jsonl"
+            write_entry(entry_file, sample_entry())
+            stale_parent.write_text("not a directory", encoding="utf-8")
+
+            result = run_ledger("append", "--entry-file", str(entry_file), "--ledger-path", str(ledger))
+            payload = load_json(result)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIs(payload["ok"], False)
+        self.assertTrue(any("unable to open ledger for append" in issue for issue in payload["issues"]))
+
     def test_search_by_task_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             ledger = Path(tmp) / "task-ledger.jsonl"

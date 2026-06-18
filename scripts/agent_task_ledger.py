@@ -437,12 +437,17 @@ def fill_identity(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 def append_entry(path: Path, entry: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = _json_line(entry).encode("utf-8")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
-    fd = os.open(path, flags, 0o644)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = _json_line(entry).encode("utf-8")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+        fd = os.open(path, flags, 0o644)
+    except OSError as exc:
+        raise LedgerError(f"{path}: unable to open ledger for append: {exc.strerror or exc}") from exc
     try:
         os.write(fd, payload)
+    except OSError as exc:
+        raise LedgerError(f"{path}: unable to append entry: {exc.strerror or exc}") from exc
     finally:
         os.close(fd)
 
