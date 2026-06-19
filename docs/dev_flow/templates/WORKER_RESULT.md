@@ -11,6 +11,7 @@ skill entrypoint.
 - Parent task ID:
 - Worker ID:
 - Result path:
+- Stop condition:
 
 ## Model Routing
 - task_tier: <small|medium|large|critical>
@@ -38,6 +39,11 @@ skill entrypoint.
 
 ## Blockers And DATA_MISSING
 - <blocker or None>
+
+## Orchestrator Review
+- Status: <accepted|revise|park|discard|owner_decision_needed|pending>
+- Reason:
+- Integrated commit or diff: <sha/path/not_applicable>
 
 ## Recommended Action
 <integrate|revise|park|discard|ask_owner>

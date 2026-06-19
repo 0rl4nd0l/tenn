@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 scripts/agent_task_ledger.py --repo-root . validate",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_registry.py list-active --read-only --repo-root .",
+      "exit_status": 0,
+      "summary": "active_jobs=[]"
+    },
+    {
+      "command": "skill frontmatter/description check",
+      "exit_status": 0
+    },
+    {
+      "command": "visible skill count check",
+      "exit_status": 0,
+      "summary": "before=10 after=10"
+    },
+    {
+      "command": "active removed-entrypoint reference check",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md --repo-root .",
+      "exit_status": 0
+    },
+    {
+      "command": "python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md --repo-root .",
+      "exit_status": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_status": 0
+    },
+    {
+      "command": "forbidden product/runtime/data/extraction/count-24 path guard",
+      "exit_status": 0
+    },
+    {
+      "command": "host-global guard",
+      "exit_status": 0
+    },
+    {
+      "command": "JSON template and report checks",
+      "exit_status": 0
+    }
+  ]
+}
