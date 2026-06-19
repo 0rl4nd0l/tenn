@@ -1289,6 +1289,12 @@ def run_replay(args: argparse.Namespace) -> int:
     manifest_path = resolve_manifest_path(Path(args.case_manifest).expanduser())
     manifest = load_manifest(manifest_path)
     cases = resolve_case_source_paths(select_cases(manifest, list(args.case)))
+    llm_url = assert_loopback_url(
+        args.llm_base_url
+        or os.environ.get("EXTRACTION_LLAMACPP_URL")
+        or os.environ.get("LLAMACPP_URL")
+        or "http://127.0.0.1:8001"
+    )
     report_dir = resolve_report_dir(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
     _reset_report_outputs(report_dir)
@@ -1319,7 +1325,6 @@ def run_replay(args: argparse.Namespace) -> int:
         _write_json(report_dir / "side_effect_audit.json", payload)
         return 2
 
-    llm_url = assert_loopback_url(args.llm_base_url or os.environ.get("EXTRACTION_LLAMACPP_URL") or os.environ.get("LLAMACPP_URL") or "http://127.0.0.1:8001")
     git_before = _git_status()
     dirty_repo_before = _dirty_repo_file_snapshot(git_before, report_dir)
     source_before = _source_snapshot(cases)

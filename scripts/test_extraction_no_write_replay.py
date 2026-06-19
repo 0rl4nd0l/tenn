@@ -229,6 +229,31 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         finally:
             shutil.rmtree(report_root, ignore_errors=True)
 
+    def test_run_replay_validates_llm_url_before_resetting_reports(self):
+        report_rel = "reports/agent_jobs/extraction_no_write_invalid_llm_url_test/run"
+        report_root = ROOT / "reports" / "agent_jobs" / "extraction_no_write_invalid_llm_url_test"
+        report_dir = ROOT / report_rel
+        stale = report_dir / "validation.json"
+        stale.parent.mkdir(parents=True, exist_ok=True)
+        stale.write_text("stale validation", encoding="utf-8")
+
+        args = argparse.Namespace(
+            profile=RUNNER.BASELINE_PROFILE,
+            venv_python=None,
+            case_manifest=str(RUNNER.DEFAULT_MANIFEST),
+            report_dir=report_rel,
+            case=["WHC"],
+            llm_base_url="https://example.com/v1",
+            preflight_only=True,
+            _profile_reexeced=False,
+        )
+        try:
+            with self.assertRaises(RUNNER.ReplayConfigError):
+                RUNNER.run_replay(args)
+            self.assertEqual("stale validation", stale.read_text(encoding="utf-8"))
+        finally:
+            shutil.rmtree(report_root, ignore_errors=True)
+
     def test_portable_source_path_resolves_against_data_root(self):
         old_data_root = os.environ.get("DATA_ROOT")
         try:

@@ -9,6 +9,7 @@ No blocking findings for the P2 repair after validation.
 ## Evidence
 
 - Invalid case selectors now fail before report outputs are reset.
+- Invalid loopback LLM URLs now fail before report outputs are reset.
 - Certified manifest source paths are portable `asx/docs/...` paths rather than
   host-specific absolute paths.
 - Relative source paths resolve against approved local data roots only; the
@@ -20,7 +21,7 @@ No blocking findings for the P2 repair after validation.
 ## Validation
 
 - Task-card validate: PASS
-- Focused unit tests: PASS, 21 tests
+- Focused unit tests: PASS, 28 tests
 - `py_compile`: PASS
 - Preflight-only no-write replay: PASS
 - `git diff --check`: PASS
