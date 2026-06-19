@@ -1,48 +1,32 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_no_write_harness_review_followup_safety_v1_20260619.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/PR_REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/README.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/input_manifest.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/logs/replay.log",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/replay_results.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/side_effect_audit.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/validation.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/diff-check.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/status.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/validation.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "scripts/extraction_no_write_replay.py",

@@ -338,6 +338,39 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             ),
         )
 
+    def test_exception_rows_are_not_classified_as_infrastructure_data_missing(self):
+        row = {
+            "case_id": "HUB",
+            "result": {
+                "status": "exception",
+                "error": "ValueError: unexpected parser failure",
+            },
+        }
+        side_effect_audit = {
+            "forbidden_surface_clean": True,
+            "report_only_durable_writes": True,
+            "isolated_cache_contained": True,
+            "isolated_runtime_contained": True,
+        }
+        results = [row]
+        extraction_exceptions = [
+            item for item in results if (item.get("result") or {}).get("status") == "exception"
+        ]
+        infrastructure_failures = [item for item in results if RUNNER._is_infrastructure_failure(item)]
+
+        self.assertEqual([row], extraction_exceptions)
+        self.assertEqual([], infrastructure_failures)
+        self.assertEqual(
+            "FAIL",
+            RUNNER._derive_replay_status(
+                side_effect_audit,
+                llm_missing=False,
+                extraction_exception_count=len(extraction_exceptions),
+                infrastructure_failure_count=len(infrastructure_failures),
+                expectation_failure_count=0,
+            ),
+        )
+
     def test_surface_audit_fails_on_new_non_report_git_status_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

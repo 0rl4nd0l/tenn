@@ -1010,9 +1010,6 @@ def _run_cases(cases: list[dict[str, Any]], llm_url: str, log_path: Path) -> tup
 def _is_infrastructure_failure(row: dict[str, Any]) -> bool:
     result = row.get("result") if isinstance(row.get("result"), dict) else {}
     error = str(result.get("error") or "").lower()
-    status = str(result.get("status") or "").lower()
-    if status == "exception":
-        return True
     if not error:
         return False
     markers = (

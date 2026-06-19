@@ -6,7 +6,7 @@
     },
     {
       "command": "python3 scripts/test_extraction_no_write_replay.py",
-      "result": "PASS: Ran 26 tests"
+      "result": "PASS: Ran 27 tests, including test_exception_rows_are_not_classified_as_infrastructure_data_missing"
     },
     {
       "command": "python3 -m py_compile scripts/extraction_no_write_replay.py scripts/test_extraction_no_write_replay.py",

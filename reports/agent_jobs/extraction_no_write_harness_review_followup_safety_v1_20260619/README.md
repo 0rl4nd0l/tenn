@@ -20,11 +20,15 @@ findings raised after the portable-path and pre-clear validation repair.
 - Treat unexpected per-case extraction exceptions as `FAIL`; only explicit
   infrastructure failures and missing LLM/docling prerequisites remain
   `DATA_MISSING`.
+- Repair the follow-up review blocker where per-case `status: exception` rows
+  were still counted as infrastructure failures during aggregate status
+  derivation.
 
 ## Validation
 
 - Task-card validate: PASS
-- Focused no-write replay unit tests: PASS, 26 tests
+- Focused no-write replay unit tests: PASS, 27 tests
+- Exception-classification regression: PASS under focused unit tests
 - `py_compile`: PASS
 - `git diff --check`: PASS
 - Task-card `check-diff`: PASS

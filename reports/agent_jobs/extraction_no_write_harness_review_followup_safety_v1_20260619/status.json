@@ -3,7 +3,7 @@
   "docs_impact": "DOCS_UPDATED",
   "docs_followup": "NONE",
   "github_mutation_allowed": true,
-  "integrated_change": "PR #379 no-write harness safety review follow-up only",
+  "integrated_change": "PR #379 no-write harness safety review follow-up plus exception classification repair",
   "job_id": "extraction_no_write_harness_review_followup_safety_v1_20260619",
   "model_routing": {
     "actual_model": "Codex GPT-5",

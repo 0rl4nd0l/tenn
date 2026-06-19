@@ -1,10 +1,10 @@
 # PR #379 Follow-Up Safety Review
 
-Decision: pass, pending push and fresh GitHub checks.
+Decision: pass locally, pending fresh GitHub checks after push.
 
 ## Findings
 
-No blocking findings in the focused no-write harness safety diff.
+No blocking findings remain in the focused no-write harness safety diff.
 
 ## Review Coverage
 
@@ -20,11 +20,14 @@ No blocking findings in the focused no-write harness safety diff.
   profile cannot pass through PyMuPDF fallback.
 - Unexpected per-case extraction exceptions now produce `FAIL`, not
   `DATA_MISSING`.
+- Per-case `status: exception` rows are no longer counted as infrastructure
+  failures before aggregate status derivation.
 
 ## Validation
 
 - Task-card validate: PASS
-- Unit tests: PASS, 26 tests
+- Unit tests: PASS, 27 tests
+- Exception-classification regression: PASS under focused unit tests
 - `py_compile`: PASS
 - `git diff --check`: PASS
 - Task-card `check-diff`: PASS
