@@ -1,36 +1,6 @@
 {
-  "dirty_repo_file_after": {
-    "scripts/extraction_no_write_replay.py": {
-      "exists": true,
-      "mtime_ns": 1781855070339168895,
-      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/scripts/extraction_no_write_replay.py",
-      "sha256": "cccfb03faec8aae757e4b447a4dfe647bbf98e643b5119fe711a929768225720",
-      "size": 61371
-    },
-    "scripts/test_extraction_no_write_replay.py": {
-      "exists": true,
-      "mtime_ns": 1781855061502128451,
-      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/scripts/test_extraction_no_write_replay.py",
-      "sha256": "fc8b25a8d8177751c3a13a00c114ba7040c19bca219faf3e78922241877bf72b",
-      "size": 21999
-    }
-  },
-  "dirty_repo_file_before": {
-    "scripts/extraction_no_write_replay.py": {
-      "exists": true,
-      "mtime_ns": 1781855070339168895,
-      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/scripts/extraction_no_write_replay.py",
-      "sha256": "cccfb03faec8aae757e4b447a4dfe647bbf98e643b5119fe711a929768225720",
-      "size": 61371
-    },
-    "scripts/test_extraction_no_write_replay.py": {
-      "exists": true,
-      "mtime_ns": 1781855061502128451,
-      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/scripts/test_extraction_no_write_replay.py",
-      "sha256": "fc8b25a8d8177751c3a13a00c114ba7040c19bca219faf3e78922241877bf72b",
-      "size": 21999
-    }
-  },
+  "dirty_repo_file_after": {},
+  "dirty_repo_file_before": {},
   "dirty_repo_file_mutations": false,
   "forbidden_surface_clean": true,
   "forbidden_surface_mutation": {
@@ -53,30 +23,24 @@
     "source_pdf_write": false
   },
   "git_status_after": [
-    " M reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
     " M reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
     " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
     " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
-    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
-    " M scripts/extraction_no_write_replay.py",
-    " M scripts/test_extraction_no_write_replay.py"
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json"
   ],
   "git_status_before": [
-    " M reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
     " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
     " M reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
     " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
     " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
-    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
-    " M scripts/extraction_no_write_replay.py",
-    " M scripts/test_extraction_no_write_replay.py"
+    " D reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json"
   ],
   "isolated_cache_contained": true,
   "isolated_cache_files": [],
-  "isolated_cache_root": "/tmp/tenn-extraction-no-write-replay-dicrwz8d/reports/extraction_cache/docling_extract",
+  "isolated_cache_root": "/tmp/tenn-extraction-no-write-replay-bvrh983h/reports/extraction_cache/docling_extract",
   "isolated_runtime_contained": true,
   "isolated_runtime_files": [],
-  "isolated_runtime_root": "/tmp/tenn-extraction-no-write-replay-dicrwz8d",
+  "isolated_runtime_root": "/tmp/tenn-extraction-no-write-replay-bvrh983h",
   "normal_cache_after": {
     "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": [],
     "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": [
@@ -398,31 +362,31 @@
   "report_dir": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619",
   "report_files": [
     {
-      "mtime_ns": 1781851717848622109,
+      "mtime_ns": 1781855173776649748,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/PR_REVIEW.md",
       "relative_path": "PR_REVIEW.md",
-      "size": 1009
+      "size": 1079
     },
     {
-      "mtime_ns": 1781851717848622109,
+      "mtime_ns": 1781855161650592712,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/README.md",
       "relative_path": "README.md",
-      "size": 1931
+      "size": 2072
     },
     {
-      "mtime_ns": 1781855114505372590,
+      "mtime_ns": 1781855185164703462,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
       "relative_path": "diff-check.json",
-      "size": 3597
+      "size": 3726
     },
     {
-      "mtime_ns": 1781855132844457899,
+      "mtime_ns": 1781855259566057732,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
       "relative_path": "input_manifest.json",
       "size": 11477
     },
     {
-      "mtime_ns": 1781855132844457899,
+      "mtime_ns": 1781855259566057732,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
       "relative_path": "logs/replay.log",
       "size": 54
@@ -436,46 +400,46 @@
   ],
   "report_files_after_artifact_write": [
     {
-      "mtime_ns": 1781851717848622109,
+      "mtime_ns": 1781855173776649748,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/PR_REVIEW.md",
       "relative_path": "PR_REVIEW.md",
-      "size": 1009
+      "size": 1079
     },
     {
-      "mtime_ns": 1781851717848622109,
+      "mtime_ns": 1781855161650592712,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/README.md",
       "relative_path": "README.md",
-      "size": 1931
+      "size": 2072
     },
     {
-      "mtime_ns": 1781855114505372590,
+      "mtime_ns": 1781855185164703462,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
       "relative_path": "diff-check.json",
-      "size": 3597
+      "size": 3726
     },
     {
-      "mtime_ns": 1781855132844457899,
+      "mtime_ns": 1781855259566057732,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
       "relative_path": "input_manifest.json",
       "size": 11477
     },
     {
-      "mtime_ns": 1781855132844457899,
+      "mtime_ns": 1781855259566057732,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
       "relative_path": "logs/replay.log",
       "size": 54
     },
     {
-      "mtime_ns": 1781855132899458155,
+      "mtime_ns": 1781855259620057991,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
       "relative_path": "replay_results.json",
       "size": 171
     },
     {
-      "mtime_ns": 1781855132900458160,
+      "mtime_ns": 1781855259621057996,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
       "relative_path": "side_effect_audit.json",
-      "size": 38953
+      "size": 37171
     },
     {
       "mtime_ns": 1781851717848622109,
@@ -484,7 +448,7 @@
       "size": 996
     },
     {
-      "mtime_ns": 1781855132900458160,
+      "mtime_ns": 1781855259621057996,
       "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
       "relative_path": "validation.json",
       "size": 533
