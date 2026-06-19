@@ -25,7 +25,7 @@
       "command": "python3 scripts/test_extraction_no_write_replay.py",
       "exit_code": 0,
       "status": "PASS",
-      "observed": "Ran 11 tests in 0.002s; OK"
+      "observed": "Ran 17 tests in 0.003s; OK"
     },
     {
       "command": "uv run --with pydantic==2.9.2 --with pydantic-settings==2.6.1 --with httpx==0.27.2 --with pymupdf==1.24.10 --with python-dateutil==2.9.0.post0 --with qdrant-client==1.12.1 --with SQLAlchemy==2.0.36 --with redis==5.1.1 --with beautifulsoup4==4.12.3 python scripts/extraction_no_write_replay.py --case all --case-manifest financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json --report-dir reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay",

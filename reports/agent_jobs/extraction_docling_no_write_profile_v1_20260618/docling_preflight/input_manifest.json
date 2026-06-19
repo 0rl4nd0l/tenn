@@ -1,5 +1,5 @@
 {
-  "data_root": "/tmp/tenn-extraction-no-write-replay-qj885fs7",
+  "data_root": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt",
   "llm_base_url": "http://127.0.0.1:8001",
   "manifest_path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
   "manifest_sha256": "2e713407c78727841605c4a7622b7472644d36843e975820da7960963929ef09",
@@ -26,7 +26,7 @@
     "CELERY_BROKER_URL": "memory://tenn-no-write",
     "CELERY_RESULT_BACKEND": "cache+memory://",
     "DATABASE_URL": "sqlite:///:memory:",
-    "DATA_ROOT": "/tmp/tenn-extraction-no-write-replay-qj885fs7",
+    "DATA_ROOT": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt",
     "ENABLE_EMBEDDINGS": "false",
     "ENABLE_EMBEDDING_CACHE": "false",
     "ENABLE_IMPORTANCE_CLASSIFICATION": "false",
@@ -37,10 +37,10 @@
     "EXTRACTION_PARALLEL": "0",
     "EXTRACTION_SKIP_NARRATIVE": "1",
     "EXTRACT_MODEL": "model:qwen2.5-14b-instruct",
-    "HOME": "/tmp/tenn-extraction-no-write-replay-qj885fs7/home",
+    "HOME": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt/home",
     "IMPORTANCE_MATERIALIZE_OUTPUT": "false",
     "LLAMACPP_URL": "http://127.0.0.1:8001",
-    "LLM_API_KEY": "local-openai-key",
+    "LLM_API_KEY": "<redacted>",
     "LLM_URL": "http://127.0.0.1:8001",
     "MODEL_ROUTING_CONFIG": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/backend/app/config/model_routing.yaml",
     "OLLAMA_URL": "http://127.0.0.1:11434",
@@ -51,11 +51,11 @@
     "REDIS_URL": "memory://tenn-no-write",
     "ROUTER_FEEDBACK_ENABLED": "false",
     "TASK_MODE": "sync",
-    "TENN_EXTRACTION_ACTIVE_FILE": "/tmp/tenn-extraction-no-write-replay-qj885fs7/runtime/extraction_active.json",
-    "TMPDIR": "/tmp/tenn-extraction-no-write-replay-qj885fs7/tmp",
-    "XDG_CACHE_HOME": "/tmp/tenn-extraction-no-write-replay-qj885fs7/xdg/cache",
-    "XDG_CONFIG_HOME": "/tmp/tenn-extraction-no-write-replay-qj885fs7/xdg/config",
-    "XDG_STATE_HOME": "/tmp/tenn-extraction-no-write-replay-qj885fs7/xdg/state"
+    "TENN_EXTRACTION_ACTIVE_FILE": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt/runtime/extraction_active.json",
+    "TMPDIR": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt/tmp",
+    "XDG_CACHE_HOME": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt/xdg/cache",
+    "XDG_CONFIG_HOME": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt/xdg/config",
+    "XDG_STATE_HOME": "/tmp/tenn-extraction-no-write-replay-_ao0z_xt/xdg/state"
   },
   "selected_cases": [
     {

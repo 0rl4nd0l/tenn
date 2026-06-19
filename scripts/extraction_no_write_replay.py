@@ -83,6 +83,11 @@ SAFE_ENV_REPORT_KEYS = {
     "XDG_CONFIG_HOME",
     "XDG_STATE_HOME",
 }
+SECRET_ENV_REPORT_KEYS = {
+    "ANTHROPIC_API_KEY",
+    "LLM_API_KEY",
+    "OPENAI_API_KEY",
+}
 METRIC_FIELDS = (
     "revenue",
     "ebit",
@@ -958,7 +963,42 @@ def _surface_audit(
 
 
 def _safe_env_report(safe_env: dict[str, str]) -> dict[str, str]:
-    return {key: safe_env[key] for key in sorted(safe_env) if key in SAFE_ENV_REPORT_KEYS}
+    report: dict[str, str] = {}
+    for key in sorted(safe_env):
+        if key not in SAFE_ENV_REPORT_KEYS:
+            continue
+        value = safe_env[key]
+        if key in SECRET_ENV_REPORT_KEYS:
+            report[key] = "<redacted>" if value else ""
+        else:
+            report[key] = value
+    return report
+
+
+def _side_effect_pass(side_effect_audit: dict[str, Any]) -> bool:
+    return (
+        bool(side_effect_audit.get("forbidden_surface_clean"))
+        and bool(side_effect_audit.get("report_only_durable_writes"))
+        and bool(side_effect_audit.get("isolated_cache_contained"))
+        and bool(side_effect_audit.get("isolated_runtime_contained"))
+    )
+
+
+def _derive_replay_status(
+    side_effect_audit: dict[str, Any],
+    *,
+    llm_missing: bool,
+    extraction_exception_count: int,
+    infrastructure_failure_count: int,
+    expectation_failure_count: int,
+) -> str:
+    if not _side_effect_pass(side_effect_audit):
+        return "FAIL"
+    if llm_missing or extraction_exception_count or infrastructure_failure_count:
+        return "DATA_MISSING"
+    if expectation_failure_count:
+        return "FAIL"
+    return "PASS"
 
 
 def _forbidden_surface_clean_payload() -> dict[str, bool]:
@@ -1252,13 +1292,14 @@ def run_replay(args: argparse.Namespace) -> int:
     infrastructure_failures = [row for row in results if _is_infrastructure_failure(row)]
     expectation_failures = _expectation_failures(results)
     llm_missing = llm_info.get("status") == "DATA_MISSING"
-    status = "PASS"
-    if not side_effect_audit["forbidden_surface_clean"] or not side_effect_audit["report_only_durable_writes"]:
-        status = "FAIL"
-    elif llm_missing or extraction_exceptions or infrastructure_failures:
-        status = "DATA_MISSING"
-    elif expectation_failures:
-        status = "FAIL"
+    side_effect_pass = _side_effect_pass(side_effect_audit)
+    status = _derive_replay_status(
+        side_effect_audit,
+        llm_missing=llm_missing,
+        extraction_exception_count=len(extraction_exceptions),
+        infrastructure_failure_count=len(infrastructure_failures),
+        expectation_failure_count=len(expectation_failures),
+    )
     validation = {
         "status": status,
         "profile": profile,
@@ -1268,10 +1309,7 @@ def run_replay(args: argparse.Namespace) -> int:
         "preflight_only": bool(args.preflight_only),
         "loopback_llm_only": True,
         "llm_info": llm_info,
-        "side_effect_pass": side_effect_audit["forbidden_surface_clean"]
-        and side_effect_audit["report_only_durable_writes"]
-        and side_effect_audit["isolated_cache_contained"]
-        and side_effect_audit["isolated_runtime_contained"],
+        "side_effect_pass": side_effect_pass,
         "extraction_exception_count": len(extraction_exceptions),
         "infrastructure_failure_count": len(infrastructure_failures),
         "expectation_failure_count": len(expectation_failures),

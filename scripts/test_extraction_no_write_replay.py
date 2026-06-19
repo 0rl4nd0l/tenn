@@ -125,6 +125,22 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertEqual("", env["ANTHROPIC_API_KEY"])
         self.assertTrue(env["MODEL_ROUTING_CONFIG"].endswith("financial-engine_v2/backend/app/config/model_routing.yaml"))
 
+    def test_safe_env_report_redacts_secret_values(self):
+        report = RUNNER._safe_env_report(
+            {
+                "DATA_ROOT": "/tmp/no-write",
+                "LLM_API_KEY": "secret-local-key",
+                "OPENAI_API_KEY": "",
+                "ANTHROPIC_API_KEY": "secret-anthropic-key",
+            }
+        )
+        self.assertEqual("/tmp/no-write", report["DATA_ROOT"])
+        self.assertEqual("<redacted>", report["LLM_API_KEY"])
+        self.assertEqual("", report["OPENAI_API_KEY"])
+        self.assertEqual("<redacted>", report["ANTHROPIC_API_KEY"])
+        self.assertNotIn("secret-local-key", str(report))
+        self.assertNotIn("secret-anthropic-key", str(report))
+
     def test_reset_report_outputs_only_removes_known_artifacts(self):
         with tempfile.TemporaryDirectory() as tmp:
             report_dir = Path(tmp)
@@ -184,6 +200,25 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         failures = RUNNER._expectation_failures(rows)
         self.assertEqual("HUB", failures[0]["case_id"])
         self.assertIn("status", failures[0]["mismatches"])
+
+    def test_replay_status_fails_when_isolated_containment_fails(self):
+        side_effect_audit = {
+            "forbidden_surface_clean": True,
+            "report_only_durable_writes": True,
+            "isolated_cache_contained": False,
+            "isolated_runtime_contained": True,
+        }
+        self.assertFalse(RUNNER._side_effect_pass(side_effect_audit))
+        self.assertEqual(
+            "FAIL",
+            RUNNER._derive_replay_status(
+                side_effect_audit,
+                llm_missing=False,
+                extraction_exception_count=0,
+                infrastructure_failure_count=0,
+                expectation_failure_count=0,
+            ),
+        )
 
     def test_manifest_requires_no_production_writes_and_loopback_llm(self):
         bad = self.manifest()
