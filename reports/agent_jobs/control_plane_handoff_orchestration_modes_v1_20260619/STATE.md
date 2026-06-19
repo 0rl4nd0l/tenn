@@ -1,9 +1,8 @@
 # State
 
-State: VALIDATION_PASSED_READY_FOR_PR
+State: PR_REVIEW_FIX_VALIDATED_READY_TO_PUSH
 
-Current Focus: Commit and PR preparation for control-plane handoff
-orchestration modes.
+Current Focus: Commit and push focused PR #380 review fixes.
 
 ## Completed
 
@@ -17,6 +16,9 @@ orchestration modes.
 - Passed required task-card, ledger, registry, skill metadata, visible count,
   removed-entrypoint, check-diff, report-artifact, whitespace, forbidden-path,
   and host-global guards.
+- Applied PR #380 review fixes for shared next-goal contract,
+  handoff-specific next-goal guidance, worker stop-condition bridge validation,
+  focused bridge tests, and skill-surface metadata.
 
 ## Blocked
 
@@ -34,7 +36,8 @@ orchestration modes.
 - Sources checked: live ledger and committed ledger.
 - Duplicate-work classification: no active duplicate found for this exact
   refinement; prior ledger/handoff and skill-surface work is merged canonical.
-- Ledger update: live `claimed` and `implementation_started` entries appended.
+- Ledger update: live `claimed`, `implementation_started`, `pr_opened`, and
+  PR-review `implementation_started` entries appended.
 
 ## Counter Lineage
 
@@ -43,8 +46,8 @@ orchestration modes.
 
 ## Validation
 
-- Required validation passed; see `VALIDATION.md`.
+- Full final validation passed; see `VALIDATION.md`.
 
 ## Next Safe Action
 
-Commit, push, and open the focused PR.
+Commit the review fix, push to PR #380, and re-check CI.

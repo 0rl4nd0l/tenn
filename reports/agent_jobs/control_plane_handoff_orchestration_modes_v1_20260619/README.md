@@ -15,6 +15,18 @@ The change keeps the visible repo skill surface at 10 entrypoints. It adds:
 - `docs/dev_flow/SKILLS_SURFACE.md` guidance that orchestration and zoom-out
   are modes, not new broad visible skills
 
+PR #380 review follow-up fixes:
+
+- restored shared `docs/dev_flow/templates/NEXT_GOAL.md` to a generic directly
+  executable next-goal template
+- added handoff-only `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md`
+- updated `tenn-handoff` and `HANDOFF.md` to reference the handoff-only prompt
+  contract
+- added `stop_condition_hit` to OpenCode bridge result validation and focused
+  tests
+- updated worker result docs to carry stop condition and impact fields
+- marked skill-surface freshness metadata as pending PR #380
+
 ## Files Changed
 
 - `docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md`
@@ -24,12 +36,16 @@ The change keeps the visible repo skill surface at 10 entrypoints. It adds:
 - `.agents/skills/tenn-review-board/SKILL.md`
 - `docs/dev_flow/SKILLS_SURFACE.md`
 - `docs/dev_flow/templates/HANDOFF.md`
+- `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md`
 - `docs/dev_flow/templates/NEXT_GOAL.md`
 - `docs/dev_flow/templates/WORKER_TASK.md`
 - `docs/dev_flow/templates/WORKER_RESULT.md`
 - `docs/dev_flow/templates/BOARD.md`
 - `docs/dev_flow/templates/BOARD_DECISION.json`
 - `docs/dev_flow/templates/EXPLAIN.md`
+- `docs/dev_flow/worker_bridge/README.md`
+- `scripts/opencode_worker_bridge.py`
+- `tests/test_opencode_worker_bridge.py`
 - `reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/*`
 
 ## Visible Skill Count
@@ -48,7 +64,7 @@ The change keeps the visible repo skill surface at 10 entrypoints. It adds:
 
 ## Current Status
 
-- status: validation_passed_ready_for_commit_and_pr
+- status: pr_review_fixes_validated_ready_to_push
 - branch: `control-plane/handoff-orchestration-modes-v1-20260619`
 - base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - task_card:
@@ -58,4 +74,4 @@ The change keeps the visible repo skill surface at 10 entrypoints. It adds:
 
 ## Next Action
 
-Commit locally, push, and open the focused PR.
+Commit the PR review fix, push to PR #380, and re-check CI.

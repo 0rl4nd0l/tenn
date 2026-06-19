@@ -2,14 +2,14 @@
 
 ## Executive summary
 
-Control-plane handoff/orchestration mode refinement is implemented locally from
-fresh canonical. The next session should read this handoff first, run the
-standard Tenn preflight, review validation and PR state, then continue as
-orchestrator only if follow-up work remains.
+Control-plane handoff/orchestration mode refinement is implemented on PR #380,
+with focused review fixes applied locally. The next session should read this
+handoff first, run the standard Tenn preflight, review validation and PR state,
+then continue as orchestrator only if follow-up work remains.
 
 ## State
 
-- status: validation_passed_ready_for_commit_and_pr
+- status: pr_review_fixes_validated_ready_to_push
 - branch: `control-plane/handoff-orchestration-modes-v1-20260619`
 - HEAD: `f44803bba049ea1d2cfe9341b0f9af4379736bdf` plus local diff
 - base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
@@ -46,6 +46,10 @@ orchestrator only if follow-up work remains.
 - Updated worker, handoff, explain, board, and next-goal templates.
 - Updated `docs/dev_flow/SKILLS_SURFACE.md` to keep orchestration and zoom-out
   as modes, not broad new skills.
+- Applied PR #380 review fixes: shared `NEXT_GOAL.md` generic again,
+  handoff-specific continuation moved to `HANDOFF_NEXT_GOAL.md`,
+  `stop_condition_hit` added to bridge validation/tests, and skill-surface
+  metadata marked pending PR #380.
 
 ## What Changed
 
@@ -66,7 +70,7 @@ orchestrator only if follow-up work remains.
 
 - PR #375: merged, task ledger runtime and repo-native `tenn-handoff`.
 - PR #378: merged, visible skill-surface trim.
-- Current PR: not opened yet at handoff creation time.
+- PR #380: open, focused control-plane refinement.
 
 ## Issues
 
@@ -111,8 +115,8 @@ orchestrator only if follow-up work remains.
 
 ## Git status and dirt
 
-- Local task-card, skill, docs, template, and report artifacts passed
-  validation and are pending commit.
+- Local task-card, skill, docs, template, bridge, test, and report artifacts
+  passed final validation and are pending commit.
 - `reports/` artifacts are ignored and require `git add -f`.
 
 ## Ledger status
@@ -121,9 +125,9 @@ orchestrator only if follow-up work remains.
   `/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl`
 - committed_ledger: `docs/agent_registry/task_ledger/LEDGER.jsonl`
 - task_id: `control_plane_handoff_orchestration_modes_v1_20260619`
-- status: `implementation_started` live entry appended; final `done` pending
-  until commit/PR
-- next_action: commit, push, PR
+- status: live `implementation_started`, `pr_opened`, and PR-review
+  `implementation_started` entries appended
+- next_action: commit and push to PR #380
 
 ## Docs Impact
 
@@ -163,7 +167,7 @@ orchestrator only if follow-up work remains.
 
 ## Open risks
 
-- The PR is not opened yet.
+- PR #380 awaits the pushed review-fix commit and fresh CI results.
 - No fresh Codex session has consumed the new handoff mode yet.
 
 ## Owner decisions needed
@@ -193,14 +197,13 @@ registry read-only check before making any claim or edit.
 ## Next 5-10 key milestones
 
 1. Commit the allowlisted control-plane diff.
-2. Push the branch.
-3. Open `[Control Plane] Refine handoff orchestration and zoom-out modes`.
-4. Re-check PR status and checks.
-5. If follow-up is needed, continue from this handoff as orchestrator.
+2. Push to PR #380.
+3. Re-check PR #380 status and checks.
+4. If follow-up is needed, continue from this handoff as orchestrator.
 
 ## Next Action
 
-Commit, push, and open the focused PR.
+Commit, push to PR #380, and re-check CI.
 
 ## Short next `/goal`
 

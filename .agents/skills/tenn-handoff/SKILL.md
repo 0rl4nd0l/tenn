@@ -97,7 +97,8 @@ Under `reports/agent_jobs/<job_id>/handoff/` or the task card handoff path,
 write:
 
 - `HANDOFF.md`
-- `NEXT_GOAL.md`
+- `NEXT_GOAL.md` using the handoff-only prompt contract in
+  `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md`
 - optional `ARCHITECTURE_NOTES.md`
 - optional `LEDGER_ENTRY.json`
 
@@ -151,6 +152,11 @@ safe source exists, write `DATA_MISSING`.
 `tenn-git-guard`, check ledger/PR/task/report duplicates, then act as an
 orchestrator when work remains. The prompt must name the first action, the main
 do-not-touch boundaries, and the stop state.
+
+Use `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md` for this handoff-specific
+prompt. Do not make the shared `docs/dev_flow/templates/NEXT_GOAL.md`
+handoff-specific; `tenn-issue`, `tenn-review-board`, and other non-handoff
+producers need that shared template to remain generic and directly executable.
 
 ## Completion Rule
 

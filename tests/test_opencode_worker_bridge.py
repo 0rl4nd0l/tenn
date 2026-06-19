@@ -32,6 +32,7 @@ confidence: medium
 risks:
 - Codex still needs to review the result.
 recommended_next_action: Codex review
+stop_condition_hit: no
 """
 
 
@@ -113,6 +114,12 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
         self.assertIn("evidence_paths", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_missing_stop_condition_hit(self) -> None:
+        invalid = VALID_RESULT.replace("stop_condition_hit: no\n", "")
+        result = bridge.validate_result_text(invalid)
+        self.assertFalse(result["ok"])
+        self.assertIn("stop_condition_hit", {issue["field"] for issue in result["issues"]})
 
     def test_result_validation_rejects_final_authority_under_evidence_only(self) -> None:
         invalid = VALID_RESULT.replace("Codex review", "final decision: ready to merge")

@@ -1,7 +1,7 @@
 # Tenn Skill Surface
 
-last_verified_commit: f44803bba049ea1d2cfe9341b0f9af4379736bdf
-last_verified_pr: 378
+last_verified_commit: pending-pr-380
+last_verified_pr: 380
 source_of_truth_files:
 - AGENTS.md
 - docs/agent_tasks/dev_flow_skill_surface_trim_v1_20260618.md
@@ -39,12 +39,14 @@ These behaviors are modes inside existing commands, not new visible skills:
 | Mode | Home | Use when |
 | --- | --- | --- |
 | Fresh-session orchestrator | `tenn-fix` plus `WORKER_TASK.md` and `WORKER_RESULT.md` | A handoff, problem statement, board decision, or long repair needs lane splitting, bounded workers, review, integration, validation, and closeout. |
-| Fresh-session continuation | `tenn-handoff` plus `HANDOFF.md` and `NEXT_GOAL.md` | Work must survive a context break with linked artifacts, next-first action, do-not-touch boundaries, milestones, and an orchestrator prompt. |
+| Fresh-session continuation | `tenn-handoff` plus `HANDOFF.md` and `HANDOFF_NEXT_GOAL.md` | Work must survive a context break with linked artifacts, next-first action, do-not-touch boundaries, milestones, and an orchestrator prompt. |
 | Zoom-out / contrarian check | `tenn-explain`, `tenn-review-board`, `EXPLAIN.md`, and board templates | The workflow may be solving the wrong problem, overfitting, looping on reports, or missing broader production-readiness value. |
 
-Handoff owns fresh-session continuation. Its `NEXT_GOAL.md` should be short and
-must tell the next session to read `HANDOFF.md` first, run preflight, then act
-as orchestrator when work remains.
+Handoff owns fresh-session continuation. Its report-local `NEXT_GOAL.md` should
+be produced from `HANDOFF_NEXT_GOAL.md`: short, handoff-specific, and explicit
+that the next session reads `HANDOFF.md` first, runs preflight, then acts as
+orchestrator when work remains. The shared `NEXT_GOAL.md` template stays
+generic for `tenn-issue`, `tenn-review-board`, and other non-handoff producers.
 
 Orchestration is a mode, not a broad new skill. `tenn-fix` owns delegation
 discipline: split independent lanes, give each worker exact allowed files,

@@ -60,9 +60,14 @@ python3 scripts/opencode_worker_bridge.py ledger-entry \
 - `confidence`
 - `risks`
 - `recommended_next_action`
+- `stop_condition_hit`
 
 For `decision_limit=evidence_only`, result validation rejects final-authority
 claims such as merge approval or no-review-needed conclusions.
+
+`WORKER_RESULT.md` should also record the worker task's stop condition and the
+impact when it is hit. The bridge validates `stop_condition_hit` as the required
+safety signal used by the orchestrator.
 
 Evidence-only runs also require verified permission-enforcement metadata in
 `WORKER_META.json`.

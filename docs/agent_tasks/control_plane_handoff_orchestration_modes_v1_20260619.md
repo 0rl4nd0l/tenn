@@ -19,12 +19,16 @@ allowed_files:
   - .agents/skills/tenn-review-board/SKILL.md
   - docs/dev_flow/SKILLS_SURFACE.md
   - docs/dev_flow/templates/HANDOFF.md
+  - docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md
   - docs/dev_flow/templates/NEXT_GOAL.md
   - docs/dev_flow/templates/WORKER_TASK.md
   - docs/dev_flow/templates/WORKER_RESULT.md
   - docs/dev_flow/templates/BOARD.md
   - docs/dev_flow/templates/BOARD_DECISION.json
   - docs/dev_flow/templates/EXPLAIN.md
+  - docs/dev_flow/worker_bridge/README.md
+  - scripts/opencode_worker_bridge.py
+  - tests/test_opencode_worker_bridge.py
   - reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/DESIGN.md
   - reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/README.md
   - reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/STATE.md
@@ -63,6 +67,9 @@ after PR #375 and PR #378, and preserve the reduced visible skill surface.
   and prevent skill-bloat regression.
 - Produce a report bundle with a design note, validation record, review record,
   handoff, and ledger entry.
+- Apply PR #380 review fixes only for the shared `NEXT_GOAL.md` contract,
+  handoff-specific next-goal guidance, worker stop-condition bridge validation,
+  focused bridge tests, and skill-surface freshness metadata.
 
 ## Hard Boundaries
 
@@ -105,6 +112,8 @@ after PR #375 and PR #378, and preserve the reduced visible skill surface.
 - `python3 scripts/agent_job_contract.py check-diff docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md --repo-root .`
 - `python3 scripts/agent_job_contract.py check-report-artifacts docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md --repo-root .`
 - `git diff --check`
+- `python3 -m py_compile scripts/opencode_worker_bridge.py tests/test_opencode_worker_bridge.py`
+- `python3 -m unittest tests.test_opencode_worker_bridge`
 - Forbidden product/runtime/data/extraction/count-24 path guard.
 - Host-global guard.
 - Final `git status --short --untracked-files=all`.
@@ -120,5 +129,9 @@ after PR #375 and PR #378, and preserve the reduced visible skill surface.
   explanation/review skills, with financial extraction breadth guidance.
 - `docs/dev_flow/SKILLS_SURFACE.md` records that orchestration and zoom-out are
   modes and that the visible skill surface stays intentionally small.
+- Shared `NEXT_GOAL.md` remains generic for `tenn-issue`, `tenn-review-board`,
+  and non-handoff producers.
+- OpenCode bridge validation requires the worker stop-condition signal when the
+  worker task template calls it required.
 - No product/runtime/extraction/data/count-24 or host-global mutation occurs.
 - A local commit and focused PR are created after validation.

@@ -67,3 +67,6 @@ Return `WORKER_RESULT.md` content with:
 - `risks`
 - `recommended_next_action`
 - `stop_condition_hit`
+
+When `stop_condition_hit` is `yes`, explain the condition and impact in
+`WORKER_RESULT.md`.

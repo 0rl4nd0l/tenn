@@ -16,17 +16,27 @@ Decision: pass
   - `.agents/skills/tenn-review-board/SKILL.md`
   - `docs/dev_flow/SKILLS_SURFACE.md`
   - `docs/dev_flow/templates/HANDOFF.md`
+  - `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md`
   - `docs/dev_flow/templates/NEXT_GOAL.md`
   - `docs/dev_flow/templates/WORKER_TASK.md`
   - `docs/dev_flow/templates/WORKER_RESULT.md`
   - `docs/dev_flow/templates/BOARD.md`
   - `docs/dev_flow/templates/BOARD_DECISION.json`
   - `docs/dev_flow/templates/EXPLAIN.md`
+  - `docs/dev_flow/worker_bridge/README.md`
+  - `scripts/opencode_worker_bridge.py`
+  - `tests/test_opencode_worker_bridge.py`
   - task card and report bundle
 
 ## Findings
 
 - None found.
+- PR #380 review issue 1 addressed: shared `NEXT_GOAL.md` is generic again,
+  with handoff continuation moved to `HANDOFF_NEXT_GOAL.md`.
+- PR #380 review issue 2 addressed: `stop_condition_hit` is bridge-validated
+  and covered by focused tests.
+- PR #380 non-blocking metadata cleanup addressed: `SKILLS_SURFACE.md`
+  references pending PR #380.
 
 ## Validation Evidence
 
@@ -42,7 +52,10 @@ Decision: pass
   - `.agents/skills/tenn-review-board/SKILL.md`
   - `docs/dev_flow/SKILLS_SURFACE.md`
   - `docs/dev_flow/templates/*.md`
+  - `docs/dev_flow/worker_bridge/README.md`
   - `docs/dev_flow/templates/BOARD_DECISION.json`
+  - `scripts/opencode_worker_bridge.py`
+  - `tests/test_opencode_worker_bridge.py`
 - docs_changed:
   - listed in README
 - docs_followup:
@@ -70,4 +83,4 @@ Decision: pass
 
 - Product/runtime/data/extraction paths changed: no
 - Host-global files changed: no
-- GitHub mutation approved: branch push and PR creation only
+- GitHub mutation approved: branch push to existing PR #380 only

@@ -159,8 +159,9 @@
 
 ## Short next `/goal`
 
-<copy-pasteable next goal prompt. It must say to read this HANDOFF.md first,
-run preflight, then act as an orchestrator when work remains.>
+<copy-pasteable handoff continuation prompt. Use
+docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md, not the shared generic
+NEXT_GOAL.md, when this handoff emits a fresh-session continuation prompt.>
 
 ## Do-not-touch boundaries
 

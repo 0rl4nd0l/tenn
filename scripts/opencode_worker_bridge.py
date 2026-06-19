@@ -29,6 +29,7 @@ REQUIRED_RESULT_FIELDS = (
     "confidence",
     "risks",
     "recommended_next_action",
+    "stop_condition_hit",
 )
 
 DECISION_LIMITS = {"evidence_only", "recommendation_only", "bounded_implementation", "strategy_bid"}
@@ -680,6 +681,7 @@ def build_worker_prompt(
         confidence:
         risks:
         recommended_next_action:
+        stop_condition_hit:
 
         Task:
         {task_text}
@@ -730,6 +732,7 @@ def failure_result(
         risks:
         - Worker output may be incomplete; Codex must inspect raw_output.txt and WORKER_META.json.
         recommended_next_action: revise
+        stop_condition_hit: yes
         """
     ).lstrip()
 
