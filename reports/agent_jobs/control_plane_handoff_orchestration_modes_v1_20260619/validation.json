@@ -58,7 +58,7 @@
     {
       "command": "python3 -m unittest tests.test_opencode_worker_bridge",
       "exit_status": 0,
-      "summary": "21 tests"
+      "summary": "26 tests"
     }
   ]
 }

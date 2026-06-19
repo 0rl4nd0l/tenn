@@ -18,6 +18,9 @@ stop_condition: <copied from WORKER_TASK.md>
 stop_condition_hit: <yes|no|DATA_MISSING>
 stop_condition_impact: <explanation and impact if hit, otherwise none>
 
+`stop_condition_hit` accepts exactly `yes`, `no`, or `DATA_MISSING`. Do not use
+ambiguous values such as `maybe`, `unknown`, or `n/a`.
+
 ## Model Routing
 - task_tier: <small|medium|large|critical>
 - recommended_model: <mini/low-cost|standard coding model|high reasoning|high reasoning plus review-board>

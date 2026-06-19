@@ -60,7 +60,7 @@ python3 scripts/opencode_worker_bridge.py ledger-entry \
 - `confidence`
 - `risks`
 - `recommended_next_action`
-- `stop_condition_hit`
+- `stop_condition_hit` with exact value `yes`, `no`, or `DATA_MISSING`
 
 For `decision_limit=evidence_only`, result validation rejects final-authority
 claims such as merge approval or no-review-needed conclusions.

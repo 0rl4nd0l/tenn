@@ -50,6 +50,8 @@ then continue as orchestrator only if follow-up work remains.
   handoff-specific continuation moved to `HANDOFF_NEXT_GOAL.md`,
   `stop_condition_hit` added to bridge validation/tests, and skill-surface
   metadata marked pending PR #380.
+- Applied PR #380 follow-up review fix: `stop_condition_hit` now accepts only
+  exact `yes`, `no`, or `DATA_MISSING` values in bridge validation.
 
 ## What Changed
 

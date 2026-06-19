@@ -34,6 +34,7 @@ REQUIRED_RESULT_FIELDS = (
 
 DECISION_LIMITS = {"evidence_only", "recommendation_only", "bounded_implementation", "strategy_bid"}
 TASK_TIERS = {"small", "medium", "large", "critical"}
+STOP_CONDITION_HIT_VALUES = {"yes", "no", "DATA_MISSING"}
 PERMISSION_PROFILES = {"readonly", "none"}
 MAX_TASK_BYTES = 12000
 MAX_RESULT_BYTES = 32000
@@ -743,8 +744,12 @@ def parse_result_fields(text: str) -> dict[str, str]:
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
         match = FIELD_RE.match(line.strip())
-        if match and match.group(1) in REQUIRED_RESULT_FIELDS:
-            current = match.group(1)
+        if match:
+            field = match.group(1)
+            if field not in REQUIRED_RESULT_FIELDS:
+                current = None
+                continue
+            current = field
             fields.setdefault(current, [])
             value = match.group(2).strip()
             if value:
@@ -760,6 +765,13 @@ def _field_has_content(value: str | None) -> bool:
         return False
     normalized = value.strip().strip("[]").strip()
     return bool(normalized) and normalized.lower() not in {"none", "null", "n/a", "data_missing"}
+
+
+def _stop_condition_hit_has_content(value: str | None) -> bool:
+    if value is None:
+        return False
+    normalized = value.strip()
+    return bool(normalized) and normalized.lower() not in {"none", "null", "n/a"}
 
 
 def _evidence_paths_are_present(value: str | None) -> bool:
@@ -787,11 +799,25 @@ def validate_result_text(
 
     fields = parse_result_fields(text)
     for field in REQUIRED_RESULT_FIELDS:
-        if not _field_has_content(fields.get(field)):
+        if field == "stop_condition_hit":
+            has_content = _stop_condition_hit_has_content(fields.get(field))
+        else:
+            has_content = _field_has_content(fields.get(field))
+        if not has_content:
             issues.append({"field": field, "message": "required field is missing or empty"})
 
     if not _evidence_paths_are_present(fields.get("evidence_paths")):
         issues.append({"field": "evidence_paths", "message": "must include at least one concrete evidence path"})
+
+    stop_condition_hit = (fields.get("stop_condition_hit") or "").strip()
+    if _stop_condition_hit_has_content(stop_condition_hit) and stop_condition_hit not in STOP_CONDITION_HIT_VALUES:
+        allowed = ", ".join(sorted(STOP_CONDITION_HIT_VALUES))
+        issues.append(
+            {
+                "field": "stop_condition_hit",
+                "message": f"must be exactly one of: {allowed}",
+            }
+        )
 
     reported_decision_limit = (fields.get("decision_limit") or "").strip().lower()
     requested_decision_limit = (expected_decision_limit or "").strip().lower()

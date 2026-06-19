@@ -1,23 +1,7 @@
 {
   "changed_files": [
     {
-      "path": ".agents/skills/tenn-handoff/SKILL.md",
-      "status": "M"
-    },
-    {
       "path": "docs/agent_tasks/control_plane_handoff_orchestration_modes_v1_20260619.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/SKILLS_SURFACE.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/templates/HANDOFF.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/templates/NEXT_GOAL.md",
       "status": "M"
     },
     {
@@ -49,10 +33,6 @@
       "status": "M"
     },
     {
-      "path": "reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/diff-check.json",
-      "status": "M"
-    },
-    {
       "path": "reports/agent_jobs/control_plane_handoff_orchestration_modes_v1_20260619/handoff/HANDOFF.md",
       "status": "M"
     },
@@ -71,10 +51,6 @@
     {
       "path": "tests/test_opencode_worker_bridge.py",
       "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md",
-      "status": "??"
     }
   ],
   "disallowed_files": [],

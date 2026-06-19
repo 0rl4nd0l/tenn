@@ -36,6 +36,10 @@ stop_condition_hit: no
 """
 
 
+def result_with_stop_condition_hit(value: str) -> str:
+    return VALID_RESULT.replace("stop_condition_hit: no", f"stop_condition_hit: {value}")
+
+
 class OpenCodeWorkerBridgeTests(unittest.TestCase):
     def test_probe_output_shape_when_opencode_missing(self) -> None:
         with mock.patch.object(bridge.shutil, "which", return_value=None):
@@ -109,6 +113,22 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["fields"]["worker_id"], "scout-1")
 
+    def test_result_validation_accepts_stop_condition_hit_yes(self) -> None:
+        result = bridge.validate_result_text(result_with_stop_condition_hit("yes"))
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_accepts_stop_condition_hit_no(self) -> None:
+        result = bridge.validate_result_text(result_with_stop_condition_hit("no"))
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_accepts_stop_condition_hit_data_missing(self) -> None:
+        result = bridge.validate_result_text(result_with_stop_condition_hit("DATA_MISSING"))
+        self.assertTrue(result["ok"])
+
+    def test_result_validation_ignores_following_stop_condition_impact_field(self) -> None:
+        result = bridge.validate_result_text(VALID_RESULT + "stop_condition_impact: none\n")
+        self.assertTrue(result["ok"])
+
     def test_result_validation_rejects_missing_evidence_paths(self) -> None:
         invalid = VALID_RESULT.replace("- scripts/opencode_worker_bridge.py", "- DATA_MISSING")
         result = bridge.validate_result_text(invalid)
@@ -120,6 +140,13 @@ class OpenCodeWorkerBridgeTests(unittest.TestCase):
         result = bridge.validate_result_text(invalid)
         self.assertFalse(result["ok"])
         self.assertIn("stop_condition_hit", {issue["field"] for issue in result["issues"]})
+
+    def test_result_validation_rejects_invalid_stop_condition_hit_values(self) -> None:
+        for value in ("maybe", "unknown", "n/a", "", "yes please"):
+            with self.subTest(value=value):
+                result = bridge.validate_result_text(result_with_stop_condition_hit(value))
+                self.assertFalse(result["ok"])
+                self.assertIn("stop_condition_hit", {issue["field"] for issue in result["issues"]})
 
     def test_result_validation_rejects_final_authority_under_evidence_only(self) -> None:
         invalid = VALID_RESULT.replace("Codex review", "final decision: ready to merge")

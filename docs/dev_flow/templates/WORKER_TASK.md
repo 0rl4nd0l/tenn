@@ -66,7 +66,7 @@ Return `WORKER_RESULT.md` content with:
 - `confidence`
 - `risks`
 - `recommended_next_action`
-- `stop_condition_hit`
+- `stop_condition_hit` (`yes`, `no`, or `DATA_MISSING` exactly)
 
 When `stop_condition_hit` is `yes`, explain the condition and impact in
 `WORKER_RESULT.md`.

@@ -19,6 +19,8 @@ Current Focus: Commit and push focused PR #380 review fixes.
 - Applied PR #380 review fixes for shared next-goal contract,
   handoff-specific next-goal guidance, worker stop-condition bridge validation,
   focused bridge tests, and skill-surface metadata.
+- Applied follow-up PR #380 review fix for exact `stop_condition_hit` values
+  in the OpenCode worker bridge and worker-result docs.
 
 ## Blocked
 
@@ -36,8 +38,9 @@ Current Focus: Commit and push focused PR #380 review fixes.
 - Sources checked: live ledger and committed ledger.
 - Duplicate-work classification: no active duplicate found for this exact
   refinement; prior ledger/handoff and skill-surface work is merged canonical.
-- Ledger update: live `claimed`, `implementation_started`, `pr_opened`, and
-  PR-review `implementation_started` entries appended.
+- Ledger update: live `claimed`, `implementation_started`, `pr_opened`,
+  PR-review `implementation_started`, and stop-condition value-validation
+  `implementation_started` entries appended.
 
 ## Counter Lineage
 

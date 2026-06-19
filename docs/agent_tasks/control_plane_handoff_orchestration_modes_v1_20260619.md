@@ -69,7 +69,8 @@ after PR #375 and PR #378, and preserve the reduced visible skill surface.
   handoff, and ledger entry.
 - Apply PR #380 review fixes only for the shared `NEXT_GOAL.md` contract,
   handoff-specific next-goal guidance, worker stop-condition bridge validation,
-  focused bridge tests, and skill-surface freshness metadata.
+  exact `stop_condition_hit` allowed-value validation, focused bridge tests,
+  and skill-surface freshness metadata.
 
 ## Hard Boundaries
 
@@ -132,6 +133,7 @@ after PR #375 and PR #378, and preserve the reduced visible skill surface.
 - Shared `NEXT_GOAL.md` remains generic for `tenn-issue`, `tenn-review-board`,
   and non-handoff producers.
 - OpenCode bridge validation requires the worker stop-condition signal when the
-  worker task template calls it required.
+  worker task template calls it required and accepts only exact
+  `yes`/`no`/`DATA_MISSING` values.
 - No product/runtime/extraction/data/count-24 or host-global mutation occurs.
 - A local commit and focused PR are created after validation.

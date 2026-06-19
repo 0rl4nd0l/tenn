@@ -18,12 +18,12 @@ Status: passed
 - JSON checks for `BOARD_DECISION.json`, `git_guard.json`, and
   `ledger_entry.json`: exit 0
 - `python3 -m py_compile scripts/opencode_worker_bridge.py tests/test_opencode_worker_bridge.py`: exit 0
-- `python3 -m unittest tests.test_opencode_worker_bridge`: exit 0, 21 tests
+- `python3 -m unittest tests.test_opencode_worker_bridge`: exit 0, 26 tests
 
 ## Evidence Notes
 
-- Task ledger validation saw 12 live entries and 0 committed entries after the
-  PR-review follow-up entry.
+- Task ledger validation saw 14 live entries and 0 committed entries after the
+  stop-condition value-validation follow-up start entry.
 - Read-only registry returned `active_jobs: []`.
 - Check-diff wrote `diff-check.json` and reported no disallowed files.
 - Check-report-artifacts found every allowed report artifact present and

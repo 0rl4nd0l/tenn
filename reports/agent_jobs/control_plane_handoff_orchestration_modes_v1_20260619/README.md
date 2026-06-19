@@ -24,6 +24,8 @@ PR #380 review follow-up fixes:
   contract
 - added `stop_condition_hit` to OpenCode bridge result validation and focused
   tests
+- restricted `stop_condition_hit` to exact `yes`, `no`, or `DATA_MISSING`
+  values, rejecting ambiguous text such as `maybe`, `unknown`, and `n/a`
 - updated worker result docs to carry stop condition and impact fields
 - marked skill-surface freshness metadata as pending PR #380
 

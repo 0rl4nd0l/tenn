@@ -35,6 +35,9 @@ Decision: pass
   with handoff continuation moved to `HANDOFF_NEXT_GOAL.md`.
 - PR #380 review issue 2 addressed: `stop_condition_hit` is bridge-validated
   and covered by focused tests.
+- PR #380 follow-up review thread addressed: `stop_condition_hit` now accepts
+  only exact `yes`, `no`, or `DATA_MISSING` values; ambiguous values such as
+  `maybe`, `unknown`, `n/a`, empty strings, and arbitrary text fail validation.
 - PR #380 non-blocking metadata cleanup addressed: `SKILLS_SURFACE.md`
   references pending PR #380.
 
