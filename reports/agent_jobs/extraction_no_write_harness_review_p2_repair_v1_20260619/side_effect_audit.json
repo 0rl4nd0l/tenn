@@ -1,0 +1,446 @@
+{
+  "forbidden_surface_clean": true,
+  "forbidden_surface_mutation": {
+    "backfill": false,
+    "broad_extraction": false,
+    "count_sample": false,
+    "db_write": false,
+    "github_mutation": false,
+    "gold_label_write": false,
+    "memory_write": false,
+    "news_write": false,
+    "normal_parser_cache_write": false,
+    "prompt_write": false,
+    "qdrant_write": false,
+    "redis_write": false,
+    "registry_write": false,
+    "repo_worktree_write": false,
+    "runtime_config_write": false,
+    "service_start": false,
+    "source_pdf_write": false
+  },
+  "git_status_after": [
+    " M financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
+    " M scripts/extraction_no_write_replay.py",
+    " M scripts/test_extraction_no_write_replay.py",
+    "?? docs/agent_tasks/extraction_no_write_harness_review_p2_repair_v1_20260619.md"
+  ],
+  "git_status_before": [
+    " M financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
+    " M scripts/extraction_no_write_replay.py",
+    " M scripts/test_extraction_no_write_replay.py",
+    "?? docs/agent_tasks/extraction_no_write_harness_review_p2_repair_v1_20260619.md"
+  ],
+  "isolated_cache_contained": true,
+  "isolated_cache_files": [],
+  "isolated_cache_root": "/tmp/tenn-extraction-no-write-replay-6l7q1f9n/reports/extraction_cache/docling_extract",
+  "isolated_runtime_contained": true,
+  "isolated_runtime_files": [],
+  "isolated_runtime_root": "/tmp/tenn-extraction-no-write-replay-6l7q1f9n",
+  "normal_cache_after": {
+    "AZJ": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      }
+    },
+    "CTN": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.pymupdf.json"
+        }
+      }
+    },
+    "HUB": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.pymupdf.json"
+        }
+      }
+    },
+    "LBL": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.pymupdf.json"
+        }
+      }
+    },
+    "NSR": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      }
+    },
+    "WHC": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+        }
+      }
+    }
+  },
+  "normal_cache_before": {
+    "AZJ": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/7a63168ab0d1cbd1303efd6fb8fdca00be4c250e996a9a5d2b34e4af589c5eb1-2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf.pymupdf.json"
+        }
+      }
+    },
+    "CTN": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/430b9d9161054d770d6b4c06337aeb7d6d84a256babfff29341a5c85023d9ec3-2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee3.pymupdf.json"
+        }
+      }
+    },
+    "HUB": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/36947b83cf81d9416dbfe1bce33143b6a741099ce821e402833212f156764942-2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8a.pymupdf.json"
+        }
+      }
+    },
+    "LBL": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/515227dc7db2b93a58d39d2145fcbbfd85b9453b2b72ded1f108732836a1d69c-2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf.pymupdf.json"
+        }
+      }
+    },
+    "NSR": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/73c88a6eb91c14172fa62fb816e4f1aad795fa3cad700fdb21ac34a150de75b4-2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf.pymupdf.json"
+        }
+      }
+    },
+    "WHC": {
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+        }
+      },
+      "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract": {
+        "docling": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.docling.json"
+        },
+        "pymupdf": {
+          "exists": false,
+          "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/reports/extraction_cache/docling_extract/c6d4c5ceed51f73dfdc64480700dd460e5aed818dd35e85c37b0c5d9157f9a3d-2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf.pymupdf.json"
+        }
+      }
+    }
+  },
+  "report_dir": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619",
+  "report_files": [
+    {
+      "mtime_ns": 1781851691709495959,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+      "relative_path": "input_manifest.json",
+      "size": 11477
+    },
+    {
+      "mtime_ns": 1781851691639495620,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
+      "relative_path": "logs/replay.log",
+      "size": 0
+    }
+  ],
+  "report_files_after_artifact_write": [
+    {
+      "mtime_ns": 1781851691709495959,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+      "relative_path": "input_manifest.json",
+      "size": 11477
+    },
+    {
+      "mtime_ns": 1781851691639495620,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
+      "relative_path": "logs/replay.log",
+      "size": 0
+    },
+    {
+      "mtime_ns": 1781851691756496186,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
+      "relative_path": "replay_results.json",
+      "size": 171
+    },
+    {
+      "mtime_ns": 1781851691756496186,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+      "relative_path": "side_effect_audit.json",
+      "size": 27026
+    },
+    {
+      "mtime_ns": 1781851691757496191,
+      "path": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
+      "relative_path": "validation.json",
+      "size": 533
+    }
+  ],
+  "report_files_snapshot_note": "report_files is the safety snapshot used for status; report_files_after_artifact_write records final report-local artifacts after replay_results, validation, and side_effect_audit were written.",
+  "report_only_durable_writes": true,
+  "source_pdf_after": {
+    "AZJ": {
+      "exists": true,
+      "mtime_ns": 1772345121147027101,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "sha256": "5d672fa9712d96ebc632f43744fcda84908d46fe75604d52a8e53338ed8f8c73",
+      "size": 8592702
+    },
+    "CTN": {
+      "exists": true,
+      "mtime_ns": 1772348298322599987,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "sha256": "f14d1c9abf52c98ae5de63c01248e7e85961a8055b24c5c0f21d717ad79bc1f1",
+      "size": 4991947
+    },
+    "HUB": {
+      "exists": true,
+      "mtime_ns": 1772352832649095579,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "sha256": "b40ecaa4935febdb5ac58cf6a3f1b758cdd5dcdb7b4050798a4b380cd9ebe085",
+      "size": 972473
+    },
+    "LBL": {
+      "exists": true,
+      "mtime_ns": 1771562545285415182,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "sha256": "1ded9a9307f6932e51c42b3bdb5870868849e3f72cb348a3bde9afc6f4305299",
+      "size": 4669656
+    },
+    "NSR": {
+      "exists": true,
+      "mtime_ns": 1772359264450408775,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "sha256": "e228ee088561b0d07bcbdec8c35ddb07502d1808a583bbd74213f6910c67472f",
+      "size": 716803
+    },
+    "WHC": {
+      "exists": true,
+      "mtime_ns": 1771429412811554480,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "sha256": "0cbfc7196c8bc4f92940a42f31ac549205ec43837743caf8430c1efb4812cba5",
+      "size": 19212620
+    }
+  },
+  "source_pdf_before": {
+    "AZJ": {
+      "exists": true,
+      "mtime_ns": 1772345121147027101,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/AZJ/financial_performance/2025-08-18_aurizon-network-pty-ltd-full-year-report_488d6f1a-0180-4fca-8dcf-c4cdfc0f342e.pdf",
+      "sha256": "5d672fa9712d96ebc632f43744fcda84908d46fe75604d52a8e53338ed8f8c73",
+      "size": 8592702
+    },
+    "CTN": {
+      "exists": true,
+      "mtime_ns": 1772348298322599987,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/CTN/financial_performance/2022-04-28_quarterly-activities-appendix-5b-cash-flow-report_dec0b5f1-e6d2-48d8-ad9d-16ffd540ee39.pdf",
+      "sha256": "f14d1c9abf52c98ae5de63c01248e7e85961a8055b24c5c0f21d717ad79bc1f1",
+      "size": 4991947
+    },
+    "HUB": {
+      "exists": true,
+      "mtime_ns": 1772352832649095579,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/HUB/financial_performance/2024-02-20_hub24-1hfy24-interim-financial-report-and-appendix-4d_419bcca8-213e-4706-8962-8e3bd8adf091.pdf",
+      "sha256": "b40ecaa4935febdb5ac58cf6a3f1b758cdd5dcdb7b4050798a4b380cd9ebe085",
+      "size": 972473
+    },
+    "LBL": {
+      "exists": true,
+      "mtime_ns": 1771562545285415182,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/LBL/financial_performance/2026-02-20_1h-fy26-results-presentation_551c6b84-1053-405c-a833-4ecc018e2045.pdf",
+      "sha256": "1ded9a9307f6932e51c42b3bdb5870868849e3f72cb348a3bde9afc6f4305299",
+      "size": 4669656
+    },
+    "NSR": {
+      "exists": true,
+      "mtime_ns": 1772359264450408775,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/NSR/financial_performance/2022-02-25_half-year-accounts_f2240712-9dde-41e0-88fa-29c1a0080dab.pdf",
+      "sha256": "e228ee088561b0d07bcbdec8c35ddb07502d1808a583bbd74213f6910c67472f",
+      "size": 716803
+    },
+    "WHC": {
+      "exists": true,
+      "mtime_ns": 1771429412811554480,
+      "path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2022-09-21_2022-annual-report_9640d9f1-a45b-492d-8df5-9bad0f46431c.pdf",
+      "sha256": "0cbfc7196c8bc4f92940a42f31ac549205ec43837743caf8430c1efb4812cba5",
+      "size": 19212620
+    }
+  },
+  "unexpected_git_status_changes": []
+}

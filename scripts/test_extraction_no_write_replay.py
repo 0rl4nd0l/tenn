@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
+import os
+import shutil
 import tempfile
 from pathlib import Path
 import unittest
@@ -157,6 +160,60 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             self.assertTrue(keep.exists())
             self.assertFalse(stale.exists())
             self.assertFalse(stale_log.exists())
+
+    def test_run_replay_validates_case_selector_before_resetting_reports(self):
+        report_rel = "reports/agent_jobs/extraction_no_write_invalid_selector_test/run"
+        report_root = ROOT / "reports" / "agent_jobs" / "extraction_no_write_invalid_selector_test"
+        report_dir = ROOT / report_rel
+        stale = report_dir / "validation.json"
+        stale.parent.mkdir(parents=True, exist_ok=True)
+        stale.write_text("stale validation", encoding="utf-8")
+
+        args = argparse.Namespace(
+            profile=RUNNER.BASELINE_PROFILE,
+            venv_python=None,
+            case_manifest=str(RUNNER.DEFAULT_MANIFEST),
+            report_dir=report_rel,
+            case=["DXC"],
+            llm_url="http://127.0.0.1:8001",
+            preflight_only=True,
+            _profile_reexeced=False,
+        )
+        try:
+            with self.assertRaises(RUNNER.ReplayConfigError):
+                RUNNER.run_replay(args)
+            self.assertEqual("stale validation", stale.read_text(encoding="utf-8"))
+        finally:
+            shutil.rmtree(report_root, ignore_errors=True)
+
+    def test_portable_source_path_resolves_against_data_root(self):
+        old_data_root = os.environ.get("DATA_ROOT")
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                data_root = Path(tmp) / "data"
+                source = (
+                    data_root
+                    / "asx"
+                    / "docs"
+                    / "HUB"
+                    / "financial_performance"
+                    / "hub.pdf"
+                )
+                source.parent.mkdir(parents=True)
+                source.write_text("pdf", encoding="utf-8")
+                os.environ["DATA_ROOT"] = str(data_root)
+
+                resolved, candidates = RUNNER.resolve_source_path(
+                    "asx/docs/HUB/financial_performance/hub.pdf"
+                )
+
+                self.assertEqual(source.resolve(), resolved)
+                self.assertIn(source.resolve(), candidates)
+        finally:
+            if old_data_root is None:
+                os.environ.pop("DATA_ROOT", None)
+            else:
+                os.environ["DATA_ROOT"] = old_data_root
 
     def test_no_run_artifacts_record_data_missing_without_side_effects(self):
         with tempfile.TemporaryDirectory() as tmp:

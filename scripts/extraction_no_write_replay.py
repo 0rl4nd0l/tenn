@@ -25,6 +25,7 @@ DEFAULT_MANIFEST = (
     REPO_ROOT / "financial-engine_v2" / "data" / "extraction_no_write_cases" / "guard_cases_v1.json"
 )
 CERTIFIED_MANIFEST_ROOT = REPO_ROOT / "financial-engine_v2" / "data" / "extraction_no_write_cases"
+DEFAULT_SHARED_DATA_ROOT = Path("/mnt/tenn-nvme2/tenn/financial-engine_v2/data")
 DEFAULT_REPORT_DIR = (
     "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay"
 )
@@ -193,6 +194,11 @@ def load_manifest(path: Path) -> dict[str, Any]:
         if case_id in seen:
             raise ReplayConfigError(f"duplicate case_id: {case_id}")
         seen.add(case_id)
+        source_path = str(case.get("source_path") or "").strip()
+        if not source_path:
+            raise ReplayConfigError(f"case[{index}] source_path must be non-empty")
+        if not Path(source_path).expanduser().is_absolute():
+            _normalize_repo_path(source_path)
     certification = manifest.get("certification")
     if not isinstance(certification, dict):
         raise ReplayConfigError("manifest certification must be an object")
@@ -231,6 +237,90 @@ def select_cases(manifest: dict[str, Any], selectors: list[str]) -> list[dict[st
                 selected.append(dict(match))
                 seen.add(case_id)
     return selected
+
+
+def _unique_paths(paths: list[Path]) -> list[Path]:
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for path in paths:
+        text = str(path.expanduser().resolve(strict=False))
+        if text not in seen:
+            unique.append(Path(text))
+            seen.add(text)
+    return unique
+
+
+def _candidate_data_roots() -> list[Path]:
+    candidates: list[Path] = []
+    for env_key in ("DATA_ROOT",):
+        value = os.environ.get(env_key)
+        if value:
+            candidates.append(Path(value))
+    candidates.extend(
+        [
+            REPO_ROOT / "financial-engine_v2" / "data",
+            DEFAULT_SHARED_DATA_ROOT,
+        ]
+    )
+    return _unique_paths(candidates)
+
+
+def _candidate_docs_roots() -> list[Path]:
+    candidates: list[Path] = []
+    value = os.environ.get("DOCS_ROOT")
+    if value:
+        candidates.append(Path(value))
+    candidates.extend(data_root / "asx" / "docs" for data_root in _candidate_data_roots())
+    return _unique_paths(candidates)
+
+
+def _portable_source_suffixes(path_text: str) -> tuple[PurePosixPath | None, PurePosixPath | None]:
+    rel = _normalize_repo_path(path_text)
+    parts = rel.parts
+    if len(parts) >= 2 and parts[:2] == ("asx", "docs"):
+        return rel, PurePosixPath(*parts[2:])
+    if len(parts) >= 3 and parts[:3] == ("data", "asx", "docs"):
+        return PurePosixPath(*parts[1:]), PurePosixPath(*parts[3:])
+    if len(parts) >= 4 and parts[:4] == ("financial-engine_v2", "data", "asx", "docs"):
+        return PurePosixPath(*parts[2:]), PurePosixPath(*parts[4:])
+    return None, None
+
+
+def source_path_candidates(path_text: str) -> list[Path]:
+    raw = Path(str(path_text).strip()).expanduser()
+    if raw.is_absolute():
+        return _unique_paths([raw])
+
+    rel = _normalize_repo_path(path_text)
+    candidates = [(REPO_ROOT / rel)]
+    data_suffix, docs_suffix = _portable_source_suffixes(path_text)
+    if data_suffix is not None:
+        candidates.extend(data_root / data_suffix for data_root in _candidate_data_roots())
+    if docs_suffix is not None:
+        candidates.extend(docs_root / docs_suffix for docs_root in _candidate_docs_roots())
+    return _unique_paths(candidates)
+
+
+def resolve_source_path(path_text: str) -> tuple[Path, list[Path]]:
+    candidates = source_path_candidates(path_text)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate, candidates
+    return candidates[0], candidates
+
+
+def resolve_case_source_paths(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    resolved_cases: list[dict[str, Any]] = []
+    for case in cases:
+        resolved, candidates = resolve_source_path(str(case["source_path"]))
+        resolved_case = dict(case)
+        original_source_path = str(resolved_case["source_path"])
+        resolved_case["source_path"] = str(resolved)
+        if original_source_path != str(resolved):
+            resolved_case["source_path_original"] = original_source_path
+        resolved_case["source_path_candidates"] = [str(candidate) for candidate in candidates]
+        resolved_cases.append(resolved_case)
+    return resolved_cases
 
 
 def assert_loopback_url(raw_url: str) -> str:
@@ -655,7 +745,9 @@ def _validate_source_files(cases: list[dict[str, Any]]) -> list[str]:
     for case in cases:
         path = Path(str(case["source_path"]))
         if not path.exists():
-            missing.append(f"{case['case_id']}:{path}")
+            candidates = case.get("source_path_candidates")
+            suffix = f" candidates={candidates}" if candidates else ""
+            missing.append(f"{case['case_id']}:{path}{suffix}")
     return missing
 
 
@@ -1143,6 +1235,8 @@ def _write_no_run_artifacts(
 def run_replay(args: argparse.Namespace) -> int:
     profile, profile_info, profile_preflight_issue = prepare_profile_process(args)
     manifest_path = resolve_manifest_path(Path(args.case_manifest).expanduser())
+    manifest = load_manifest(manifest_path)
+    cases = resolve_case_source_paths(select_cases(manifest, list(args.case)))
     report_dir = resolve_report_dir(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
     _reset_report_outputs(report_dir)
@@ -1150,8 +1244,6 @@ def run_replay(args: argparse.Namespace) -> int:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
 
-    manifest = load_manifest(manifest_path)
-    cases = select_cases(manifest, list(args.case))
     missing = _validate_source_files(cases)
     if missing:
         payload = {
