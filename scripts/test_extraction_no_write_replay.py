@@ -7,6 +7,7 @@ import argparse
 import importlib.util
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 import unittest
@@ -109,6 +110,48 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         ]
         incompatible = RUNNER._docling_incompatible_cases(cases)
         self.assertEqual([{"case_id": "WHC", "parser_backend": "pymupdf"}], incompatible)
+
+    def test_docling_profile_forces_strict_docling_cases(self):
+        cases = [
+            {"case_id": "HUB", "parser_backend": "docling", "strict_parser": False},
+            {"case_id": "LBL"},
+        ]
+        strict_cases = RUNNER._force_docling_profile_cases(cases)
+        self.assertEqual(["docling", "docling"], [case["parser_backend"] for case in strict_cases])
+        self.assertEqual([True, True], [case["strict_parser"] for case in strict_cases])
+        self.assertFalse(cases[0]["strict_parser"])
+
+    def test_docling_reexec_preserves_source_root_env(self):
+        old_data_root = os.environ.get("DATA_ROOT")
+        old_docs_root = os.environ.get("DOCS_ROOT")
+        old_execve = RUNNER.os.execve
+        captured = {}
+
+        def fake_execve(path, argv, env):
+            captured["path"] = path
+            captured["argv"] = argv
+            captured["env"] = env
+            raise RuntimeError("captured-execve")
+
+        try:
+            os.environ["DATA_ROOT"] = "/tmp/source-data"
+            os.environ["DOCS_ROOT"] = "/tmp/source-docs"
+            RUNNER.os.execve = fake_execve
+            args = argparse.Namespace(venv_python=None, _profile_reexeced=False)
+            with self.assertRaisesRegex(RuntimeError, "captured-execve"):
+                RUNNER._reexec_for_docling_profile(Path(sys.executable), args)
+            self.assertEqual("/tmp/source-data", captured["env"]["DATA_ROOT"])
+            self.assertEqual("/tmp/source-docs", captured["env"]["DOCS_ROOT"])
+        finally:
+            RUNNER.os.execve = old_execve
+            if old_data_root is None:
+                os.environ.pop("DATA_ROOT", None)
+            else:
+                os.environ["DATA_ROOT"] = old_data_root
+            if old_docs_root is None:
+                os.environ.pop("DOCS_ROOT", None)
+            else:
+                os.environ["DOCS_ROOT"] = old_docs_root
 
     def test_safe_env_forces_no_write_runtime_defaults(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -277,6 +320,24 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             ),
         )
 
+    def test_replay_status_fails_unexpected_extraction_exception(self):
+        side_effect_audit = {
+            "forbidden_surface_clean": True,
+            "report_only_durable_writes": True,
+            "isolated_cache_contained": True,
+            "isolated_runtime_contained": True,
+        }
+        self.assertEqual(
+            "FAIL",
+            RUNNER._derive_replay_status(
+                side_effect_audit,
+                llm_missing=False,
+                extraction_exception_count=1,
+                infrastructure_failure_count=0,
+                expectation_failure_count=0,
+            ),
+        )
+
     def test_surface_audit_fails_on_new_non_report_git_status_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -326,6 +387,55 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertTrue(audit["forbidden_surface_clean"])
         self.assertFalse(audit["forbidden_surface_mutation"]["repo_worktree_write"])
         self.assertEqual([], audit["unexpected_git_status_changes"])
+
+    def test_surface_audit_fails_on_preexisting_dirty_file_content_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report_dir = root / "reports" / "agent_jobs" / "job" / "run"
+            audit = RUNNER._surface_audit(
+                git_before=[" M financial-engine_v2/backend/app/prompts/example.txt"],
+                git_after=[" M financial-engine_v2/backend/app/prompts/example.txt"],
+                source_before={},
+                source_after={},
+                normal_cache_before={},
+                normal_cache_after={},
+                report_dir=report_dir,
+                report_files=[],
+                isolated_cache_root=root / "cache",
+                isolated_cache_files=[],
+                isolated_runtime_root=root / "runtime",
+                isolated_runtime_files=[],
+                dirty_repo_before={
+                    "financial-engine_v2/backend/app/prompts/example.txt": {
+                        "exists": True,
+                        "sha256": "before",
+                    }
+                },
+                dirty_repo_after={
+                    "financial-engine_v2/backend/app/prompts/example.txt": {
+                        "exists": True,
+                        "sha256": "after",
+                    }
+                },
+            )
+
+        self.assertFalse(audit["forbidden_surface_clean"])
+        self.assertTrue(audit["forbidden_surface_mutation"]["repo_worktree_write"])
+        self.assertTrue(audit["dirty_repo_file_mutations"])
+        self.assertEqual([], audit["unexpected_git_status_changes"])
+
+    def test_normal_cache_snapshot_tracks_unpredicted_cache_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "cache"
+            root.mkdir()
+            before = RUNNER._normal_cache_snapshot([], [root])
+            extra = root / "unexpected.tmp"
+            extra.write_text("cache", encoding="utf-8")
+            after = RUNNER._normal_cache_snapshot([], [root])
+
+        self.assertNotEqual(before, after)
+        self.assertEqual("unexpected.tmp", after[str(root)][0]["relative_path"])
+        self.assertIn("sha256", after[str(root)][0])
 
     def test_manifest_requires_no_production_writes_and_loopback_llm(self):
         bad = self.manifest()

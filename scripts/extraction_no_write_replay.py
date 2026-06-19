@@ -423,6 +423,8 @@ def _reexec_for_docling_profile(selected_python: Path, args: argparse.Namespace)
         "LC_ALL",
         "SSL_CERT_FILE",
         "REQUESTS_CA_BUNDLE",
+        "DATA_ROOT",
+        "DOCS_ROOT",
         "LLM_API_KEY",
         "LLAMACPP_URL",
         "EXTRACTION_LLAMACPP_URL",
@@ -489,6 +491,16 @@ def _docling_incompatible_cases(cases: list[dict[str, Any]]) -> list[dict[str, s
     return incompatible
 
 
+def _force_docling_profile_cases(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    strict_cases: list[dict[str, Any]] = []
+    for case in cases:
+        strict_case = dict(case)
+        strict_case["parser_backend"] = "docling"
+        strict_case["strict_parser"] = True
+        strict_cases.append(strict_case)
+    return strict_cases
+
+
 def _git_status() -> list[str]:
     proc = subprocess.run(
         ["git", "status", "--short", "--untracked-files=all"],
@@ -547,6 +559,44 @@ def _unexpected_git_status_changes(
         for row in git_after
         if row not in before and not _is_report_local_git_status(row, report_prefix)
     ]
+
+
+def _repo_path_for_git_status(path_text: str) -> Path | None:
+    if not path_text or path_text.startswith("git_status_error:"):
+        return None
+    path = (REPO_ROOT / path_text).resolve(strict=False)
+    try:
+        path.relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        return None
+    return path
+
+
+def _dirty_repo_file_snapshot(git_rows: list[str], report_dir: Path) -> dict[str, dict[str, Any]]:
+    report_prefix = _report_dir_git_prefix(report_dir)
+    snapshots: dict[str, dict[str, Any]] = {}
+    for row in git_rows:
+        if _is_report_local_git_status(row, report_prefix):
+            continue
+        path = _repo_path_for_git_status(_git_status_path(row))
+        if path is None:
+            continue
+        try:
+            rel = path.relative_to(REPO_ROOT.resolve()).as_posix()
+        except ValueError:
+            continue
+        snapshots[rel] = _file_snapshot(path, hash_file=True)
+    return snapshots
+
+
+def _repo_file_snapshots(paths: list[str]) -> dict[str, dict[str, Any]]:
+    snapshots: dict[str, dict[str, Any]] = {}
+    for rel in paths:
+        path = _repo_path_for_git_status(rel)
+        if path is None:
+            continue
+        snapshots[rel] = _file_snapshot(path, hash_file=True)
+    return snapshots
 
 
 def _sha256(path: Path) -> str | None:
@@ -626,17 +676,10 @@ def _normal_cache_roots(cases: list[dict[str, Any]]) -> list[Path]:
 
 
 def _normal_cache_snapshot(cases: list[dict[str, Any]], roots: list[Path]) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-    for case in cases:
-        per_case: dict[str, Any] = {}
-        for root in roots:
-            paths = _cache_paths_for_root(root, str(case["source_path"]))
-            per_case[str(root)] = {kind: _file_snapshot(Path(path)) for kind, path in paths.items()}
-        payload[str(case["case_id"])] = per_case
-    return payload
+    return {str(root): _list_files(root, hash_files=True) for root in roots}
 
 
-def _list_files(root: Path) -> list[dict[str, Any]]:
+def _list_files(root: Path, *, hash_files: bool = False) -> list[dict[str, Any]]:
     if not root.exists():
         return []
     rows: list[dict[str, Any]] = []
@@ -651,6 +694,8 @@ def _list_files(root: Path) -> list[dict[str, Any]]:
                     "mtime_ns": stat.st_mtime_ns,
                 }
             )
+            if hash_files:
+                rows[-1]["sha256"] = _sha256(item)
     return rows
 
 
@@ -1045,11 +1090,16 @@ def _surface_audit(
     isolated_cache_files: list[dict[str, Any]],
     isolated_runtime_root: Path,
     isolated_runtime_files: list[dict[str, Any]],
+    dirty_repo_before: dict[str, Any] | None = None,
+    dirty_repo_after: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_pdf_write = source_before != source_after
     normal_parser_cache_write = normal_cache_before != normal_cache_after
     unexpected_git_changes = _unexpected_git_status_changes(git_before, git_after, report_dir)
-    repo_worktree_write = bool(unexpected_git_changes)
+    dirty_repo_file_mutations = (
+        dirty_repo_before if dirty_repo_before is not None else {}
+    ) != (dirty_repo_after if dirty_repo_after is not None else {})
+    repo_worktree_write = bool(unexpected_git_changes) or dirty_repo_file_mutations
     allowed_report_prefix = str(report_dir) + os.sep
     report_only_durable_writes = all(
         str(row.get("path", "")).startswith(allowed_report_prefix) for row in report_files
@@ -1085,6 +1135,9 @@ def _surface_audit(
         "git_status_before": git_before,
         "git_status_after": git_after,
         "unexpected_git_status_changes": unexpected_git_changes,
+        "dirty_repo_file_before": dirty_repo_before or {},
+        "dirty_repo_file_after": dirty_repo_after or {},
+        "dirty_repo_file_mutations": dirty_repo_file_mutations,
         "source_pdf_before": source_before,
         "source_pdf_after": source_after,
         "normal_cache_before": normal_cache_before,
@@ -1135,8 +1188,10 @@ def _derive_replay_status(
 ) -> str:
     if not _side_effect_pass(side_effect_audit):
         return "FAIL"
-    if llm_missing or extraction_exception_count or infrastructure_failure_count:
+    if llm_missing or infrastructure_failure_count:
         return "DATA_MISSING"
+    if extraction_exception_count:
+        return "FAIL"
     if expectation_failure_count:
         return "FAIL"
     return "PASS"
@@ -1269,6 +1324,7 @@ def run_replay(args: argparse.Namespace) -> int:
 
     llm_url = assert_loopback_url(args.llm_base_url or os.environ.get("EXTRACTION_LLAMACPP_URL") or os.environ.get("LLAMACPP_URL") or "http://127.0.0.1:8001")
     git_before = _git_status()
+    dirty_repo_before = _dirty_repo_file_snapshot(git_before, report_dir)
     source_before = _source_snapshot(cases)
     cache_roots = _normal_cache_roots(cases)
     normal_cache_before = _normal_cache_snapshot(cases, cache_roots)
@@ -1369,6 +1425,7 @@ def run_replay(args: argparse.Namespace) -> int:
                     )
                 )
                 return 2
+            cases = _force_docling_profile_cases(cases)
         cache_ok, cache_root_text, cache_error, cache_verification_mode = _check_cache_root(data_root)
         input_manifest = {
             "manifest_path": str(manifest_path),
@@ -1414,6 +1471,7 @@ def run_replay(args: argparse.Namespace) -> int:
 
     source_after = _source_snapshot(cases)
     normal_cache_after = _normal_cache_snapshot(cases, cache_roots)
+    dirty_repo_after = _repo_file_snapshots(sorted(dirty_repo_before))
     git_after = _git_status()
     report_files = _report_files(report_dir)
     side_effect_audit = _surface_audit(
@@ -1423,6 +1481,8 @@ def run_replay(args: argparse.Namespace) -> int:
         source_after=source_after,
         normal_cache_before=normal_cache_before,
         normal_cache_after=normal_cache_after,
+        dirty_repo_before=dirty_repo_before,
+        dirty_repo_after=dirty_repo_after,
         report_dir=report_dir,
         report_files=report_files,
         isolated_cache_root=Path(cache_root_text),
