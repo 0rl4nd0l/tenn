@@ -1,55 +1,19 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_no_write_harness_review_p2_repair_v1_20260619.md",
-      "status": "A"
-    },
-    {
-      "path": "financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/PR_REVIEW.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/README.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/status.json",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
-      "status": "A"
-    },
-    {
-      "path": "scripts/extraction_no_write_replay.py",
       "status": "M"
     },
     {
-      "path": "scripts/test_extraction_no_write_replay.py",
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+      "status": "M"
+    },
+    {
+      "path": "scripts/extraction_no_write_replay.py",
       "status": "M"
     }
   ],

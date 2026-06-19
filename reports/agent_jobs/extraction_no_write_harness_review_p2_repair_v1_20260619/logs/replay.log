@@ -1,1 +1,1 @@
-preflight_only status=PASS side_effect_pass=true case_count=6
+preflight_only profile=baseline-no-write case_count=6

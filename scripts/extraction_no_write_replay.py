@@ -1394,6 +1394,8 @@ def run_replay(args: argparse.Namespace) -> int:
         if args.preflight_only:
             results: list[dict[str, Any]] = []
             llm_info: dict[str, Any] = {}
+            with log_path.open("a", encoding="utf-8") as log:
+                log.write(f"preflight_only profile={profile} case_count={len(cases)}\n")
         else:
             try:
                 results, llm_info = _run_cases(cases, llm_url, log_path)
