@@ -220,6 +220,56 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             ),
         )
 
+    def test_surface_audit_fails_on_new_non_report_git_status_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report_dir = root / "reports" / "agent_jobs" / "job" / "run"
+            audit = RUNNER._surface_audit(
+                git_before=[],
+                git_after=[" M financial-engine_v2/backend/app/prompts/example.txt"],
+                source_before={},
+                source_after={},
+                normal_cache_before={},
+                normal_cache_after={},
+                report_dir=report_dir,
+                report_files=[],
+                isolated_cache_root=root / "cache",
+                isolated_cache_files=[],
+                isolated_runtime_root=root / "runtime",
+                isolated_runtime_files=[],
+            )
+
+        self.assertFalse(audit["forbidden_surface_clean"])
+        self.assertTrue(audit["forbidden_surface_mutation"]["repo_worktree_write"])
+        self.assertEqual(
+            [" M financial-engine_v2/backend/app/prompts/example.txt"],
+            audit["unexpected_git_status_changes"],
+        )
+        self.assertFalse(RUNNER._side_effect_pass(audit))
+
+    def test_surface_audit_allows_new_report_local_git_status_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report_dir = root / "reports" / "agent_jobs" / "job" / "run"
+            audit = RUNNER._surface_audit(
+                git_before=[],
+                git_after=[" M reports/agent_jobs/job/run/validation.json"],
+                source_before={},
+                source_after={},
+                normal_cache_before={},
+                normal_cache_after={},
+                report_dir=report_dir,
+                report_files=[],
+                isolated_cache_root=root / "cache",
+                isolated_cache_files=[],
+                isolated_runtime_root=root / "runtime",
+                isolated_runtime_files=[],
+            )
+
+        self.assertTrue(audit["forbidden_surface_clean"])
+        self.assertFalse(audit["forbidden_surface_mutation"]["repo_worktree_write"])
+        self.assertEqual([], audit["unexpected_git_status_changes"])
+
     def test_manifest_requires_no_production_writes_and_loopback_llm(self):
         bad = self.manifest()
         bad["certification"]["allow_production_writes"] = True

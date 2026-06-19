@@ -414,6 +414,51 @@ def _git_status() -> list[str]:
     return rows
 
 
+def _git_status_path(row: str) -> str:
+    text = row.rstrip()
+    if not text.strip():
+        return ""
+    if text.startswith("git_status_error:"):
+        return text
+    path_text = text[3:] if len(text) >= 3 else text
+    if " -> " in path_text:
+        path_text = path_text.rsplit(" -> ", 1)[1]
+    return path_text.strip().strip('"').replace("\\", "/")
+
+
+def _report_dir_git_prefix(report_dir: Path) -> str | None:
+    try:
+        relative = report_dir.resolve().relative_to(REPO_ROOT.resolve())
+        return relative.as_posix().rstrip("/") + "/"
+    except ValueError:
+        parts = PurePosixPath(str(report_dir).replace("\\", "/")).parts
+        for index in range(len(parts) - 1):
+            if parts[index : index + 2] == ("reports", "agent_jobs"):
+                return PurePosixPath(*parts[index:]).as_posix().rstrip("/") + "/"
+    return None
+
+
+def _is_report_local_git_status(row: str, report_prefix: str | None) -> bool:
+    if report_prefix is None:
+        return False
+    path = _git_status_path(row)
+    return path == report_prefix.rstrip("/") or path.startswith(report_prefix)
+
+
+def _unexpected_git_status_changes(
+    git_before: list[str],
+    git_after: list[str],
+    report_dir: Path,
+) -> list[str]:
+    before = set(git_before)
+    report_prefix = _report_dir_git_prefix(report_dir)
+    return [
+        row
+        for row in git_after
+        if row not in before and not _is_report_local_git_status(row, report_prefix)
+    ]
+
+
 def _sha256(path: Path) -> str | None:
     if not path.exists() or not path.is_file():
         return None
@@ -911,6 +956,8 @@ def _surface_audit(
 ) -> dict[str, Any]:
     source_pdf_write = source_before != source_after
     normal_parser_cache_write = normal_cache_before != normal_cache_after
+    unexpected_git_changes = _unexpected_git_status_changes(git_before, git_after, report_dir)
+    repo_worktree_write = bool(unexpected_git_changes)
     allowed_report_prefix = str(report_dir) + os.sep
     report_only_durable_writes = all(
         str(row.get("path", "")).startswith(allowed_report_prefix) for row in report_files
@@ -940,10 +987,12 @@ def _surface_audit(
         "broad_extraction": False,
         "backfill": False,
         "count_sample": False,
+        "repo_worktree_write": repo_worktree_write,
     }
     return {
         "git_status_before": git_before,
         "git_status_after": git_after,
+        "unexpected_git_status_changes": unexpected_git_changes,
         "source_pdf_before": source_before,
         "source_pdf_after": source_after,
         "normal_cache_before": normal_cache_before,
@@ -1019,6 +1068,7 @@ def _forbidden_surface_clean_payload() -> dict[str, bool]:
         "broad_extraction": False,
         "backfill": False,
         "count_sample": False,
+        "repo_worktree_write": False,
     }
 
 
