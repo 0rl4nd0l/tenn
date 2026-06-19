@@ -26,6 +26,20 @@ output_dir: reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618
 mutation_mode: safe_extension
 production_data_access: false
 github_mutation_allowed: true
+docs_impact: DOCS_UPDATED
+docs_checked:
+  - docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md
+docs_changed:
+  - docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md
+docs_followup: NONE
+reason: "The task card documents docling-no-write profile behavior, approved venv paths, and fail-closed DATA_MISSING handling."
+task_tier: large
+recommended_model: "high reasoning"
+actual_model: "Codex GPT-5"
+why_this_model: "Docling profile changes extraction validation safety and environment boundaries."
+worker_model_allowed: false
+worker_decision_limit: "No workers used for profile implementation decisions."
+escalation_needed: false
 ---
 
 # Certified Docling No-Write Profile

@@ -1,0 +1,102 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_no_write_harness_publish_v1_20260618.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_no_write_harness_review_metadata_v1_20260619.md",
+      "status": "A"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md",
+      "status": "M"
+    },
+    {
+      "path": "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/PR_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/README.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/diff-check.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/status.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_no_write_harness_review_metadata_v1_20260619.md",
+        "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+        "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+        "docs/agent_tasks/extraction_no_write_harness_publish_v1_20260618.md",
+        "docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md",
+        "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/README.md",
+        "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/status.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/validation.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/diff-check.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619/PR_REVIEW.md"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+        "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+        "docs/agent_tasks/extraction_no_write_harness_publish_v1_20260618.md",
+        "docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md"
+      ],
+      "docs_checked": [
+        "docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+        "docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+        "docs/agent_tasks/extraction_no_write_harness_publish_v1_20260618.md",
+        "docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_no_write_harness_review_metadata_v1_20260619",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_no_write_harness_review_metadata_v1_20260619",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Records docs-impact and model-routing metadata required by the current Tenn review gate.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "task_tier": "small",
+      "timeout_seconds": 1800,
+      "why_this_model": "Small metadata-only PR repair after green harness validation.",
+      "worker_decision_limit": "No workers used.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

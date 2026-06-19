@@ -30,6 +30,20 @@ output_dir: reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618
 mutation_mode: safe_extension
 production_data_access: false
 github_mutation_allowed: true
+docs_impact: DOCS_UPDATED
+docs_checked:
+  - docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md
+docs_changed:
+  - docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md
+docs_followup: NONE
+reason: "The task card documents the new no-write replay command, safety boundary, validation, and autonomy rule."
+task_tier: large
+recommended_model: "high reasoning"
+actual_model: "Codex GPT-5"
+why_this_model: "Financial-truth safety harness with extraction boundaries and GitHub publish constraints."
+worker_model_allowed: true
+worker_decision_limit: "Workers may gather read-only evidence only; orchestrator owns final safety and publish decisions."
+escalation_needed: false
 ---
 
 # Certified No-Write Extraction Replay Harness

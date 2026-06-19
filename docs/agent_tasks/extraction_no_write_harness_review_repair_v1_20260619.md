@@ -27,6 +27,20 @@ output_dir: reports/agent_jobs/extraction_no_write_harness_review_repair_v1_2026
 mutation_mode: safe_extension
 production_data_access: false
 github_mutation_allowed: true
+docs_impact: DOCS_UPDATED
+docs_checked:
+  - docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md
+docs_changed:
+  - docs/agent_tasks/extraction_no_write_harness_review_repair_v1_20260619.md
+docs_followup: NONE
+reason: "The task card documents the secret-redaction and side-effect fail-closed review repair."
+task_tier: medium
+recommended_model: "standard coding model"
+actual_model: "Codex GPT-5"
+why_this_model: "Small code-review repair touching one runner, focused tests, and report artifacts."
+worker_model_allowed: false
+worker_decision_limit: "No workers used for code-review repair decisions."
+escalation_needed: false
 ---
 
 # No-Write Harness Review Repair
