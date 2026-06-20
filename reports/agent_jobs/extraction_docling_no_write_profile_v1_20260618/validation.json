@@ -1,0 +1,50 @@
+{
+  "artifact_type": "extraction_docling_no_write_profile_validation_v1",
+  "job_id": "extraction_docling_no_write_profile_v1_20260618",
+  "state": "DONE_WITH_RISK",
+  "summary": {
+    "profile_added": "docling-no-write",
+    "baseline_profile_preserved": true,
+    "dependency_install_performed": false,
+    "docling_preflight_status": "DATA_MISSING",
+    "docling_preflight_reason": "approved_docling_venv_python_missing",
+    "side_effect_pass": true
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_docling_no_write_profile_v1_20260618.md",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile scripts/extraction_no_write_replay.py scripts/test_extraction_no_write_replay.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/test_extraction_no_write_replay.py",
+      "exit_code": 0,
+      "status": "PASS",
+      "observed": "Ran 17 tests in 0.003s; OK"
+    },
+    {
+      "command": "python3 scripts/extraction_no_write_replay.py --profile docling-no-write --case HUB --preflight-only --case-manifest financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json --report-dir reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight",
+      "exit_code": 2,
+      "status": "DATA_MISSING",
+      "observed": {
+        "reason": "approved_docling_venv_python_missing",
+        "side_effect_pass": true
+      }
+    }
+  ],
+  "artifacts": {
+    "docling_preflight_input_manifest": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/input_manifest.json",
+    "docling_preflight_replay_results": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/replay_results.json",
+    "docling_preflight_side_effect_audit": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/side_effect_audit.json",
+    "docling_preflight_validation": "reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight/validation.json"
+  },
+  "remaining_risk": [
+    "No approved docling-capable venv exists in this worktree, so no real docling extraction replay was run.",
+    "Creating or repairing the venv is a separate environment task and was not performed."
+  ]
+}

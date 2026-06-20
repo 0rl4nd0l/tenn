@@ -1,0 +1,95 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/PR_REVIEW.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/README.md",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/input_manifest.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/side_effect_audit.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/status.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/validation.json",
+      "status": "M"
+    },
+    {
+      "path": "scripts/extraction_no_write_replay.py",
+      "status": "M"
+    },
+    {
+      "path": "scripts/test_extraction_no_write_replay.py",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_no_write_harness_review_followup_safety_v1_20260619.md",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/test_extraction_no_write_replay.py",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/README.md",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/status.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/validation.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/diff-check.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/PR_REVIEW.md",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/input_manifest.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/replay_results.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/side_effect_audit.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/validation.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619/baseline_preflight/logs/replay.log"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/agent_tasks/extraction_no_write_harness_review_followup_safety_v1_20260619.md"
+      ],
+      "docs_checked": [
+        "docs/agent_tasks/extraction_no_write_harness_review_followup_safety_v1_20260619.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_no_write_harness_review_followup_safety_v1_20260619",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_no_write_harness_review_followup_safety_v1_20260619",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "The task card records the PR #379 no-write safety review follow-up scope.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 3600,
+      "why_this_model": "Focused PR review safety repair for the certified no-write extraction replay harness.",
+      "worker_decision_limit": "Workers are already report-only for board lanes; this code integration is orchestrator-owned.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

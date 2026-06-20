@@ -1,0 +1,14 @@
+{
+  "branch": "safe/extraction-no-write-replay-harness-v1-20260618",
+  "github_mutation": true,
+  "job_id": "extraction_docling_no_write_profile_v1_20260618",
+  "profile_added": "docling-no-write",
+  "state": "DONE_WITH_RISK",
+  "summary": "Added a certified docling-no-write profile that uses only approved existing repo/backend venv Python paths and fails closed when docling or the venv is missing.",
+  "validation_status": {
+    "focused_unit_tests": "PASS",
+    "docling_preflight": "DATA_MISSING",
+    "no_write_safety_status": "PASS"
+  },
+  "worktree": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618"
+}

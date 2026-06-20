@@ -1,0 +1,113 @@
+{
+  "artifact_type": "extraction_no_write_replay_harness_validation_v1",
+  "job_id": "extraction_no_write_replay_harness_v1_20260618",
+  "state": "DONE_WITH_RISK",
+  "summary": {
+    "harness_implemented": true,
+    "no_write_safety_status": "PASS",
+    "full_replay_status": "FAIL",
+    "reason": "The harness stayed no-write-safe, but the certified six-case replay is not extraction-green because WHC observed period_end 2022-09-21 instead of expected/source period_end 2022-06-30.",
+    "docling_available_in_validation_env": false,
+    "docling_note": "Validation used a minimal ephemeral uv environment. Docling was not installed there, so docling cases used the existing PyMuPDF fallback. No dependency install or repo/runtime environment mutation was performed."
+  },
+  "commands": [
+    {
+      "command": "python3 scripts/agent_job_contract.py validate docs/agent_tasks/extraction_no_write_replay_harness_v1_20260618.md",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 -m py_compile scripts/extraction_no_write_replay.py scripts/test_extraction_no_write_replay.py",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python3 scripts/test_extraction_no_write_replay.py",
+      "exit_code": 0,
+      "status": "PASS",
+      "observed": "Ran 17 tests in 0.003s; OK"
+    },
+    {
+      "command": "uv run --with pydantic==2.9.2 --with pydantic-settings==2.6.1 --with httpx==0.27.2 --with pymupdf==1.24.10 --with python-dateutil==2.9.0.post0 --with qdrant-client==1.12.1 --with SQLAlchemy==2.0.36 --with redis==5.1.1 --with beautifulsoup4==4.12.3 python scripts/extraction_no_write_replay.py --case all --case-manifest financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json --report-dir reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay",
+      "exit_code": 2,
+      "status": "DONE_WITH_RISK",
+      "observed": {
+        "runner_status": "FAIL",
+    "side_effect_pass": true,
+        "isolated_runtime_contained": true,
+        "case_count": 6,
+        "expectation_failure_count": 1
+      }
+    }
+  ],
+  "full_replay_cases": [
+    {
+      "case_id": "WHC",
+      "status": "failed",
+      "period_type": "A",
+      "period_end": "2022-09-21",
+      "metric_count": 9,
+      "error": "validation_gate:period_end_source_mismatch:payload=2022-09-21:source=2022-06-30:year_ended_explicit_date"
+    },
+    {
+      "case_id": "CTN",
+      "status": "ok",
+      "period_type": "Q",
+      "period_end": "2022-03-31",
+      "metric_count": 6
+    },
+    {
+      "case_id": "HUB",
+      "status": "ok",
+      "period_type": "H",
+      "period_end": "2023-12-31",
+      "metric_count": 9
+    },
+    {
+      "case_id": "LBL",
+      "status": "ok",
+      "period_type": "H",
+      "period_end": "2025-12-31",
+      "metric_count": 7
+    },
+    {
+      "case_id": "AZJ",
+      "status": "ok",
+      "period_type": "A",
+      "period_end": "2025-06-30",
+      "metric_count": 10
+    },
+    {
+      "case_id": "NSR",
+      "status": "ok",
+      "period_type": "H",
+      "period_end": "2021-12-31",
+      "metric_count": 8
+    }
+  ],
+  "side_effect_summary": {
+    "forbidden_surface_clean": true,
+    "report_only_durable_writes": true,
+    "isolated_cache_contained": true,
+    "isolated_runtime_contained": true,
+    "source_pdf_write": false,
+    "normal_parser_cache_write": false,
+    "db_write": false,
+    "qdrant_write": false,
+    "redis_write": false,
+    "news_write": false,
+    "registry_write": false,
+    "github_mutation": false,
+    "service_start": false,
+    "backfill": false,
+    "count_sample": false,
+    "broad_extraction": false
+  },
+  "artifacts": {
+    "input_manifest": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/input_manifest.json",
+    "replay_results": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/replay_results.json",
+    "side_effect_audit": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/side_effect_audit.json",
+    "validation": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/validation.json",
+    "log": "reports/agent_jobs/extraction_no_write_replay_harness_v1_20260618/no_write_replay/logs/replay.log"
+  }
+}

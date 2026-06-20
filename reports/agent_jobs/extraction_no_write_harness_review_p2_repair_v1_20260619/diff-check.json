@@ -1,0 +1,71 @@
+{
+  "changed_files": [
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+      "status": "M"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_no_write_harness_review_p2_repair_v1_20260619.md",
+        "scripts/extraction_no_write_replay.py",
+        "scripts/test_extraction_no_write_replay.py",
+        "financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/README.md",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/input_manifest.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/replay_results.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/side_effect_audit.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/status.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/validation.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/diff-check.json",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/PR_REVIEW.md",
+        "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619/logs/replay.log"
+      ],
+      "approval_required": false,
+      "docs_changed": [
+        "docs/agent_tasks/extraction_no_write_harness_review_p2_repair_v1_20260619.md"
+      ],
+      "docs_checked": [
+        "docs/agent_tasks/extraction_no_write_harness_review_p2_repair_v1_20260619.md"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_UPDATED",
+      "escalation_needed": false,
+      "github_mutation_allowed": true,
+      "job_id": "extraction_no_write_harness_review_p2_repair_v1_20260619",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_no_write_harness_review_p2_repair_v1_20260619",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "The task card documents the portable manifest paths and pre-clear validation review repair.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Evaluation",
+        "Reporting"
+      ],
+      "task_tier": "medium",
+      "timeout_seconds": 3600,
+      "why_this_model": "Focused PR review repair for a no-write extraction safety harness.",
+      "worker_decision_limit": "No workers used for this focused PR repair.",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}

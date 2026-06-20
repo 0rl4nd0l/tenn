@@ -1,0 +1,23 @@
+{
+  "branch": "safe/extraction-no-write-replay-harness-v1-20260618",
+  "docs_impact": "DOCS_UPDATED",
+  "docs_followup": "NONE",
+  "github_mutation_allowed": true,
+  "job_id": "extraction_no_write_harness_review_metadata_v1_20260619",
+  "ledger_update": "DATA_MISSING: scripts/agent_task_ledger.py is not present on this PR branch",
+  "model_routing": {
+    "actual_model": "Codex GPT-5",
+    "escalation_needed": false,
+    "recommended_model": "standard coding model",
+    "task_tier": "small",
+    "why_this_model": "Metadata-only PR repair after green harness validation.",
+    "worker_decision_limit": "No workers used.",
+    "worker_model_allowed": false
+  },
+  "pr": {
+    "number": 379,
+    "url": "https://github.com/0rl4nd0l/tenn/pull/379"
+  },
+  "state": "DONE_WITH_RISK",
+  "worktree": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618"
+}

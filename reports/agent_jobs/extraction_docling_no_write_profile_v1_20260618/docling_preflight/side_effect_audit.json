@@ -1,0 +1,44 @@
+{
+  "forbidden_surface_clean": true,
+  "forbidden_surface_mutation": {
+    "backfill": false,
+    "broad_extraction": false,
+    "count_sample": false,
+    "db_write": false,
+    "github_mutation": false,
+    "gold_label_write": false,
+    "memory_write": false,
+    "news_write": false,
+    "normal_parser_cache_write": false,
+    "prompt_write": false,
+    "qdrant_write": false,
+    "redis_write": false,
+    "registry_write": false,
+    "runtime_config_write": false,
+    "service_start": false,
+    "source_pdf_write": false
+  },
+  "isolated_cache_contained": true,
+  "isolated_runtime_contained": true,
+  "profile": "docling-no-write",
+  "profile_info": {
+    "approved_candidates": [
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/financial-engine_v2/.venv/bin/python3",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/.venv/bin/python3"
+    ],
+    "current_python": "/usr/bin/python3",
+    "current_python_is_selected": false,
+    "profile": "docling-no-write",
+    "reexeced": false,
+    "requested_venv_python": null,
+    "selected_executable": false,
+    "selected_exists": false,
+    "selected_venv_python": null
+  },
+  "reason": "approved_docling_venv_python_missing",
+  "report_dir": "/home/l4nd0/tenn-extraction-no-write-replay-harness-v1-20260618/reports/agent_jobs/extraction_docling_no_write_profile_v1_20260618/docling_preflight",
+  "report_only_durable_writes": true,
+  "status": "DATA_MISSING"
+}
