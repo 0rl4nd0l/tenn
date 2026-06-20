@@ -396,6 +396,44 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             ),
         )
 
+    def test_runner_value_error_payload_fails_replay_status(self):
+        try:
+            raise ValueError("unexpected runner bug")
+        except ValueError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(exc)
+
+        side_effect_audit = {
+            "forbidden_surface_clean": True,
+            "report_only_durable_writes": True,
+            "isolated_cache_contained": True,
+            "isolated_runtime_contained": True,
+        }
+
+        self.assertEqual("exception", llm_info["status"])
+        self.assertEqual("unexpected_runner_exception", llm_info["classification"])
+        self.assertEqual("__runner__", results[0]["case_id"])
+        self.assertEqual("exception", results[0]["result"]["status"])
+        self.assertEqual(
+            "FAIL",
+            RUNNER._derive_replay_status(
+                side_effect_audit,
+                llm_missing=llm_info.get("status") == "DATA_MISSING",
+                extraction_exception_count=len(results),
+                infrastructure_failure_count=0,
+                expectation_failure_count=0,
+            ),
+        )
+
+    def test_runner_module_missing_payload_stays_data_missing(self):
+        try:
+            raise ModuleNotFoundError("No module named 'httpx'")
+        except ModuleNotFoundError as exc:
+            results, llm_info = RUNNER._runner_exception_payload(exc)
+
+        self.assertEqual([], results)
+        self.assertEqual("DATA_MISSING", llm_info["status"])
+        self.assertEqual("infrastructure", llm_info["classification"])
+
     def test_surface_audit_fails_on_new_non_report_git_status_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -481,6 +519,39 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertTrue(audit["forbidden_surface_mutation"]["repo_worktree_write"])
         self.assertTrue(audit["dirty_repo_file_mutations"])
         self.assertEqual([], audit["unexpected_git_status_changes"])
+
+    def test_surface_audit_fails_on_source_sidecar_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_dir = root / "data" / "asx" / "docs" / "HUB" / "financial_performance"
+            source_dir.mkdir(parents=True)
+            source_pdf = source_dir / "hub.pdf"
+            source_pdf.write_bytes(b"%PDF-1.4\n")
+            cases = [{"case_id": "HUB", "source_path": str(source_pdf)}]
+
+            source_before = RUNNER._source_snapshot(cases)
+            (source_dir / "hub.pdf.ocr.tmp").write_text("sidecar", encoding="utf-8")
+            source_after = RUNNER._source_snapshot(cases)
+
+            audit = RUNNER._surface_audit(
+                git_before=[],
+                git_after=[],
+                source_before=source_before,
+                source_after=source_after,
+                normal_cache_before={},
+                normal_cache_after={},
+                report_dir=root / "reports" / "agent_jobs" / "job" / "run",
+                report_files=[],
+                isolated_cache_root=root / "cache",
+                isolated_cache_files=[],
+                isolated_runtime_root=root / "runtime",
+                isolated_runtime_files=[],
+            )
+
+        self.assertFalse(audit["forbidden_surface_clean"])
+        self.assertTrue(audit["forbidden_surface_mutation"]["source_pdf_write"])
+        self.assertTrue(audit["forbidden_surface_mutation"]["source_tree_write"])
+        self.assertFalse(RUNNER._side_effect_pass(audit))
 
     def test_normal_cache_snapshot_tracks_unpredicted_cache_files(self):
         with tempfile.TemporaryDirectory() as tmp:

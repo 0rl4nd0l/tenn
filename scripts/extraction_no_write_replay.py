@@ -625,10 +625,16 @@ def _file_snapshot(path: Path, *, hash_file: bool = False) -> dict[str, Any]:
 
 
 def _source_snapshot(cases: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {
-        str(case["case_id"]): _file_snapshot(Path(str(case["source_path"])), hash_file=True)
-        for case in cases
-    }
+    snapshots: dict[str, dict[str, Any]] = {}
+    for case in cases:
+        source_path = Path(str(case["source_path"]))
+        source_dir = source_path.parent
+        snapshots[str(case["case_id"])] = {
+            "source_file": _file_snapshot(source_path, hash_file=True),
+            "source_dir": str(source_dir),
+            "source_dir_files": _list_files(source_dir, hash_files=True),
+        }
+    return snapshots
 
 
 def _safe_cache_label(pdf_path: str) -> str:
@@ -1029,6 +1035,52 @@ def _is_infrastructure_failure(row: dict[str, Any]) -> bool:
     )
 
 
+def _is_runner_infrastructure_exception(exc: Exception) -> bool:
+    if isinstance(exc, ModuleNotFoundError):
+        return True
+    exception_type = type(exc).__name__.lower()
+    if any(marker in exception_type for marker in ("connect", "connection", "timeout", "http")):
+        return True
+    error = f"{type(exc).__name__}: {exc}".lower()
+    markers = (
+        "no module named",
+        "server_unavailable",
+        "http_",
+        "llamacpp",
+        "ollama_url",
+        "llamacpp_url",
+    )
+    return any(marker in error for marker in markers)
+
+
+def _runner_exception_payload(exc: Exception) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    error = f"{type(exc).__name__}: {exc}"
+    traceback_text = traceback.format_exc(limit=20)
+    if _is_runner_infrastructure_exception(exc):
+        return [], {
+            "status": "DATA_MISSING",
+            "classification": "infrastructure",
+            "error": error,
+            "traceback": traceback_text,
+        }
+    return [
+        {
+            "case_id": "__runner__",
+            "role": "runner_exception",
+            "result": {
+                "status": "exception",
+                "error": error,
+                "traceback": traceback_text,
+            },
+        }
+    ], {
+        "status": "exception",
+        "classification": "unexpected_runner_exception",
+        "error": error,
+        "traceback": traceback_text,
+    }
+
+
 def _expectation_failures(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     for row in results:
@@ -1090,7 +1142,7 @@ def _surface_audit(
     dirty_repo_before: dict[str, Any] | None = None,
     dirty_repo_after: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    source_pdf_write = source_before != source_after
+    source_tree_write = source_before != source_after
     normal_parser_cache_write = normal_cache_before != normal_cache_after
     unexpected_git_changes = _unexpected_git_status_changes(git_before, git_after, report_dir)
     dirty_repo_file_mutations = (
@@ -1110,7 +1162,8 @@ def _surface_audit(
         str(row.get("path", "")).startswith(isolated_runtime_prefix) for row in isolated_runtime_files
     )
     forbidden = {
-        "source_pdf_write": source_pdf_write,
+        "source_pdf_write": source_tree_write,
+        "source_tree_write": source_tree_write,
         "normal_parser_cache_write": normal_parser_cache_write,
         "db_write": False,
         "qdrant_write": False,
@@ -1197,6 +1250,7 @@ def _derive_replay_status(
 def _forbidden_surface_clean_payload() -> dict[str, bool]:
     return {
         "source_pdf_write": False,
+        "source_tree_write": False,
         "normal_parser_cache_write": False,
         "db_write": False,
         "qdrant_write": False,
@@ -1459,14 +1513,13 @@ def run_replay(args: argparse.Namespace) -> int:
             try:
                 results, llm_info = _run_cases(cases, llm_url, log_path)
             except Exception as exc:
-                results = []
-                llm_info = {
-                    "status": "DATA_MISSING",
-                    "error": f"{type(exc).__name__}: {exc}",
-                    "traceback": traceback.format_exc(limit=20),
-                }
+                results, llm_info = _runner_exception_payload(exc)
                 with log_path.open("a", encoding="utf-8") as log:
-                    log.write(f"runner_exception {type(exc).__name__}: {exc}\n")
+                    log.write(
+                        f"runner_exception status={llm_info.get('status')} "
+                        f"classification={llm_info.get('classification')} "
+                        f"{type(exc).__name__}: {exc}\n"
+                    )
 
         isolated_cache_files = _list_files(Path(cache_root_text))
         isolated_runtime_files = _list_files(data_root)
