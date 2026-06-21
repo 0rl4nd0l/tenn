@@ -2602,6 +2602,58 @@ def test_validate_gate_scale_unknown_hard_blocked():
     assert error == "validation_gate:scale_unknown", f"Unexpected error key: {error!r}"
 
 
+def test_validate_gate_blocks_mixed_metric_source_scales_for_accepted_output():
+    """Accepted outputs with multiple metric-local source scales must fail closed."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="A", scale="thousands")
+    payload["metric_source_scales"] = {
+        "revenue": "thousands",
+        "ebit": "thousands",
+        "np_attributable": "thousands",
+        "operating_cf": "millions",
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error is not None
+    assert error.startswith("validation_gate:accepted_output_scale_magnitude_risk:")
+    assert "mixed_metric_source_scales" in error
+    assert "payload_scale_differs_from_metric_source_scale" in error
+
+
+def test_validate_gate_blocks_extreme_metric_revenue_ratio_for_accepted_output():
+    """EDU-style cash-flow magnitudes cannot pass merely because final scales agree."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload(period_type="A", scale="thousands")
+    payload["metrics"].update(
+        {
+            "revenue": 11_596_000,
+            "ebit": 868_000,
+            "np_attributable": 385_000,
+            "operating_cf": 1_100_996_000,
+            "investing_cf": -464_151_000,
+            "financing_cf": -3_590_738_000,
+            "capex": -78_008_000,
+            "cash_end": 3_121_297_000,
+        }
+    )
+    payload["metric_source_scales"] = {
+        metric_name: "thousands"
+        for metric_name, value in payload["metrics"].items()
+        if metric_name != "shares_outstanding" and value is not None
+    }
+
+    status, error = _validate_gate(payload)
+
+    assert status == "failed"
+    assert error is not None
+    assert error.startswith("validation_gate:accepted_output_scale_magnitude_risk:")
+    assert "metric_revenue_ratio_high" in error
+
+
 def test_validate_gate_does_not_count_wrapper_disclosures_as_canonical_metrics():
     """NTA/dividend/record-date disclosures must not satisfy canonical minimums."""
     from app.services.multipass_extraction import _validate_gate

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import shutil
 import sys
@@ -84,6 +85,31 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
             Path("financial-engine_v2/data/extraction_no_write_cases/guard_cases_v1.json")
         )
         self.assertTrue(str(resolved).startswith(str(RUNNER.CERTIFIED_MANIFEST_ROOT.resolve())))
+
+    def test_whc_edu_mixed_unit_manifest_is_certified_docling_only(self):
+        manifest_path = RUNNER.resolve_manifest_path(
+            Path("financial-engine_v2/data/extraction_no_write_cases/whc_edu_mixed_unit_cases_v1.json")
+        )
+        manifest = RUNNER.load_manifest(manifest_path)
+        self.assertFalse(manifest["certification"]["allow_production_writes"])
+        self.assertFalse(manifest["certification"]["allow_broad_extraction"])
+        self.assertTrue(manifest["certification"]["loopback_llm_only"])
+
+        cases = manifest["cases"]
+        self.assertEqual(
+            ["WHC_2023_MIXED_UNIT", "EDU_2023_MIXED_UNIT"],
+            [case["case_id"] for case in cases],
+        )
+        self.assertEqual([], RUNNER._docling_incompatible_cases(cases))
+        for case in cases:
+            self.assertEqual("failed", case["expected_status"])
+            self.assertEqual("docling", case["parser_backend"])
+            self.assertTrue(case["strict_parser"])
+            self.assertTrue(case["skip_narrative"])
+            self.assertEqual("mixed_unit_surface", case["source_bound_unit_family"])
+            self.assertFalse(Path(case["source_path"]).is_absolute())
+            self.assertTrue(case["source_path"].startswith("asx/docs/"))
+            self.assertTrue(case["expected_error_family"].startswith("validation_gate:"))
 
     def test_llm_url_must_be_loopback(self):
         self.assertEqual("http://127.0.0.1:8001", RUNNER.assert_loopback_url("http://127.0.0.1:8001/"))
@@ -301,8 +327,8 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
                 reason="docling_import_failed",
             )
 
-            validation = __import__("json").loads((report_dir / "validation.json").read_text(encoding="utf-8"))
-            audit = __import__("json").loads((report_dir / "side_effect_audit.json").read_text(encoding="utf-8"))
+            validation = json.loads((report_dir / "validation.json").read_text(encoding="utf-8"))
+            audit = json.loads((report_dir / "side_effect_audit.json").read_text(encoding="utf-8"))
             self.assertEqual("DATA_MISSING", validation["status"])
             self.assertEqual(RUNNER.DOCLING_PROFILE, validation["profile"])
             self.assertTrue(audit["forbidden_surface_clean"])

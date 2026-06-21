@@ -1,0 +1,53 @@
+{
+  "artifact_type": "extraction_no_write_case_manifest_v1",
+  "certification": {
+    "allow_broad_extraction": false,
+    "allow_live_fetch": false,
+    "allow_production_writes": false,
+    "allow_remote_llm": false,
+    "loopback_llm_only": true,
+    "notes": "Focused mixed-unit accepted-output guard cases. Source documents are fixed local PDFs; writes must remain limited to report-local artifacts and isolated parser cache."
+  },
+  "cases": [
+    {
+      "case_id": "WHC_2023_MIXED_UNIT",
+      "role": "accepted_output_mixed_unit_reconciliation_guard",
+      "ticker": "WHC",
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "source_path": "asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "expected_status": "failed",
+      "expected_period_type": "A",
+      "expected_period_end": "2023-06-30",
+      "expected_error_family": "validation_gate:accepted_output_scale_magnitude_risk",
+      "parser_backend": "docling",
+      "strict_parser": true,
+      "skip_narrative": true,
+      "source_bound_unit_family": "mixed_unit_surface",
+      "source_bound_unit_evidence": [
+        "Page 18 cash-flow/capital-management material is labelled $ million.",
+        "Page 54 income-statement material is labelled $'000."
+      ]
+    },
+    {
+      "case_id": "EDU_2023_MIXED_UNIT",
+      "role": "accepted_output_mixed_unit_reconciliation_guard",
+      "ticker": "EDU",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path": "asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "expected_status": "failed",
+      "expected_period_type": "A",
+      "expected_period_end": "2023-12-31",
+      "expected_error_family": "validation_gate:accepted_output_scale_magnitude_risk",
+      "parser_backend": "docling",
+      "strict_parser": true,
+      "skip_narrative": true,
+      "source_bound_unit_family": "mixed_unit_surface",
+      "source_bound_unit_evidence": [
+        "Page 23 revenue summary material is labelled $'000.",
+        "Page 53 cash-flow statement material is labelled $."
+      ]
+    }
+  ]
+}

@@ -3644,6 +3644,18 @@ _SCALE_VALIDATION_THRESHOLDS: dict[str, dict[str, float]] = {
     },
 }
 
+_DOLLAR_METRIC_FIELDS = tuple(m for m in METRIC_FIELDS if m != "shares_outstanding")
+_ACCEPTED_OUTPUT_REVENUE_RATIO_RISK_FIELDS = (
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+)
+_ACCEPTED_OUTPUT_REVENUE_RATIO_REVIEW_THRESHOLD = 10.0
+
 # Over-scale threshold: values above $500B are almost certainly over-multiplied
 # for AUD-like currencies. High-denomination native currencies need explicit
 # source-unit support and a currency-specific cap; this does not perform FX
@@ -3730,6 +3742,68 @@ def _validate_scale(payload: dict) -> str:
         return "suspect_underscaled"
 
     return "pass"
+
+
+def _clean_payload_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in {"none", "null", "unknown"}:
+        return None
+    return text
+
+
+def _coerce_metric_number(value: Any) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _accepted_output_scale_magnitude_risk_error(
+    payload: dict,
+    canonical_metrics: dict[str, Any],
+) -> str | None:
+    """Fail closed when an otherwise accepted output has scale/magnitude risk."""
+    codes: list[str] = []
+    scale = (_clean_payload_text(payload.get("scale")) or "unknown").lower()
+    metric_source_scales_raw = payload.get("metric_source_scales")
+    metric_source_scales: dict[str, str] = {}
+    if isinstance(metric_source_scales_raw, dict):
+        for metric_name, scale_value in metric_source_scales_raw.items():
+            if metric_name not in _DOLLAR_METRIC_FIELDS:
+                continue
+            if canonical_metrics.get(metric_name) is None:
+                continue
+            metric_scale = _clean_payload_text(scale_value)
+            if metric_scale is not None:
+                metric_source_scales[str(metric_name)] = metric_scale.lower()
+
+    distinct_metric_scales = sorted(set(metric_source_scales.values()))
+    if len(distinct_metric_scales) > 1:
+        codes.append("mixed_metric_source_scales")
+
+    if scale != "unknown":
+        if any(metric_scale != scale for metric_scale in metric_source_scales.values()):
+            codes.append("payload_scale_differs_from_metric_source_scale")
+
+    revenue = _coerce_metric_number(canonical_metrics.get("revenue"))
+    if revenue is not None and abs(revenue) > 0:
+        for metric_name in _ACCEPTED_OUTPUT_REVENUE_RATIO_RISK_FIELDS:
+            value = _coerce_metric_number(canonical_metrics.get(metric_name))
+            if value is None:
+                continue
+            ratio = abs(value) / abs(revenue)
+            if ratio >= _ACCEPTED_OUTPUT_REVENUE_RATIO_REVIEW_THRESHOLD:
+                codes.append("metric_revenue_ratio_high")
+                break
+
+    if not codes:
+        return None
+    suffix = ",".join(dict.fromkeys(codes))
+    return f"validation_gate:accepted_output_scale_magnitude_risk:{suffix}"
 
 
 # ---------------------------------------------------------------------------
@@ -4756,6 +4830,13 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     for m, v in canonical_metrics.items():
         if v is not None and abs(v) > sanity_cap:
             return "failed", f"validation_gate:sanity_cap_exceeded:{m}={v}"
+
+    scale_magnitude_risk_error = _accepted_output_scale_magnitude_risk_error(
+        payload,
+        canonical_metrics,
+    )
+    if scale_magnitude_risk_error is not None:
+        return "failed", scale_magnitude_risk_error
 
     confidence = payload.get("confidence_metrics", 0.0)
     if confidence < 0.60:
