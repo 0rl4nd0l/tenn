@@ -1,8 +1,8 @@
 # State
 
-State: PR_REVIEW_FIX_VALIDATED_READY_TO_PUSH
+State: PR_REVIEW_FIX_VALIDATED_LIVE_MERGE_GATE_REQUIRED
 
-Current Focus: Commit and push focused PR #380 review fixes.
+Current Focus: Re-check live PR #380 merge gate before merge.
 
 ## Completed
 
@@ -53,4 +53,5 @@ Current Focus: Commit and push focused PR #380 review fixes.
 
 ## Next Safe Action
 
-Commit the review fix, push to PR #380, and re-check CI.
+Re-check PR #380 live GitHub state, required checks, mergeability, reviewed head
+SHA, and conflict status immediately before merge.

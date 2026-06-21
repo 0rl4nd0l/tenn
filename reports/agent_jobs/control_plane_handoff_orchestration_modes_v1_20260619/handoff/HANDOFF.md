@@ -117,9 +117,10 @@ then continue as orchestrator only if follow-up work remains.
 
 ## Git status and dirt
 
-- Local task-card, skill, docs, template, bridge, test, and report artifacts
-  passed final validation and are pending commit.
-- `reports/` artifacts are ignored and require `git add -f`.
+- The PR branch carries committed task-card, skill, docs, template, bridge,
+  test, and report artifacts that passed focused validation.
+- Because GitHub/CI state is live, re-check PR #380 checks, mergeability,
+  reviewed head SHA, and conflict status immediately before merge.
 
 ## Ledger status
 
@@ -129,7 +130,7 @@ then continue as orchestrator only if follow-up work remains.
 - task_id: `control_plane_handoff_orchestration_modes_v1_20260619`
 - status: live `implementation_started`, `pr_opened`, and PR-review
   `implementation_started` entries appended
-- next_action: commit and push to PR #380
+- next_action: live PR #380 merge gate
 
 ## Docs Impact
 
@@ -169,7 +170,7 @@ then continue as orchestrator only if follow-up work remains.
 
 ## Open risks
 
-- PR #380 awaits the pushed review-fix commit and fresh CI results.
+- PR #380 must pass a final live GitHub merge gate after any new commit.
 - No fresh Codex session has consumed the new handoff mode yet.
 
 ## Owner decisions needed

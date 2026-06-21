@@ -13,7 +13,8 @@
   "issue_refs": [],
   "pr_refs": [
     "#375",
-    "#378"
+    "#378",
+    "#380"
   ],
   "branch": "control-plane/handoff-orchestration-modes-v1-20260619",
   "worktree": "/home/l4nd0/tenn-control-plane-handoff-orchestration-modes-v1-20260619",
@@ -67,7 +68,7 @@
       "python3 -m unittest tests.test_opencode_worker_bridge"
     ]
   },
-  "next_action": "open_pr",
+  "next_action": "live_pr_merge_gate",
   "owner_boundary": false,
   "supersedes": [],
   "superseded_by": [],

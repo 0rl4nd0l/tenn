@@ -66,7 +66,7 @@ PR #380 review follow-up fixes:
 
 ## Current Status
 
-- status: pr_review_fixes_validated_ready_to_push
+- status: pr_review_fixes_validated_live_merge_gate_required
 - branch: `control-plane/handoff-orchestration-modes-v1-20260619`
 - base: `origin/migration/clean-runtime-baseline-reconstruct-v1`
 - task_card:
@@ -76,4 +76,5 @@ PR #380 review follow-up fixes:
 
 ## Next Action
 
-Commit the PR review fix, push to PR #380, and re-check CI.
+Re-check live PR #380 checks, mergeability, and reviewed head immediately before
+merge. Merge only if GitHub reports the PR clean and required checks pass.
