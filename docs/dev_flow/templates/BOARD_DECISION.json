@@ -26,6 +26,9 @@
   "matching_candidates": [],
   "duplicate_work_decision": "ask_owner",
   "counter_lineage_required": false,
+  "functionality_proof_required": false,
+  "functionality_proof_status": "not_applicable",
+  "functionality_proof_remaining_blocker": "",
   "required_changes": [],
   "owner_approval_needed": [],
   "next_goal": ""

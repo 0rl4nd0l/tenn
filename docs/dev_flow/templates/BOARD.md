@@ -6,6 +6,8 @@
 - Evidence grades: <VERIFIED|USER_REPORTED|INFERRED|UNKNOWN|CONFLICT|DATA_MISSING>
 - Duplicate-work classification: <ACTIVE_CONTINUE|OPEN_PR_WAIT|MERGED_USE_CANONICAL|STALE_PRESERVE|SUPERSEDED_IGNORE|OWNER_BOUNDARY|UNKNOWN_ASK|not_applicable>
 - Counter-lineage required: <yes|no>
+- Runtime functionality proof required: <yes|no>
+- Runtime functionality proof status: <WORKING|PARTIAL|BROKEN|DATA_MISSING|not_applicable>
 
 ## Architect
 - Evidence:
@@ -28,6 +30,7 @@
 ## Validation / Test
 - Evidence:
 - Denominator/freshness challenge:
+- Intended-output proof challenge:
 - Finding:
 - Risk:
 - Recommendation:
@@ -54,6 +57,7 @@
 ## Chair
 - Decision:
 - Reason:
+- Functionality proof blocker, if any:
 
 ## Decision
 <ask_owner|block|revise_plan|proceed|supersede|park>

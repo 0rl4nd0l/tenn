@@ -22,6 +22,18 @@ Decision: <pass|pass_with_risk|revise|block>
 ## Validation Evidence
 - `<command>`: <exit/status>
 
+## Runtime Functionality Proof
+- Required for this diff: <yes|no>
+- intended output:
+- live output location:
+- pre-run max timestamp or count:
+- post-run max timestamp or count:
+- rows/files inserted or updated after run start:
+- readiness/gate status:
+- exact command/query used:
+- result: <WORKING|PARTIAL|BROKEN|DATA_MISSING|not_applicable>
+- remaining blocker:
+
 ## Docs Impact
 - docs_impact: <DOCS_NOT_REQUIRED|DOCS_UPDATED|DOCS_FOLLOWUP|DATA_MISSING>
 - docs_checked:

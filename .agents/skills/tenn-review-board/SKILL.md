@@ -78,6 +78,13 @@ For metric, evaluation, daemon-status, pass-rate, or surprising-count decisions,
 the validation/test and domain perspectives must challenge denominator,
 freshness, filters, exclusions, and pipeline stage before the chair decides.
 
+For daemon, runtime, extraction, ingestion, automation, collector, scheduler,
+service, or pipeline decisions, the board must require the
+`Runtime Functionality Proof` table from `AGENTS.md`. If intended-output proof is
+missing, stale, zero, or unverified, the board must block promotion, merge,
+complete, or `DONE` recommendations and choose `block`, `revise_plan`, or
+`ask_owner`.
+
 ## Outputs
 
 Write:
@@ -100,6 +107,9 @@ decision and must convert opinions into `BOARD_DECISION.json`.
 `BOARD_DECISION.json` must include ledger fields: `ledger_sources_checked`,
 `duplicate_work_classification`, `matching_candidates`, and
 `duplicate_work_decision`.
+For runtime-like functionality decisions, `BOARD_DECISION.json` must also record
+whether functionality proof was required, the proof status, and the remaining
+blocker.
 
 For `large` and `critical` decisions, `BOARD_DECISION.json` must also identify
 final decision authority and explain why lower-tier decision making was

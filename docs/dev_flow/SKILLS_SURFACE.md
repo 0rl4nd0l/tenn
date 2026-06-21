@@ -35,6 +35,20 @@ current preflight contract. It is not a user-facing cleanup command. It owns
 branch, worktree, dirty-state, registry, task-ledger, duplicate-work, task-card,
 and allowed-file preflight.
 
+## Runtime Proof Gate
+
+Use this mode when daemon, runtime, extraction, ingestion, automation,
+collector, scheduler, service, or pipeline functionality is claimed.
+
+| Mode | Home | Use when |
+| --- | --- | --- |
+| Runtime proof gate | `AGENTS.md`, `tenn-fix`, `tenn-explain`, `tenn-review-board`, `tenn-handoff` | A closeout, explanation, board decision, merge/promotion call, or handoff says runtime-like work is working, functional, complete, or `DONE`. |
+
+This mode must use the `Runtime Functionality Proof` table in `AGENTS.md`. It
+does not add a visible skill. Activity evidence such as services, timers, logs,
+artifacts, reports, tests, or merged PRs must stay separate from functionality
+evidence that proves the intended live output is fresh or changed.
+
 ## Rehomed Entry Points
 
 These `SKILL.md` entrypoints were removed to reduce default context and avoid
