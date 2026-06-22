@@ -1,6 +1,6 @@
 # State
 
-State: DONE_WITH_RISK
+State: PR_OPENED
 
 Current Focus: Add a control-plane closeout gate for runtime-like task cards.
 
@@ -11,6 +11,7 @@ Current Focus: Add a control-plane closeout gate for runtime-like task cards.
 - Implemented `check-closeout` runtime-like proof enforcement and Stop/SessionEnd hook warning.
 - Added focused contract and hook tests.
 - Updated control-plane docs.
+- Opened draft PR #385: https://github.com/0rl4nd0l/tenn/pull/385
 
 ## Blocked
 - None.
@@ -43,4 +44,4 @@ Current Focus: Add a control-plane closeout gate for runtime-like task cards.
 - `git diff --check`: passed
 
 ## Next Safe Action
-Commit, push, and open the focused PR.
+Wait for PR checks/review, then merge only after current GitHub status is clean.

@@ -2,6 +2,8 @@
 
 Decision: pass
 
+PR: https://github.com/0rl4nd0l/tenn/pull/385
+
 ## Scope
 - Branch/HEAD: `control-plane/runtime-functionality-proof-closeout-v2-20260622`
 - Base: `origin/migration/clean-runtime-baseline-reconstruct-v1` at `d6eeff4f3114096844dcb88e715ae39c9802487e`

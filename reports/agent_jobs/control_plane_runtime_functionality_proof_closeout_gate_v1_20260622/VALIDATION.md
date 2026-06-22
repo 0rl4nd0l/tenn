@@ -2,6 +2,8 @@
 
 Status: passed.
 
+PR: https://github.com/0rl4nd0l/tenn/pull/385
+
 ## Commands
 - `python3 scripts/agent_job_contract.py validate docs/agent_tasks/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622.md`: passed
 - `python3 scripts/agent_task_ledger.py resolve-path && python3 scripts/agent_task_ledger.py validate`: passed with live ledger `DATA_MISSING` and committed ledger present

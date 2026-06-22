@@ -1,59 +1,15 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622.md",
-      "status": "A"
-    },
-    {
-      "path": "docs/dev_flow/CODEX_OPERATOR_GUIDE.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/CONTROL_PLANE_OPEN_WORK.md",
-      "status": "M"
-    },
-    {
-      "path": "docs/dev_flow/CONTROL_PLANE_STATUS.md",
-      "status": "M"
-    },
-    {
-      "path": "reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622/CODE_REVIEW.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622/DESIGN.md",
-      "status": "A"
-    },
-    {
       "path": "reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622/PR_REVIEW.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622/STATE.md",
-      "status": "A"
+      "status": "M"
     },
     {
       "path": "reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622/VALIDATION.md",
-      "status": "A"
-    },
-    {
-      "path": "reports/agent_jobs/control_plane_runtime_functionality_proof_closeout_gate_v1_20260622/diff-check.json",
-      "status": "A"
-    },
-    {
-      "path": "scripts/agent_job_contract.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/agent_job_hook.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/test_agent_job_contract.py",
-      "status": "M"
-    },
-    {
-      "path": "scripts/test_agent_job_hook.py",
       "status": "M"
     }
   ],
