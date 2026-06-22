@@ -41,6 +41,7 @@ def task_card(
     job_id: str = "hook-test-job",
     lane: str = "Evaluation",
     filename: str = "test-task.md",
+    body: str = "Test task card.",
 ) -> Path:
     card = repo / "docs" / "agent_tasks" / filename
     card.parent.mkdir(parents=True, exist_ok=True)
@@ -62,7 +63,7 @@ def task_card(
                 f"production_data_access: {production_access}",
                 "---",
                 "",
-                "Test task card.",
+                body,
                 "",
             ]
         ),
@@ -246,6 +247,26 @@ def test_stop_invalid_task_card_warns_without_blocking(tmp_path: Path) -> None:
     assert completed.returncode == 0
     assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
     assert "production_data_access" in str(payload["systemMessage"])
+
+
+def test_stop_runtime_task_card_missing_closeout_proof_warns(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "hook-runtime-job"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text("State: DONE\nOnly logs were checked.\n", encoding="utf-8")
+    task_card(
+        repo,
+        allowed_files=["reports/agent_jobs/hook-runtime-job/REPORT.md"],
+        job_id="hook-runtime-job",
+        body="Runtime service repair.",
+    )
+
+    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+
+    assert completed.returncode == 0
+    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
+    assert "runtime_functionality_proof" in str(payload["systemMessage"])
+    assert "cannot use DONE" in str(payload["systemMessage"])
 
 
 def test_codex_stop_output_is_valid_json(tmp_path: Path) -> None:

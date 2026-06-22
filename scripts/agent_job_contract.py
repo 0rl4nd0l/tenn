@@ -41,6 +41,51 @@ REQUIRED_FIELDS = {
 }
 JOB_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 FRONTMATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)(?:\r?\n)---[ \t]*(?:\r?\n|\Z)", re.DOTALL)
+RUNTIME_LIKE_KEYWORDS = {
+    "automation",
+    "backfill",
+    "collector",
+    "daemon",
+    "data",
+    "extraction",
+    "ingestion",
+    "pipeline",
+    "product",
+    "runtime",
+    "scheduler",
+    "service",
+}
+NON_RUNTIME_SCOPE_PHRASES = {
+    "audit-only",
+    "audit only",
+    "control-plane",
+    "control plane",
+    "docs-only",
+    "docs only",
+    "documentation-only",
+    "documentation only",
+    "report-only",
+    "report only",
+}
+RUNTIME_PROOF_FIELD_LABELS = [
+    "intended output",
+    "live output location",
+    "pre-run max timestamp or count",
+    "post-run max timestamp or count",
+    "rows/files inserted or updated after run start",
+    "readiness/gate status",
+    "exact command/query used",
+    "result",
+    "remaining blocker",
+]
+RUNTIME_PROOF_RESULTS = {"WORKING", "PARTIAL", "BROKEN", "DATA_MISSING"}
+RUNTIME_PROOF_RISK_STATUSES = {"PARTIAL", "BROKEN", "DATA_MISSING", "DONE_WITH_RISK"}
+TERMINAL_STATUS_RE = re.compile(
+    r"(?im)^\s*(?:[-*]\s*)?"
+    r"(?:state|status|final status|closeout status|outcome|decision)"
+    r"\s*:\s*`?([A-Za-z_]+)`?\b"
+)
+RUNTIME_PROOF_RESULT_RE = re.compile(r"(?im)^\s*(?:[-*]\s*)?result\s*:\s*`?([A-Za-z_]+)`?\b")
 
 
 @dataclass(frozen=True)
@@ -356,6 +401,120 @@ def _report_artifact_paths(metadata: dict[str, Any]) -> list[str]:
     return sorted(path for path in _allowed_file_set(metadata) if path.startswith(output_prefix))
 
 
+def _task_card_search_text(parsed: ParsedTaskCard) -> str:
+    parts = [parsed.body]
+    for key, value in parsed.metadata.items():
+        if key == "production_data_access":
+            continue
+        if isinstance(value, list):
+            parts.extend(str(item) for item in value)
+        else:
+            parts.append(str(value))
+    return "\n".join(parts).lower()
+
+
+def _declares_non_runtime_closeout_scope(text: str) -> bool:
+    return any(phrase in text for phrase in NON_RUNTIME_SCOPE_PHRASES)
+
+
+def _requires_runtime_functionality_proof(parsed: ParsedTaskCard) -> bool:
+    text = _task_card_search_text(parsed)
+    if _declares_non_runtime_closeout_scope(text):
+        return False
+    return any(re.search(rf"\b{re.escape(keyword)}\b", text) for keyword in RUNTIME_LIKE_KEYWORDS)
+
+
+def _read_artifact_text(root: Path, artifacts: Sequence[ArtifactStatus]) -> str:
+    chunks: list[str] = []
+    for artifact in artifacts:
+        if not artifact.exists or not artifact.is_file:
+            continue
+        path = root / artifact.path
+        try:
+            chunks.append(path.read_text(encoding="utf-8"))
+        except UnicodeDecodeError:
+            chunks.append(path.read_bytes().decode("utf-8", errors="ignore"))
+    return "\n".join(chunks)
+
+
+def _missing_runtime_proof_fields(text: str) -> list[str]:
+    lower = text.lower()
+    missing: list[str] = []
+    for field in RUNTIME_PROOF_FIELD_LABELS:
+        if field == "result":
+            if not RUNTIME_PROOF_RESULT_RE.search(text):
+                missing.append(field)
+            continue
+        if field not in lower:
+            missing.append(field)
+    return missing
+
+
+def _runtime_proof_result(text: str) -> str | None:
+    for match in RUNTIME_PROOF_RESULT_RE.finditer(text):
+        value = match.group(1).upper()
+        if value in RUNTIME_PROOF_RESULTS or value == "NOT_APPLICABLE":
+            return value
+    return None
+
+
+def _terminal_statuses(text: str) -> set[str]:
+    return {match.group(1).upper() for match in TERMINAL_STATUS_RE.finditer(text)}
+
+
+def _runtime_functionality_proof_issues(parsed: ParsedTaskCard, artifact_text: str) -> list[ValidationIssue]:
+    if not _requires_runtime_functionality_proof(parsed):
+        return []
+
+    issues: list[ValidationIssue] = []
+    missing_fields = _missing_runtime_proof_fields(artifact_text)
+    if missing_fields:
+        issues.append(
+            ValidationIssue(
+                "runtime_functionality_proof",
+                "missing Runtime Functionality Proof fields in report artifacts: "
+                + ", ".join(missing_fields),
+            )
+        )
+
+    proof_result = _runtime_proof_result(artifact_text)
+    if proof_result is None:
+        issues.append(
+            ValidationIssue(
+                "runtime_functionality_proof",
+                "missing Runtime Functionality Proof result WORKING, PARTIAL, BROKEN, or DATA_MISSING",
+            )
+        )
+    elif proof_result not in RUNTIME_PROOF_RESULTS:
+        issues.append(
+            ValidationIssue(
+                "runtime_functionality_proof",
+                f"Runtime Functionality Proof result must be WORKING, PARTIAL, BROKEN, or DATA_MISSING, not {proof_result}",
+            )
+        )
+
+    statuses = _terminal_statuses(artifact_text)
+    if "DONE" in statuses and (missing_fields or proof_result != "WORKING"):
+        issues.append(
+            ValidationIssue(
+                "runtime_functionality_proof",
+                "runtime-like closeout cannot use DONE without WORKING intended-output proof; "
+                "use PARTIAL, BROKEN, DATA_MISSING, or DONE_WITH_RISK",
+            )
+        )
+
+    invalid_statuses = sorted(status for status in statuses if status == "DONE")
+    if invalid_statuses and proof_result in RUNTIME_PROOF_RISK_STATUSES:
+        issues.append(
+            ValidationIssue(
+                "runtime_functionality_proof",
+                "non-WORKING Runtime Functionality Proof cannot close as DONE",
+            )
+        )
+
+    return issues
+
+
 def check_report_artifacts_for_task_card_markdown(
     markdown: str,
     *,
@@ -369,6 +528,7 @@ def check_report_artifacts_for_task_card_markdown(
     output_dir: str | None = None
 
     if validation.ok:
+        parsed = parse_task_card(markdown)
         output_dir_value = validation.metadata.get("output_dir")
         job_id = validation.metadata.get("job_id")
         report_dir: Path | None = None
@@ -416,6 +576,9 @@ def check_report_artifacts_for_task_card_markdown(
             elif size_bytes == 0:
                 issues.append(ValidationIssue("artifacts", f"{path} is empty"))
 
+        artifact_text = _read_artifact_text(root, artifacts)
+        issues.extend(_runtime_functionality_proof_issues(parsed, artifact_text))
+
     return ArtifactCheckResult(
         ok=not issues,
         validation=validation,
@@ -423,6 +586,38 @@ def check_report_artifacts_for_task_card_markdown(
         artifacts=artifacts,
         issues=issues,
     )
+
+
+def check_closeout_for_task_card_markdown(
+    markdown: str,
+    *,
+    repo_root: Path | None = None,
+) -> ArtifactCheckResult:
+    """Run closeout checks, enforcing runtime proof only for runtime-like cards."""
+    root = repo_root or Path.cwd()
+    validation = validate_task_card_markdown(markdown)
+    if not validation.ok:
+        return ArtifactCheckResult(
+            ok=False,
+            validation=validation,
+            output_dir=None,
+            artifacts=[],
+            issues=list(validation.issues),
+        )
+
+    parsed = parse_task_card(markdown)
+    output_dir = validation.metadata.get("output_dir")
+    output_dir_text = output_dir if isinstance(output_dir, str) else None
+    if not _requires_runtime_functionality_proof(parsed):
+        return ArtifactCheckResult(
+            ok=True,
+            validation=validation,
+            output_dir=output_dir_text,
+            artifacts=[],
+            issues=[],
+        )
+
+    return check_report_artifacts_for_task_card_markdown(markdown, repo_root=root)
 
 
 def check_diff_for_task_card_markdown(
@@ -636,6 +831,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     check_report_artifacts.add_argument("task_card", type=Path)
     check_report_artifacts.add_argument("--repo-root", type=Path, default=Path.cwd())
+    check_closeout = sub.add_parser(
+        "check-closeout",
+        help="verify runtime-like task-card closeout evidence without forcing docs-only/report-only cards",
+    )
+    check_closeout.add_argument("task_card", type=Path)
+    check_closeout.add_argument("--repo-root", type=Path, default=Path.cwd())
     return parser
 
 
@@ -663,6 +864,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {"check-artifacts", "check-report-artifacts"}:
         markdown = args.task_card.read_text(encoding="utf-8")
         result = check_report_artifacts_for_task_card_markdown(
+            markdown,
+            repo_root=args.repo_root,
+        )
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        return 0 if result.ok else 1
+    if args.command == "check-closeout":
+        markdown = args.task_card.read_text(encoding="utf-8")
+        result = check_closeout_for_task_card_markdown(
             markdown,
             repo_root=args.repo_root,
         )

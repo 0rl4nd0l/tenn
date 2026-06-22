@@ -1,6 +1,6 @@
 # Codex Operator Guide
 
-Status: practical Orlando guide for the Tenn control plane after PR #380 and PR #382.
+Status: practical Orlando guide for the Tenn control plane after PR #383 and the Runtime Functionality Proof closeout-gate follow-up.
 
 ## The Operating Rule
 
@@ -88,7 +88,7 @@ Read .agents/skills/tenn-fix/SKILL.md fully.
 Run Tenn git guard preflight.
 Create or validate the task card.
 Only edit allowed files.
-Run validation, check-diff, and check-report-artifacts.
+Run validation, check-diff, check-closeout, and check-report-artifacts.
 Open a PR only if the task card explicitly permits it.
 ```
 
@@ -107,6 +107,17 @@ Do not claim readiness without fresh evidence.
 Before DONE, show the Runtime Functionality Proof fields from AGENTS.md:
 intended output, live output location, pre-run count/timestamp, post-run count/timestamp, rows/files changed after run start, readiness/gate status, exact command/query, result, and remaining blocker.
 ```
+
+The closeout gate is:
+
+```text
+python3 scripts/agent_job_contract.py check-closeout <task-card> --repo-root .
+```
+
+For active task cards, `scripts/agent_job_hook.py` runs this gate on
+Stop/SessionEnd. Runtime-like cards must either include the proof fields in
+their report artifacts or explicitly declare report-only, docs-only, or
+control-plane-only scope.
 
 ### OpenCode Worker Scout
 
@@ -128,7 +139,7 @@ Run through scripts/opencode_worker_bridge.py, validate-result, then have Codex 
 6. Do only the allowed work.
 7. Preserve report evidence.
 8. Run validation and allowed-diff checks.
-9. Apply Runtime Functionality Proof for runtime claims.
+9. Apply Runtime Functionality Proof for runtime claims and run `check-closeout`.
 10. Handoff or open a PR only if explicitly permitted.
 
 ## Red Flags That Codex Is Overclaiming
@@ -150,4 +161,4 @@ The missing question is always: did the intended output happen in the live targe
 
 Use Tenn repo skills as explicit files, not autocomplete labels. For ordinary next-action work, start with `tenn-issue`. For any mutation, use `tenn-fix`. For decisions, use `tenn-review-board`. For long goals, keep `tenn-goal-report` state current. Before stopping, use `tenn-handoff`.
 
-When Codex claims readiness, ask for the exact validation command and the proof target. For runtime behavior, ask for the nine Runtime Functionality Proof fields. For docs/report work, ask for task-card validation, ledger/registry checks, `check-diff`, `check-report-artifacts`, and `git diff --check`.
+When Codex claims readiness, ask for the exact validation command and the proof target. For runtime behavior, ask for the nine Runtime Functionality Proof fields and the `check-closeout` result. For docs/report work, ask for task-card validation, ledger/registry checks, `check-diff`, `check-report-artifacts`, and `git diff --check`.

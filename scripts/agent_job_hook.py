@@ -252,6 +252,13 @@ def build_hook_payload(
             ["check-diff", card.display_path, "--repo-root", str(repo_root), "--no-write-report"],
         )
         runs.append(check_diff)
+    elif event in {"Stop", "SessionEnd"}:
+        closeout = _run_contract(
+            repo_root,
+            "check-closeout",
+            ["check-closeout", card.display_path, "--repo-root", str(repo_root)],
+        )
+        runs.append(closeout)
 
     passed = all(
         run.returncode == 0 and run.parsed is not None and run.parsed.get("ok", False)
