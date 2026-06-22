@@ -51,6 +51,15 @@
 - Evidence:
 - Checks performed when none found:
 
+## Zoom-Out / Contrarian Review
+- Real root problem:
+- Overfitting risk:
+- Report-only loop risk:
+- Broad system progress:
+- Failure-class/document-class/route-class/workflow-class alternative:
+- Best next action by production-readiness value:
+- Financial extraction breadth/provenance/confidence/regression check:
+
 ## Chair
 - Decision:
 - Reason:

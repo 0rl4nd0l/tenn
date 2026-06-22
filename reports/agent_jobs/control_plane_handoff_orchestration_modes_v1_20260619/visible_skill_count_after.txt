@@ -1,0 +1,11 @@
+visible_skill_count_after=10
+.agents/skills/codex-worker-bridge/SKILL.md
+.agents/skills/tenn-explain/SKILL.md
+.agents/skills/tenn-financial-metric-extraction/SKILL.md
+.agents/skills/tenn-fix/SKILL.md
+.agents/skills/tenn-git-guard/SKILL.md
+.agents/skills/tenn-goal-report/SKILL.md
+.agents/skills/tenn-handoff/SKILL.md
+.agents/skills/tenn-improve-codebase-architecture/SKILL.md
+.agents/skills/tenn-issue/SKILL.md
+.agents/skills/tenn-review-board/SKILL.md

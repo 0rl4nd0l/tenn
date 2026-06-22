@@ -1,6 +1,6 @@
 ---
 name: tenn-review-board
-description: Tenn multi-perspective review wrapper for issues, PRs, branches, reports, plans, and risky decisions. Produces BOARD.md, BOARD_DECISION.json, and NEXT_GOAL.md with an actionable decision.
+description: Tenn multi-perspective and contrarian review wrapper for issues, PRs, branches, reports, plans, and risky decisions. Produces BOARD.md, BOARD_DECISION.json, and NEXT_GOAL.md with an actionable decision.
 ---
 
 # Tenn Review Board
@@ -78,6 +78,28 @@ For metric, evaluation, daemon-status, pass-rate, or surprising-count decisions,
 the validation/test and domain perspectives must challenge denominator,
 freshness, filters, exclusions, and pipeline stage before the chair decides.
 
+## Zoom-Out / Contrarian Mode
+
+Use this mode for risky continuation decisions, broad repair sequencing, stale
+handoffs, extraction follow-through, or any situation where a narrow fix may be
+optimizing the wrong target.
+
+The board must explicitly answer:
+
+- Are we solving the real root problem?
+- Are we overfitting to one file, document, bug, screenshot, report, or worker
+  result?
+- Are we trapped in report-only loops?
+- Are we making broad system progress?
+- Would a failure-class, document-class, route-class, or workflow-class approach
+  be better than another narrow fix?
+- What is the best next action by production-readiness value?
+
+For financial extraction work, prefer failure classes, document classes,
+source-bound provenance, confidence scoring, breadth, and regression coverage
+over one-off PDF fixes. The chair must justify any one-document repair as the
+highest production-readiness value before choosing `proceed`.
+
 ## Outputs
 
 Write:
@@ -100,6 +122,9 @@ decision and must convert opinions into `BOARD_DECISION.json`.
 `BOARD_DECISION.json` must include ledger fields: `ledger_sources_checked`,
 `duplicate_work_classification`, `matching_candidates`, and
 `duplicate_work_decision`.
+For zoom-out / contrarian mode, it must also include root-problem,
+overfitting, report-loop, broad-progress, class-based approach, and
+production-readiness-value fields.
 
 For `large` and `critical` decisions, `BOARD_DECISION.json` must also identify
 final decision authority and explain why lower-tier decision making was

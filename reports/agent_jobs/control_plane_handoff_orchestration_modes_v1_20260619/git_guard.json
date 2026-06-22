@@ -1,0 +1,37 @@
+{
+  "worktree": "/home/l4nd0/tenn-control-plane-handoff-orchestration-modes-v1-20260619",
+  "branch": "control-plane/handoff-orchestration-modes-v1-20260619",
+  "head": "f44803bba049ea1d2cfe9341b0f9af4379736bdf",
+  "upstream": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "base": "origin/migration/clean-runtime-baseline-reconstruct-v1",
+  "merge_base": "f44803bba049ea1d2cfe9341b0f9af4379736bdf",
+  "dirty_state_at_preflight": "clean",
+  "registry": {
+    "ok": true,
+    "read_only": true,
+    "active_jobs": [],
+    "registry_root": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry"
+  },
+  "ledger_sources_checked": [
+    {
+      "kind": "live",
+      "path": "/mnt/sdb2/home/l4nd0/tenn/.git/tenn-agent-registry/task-ledger.jsonl",
+      "exists": true,
+      "entry_count": 8
+    },
+    {
+      "kind": "committed",
+      "path": "docs/agent_registry/task_ledger/LEDGER.jsonl",
+      "exists": true,
+      "entry_count": 0
+    }
+  ],
+  "duplicate_work_classification": "SUPERSEDED_IGNORE for prior merged ledger/handoff and skill-surface work; proceed as new narrow refinement",
+  "matching_candidates": [
+    "PR #375 merged task ledger runtime and repo-native tenn-handoff",
+    "PR #378 merged visible skill-surface trim"
+  ],
+  "owner_decision_needed": false,
+  "docs_impact_status": "DOCS_UPDATED",
+  "decision": "pass"
+}

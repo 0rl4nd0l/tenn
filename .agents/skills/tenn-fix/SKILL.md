@@ -6,7 +6,7 @@ description: Tenn bounded implementation orchestrator. Reads issue or board arti
 # Tenn Fix
 
 Use `tenn-fix` when Orlando asks for implementation after an issue packet,
-board decision, task card, or explicit fix request.
+board decision, task card, handoff, or explicit fix request.
 
 `tenn-fix` is an orchestrator. It owns scope, validation, review, and closeout.
 
@@ -57,6 +57,36 @@ board decision, task card, or explicit fix request.
 17. Prepare, push, or open a PR only when the task and owner approval permit it.
 18. When stopping before completion, run or follow `tenn-handoff` so the next
     session has git state, ledger state, validation, and a short next `/goal`.
+
+## Fresh-Session Orchestrator Mode
+
+Use this mode when a fresh Codex session is asked to continue from a
+`HANDOFF.md`, problem statement, long repair, review-board decision, or worker
+batch.
+
+1. Read the handoff/problem statement first. Do not rely on chat memory when a
+   report-local artifact exists.
+2. Run `tenn-git-guard`, task-card validation, ledger validation, active
+   registry read-only check, and duplicate-work search before editing.
+3. Reconstruct the real objective, hard boundaries, relevant artifacts, failed
+   attempts, known risks, and owner decisions from the handoff.
+4. Break the work into independent lanes. Keep coupled work in the main
+   orchestrator lane instead of delegating it.
+5. Delegate only when lanes are independent and the task card can give each
+   worker exact allowed files, decision limit, result path, and stop condition.
+6. Each worker brief must name lane, worktree, branch, task card, allowed
+   files, validation expected, result path, decision limit, and stop condition.
+7. Workers may gather evidence, recommend, bid strategy, or perform bounded
+   implementation only inside their explicit lane. Small/cheap workers must not
+   make final high-risk, owner-boundary, financial-truth, merge, cleanup, or
+   destructive decisions.
+8. Review every worker output before integration. Record accepted, revised,
+   parked, discarded, or owner-decision-needed status.
+9. Integrate one coherent change at a time. Re-run the focused validation for
+   the integrated change before moving to the next lane.
+10. Stop and write `tenn-handoff` when the next meaningful step needs owner
+    approval, unsafe path expansion, GitHub mutation not covered by the task
+    card, product/runtime/data/extraction access, or unresolved `DATA_MISSING`.
 
 ## Docs Impact Check
 
@@ -117,6 +147,9 @@ workers propose compact plans, then the orchestrator selects one based on
 testability, blast radius, value, and cost. Delegate subagents only when lanes
 are independent and can be isolated by worktree, branch, result file, and
 task-card allowlist.
+
+The orchestrator, not the worker, owns final scope, integration, validation,
+PR readiness, owner-boundary escalation, and closeout.
 
 ## Validation Environment Autonomy
 

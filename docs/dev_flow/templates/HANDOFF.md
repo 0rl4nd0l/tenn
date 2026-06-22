@@ -60,6 +60,25 @@
 
 - <path or none>
 
+## Relevant artifact map
+
+- report_bundles:
+  - <path or none>
+- review_boards:
+  - <BOARD.md / BOARD_DECISION.json / NEXT_GOAL.md path or none>
+- worker_results:
+  - <WORKER_RESULT.md path or none>
+- task_cards:
+  - <path or none>
+- validation_artifacts:
+  - <path or command log or none>
+- failed_attempts:
+  - <path or short description or none>
+- related_handoffs:
+  - <HANDOFF.md path or none>
+- PRs/issues:
+  - <PR/issue URL or none>
+
 ## Git status and dirt
 
 - <tracked dirt, untracked dirt, ignored generated files, or clean>
@@ -113,18 +132,26 @@
 
 - <lesson or none>
 
-## Next 10 milestones
+## What the next session should do first
+
+<first command/read/check/action>
+
+## What not to touch
+
+- <path, PR, issue, runtime, data, branch, or workflow boundary>
+
+## Next 5-10 key milestones
 
 1. <next milestone>
 2. <next milestone>
 3. <next milestone>
 4. <next milestone>
 5. <next milestone>
-6. <next milestone>
-7. <next milestone>
-8. <next milestone>
-9. <next milestone>
-10. <next milestone>
+6. <optional milestone>
+7. <optional milestone>
+8. <optional milestone>
+9. <optional milestone>
+10. <optional milestone>
 
 ## Next Action
 
@@ -132,7 +159,9 @@
 
 ## Short next `/goal`
 
-<copy-pasteable next goal prompt or none>
+<copy-pasteable handoff continuation prompt. Use
+docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md, not the shared generic
+NEXT_GOAL.md, when this handoff emits a fresh-session continuation prompt.>
 
 ## Do-not-touch boundaries
 
