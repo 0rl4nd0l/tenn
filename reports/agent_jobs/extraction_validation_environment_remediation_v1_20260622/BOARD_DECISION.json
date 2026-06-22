@@ -1,0 +1,52 @@
+{
+  "artifact_type": "tenn_review_board_decision_v1",
+  "job_id": "extraction_validation_environment_remediation_v1_20260622",
+  "decision": "proceed",
+  "task_tier": "large",
+  "recommended_model": "high reasoning",
+  "actual_model": "Codex GPT-5",
+  "why_this_model": "The change affects validation closeout semantics for Financial Truth extraction work and must preserve no-write safety.",
+  "worker_model_allowed": false,
+  "worker_decision_limit": "No worker delegation; orchestrator owns implementation, validation, and PR update.",
+  "escalation_needed": false,
+  "final_decision_authority": "orchestrator under user-approved remediation request",
+  "lower_tier_insufficient_reason": "The decision spans pytest environment autonomy, no-write replay timeout semantics, task-card gates, and PR closeout risk.",
+  "ledger_sources_checked": [
+    "python3 scripts/agent_task_ledger.py resolve-path",
+    "python3 scripts/agent_task_ledger.py validate",
+    "python3 scripts/agent_task_ledger.py search --text pytest validation environment",
+    "task-card fallback search",
+    "report fallback search",
+    "branch/worktree fallback search",
+    "GitHub PR/issue fallback search"
+  ],
+  "duplicate_work_classification": "DATA_MISSING_FALLBACK_CLEAN",
+  "matching_candidates": [
+    {
+      "type": "prior_guidance",
+      "id": "validation_environment_autonomy_skill_update_v1_20260617",
+      "decision": "use_as_policy_not_duplicate_implementation"
+    },
+    {
+      "type": "active_pr",
+      "id": "PR #384",
+      "decision": "continue_active_branch"
+    }
+  ],
+  "duplicate_work_decision": "continue_current_pr_branch",
+  "minority_objection": "A default replay timeout could mask slow but valid broad replays if reported as success.",
+  "minority_objection_resolution": "Timeouts are configurable, logged, included in artifacts, and classified as infrastructure DATA_MISSING rather than PASS.",
+  "root_problem": "Validation closeout lacked a repo-native pytest fallback and no-write replay runs could hang without structured terminal artifacts.",
+  "overfitting": "Not a JAY-only fix; the remediation targets validation workflow classes: pytest availability and bounded replay execution.",
+  "report_loop": "Avoided by implementing executable guardrails rather than only documenting the failure.",
+  "broad_progress": "Improves future extraction validation reliability across focused tests and certified no-write replays.",
+  "class_based_approach": "Validation-environment class plus replay-timeout class.",
+  "production_readiness_value": "High: future agents get deterministic commands and bounded failure artifacts without production writes.",
+  "selected_actions": [
+    "Add scripts/run_pytest_with_fallback.py",
+    "Add tests for the pytest fallback runner",
+    "Add configurable per-case timeout to scripts/extraction_no_write_replay.py",
+    "Classify replay case timeout as infrastructure DATA_MISSING",
+    "Document the validation command in docs/validation_baseline.md"
+  ]
+}

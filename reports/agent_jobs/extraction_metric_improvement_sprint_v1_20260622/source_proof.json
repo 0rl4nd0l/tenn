@@ -1,0 +1,44 @@
+{
+  "artifact_type": "extraction_metric_improvement_source_proof_v1",
+  "job_id": "extraction_metric_improvement_sprint_v1_20260622",
+  "jay": {
+    "decision": "integrated",
+    "primary_case": {
+      "case_id": "JAY_Q3FY23_MARKET_UPDATE",
+      "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+      "source_row": "Q3 FY23",
+      "source_label": "Net Revenue",
+      "source_value_text": "$1,152K",
+      "canonical_metric": "revenue",
+      "canonical_value": 1152000,
+      "period_type": "Q",
+      "period_end": "2023-03-31"
+    },
+    "pairing_case": {
+      "case_id": "JAY_Q4FY23_MARKET_UPDATE_PAIR",
+      "document_id": "e2149cbc-e031-4e20-8110-597b5c9d7d8e",
+      "source_row": "Q4 FY23",
+      "source_label": "Net Revenue",
+      "source_value_text": "$1,546K",
+      "canonical_metric": "revenue",
+      "canonical_value": 1546000,
+      "period_type": "Q",
+      "period_end": "2023-06-30",
+      "excluded_row": "FY23 annual Net Revenue $5,085K"
+    },
+    "non_inference_policy": [
+      "no cash-flow metrics inferred",
+      "no profit metrics inferred",
+      "no balance-sheet metrics inferred",
+      "no annual FY23 metric inferred from the Q4 pairing document"
+    ]
+  },
+  "dxc": {
+    "decision": "NO_FIX_PROVEN",
+    "reason": "Net operating income is not safe canonical EBIT for the DXC source because finance costs are separate and no explicit EBIT row was found."
+  },
+  "whc": {
+    "decision": "REPORT_ONLY",
+    "reason": "Exact source-scale proof supports only the existing opt-in/openability path, not a broad scale repair."
+  }
+}

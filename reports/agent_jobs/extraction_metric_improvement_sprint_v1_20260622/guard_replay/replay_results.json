@@ -1,0 +1,8 @@
+{
+  "artifact_type": "extraction_no_write_replay_results_v1",
+  "case_count": 5,
+  "llm_info": {},
+  "profile": "docling-no-write",
+  "results": [],
+  "status": "PASS"
+}

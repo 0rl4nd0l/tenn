@@ -85,6 +85,7 @@ SOURCE_PRIORITY = [
     "net_debt_note",
     "balance_sheet",
     "share_capital",
+    "market_update_table",
     "highlights",
 ]
 
@@ -121,6 +122,9 @@ _ACCOUNTING_NUMBER_RE = re.compile(
     r"\s*(?P<suffix>k|thousands?|mn|m|millions?|bn|b|billions?|tn|t|trillions?)?$",
     re.IGNORECASE,
 )
+
+_MARKET_UPDATE_HINT_RE = re.compile(r"\bmarket\s+update\b", re.IGNORECASE)
+_MARKET_UPDATE_NET_REVENUE_LABELS = {"netrevenue", "netrev"}
 
 SOURCE_DOCUMENT_CLASS_DEFINITIONS = {
     "financial_report": (
@@ -2181,6 +2185,163 @@ def _run_pass3a_metric_extractor(
                 results.append(out)
 
     return results
+
+
+def _market_update_period_quarter_label(period_end: Any) -> str | None:
+    """Return the Australian FY quarter label implied by a quarter period end."""
+    parsed = parse_period_end(str(period_end or ""))
+    if parsed is None:
+        return None
+    quarter_by_month = {9: 1, 12: 2, 3: 3, 6: 4}
+    quarter = quarter_by_month.get(parsed.month)
+    if quarter is None:
+        return None
+    financial_year = parsed.year + 1 if parsed.month in {9, 12} else parsed.year
+    return f"Q{quarter} FY{financial_year % 100:02d}"
+
+
+def _market_update_context_text(title: Any, sections: list[dict] | None) -> str:
+    section_text = " ".join(
+        str(section.get("text") or "")
+        for section in (sections or [])[:8]
+        if isinstance(section, dict)
+    )
+    return f"{title or ''} {section_text}"
+
+
+def _is_quarterly_market_update_context(
+    *,
+    title: Any,
+    sections: list[dict] | None,
+    pass1_result: dict,
+) -> tuple[bool, str | None]:
+    if pass1_result.get("report_type") != "Q":
+        return False, None
+    quarter_label = _market_update_period_quarter_label(pass1_result.get("period_end"))
+    if not quarter_label:
+        return False, None
+    context = _market_update_context_text(title, sections)
+    normalized = _normalize_filter_text(context)
+    if not _MARKET_UPDATE_HINT_RE.search(context):
+        return False, None
+    if _normalize_filter_text(quarter_label) not in normalized:
+        return False, None
+    return True, quarter_label
+
+
+def _market_update_net_revenue_column(row: Any) -> int | None:
+    if not isinstance(row, (list, tuple)):
+        return None
+    for index, cell in enumerate(row):
+        compact = _normalize_filter_text(cell)
+        if compact in _MARKET_UPDATE_NET_REVENUE_LABELS:
+            return index
+    return None
+
+
+def _source_scale_from_value_text(
+    raw_value: Any,
+    *,
+    fallback_scale: Any,
+    has_explicit_unit: bool,
+) -> tuple[str, str] | None:
+    if has_explicit_unit:
+        compact = _normalize_filter_text(raw_value)
+        if compact.endswith("k") or "thousand" in compact:
+            return "thousands", "explicit_value_suffix"
+        if compact.endswith(("m", "mn")) or "million" in compact:
+            return "millions", "explicit_value_suffix"
+        if compact.endswith(("b", "bn")) or "billion" in compact:
+            return "billions", "explicit_value_suffix"
+        if compact.endswith(("t", "tn")) or "trillion" in compact:
+            return "trillions", "explicit_value_suffix"
+    scale = str(fallback_scale or "unknown").strip()
+    if scale and scale != "unknown" and scale in SCALE_MULTIPLIERS:
+        return scale, "document"
+    return None
+
+
+def _extract_market_update_net_revenue_candidate(
+    tables: Any,
+    *,
+    sections: list[dict] | None,
+    pass1_result: dict,
+    title: Any,
+) -> dict[str, Any] | None:
+    """
+    Recover source-bound Net Revenue from quarterly market-update tables only.
+
+    Market updates can disclose a current-quarter revenue table before a later
+    Appendix 4C or business review. This emits one revenue candidate when the
+    row label matches the current quarter and the column is explicitly Net
+    Revenue. It intentionally emits no cash-flow, profit, balance-sheet, or
+    annual metrics.
+    """
+    is_market_update, quarter_label = _is_quarterly_market_update_context(
+        title=title,
+        sections=sections,
+        pass1_result=pass1_result,
+    )
+    if not is_market_update or quarter_label is None:
+        return None
+    target_row_label = _normalize_filter_text(quarter_label)
+
+    for table in tables or []:
+        rows = getattr(table, "rows", None)
+        if not isinstance(rows, list) or not rows:
+            continue
+        for header_index, header_row in enumerate(rows[:4]):
+            net_revenue_col = _market_update_net_revenue_column(header_row)
+            if net_revenue_col is None:
+                continue
+            header_label = str(header_row[net_revenue_col] or "").strip()
+            for row in rows[header_index + 1 :]:
+                if not isinstance(row, (list, tuple)) or not row:
+                    continue
+                row_label = str(row[0] or "").strip()
+                if _normalize_filter_text(row_label) != target_row_label:
+                    continue
+                if net_revenue_col >= len(row):
+                    continue
+                raw_value = row[net_revenue_col]
+                parsed = _parse_accounting_metric_number(raw_value)
+                if parsed is None:
+                    continue
+                raw_number, has_explicit_unit = parsed
+                source_scale = _source_scale_from_value_text(
+                    raw_value,
+                    fallback_scale=pass1_result.get("scale", "unknown"),
+                    has_explicit_unit=has_explicit_unit,
+                )
+                if source_scale is None:
+                    continue
+                scale, scale_source = source_scale
+                multiplier = 1 if has_explicit_unit else SCALE_MULTIPLIERS[scale]
+                revenue_value = raw_number * multiplier
+                row_ref = f"{row_label} {header_label}".strip()
+                logger.info(
+                    "Recovered market-update Net Revenue from page %s row=%r value=%r scale=%s",
+                    getattr(table, "page_number", "?"),
+                    row_label,
+                    raw_value,
+                    scale,
+                )
+                return {
+                    "_source": "market_update_table",
+                    "_page_number": getattr(table, "page_number", None),
+                    "_scale": scale,
+                    "_scale_source": scale_source,
+                    "_thinking": (
+                        "Deterministic source-bound market update recovery: "
+                        f"{row_ref} = {raw_value}"
+                    ),
+                    "_markdown": _table_to_markdown(table, max_rows=30),
+                    "revenue": revenue_value,
+                    "row_refs": {"revenue": row_ref},
+                    "period_col": quarter_label,
+                    "pass3_confidence": 0.9,
+                }
+    return None
 
 
 def _table_to_markdown_truncated(table, max_rows: int = 20) -> str:
@@ -5267,6 +5428,14 @@ def run_multipass_extraction(
                 error_code="pass3a_failed",
             )
         raise
+    market_update_revenue = _extract_market_update_net_revenue_candidate(
+        structured_tables,
+        sections=structured_doc.sections,
+        pass1_result=pass1,
+        title=title,
+    )
+    if market_update_revenue is not None:
+        pass3a_results.append(market_update_revenue)
     if debug_capture is not None:
         debug_capture["pass3a_results"] = json.loads(json.dumps(pass3a_results))
     if observer is not None:

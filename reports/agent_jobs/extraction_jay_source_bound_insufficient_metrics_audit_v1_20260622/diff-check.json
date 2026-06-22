@@ -1,0 +1,92 @@
+{
+  "changed_files": [
+    {
+      "path": "docs/agent_tasks/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/DECISIONS.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/JAY_SOURCE_AUDIT.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/NEXT_GOAL.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/TASK_CARD.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/diff-check.json",
+      "status": "AM"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/jay_source_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/validation.json",
+      "status": "A"
+    }
+  ],
+  "disallowed_files": [],
+  "issues": [],
+  "ok": true,
+  "report_path": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/diff-check.json",
+  "validation": {
+    "issues": [],
+    "metadata": {
+      "actual_model": "Codex GPT-5",
+      "allow_unapproved_safe_extension": true,
+      "allowed_files": [
+        "docs/agent_tasks/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622.md",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/TASK_CARD.md",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/STATE.md",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/DECISIONS.md",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/JAY_SOURCE_AUDIT.md",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/jay_source_audit.json",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/NEXT_GOAL.md",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/validation.json",
+        "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622/diff-check.json"
+      ],
+      "approval_required": false,
+      "docs_changed": [],
+      "docs_checked": [
+        "reports/agent_jobs/extraction_continuation_review_board_handoff_v1_20260622/handoff/HANDOFF.md",
+        "reports/agent_jobs/extraction_continuation_review_board_handoff_v1_20260622/BOARD_DECISION.json",
+        "reports/agent_jobs/extraction_residual_after_hub_replay_refresh_v1_20260621/residual_after_hub_replay.json"
+      ],
+      "docs_followup": "NONE",
+      "docs_impact": "DOCS_NOT_REQUIRED",
+      "escalation_needed": false,
+      "github_mutation_allowed": false,
+      "job_id": "extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622",
+      "lane": "Financial Truth",
+      "mutation_mode": "safe_extension",
+      "output_dir": "reports/agent_jobs/extraction_jay_source_bound_insufficient_metrics_audit_v1_20260622",
+      "owner": "Codex",
+      "production_data_access": false,
+      "reason": "Board-approved report-only audit for the JAY validation_gate:insufficient_metrics:0 singleton before any product-code or source-data work.",
+      "recommended_model": "standard coding model",
+      "supporting_lanes": [
+        "Evaluation",
+        "Provenance",
+        "Reporting"
+      ],
+      "task_tier": "small",
+      "timeout_seconds": 7200,
+      "why_this_model": "Report-only source-bound classification and duplicate-work guard; no product implementation.",
+      "worker_decision_limit": "orchestrator_only",
+      "worker_model_allowed": false
+    },
+    "ok": true
+  }
+}
