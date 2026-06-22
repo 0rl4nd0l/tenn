@@ -1,0 +1,122 @@
+{
+  "cache_root": "/tmp/tenn-extraction-no-write-replay-hy_07s51/reports/extraction_cache/docling_extract",
+  "cache_root_isolated": true,
+  "cache_root_verification_mode": "docling_extract",
+  "data_root": "/tmp/tenn-extraction-no-write-replay-hy_07s51",
+  "llm_base_url": "http://127.0.0.1:8001",
+  "manifest_path": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/data/extraction_no_write_cases/whc_edu_mixed_unit_cases_v1.json",
+  "manifest_sha256": "b361fc21769735b714106ceed3d667fcd7547f52ebdd5174f263b3fb7342db73",
+  "profile": "docling-no-write",
+  "profile_info": {
+    "approved_candidates": [
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python3",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/.venv/bin/python3"
+    ],
+    "current_python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+    "current_python_is_selected": true,
+    "docling": {
+      "available": true,
+      "python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+      "version": "unknown"
+    },
+    "profile": "docling-no-write",
+    "reexeced": true,
+    "requested_venv_python": "financial-engine_v2/.venv/bin/python",
+    "selected_executable": true,
+    "selected_exists": true,
+    "selected_venv_python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python"
+  },
+  "safe_env": {
+    "ANTHROPIC_API_KEY": "",
+    "AUTO_CREATE_TABLES": "false",
+    "CELERY_BROKER_URL": "memory://tenn-no-write",
+    "CELERY_RESULT_BACKEND": "cache+memory://",
+    "DATABASE_URL": "sqlite:///:memory:",
+    "DATA_ROOT": "/tmp/tenn-extraction-no-write-replay-hy_07s51",
+    "ENABLE_EMBEDDINGS": "false",
+    "ENABLE_EMBEDDING_CACHE": "false",
+    "ENABLE_IMPORTANCE_CLASSIFICATION": "false",
+    "ENABLE_MARKETINDEX_FALLBACK": "false",
+    "ENABLE_QDRANT": "false",
+    "ENABLE_SESSION_MEMORY": "false",
+    "EXTRACTION_LLAMACPP_URL": "http://127.0.0.1:8001",
+    "EXTRACTION_PARALLEL": "0",
+    "EXTRACTION_SKIP_NARRATIVE": "1",
+    "EXTRACT_MODEL": "model:qwen2.5-14b-instruct",
+    "HOME": "/tmp/tenn-extraction-no-write-replay-hy_07s51/home",
+    "IMPORTANCE_MATERIALIZE_OUTPUT": "false",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_API_KEY": "<redacted>",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "MODEL_ROUTING_CONFIG": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/backend/app/config/model_routing.yaml",
+    "OLLAMA_URL": "http://127.0.0.1:11434",
+    "OPENAI_API_KEY": "",
+    "OPENBB_SIDECAR_ENABLE_STAGING_WRITES": "false",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONNOUSERSITE": "1",
+    "REDIS_URL": "memory://tenn-no-write",
+    "ROUTER_FEEDBACK_ENABLED": "false",
+    "TASK_MODE": "sync",
+    "TENN_EXTRACTION_ACTIVE_FILE": "/tmp/tenn-extraction-no-write-replay-hy_07s51/runtime/extraction_active.json",
+    "TMPDIR": "/tmp/tenn-extraction-no-write-replay-hy_07s51/tmp",
+    "XDG_CACHE_HOME": "/tmp/tenn-extraction-no-write-replay-hy_07s51/xdg/cache",
+    "XDG_CONFIG_HOME": "/tmp/tenn-extraction-no-write-replay-hy_07s51/xdg/config",
+    "XDG_STATE_HOME": "/tmp/tenn-extraction-no-write-replay-hy_07s51/xdg/state"
+  },
+  "selected_cases": [
+    {
+      "case_id": "WHC_2023_MIXED_UNIT",
+      "document_id": "0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd",
+      "expected_error_family": "validation_gate:accepted_output_scale_magnitude_risk",
+      "expected_period_end": "2023-06-30",
+      "expected_period_type": "A",
+      "expected_status": "failed",
+      "parser_backend": "docling",
+      "role": "accepted_output_mixed_unit_reconciliation_guard",
+      "skip_narrative": true,
+      "source_bound_unit_evidence": [
+        "Page 18 cash-flow/capital-management material is labelled $ million.",
+        "Page 54 income-statement material is labelled $'000."
+      ],
+      "source_bound_unit_family": "mixed_unit_surface",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "source_path_candidates": [
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf"
+      ],
+      "source_path_original": "asx/docs/WHC/financial_performance/2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf",
+      "strict_parser": true,
+      "ticker": "WHC",
+      "title": "2023-08-24_fy23-appendix-4e-and-annual-financial-report_0be5515d-6e8b-4c1f-9e20-e5d1ec67acdd.pdf"
+    },
+    {
+      "case_id": "EDU_2023_MIXED_UNIT",
+      "document_id": "ac3c9ab0-e01a-4996-95f9-6466388ddc9c",
+      "expected_error_family": "validation_gate:accepted_output_scale_magnitude_risk",
+      "expected_period_end": "2023-12-31",
+      "expected_period_type": "A",
+      "expected_status": "failed",
+      "parser_backend": "docling",
+      "role": "accepted_output_mixed_unit_reconciliation_guard",
+      "skip_narrative": true,
+      "source_bound_unit_evidence": [
+        "Page 23 revenue summary material is labelled $'000.",
+        "Page 53 cash-flow statement material is labelled $."
+      ],
+      "source_bound_unit_family": "mixed_unit_surface",
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "source_path_candidates": [
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf"
+      ],
+      "source_path_original": "asx/docs/EDU/financial_performance/2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf",
+      "strict_parser": true,
+      "ticker": "EDU",
+      "title": "2024-02-27_2023-annual-report_ac3c9ab0-e01a-4996-95f9-6466388ddc9c.pdf"
+    }
+  ]
+}

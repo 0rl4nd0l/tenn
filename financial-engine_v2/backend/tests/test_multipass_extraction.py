@@ -2975,6 +2975,186 @@ def test_pass3a_expands_bank_total_operating_income_row_refs_without_overwriting
     }
 
 
+def test_market_update_net_revenue_candidate_passes_quarterly_gate():
+    """JAY-style market updates can recover only current-quarter Net Revenue."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        METRIC_FIELDS,
+        _common_metric_source_scale,
+        _extract_market_update_net_revenue_candidate,
+        _run_pass4_reconciler,
+        _validate_gate,
+    )
+
+    table = DoclingTable(
+        page_number=2,
+        caption="Q3 Trips and revenues",
+        headers=[
+            "Quarter",
+            "Trips",
+            "Revenue Booked",
+            "Revenue Refunded",
+            "Refund Rate %",
+            "Net Revenue",
+            "Net Rev / Trip",
+            "Net Rev V PCP",
+        ],
+        rows=[
+            [
+                "Quarter",
+                "Trips",
+                "Revenue Booked",
+                "Revenue Refunded",
+                "Refund Rate %",
+                "Net Revenue",
+                "Net Rev / Trip",
+                "Net Rev V PCP",
+            ],
+            ["Q2 FY23", "153K", "$1,394K", "$(259)K", "19%", "$1,134K", "$7.40", "+186%"],
+            ["Q3 FY23", "153K", "$1,403K", "$(251)K", "18%", "$1,152K", "$7.57", "+97%"],
+        ],
+    )
+    pass1 = {
+        "report_type": "Q",
+        "period_end": "2023-03-31",
+        "scale": "thousands",
+        "currency": "AUD",
+    }
+
+    candidate = _extract_market_update_net_revenue_candidate(
+        [table],
+        sections=[{"page": 1, "text": "Q3 FY23 Market Update"}],
+        pass1_result=pass1,
+        title="Q3 FY23 update",
+    )
+
+    assert candidate is not None
+    assert candidate["revenue"] == 1_152_000
+    assert candidate["row_refs"] == {"revenue": "Q3 FY23 Net Revenue"}
+    assert [
+        metric for metric in METRIC_FIELDS if candidate.get(metric) is not None
+    ] == ["revenue"]
+
+    payload = _run_pass4_reconciler(
+        [candidate],
+        {
+            "risk_summary": None,
+            "risk_bullets": None,
+            "guidance_summary": None,
+            "material_changes": None,
+            "confidence_narrative": 0.0,
+        },
+        pass1,
+    )
+    payload["scale"] = _common_metric_source_scale(payload, pass1["scale"])
+    payload["currency"] = "AUD"
+
+    status, error = _validate_gate(payload)
+
+    assert status == "ok"
+    assert error is None
+    assert payload["metrics"]["revenue"] == 1_152_000
+    assert payload["metrics"]["operating_cf"] is None
+    assert payload["metrics"]["np_attributable"] is None
+
+
+def test_market_update_net_revenue_candidate_uses_q4_not_fy_row():
+    """A Q4 market update with FY rows must bind to Q4, not annual revenue."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _extract_market_update_net_revenue_candidate,
+    )
+
+    table = DoclingTable(
+        page_number=2,
+        caption="Q4 trips and revenues",
+        headers=[
+            "Quarter",
+            "Trips",
+            "Revenue Booked",
+            "Revenue Refunded",
+            "Refund Rate %",
+            "Net Revenue",
+            "Net Rev / Trip",
+            "Net Rev V PCP",
+        ],
+        rows=[
+            [
+                "Quarter",
+                "Trips",
+                "Revenue Booked",
+                "Revenue Refunded",
+                "Refund Rate %",
+                "Net Revenue",
+                "Net Rev / Trip",
+                "Net Rev V PCP",
+            ],
+            ["Q4 FY23", "199K", "$1,893K", "$(347)K", "18%", "$1,546K", "$7.77", "+42%"],
+            ["FY23", "646K", "$6,253K", "$(1,167)K", "19%", "$5,085K", "$7.87", "+99%"],
+        ],
+    )
+
+    candidate = _extract_market_update_net_revenue_candidate(
+        [table],
+        sections=[{"page": 1, "text": "Q4 FY23 Market Update"}],
+        pass1_result={
+            "report_type": "Q",
+            "period_end": "2023-06-30",
+            "scale": "thousands",
+            "currency": "AUD",
+        },
+        title="Q4 FY23 market update",
+    )
+
+    assert candidate is not None
+    assert candidate["revenue"] == 1_546_000
+    assert candidate["row_refs"] == {"revenue": "Q4 FY23 Net Revenue"}
+
+
+def test_market_update_net_revenue_candidate_abstains_outside_quarterly_context():
+    """The fallback must not turn annual rows or non-market updates into revenue."""
+    from app.services.docling_extract import DoclingTable
+    from app.services.multipass_extraction import (
+        _extract_market_update_net_revenue_candidate,
+    )
+
+    table = DoclingTable(
+        page_number=2,
+        caption="FY23 headline unaudited trips and revenues",
+        headers=["Year", "Trips", "Net Revenue"],
+        rows=[
+            ["Year", "Trips", "Net Revenue"],
+            ["FY23", "646K", "$5,085K"],
+        ],
+    )
+
+    annual_candidate = _extract_market_update_net_revenue_candidate(
+        [table],
+        sections=[{"page": 1, "text": "Q4 FY23 Market Update"}],
+        pass1_result={
+            "report_type": "A",
+            "period_end": "2023-06-30",
+            "scale": "thousands",
+            "currency": "AUD",
+        },
+        title="Q4 FY23 market update",
+    )
+    non_market_update_candidate = _extract_market_update_net_revenue_candidate(
+        [table],
+        sections=[{"page": 1, "text": "Q4 FY23 Results"}],
+        pass1_result={
+            "report_type": "Q",
+            "period_end": "2023-06-30",
+            "scale": "thousands",
+            "currency": "AUD",
+        },
+        title="Q4 FY23 results",
+    )
+
+    assert annual_candidate is None
+    assert non_market_update_candidate is None
+
+
 def test_pass4_common_metric_source_scale_overrides_document_scale():
     """A common table-local source scale should become the reconciled payload scale."""
     from app.services.multipass_extraction import (

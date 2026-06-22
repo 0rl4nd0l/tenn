@@ -1,8 +1,148 @@
 {
   "changed_files": [
     {
-      "path": "docs/agent_tasks/extraction_metric_improvement_sprint_v1_20260622.md",
-      "status": "??"
+      "path": "financial-engine_v2/backend/app/services/multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/backend/tests/test_multipass_extraction.py",
+      "status": "M"
+    },
+    {
+      "path": "financial-engine_v2/data/extraction_no_write_cases/jay_market_update_cases_v1.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/CODE_REVIEW.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/DECISIONS.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/NEXT_GOAL.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/STATE.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/TASK_CARD.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/WORKER_A_JAY.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/WORKER_B_DXC.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/WORKER_C_WHC.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/WORKER_D_REGRESSION.md",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/diff-check.json",
+      "status": "M"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/guard_replay/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/guard_replay/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/guard_replay/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/guard_replay/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/guard_replay/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_post_fix_replay/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_post_fix_replay/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_post_fix_replay/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_post_fix_replay/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_post_fix_replay/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_pre_fix_replay/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_pre_fix_replay/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_pre_fix_replay/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_pre_fix_replay/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/jay_pre_fix_replay/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/post_fix_matrix.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/source_proof.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/validation.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/whc_edu_replay/input_manifest.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/whc_edu_replay/logs/replay.log",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/whc_edu_replay/replay_results.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/whc_edu_replay/side_effect_audit.json",
+      "status": "A"
+    },
+    {
+      "path": "reports/agent_jobs/extraction_metric_improvement_sprint_v1_20260622/whc_edu_replay/validation.json",
+      "status": "A"
     }
   ],
   "disallowed_files": [],

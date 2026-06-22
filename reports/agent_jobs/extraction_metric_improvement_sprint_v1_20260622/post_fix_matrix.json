@@ -1,0 +1,51 @@
+{
+  "artifact_type": "extraction_metric_improvement_post_fix_matrix_v1",
+  "job_id": "extraction_metric_improvement_sprint_v1_20260622",
+  "rows": [
+    {
+      "case_id": "JAY_Q3FY23_MARKET_UPDATE",
+      "pre_fix_status": "failed",
+      "pre_fix_error": "validation_gate:insufficient_metrics:0",
+      "post_fix_status": "ok",
+      "post_fix_error": null,
+      "post_fix_non_null_metrics": {
+        "revenue": 1152000.0
+      },
+      "post_fix_row_refs": {
+        "revenue": "Q3 FY23 Net Revenue"
+      }
+    },
+    {
+      "case_id": "JAY_Q4FY23_MARKET_UPDATE_PAIR",
+      "pre_fix_status": "failed",
+      "pre_fix_error": "validation_gate:scale_unknown",
+      "post_fix_status": "ok",
+      "post_fix_error": null,
+      "post_fix_non_null_metrics": {
+        "revenue": 1546000.0
+      },
+      "post_fix_row_refs": {
+        "revenue": "Q4 FY23 Net Revenue"
+      }
+    },
+    {
+      "case_id": "DXC_FY25_RESULTS_PRESENTATION",
+      "pre_fix_status": "failed",
+      "pre_fix_error": "validation_gate:metric_label_mismatch:ebit:net_operating_income",
+      "post_fix_status": "unchanged",
+      "decision": "NO_FIX_PROVEN"
+    },
+    {
+      "case_id": "WHC_FY22_ANNUAL_REPORT",
+      "pre_fix_status": "validation_gate:scale_unknown on broad/default path",
+      "post_fix_status": "unchanged",
+      "decision": "REPORT_ONLY_OPT_IN_OPENABILITY_PROOF_ONLY"
+    }
+  ],
+  "summary": {
+    "integrated_product_fixes": 1,
+    "parked_no_fix_proven": 1,
+    "report_only_no_broad_repair": 1,
+    "known_validation_risk": "Full broader guard and WHC/EDU runtime replays did not complete under local Docling/LLM runtime; preflights passed."
+  }
+}

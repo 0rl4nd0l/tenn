@@ -1,0 +1,124 @@
+{
+  "cache_root": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/reports/extraction_cache/docling_extract",
+  "cache_root_isolated": true,
+  "cache_root_verification_mode": "docling_extract",
+  "data_root": "/tmp/tenn-extraction-no-write-replay-lwfstwrm",
+  "llm_base_url": "http://127.0.0.1:8001",
+  "manifest_path": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/data/extraction_no_write_cases/jay_market_update_cases_v1.json",
+  "manifest_sha256": "0dc40346491067a86b373dd0d0a21b79d083a1fc4f17e9b79f8a282d3997316b",
+  "profile": "docling-no-write",
+  "profile_info": {
+    "approved_candidates": [
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python3",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/.venv/bin/python",
+      "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/.venv/bin/python3"
+    ],
+    "current_python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+    "current_python_is_selected": true,
+    "docling": {
+      "available": true,
+      "python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python",
+      "version": "unknown"
+    },
+    "profile": "docling-no-write",
+    "reexeced": true,
+    "requested_venv_python": "financial-engine_v2/.venv/bin/python",
+    "selected_executable": true,
+    "selected_exists": true,
+    "selected_venv_python": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/.venv/bin/python"
+  },
+  "safe_env": {
+    "ANTHROPIC_API_KEY": "",
+    "AUTO_CREATE_TABLES": "false",
+    "CELERY_BROKER_URL": "memory://tenn-no-write",
+    "CELERY_RESULT_BACKEND": "cache+memory://",
+    "DATABASE_URL": "sqlite:///:memory:",
+    "DATA_ROOT": "/tmp/tenn-extraction-no-write-replay-lwfstwrm",
+    "ENABLE_EMBEDDINGS": "false",
+    "ENABLE_EMBEDDING_CACHE": "false",
+    "ENABLE_IMPORTANCE_CLASSIFICATION": "false",
+    "ENABLE_MARKETINDEX_FALLBACK": "false",
+    "ENABLE_QDRANT": "false",
+    "ENABLE_SESSION_MEMORY": "false",
+    "EXTRACTION_LLAMACPP_URL": "http://127.0.0.1:8001",
+    "EXTRACTION_PARALLEL": "0",
+    "EXTRACTION_SKIP_NARRATIVE": "1",
+    "EXTRACT_MODEL": "model:qwen2.5-14b-instruct",
+    "HOME": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/home",
+    "IMPORTANCE_MATERIALIZE_OUTPUT": "false",
+    "LLAMACPP_URL": "http://127.0.0.1:8001",
+    "LLM_API_KEY": "<redacted>",
+    "LLM_URL": "http://127.0.0.1:8001",
+    "MODEL_ROUTING_CONFIG": "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/backend/app/config/model_routing.yaml",
+    "OLLAMA_URL": "http://127.0.0.1:11434",
+    "OPENAI_API_KEY": "",
+    "OPENBB_SIDECAR_ENABLE_STAGING_WRITES": "false",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONNOUSERSITE": "1",
+    "REDIS_URL": "memory://tenn-no-write",
+    "ROUTER_FEEDBACK_ENABLED": "false",
+    "TASK_MODE": "sync",
+    "TENN_EXTRACTION_ACTIVE_FILE": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/runtime/extraction_active.json",
+    "TMPDIR": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/tmp",
+    "XDG_CACHE_HOME": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/xdg/cache",
+    "XDG_CONFIG_HOME": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/xdg/config",
+    "XDG_STATE_HOME": "/tmp/tenn-extraction-no-write-replay-lwfstwrm/xdg/state"
+  },
+  "selected_cases": [
+    {
+      "case_id": "JAY_Q3FY23_MARKET_UPDATE",
+      "document_id": "04438122-c607-4c53-bb41-2e3864c06479",
+      "expected_period_end": "2023-03-31",
+      "expected_period_type": "Q",
+      "expected_status": "ok",
+      "parser_backend": "docling",
+      "role": "market_update_net_revenue_guard",
+      "skip_narrative": true,
+      "source_bound_metric_policy": "recover_net_revenue_only",
+      "source_bound_revenue_label": "Net Revenue",
+      "source_bound_revenue_value": 1152000,
+      "source_bound_unit_evidence": [
+        "Page 2 Q3 FY23 row contains Net Revenue $1,152K.",
+        "The document says the later Q3 FY23 Quarterly Business Review and Appendix 4C will contain contribution profit and cash flow detail, so non-revenue metrics must not be inferred."
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "source_path_candidates": [
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf"
+      ],
+      "source_path_original": "asx/docs/JAY/financial_performance/2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf",
+      "strict_parser": true,
+      "ticker": "JAY",
+      "title": "2023-04-11_q3fy23-update-march-record-trips-and-revenues_04438122-c607-4c53-bb41-2e3864c06479.pdf"
+    },
+    {
+      "case_id": "JAY_Q4FY23_MARKET_UPDATE_PAIR",
+      "document_id": "e2149cbc-e031-4e20-8110-597b5c9d7d8e",
+      "expected_period_end": "2023-06-30",
+      "expected_period_type": "Q",
+      "expected_status": "ok",
+      "parser_backend": "docling",
+      "role": "market_update_net_revenue_pairing_guard",
+      "skip_narrative": true,
+      "source_bound_metric_policy": "recover_net_revenue_only",
+      "source_bound_revenue_label": "Net Revenue",
+      "source_bound_revenue_value": 1546000,
+      "source_bound_unit_evidence": [
+        "Page 2 Q4 FY23 row contains Net Revenue $1,546K.",
+        "Page 3 also contains FY23 headline unaudited trips and revenues; this guard is for the Q4 row only and must not infer cash-flow, profit, balance-sheet, or annual metrics."
+      ],
+      "source_path": "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf",
+      "source_path_candidates": [
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/asx/docs/JAY/financial_performance/2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf",
+        "/home/l4nd0/tenn-extraction-metric-improvement-sprint-v1-20260622/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf",
+        "/mnt/tenn-nvme2/tenn/financial-engine_v2/data/asx/docs/JAY/financial_performance/2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf"
+      ],
+      "source_path_original": "asx/docs/JAY/financial_performance/2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf",
+      "strict_parser": true,
+      "ticker": "JAY",
+      "title": "2023-07-07_q4-fy23-market-update-growth-in-fy23-of-99_e2149cbc-e031-4e20-8110-597b5c9d7d8e.pdf"
+    }
+  ]
+}
