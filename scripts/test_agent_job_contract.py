@@ -535,11 +535,62 @@ def test_check_report_artifacts_runtime_data_missing_cannot_use_done(tmp_path) -
     assert any("non-WORKING Runtime Functionality Proof" in issue.message for issue in result.issues)
 
 
+def test_check_closeout_runtime_card_control_plane_mention_still_requires_proof(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(body="Runtime service repair for a control-plane status check."),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "allowed_files" for issue in result.issues)
+
+
+def test_check_closeout_runtime_card_negative_report_only_mention_still_requires_proof(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(body="Runtime service repair. This task is not report-only."),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "allowed_files" for issue in result.issues)
+
+
+def test_check_closeout_explicit_closeout_scope_metadata_is_exempt(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(
+            body="Runtime Functionality Proof control-plane closeout validator.",
+            closeout_scope="control_plane_only",
+        ),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert result.artifacts == []
+
+
+def test_check_closeout_explicit_closeout_scope_body_line_is_exempt(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(body="Closeout scope: report-only\n\nRuntime service investigation."),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert result.artifacts == []
+
+
 def test_check_closeout_docs_only_control_plane_task_is_exempt_without_report(tmp_path) -> None:
     repo = git_repo(tmp_path)
 
     result = ajc.check_closeout_for_task_card_markdown(
-        task_card(body="Docs-only control-plane note about Runtime Functionality Proof."),
+        task_card(body="Closeout scope: docs-only\n\nControl-plane note about Runtime Functionality Proof."),
         repo_root=repo,
     )
 

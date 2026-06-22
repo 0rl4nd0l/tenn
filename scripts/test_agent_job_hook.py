@@ -269,6 +269,25 @@ def test_stop_runtime_task_card_missing_closeout_proof_warns(tmp_path: Path) -> 
     assert "cannot use DONE" in str(payload["systemMessage"])
 
 
+def test_stop_runtime_task_card_control_plane_mention_still_warns(tmp_path: Path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "hook-runtime-job"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text("State: DONE\nOnly logs were checked.\n", encoding="utf-8")
+    task_card(
+        repo,
+        allowed_files=["reports/agent_jobs/hook-runtime-job/REPORT.md"],
+        job_id="hook-runtime-job",
+        body="Runtime service repair for a control-plane status check.",
+    )
+
+    completed, payload = run_hook(repo, env={"TENN_AGENT_TASK_CARD": "docs/agent_tasks/test-task.md"})
+
+    assert completed.returncode == 0
+    assert payload["systemMessage"].startswith("Tenn agent-job contract blocked")
+    assert "runtime_functionality_proof" in str(payload["systemMessage"])
+
+
 def test_codex_stop_output_is_valid_json(tmp_path: Path) -> None:
     repo = git_repo(tmp_path)
     completed, payload = run_hook(
