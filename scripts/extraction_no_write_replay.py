@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import copy
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -34,6 +36,7 @@ LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 BASELINE_PROFILE = "baseline-no-write"
 DOCLING_PROFILE = "docling-no-write"
 SUPPORTED_PROFILES = {BASELINE_PROFILE, DOCLING_PROFILE}
+DEFAULT_CASE_TIMEOUT_SECONDS = 900
 APPROVED_VENV_RELATIVE_PYTHONS = (
     "financial-engine_v2/.venv/bin/python",
     "financial-engine_v2/.venv/bin/python3",
@@ -106,6 +109,31 @@ METRIC_FIELDS = (
 
 class ReplayConfigError(RuntimeError):
     """Raised when the no-write contract cannot be proven before replay."""
+
+
+class CaseTimeoutError(TimeoutError):
+    """Raised when one replay case exceeds the configured runtime budget."""
+
+
+@contextmanager
+def _case_timeout(seconds: int):
+    if seconds <= 0:
+        yield
+        return
+
+    def _raise_timeout(_signum: int, _frame: Any) -> None:
+        raise CaseTimeoutError(f"case_timeout: exceeded {seconds} seconds")
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, seconds)
+    signal.signal(signal.SIGALRM, _raise_timeout)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+        if previous_timer[0] > 0:
+            signal.setitimer(signal.ITIMER_REAL, previous_timer[0], previous_timer[1])
 
 
 def _jsonable(value: Any) -> Any:
@@ -936,7 +964,13 @@ def _case_metadata(case: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _run_cases(cases: list[dict[str, Any]], llm_url: str, log_path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def _run_cases(
+    cases: list[dict[str, Any]],
+    llm_url: str,
+    log_path: Path,
+    *,
+    case_timeout_seconds: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     sys.path.insert(0, str(BACKEND_ROOT))
     from app.services import llm as llm_module
     from app.services import multipass_extraction as mp
@@ -956,20 +990,21 @@ def _run_cases(cases: list[dict[str, Any]], llm_url: str, log_path: Path) -> tup
                 debug_capture: dict[str, Any] = {}
                 started = time.monotonic()
                 case_id = str(case["case_id"])
-                log.write(f"case_start {case_id}\n")
+                log.write(f"case_start {case_id} timeout_seconds={case_timeout_seconds}\n")
                 try:
-                    result = mp.run_multipass_extraction(
-                        str(case["source_path"]),
-                        _case_metadata(case),
-                        client,
-                        skip_narrative=bool(case.get("skip_narrative", True)),
-                        parser_backend=str(case.get("parser_backend") or "docling"),
-                        strict_parser=bool(case.get("strict_parser", False)),
-                        observer=observer,
-                        debug_capture=debug_capture,
-                        openability_pages=case.get("openability_pages"),
-                        openability_selected_tables=bool(case.get("openability_selected_tables", False)),
-                    )
+                    with _case_timeout(case_timeout_seconds):
+                        result = mp.run_multipass_extraction(
+                            str(case["source_path"]),
+                            _case_metadata(case),
+                            client,
+                            skip_narrative=bool(case.get("skip_narrative", True)),
+                            parser_backend=str(case.get("parser_backend") or "docling"),
+                            strict_parser=bool(case.get("strict_parser", False)),
+                            observer=observer,
+                            debug_capture=debug_capture,
+                            openability_pages=case.get("openability_pages"),
+                            openability_selected_tables=bool(case.get("openability_selected_tables", False)),
+                        )
                     payload = _compact_payload(result)
                     results.append(
                         {
@@ -985,6 +1020,7 @@ def _run_cases(cases: list[dict[str, Any]], llm_url: str, log_path: Path) -> tup
                             "observer_events": observer.events,
                             "debug_capture_keys": sorted(debug_capture),
                             "pass3a_result_count": len(debug_capture.get("pass3a_results") or []),
+                            "case_timeout_seconds": case_timeout_seconds,
                             "result": payload,
                         }
                     )
@@ -999,6 +1035,7 @@ def _run_cases(cases: list[dict[str, Any]], llm_url: str, log_path: Path) -> tup
                             "source_path": case.get("source_path"),
                             "elapsed_s": round(time.monotonic() - started, 3),
                             "observer_events": observer.events,
+                            "case_timeout_seconds": case_timeout_seconds,
                             "result": {
                                 "status": "exception",
                                 "error": f"{type(exc).__name__}: {exc}",
@@ -1018,6 +1055,8 @@ def _is_infrastructure_failure(row: dict[str, Any]) -> bool:
     error = str(result.get("error") or "").lower()
     if not error:
         return False
+    if "case_timeout:" in error:
+        return True
     markers = (
         "must be set",
         "server_unavailable",
@@ -1511,7 +1550,12 @@ def run_replay(args: argparse.Namespace) -> int:
                 log.write(f"preflight_only profile={profile} case_count={len(cases)}\n")
         else:
             try:
-                results, llm_info = _run_cases(cases, llm_url, log_path)
+                results, llm_info = _run_cases(
+                    cases,
+                    llm_url,
+                    log_path,
+                    case_timeout_seconds=int(args.case_timeout_seconds),
+                )
             except Exception as exc:
                 results, llm_info = _runner_exception_payload(exc)
                 with log_path.open("a", encoding="utf-8") as log:
@@ -1638,6 +1682,15 @@ def parse_args() -> argparse.Namespace:
         "--preflight-only",
         action="store_true",
         help="Validate manifest, sources, env, isolated cache, and side-effect audit without calling extraction.",
+    )
+    parser.add_argument(
+        "--case-timeout-seconds",
+        type=int,
+        default=DEFAULT_CASE_TIMEOUT_SECONDS,
+        help=(
+            "Maximum seconds for each extraction case before recording an infrastructure "
+            "DATA_MISSING timeout. Use 0 to disable."
+        ),
     )
     return parser.parse_args()
 

@@ -10,6 +10,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 import unittest
 
@@ -128,6 +129,27 @@ class TestExtractionNoWriteReplay(unittest.TestCase):
         self.assertTrue(str(approved).endswith("financial-engine_v2/.venv/bin/python"))
         with self.assertRaises(RUNNER.ReplayConfigError):
             RUNNER.resolve_approved_venv_python("/tmp/random-venv/bin/python")
+
+    def test_case_timeout_can_be_disabled_for_debug_runs(self):
+        with RUNNER._case_timeout(0):
+            self.assertTrue(True)
+
+    def test_case_timeout_raises_timeout_error(self):
+        with self.assertRaises(RUNNER.CaseTimeoutError):
+            with RUNNER._case_timeout(1):
+                time.sleep(2)
+
+    def test_case_timeout_is_infrastructure_failure(self):
+        self.assertTrue(
+            RUNNER._is_infrastructure_failure(
+                {
+                    "result": {
+                        "status": "exception",
+                        "error": "CaseTimeoutError: case_timeout: exceeded 1 seconds",
+                    }
+                }
+            )
+        )
 
     def test_docling_profile_rejects_non_docling_manifest_cases(self):
         cases = [
