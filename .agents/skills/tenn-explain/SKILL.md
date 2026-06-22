@@ -12,6 +12,12 @@ Default mutation mode is read-only or report-local. For branch or PR topics,
 run `tenn-git-guard` before making current-state claims.
 Do not present current branch, PR, report, or runtime status as verified unless
 it was checked in the current run.
+For daemon, runtime, extraction, ingestion, automation, collector, scheduler,
+service, or pipeline status, separate activity evidence from functionality
+evidence. Services, timers, logs, tests, reports, artifacts, and merged PRs are
+activity evidence only. Functionality evidence requires the intended live output
+proof fields from `AGENTS.md`; if missing, say `PARTIAL`, `BROKEN`, or
+`DATA_MISSING`, not done.
 For branch, PR, report, task-card, or "has this already been done?" questions,
 include Task Ledger evidence when available. If the live or committed ledger is
 unavailable, say `DATA_MISSING` and summarize the bounded fallback search used
@@ -27,6 +33,8 @@ Cover:
 - what it is
 - why it exists
 - current state
+- activity evidence versus functionality evidence when runtime-like status is
+  involved
 - ledger and duplicate-work status when relevant
 - what changed
 - what is broken
@@ -64,6 +72,10 @@ Required shape:
 Trace the counter lineage as raw/captured -> candidate -> accepted -> evaluated
 -> reported. If any stage cannot be verified in the current run, mark it
 `DATA_MISSING` instead of filling a plausible number.
+
+When functionality is claimed, add the `Runtime Functionality Proof` table from
+`AGENTS.md` and explicitly state whether the intended live output is
+`WORKING`, `PARTIAL`, `BROKEN`, or `DATA_MISSING`.
 
 ## Zoom-Out / Contrarian Mode
 

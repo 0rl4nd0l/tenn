@@ -46,6 +46,41 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 - Label important claims as `VERIFIED`, `USER_REPORTED`, `INFERRED`, `UNKNOWN`,
   `CONFLICT`, or `DATA_MISSING`; treat conflicts as stop-or-narrow conditions.
 
+### Runtime Functionality Proof
+
+For daemon, runtime, ingestion, extraction, automation, collector, scheduler,
+service, or pipeline work, agents must not equate activity with functionality.
+
+These are not proof that the system works:
+
+- A running service is not proof.
+- A timer is not proof.
+- Fresh logs are not proof.
+- Fresh artifacts are not proof.
+- Passing unit tests are not proof.
+- A report bundle is not proof.
+- A merged PR is not proof.
+
+Functionality requires proving that the intended live output changed after the
+run began or was already fresh before the run. Before claiming `DONE`,
+functional, working, complete, or equivalent status for this work class, include
+a proof table with these exact fields:
+
+| Field | Required evidence |
+| --- | --- |
+| intended output | The live output the system is meant to produce, not the activity around it. |
+| live output location | DB table/query, API route, file path, queue, store, or external surface checked. |
+| pre-run max timestamp or count | Baseline freshness/count captured before the run or `DATA_MISSING`. |
+| post-run max timestamp or count | Freshness/count captured after the run or `DATA_MISSING`. |
+| rows/files inserted or updated after run start | Delta attributable to the run, or explicit zero. |
+| readiness/gate status | Current readiness gate, health gate, promotion gate, or blocker gate status. |
+| exact command/query used | Reproducible command, SQL, API call, or script used for the proof. |
+| result: WORKING / PARTIAL / BROKEN / DATA_MISSING | One of the four allowed functionality results. |
+| remaining blocker | The unresolved blocker, or `none` only when the proof supports `WORKING`. |
+
+If the intended output is stale, zero, missing, or unverified, the status must
+be `PARTIAL`, `BROKEN`, or `DATA_MISSING`, never `DONE`.
+
 ### Branch And Worktree Preflight
 
 - Before non-trivial implementation, check worktree, branch, HEAD, upstream,
@@ -98,6 +133,9 @@ If these disagree, stop or narrow the work until the conflict is explicit.
 - When reporting counts, scores, pass rates, daemon status, evaluation results,
   or surprisingly low/high numbers, explain denominator, filters, exclusions,
   freshness, and pipeline stage.
+- Before closeout for daemon, runtime, extraction, or automation functionality
+  claims, build evidence/counter-lineage for the intended output and current
+  gate status even if Orlando has not challenged the result.
 - If Orlando challenges a number with phrases like "why only", "shouldn't this
   be higher", "is the daemon doing it", or "that doesn't make sense", switch to
   evidence mode and build counter lineage: raw/captured -> candidate -> accepted
@@ -237,6 +275,13 @@ read-only work. If approval is required for the next meaningful step, stop.
 - Final reports should list files touched, files intentionally not touched,
   commands run, validation status, unsafe actions avoided, blocked items,
   ignored/untracked artifacts, and the next recommended prompt.
+- For runtime, daemon, automation, extraction, ingestion, collector, scheduler,
+  service, or pipeline work, `DONE` requires fresh intended-output proof from
+  the `Runtime Functionality Proof` table.
+- If only artifacts, tests, reports, logs, services, timers, or PR state changed,
+  use `DONE_WITH_RISK` or `PARTIAL`, not `DONE`.
+- If the task was report-only, explicitly say "report-only complete; system
+  functionality not proven."
 - Use `DONE_WITH_RISK` when useful work completed but evidence is incomplete,
   validation is skipped for a stated reason, or an external blocker remains.
 - Use `DONE` only when the stated done criteria and validation/reporting
@@ -255,6 +300,12 @@ read-only work. If approval is required for the next meaningful step, stop.
   `docs/agents/triage-labels.md`, and `docs/agents/domain.md`.
 - Do not mirror all host skills into Tenn. Repo skills should wrap Tenn-specific
   workflows.
+- If a repo-backed skill is needed but not shown in the picker or autocomplete,
+  read the skill file by path under `.agents/skills/<skill>/SKILL.md`.
+- Autocomplete or picker absence is not evidence that the repo-backed skill does
+  not exist.
+- Host/global skills must not silently replace Tenn repo-backed skills. Use the
+  repo skill, or state why it is unavailable and mark the gap explicitly.
 - Use subagents only when they save context, increase independent verification,
   or allow parallel read-only specialist review. Do not use subagents for
   trivial tasks or parallel writes on contested surfaces.

@@ -47,6 +47,10 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
    - classify the work as product, extraction, control-plane, repo hygiene,
      reporting, or owner-boundary
    - identify product/control-plane state without inventing runtime evidence
+   - for daemon, runtime, ingestion, extraction, automation, collector,
+     scheduler, service, or pipeline work, state whether functionality was
+     proven through intended live output or whether only activity, reports,
+     tests, or artifacts were proven
 4. Check git and ledger hygiene:
    - inspect staged, unstaged, untracked, and ignored/report artifacts relevant
      to the task
@@ -115,6 +119,7 @@ Use `docs/dev_flow/templates/HANDOFF.md` as the section contract.
 - Issues
 - Files changed
 - Tests and validation
+- Runtime functionality proof, or `not_applicable`
 - Reports/task cards created
 - Git status and dirt
 - Ledger status
@@ -166,6 +171,9 @@ A handoff is not complete unless:
 - relevant work is committed or explicitly recorded as uncommitted or
   owner-boundary
 - ledger entry exists, or `DATA_MISSING` plus fallback evidence is recorded
+- runtime-like work explicitly says whether functionality was proven, and uses
+  `PARTIAL`, `BROKEN`, or `DATA_MISSING` when intended live output was not
+  verified
 - `NEXT_GOAL.md` exists
 - the short fresh-session prompt exists
 - relevant artifacts and failed attempts are linked by path or URL

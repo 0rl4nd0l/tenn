@@ -36,26 +36,32 @@ board decision, task card, handoff, or explicit fix request.
    status, or evaluation result until denominator, filters, exclusions,
    freshness, and pipeline stage are understood. Use counter-lineage evidence
    when the number is surprising or challenged.
-8. Default to the smallest safe diff first. If one readable line solves the
+8. Before closeout on daemon, runtime, ingestion, extraction, automation,
+   collector, scheduler, service, or pipeline work, complete the
+   `Runtime Functionality Proof` table from `AGENTS.md`. If intended live output
+   is stale, zero, missing, or unverified, close as `PARTIAL`, `BROKEN`, or
+   `DATA_MISSING`; if only tests, reports, artifacts, logs, timers, services, or
+   PR state changed, use `DONE_WITH_RISK` or `PARTIAL`, not `DONE`.
+9. Default to the smallest safe diff first. If one readable line solves the
    task, change one line; remove unnecessary related lines only when safely in
    scope.
-9. Use RED/GREEN validation where practical: capture a failing regression test
+10. Use RED/GREEN validation where practical: capture a failing regression test
    or focused check before the fix, then rerun after the change.
-10. Execute one bounded milestone per run.
-11. Classify task difficulty and record model/worker routing before delegating
+11. Execute one bounded milestone per run.
+12. Classify task difficulty and record model/worker routing before delegating
    or making high-risk decisions.
-12. Delegate bounded workers only when they reduce risk or context load. Use
+13. Delegate bounded workers only when they reduce risk or context load. Use
    `docs/dev_flow/templates/WORKER_TASK.md` and `WORKER_RESULT.md`; each worker
    gets one lane, one worktree, one brief, one result file, and no shared
    mutation surface.
-13. Integrate one coherent change at a time.
-14. Run focused validation proportional to blast radius.
-15. Perform a Docs Impact Check before code review and closeout.
-16. Run the final PR/diff review gate before PR preparation. Use
+14. Integrate one coherent change at a time.
+15. Run focused validation proportional to blast radius.
+16. Perform a Docs Impact Check before code review and closeout.
+17. Run the final PR/diff review gate before PR preparation. Use
    `docs/dev_flow/templates/PR_REVIEW.md` and the host code-reviewer stance
    only inside Tenn task-card, registry, validation, and forbidden-path gates.
-17. Prepare, push, or open a PR only when the task and owner approval permit it.
-18. When stopping before completion, run or follow `tenn-handoff` so the next
+18. Prepare, push, or open a PR only when the task and owner approval permit it.
+19. When stopping before completion, run or follow `tenn-handoff` so the next
     session has git state, ledger state, validation, and a short next `/goal`.
 
 ## Fresh-Session Orchestrator Mode
@@ -199,6 +205,10 @@ ledger status, duplicate-work classification, ledger update result, and any
 
 `STATE.md`, `DECISIONS.md`, or the report bundle must also record Docs Impact
 Check fields and Model/Worker Routing fields for the run.
+
+For daemon, runtime, extraction, ingestion, automation, collector, scheduler,
+service, or pipeline closeout, `STATE.md`, `DECISIONS.md`, or the report bundle
+must also record the `Runtime Functionality Proof` result from `AGENTS.md`.
 
 Closeout must be one of: PR opened, local commit, failing regression test,
 issue closed, owner decision, or blocked with exact reason. Do not complete with
