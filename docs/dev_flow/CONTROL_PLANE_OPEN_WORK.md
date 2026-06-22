@@ -1,6 +1,6 @@
 # Control Plane Open Work Register
 
-Status: report-only audit after PR #380 and PR #382.
+Status: control-plane follow-up after PR #383.
 
 Priority meanings:
 
@@ -13,7 +13,7 @@ Priority meanings:
 
 | Priority | Item | Status | Evidence | Impact | Owner decision needed | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| P0 | Runtime Functionality Proof can still be skipped by agent behavior | PARTIAL | Policy and docs checker exist, but no universal runtime enforcement was found. | Codex can still overclaim runtime/product/data `DONE` if the operator does not force proof. | Decide whether policy-only is acceptable or a stricter gate is required. | Add a closeout validator or Stop-hook check for tasks marked runtime/product/data. |
+| P0 | Runtime Functionality Proof can still be skipped by agent behavior | IMPLEMENTED | `scripts/agent_job_contract.py check-closeout` enforces runtime-like closeout proof against report artifacts; `scripts/agent_job_hook.py` runs it on Stop/SessionEnd for active task cards. | Runtime/product/data `DONE` claims now get a control-plane warning/failure when proof fields are missing, unless the task is explicitly report-only, docs-only, or control-plane only. | No immediate decision for this control-plane gate. | After merge, monitor for false positives and only tune the runtime-like keyword/exemption list with focused tests. |
 | P1 | Repo `/goal monitor` implementation | NOT_FOUND | No repo command, script, hook, daemon, or timer was found. Host `codex-goal-monitor` exists only outside the repo. | Orlando can be misled into thinking `/goal monitor` is a Tenn feature. | Decide whether host-only monitor is enough or a repo wrapper/report protocol is needed. | Either document HOST_ONLY permanently or approve a repo-backed monitor wrapper task. |
 | P1 | Task ledger current-state drift | PARTIAL | Live ledger validates but contains a stale PR #380 `pr_opened` entry; current GitHub says PR #380 merged. | "What next?" flows can reason from stale ledger state. | Decide whether ledger should be append-only corrected or regenerated. | Add a ledger status-refresh entry and export a current committed summary. |
 | P1 | Git hook installation check is stale or misconfigured | PARTIAL | `scripts/check_agent_hooks.py` reports configured path `/home/l4nd0/tenn/.git/hooks` missing while common-dir hooks exist under `/mnt/sdb2/...`. | Local pre-commit/pre-push expectations may not match actual hook execution. | Decide whether to standardize hooks path across worktrees. | Run a dedicated hook repair/verification task. |
@@ -34,10 +34,10 @@ Priority meanings:
 
 ## Recommended Fix Order
 
-1. Add or enforce a Runtime Functionality Proof closeout gate for runtime/product/data task cards.
-2. Refresh the task ledger for PR #380/#382 state and export a current summary.
-3. Decide the `/goal monitor` contract: host-only documented command or repo-backed wrapper/report validator.
-4. Repair and verify Git hook path behavior across Tenn worktrees.
-5. Refresh `SKILLS_SURFACE.md` metadata and stale report-state references.
+1. Refresh the task ledger for PR #380/#382/#383 state and export a current summary.
+2. Decide the `/goal monitor` contract: host-only documented command or repo-backed wrapper/report validator.
+3. Repair and verify Git hook path behavior across Tenn worktrees.
+4. Refresh `SKILLS_SURFACE.md` metadata and stale report-state references.
+5. Watch the Runtime Functionality Proof closeout gate for false positives before widening enforcement.
 
 None of these should be mixed into this audit unless separately approved. This audit is docs/report consolidation only.

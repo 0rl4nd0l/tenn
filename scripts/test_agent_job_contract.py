@@ -9,7 +9,7 @@ import pytest
 from scripts import agent_job_contract as ajc
 
 
-def task_card(**overrides: object) -> str:
+def task_card(body: str = "Task body.", **overrides: object) -> str:
     fields: dict[str, object] = {
         "job_id": "codex-dev-job-1",
         "lane": "Evaluation",
@@ -34,8 +34,28 @@ def task_card(**overrides: object) -> str:
         else:
             rendered = str(value)
         lines.append(f"{key}: {rendered}")
-    lines.extend(["---", "", "Task body."])
+    lines.extend(["---", "", body])
     return "\n".join(lines) + "\n"
+
+
+def runtime_proof_report(*, proof_result: str = "WORKING", state: str = "DONE") -> str:
+    return "\n".join(
+        [
+            f"State: {state}",
+            "",
+            "## Runtime Functionality Proof",
+            "- intended output: rows in the live output table",
+            "- live output location: `sqlite:///tmp/runtime-proof.db`",
+            "- pre-run max timestamp or count: 10",
+            "- post-run max timestamp or count: 11",
+            "- rows/files inserted or updated after run start: 1",
+            "- readiness/gate status: validation gate passed",
+            "- exact command/query used: `select count(*) from output`",
+            f"- result: {proof_result}",
+            "- remaining blocker: none",
+            "",
+        ]
+    )
 
 
 def issue_fields(result: ajc.ValidationResult) -> set[str]:
@@ -435,6 +455,108 @@ def test_check_report_artifacts_cli_outputs_json(tmp_path) -> None:
 
     assert completed.returncode == 0
     assert '"ok": true' in completed.stdout
+
+
+def test_check_report_artifacts_runtime_done_without_proof_fails(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text("State: DONE\nOnly logs were checked.\n", encoding="utf-8")
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(
+            body="Runtime service repair.",
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"],
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    messages = [issue.message for issue in result.issues if issue.field == "runtime_functionality_proof"]
+    assert any("missing Runtime Functionality Proof fields" in message for message in messages)
+    assert any("cannot use DONE" in message for message in messages)
+
+
+def test_check_report_artifacts_runtime_done_with_working_proof_passes(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text(runtime_proof_report(), encoding="utf-8")
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(
+            body="Runtime service repair.",
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"],
+        ),
+        repo_root=repo,
+    )
+
+    assert result.ok
+
+
+def test_check_report_artifacts_runtime_data_missing_uses_done_with_risk(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text(
+        runtime_proof_report(proof_result="DATA_MISSING", state="DONE_WITH_RISK"),
+        encoding="utf-8",
+    )
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(
+            body="Runtime service repair.",
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"],
+        ),
+        repo_root=repo,
+    )
+
+    assert result.ok
+
+
+def test_check_report_artifacts_runtime_data_missing_cannot_use_done(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+    report_dir = repo / "reports" / "agent_jobs" / "codex-dev-job-1"
+    report_dir.mkdir(parents=True)
+    (report_dir / "REPORT.md").write_text(
+        runtime_proof_report(proof_result="DATA_MISSING", state="DONE"),
+        encoding="utf-8",
+    )
+
+    result = ajc.check_report_artifacts_for_task_card_markdown(
+        task_card(
+            body="Runtime service repair.",
+            allowed_files=["reports/agent_jobs/codex-dev-job-1/REPORT.md"],
+        ),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any("non-WORKING Runtime Functionality Proof" in issue.message for issue in result.issues)
+
+
+def test_check_closeout_docs_only_control_plane_task_is_exempt_without_report(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(body="Docs-only control-plane note about Runtime Functionality Proof."),
+        repo_root=repo,
+    )
+
+    assert result.ok
+    assert result.artifacts == []
+
+
+def test_check_closeout_runtime_card_requires_report_artifacts(tmp_path) -> None:
+    repo = git_repo(tmp_path)
+
+    result = ajc.check_closeout_for_task_card_markdown(
+        task_card(body="Runtime service repair."),
+        repo_root=repo,
+    )
+
+    assert not result.ok
+    assert any(issue.field == "allowed_files" for issue in result.issues)
 
 
 def test_check_artifacts_alias_still_outputs_json(tmp_path) -> None:
