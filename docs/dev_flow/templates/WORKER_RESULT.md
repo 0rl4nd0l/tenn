@@ -11,6 +11,15 @@ skill entrypoint.
 - Parent task ID:
 - Worker ID:
 - Result path:
+- Stop condition:
+
+## Stop Condition
+stop_condition: <copied from WORKER_TASK.md>
+stop_condition_hit: <yes|no|DATA_MISSING>
+stop_condition_impact: <explanation and impact if hit, otherwise none>
+
+`stop_condition_hit` accepts exactly `yes`, `no`, or `DATA_MISSING`. Do not use
+ambiguous values such as `maybe`, `unknown`, or `n/a`.
 
 ## Model Routing
 - task_tier: <small|medium|large|critical>
@@ -38,6 +47,11 @@ skill entrypoint.
 
 ## Blockers And DATA_MISSING
 - <blocker or None>
+
+## Orchestrator Review
+- Status: <accepted|revise|park|discard|owner_decision_needed|pending>
+- Reason:
+- Integrated commit or diff: <sha/path/not_applicable>
 
 ## Recommended Action
 <integrate|revise|park|discard|ask_owner>

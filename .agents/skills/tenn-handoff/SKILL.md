@@ -1,6 +1,6 @@
 ---
 name: tenn-handoff
-description: Produce a Tenn report-local handoff with git, ledger, session trace, validation, next milestones, and a short fresh-session /goal prompt.
+description: Produce a Tenn report-local handoff with git, ledger, session trace, linked artifacts, next milestones, and a short fresh-session orchestrator /goal prompt.
 ---
 
 # Tenn Handoff
@@ -19,6 +19,9 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
 - Current report directory, preferably the task card `output_dir`.
 - Current git state, validation state, and known PR/issue references.
 - Agent Task Ledger state from `scripts/agent_task_ledger.py` when available.
+- Relevant report bundles, review-board reports, worker results, task cards,
+  validation artifacts, failed attempts, known risks, and do-not-touch
+  boundaries.
 
 ## Workflow
 
@@ -36,6 +39,8 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
    - completed work
    - changed files
    - commits, branches, PRs, issues, reports, task cards, tests, validation
+   - review-board packets, worker briefs/results, prior handoffs, and failed
+     attempts that affect the next session
    - failed attempts, retries, uncertainty, and `DATA_MISSING`
 3. Zoom out:
    - explain where this session fits in broader Tenn workflow
@@ -61,13 +66,43 @@ cards, ledger state, Git Hygiene, and owner-boundary rules.
    risk and does not create another report-only loop.
 6. Write the handoff artifacts.
 
+## Fresh-Session Continuation Contract
+
+Handoff owns fresh-session continuation. A handoff must make the next session
+usable without chat archaeology.
+
+Include explicit links or repo-relative paths for every relevant artifact:
+
+- report bundles and handoff directories
+- review-board `BOARD.md`, `BOARD_DECISION.json`, and `NEXT_GOAL.md`
+- worker briefs and `WORKER_RESULT.md` files
+- task cards and task-ledger entries
+- PRs, issues, branches, worktrees, and commits
+- validation artifacts, raw logs, failed attempts, and known risks
+- source problem statement or owner decision when available
+
+Also include:
+
+- what the next session should do first
+- what the next session must not touch
+- the next 5-10 key milestones when the session is part of a larger repair
+- stop conditions and owner decisions needed
+
+When continuation requires orchestration, `NEXT_GOAL.md` must instruct the
+fresh session to read `HANDOFF.md` first, run `tenn-git-guard` and ledger/task
+duplicate checks, then act as an orchestrator through `tenn-fix`: split
+independent lanes, delegate only bounded workers, review worker outputs before
+integration, integrate one coherent change at a time, validate, and report
+honestly.
+
 ## Required Artifacts
 
 Under `reports/agent_jobs/<job_id>/handoff/` or the task card handoff path,
 write:
 
 - `HANDOFF.md`
-- `NEXT_GOAL.md`
+- `NEXT_GOAL.md` using the handoff-only prompt contract in
+  `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md`
 - optional `ARCHITECTURE_NOTES.md`
 - optional `LEDGER_ENTRY.json`
 
@@ -91,7 +126,10 @@ Use `docs/dev_flow/templates/HANDOFF.md` as the section contract.
 - Failed attempts / mistakes
 - Open risks
 - Owner decisions needed
-- Next 10 milestones
+- Relevant artifact map
+- What the next session should do first
+- What not to touch
+- Next 5-10 milestones
 - Short next `/goal`
 - Do-not-touch boundaries
 - Evidence grades
@@ -115,9 +153,15 @@ safe source exists, write `DATA_MISSING`.
 ## Short Fresh-Session Prompt
 
 `NEXT_GOAL.md` must contain a short prompt, not a full recap. It must point at
-`HANDOFF.md` and instruct the next orchestrator to read it first, run
-`tenn-git-guard`, check ledger/PR/task/report duplicates, and use subagents
-where useful.
+`HANDOFF.md` and instruct the next session to read it first, run
+`tenn-git-guard`, check ledger/PR/task/report duplicates, then act as an
+orchestrator when work remains. The prompt must name the first action, the main
+do-not-touch boundaries, and the stop state.
+
+Use `docs/dev_flow/templates/HANDOFF_NEXT_GOAL.md` for this handoff-specific
+prompt. Do not make the shared `docs/dev_flow/templates/NEXT_GOAL.md`
+handoff-specific; `tenn-issue`, `tenn-review-board`, and other non-handoff
+producers need that shared template to remain generic and directly executable.
 
 ## Completion Rule
 
@@ -132,6 +176,8 @@ A handoff is not complete unless:
   verified
 - `NEXT_GOAL.md` exists
 - the short fresh-session prompt exists
+- relevant artifacts and failed attempts are linked by path or URL
+- the first next action and do-not-touch boundaries are explicit
 - no product/runtime/data/extraction mutation occurred outside approved scope
 
 ## Host-Global Boundary

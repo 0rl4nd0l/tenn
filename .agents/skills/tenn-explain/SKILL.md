@@ -1,6 +1,6 @@
 ---
 name: tenn-explain
-description: Tenn layman-depth explanation wrapper for issues, PRs, branches, reports, skills, hooks, subsystems, and architecture. Report-local by default, with optional EXPLAIN.md.
+description: Tenn layman-depth explanation wrapper for issues, PRs, branches, reports, skills, hooks, subsystems, architecture, and zoom-out checks. Report-local by default, with optional EXPLAIN.md.
 ---
 
 # Tenn Explain
@@ -77,9 +77,30 @@ When functionality is claimed, add the `Runtime Functionality Proof` table from
 `AGENTS.md` and explicitly state whether the intended live output is
 `WORKING`, `PARTIAL`, `BROKEN`, or `DATA_MISSING`.
 
+## Zoom-Out / Contrarian Mode
+
+Use this mode when Orlando asks to zoom out, stress-test whether the current
+lane is solving the real problem, or when a workflow appears trapped in narrow
+fixes or reports.
+
+Answer explicitly:
+
+- Are we solving the real root problem?
+- Are we overfitting to one file, document, bug, screenshot, or artifact?
+- Are we trapped in report-only loops?
+- Are we making broad system progress?
+- Would a failure-class, document-class, route-class, or workflow-class approach
+  be better than another narrow fix?
+- What is the best next action by production-readiness value?
+
+For financial extraction work, push the explanation toward failure classes,
+document classes, breadth, provenance, confidence, and regression coverage
+rather than one-off PDF fixes. Mark runtime, corpus, or canonical-number claims
+as `DATA_MISSING` unless verified in the current run.
+
 ## Durable Output
 
-Write `EXPLAIN.md` or `COUNTER_LINEAGE.md` only when the explanation is
-reusable, non-trivial, or needed as handoff evidence. Do not mutate
-product/runtime/data/extraction files, GitHub, registry state, host-global
-files, branches, or worktrees.
+Write `EXPLAIN.md`, `COUNTER_LINEAGE.md`, or a zoom-out section only when the
+explanation is reusable, non-trivial, or needed as handoff evidence. Do not
+mutate product/runtime/data/extraction files, GitHub, registry state,
+host-global files, branches, or worktrees.
